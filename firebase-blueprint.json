@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "host": {
+      "title": "Host",
+      "description": "Host employees working for the MCN.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "avatar": { "type": "string" },
+        "role": { "type": "string" },
+        "platforms": { "type": "array", "items": { "type": "string" } },
+        "brands": { "type": "array", "items": { "type": "string" } },
+        "baseMonthlyTargetHours": { "type": "number" },
+        "baseMonthlyTargetRevenue": { "type": "number" },
+        "consistencyScore": { "type": "number" },
+        "joinedDate": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "bankAccount": { "type": "string" },
+        "studio": { "type": "string" },
+        "hostType": { "type": "string" },
+        "customWorkingDaysTarget": { "type": "number" }
+      },
+      "required": ["id", "name", "employeeId"]
+    },
+    "attendanceLog": {
+      "title": "Attendance Log",
+      "description": "Log of host attendance for a shift.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "hostId": { "type": "string" },
+        "hostName": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "date": { "type": "string" },
+        "shiftHours": { "type": "string" },
+        "platform": { "type": "string" },
+        "brandHandled": { "type": "string" },
+        "liveDuration": { "type": "number" },
+        "sessionCount": { "type": "number" },
+        "status": { "type": "string" },
+        "revenueGenerated": { "type": "number" },
+        "conversionRate": { "type": "number" },
+        "engagementRate": { "type": "number" },
+        "orders": { "type": "number" },
+        "studio": { "type": "string" }
+      },
+      "required": ["id", "hostId", "date"]
+    },
+    "clientBrand": {
+      "title": "Client Brand",
+      "description": "Details about a client brand partnered.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "contractEndDate": { "type": "string" },
+        "invoiceDate": { "type": "string" },
+        "monthlyMeetingDate": { "type": "string" },
+        "sessions": { "type": "array" },
+        "accounts": { "type": "array" }
+      },
+      "required": ["id", "name"]
+    },
+    "clientLead": {
+      "title": "Client Lead",
+      "description": "Potential clients for the MCN.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "contactNumber": { "type": "string" },
+        "platformInterest": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "firestore": {
+    "hosts": {
+      "schema": { "$ref": "#/entities/host" },
+      "description": "Stores user host profile data."
+    },
+    "logs": {
+      "schema": { "$ref": "#/entities/attendanceLog" },
+      "description": "Stores attendance logic per shift."
+    },
+    "client_brands": {
+      "schema": { "$ref": "#/entities/clientBrand" },
+      "description": "Client brands active on MCN."
+    },
+    "client_leads": {
+      "schema": { "$ref": "#/entities/clientLead" },
+      "description": "Leads of potential clients."
+    }
+  }
+}

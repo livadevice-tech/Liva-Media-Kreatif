@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Liva Guidelines Colors */
+  --color-violet-50: #FCF8FE;
+  --color-violet-100: #F5E8FB;
+  --color-violet-200: #E6C5F7;
+  --color-violet-300: #D897F3;
+  --color-violet-400: #B975F0;
+  --color-violet-500: #9F51EB;
+  --color-violet-600: #7800F0;
+  --color-violet-700: #5A00B8;
+  --color-violet-800: #3E0080;
+  --color-violet-900: #25004D;
+
+  --color-slate-50: #F8F9FA;
+  --color-slate-100: #F0F2F5;
+  --color-slate-200: #D8DCE5;
+  --color-slate-300: #BBC1CE;
+  --color-slate-400: #9DA4B5;
+  --color-slate-500: #80889C;
+  --color-slate-600: #646A7C;
+  --color-slate-700: #4A4F5E;
+  --color-slate-800: #333641;
+  --color-slate-900: #252831;
+
+  --color-orange-400: #FFB05C;
+  --color-orange-500: #FF9626;
+  --color-orange-600: #E67F12;
+
+  --color-yellow-300: #FFE870;
+  --color-yellow-400: #FFDD33;
+  --color-yellow-500: #E6C01C;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float 6s ease-in-out infinite 1.5s;
+}
+.animate-float-fast {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+.recharts-wrapper {
+  outline: none !important;
+}
+.recharts-wrapper:focus {
+  outline: none !important;
+}

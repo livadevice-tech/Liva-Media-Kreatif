@@ -1,0 +1,8 @@
+{
+  "name": "Liva Attendece System",
+  "description": "SaaS analytics and intelligence platform for a live streaming agency featuring attendance monitoring, performance scoring, partner recommendations, and a built-in AI assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
