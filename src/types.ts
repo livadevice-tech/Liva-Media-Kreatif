@@ -41,6 +41,7 @@ export interface AttendanceLog {
   liveDuration: number; // hours (e.g. 4)
   sessionCount: number; // typically 1 or 2
   status: "Present" | "Late" | "Absent" | "Excused";
+  checkInTime?: string; // exact login time format e.g. "05:08:12"
   revenueGenerated: number; // IDR
   conversionRate: number; // percentage (e.g. 4.2)
   engagementRate: number; // percentage (e.g. 8.5)

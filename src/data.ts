@@ -379,7 +379,8 @@ const createLogs = (): AttendanceLog[] => {
           revenueGenerated: revenue,
           orders: orders,
           conversionRate: isExcused ? 0 : 4.2,
-          engagementRate: isExcused ? 0 : 11.5
+          engagementRate: isExcused ? 0 : 11.5,
+          checkInTime: isExcused ? undefined : (status === "Late" ? (d % 2 === 0 ? "13:12:05" : "18:05:42") : (d % 2 === 0 ? "12:56:12" : "17:51:20"))
         });
       } else {
         // Backup hosts get logged on distributed active dates
@@ -402,7 +403,8 @@ const createLogs = (): AttendanceLog[] => {
             revenueGenerated: Math.round(2800000 + (d % 4) * 600000),
             orders: Math.round(45 + (d % 6) * 15),
             conversionRate: 3.5,
-            engagementRate: 9.8
+            engagementRate: 9.8,
+            checkInTime: d % 2 === 0 ? "12:54:15" : "17:52:10"
           });
         }
       }

@@ -985,10 +985,53 @@ export default function App() {
     if (!activeHostObj) return;
 
     const todayDateStr = new Date().toISOString().split("T")[0];
-    const currentTimeStr = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    const nowObj = new Date();
+    const pad = (num: number) => String(num).padStart(2, "0");
+    const exactCheckInTime = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
+    const currentTimeStr = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
 
     // Determine attendance status automatically
-    const status = "Present";
+    let status: "Present" | "Late" = "Present";
+    const cleanShift = hostForm.shift.replace(/\s+/g, "");
+    
+    // Find ranges like HH.MM-HH.MM or HH:MM-HH:MM
+    let parsedStart: { hour: number; minute: number } | null = null;
+    const rangeMatch = cleanShift.match(/(\d{1,2})[:.](\d{2})[-–—]/);
+    if (rangeMatch) {
+      parsedStart = {
+        hour: parseInt(rangeMatch[1], 10),
+        minute: parseInt(rangeMatch[2], 10)
+      };
+    } else {
+      const singleMatch = cleanShift.match(/(\d{1,2})[:.](\d{2})/);
+      if (singleMatch) {
+         parsedStart = {
+           hour: parseInt(singleMatch[1], 10),
+           minute: parseInt(singleMatch[2], 10)
+         };
+      }
+    }
+
+    if (parsedStart) {
+      const currentHour = nowObj.getHours();
+      const currentMinute = nowObj.getMinutes();
+      const currentSecond = nowObj.getSeconds();
+
+      const startTotalMin = parsedStart.hour * 60 + parsedStart.minute;
+      const currTotalMin = currentHour * 60 + currentMinute;
+      let diffMin = currTotalMin - startTotalMin;
+
+      // Handle 24-hour wrap-around (e.g. shift starts at 22:00, checking in at 01:00 the next day)
+      if (diffMin < -720) {
+        diffMin += 1440;
+      } else if (diffMin > 720) {
+        diffMin -= 1440;
+      }
+
+      if (diffMin > 0 || (diffMin === 0 && currentSecond > 0)) {
+        status = "Late";
+      }
+    }
     
     // Auto calculate random metrics for streaming session metrics (orders, conversion, revenue)
     const randomOrders = Math.floor(Math.random() * 250) + 80;
@@ -1009,6 +1052,7 @@ export default function App() {
       liveDuration: 4.0, // standard stream is 4 hours
       sessionCount: 1,
       status: status,
+      checkInTime: exactCheckInTime,
       revenueGenerated: randomRevenue,
       conversionRate: randomConversion,
       engagementRate: randomEngagement,
@@ -1018,7 +1062,7 @@ export default function App() {
     setLogs(prev => [newLog, ...prev]);
     addNotification(
       `⏰ Absensi Streamer: ${newLog.hostName}`,
-      `Host "${newLog.hostName}" melakukan absen siaran di "${newLog.studio}" untuk brand "${newLog.brandHandled}" (${status === "Present" ? "Tepat Waktu" : "Terlambat"}).`,
+      `Host "${newLog.hostName}" melakukan absen siaran di "${newLog.studio}" untuk brand "${newLog.brandHandled}" (${status === "Present" ? "Tepat Waktu" : "Terlambat"} - pukul ${exactCheckInTime}).`,
       status === "Present" ? "success" : "warning",
       "database"
     );
@@ -3498,10 +3542,16 @@ export default function App() {
                             <div className="font-bold text-purple-950">
                               {item.brandHandled}
                             </div>
-                            <div className="text-[10px] text-[#4c3e6b]/80 flex items-center gap-1 mt-0.5">
+                            <div className="text-[10px] text-[#4c3e6b]/80 flex items-center gap-1 mt-0.5 flex-wrap">
                               <span>{item.platform}</span>
                               <span>•</span>
                               <span>{item.date}</span>
+                              {item.checkInTime && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-purple-600 font-extrabold bg-purple-50 px-1 py-0.2 rounded border border-purple-100">⏱ {item.checkInTime}</span>
+                                </>
+                              )}
                             </div>
                             <div className="text-[9px] text-purple-400 mt-0.5 font-semibold">
                               {item.shiftHours}
@@ -7809,7 +7859,15 @@ export default function App() {
                                 <span>{item.hostName}</span>
                                 <span className="text-[9px] text-[#2563eb] font-mono font-bold">({item.employeeId})</span>
                               </td>
-                              <td className="py-3 px-4 font-mono text-slate-505 text-slate-600 font-bold">{item.date}</td>
+                              <td className="py-3 px-4 font-mono text-slate-600 font-bold">
+                                <div>{item.date}</div>
+                                {item.checkInTime && (
+                                  <div className="text-[10px] text-purple-600 font-sans font-extrabold mt-0.5 flex items-center gap-1">
+                                    <span>⏱</span>
+                                    <span>{item.checkInTime}</span>
+                                  </div>
+                                )}
+                              </td>
                               <td className="py-3 px-4 text-slate-800 font-bold">{item.brandHandled}</td>
                               <td className="py-3 px-4 text-slate-550 text-slate-600 font-semibold">{item.platform}</td>
                               <td className="py-3 px-4 text-indigo-705 text-indigo-700 font-mono text-[11px] font-bold">{item.shiftHours}</td>
