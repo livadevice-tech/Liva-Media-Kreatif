@@ -30,6 +30,14 @@ function getGeminiClient(): GoogleGenAI | null {
   return aiInstance;
 }
 
+// Safe error responder to prevent sensitive information leak in production environments
+function getSafeErrorMessage(error: any): string {
+  if (process.env.NODE_ENV !== "production") {
+    return error?.message || "Unknown error";
+  }
+  return "Internal Server Error";
+}
+
 // API Health Check
 app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date().toISOString() });
@@ -115,7 +123,7 @@ When talking about monetary values, always use IDR formatted with standard prefi
 
   } catch (error: any) {
     console.error("Gemini Chat API Error:", error);
-    res.status(500).json({ error: "Error communicating with AI Assistant", details: error.message });
+    res.status(500).json({ error: "Error communicating with AI Assistant", details: getSafeErrorMessage(error) });
   }
 });
 
@@ -179,7 +187,7 @@ ${JSON.stringify(alerts)}
 
   } catch (error: any) {
     console.error("Summary API Error:", error);
-    res.status(500).json({ error: "Failed to generate AI summary", details: error.message });
+    res.status(500).json({ error: "Failed to generate AI summary", details: getSafeErrorMessage(error) });
   }
 });
 
@@ -232,7 +240,7 @@ Do not output markdown code blocks. Just direct stringified JSON.
 
   } catch (error: any) {
     console.error("Evaluation API Error:", error);
-    res.status(500).json({ error: "Failed to evaluate host KPI", details: error.message });
+    res.status(500).json({ error: "Failed to evaluate host KPI", details: getSafeErrorMessage(error) });
   }
 });
 

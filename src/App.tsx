@@ -738,6 +738,13 @@ export default function App() {
   const [opLoginPass, setOpLoginPass] = useState("");
   const [opError, setOpError] = useState("");
 
+  // Cybersecurity & Admin Privacy states
+  const [currentPasswordInput, setCurrentPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
+  const [passwordChangeError, setPasswordChangeError] = useState("");
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState("");
+
   // Toast status notifier for host credentials adjustments
   const [credentialsToast, setCredentialsToast] = useState("");
 
@@ -4512,6 +4519,27 @@ export default function App() {
 
                   {/* WORKSPACE AREA CONTAINER */}
                   <div className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 pb-24 relative">
+
+                    {/* Proactive Security Check: Warn on default password */}
+                    {adminCredentials.password === "123" && (
+                      <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn" id="cybersecurity_alert_banner">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-amber-100 rounded-lg text-amber-800 text-sm">⚠️</div>
+                          <div>
+                            <h4 className="text-xs font-black text-amber-900 uppercase">Peringatan Keamanan Kritis (Cybersecurity Alert)</h4>
+                            <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
+                              Sistem mendeteksi Anda masih menggunakan kata sandi default ("123"). Demi keamanan data agency, segera perbarui sandi Master Admin di menu Privasi.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setOperatorTab("admin_privacy")}
+                          className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-black tracking-wide uppercase transition-all cursor-pointer border-0 shadow-sm shrink-0"
+                        >
+                          Ubah Sandi
+                        </button>
+                      </div>
+                    )}
 
             {/* ==================== SUBTAB: 1. DASHBOARD UTAMA ⭐ ==================== */}
             {operatorTab === "dashboard_utama" && (
@@ -10662,18 +10690,90 @@ export default function App() {
                     {/* Ubah Password */}
                     <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 h-fit">
                       <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><Lock className="w-4 h-4 text-slate-500"/> Ubah Kata Sandi Admin</h4>
-                      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); customAlert("Sandi berhasil diperbarui!"); }}>
+                      
+                      {passwordChangeError && (
+                        <div className="mb-4 bg-red-50 border border-red-150 text-rose-700 text-xs py-2 px-3 rounded-lg font-bold">
+                          ⚠️ {passwordChangeError}
+                        </div>
+                      )}
+                      
+                      {passwordChangeSuccess && (
+                        <div className="mb-4 bg-emerald-50 border border-emerald-150 text-emerald-700 text-xs py-2 px-3 rounded-lg font-bold">
+                          ✅ {passwordChangeSuccess}
+                        </div>
+                      )}
+
+                      <form className="space-y-4" onSubmit={(e) => {
+                        e.preventDefault();
+                        setPasswordChangeError("");
+                        setPasswordChangeSuccess("");
+
+                        if (currentPasswordInput !== adminCredentials.password) {
+                          setPasswordChangeError("Kata sandi saat ini tidak sesuai!");
+                          return;
+                        }
+
+                        if (newPasswordInput.length < 6) {
+                          setPasswordChangeError("Kata sandi baru harus minimal 6 karakter demi keamanan.");
+                          return;
+                        }
+
+                        if (newPasswordInput === "123" || newPasswordInput === "admin") {
+                          setPasswordChangeError("Sandi '" + newPasswordInput + "' terlalu lemah. Silakan pilih sandi yang lebih kompleks.");
+                          return;
+                        }
+
+                        if (newPasswordInput !== confirmPasswordInput) {
+                          setPasswordChangeError("Konfirmasi kata sandi baru tidak cocok.");
+                          return;
+                        }
+
+                        // update secure admin credentials state (this auto triggers localStorage save via useEffect in App.tsx)
+                        setAdminCredentials({
+                          username: adminCredentials.username,
+                          password: newPasswordInput
+                        });
+
+                        setCurrentPasswordInput("");
+                        setNewPasswordInput("");
+                        setConfirmPasswordInput("");
+                        setPasswordChangeSuccess("Kata sandi admin berhasil diperbarui secara aman!");
+                        
+                        setTimeout(() => {
+                          setPasswordChangeSuccess("");
+                        }, 5000);
+                      }}>
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">Kata Sandi Saat Ini</label>
-                          <input type="password" required className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-rose-500 outline-none" />
+                          <input
+                            type="password"
+                            required
+                            value={currentPasswordInput}
+                            onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-rose-500 outline-none"
+                          />
                         </div>
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">Kata Sandi Baru</label>
-                          <input type="password" required className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-rose-500 outline-none" />
+                          <input
+                            type="password"
+                            required
+                            value={newPasswordInput}
+                            onChange={(e) => setNewPasswordInput(e.target.value)}
+                            placeholder="Min. 6 karakter"
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-rose-500 outline-none"
+                          />
                         </div>
                         <div>
                           <label className="block text-[11px] font-bold text-slate-500 mb-1">Konfirmasi Kata Sandi Baru</label>
-                          <input type="password" required className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-rose-500 outline-none" />
+                          <input
+                            type="password"
+                            required
+                            value={confirmPasswordInput}
+                            onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                            placeholder="Ketik ulang sandi baru"
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-rose-500 outline-none"
+                          />
                         </div>
                         <button type="submit" className="w-full mt-2 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer border-0">Perbarui Kata Sandi</button>
                       </form>
