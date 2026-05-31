@@ -1982,8 +1982,13 @@ export default function App() {
       title,
       message,
       onConfirm: () => {
-        onConfirm();
-        setConfirmModal(null);
+        try {
+          onConfirm();
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setConfirmModal(null);
+        }
       },
       type
     });
@@ -4594,10 +4599,89 @@ export default function App() {
                           <button 
                             type="button"
                             onClick={() => {
-                              alert("Fitur Auto Generate jadwal otomatis sedang dalam tahap pengembangan.");
+                              
+                               requestConfirm("Konfirmasi Auto Generate", "Auto Generate akan membuat jadwal harian untuk seluruh sesi di bulan ini (dan menghapus jadwal lama yang berpotongan). Lanjutkan?", () => {
+                               const [yearStr, monthStr] = operatorSelectedMonth.split("-");
+                               const year = parseInt(yearStr);
+                               const month = parseInt(monthStr) - 1;
+                               
+                               const daysInMonth = new Date(year, month + 1, 0).getDate();
+                               const newSchedules = [];
+                               
+                               for (let day = 1; day <= daysInMonth; day++) {
+                                 const d = new Date(year, month, day);
+                                 // format YYYY-MM-DD
+                                 const yyyy = d.getFullYear();
+                                 const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                 const dd = String(d.getDate()).padStart(2, '0');
+                                 const dateStr = `${yyyy}-${mm}-${dd}`;
+                                 
+                                 clientBrands.forEach(brand => {
+                                   if (brand.sessions) {
+                                     brand.sessions.forEach(sess => {
+                                        if (!sess.host) return;
+                                        
+                                        // find the host
+                                        const hostObj = hosts.find(h => h.name === sess.host);
+                                        if (hostObj) {
+                                          newSchedules.push({
+                                            id: `auto_gen_${brand.id}_${dateStr}_${sess.id}`,
+                                            hostId: hostObj.id,
+                                            date: dateStr,
+                                            timeSlot: sess.shift,
+                                            platform: sess.platform || "",
+                                            brand: brand.name,
+                                            status: "Assigned",
+                                            studio: sess.studio || "Studio Bandar Lampung",
+                                            isOffDay: false,
+                                            isPindahStudio: false,
+                                            backupOption: "none",
+                                            backupHostId: "",
+                                            backupHostName: "", hostName: hostObj.name
+                                          });
+                                        }
+                                     });
+                                   }
+                                 });
+                               }
+                               
+                               // Replace existing schedules for this month with the newly generated ones
+                               setSchedules(prev => {
+                                 const filtered = prev.filter(s => {
+                                   const sDate = new Date(s.date);
+                                   return sDate.getFullYear() !== year || sDate.getMonth() !== month;
+                                 });
+                                 return [...filtered, ...newSchedules];
+                               });
+                               
+                               addNotification("Jadwal Berhasil Dibuat", `Auto Generate selesai memproduksi ${newSchedules.length} sesi untuk bulan ${getIndonesianMonthLabel(operatorSelectedMonth)}.`, "success", "absensi");
+                               }, "info");
+
                             }}
                             className="px-3 py-2.5 rounded-none border-b-[3px] border-transparent text-slate-400 font-bold text-[13px] flex items-center gap-2 hover:text-slate-600 transition-colors whitespace-nowrap">
                             <Sparkles className="w-4 h-4" strokeWidth={2.5} /> Auto Generate
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                               requestConfirm(
+                                 "Reset Jadwal Bulan Ini", 
+                                 "Apakah Anda yakin ingin menghapus SELURUH jadwal untuk bulan ini? Tindakan ini tidak dapat dibatalkan.", 
+                                 () => {
+                                    const [yearStr, monthStr] = operatorSelectedMonth.split('-');
+                                    const year = parseInt(yearStr);
+                                    const month = parseInt(monthStr) - 1;
+                                    setSchedules(prev => prev.filter(s => {
+                                        const sDate = new Date(s.date);
+                                        return sDate.getFullYear() !== year || sDate.getMonth() !== month;
+                                    }));
+                                    addNotification("Jadwal Direset", `Seluruh jadwal bulan ini berhasil dihapus.`, "danger", "absensi");
+                                 }, 
+                                 "danger"
+                               );
+                            }}
+                            className="px-3 py-2.5 rounded-none border-b-[3px] border-transparent text-rose-500 font-bold text-[13px] flex items-center gap-2 hover:text-rose-700 transition-colors whitespace-nowrap">
+                            <Trash2 className="w-4 h-4" strokeWidth={2.5} /> Reset Jadwal
                           </button>
                        </div>
                        <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto hide-scrollbar">
@@ -4918,14 +5002,54 @@ export default function App() {
                                               
                                               if (isOff) {
                                                 return (
-                                                  <div key={sch.id} className="text-[8.5px] font-bold px-1 py-0.5 rounded bg-slate-100 text-slate-500 border-l-[3px] border-slate-300 truncate">
+                                                  <div 
+                                                    key={sch.id} 
+                                                    onClick={(e) => { 
+                                                      e.stopPropagation(); 
+                                                      setIsScheduleModalOpen(true); 
+                                                      setSelectedCalendarDate(sch.date);
+                                                      setScheduleForm({
+                                                        id: sch.id,
+                                                        hostId: sch.hostId,
+                                                        timeSlot: sch.timeSlot,
+                                                        brand: sch.brand,
+                                                        platform: sch.platform,
+                                                        studio: sch.studio,
+                                                        isOffDay: sch.isOffDay || false,
+                                                        isPindahStudio: sch.isPindahStudio || false,
+                                                        backupOption: sch.isPindahStudio || sch.isOffDay ? (sch.backupHostId ? "other" : "none") : "none",
+                                                        backupHostId: sch.backupHostId || ""
+                                                      }); 
+                                                    }}
+                                                    className="cursor-pointer hover:bg-slate-200 text-[8.5px] font-bold px-1 py-0.5 rounded bg-slate-100 text-slate-500 border-l-[3px] border-slate-300 truncate">
                                                     🏖️ {sch.hostName} Off
                                                   </div>
                                                 );
                                               }
 
                                               return (
-                                                <div key={sch.id} className={`text-[8.5px] font-bold px-1 py-0.5 rounded border-l-[3px] truncate ${colorClasses}`} title={`${sch.hostName} - ${sch.timeSlot}`}>
+                                                <div 
+                                                  key={sch.id} 
+                                                  onClick={(e) => { 
+                                                      e.stopPropagation(); 
+                                                      setIsScheduleModalOpen(true); 
+                                                      setSelectedCalendarDate(sch.date);
+                                                      setScheduleForm({
+                                                        id: sch.id,
+                                                        hostId: sch.hostId,
+                                                        timeSlot: sch.timeSlot,
+                                                        brand: sch.brand,
+                                                        platform: sch.platform,
+                                                        studio: sch.studio,
+                                                        isOffDay: sch.isOffDay || false,
+                                                        isPindahStudio: sch.isPindahStudio || false,
+                                                        backupOption: sch.isPindahStudio || sch.isOffDay ? (sch.backupHostId ? "other" : "none") : "none",
+                                                        backupHostId: sch.backupHostId || ""
+                                                      }); 
+                                                  }}
+                                                  className={`cursor-pointer text-[8.5px] font-bold px-1 py-0.5 rounded border-l-[3px] truncate hover:brightness-95 ${colorClasses}`} 
+                                                  title={`${sch.hostName} - ${sch.timeSlot}`}
+                                                >
                                                   {sch.hostName}
                                                 </div>
                                               );
