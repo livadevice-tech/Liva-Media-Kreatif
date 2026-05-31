@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, FormEvent } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { createPortal } from "react-dom";
 import LandingPage from "./LandingPage";
 import * as XLSX from "xlsx";
@@ -971,11 +972,19 @@ export default function App() {
 
   // --- HOST FUNCTIONALITIES & FORM STATE ---
   const [hostForm, setHostForm] = useState(() => ({
-    brand: brands[0] || "Wardah",
-    platform: platforms[0] || "TikTok Live",
-    shift: shifts[0] || "Shift 1 (05.00 - 11.00)",
-    studio: studios[0]?.name || "Studio Bandar Lampung"
+    brand: "",
+    platform: "",
+    shift: "",
+    studio: ""
   }));
+
+  const [hostFormError, setHostFormError] = useState("");
+  const [showLateAlert, setShowLateAlert] = useState(false);
+  const [lateCheckInDetails, setLateCheckInDetails] = useState<{
+    time: string;
+    shift: string;
+    diffMinutes: number;
+  } | null>(null);
 
   const [showFormSuccess, setShowFormSuccess] = useState(false);
   const [submittedMessage, setSubmittedMessage] = useState("");
@@ -983,6 +992,11 @@ export default function App() {
   const handleHostAttendanceSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!activeHostObj) return;
+
+    if (!hostForm.brand || !hostForm.platform || !hostForm.shift || !hostForm.studio) {
+      setHostFormError("Harap lengkapi semua rincian absen (Brand, Platform, Shift, dan Studio) terlebih dahulu!");
+      return;
+    }
 
     const todayDateStr = new Date().toISOString().split("T")[0];
     const nowObj = new Date();
@@ -1030,7 +1044,19 @@ export default function App() {
 
       if (diffMin > 0 || (diffMin === 0 && currentSecond > 0)) {
         status = "Late";
+        setLateCheckInDetails({
+          time: exactCheckInTime,
+          shift: hostForm.shift,
+          diffMinutes: diffMin
+        });
+        setShowLateAlert(true);
+      } else {
+        setShowLateAlert(false);
+        setLateCheckInDetails(null);
       }
+    } else {
+      setShowLateAlert(false);
+      setLateCheckInDetails(null);
     }
     
     // Auto calculate random metrics for streaming session metrics (orders, conversion, revenue)
@@ -1066,13 +1092,22 @@ export default function App() {
       status === "Present" ? "success" : "warning",
       "database"
     );
+    setHostFormError("");
     setShowFormSuccess(true);
     setSubmittedMessage(`Absen Berhasil disubmit! Diinput otomatis pada jam ${currentTimeStr} (${status === "Present" ? "Tepat Waktu" : "Terlambat"})`);
     
-    // Auto reset notification
+    // Reset form fields back to empty (unselected/default)
+    setHostForm({
+      brand: "",
+      platform: "",
+      shift: "",
+      studio: ""
+    });
+
+    // Auto reset success notification banner after 6 seconds
     setTimeout(() => {
       setShowFormSuccess(false);
-    }, 5000);
+    }, 6000);
   };
 
   // (Host personal analytics states relocated after salarySettings declaration to prevent block-scoped reference error)
@@ -2002,7 +2037,21 @@ export default function App() {
   }, [salarySettings]);
 
   // --- HOST PERSONAL ANALYTICS ---
-  const [hostCutoffPeriod, setHostCutoffPeriod] = useState<string>("2026-05");
+  const [hostCutoffPeriod, setHostCutoffPeriod] = useState<string>(() => {
+    const d = new Date();
+    const day = d.getDate();
+    let m = d.getMonth() + 1; // 1-12
+    let y = d.getFullYear();
+    const startDay = 16; // cutoff start boundary
+    if (day >= startDay) {
+      m += 1;
+      if (m > 12) {
+        m = 1;
+        y += 1;
+      }
+    }
+    return `${y}-${String(m).padStart(2, "0")}`;
+  });
 
   // Dynamically compute schedules (combining explicit schedules with clientBrand session defaults)
   const computedSchedules = useMemo(() => {
@@ -2090,8 +2139,12 @@ export default function App() {
   }, [hostLogs]);
 
   // Periodic categorization states for Attendance / Salary
-  const [timeFilter, setTimeFilter] = useState("Semua"); // "Semua" | "Harian" | "Mingguan" | "Bulanan"
-  const [filterReferenceDate, setFilterReferenceDate] = useState("2026-05-22");
+  const [timeFilter, setTimeFilter] = useState("Bulanan"); // "Semua" | "Harian" | "Mingguan" | "Bulanan"
+  const [filterReferenceDate, setFilterReferenceDate] = useState(() => {
+    const d = new Date();
+    const pad = (num: number) => String(num).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  });
 
   const isLogDateMatching = useCallback((logDateStr: string) => {
     if (timeFilter === "Semua") return true;
@@ -3306,10 +3359,69 @@ export default function App() {
 
                   {/* FORM SECTION CONTAINER */}
                   <div id="form-section" className={hostActiveSubTab === "form" ? "flex-1 flex flex-col" : "hidden"}>
+                  
+                  {/* LATE CHECK-IN SPECIFIC DETAILED NOTIFICATION ALERT */}
+                  <AnimatePresence>
+                    {showLateAlert && lateCheckInDetails && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95, y: -15 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -15 }}
+                        className="mb-4 bg-gradient-to-r from-amber-500 to-red-650 border border-amber-400 text-white p-4 rounded-2xl shadow-md relative overflow-hidden"
+                        id="host_late_alert_notification"
+                      >
+                        <div className="absolute -top-3 -right-3 opacity-20">
+                          <Clock className="w-20 h-20 text-white animate-spin-slow" />
+                        </div>
+                        <div className="flex gap-3 items-start relative z-10">
+                          <div className="bg-white/20 text-white p-1.5 rounded-lg flex-shrink-0 animate-bounce">
+                            <AlertTriangle className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-250">SYSTEM ALARM: TERLAMBAT!</h4>
+                            <p className="text-[11px] font-bold mt-0.5 leading-snug">
+                              Absensi Anda terhitung terlambat melewati batas jam mulai shift kerja.
+                            </p>
+                            <div className="mt-2.5 bg-black/20 rounded-xl p-2 font-mono text-[9px] border border-white/5 space-y-0.5">
+                              <div className="flex justify-between">
+                                <span className="text-white/70">Waktu Absen:</span>
+                                <span className="font-extrabold text-white">{lateCheckInDetails.time} WIB</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/70">Shift Terpilih:</span>
+                                <span className="font-extrabold text-amber-200">{lateCheckInDetails.shift}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-white/70">Terlambat:</span>
+                                <span className="font-extrabold text-red-200">
+                                  ⏱ +{lateCheckInDetails.diffMinutes} menit
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => setShowLateAlert(false)}
+                            className="text-white/75 hover:text-white bg-white/10 hover:bg-white/20 p-1 rounded-md transition-all ml-1"
+                            title="Tutup Notifikasi"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   {showFormSuccess && (
                     <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl mb-4 text-xs flex gap-2 items-start shadow-sm" id="submit-success-banner">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                       <span className="font-semibold">{submittedMessage}</span>
+                    </div>
+                  )}
+
+                  {hostFormError && (
+                    <div className="bg-red-50 border border-red-150 text-red-700 p-3 rounded-xl mb-4 text-xs flex gap-2 items-center font-bold" id="host_form_error_banner">
+                      <span>⚠️ {hostFormError}</span>
                     </div>
                   )}
 
@@ -3318,15 +3430,21 @@ export default function App() {
                     <div className="space-y-3.5">
                       {/* BRAND MATCH SELECTION */}
                       <div>
-                        <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans">
-                          Brand Besutan:
+                        <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans flex justify-between">
+                          <span>Brand Besutan:</span>
+                          {!hostForm.brand && <span className="text-[10px] text-red-500 font-bold">*Wajib diisi</span>}
                         </label>
                         <select
                           id="form_input_brand"
+                          required
                           value={hostForm.brand}
-                          onChange={(e) => setHostForm(prev => ({ ...prev, brand: e.target.value }))}
-                          className="w-full bg-white border border-purple-100 rounded-xl px-3.5 py-2.5 text-xs text-purple-950 font-black focus:outline-none focus:border-purple-500 font-sans transition-all shadow-sm"
+                          onChange={(e) => {
+                            setHostFormError("");
+                            setHostForm(prev => ({ ...prev, brand: e.target.value }));
+                          }}
+                          className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:border-purple-500 font-sans transition-all shadow-sm ${!hostForm.brand ? "border-red-200 text-purple-300" : "border-purple-100 text-purple-950"}`}
                         >
+                          <option value="" disabled className="text-purple-300 font-normal">-- Pilih Brand Besutan --</option>
                           {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
                             <option key={b} value={b} className="text-purple-950 font-semibold">{b}</option>
                           ))}
@@ -3335,15 +3453,21 @@ export default function App() {
 
                       {/* PLATFORM MATCH SELECTION */}
                       <div>
-                        <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans">
-                          Platform Streaming:
+                        <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans flex justify-between">
+                          <span>Platform Streaming:</span>
+                          {!hostForm.platform && <span className="text-[10px] text-red-500 font-bold">*Wajib diisi</span>}
                         </label>
                         <select
                           id="form_input_platform"
+                          required
                           value={hostForm.platform}
-                          onChange={(e) => setHostForm(prev => ({ ...prev, platform: e.target.value }))}
-                          className="w-full bg-white border border-purple-100 rounded-xl px-3.5 py-2.5 text-xs text-purple-950 font-black focus:outline-none focus:border-purple-500 transition-all shadow-sm"
+                          onChange={(e) => {
+                            setHostFormError("");
+                            setHostForm(prev => ({ ...prev, platform: e.target.value }));
+                          }}
+                          className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:border-purple-500 transition-all shadow-sm ${!hostForm.platform ? "border-red-200 text-purple-300" : "border-purple-100 text-purple-950"}`}
                         >
+                          <option value="" disabled className="text-purple-300 font-normal">-- Pilih Platform Streaming --</option>
                           {platforms.map(p => (
                             <option key={p} value={p} className="text-purple-950 font-semibold">{p}</option>
                           ))}
@@ -3352,15 +3476,21 @@ export default function App() {
 
                       {/* SHIFT SELECTION */}
                       <div>
-                        <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans">
-                          Shift Kerja Live:
+                        <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans flex justify-between">
+                          <span>Shift Kerja Live:</span>
+                          {!hostForm.shift && <span className="text-[10px] text-red-500 font-bold">*Wajib diisi</span>}
                         </label>
                         <select
                           id="form_input_shift"
+                          required
                           value={hostForm.shift}
-                          onChange={(e) => setHostForm(prev => ({ ...prev, shift: e.target.value }))}
-                          className="w-full bg-white border border-purple-100 rounded-xl px-3.5 py-2.5 text-xs text-purple-950 font-black focus:outline-none focus:border-purple-500 transition-all shadow-sm"
+                          onChange={(e) => {
+                            setHostFormError("");
+                            setHostForm(prev => ({ ...prev, shift: e.target.value }));
+                          }}
+                          className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:border-purple-500 transition-all shadow-sm ${!hostForm.shift ? "border-red-200 text-purple-300" : "border-purple-100 text-purple-950"}`}
                         >
+                          <option value="" disabled className="text-purple-300 font-normal">-- Pilih Shift Kerja --</option>
                           {shifts.map(s => (
                             <option key={s} value={s} className="text-purple-950 font-semibold">{s}</option>
                           ))}
@@ -3369,15 +3499,21 @@ export default function App() {
 
                       {/* STUDIO SELECTION */}
                       <div>
-                        <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans">
-                          Studio & Lokasi:
+                        <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans flex justify-between">
+                          <span>Studio & Lokasi:</span>
+                          {!hostForm.studio && <span className="text-[10px] text-red-500 font-bold">*Wajib diisi</span>}
                         </label>
                         <select
                           id="form_input_studio"
+                          required
                           value={hostForm.studio}
-                          onChange={(e) => setHostForm(prev => ({ ...prev, studio: e.target.value }))}
-                          className="w-full bg-white border border-purple-100 rounded-xl px-3.5 py-2.5 text-xs text-purple-950 font-black focus:outline-none focus:border-purple-500 transition-all shadow-sm"
+                          onChange={(e) => {
+                            setHostFormError("");
+                            setHostForm(prev => ({ ...prev, studio: e.target.value }));
+                          }}
+                          className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:border-purple-500 transition-all shadow-sm ${!hostForm.studio ? "border-red-200 text-purple-300" : "border-purple-100 text-purple-950"}`}
                         >
+                          <option value="" disabled className="text-purple-300 font-normal">-- Pilih Studio & Lokasi --</option>
                           {studios.map(st => (
                             <option key={st.id} value={st.name} className="text-purple-950 font-semibold">{st.name} - {st.location}</option>
                           ))}
