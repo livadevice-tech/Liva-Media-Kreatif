@@ -25,6 +25,8 @@ export interface HostEmployee {
   studio?: string; // "Studio Bandar Lampung" | "Studio Tanggamus"
   hostType?: "Reguler" | "Backup"; // "Reguler" or "Backup"
   customWorkingDaysTarget?: number; // Custom target working days for Reguler host
+  customBaseSalary?: number; // Custom basic monthly salary for Reguler host
+  customShiftRate?: number; // Custom rate per shift for Backup host
 }
 
 export interface AttendanceLog {

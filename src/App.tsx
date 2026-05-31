@@ -352,6 +352,10 @@ export default function App() {
     localStorage.setItem("mcn_brand_reports", JSON.stringify(brandReports));
   }, [brandReports]);
 
+  // States for custom salary overrides
+  const [editingSalaryHostId, setEditingSalaryHostId] = useState<string | null>(null);
+  const [tempSalaryValue, setTempSalaryValue] = useState<string>("");
+
   const [activeReportPlatform, setActiveReportPlatform] = useState<string>("Tiktok");
   const [activeReportTab, setActiveReportTab] = useState<"ringkasan" | "data_harian" | "data_mingguan" | "data_bulanan" | "history_upload">("ringkasan");
   const [reportSortKey, setReportSortKey] = useState<string>("name");
@@ -2207,9 +2211,11 @@ export default function App() {
 
       if (hostType === "Reguler") {
         // Gaji Reguler Pokok bulanan
-        const regulerBase = isTanggamus 
-          ? (salarySettings.tanggamusRegulerBase ?? 3500000)
-          : (salarySettings.bandarLampungRegulerBase ?? 4000000);
+        const regulerBase = typeof host.customBaseSalary === "number"
+          ? host.customBaseSalary
+          : (isTanggamus 
+              ? (salarySettings.tanggamusRegulerBase ?? 3500000)
+              : (salarySettings.bandarLampungRegulerBase ?? 4000000));
         basePayRate = regulerBase;
         // Hitung hari kerja sebulan proporsional (totalHadir / requiredWorkingDays)
         const activeDaysRatio = totalHadir / requiredWorkingDays;
@@ -2225,9 +2231,11 @@ export default function App() {
         }
       } else {
         // Gaji Backup per shift
-        const backupShiftRate = isTanggamus
-          ? (salarySettings.tanggamusBackupPay ?? 150000)
-          : (salarySettings.bandarLampungBackupPay ?? 175000);
+        const backupShiftRate = typeof host.customShiftRate === "number"
+          ? host.customShiftRate
+          : (isTanggamus
+              ? (salarySettings.tanggamusBackupPay ?? 150000)
+              : (salarySettings.bandarLampungBackupPay ?? 175000));
         basePayRate = backupShiftRate;
         netSalary = totalHadir * backupShiftRate;
       }
@@ -3125,9 +3133,6 @@ export default function App() {
                       >
                         Akses Dashboard Admin
                       </button>
-                      <div className="text-center pt-2">
-                          <span className="text-[10px] text-slate-400 font-bold">Default Login: admin / 123</span>
-                      </div>
                   </form>
               )}
 
@@ -6998,28 +7003,114 @@ export default function App() {
                                 </td>
 
                                 <td className="py-4 px-4 text-left">
-                                  {hostType === "Reguler" ? (
-                                    <div className="space-y-1 font-sans">
-                                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none">Gaji Pokok Wilayah</div>
-                                      <div className="text-xs font-extrabold text-slate-800 font-mono flex items-center gap-1">
-                                        {formatIDR(item.basePayRate)} 
-                                        <span className="text-[9.5px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                                          {item.studio ? (item.studio.includes("Tanggamus") ? "Tanggamus" : "Bandar Lampung") : "Bandar Lampung"}
-                                        </span>
+                                  {editingSalaryHostId === item.id ? (
+                                    <div className="space-y-1.5 font-sans min-w-[150px]">
+                                      <div className="text-[10px] text-purple-700 font-extrabold uppercase tracking-wide">
+                                        {hostType === "Reguler" ? "Gaji Pokok Kustom" : "Tarif Shift Kustom"}
                                       </div>
-                                      <div className="text-[9.5px] text-blue-600 font-medium flex items-center gap-1" title="Arahkan kursor ke Estimasi Gaji Bersih untuk melihat rincian rumus dan bonus">
-                                        <span className="bg-blue-50 text-blue-700 px-1 py-0.5 rounded text-[8px] font-bold uppercase border border-blue-100">info</span>
-                                        <span>Hover nominal gaji untuk rincian</span>
+                                      <div className="flex items-center gap-1">
+                                        <div className="relative flex-1">
+                                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400">Rp</span>
+                                          <input
+                                            type="text"
+                                            value={tempSalaryValue}
+                                            onChange={(e) => {
+                                              const val = e.target.value.replace(/[^0-9]/g, "");
+                                              setTempSalaryValue(val);
+                                            }}
+                                            placeholder="Gaji kustom"
+                                            className="w-full bg-white border border-purple-300 focus:border-purple-600 focus:ring-1 focus:ring-purple-100 rounded-lg pl-7 pr-2 py-1 text-xs font-mono font-bold text-purple-950 focus:outline-none"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                const numVal = Number(tempSalaryValue);
+                                                if (hostType === "Reguler") {
+                                                  handleUpdateHost(item.id, { customBaseSalary: numVal || undefined });
+                                                } else {
+                                                  handleUpdateHost(item.id, { customShiftRate: numVal || undefined });
+                                                }
+                                                setEditingSalaryHostId(null);
+                                              }
+                                            }}
+                                          />
+                                        </div>
+                                        <button
+                                          onClick={() => {
+                                            const numVal = Number(tempSalaryValue);
+                                            if (hostType === "Reguler") {
+                                              handleUpdateHost(item.id, { customBaseSalary: numVal || undefined });
+                                            } else {
+                                              handleUpdateHost(item.id, { customShiftRate: numVal || undefined });
+                                            }
+                                            setEditingSalaryHostId(null);
+                                          }}
+                                          title="Simpan Gaji Kustom"
+                                          className="p-1 px-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                                        >
+                                          ✓
+                                        </button>
+                                        <button
+                                          onClick={() => setEditingSalaryHostId(null)}
+                                          title="Batal"
+                                          className="p-1 px-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                                        >
+                                          ✕
+                                        </button>
                                       </div>
+                                      <div className="text-[8.5px] text-slate-400 italic">Tekan ✓ atau Enter untuk menyimpan</div>
                                     </div>
                                   ) : (
                                     <div className="space-y-1 font-sans">
-                                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none">Tarif per Shift</div>
-                                      <div className="text-xs font-extrabold text-slate-800 font-mono">
-                                        {formatIDR(item.basePayRate)} <span className="text-[9.5px] text-slate-500 font-medium">/ Shift</span>
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none">
+                                          {hostType === "Reguler" ? "Gaji Pokok Wilayah" : "Tarif per Shift"}
+                                        </span>
+                                        {((hostType === "Reguler" && typeof item.customBaseSalary === "number") || 
+                                          (hostType !== "Reguler" && typeof item.customShiftRate === "number")) && (
+                                          <span className="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-800 text-[8px] font-black uppercase px-1 py-0.2 rounded border border-emerald-250">
+                                            Kustom
+                                            <button
+                                              onClick={() => {
+                                                if (hostType === "Reguler") {
+                                                  handleUpdateHost(item.id, { customBaseSalary: undefined });
+                                                } else {
+                                                  handleUpdateHost(item.id, { customShiftRate: undefined });
+                                                }
+                                              }}
+                                              title="Kembalikan ke Default Wilayah"
+                                              className="text-emerald-950 hover:text-red-600 px-0.5 font-bold transition-all ml-0.5 text-[9px] cursor-pointer"
+                                            >
+                                              &times;
+                                            </button>
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-xs font-extrabold text-slate-800 font-mono flex items-center gap-1 flex-wrap">
+                                        {formatIDR(item.basePayRate)} 
+                                        {hostType === "Reguler" ? (
+                                          <span className="text-[9.5px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                            {item.studio ? (item.studio.includes("Tanggamus") ? "Tanggamus" : "Bandar Lampung") : "Bandar Lampung"}
+                                          </span>
+                                        ) : (
+                                          <span className="text-[9.5px] text-slate-500 font-medium">/ Shift</span>
+                                        )}
+                                        
+                                        <button
+                                          onClick={() => {
+                                            setEditingSalaryHostId(item.id);
+                                            const currentVal = hostType === "Reguler" 
+                                              ? (item.customBaseSalary ?? item.basePayRate) 
+                                              : (item.customShiftRate ?? item.basePayRate);
+                                            setTempSalaryValue(String(currentVal || ""));
+                                          }}
+                                          title="Atur Gaji Kustom Khusus Host Ini"
+                                          className="px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[9px] font-black rounded border border-purple-200/60 inline-flex items-center gap-0.5 transition-all cursor-pointer shadow-3xs"
+                                        >
+                                          ✏️ Kustom
+                                        </button>
                                       </div>
                                       <div className="text-[9.5px] text-blue-600 font-medium flex items-center gap-1" title="Arahkan kursor ke Estimasi Gaji Bersih untuk melihat rincian rumus">
-                                        <span className="bg-blue-50 text-blue-700 px-1 py-0.5 rounded text-[8px] font-bold uppercase border border-blue-100">info</span>
+                                        <span className="bg-blue-50 text-blue-700 px-1 py-0.5 rounded text-[8px] font-bold uppercase border border-blue-105">info</span>
                                         <span>Hover nominal gaji untuk rincian</span>
                                       </div>
                                     </div>
