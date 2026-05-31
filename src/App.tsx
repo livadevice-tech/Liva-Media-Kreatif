@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useMemo, useCallback, FormEvent } from "react";
+import React, { useState, useEffect, useMemo, useCallback, FormEvent } from "react";
 import { createPortal } from "react-dom";
 import LandingPage from "./LandingPage";
 import * as XLSX from "xlsx";
@@ -326,7 +326,7 @@ export default function App() {
   };
 
   // Dynamic Platforms, Brands, and Shifts lists which can be customized
-  const [platforms, setPlatforms] = useState<string[]>(() => {
+  const [platforms, _setPlatforms] = useState<string[]>(() => {
     const saved = localStorage.getItem("mcn_platforms");
     return saved ? JSON.parse(saved) : PLATFORMS;
   });
@@ -394,17 +394,17 @@ export default function App() {
       setAlertState({ message });
   };
 
-  const [brands, setBrands] = useState<string[]>(() => {
+  const [brands, _setBrands] = useState<string[]>(() => {
     const saved = localStorage.getItem("mcn_brands");
     return saved ? JSON.parse(saved) : BRANDS;
   });
 
-  const [shifts, setShifts] = useState<string[]>(() => {
+  const [shifts, _setShifts] = useState<string[]>(() => {
     const saved = localStorage.getItem("mcn_shifts");
     return saved ? JSON.parse(saved) : SHIFTS;
   });
 
-  const [studios, setStudios] = useState<StudioItem[]>(() => {
+  const [studios, _setStudios] = useState<StudioItem[]>(() => {
     const saved = localStorage.getItem("mcn_studios");
     return saved ? JSON.parse(saved) : [
       { id: "std_1", name: "Studio Bandar Lampung", location: "Bandar Lampung" },
@@ -414,22 +414,41 @@ export default function App() {
     ];
   });
 
-  // Save Platforms, Brands, and Shifts back to localStorage
-  useEffect(() => {
-    localStorage.setItem("mcn_platforms", JSON.stringify(platforms));
-  }, [platforms]);
+  const setPlatforms = useCallback((action: any) => {
+    _setPlatforms(prev => {
+      const next = typeof action === "function" ? action(prev) : action;
+      localStorage.setItem("mcn_platforms", JSON.stringify(next));
+      setDoc(doc(db, "settings", "global_configs"), { platforms: next }, { merge: true }).catch(console.error);
+      return next;
+    });
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem("mcn_brands", JSON.stringify(brands));
-  }, [brands]);
+  const setBrands = useCallback((action: any) => {
+    _setBrands(prev => {
+      const next = typeof action === "function" ? action(prev) : action;
+      localStorage.setItem("mcn_brands", JSON.stringify(next));
+      setDoc(doc(db, "settings", "global_configs"), { brands: next }, { merge: true }).catch(console.error);
+      return next;
+    });
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem("mcn_shifts", JSON.stringify(shifts));
-  }, [shifts]);
+  const setShifts = useCallback((action: any) => {
+    _setShifts(prev => {
+      const next = typeof action === "function" ? action(prev) : action;
+      localStorage.setItem("mcn_shifts", JSON.stringify(next));
+      setDoc(doc(db, "settings", "global_configs"), { shifts: next }, { merge: true }).catch(console.error);
+      return next;
+    });
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem("mcn_studios", JSON.stringify(studios));
-  }, [studios]);
+  const setStudios = useCallback((action: any) => {
+    _setStudios(prev => {
+      const next = typeof action === "function" ? action(prev) : action;
+      localStorage.setItem("mcn_studios", JSON.stringify(next));
+      setDoc(doc(db, "settings", "global_configs"), { studios: next }, { merge: true }).catch(console.error);
+      return next;
+    });
+  }, []);
 
   // --- DATABASE & STATE PERSISTENCE ---
   const [hosts, _setHosts] = useState<HostEmployee[]>(() => { try { return JSON.parse(localStorage.getItem("mcn_hosts") || "[]") } catch { return [] } });
@@ -512,6 +531,23 @@ export default function App() {
     unsubs.push(onSnapshot(collection(db, "brand_upload_history"), (snap) => {
       setBrandUploadHistory(snap.docs.map(d => d.data()));
     }, (err) => console.error("Firestore brand_upload_history err:", err)));
+    
+    // Listens for explicit roster schedules in real-time
+    unsubs.push(onSnapshot(collection(db, "schedules"), (snap) => {
+      _setSchedules(snap.docs.map(d => d.data()));
+    }, (err) => console.error("Firestore schedules err:", err)));
+
+    // Listens for global configurations (custom brands, shifts, studios, platforms)
+    unsubs.push(onSnapshot(doc(db, "settings", "global_configs"), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (Array.isArray(data.brands)) _setBrands(data.brands);
+        if (Array.isArray(data.shifts)) _setShifts(data.shifts);
+        if (Array.isArray(data.studios)) _setStudios(data.studios);
+        if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
+      }
+    }, (err) => console.error("Firestore global_configs err:", err)));
+
     return () => {
       unsubs.forEach(u => u());
     };
@@ -563,7 +599,7 @@ export default function App() {
   const [leadFormModal, setLeadFormModal] = useState<{isOpen: boolean, data: Partial<ClientLead>}>({isOpen: false, data: {}});
 
   // --- SCHEDULES SYSTEM FOR HOST WORKING CALENDAR ---
-  const [schedules, setSchedules] = useState<any[]>(() => {
+  const [schedules, _setSchedules] = useState<any[]>(() => {
     const saved = localStorage.getItem("mcn_schedules_v3");
     if (saved) {
       try {
@@ -573,9 +609,14 @@ export default function App() {
     return [];
   });
 
-  useEffect(() => {
-    localStorage.setItem("mcn_schedules_v3", JSON.stringify(schedules));
-  }, [schedules]);
+  const setSchedules = useCallback((action: any) => {
+    _setSchedules(prev => {
+      const next = typeof action === "function" ? action(prev) : action;
+      localStorage.setItem("mcn_schedules_v3", JSON.stringify(next));
+      syncToFirestore("schedules", prev, next);
+      return next;
+    });
+  }, []);
 
   // --- ACCESS ROLE STATE ---
   // Default to "host" to prioritize testing their submission, "operator", or "client"
@@ -2693,6 +2734,90 @@ export default function App() {
     );
   };
 
+  const handleExportJSON = () => {
+    try {
+      const backupData = {
+        hosts,
+        logs,
+        clientBrands,
+        clientLeads,
+        schedules,
+        brands,
+        shifts,
+        studios,
+        platforms
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `liva_database_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      setCredentialsToast("Berhasil mengunduh berkas backup data JSON!");
+      setTimeout(() => setCredentialsToast(""), 3000);
+    } catch (err: any) {
+      customAlert("Gagal mengekspor data: " + err.message);
+    }
+  };
+
+  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileReader = new FileReader();
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      fileReader.readAsText(file, "UTF-8");
+      fileReader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target?.result as string);
+          if (!parsed || typeof parsed !== "object") {
+            customAlert("Format berkas backup JSON tidak valid!");
+            return;
+          }
+          
+          requestConfirm(
+            "Impor & Timpa Database",
+            "Apakah Anda yakin ingin mengganti seluruh data saat ini (Host, Log Absensi, Klien, Leads, Jadwal, Brand, Platform, Shift, dan Studio) dengan data dari file JSON ini? Seluruh data real di cloud juga akan diperbarui.",
+            () => {
+              if (Array.isArray(parsed.hosts)) {
+                setHosts(parsed.hosts);
+              }
+              if (Array.isArray(parsed.logs)) {
+                setLogs(parsed.logs);
+              }
+              if (Array.isArray(parsed.clientBrands)) {
+                setClientBrands(parsed.clientBrands);
+              }
+              if (Array.isArray(parsed.clientLeads)) {
+                setClientLeads(parsed.clientLeads);
+              }
+              if (Array.isArray(parsed.schedules)) {
+                setSchedules(parsed.schedules);
+              }
+              if (Array.isArray(parsed.brands)) {
+                setBrands(parsed.brands);
+              }
+              if (Array.isArray(parsed.shifts)) {
+                setShifts(parsed.shifts);
+              }
+              if (Array.isArray(parsed.studios)) {
+                setStudios(parsed.studios);
+              }
+              if (Array.isArray(parsed.platforms)) {
+                setPlatforms(parsed.platforms);
+              }
+              
+              setCredentialsToast("Database berhasil diimpor & disinkronkan ke Cloud dari file JSON secara real-time!");
+              setTimeout(() => setCredentialsToast(""), 4000);
+            },
+            "warning"
+          );
+        } catch (err: any) {
+          customAlert("Gagal membaca file JSON: " + err.message);
+        }
+      };
+    }
+  };
+
   if (showLandingPage) {
     return <LandingPage onEnterApp={() => setShowLandingPage(false)} />;
   }
@@ -3118,7 +3243,7 @@ export default function App() {
                           onChange={(e) => setHostForm(prev => ({ ...prev, brand: e.target.value }))}
                           className="w-full bg-white border border-purple-100 rounded-xl px-3.5 py-2.5 text-xs text-purple-950 font-black focus:outline-none focus:border-purple-500 font-sans transition-all shadow-sm"
                         >
-                          {brands.map(b => (
+                          {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
                             <option key={b} value={b} className="text-purple-950 font-semibold">{b}</option>
                           ))}
                         </select>
@@ -5921,7 +6046,7 @@ export default function App() {
                                   onChange={(e) => setScheduleForm(prev => ({ ...prev, brand: e.target.value }))}
                                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
                                 >
-                                  {brands.map(b => (
+                                  {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
                                     <option key={b} value={b}>{b}</option>
                                   ))}
                                 </select>
@@ -7349,7 +7474,7 @@ export default function App() {
                     className="bg-white border border-purple-150 rounded-xl px-4 py-2 text-xs text-purple-955 focus:outline-none cursor-pointer font-bold shadow-2xs hover:border-purple-300"
                   >
                     <option value="Semua Brand">Semua Brand</option>
-                    {brands.map(b => (
+                    {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
                       <option key={b} value={b}>{b}</option>
                     ))}
                   </select>
@@ -7388,7 +7513,7 @@ export default function App() {
                           onChange={(e) => setManualForm(prev => ({ ...prev, brand: e.target.value }))}
                           className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
                         >
-                          {brands.map(b => (
+                          {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
                             <option key={b} value={b}>{b}</option>
                           ))}
                         </select>
@@ -10822,6 +10947,39 @@ export default function App() {
                               </div>
                             </div>
                             <button className="text-[9px] font-bold text-slate-400 border-0 bg-transparent hover:text-red-500 transition-colors cursor-pointer">Logout</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Migrasi & Backup Instan (JSON) */}
+                      <div className="bg-purple-50 rounded-xl p-5 border border-purple-100">
+                        <h4 className="text-sm font-black text-purple-900 mb-2 flex items-center gap-2">
+                          <Download className="w-4 h-4 text-purple-600"/> Migrasi & Alat Backup Instan
+                        </h4>
+                        <p className="text-[11px] text-purple-700 font-semibold mb-4 leading-relaxed">
+                          Gunakan fitur ini untuk memindahkan seluruh data (Host, Absensi, Brand, Leads, Kalender) dari Google AI Studio atau VPS lain secara instan dengan berkas pertukaran `.json`.
+                        </p>
+
+                        <div className="space-y-3">
+                          <button
+                            type="button"
+                            onClick={handleExportJSON}
+                            className="w-full text-xs font-bold bg-white border border-purple-200 hover:bg-purple-100 text-purple-700 px-4 py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer border-0"
+                          >
+                            <Download className="w-4 h-4" /> Ekspor Basis Data (.json)
+                          </button>
+
+                          <div className="bg-white border border-dashed border-purple-200 rounded-lg p-3 text-center transition-all relative">
+                            <label className="block text-purple-700 hover:text-purple-950 font-bold text-xs cursor-pointer">
+                              <Upload className="w-4 h-4 mx-auto mb-1.5 text-purple-500" />
+                              Impor Dari Berkas Backup (.json)
+                              <input 
+                                type="file" 
+                                accept=".json" 
+                                onChange={handleImportJSON} 
+                                className="hidden" 
+                              />
+                            </label>
                           </div>
                         </div>
                       </div>
