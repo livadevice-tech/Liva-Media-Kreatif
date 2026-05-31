@@ -534,6 +534,22 @@ export default function App() {
     
     // Listens for explicit roster schedules in real-time
     unsubs.push(onSnapshot(collection(db, "schedules"), (snap) => {
+      if (snap.empty) {
+        try {
+          const saved = localStorage.getItem("mcn_schedules_v3");
+          if (saved) {
+            const localData = JSON.parse(saved);
+            if (Array.isArray(localData) && localData.length > 0) {
+              console.log("Seeding schedules to Firestore from local storage:", localData.length);
+              syncToFirestore("schedules", [], localData);
+              _setSchedules(localData);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to seed schedules from local storage:", e);
+        }
+      }
       _setSchedules(snap.docs.map(d => d.data()));
     }, (err) => console.error("Firestore schedules err:", err)));
 
@@ -545,6 +561,25 @@ export default function App() {
         if (Array.isArray(data.shifts)) _setShifts(data.shifts);
         if (Array.isArray(data.studios)) _setStudios(data.studios);
         if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
+      } else {
+        try {
+          const platformsSaved = localStorage.getItem("mcn_platforms");
+          const brandsSaved = localStorage.getItem("mcn_brands");
+          const shiftsSaved = localStorage.getItem("mcn_shifts");
+          const studiosSaved = localStorage.getItem("mcn_studios");
+          
+          const initialConfig: any = {};
+          if (platformsSaved) initialConfig.platforms = JSON.parse(platformsSaved);
+          if (brandsSaved) initialConfig.brands = JSON.parse(brandsSaved);
+          if (shiftsSaved) initialConfig.shifts = JSON.parse(shiftsSaved);
+          if (studiosSaved) initialConfig.studios = JSON.parse(studiosSaved);
+          
+          if (Object.keys(initialConfig).length > 0) {
+            setDoc(doc(db, "settings", "global_configs"), initialConfig, { merge: true }).catch(console.error);
+          }
+        } catch (e) {
+          console.error("Failed to seed global configs from local storage:", e);
+        }
       }
     }, (err) => console.error("Firestore global_configs err:", err)));
 
