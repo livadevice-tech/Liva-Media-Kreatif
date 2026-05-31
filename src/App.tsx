@@ -581,6 +581,21 @@ export default function App() {
   // Default to "host" to prioritize testing their submission, "operator", or "client"
   const defaultRole = initRoleMatch ? (initRoleMatch[1] === "admin" ? "operator" : initRoleMatch[1] === "brand" ? "client" : "host") : "host";
   const [activeRole, setActiveRole] = useState<"host" | "operator" | "client">(defaultRole);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      const match = path.match(/\/login\/(admin|host|brand)/);
+      if (match) {
+        const role = match[1] === "admin" ? "operator" : match[1] === "brand" ? "client" : "host";
+        setActiveRole(role);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
   
   // Client portal session & inputs
   const [loggedInClientBrandId, setLoggedInClientBrandId] = useState<string | null>(() => {
@@ -1665,8 +1680,88 @@ export default function App() {
 
   // --- CALENDAR WORKSPACE OPERATIONS STATES ---
   const [selectedCalendarDate, setSelectedCalendarDate] = useState("2026-05-24");
+  const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
+  const [pickerTempDate, setPickerTempDate] = useState("2026-05-24");
+  const [pickerMonth, setPickerMonth] = useState(4); // 4 = May
+  const [pickerYear, setPickerYear] = useState(2026);
+
+  const getPickerDays = (year: number, month: number) => {
+    const firstDayIndex = new Date(year, month, 1).getDay(); // Sunday is 0
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+    
+    const days: { day: number; monthType: "prev" | "current" | "next"; dateString: string }[] = [];
+    
+    // Previous fill-in
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const d = prevMonthTotalDays - i;
+      const prevMonth = month === 0 ? 11 : month - 1;
+      const prevYear = month === 0 ? year - 1 : year;
+      const mStr = String(prevMonth + 1).padStart(2, '0');
+      const dStr = String(d).padStart(2, '0');
+      days.push({
+        day: d,
+        monthType: "prev",
+        dateString: `${prevYear}-${mStr}-${dStr}`
+      });
+    }
+    
+    // Current month
+    for (let d = 1; d <= totalDays; d++) {
+      const mStr = String(month + 1).padStart(2, '0');
+      const dStr = String(d).padStart(2, '0');
+      days.push({
+        day: d,
+        monthType: "current",
+        dateString: `${year}-${mStr}-${dStr}`
+      });
+    }
+    
+    // Next fill-in
+    const remainingCells = 42 - days.length;
+    for (let d = 1; d <= remainingCells; d++) {
+      const nextMonth = month === 11 ? 0 : month + 1;
+      const nextYear = month === 11 ? year + 1 : year;
+      const mStr = String(nextMonth + 1).padStart(2, '0');
+      const dStr = String(d).padStart(2, '0');
+      days.push({
+        day: d,
+        monthType: "next",
+        dateString: `${nextYear}-${mStr}-${dStr}`
+      });
+    }
+    
+    return days;
+  };
+
+  const handleDaySelect = (dayObj: { day: number; monthType: "prev" | "current" | "next"; dateString: string }) => {
+    setPickerTempDate(dayObj.dateString);
+    if (dayObj.monthType === "prev") {
+      if (pickerMonth === 0) {
+        setPickerMonth(11);
+        setPickerYear(pickerYear - 1);
+      } else {
+        setPickerMonth(pickerMonth - 1);
+      }
+    } else if (dayObj.monthType === "next") {
+      if (pickerMonth === 11) {
+        setPickerMonth(0);
+        setPickerYear(pickerYear + 1);
+      } else {
+        setPickerMonth(pickerMonth + 1);
+      }
+    }
+  };
+  const [selectedHostCalendarDate, setSelectedHostCalendarDate] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(4); // 4 = May (0-indexed)
   const [calendarYear, setCalendarYear] = useState(2026);
+  const [scheduleActionMonth, setScheduleActionMonth] = useState(4); // default to May
+  const [scheduleActionYear, setScheduleActionYear] = useState(2026);
+
+  useEffect(() => {
+    setScheduleActionMonth(calendarMonth);
+    setScheduleActionYear(calendarYear);
+  }, [calendarMonth, calendarYear]);
   const [hostCalendarMonth, setHostCalendarMonth] = useState(4); // 4 = May (0-indexed)
   const [hostCalendarYear, setHostCalendarYear] = useState(2026);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -2598,8 +2693,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f9f8fc] text-[#3c2f56] flex flex-col font-sans selection:bg-purple-500 selection:text-white" id="main_container">
       {confirmState && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0f172a]/50 p-4" style={{backdropFilter: 'blur(4px)'}}>
-          <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full border border-gray-100">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto bg-[#0f172a]/50 p-4 flex items-start justify-center pt-[15vh] pb-10" style={{backdropFilter: 'blur(4px)'}}>
+          <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full border border-gray-100 animate-scaleUp">
             <h3 className="font-black text-slate-800 mb-3 text-lg">Konfirmasi</h3>
             <p className="text-slate-600 text-sm mb-6 leading-relaxed font-medium">{confirmState.message}</p>
             <div className="flex justify-end gap-3">
@@ -2617,8 +2712,8 @@ export default function App() {
       )}
       
       {alertState && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0f172a]/50 p-4" style={{backdropFilter: 'blur(4px)'}}>
-          <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full border border-gray-100">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto bg-[#0f172a]/50 p-4 flex items-start justify-center pt-[15vh] pb-10" style={{backdropFilter: 'blur(4px)'}}>
+          <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full border border-gray-100 animate-scaleUp">
             <h3 className="font-black text-slate-800 mb-3 text-lg">Informasi</h3>
             <p className="text-slate-600 text-sm mb-6 leading-relaxed font-medium">{alertState.message}</p>
             <div className="flex justify-end">
@@ -2633,216 +2728,259 @@ export default function App() {
 
       {(!loggedInHostId && !isOperatorLoggedIn && !loggedInClientBrandId) && (
         <div className="flex-1 flex flex-col justify-center items-center p-4">
-          <div className="bg-white p-8 rounded-3xl border border-purple-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
-            <div className="text-center mb-4">
-              <LivaLogo className="h-10 mx-auto mb-4" />
-              <h2 className="text-[16px] font-black text-purple-950">
-                  {activeRole === "host" ? "Login Streamer (Host)" : activeRole === "operator" ? "Login Master Admin" : "Login Portal Klien"}
-              </h2>
-              <p className="text-[11px] text-purple-500 font-semibold mt-1">
-                  {activeRole === "host" ? "Masuk ke portal absensi dan jadwal" : activeRole === "operator" ? "Sistem manajemen operasional Agency" : "Lihat laporan performa live streaming brand Anda"}
-              </p>
-            </div>
+          {activeRole === "client" ? (
+            /* BRAND LOGIN PAGE - COMPLETELY SEPARATED */
+            <div className="bg-white p-8 rounded-3xl border border-indigo-150 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
+              <div className="text-center mb-6">
+                <LivaLogo className="h-10 mx-auto mb-4" />
+                <span className="bg-indigo-50 border border-indigo-100 text-[#5642f5] font-black text-[9px] tracking-wider uppercase px-3 py-1 rounded-full">
+                  Portal Partner Brand & Klien
+                </span>
+                <h2 className="text-[17px] font-extrabold text-[#111827] mt-3 tracking-tight">
+                  LIVA • Performance Portal
+                </h2>
+                <p className="text-[11px] text-slate-500 font-semibold mt-1">
+                  Pantau laporan performa dan statistik live streaming brand Anda
+                </p>
+              </div>
 
-            <div className="bg-purple-50 p-1 rounded-xl mb-6 border border-purple-100 flex flex-wrap gap-1">
-                <button 
-                  onClick={() => { window.history.pushState({}, '', '/login/host'); setActiveRole("host"); setHostError(""); setHostLoginUser(""); setHostLoginPass(""); }} 
-                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black tracking-wide uppercase transition-all cursor-pointer ${activeRole === "host" ? "bg-white text-purple-700 shadow-xs" : "text-purple-500 hover:text-purple-700"}`}
-                >
-                  Host App
-                </button>
-                <button 
-                  onClick={() => { window.history.pushState({}, '', '/login/admin'); setActiveRole("operator"); setHostError(""); setHostLoginUser(""); setHostLoginPass(""); }} 
-                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black tracking-wide uppercase transition-all cursor-pointer ${activeRole === "operator" ? "bg-purple-700 text-white shadow-xs" : "text-purple-500 hover:text-purple-700"}`}
-                >
-                  Admin
-                </button>
-                <button 
-                  onClick={() => { window.history.pushState({}, '', '/login/brand'); setActiveRole("client"); setHostError(""); setHostLoginUser(""); setHostLoginPass(""); }} 
-                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black tracking-wide uppercase transition-all cursor-pointer ${activeRole === "client" ? "bg-indigo-600 text-white shadow-xs" : "text-purple-500 hover:text-purple-700"}`}
-                >
-                  Klien
-                </button>
-            </div>
-            
-            {activeRole === "client" ? (
-                <form onSubmit={(e) => {
-                    e.preventDefault();
-                    const enteredUser = clientLoginUsername.trim().toLowerCase();
-                    const enteredPass = clientLoginPass.trim();
+              <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const enteredUser = clientLoginUsername.trim().toLowerCase();
+                  const enteredPass = clientLoginPass.trim();
 
-                    if (!enteredUser) {
-                      setHostError("Silakan masukkan username portal terlebih dahulu!");
-                      return;
-                    }
-                    
-                    const targetBrand = clientBrands.find(b => {
-                      const username = (b.clientUsername || b.name.toLowerCase().replace(/[^a-z0-9]/g, "")).trim().toLowerCase();
-                      return username === enteredUser;
-                    });
+                  if (!enteredUser) {
+                    setHostError("Silakan masukkan username portal terlebih dahulu!");
+                    return;
+                  }
+                  
+                  const targetBrand = clientBrands.find(b => {
+                    const username = (b.clientUsername || b.name.toLowerCase().replace(/[^a-z0-9]/g, "")).trim().toLowerCase();
+                    return username === enteredUser;
+                  });
 
-                    if (!targetBrand) {
-                      setHostError("Akun brand tidak terdaftar atau username salah.");
-                      return;
-                    }
+                  if (!targetBrand) {
+                    setHostError("Akun brand tidak terdaftar atau username salah.");
+                    return;
+                  }
 
-                    const storedPass = (targetBrand.clientPassword || "liva123").trim();
-                    if (enteredPass === storedPass) {
-                      setLoggedInClientBrandId(targetBrand.id);
-                      setClientLoginUsername("");
-                      setClientLoginPass("");
-                      setHostError("");
-                    } else {
-                      setHostError("Username atau password brand klien tidak sesuai!");
-                    }
-                }} className="space-y-4 font-sans animate-fadeIn">
-                    {hostError && (
-                    <div className="bg-red-50 border border-red-100 text-rose-700 text-[10px] py-1.5 px-2 rounded-lg font-bold text-center">
-                        ⚠️ {hostError}
-                    </div>
-                    )}
-                    <div className="text-left">
-                      <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Username Portal Klien:</label>
-                      <input
-                          type="text"
-                          required
-                          value={clientLoginUsername}
-                          onChange={(e) => setClientLoginUsername(e.target.value)}
-                          placeholder="Masukkan username brand Anda"
-                          className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-2.5 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-bold"
-                      />
-                    </div>
+                  const storedPass = (targetBrand.clientPassword || "liva123").trim();
+                  if (enteredPass === storedPass) {
+                    setLoggedInClientBrandId(targetBrand.id);
+                    setClientLoginUsername("");
+                    setClientLoginPass("");
+                    setHostError("");
+                  } else {
+                    setHostError("Username atau password brand klien tidak sesuai!");
+                  }
+              }} className="space-y-4 font-sans animate-fadeIn">
+                  {hostError && (
+                  <div className="bg-red-50 border border-red-100 text-rose-700 text-[10px] py-1.5 px-2 rounded-lg font-bold text-center">
+                      ⚠️ {hostError}
+                  </div>
+                  )}
+                  <div className="text-left">
+                    <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Username Portal Klien:</label>
+                    <input
+                        type="text"
+                        required
+                        value={clientLoginUsername}
+                        onChange={(e) => setClientLoginUsername(e.target.value)}
+                        placeholder="Masukkan username brand Anda"
+                        className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-2.5 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-bold"
+                    />
+                  </div>
 
-                    <div className="text-left">
-                      <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Password Portal:</label>
-                      <input
-                          type="password"
-                          required
-                          value={clientLoginPass}
-                          onChange={(e) => setClientLoginPass(e.target.value)}
-                          placeholder="Masukkan password portal Anda"
-                          className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-2.5 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-bold font-mono"
-                      />
-                    </div>
+                  <div className="text-left">
+                    <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Password Portal:</label>
+                    <input
+                        type="password"
+                        required
+                        value={clientLoginPass}
+                        onChange={(e) => setClientLoginPass(e.target.value)}
+                        placeholder="Masukkan password portal Anda"
+                        className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-2.5 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-bold font-mono"
+                    />
+                  </div>
 
-                    <button
-                      type="submit"
-                      className="w-full bg-indigo-650 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-xl text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
-                    >
-                      Akses Portal Klien
-                    </button>
-                    <div className="text-center pt-1.5">
-                        <span className="text-[10px] text-slate-400 font-bold">Harap hubungi Admin Agency untuk detail akun Anda.</span>
-                    </div>
-                </form>
-            ) : activeRole === "host" ? (
-                <form onSubmit={(e) => {
-                    e.preventDefault();
-                    // Host Login
-                    const found = hosts.find(h => 
-                    ((h as any).username || "").toLowerCase().trim() === hostLoginUser.toLowerCase().trim() &&
-                    ((h as any).password || "") === hostLoginPass.trim()
-                    );
-                    if (found) {
-                    setLoggedInHostId(found.id);
+                  <button
+                    type="submit"
+                    className="w-full bg-indigo-650 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-xl text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
+                  >
+                    Akses Portal Klien
+                  </button>
+              </form>
+
+              <div className="text-center mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2.5">
+                <span className="text-[10px] text-slate-400 font-bold">Harap hubungi Admin Agency untuk detail akun Anda.</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.history.pushState({}, '', '/login/host');
+                    setActiveRole("host");
+                    setHostError("");
                     setHostLoginUser("");
                     setHostLoginPass("");
-                    setHostError("");
-                    } else {
-                    setHostError("Username Host atau Password salah!");
-                    }
-                }} className="space-y-4 font-sans animate-fadeIn">
-                    {hostError && (
-                    <div className="bg-red-50 border border-red-100 text-red-700 text-[10px] py-1.5 px-2 rounded-lg font-bold text-center">
-                        ⚠️ {hostError}
-                    </div>
-                    )}
-                    <div className="text-left">
-                      <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Username Host:</label>
-                      <input
-                          type="text"
-                          required
-                          value={hostLoginUser}
-                          onChange={(e) => setHostLoginUser(e.target.value)}
-                          placeholder="Misal: amandaputri"
-                          className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 font-sans focus:outline-none focus:border-purple-500 font-bold"
-                      />
-                    </div>
+                  }}
+                  className="text-[11px] text-[#5642f5] hover:text-[#422ff2] font-black transition-all cursor-pointer hover:underline"
+                >
+                  ← Masuk sebagai Host/Staff Admin
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* HOST & ADMIN LOGIN PORTAL - COMPLETELY SEPARATED FROM BRAND */
+            <div className="bg-white p-8 rounded-3xl border border-purple-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
+              <div className="text-center mb-4">
+                <LivaLogo className="h-10 mx-auto mb-4" />
+                <h2 className="text-[16px] font-black text-purple-950">
+                    {activeRole === "host" ? "Login Streamer (Host)" : "Login Master Admin"}
+                </h2>
+                <p className="text-[11px] text-purple-500 font-semibold mt-1">
+                    {activeRole === "host" ? "Masuk ke portal absensi dan jadwal" : "Sistem manajemen operasional Agency"}
+                </p>
+              </div>
 
-                    <div className="text-left">
-                      <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Password:</label>
-                      <input
-                          type="password"
-                          required
-                          value={hostLoginPass}
-                          onChange={(e) => setHostLoginPass(e.target.value)}
-                          placeholder="Masukkan sandi Anda"
-                          className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-mono font-bold"
-                      />
-                    </div>
+              <div className="bg-purple-50 p-1 rounded-xl mb-6 border border-purple-100 flex flex-wrap gap-1">
+                  <button 
+                    onClick={() => { window.history.pushState({}, '', '/login/host'); setActiveRole("host"); setHostError(""); setHostLoginUser(""); setHostLoginPass(""); }} 
+                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black tracking-wide uppercase transition-all cursor-pointer ${activeRole === "host" ? "bg-white text-purple-700 shadow-xs" : "text-purple-500 hover:text-purple-700"}`}
+                  >
+                    Host App
+                  </button>
+                  <button 
+                    onClick={() => { window.history.pushState({}, '', '/login/admin'); setActiveRole("operator"); setHostError(""); setHostLoginUser(""); setHostLoginPass(""); }} 
+                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black tracking-wide uppercase transition-all cursor-pointer ${activeRole === "operator" ? "bg-purple-700 text-white shadow-xs" : "text-purple-500 hover:text-purple-700"}`}
+                  >
+                    Admin
+                  </button>
+              </div>
 
-                    <button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-650 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold py-3 rounded-xl text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
-                    >
-                    Masuk Host App
-                    </button>
-                </form>
-            ) : (
-                <form onSubmit={(e) => {
-                    e.preventDefault();
-                    // Admin Login
-                    if (hostLoginUser.trim() === adminCredentials.username && hostLoginPass === adminCredentials.password) {
-                        setIsOperatorLoggedIn(true);
+              {activeRole === "host" ? (
+                  <form onSubmit={(e) => {
+                      e.preventDefault();
+                      // Host Login
+                      const found = hosts.find(h => 
+                        ((h as any).username || "").toLowerCase().trim() === hostLoginUser.toLowerCase().trim() &&
+                        ((h as any).password || "") === hostLoginPass.trim()
+                      );
+                      if (found) {
+                        setLoggedInHostId(found.id);
                         setHostLoginUser("");
                         setHostLoginPass("");
                         setHostError("");
-                        return;
-                    } else {
-                        setHostError("ID Admin atau Password Admin salah!");
-                    }
-                }} className="space-y-4 font-sans animate-fadeIn">
-                    {hostError && (
-                    <div className="bg-red-50 border border-red-100 text-red-700 text-[10px] py-1.5 px-2 rounded-lg font-bold text-center">
-                        ⚠️ {hostError}
-                    </div>
-                    )}
-                    <div className="text-left">
-                      <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">ID Admin Master:</label>
-                      <input
-                          type="text"
-                          required
-                          value={hostLoginUser}
-                          onChange={(e) => setHostLoginUser(e.target.value)}
-                          placeholder="ID Admin"
-                          className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 font-sans focus:outline-none focus:border-purple-500 font-bold"
-                      />
-                    </div>
+                      } else {
+                        setHostError("Username Host atau Password salah!");
+                      }
+                  }} className="space-y-4 font-sans animate-fadeIn">
+                      {hostError && (
+                      <div className="bg-red-50 border border-red-100 text-red-700 text-[10px] py-1.5 px-2 rounded-lg font-bold text-center">
+                          ⚠️ {hostError}
+                      </div>
+                      )}
+                      <div className="text-left">
+                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Username Host:</label>
+                        <input
+                            type="text"
+                            required
+                            value={hostLoginUser}
+                            onChange={(e) => setHostLoginUser(e.target.value)}
+                            placeholder="Misal: amandaputri"
+                            className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 font-sans focus:outline-none focus:border-purple-500 font-bold"
+                        />
+                      </div>
 
-                    <div className="text-left">
-                      <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Password Admin:</label>
-                      <input
-                          type="password"
-                          required
-                          value={hostLoginPass}
-                          onChange={(e) => setHostLoginPass(e.target.value)}
-                          placeholder="Sandi Admin"
-                          className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-mono font-bold"
-                      />
-                    </div>
+                      <div className="text-left">
+                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Password:</label>
+                        <input
+                            type="password"
+                            required
+                            value={hostLoginPass}
+                            onChange={(e) => setHostLoginPass(e.target.value)}
+                            placeholder="Masukkan sandi Anda"
+                            className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-mono font-bold"
+                        />
+                      </div>
 
-                    <button
-                    type="submit"
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3 rounded-xl text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
-                    >
-                    Akses Dashboard Admin
-                    </button>
-                    <div className="text-center pt-2">
-                        <span className="text-[10px] text-slate-400 font-bold">Default Login: admin / 123</span>
-                    </div>
-                </form>
-            )}
-          </div>
+                      <button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-purple-600 to-indigo-650 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold py-3 rounded-xl text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
+                      >
+                        Masuk Host App
+                      </button>
+                  </form>
+              ) : (
+                  <form onSubmit={(e) => {
+                      e.preventDefault();
+                      // Admin Login
+                      if (hostLoginUser.trim() === adminCredentials.username && hostLoginPass === adminCredentials.password) {
+                          setIsOperatorLoggedIn(true);
+                          setHostLoginUser("");
+                          setHostLoginPass("");
+                          setHostError("");
+                          return;
+                      } else {
+                          setHostError("ID Admin atau Password Admin salah!");
+                      }
+                  }} className="space-y-4 font-sans animate-fadeIn">
+                      {hostError && (
+                      <div className="bg-red-50 border border-red-100 text-red-700 text-[10px] py-1.5 px-2 rounded-lg font-bold text-center">
+                          ⚠️ {hostError}
+                      </div>
+                      )}
+                      <div className="text-left">
+                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">ID Admin Master:</label>
+                        <input
+                            type="text"
+                            required
+                            value={hostLoginUser}
+                            onChange={(e) => setHostLoginUser(e.target.value)}
+                            placeholder="ID Admin"
+                            className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 font-sans focus:outline-none focus:border-purple-500 font-bold"
+                        />
+                      </div>
+
+                      <div className="text-left">
+                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Password Admin:</label>
+                        <input
+                            type="password"
+                            required
+                            value={hostLoginPass}
+                            onChange={(e) => setHostLoginPass(e.target.value)}
+                            placeholder="Sandi Admin"
+                            className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-mono font-bold"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3 rounded-xl text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
+                      >
+                        Akses Dashboard Admin
+                      </button>
+                      <div className="text-center pt-2">
+                          <span className="text-[10px] text-slate-400 font-bold">Default Login: admin / 123</span>
+                      </div>
+                  </form>
+              )}
+
+              <div className="text-center mt-6 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.history.pushState({}, '', '/login/brand');
+                    setActiveRole("client");
+                    setHostError("");
+                    setHostLoginUser("");
+                    setHostLoginPass("");
+                  }}
+                  className="text-[11px] text-[#5642f5] hover:text-[#422ff2] font-black transition-all cursor-pointer hover:underline"
+                >
+                  Masuk ke Portal Partner Brand Klien →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -3329,17 +3467,27 @@ export default function App() {
 
                           const isSimulatedToday = dateString === "2026-05-24";
                           
+                          const isSelectedHostDay = selectedHostCalendarDate === dateString;
+
                           return (
                             <button
                               key={dayNum}
                               type="button"
                               onClick={() => {
-                                const el = document.getElementById("host_date_details");
-                                if (el) {
-                                  el.scrollIntoView({ behavior: 'smooth' });
-                                }
+                                setSelectedHostCalendarDate(dateString);
+                                setTimeout(() => {
+                                  const shiftEl = document.getElementById(`host-shift-${dateString}`);
+                                  if (shiftEl) {
+                                    shiftEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  } else {
+                                    const el = document.getElementById("host_date_details");
+                                    if (el) {
+                                      el.scrollIntoView({ behavior: 'smooth' });
+                                    }
+                                  }
+                                }, 80);
                               }}
-                              className={`h-6 text-[10px] rounded-md font-bold flex items-center justify-center relative cursor-pointer ${cellBg} ${borderStyle} ${isSimulatedToday ? "ring-2 ring-purple-600 ring-offset-1" : ""}`}
+                              className={`h-6 text-[10px] rounded-md font-bold flex items-center justify-center relative cursor-pointer ${cellBg} ${borderStyle} ${isSimulatedToday ? "ring-2 ring-purple-600 ring-offset-1" : ""} ${isSelectedHostDay ? "ring-2 ring-indigo-500 font-extrabold shadow-sm scale-110 z-10" : ""}`}
                             >
                               {dayNum}
                             </button>
@@ -3388,12 +3536,16 @@ export default function App() {
                       return sortedScheds.map(sch => {
                         const isPrimaryOff = sch.isOffDay && sch.hostId === loggedInHostId;
                         const isReplacement = sch.backupHostId === loggedInHostId;
+                        const isSelectedInList = selectedHostCalendarDate === sch.date;
                         
                         return (
                           <div 
                             key={sch.id} 
+                            id={`host-shift-${sch.date}`}
                             className={`p-3 rounded-xl border transition-all ${
-                              isPrimaryOff 
+                              isSelectedInList
+                                ? "ring-2 ring-indigo-500 shadow-md scale-[1.01] bg-indigo-50/10 border-indigo-350"
+                                : isPrimaryOff 
                                 ? "bg-amber-50/70 border-amber-200 text-amber-950 shadow-3xs" 
                                 : isReplacement 
                                 ? "bg-emerald-50/75 border-emerald-200 text-emerald-950 shadow-3xs" 
@@ -3401,8 +3553,17 @@ export default function App() {
                             }`}
                           >
                             <div className="flex justify-between items-center mb-1">
-                              <span className="text-[10px] font-black tracking-wide uppercase font-mono">
-                                📅 {sch.date}
+                              <span className="text-[10.5px] font-black tracking-wide uppercase font-sans text-indigo-950">
+                                📅 {(() => {
+                                  try {
+                                    const d = new Date(sch.date);
+                                    if(isNaN(d.getTime())) return sch.date;
+                                    const dayName = d.toLocaleDateString("id-ID", { weekday: 'long' });
+                                    return `${dayName}, ${sch.date}`;
+                                  } catch (e) {
+                                    return sch.date;
+                                  }
+                                })()}
                               </span>
                               <span className={`px-2 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wide ${
                                 isPrimaryOff 
@@ -4592,18 +4753,45 @@ export default function App() {
 
                     {/* Tabs & Filters */}
                     <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-5 border-b border-slate-100/80 pb-4">
-                       <div className="flex items-center gap-2.5 overflow-x-auto w-full xl:w-auto pb-2 xl:pb-0 hide-scrollbar -mb-[17px]">
+                       <div className="flex flex-wrap items-center gap-2.5 overflow-x-auto w-full xl:w-auto pb-2 xl:pb-0 hide-scrollbar -mb-[17px]">
                           <button type="button" className="px-3 py-2.5 rounded-none border-b-2 border-slate-800 text-slate-800 font-bold text-[13px] flex items-center gap-2 whitespace-nowrap">
                             <Calendar className="w-4 h-4" strokeWidth={2.5} /> Jadwal Aktif
                           </button>
+
+                          <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
+
+                          {/* Periode Actions Selector */}
+                          <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/60 border border-slate-200/50 rounded-xl px-2.5 py-1 transition-all">
+                            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider whitespace-nowrap">Target:</span>
+                            <select
+                              value={scheduleActionMonth}
+                              onChange={(e) => setScheduleActionMonth(parseInt(e.target.value))}
+                              className="px-1.5 py-0.5 bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none transition-all"
+                            >
+                              {['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map((m, idx) => (
+                                <option key={idx} value={idx}>{m}</option>
+                              ))}
+                            </select>
+                            <span className="text-slate-300">/</span>
+                            <select
+                              value={scheduleActionYear}
+                              onChange={(e) => setScheduleActionYear(parseInt(e.target.value))}
+                              className="px-1.5 py-0.5 bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none transition-all"
+                            >
+                              {[2025, 2026, 2027, 2028].map(y => (
+                                <option key={y} value={y}>{y}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
                           <button 
                             type="button"
                             onClick={() => {
                               
-                               requestConfirm("Konfirmasi Auto Generate", "Auto Generate akan membuat jadwal harian untuk seluruh sesi di bulan ini (dan menghapus jadwal lama yang berpotongan). Lanjutkan?", () => {
-                               const [yearStr, monthStr] = operatorSelectedMonth.split("-");
-                               const year = parseInt(yearStr);
-                               const month = parseInt(monthStr) - 1;
+                               requestConfirm("Konfirmasi Auto Generate", `Auto Generate akan membuat jadwal harian untuk seluruh sesi di bulan ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][scheduleActionMonth]} ${scheduleActionYear} (dan menghapus jadwal lama yang berpotongan). Lanjutkan?`, () => {
+                               const year = scheduleActionYear;
+                               const month = scheduleActionMonth; // 0-indexed
                                
                                const daysInMonth = new Date(year, month + 1, 0).getDate();
                                const newSchedules = [];
@@ -4621,12 +4809,14 @@ export default function App() {
                                      brand.sessions.forEach(sess => {
                                         if (!sess.host) return;
                                         
-                                        // find the host
-                                        const hostObj = hosts.find(h => h.name === sess.host);
+                                        // find the host with robust naming check
+                                        const hostObj = hosts.find(h => h.name.toLowerCase().trim() === sess.host.toLowerCase().trim());
                                         if (hostObj) {
                                           newSchedules.push({
                                             id: `auto_gen_${brand.id}_${dateStr}_${sess.id}`,
                                             hostId: hostObj.id,
+                                            hostName: hostObj.name,
+                                            employeeId: hostObj.employeeId,
                                             date: dateStr,
                                             timeSlot: sess.shift,
                                             platform: sess.platform || "",
@@ -4635,9 +4825,8 @@ export default function App() {
                                             studio: sess.studio || "Studio Bandar Lampung",
                                             isOffDay: false,
                                             isPindahStudio: false,
-                                            backupOption: "none",
                                             backupHostId: "",
-                                            backupHostName: "", hostName: hostObj.name
+                                            backupHostName: ""
                                           });
                                         }
                                      });
@@ -4648,13 +4837,15 @@ export default function App() {
                                // Replace existing schedules for this month with the newly generated ones
                                setSchedules(prev => {
                                  const filtered = prev.filter(s => {
-                                   const sDate = new Date(s.date);
-                                   return sDate.getFullYear() !== year || sDate.getMonth() !== month;
+                                   if (!s.date) return true;
+                                   const [sYear, sMonth] = s.date.split("-");
+                                   return parseInt(sYear) !== year || parseInt(sMonth) !== (month + 1);
                                  });
                                  return [...filtered, ...newSchedules];
                                });
                                
-                               addNotification("Jadwal Berhasil Dibuat", `Auto Generate selesai memproduksi ${newSchedules.length} sesi untuk bulan ${getIndonesianMonthLabel(operatorSelectedMonth)}.`, "success", "absensi");
+                               const mNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+                               addNotification("Jadwal Berhasil Dibuat", `Auto Generate selesai memproduksi ${newSchedules.length} sesi untuk bulan ${mNames[scheduleActionMonth]} ${scheduleActionYear}.`, "success", "absensi");
                                }, "info");
 
                             }}
@@ -4665,17 +4856,17 @@ export default function App() {
                             type="button"
                             onClick={() => {
                                requestConfirm(
-                                 "Reset Jadwal Bulan Ini", 
-                                 "Apakah Anda yakin ingin menghapus SELURUH jadwal untuk bulan ini? Tindakan ini tidak dapat dibatalkan.", 
+                                 `Reset Jadwal Bulan ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][scheduleActionMonth]} ${scheduleActionYear}`, 
+                                 `Apakah Anda yakin ingin menghapus SELURUH jadwal untuk bulan ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][scheduleActionMonth]} ${scheduleActionYear}? Tindakan ini tidak dapat dibatalkan.`, 
                                  () => {
-                                    const [yearStr, monthStr] = operatorSelectedMonth.split('-');
-                                    const year = parseInt(yearStr);
-                                    const month = parseInt(monthStr) - 1;
+                                    const year = scheduleActionYear;
+                                    const month = scheduleActionMonth + 1; // 1-indexed
                                     setSchedules(prev => prev.filter(s => {
-                                        const sDate = new Date(s.date);
-                                        return sDate.getFullYear() !== year || sDate.getMonth() !== month;
+                                        if (!s.date) return true;
+                                        const [sYear, sMonth] = s.date.split("-");
+                                        return parseInt(sYear) !== year || parseInt(sMonth) !== month;
                                     }));
-                                    addNotification("Jadwal Direset", `Seluruh jadwal bulan ini berhasil dihapus.`, "danger", "absensi");
+                                    addNotification("Jadwal Direset", `Seluruh jadwal bulan ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][scheduleActionMonth]} ${scheduleActionYear} berhasil dihapus.`, "danger", "absensi");
                                  }, 
                                  "danger"
                                );
@@ -4710,23 +4901,221 @@ export default function App() {
                     </div>
 
                     {/* JADWAL TERDAFTAR SEBELUMNYA PADA HARI INI */}
-                        <div className="space-y-3 mb-6 bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
+                        <div id="schedules-on-selected-date" className="space-y-3 mb-6 bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                           <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-4 flex-wrap gap-2">
                             <h5 className="text-[14px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1">
                               <span>📋</span> Jadwal Siaran Aktif Tanggal Ini
                             </h5>
-                            <div className="flex items-center gap-3">
-                              <div className="font-bold text-slate-800 bg-slate-100 px-3 py-1 rounded-lg">
-                                {(()=>{
+                            <div className="flex items-center gap-2 relative">
+                              {/* Prev Day Button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   try {
                                     const d = new Date(selectedCalendarDate);
-                                    if(isNaN(d.getTime())) return selectedCalendarDate;
-                                    return d.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                                  } catch (e) {
-                                    return selectedCalendarDate;
+                                    if (!isNaN(d.getTime())) {
+                                      d.setDate(d.getDate() - 1);
+                                      const y = d.getFullYear();
+                                      const m = String(d.getMonth() + 1).padStart(2, '0');
+                                      const dateStr = String(d.getDate()).padStart(2, '0');
+                                      setSelectedCalendarDate(`${y}-${m}-${dateStr}`);
+                                    }
+                                  } catch (err) {
+                                    console.error(err);
                                   }
-                                })()}
+                                }}
+                                className="w-8 h-8 rounded-full bg-slate-50 border border-slate-205 hover:bg-[#eef2ff] hover:text-[#5642f5] hover:border-[#e0e7ff] text-slate-500 cursor-pointer transition-all active:scale-90 flex items-center justify-center shadow-xs"
+                                title="Hari Sebelumnya"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+
+                              {/* The Trigger Pill (Styled exactly like the uploaded O Terdaftar badge) */}
+                              <div 
+                                onClick={() => {
+                                  setIsCustomDatePickerOpen(!isCustomDatePickerOpen);
+                                  if (!isCustomDatePickerOpen) {
+                                    try {
+                                      const parts = selectedCalendarDate.split('-');
+                                      if (parts.length === 3) {
+                                        setPickerYear(parseInt(parts[0], 10));
+                                        setPickerMonth(parseInt(parts[1], 10) - 1);
+                                        setPickerTempDate(selectedCalendarDate);
+                                      }
+                                    } catch (e) {
+                                      console.error(e);
+                                    }
+                                  }
+                                }}
+                                id="date-selection-badge"
+                                className="relative flex items-center gap-1.5 bg-[#eef2ff] hover:bg-[#e0e7ff]/80 px-4 py-1.5 rounded-full text-[11px] font-black text-[#5642f5] transition-all cursor-pointer select-none shadow-2xs border border-[#e0e7ff]/50 active:scale-[97%]"
+                              >
+                                <span>📅</span>
+                                <span className="pr-3 text-[11px] font-black text-[#5642f5] tracking-wide">
+                                  {(() => {
+                                    try {
+                                      const d = new Date(selectedCalendarDate);
+                                      if (isNaN(d.getTime())) return selectedCalendarDate;
+                                      return d.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                                    } catch (e) {
+                                      return selectedCalendarDate;
+                                    }
+                                  })()}
+                                </span>
+                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[8px] text-[#5642f5]/80">▼</span>
                               </div>
+
+                              {/* Next Day Button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const d = new Date(selectedCalendarDate);
+                                    if (!isNaN(d.getTime())) {
+                                      d.setDate(d.getDate() + 1);
+                                      const y = d.getFullYear();
+                                      const m = String(d.getMonth() + 1).padStart(2, '0');
+                                      const dateStr = String(d.getDate()).padStart(2, '0');
+                                      setSelectedCalendarDate(`${y}-${m}-${dateStr}`);
+                                    }
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }}
+                                className="w-8 h-8 rounded-full bg-slate-50 border border-slate-205 hover:bg-[#eef2ff] hover:text-[#5642f5] hover:border-[#e0e7ff] text-slate-500 cursor-pointer transition-all active:scale-90 flex items-center justify-center shadow-xs"
+                                title="Hari Selanjutnya"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+
+                              {/* Custom Floating Calendar Dropdown inspired by the reference design */}
+                              {isCustomDatePickerOpen && (
+                                <>
+                                  <div 
+                                    className="fixed inset-0 z-40 bg-transparent cursor-default" 
+                                    onClick={() => setIsCustomDatePickerOpen(false)} 
+                                  />
+                                  <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150"
+                                  >
+                                    {/* Month/Year and Next Month/Year navigation controls */}
+                                    <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                                      <span className="text-xs font-black text-slate-800 tracking-wider select-none">
+                                        📅 {pickerYear} - {String(pickerMonth + 1).padStart(2, '0')}
+                                      </span>
+                                      <div className="flex items-center gap-1 select-none">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (pickerMonth === 0) {
+                                              setPickerMonth(11);
+                                              setPickerYear(pickerYear - 1);
+                                            } else {
+                                              setPickerMonth(pickerMonth - 1);
+                                            }
+                                          }}
+                                          className="p-1 hover:bg-slate-100 rounded text-slate-500 cursor-pointer transition-colors"
+                                          title="Sebelumnya"
+                                        >
+                                          <ChevronLeft className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (pickerMonth === 11) {
+                                              setPickerMonth(0);
+                                              setPickerYear(pickerYear + 1);
+                                            } else {
+                                              setPickerMonth(pickerMonth + 1);
+                                            }
+                                          }}
+                                          className="p-1 hover:bg-slate-100 rounded text-slate-500 cursor-pointer transition-colors"
+                                          title="Selanjutnya"
+                                        >
+                                          <ChevronRight className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Weekday indicator labels */}
+                                    <div className="grid grid-cols-7 text-center mb-1.5 select-none">
+                                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+                                        <span key={day} className="text-[9px] font-black uppercase text-slate-400 w-8 h-5 flex items-center justify-center tracking-wider">
+                                          {day}
+                                        </span>
+                                      ))}
+                                    </div>
+
+                                    {/* Days matrix grid */}
+                                    <div className="grid grid-cols-7 gap-y-1 gap-x-1 justify-items-center">
+                                      {(() => {
+                                        const dCells = getPickerDays(pickerYear, pickerMonth);
+                                        return dCells.map((dObj, idx) => {
+                                          const isSelectedInPicker = pickerTempDate === dObj.dateString;
+                                          const isToday = (new Date().toISOString().split('T')[0]) === dObj.dateString;
+                                          
+                                          let textClass = "text-slate-800 font-extrabold";
+                                          if (dObj.monthType !== "current") {
+                                            textClass = "text-slate-300 font-bold";
+                                          }
+                                          
+                                          return (
+                                            <div
+                                              key={idx}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDaySelect(dObj);
+                                              }}
+                                              className={`w-7 h-7 flex flex-col items-center justify-center text-[10px] rounded-lg transition-all cursor-pointer relative select-none ${
+                                                isSelectedInPicker 
+                                                  ? "bg-[#009688] text-white font-black shadow-xs scale-105" 
+                                                  : isToday
+                                                    ? "border border-[#009688]/30 text-[#009688] hover:bg-[#009688]/5 font-black"
+                                                    : "hover:bg-slate-100 font-bold"
+                                              } ${textClass}`}
+                                            >
+                                              <span>{dObj.day}</span>
+                                              {isToday && !isSelectedInPicker && (
+                                                <span className="absolute bottom-1 w-1 h-1 bg-[#009688] rounded-full"></span>
+                                              )}
+                                            </div>
+                                          );
+                                        });
+                                      })()}
+                                    </div>
+
+                                    {/* Modal Actions Footer: Batal & Terapkan (Styled exactly like references) */}
+                                    <div className="flex items-center justify-end gap-1.5 mt-3 pt-2.5 border-t border-slate-100 select-none">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setIsCustomDatePickerOpen(false);
+                                        }}
+                                        className="px-3.5 py-1.5 bg-[#F5F5F5] hover:bg-slate-200 text-slate-600 rounded-xl font-black text-[10px] cursor-pointer transition-all active:scale-95"
+                                      >
+                                        Batal
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedCalendarDate(pickerTempDate);
+                                          setIsCustomDatePickerOpen(false);
+                                        }}
+                                        className="px-4 py-1.5 bg-[#009688] hover:bg-[#00796B] text-white rounded-xl font-black text-[10px] cursor-pointer transition-all shadow-xs active:scale-95"
+                                      >
+                                        Terapkan
+                                      </button>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
                               <div className="relative">
                                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
@@ -4737,13 +5126,64 @@ export default function App() {
                                   className="w-[180px] bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-all font-bold"
                                 />
                               </div>
-                              <span className="px-3 py-1.5 rounded-lg bg-indigo-50 text-xs font-mono font-bold text-indigo-700">
+                              {/* Terdaftar Badges: Matching exactly the uploaded '0 Terdaftar' image */}
+                              <span className="px-4 py-1.5 rounded-full bg-[#eef2ff] text-xs font-black text-[#5642f5] tracking-wide select-none shadow-3xs border border-[#e0e7ff]/60">
                                 {computedSchedules.filter(s => s.date === selectedCalendarDate).length} Terdaftar
                               </span>
                             </div>
                           </div>
 
-                          <div className="space-y-3">
+                          {/* IDLE REGULAR HOSTS BANNER */}
+                          {(() => {
+                            // Get all regular hosts from master list
+                            const regularHosts = hosts.filter(h => (h.hostType || "Reguler") === "Reguler");
+                            
+                            // Get active schedules for selected calendar date
+                            const dayScheds = computedSchedules.filter(s => s.date === selectedCalendarDate && !s.isOffDay);
+                            
+                            // Hosts currently active/assigned on this day in any studio
+                            const activeHostIds = new Set(
+                              dayScheds.flatMap(s => [s.hostId, s.backupHostId].filter(Boolean))
+                            );
+
+                            // Filter those regular hosts who are NOT active
+                            const idleHosts = regularHosts.filter(h => !activeHostIds.has(h.id));
+
+                            return (
+                              <div className="mb-5 p-3.5 bg-amber-50/60 border border-amber-200/50 rounded-xl">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
+                                    ⚠️ Host Reguler Belum Bertugas
+                                  </span>
+                                  <span className="text-xs text-amber-900 font-bold">
+                                    Host reguler yang tidak ada di jadwal studio tanggal ini ({idleHosts.length} orang):
+                                  </span>
+                                </div>
+                                {idleHosts.length > 0 ? (
+                                  <div className="flex flex-wrap gap-2 mt-2.5">
+                                    {idleHosts.map(h => (
+                                      <span 
+                                        key={h.id} 
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-amber-100 shadow-3xs text-xs font-bold text-slate-700 hover:border-amber-300 hover:bg-amber-50/30 transition-all cursor-default"
+                                      >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                        {h.name}
+                                        {h.studio && (
+                                          <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 px-1 py-0.2 rounded">
+                                            {h.studio.replace(/^Studio\s+/, "")}
+                                          </span>
+                                        )}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-slate-500 italic mt-2">Semua host reguler telah terdaftar di jadwal siaran studio hari ini.</p>
+                                )}
+                              </div>
+                            );
+                          })()}
+
+                          <div className="pt-1">
                             {(() => {
                               let dayScheds = computedSchedules.filter(s => s.date === selectedCalendarDate);
                               
@@ -4769,97 +5209,187 @@ export default function App() {
                                 return 0;
                               });
 
-                              if (dayScheds.length === 0) {
+                              if (dayScheds.length === 0 && scheduleModalSearch.trim()) {
                                 return (
                                   <div className="text-center py-8 text-slate-400 text-sm italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                                    {scheduleModalSearch ? "Tidak ada jadwal yang sesuai pencarian." : "Belum ada jadwal terdaftar untuk tanggal yang dipilih."}
+                                    Tidak ada jadwal yang sesuai pencarian "{scheduleModalSearch}".
                                   </div>
                                 );
                               }
 
-                              const uniqueScheds = Array.from(new Map(dayScheds.map(s => [s.id, s])).values());
+                              const uniqueScheds: any[] = Array.from(new Map(dayScheds.map((s: any) => [s.id, s])).values());
                               
-                              return uniqueScheds.map((sch) => {
-                                const isOff = sch.isOffDay;
-                                return (
-                                  <div 
-                                    key={sch.id}
-                                    className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-3 text-sm ${
-                                      isOff 
-                                        ? "bg-amber-50/50 border-amber-200" 
-                                        : sch.backupHostId 
-                                        ? "bg-emerald-50/40 border-emerald-250" 
-                                        : "bg-slate-50/45 border-slate-100"
-                                    }`}
-                                  >
-                                    <div>
-                                      <div className="font-extrabold text-slate-900 flex items-center gap-2 flex-wrap">
-                                        <span className="text-xs bg-slate-200 font-mono text-slate-700 px-2 py-1 rounded leading-none">
-                                          {sch.timeSlot}
-                                        </span>
-                                        <span className="text-base text-slate-800">{sch.hostName}</span>
-                                        <span className="text-[11px] text-slate-400 font-mono font-medium">({sch.employeeId})</span>
-                                      </div>
-                                      
-                                      <div className="text-xs text-slate-600 mt-1.5 flex items-center gap-1.5">
-                                        🛍️ Brand: <b>{sch.brand}</b> ({sch.platform}) <span className="text-slate-300">•</span> 🏢 {sch.studio}
-                                      </div>
+                              // Extract all unique studio names from both master studios state and active schedules
+                              const studioNames = Array.from(new Set([
+                                ...studios.map(st => st.name),
+                                ...uniqueScheds.map(s => s.studio || "Tanpa Studio")
+                              ].filter(Boolean)));
 
-                                      {isOff && (
-                                        <div className="text-xs text-amber-900 font-extrabold mt-1.5">
-                                          🏖️ Off-Day Reguler — Di-backup Backup Host: <span className="underline text-amber-950">{sch.backupHostName || "Belum ditentukan"}</span>
+                              return (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 pb-2">
+                                  {studioNames.map(studioName => {
+                                    // Filter schedules for this studio and explicitly sort them based on shift time
+                                    const studioScheds = uniqueScheds
+                                      .filter(s => (s.studio || "Tanpa Studio") === studioName)
+                                      .sort((a, b) => {
+                                        const matchA = (a.timeSlot || "").match(timeRegex);
+                                        const matchB = (b.timeSlot || "").match(timeRegex);
+                                        const timeA = matchA ? matchA[1] : a.timeSlot;
+                                        const timeB = matchB ? matchB[1] : b.timeSlot;
+                                        if (timeA < timeB) return -1;
+                                        if (timeA > timeB) return 1;
+                                        return 0;
+                                      });
+                                    
+                                    // Find location info if available in master list
+                                    const masterStudio = studios.find(st => st.name === studioName);
+                                    const location = masterStudio ? masterStudio.location : "";
+                                    
+                                    // Make name ultra compact, e.g., "Studio Bandar Lampung" -> "Bandar Lampung"
+                                    const displayStudioName = studioName.replace(/^Studio\s+/, "");
+                                    
+                                    return (
+                                      <div 
+                                        key={studioName} 
+                                        className="w-full bg-slate-50/70 border border-slate-200/50 rounded-xl p-2.5 flex flex-col transition-all hover:bg-slate-50 shadow-3xs"
+                                      >
+                                        {/* Column Header */}
+                                        <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5 mb-2.5 flex-shrink-0">
+                                          <div className="min-w-0 max-w-[75%]">
+                                            <h4 className="font-bold text-slate-800 text-[11px] sm:text-[12px] truncate" title={studioName}>
+                                              🏢 {displayStudioName}
+                                            </h4>
+                                            {location && (
+                                              <span className="text-[9px] text-slate-400 font-semibold block truncate">
+                                                📍 {location}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black flex-shrink-0 ${
+                                            studioScheds.length > 0 
+                                              ? "bg-indigo-50/80 text-indigo-600 border border-indigo-100/30" 
+                                              : "bg-slate-200/50 text-slate-400"
+                                          }`}>
+                                            {studioScheds.length}
+                                          </span>
                                         </div>
-                                      )}
-                                    </div>
 
-                                    {/* Action button edit/delete */}
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setIsScheduleModalOpen(true);
-                                          setScheduleForm({
-                                            id: sch.id,
-                                            hostId: sch.hostId,
-                                            timeSlot: sch.timeSlot,
-                                            brand: sch.brand,
-                                            platform: sch.platform,
-                                            studio: sch.studio,
-                                            isOffDay: sch.isOffDay || false,
-                                            isPindahStudio: sch.isPindahStudio || false,
-                                            backupOption: sch.backupHostId ? 'backup' : 'none',
-                                            backupHostId: sch.backupHostId || ""
-                                          });
-                                        }}
-                                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors border-0 cursor-pointer flex items-center gap-1"
-                                        title="Ubah Jadwal"
-                                      >
-                                        <Edit2 className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setConfirmModal({
-                                            isOpen: true,
-                                            title: "Hapus Jadwal",
-                                            message: `Menghapus jadwal referensi ${sch.hostName} pada tanggal ${sch.date}?`,
-                                            type: "danger",
-                                            confirmText: "Hapus",
-                                            onConfirm: () => {
-                                              setSchedules(prev => prev.filter(s => s.id !== sch.id));
-                                              setConfirmModal(null);
-                                            }
-                                          });
-                                        }}
-                                        className="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-lg transition-colors border-0 cursor-pointer flex items-center gap-1"
-                                        title="Hapus Jadwal"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              });
+                                        {/* Board Cards Deck */}
+                                        <div className="space-y-2 flex-1 flex flex-col">
+                                          {studioScheds.length === 0 ? (
+                                            <div className="py-4 text-center border border-dashed border-slate-200/40 rounded-lg bg-white/10 text-[10px] font-medium text-slate-400 italic">
+                                              Kosong
+                                            </div>
+                                          ) : (
+                                            studioScheds.map((sch: any) => {
+                                              const isOff = sch.isOffDay;
+                                              const isPindah = sch.isPindahStudio;
+                                              return (
+                                                <div 
+                                                  key={sch.id}
+                                                  className={`p-2 rounded-lg border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all flex flex-col justify-between hover:border-slate-300 text-[11px] ${
+                                                    isOff 
+                                                      ? "border-l-[3.5px] border-l-amber-500 border-y-slate-100 border-r-slate-100" 
+                                                      : isPindah
+                                                      ? "border-l-[3.5px] border-l-pink-500 border-y-slate-100 border-r-slate-100"
+                                                      : sch.backupHostId 
+                                                      ? "border-l-[3.5px] border-l-emerald-500 border-y-slate-100 border-r-slate-100" 
+                                                      : "border-l-[3.5px] border-l-indigo-600 border-y-slate-100 border-r-slate-100"
+                                                  }`}
+                                                >
+                                                  <div>
+                                                    {/* Badge / Shift Line */}
+                                                    <div className="flex items-center justify-between gap-1 mb-1 font-mono text-[9px] font-bold text-slate-500">
+                                                      <span>⏱️ {sch.timeSlot}</span>
+                                                      <div className="flex gap-0.5 shrink-0">
+                                                        {sch.backupHostId && !isOff && !isPindah && (
+                                                          <span className="text-[7.5px] bg-emerald-500 text-white font-black px-1 rounded uppercase">Backup</span>
+                                                        )}
+                                                        {isOff && (
+                                                          <span className="text-[7.5px] bg-amber-500 text-white font-black px-1 rounded uppercase">Off</span>
+                                                        )}
+                                                        {isPindah && (
+                                                          <span className="text-[7.5px] bg-pink-500 text-white font-black px-1 rounded uppercase">Pindah</span>
+                                                        )}
+                                                      </div>
+                                                    </div>
+
+                                                    {/* Host Details */}
+                                                    <div className="font-bold text-slate-800 text-xs truncate leading-tight flex items-baseline justify-between gap-1 mb-1">
+                                                      <span className="truncate">{sch.hostName}</span>
+                                                      <span className="text-[9px] text-slate-450 text-slate-400 font-mono font-medium shrink-0">({sch.employeeId})</span>
+                                                    </div>
+
+                                                    {/* Session Brand Info */}
+                                                    <div className="text-[10px] text-slate-500 border-t border-slate-100/60 pt-1 flex items-center justify-between gap-1">
+                                                      <span className="font-semibold text-slate-700 truncate">🛍️ {sch.brand}</span>
+                                                      <span className="text-[8.5px] text-slate-400 font-bold shrink-0 uppercase">{sch.platform}</span>
+                                                    </div>
+
+                                                    {/* Exception Backup Info block */}
+                                                    {sch.backupHostId && (
+                                                      <div className="mt-1 text-[8.5px] bg-slate-50/80 border border-slate-100/50 rounded p-1 text-slate-600 leading-tight">
+                                                        <span className="font-bold">🔄 Backup: </span>
+                                                        <span className="font-black text-slate-850">{sch.backupHostName || "N/A"}</span>
+                                                      </div>
+                                                    )}
+                                                  </div>
+
+                                                  {/* Compact Action icons bar */}
+                                                  <div className="flex justify-end gap-2 border-t border-slate-100/60 pt-1 mt-1.5">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        setIsScheduleModalOpen(true);
+                                                        setScheduleForm({
+                                                          id: sch.id,
+                                                          hostId: sch.hostId,
+                                                          timeSlot: sch.timeSlot,
+                                                          brand: sch.brand,
+                                                          platform: sch.platform,
+                                                          studio: sch.studio,
+                                                          isOffDay: sch.isOffDay || false,
+                                                          isPindahStudio: sch.isPindahStudio || false,
+                                                          backupOption: sch.backupHostId ? 'backup' : 'none',
+                                                          backupHostId: sch.backupHostId || ""
+                                                        });
+                                                      }}
+                                                      className="p-0.5 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                                                      title="Ubah Jadwal"
+                                                    >
+                                                      <Edit2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        setConfirmModal({
+                                                          isOpen: true,
+                                                          title: "Hapus Jadwal",
+                                                          message: `Menghapus jadwal ${sch.hostName} pada tanggal ${sch.date}?`,
+                                                          type: "danger",
+                                                          confirmText: "Hapus",
+                                                          onConfirm: () => {
+                                                            setSchedules(prev => prev.filter(s => s.id !== sch.id));
+                                                            setConfirmModal(null);
+                                                          }
+                                                        });
+                                                      }}
+                                                      className="p-0.5 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                                                      title="Hapus Jadwal"
+                                                    >
+                                                      <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
                             })()}
                           </div>
                         </div>
@@ -4955,7 +5485,15 @@ export default function App() {
                              cells.push(
                                <div
                                  key={i}
-                                 onClick={() => setSelectedCalendarDate(dateString)}
+                                 onClick={() => {
+                                   setSelectedCalendarDate(dateString);
+                                   setTimeout(() => {
+                                     const el = document.getElementById("schedules-on-selected-date");
+                                     if (el) {
+                                       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                     }
+                                   }, 80);
+                                 }}
                                  className={`min-h-[140px] p-2.5 transition-all flex flex-col justify-start cursor-pointer group relative bg-white ${
                                    isSelected ? "ring-2 ring-inset ring-indigo-500 bg-indigo-50/10" : "hover:bg-slate-50"
                                  }`}
@@ -4966,29 +5504,29 @@ export default function App() {
                                    }`}>
                                      {i}
                                    </span>
-                                   <div className="flex items-center gap-1">
-                                     {daySchedules.length > 0 && (
-                                       <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-slate-100 text-slate-500">
-                                         {daySchedules.length} Sesi
-                                       </span>
-                                     )}
-                                   </div>
-                                 </div>
-                                 
-                                 <div className="flex-1 space-y-1.5 overflow-y-auto max-h-[100px] hide-scrollbar">
-                                   {(()=>{
-                                     const groupedSchedules = {};
-                                     daySchedules.forEach(sch => {
+                                    <div className="flex items-center gap-1">
+                                      {daySchedules.length > 0 && (
+                                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-slate-100 text-slate-500">
+                                          {daySchedules.length} Sesi
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex-1 space-y-1.5 overflow-y-auto max-h-[100px] hide-scrollbar">
+                                    {(() => {
+                                     const groupedSchedules: Record<string, any[]> = {};
+                                     daySchedules.forEach((sch: any) => {
                                        const stdName = sch.studio || "Studio Bandar Lampung";
                                        if (!groupedSchedules[stdName]) groupedSchedules[stdName] = [];
                                        groupedSchedules[stdName].push(sch);
                                      });
 
-                                     return Object.entries(groupedSchedules).slice(0, 3).map(([stdName, scheds]) => (
+                                     return Object.entries(groupedSchedules).slice(0, 3).map(([stdName, scheds]: [string, any[]]) => (
                                        <div key={stdName} className="mb-1.5 last:mb-0 bg-slate-50 rounded p-1 border border-slate-100">
                                          <div className="text-[8px] font-black uppercase text-slate-500 mb-1 tracking-wider">{stdName}</div>
                                          <div className="space-y-1">
-                                           {scheds.slice(0, 4).map((sch) => {
+                                           {scheds.slice(0, 4).map((sch: any) => {
                                               const colorNum = sch.timeSlot.charCodeAt(0) % 5;
                                               const colorClasses = [
                                                 "bg-[#f3e8ff] border-[#d8b4fe] text-[#6b21a8]",
@@ -5118,8 +5656,8 @@ export default function App() {
                 
                         {/* MODAL POP-UP: FORM MASUKKAN DATA HOST & BACKUP */}
                 {isScheduleModalOpen && (
-                  <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-xs animate-fadeIn font-sans" id="calendar_schedule_modal">
-                    <div className="bg-white max-w-2xl w-full rounded-2xl border border-slate-100 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col animate-scaleUp">
+                  <div className="fixed inset-0 z-[120] overflow-y-auto bg-slate-950/50 backdrop-blur-xs flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn font-sans" id="calendar_schedule_modal">
+                    <div className="bg-white max-w-2xl w-full rounded-2xl border border-slate-100 shadow-2xl flex flex-col animate-scaleUp my-auto sm:my-4 overflow-hidden">
                       
                       {/* Modal Header */}
                       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-5 flex justify-between items-center flex-shrink-0">
@@ -5155,7 +5693,7 @@ export default function App() {
                       </div>
 
                       {/* Modal Body */}
-                      <div className="p-6 overflow-y-auto space-y-6 flex-1 text-slate-800">
+                      <div className="p-6 space-y-6 text-slate-800">
                         
                         {/* FORM MASUKKAN DATA HOST & BACKUP */}
                         <div className="pt-4 border-t border-slate-100 space-y-4">
@@ -7654,8 +8192,8 @@ export default function App() {
                       </div>
 
                     {isDeleteByDateModalOpen && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
-                        <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 relative animate-scaleUp">
+                      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[10vh] sm:pb-12 animate-fadeIn">
+                        <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 relative animate-scaleUp my-auto sm:my-4">
                            <button
                              onClick={() => setIsDeleteByDateModalOpen(false)}
                              className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-transparent border-0 cursor-pointer"
@@ -7689,8 +8227,8 @@ export default function App() {
                     )}
 
                     {isUploadModalOpen && (
-                      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" id="upload_report_modal">
-                        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-5xl w-full p-6 sm:p-8 text-left relative my-8 max-h-[90vh] overflow-y-auto custom-scroll animate-scaleUp">
+                      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 overflow-y-auto flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn" id="upload_report_modal">
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-5xl w-full p-6 sm:p-8 text-left relative animate-scaleUp my-auto sm:my-4">
                           {/* Close Button */}
                           <button
                             onClick={() => {
@@ -8931,8 +9469,8 @@ export default function App() {
 
                  {/* MODAL LEADS */}
                  {leadFormModal.isOpen && createPortal(
-                  <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-fadeIn font-sans">
-                    <div className="bg-white max-w-lg w-full rounded-2xl md:rounded-[32px] border border-slate-100 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col animate-scaleUp text-slate-800 relative shadow-[0_0_40px_rgba(79,70,229,0.15)]">
+                  <div className="fixed inset-0 z-[120] overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn font-sans">
+                    <div className="bg-white max-w-lg w-full rounded-2xl md:rounded-[32px] border border-slate-100 shadow-2xl flex flex-col animate-scaleUp text-slate-800 relative shadow-[0_0_40px_rgba(79,70,229,0.15)] my-auto sm:my-4 overflow-hidden">
                       <div className="bg-gradient-to-br from-indigo-50 to-white px-5 sm:px-8 py-5 sm:py-6 border-b border-indigo-100 flex justify-between items-center flex-shrink-0">
                         <div className="flex items-center gap-3">
                           <div className="bg-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30 flex-shrink-0">
@@ -8948,7 +9486,7 @@ export default function App() {
                         </button>
                       </div>
                       
-                      <div className="flex-1 p-5 sm:p-8 overflow-y-auto w-full custom-scroll">
+                      <div className="p-5 sm:p-8 w-full custom-scroll">
                         <form onSubmit={(e) => {
                           e.preventDefault();
                           const fd = new FormData(e.currentTarget);
@@ -10415,8 +10953,8 @@ export default function App() {
 
       {/* ==================== CUSTOM HIGH-POLISHED STATIC PORTAL CONFIRM MODAL ==================== */}
       {confirmModal && confirmModal.isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-purple-950/40 backdrop-blur-xs animate-fadeIn font-sans" id="custom_confirm_modal_portal">
-          <div className="bg-white rounded-2xl border border-purple-100 shadow-2xl max-w-sm w-full overflow-hidden p-6 space-y-4">
+        <div className="fixed inset-0 z-[200] overflow-y-auto bg-purple-950/40 backdrop-blur-xs flex items-start justify-center p-4 sm:p-6 sm:pt-[15vh] sm:pb-12 animate-fadeIn font-sans" id="custom_confirm_modal_portal">
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-2xl max-w-sm w-full p-6 space-y-4 animate-scaleUp my-auto sm:my-4">
             <div className="flex items-start gap-3">
               <div className={`p-2.5 rounded-xl flex-shrink-0 ${confirmModal.type === 'danger' ? 'bg-red-50 text-red-600' : 'bg-purple-50 text-purple-600'}`}>
                 {confirmModal.type === 'danger' ? (
