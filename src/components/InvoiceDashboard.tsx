@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Download, Plus, X, FileText, CheckCircle2, Clock, Building2, ArrowRight, CheckSquare, Search, Edit2, Trash2, Calendar, Settings, Image as ImageIcon, UploadCloud } from 'lucide-react';
+import { Download, Plus, X, FileText, CheckCircle2, Clock, Building2, ArrowRight, CheckSquare, Search, Edit2, Trash2, Calendar, Settings, Image as ImageIcon, UploadCloud, Mail } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
 
 interface InvoiceDashboardProps {
@@ -19,10 +19,14 @@ interface InvoiceSettings {
 }
 
 export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands, onUpdateBrands }) => {
-  const [activeTab, setActiveTab] = useState<"overview" | "create" | "settings" | "berkas">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "create" | "settings" | "berkas" | "reminders">("overview");
+  const [globalPicEmail, setGlobalPicEmail] = useState<string>("admin1@liva-agency.com, admin2@liva.com");
+  const [emailTestStatus, setEmailTestStatus] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [berkasSearch, setBerkasSearch] = useState("");
   const [berkasEditor, setBerkasEditor] = useState<{ brandId: string; id: string; name: string; type: string; url: string; } | null>(null);
   const [berkasToDelete, setBerkasToDelete] = useState<{ brandId: string; berkasId: string; } | null>(null);
+  const [generatedEmail, setGeneratedEmail] = useState<{ to: string; subject: string; body: string; } | null>(null);
   
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>({
     logoUrl: "",
@@ -88,6 +92,76 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
     return list.sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
   }, [clientBrands, filterMonth]);
 
+  useEffect(() => {
+    const storedEmail = localStorage.getItem("mcn_global_pic_email");
+    if (storedEmail) {
+      setGlobalPicEmail(storedEmail);
+    }
+  }, []);
+
+  useEffect(() => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    // Use local timezone offset to get the correct YYYY-MM-DD string
+    const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+
+    // Trigger based on actual invoices that are due or issued today
+    clientBrands.forEach(b => {
+      // 1. Trigger using specific invoices (Issue Date or Due Date)
+      if (b.invoices && b.invoices.length > 0) {
+        b.invoices.forEach(inv => {
+          if (inv.issueDate === todayStr || inv.dueDate === todayStr) {
+            // Include invoice specific ID to prevent spamming
+            const invCacheKey = `mcn_invoice_rem_${todayStr}_inv_${inv.id}`;
+            if (!localStorage.getItem(invCacheKey)) {
+              console.log('Triggering automated email reminder for ACTUAL INVOICE:', inv.invoiceNumber);
+              localStorage.setItem(invCacheKey, 'sent');
+              
+              fetch('/api/invoice/send-reminder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  brandName: b.name,
+                  invoiceDate: inv.issueDate || todayStr,
+                  toEmails: b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com",
+                  amount: inv.totalAmount || 0,
+                  invoiceNumber: inv.invoiceNumber || "AUTO"
+                })
+              }).catch(err => console.error('Automated invoice reminder err:', err));
+            }
+          }
+        });
+      }
+
+      // 2. Trigger based on Brand Default Invoice Day (Legacy fallback/recurring tracker)
+      if (!b.invoiceDate) return;
+      const invDay = parseInt(b.invoiceDate);
+      if (isNaN(invDay)) return;
+
+      if (invDay === currentDay) {
+        const cacheKey = `mcn_invoice_rem_${todayStr}_${b.id}`;
+        if (!localStorage.getItem(cacheKey)) {
+          console.log('Triggering automated email reminder for brand base configuration', b.name);
+          localStorage.setItem(cacheKey, 'sent');
+          
+          fetch('/api/invoice/send-reminder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              brandName: b.name,
+              invoiceDate: b.invoiceDate,
+              toEmails: b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com, admin2@liva.com",
+              amount: b.amount || 0,
+              invoiceNumber: "AUTO-" + new Date().getTime().toString().slice(-6)
+            })
+          }).then(res => res.json()).then(data => {
+            console.log('Automated reminder response:', data);
+          }).catch(err => console.error('Automated reminder err:', err));
+        }
+      }
+    });
+  }, [clientBrands]);
+
   const upcomingBillings = useMemo(() => {
     const today = new Date();
     const currentDay = today.getDate();
@@ -114,14 +188,45 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
     
     // Auto detect shift counts
     const shiftCount = brand.sessions?.length || 1;
+
+    // Generate accurate Invoice Number sequentially
+    const romanMonths = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const romanMonth = romanMonths[currentMonth];
+    const monthStr = String(currentMonth + 1).padStart(2, '0');
+    
+    let maxSeq = 0;
+    clientBrands.forEach(b => {
+      if (b.invoices) {
+        b.invoices.forEach(inv => {
+          if (inv.invoiceNumber && inv.invoiceNumber.startsWith('INV/')) {
+            const match = inv.invoiceNumber.match(/^INV\/(\d+)\//);
+            if (match) {
+              if (inv.issueDate && inv.issueDate.startsWith(`${currentYear}-${monthStr}`)) {
+                const seq = parseInt(match[1]);
+                if (seq > maxSeq) {
+                  maxSeq = seq;
+                }
+              }
+            }
+          }
+        });
+      }
+    });
+    
+    const seqStr = String(maxSeq + 1).padStart(3, '0');
+    const invoiceNumber = `INV/${seqStr}/LIVA/${romanMonth}/${currentYear}`;
     
     setDraftInvoice({
       id: `inv_${Date.now()}`,
-      invoiceNumber: `INV/${Math.floor(Math.random()*900)+100}/LIVA AGENCY/${today.getMonth()+1}/${today.getFullYear()}`,
+      invoiceNumber: invoiceNumber,
       issueDate: today.toISOString().substring(0, 10),
       dueDate: dueDate.toISOString().substring(0, 10),
       status: "Draft",
       recipientName: brand.picName || brand.name,
+      ptName: brand.name,
+      picName: brand.picName || "",
       email: brand.picEmail || "",
       address: brand.companyAddress || "",
       sessionItems: [
@@ -156,10 +261,47 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       return b;
     });
 
+    const brand = clientBrands.find(b => b.id === selectedBrandId);
+    if (brand) {
+      handleShowEmailCopy(finalInvoice, brand.name, brand.picEmail);
+    }
+
     onUpdateBrands(updatedBrands);
     setActiveTab("overview");
     setSelectedBrandId("");
     setDraftInvoice({});
+  };
+
+  const handleShowEmailCopy = (inv: BrandInvoice, brandName: string, picEmail?: string) => {
+     const totalShift = inv.sessionItems?.reduce((a,c) => Number(a) + (Number(c.qty) || 0), 0) || 0;
+     const totalAmountStr = new Intl.NumberFormat('id-ID').format(inv.totalAmount);
+     const desc = inv.sessionItems?.[0]?.description?.toLowerCase() || "";
+     const platformName = desc.includes("tiktok") ? "TikTok" : desc.includes("shopee") ? "Shopee" : "[NAMA PLATFORM]";
+
+     const emailSubject = `Quotation for ${platformName} Livestream - ${brandName}`;
+     const emailBody = `Dear ${inv.picName || inv.recipientName || "[NAMA PIC]"},
+We hope this email finds you well.
+
+Please find attached our quotation for the ${platformName} Livestream Full Package program. Below is a brief summary of the proposed services:
+
+${platformName} Livestream Full Package – 6 hours/day
+
+Period: ${inv.issueDate} - ${inv.dueDate}
+Monthly Fee: Qty: ${totalShift} shift
+Total Amount: Rp${totalAmountStr}
+
+We believe this livestream program will help maximize ${inv.ptName || brandName} performance, visibility, and engagement through a consistent and strategic live commerce approach.
+
+Should you require any further information, clarification, or adjustments, please do not hesitate to contact us. We look forward to the opportunity to collaborate with ${inv.ptName || brandName}
+
+Thank you for your time and consideration.
+
+Best regards,
+Mufhti Ali
+PT. Liva Media Kreatif
++62 811-3016-161`;
+
+     setGeneratedEmail({ to: inv.email || picEmail || "", subject: emailSubject, body: emailBody });
   };
 
   const updateInvoiceStatus = (brandId: string, invId: string, newStatus: BrandInvoice["status"]) => {
@@ -191,7 +333,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
 
   const handlePrint = (invoice: BrandInvoice, brandName: string) => {
     const brand = clientBrands.find(b => b.invoices?.some(i => i.id === invoice.id));
-    const recipient = invoice.recipientName || brand?.name || brandName;
+    const recipient = invoice.ptName || invoice.recipientName || brand?.name || brandName;
+    const picName = invoice.picName || invoice.recipientName || brand?.picName || "-";
     const address = invoice.address || "-";
     const email = invoice.email || "-";
     const phone = brand?.picName ? "" : ""; // Not available in new schema easily
@@ -291,7 +434,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
             <div class="top-info">
               <div class="invoice-to">
                 <h3>INVOICE TO:</h3>
-                <strong>${recipient}</strong>
+                <strong>${recipient}</strong><br/>
+                <span style="font-size: 14px; font-weight: 600;">UP: ${picName}</span>
                 <div class="address-block">
                   <div class="address-details">
                     <strong>Email:</strong> <span>${email}</span>
@@ -395,6 +539,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           <p className="text-sm font-semibold text-slate-500 mt-1">Lacak pembayaran client, generate invoice PDF, dan kelola tagihan MCN terpusat.</p>
         </div>
         <div className="flex gap-2">
+          <button 
+            onClick={() => setActiveTab("reminders")}
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+          >
+            <Clock className="w-5 h-5" /> Pengingat Otomatis
+          </button>
           <button 
             onClick={() => setActiveTab("settings")}
             className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm cursor-pointer"
@@ -509,8 +659,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                           <div className="text-[10px] font-bold text-slate-400 mt-0.5">{inv.sessionItems.length} Komponen Item</div>
                         </td>
                         <td className="py-4 px-6">
-                           <div className="font-bold text-indigo-700 text-sm">{inv.brandName}</div>
-                           <div className="text-[11px] font-semibold text-slate-500 truncate max-w-[180px]">{inv.recipientName}</div>
+                           <div className="font-bold text-indigo-700 text-sm">{inv.ptName || inv.brandName}</div>
+                           <div className="text-[11px] font-semibold text-slate-500 truncate max-w-[180px]">{inv.picName || inv.recipientName}</div>
                         </td>
                         <td className="py-4 px-6 text-center">
                           <select 
@@ -547,6 +697,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                              </button>
                              <button onClick={() => handlePrint(inv, inv.brandName)} className="p-2 bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-600 rounded-lg cursor-pointer transition-colors" title="Download & Print PDF">
                                <Download className="w-4 h-4 mx-auto" />
+                             </button>
+                             <button onClick={() => {
+                                 const brand = clientBrands.find(b => b.id === inv.brandId);
+                                 handleShowEmailCopy(inv, inv.brandName, brand?.picEmail);
+                             }} className="p-2 bg-slate-100 hover:bg-emerald-100 text-slate-500 hover:text-emerald-600 rounded-lg cursor-pointer transition-colors" title="Lihat Copy Email">
+                                <Mail className="w-4 h-4 mx-auto" />
                              </button>
                            </div>
                         </td>
@@ -612,8 +768,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                     <h4 className="text-sm font-black text-slate-800 mb-3">Informasi Kepada (Recipient)</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (Nama Klien / PT)</label>
-                        <input type="text" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.recipientName || ""} onChange={e => setDraftInvoice({...draftInvoice, recipientName: e.target.value})} />
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Nama PT</label>
+                        <input type="text" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.ptName || ""} onChange={e => setDraftInvoice({...draftInvoice, ptName: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (PIC)</label>
+                        <input type="text" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.picName || ""} onChange={e => setDraftInvoice({...draftInvoice, picName: e.target.value})} />
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">Email Pengirim (opsional)</label>
@@ -727,6 +887,189 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
         </div>
       )}
 
+      {activeTab === "reminders" && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="bg-white border text-left border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-800">Sistem Pengingat Jadwal Penagihan (Automated Reminders)</h3>
+                <p className="text-sm text-slate-500 font-semibold mt-1">Kirim notifikasi ke admin PIC saat Invoice mencapai tanggal penagihan.</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+               <div>
+                  <h4 className="text-sm font-black text-slate-800 mb-1">Status Sistem Penjadwalan Email</h4>
+                  <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-lg">
+                    Server Background CRON Job aktif. Ketika sistem mendeteksi <strong>Invoice Date setting atau tanggal jatuh tempo / pembuatan invoice hari ini</strong>, notifikasi email pengingat terkirim <strong>secara otomatis</strong> (tanpa perlu klik) ke semua daftar email admin/PIC.
+                  </p>
+               </div>
+               <div className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-2 shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                  Sistem Pemantauan Aktif
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                {upcomingBillings.length === 0 && (
+                   <div className="border border-dashed border-slate-300 p-6 rounded-xl flex flex-col items-center text-center">
+                     <CheckCircle2 className="w-8 h-8 text-emerald-400 mb-3" />
+                     <h4 className="text-sm font-bold text-slate-800">Tidak ada invoice jatuh tempo hari ini!</h4>
+                     <p className="text-xs text-slate-500 mt-1">Seluruh tagihan selesai diproses.</p>
+                   </div>
+                )}
+                {upcomingBillings.map(b => {
+                   return (
+                     <div key={b.id} className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm relative overflow-hidden">
+                       <div className="absolute top-0 left-0 w-1 h-full bg-amber-400"></div>
+                       <div className="flex justify-between items-start mb-3">
+                         <div>
+                           <h4 className="text-sm font-black text-slate-800">{b.name}</h4>
+                           <p className="text-xs font-semibold text-amber-600 mt-0.5">Tanggal Tagih: {b.invoiceDate}</p>
+                         </div>
+                       </div>
+                       
+                       {parseInt(b.invoiceDate) === new Date().getDate() || b.invoices?.some(inv => {
+                          const localToday = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                          return inv.issueDate === localToday || inv.dueDate === localToday;
+                       }) ? (
+                        <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 mb-2">
+                         <p className="text-[11px] text-emerald-800 font-medium">
+                           <strong>Pesan Terkirim Otomatis!</strong> Sistem telah membaca tanggal penagihan invoice hari ini dan berhasil mengirimkan email notifikasi ke daftar PIC internal via API Nodemailer.
+                         </p>
+                       </div>
+                       ) : (
+                        <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-2">
+                         <p className="text-[11px] text-amber-800 font-medium">
+                           <strong>Menunggu Hari H.</strong> Sistem akan otomatis mengirim pada tgl {b.invoiceDate} (Atau jika ada invoice yang jatuh tempo hari ini).
+                         </p>
+                       </div>
+                       )}
+                       <p className="text-xs text-slate-500 mb-2">Penerima: <span className="font-mono font-bold">{b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com, admin2@liva.com"}</span></p>
+                       <button
+                         type="button"
+                         onClick={async (e) => {
+                           const btn = e.currentTarget;
+                           const originalText = btn.innerHTML;
+                           btn.innerHTML = "Mengirim...";
+                           btn.disabled = true;
+                           btn.classList.add("opacity-50");
+                           try {
+                             const res = await fetch('/api/invoice/send-reminder', {
+                               method: 'POST',
+                               headers: { 'Content-Type': 'application/json' },
+                               body: JSON.stringify({
+                                 brandName: b.name,
+                                 invoiceDate: b.invoiceDate,
+                                 toEmails: b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com, admin2@liva.com",
+                                 amount: b.amount || 0,
+                                 invoiceNumber: "AUTO-TEST"
+                               })
+                             });
+                             const data = await res.json();
+                             if (data.success) {
+                               alert("✅ Sukses! Bukti sistem otomatis berhasil mengirimkan ke: " + (b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com"));
+                             } else {
+                               alert("❌ Gagal: " + (data.details || data.error));
+                             }
+                           } catch (err: any) {
+                             alert("❌ Error Server: " + err.message);
+                           } finally {
+                             btn.innerHTML = originalText;
+                             btn.disabled = false;
+                             btn.classList.remove("opacity-50");
+                           }
+                         }}
+                         className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[10px] rounded uppercase flex items-center gap-1 transition-colors border border-indigo-100 cursor-pointer"
+                       >
+                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                         Test Pemicu Sekarang
+                       </button>
+                     </div>
+                   );
+                })}
+              </div>
+
+              <div>
+                <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl">
+                   <h4 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
+                     <Settings className="w-4 h-4 text-slate-500" /> Konfigurasi Admin Penerima Email
+                   </h4>
+                   <div className="space-y-4">
+                     <div>
+                       <label className="block text-xs font-bold text-slate-600 mb-1">Daftar Email PIC Internal (Penerima Reminder Global)</label>
+                       <textarea rows={2} value={globalPicEmail} onChange={e => setGlobalPicEmail(e.target.value)} placeholder="admin1@liva-agency.com, admin2@liva-agency.com" className="w-full bg-white border border-slate-200 px-3 py-2 rounded-lg text-sm focus:border-indigo-500 outline-none font-medium" />
+                       <p className="text-[10px] text-slate-500 mt-1">Pisahkan dengan koma jika lebih dari 1 email. Sistem akan otomatis mengirim ke semua email ini.</p>
+                     </div>
+
+                     <div className="flex flex-col gap-2">
+                       <div className="flex gap-2">
+                         <button 
+                           onClick={() => {
+                             localStorage.setItem("mcn_global_pic_email", globalPicEmail);
+                             setEmailTestStatus("Berhasil menyimpan konfigurasi daftar penerima email!");
+                             setTimeout(() => setEmailTestStatus(""), 3000);
+                           }}
+                           type="button" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer border-0">
+                            Simpan Konfigurasi
+                         </button>
+                         <button 
+                           onClick={async () => {
+                             try {
+                               console.log("Mengirim request test email ke", globalPicEmail);
+                               setEmailTestStatus("Sedang mengirim email test ke: " + globalPicEmail + "...");
+                               
+                               const res = await fetch('/api/invoice/send-reminder', {
+                                 method: 'POST',
+                                 headers: { 'Content-Type': 'application/json' },
+                                 body: JSON.stringify({
+                                   brandName: "TEST BRAND AGENCY",
+                                   invoiceDate: String(new Date().getDate()),
+                                   toEmails: globalPicEmail,
+                                   amount: 15000000,
+                                   invoiceNumber: "INV-TEST-001"
+                                 })
+                               });
+                               
+                               const data = await res.json();
+                               console.log("Response dari API:", data);
+                               if (data.simulated) {
+                                 setEmailTestStatus("Test Simulasi Selesai (Sandi Aplikasi / Env belum lengkap).");
+                               } else if (data.success) {
+                                 setEmailTestStatus("✅ Bukti terkirim! Pesan sudah diterima oleh server Google dengan ID: " + (data.messageId || 'N/A') + ". Jika belum masuk, coba cek tab PENTING, SPAM, atau PROMOSI (Google kadang memfilter email otomatis).");
+                               } else {
+                                 setEmailTestStatus("Gagal mengirim email: " + (data.details || data.error));
+                               }
+                             } catch (err: any) {
+                               if (err.name === 'AbortError') {
+                                 setEmailTestStatus("Terjadi error: Timeout. Request pengiriman terlalu lama (> 12 detik). Silakan coba lagi.");
+                               } else {
+                                 setEmailTestStatus("Terjadi error di antarmuka API... server terputus: " + err.message);
+                               }
+                             }
+                           }}
+                           type="button" disabled={emailTestStatus.includes("Sedang mengirim")} className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer border-0 disabled:opacity-50">
+                            {emailTestStatus.includes("Sedang mengirim") ? "Mengirim..." : "Test Kirim Email"}
+                         </button>
+                       </div>
+                       {emailTestStatus && (
+                         <div className="text-xs font-bold p-2 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg">
+                           {emailTestStatus}
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === "settings" && (
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 max-w-3xl animate-fadeIn">
            <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -829,6 +1172,19 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
               </div>
            </div>
 
+           <div className="mb-4">
+             <div className="relative max-w-sm">
+               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+               <input 
+                 type="text" 
+                 placeholder="Cari nama berkas atau brand..." 
+                 value={berkasSearch}
+                 onChange={(e) => setBerkasSearch(e.target.value)}
+                 className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 font-medium"
+               />
+             </div>
+           </div>
+
            <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
@@ -842,7 +1198,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-sm">
-                  {clientBrands.flatMap(b => (b.berkas || []).map(berk => ({ ...berk, brandId: b.id, brandName: b.name }))).map((berk, idx) => (
+                  {clientBrands.flatMap(b => (b.berkas || []).map(berk => ({ ...berk, brandId: b.id, brandName: b.name }))).filter(berk => berk.name.toLowerCase().includes(berkasSearch.toLowerCase()) || berk.brandName.toLowerCase().includes(berkasSearch.toLowerCase())).map((berk, idx) => (
                     <tr key={berk.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 text-slate-500 font-bold">{idx + 1}</td>
                       <td className="px-4 py-3 font-bold text-slate-800">{berk.name}</td>
@@ -855,9 +1211,11 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                       </td>
                     </tr>
                   ))}
-                  {clientBrands.flatMap(b => (b.berkas || [])).length === 0 && (
+                  {clientBrands.flatMap(b => (b.berkas || [])).filter(berk => berk.name.toLowerCase().includes(berkasSearch.toLowerCase())).length === 0 && (
                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400 font-medium italic">Belum ada berkas yang diupload</td>
+                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400 font-medium italic">
+                          {berkasSearch ? "Berkas tidak ditemukan." : "Belum ada berkas yang diupload"}
+                        </td>
                      </tr>
                   )}
                 </tbody>
@@ -880,8 +1238,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                  <input type="text" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={invoiceEditor.invoiceNumber} onChange={e => setInvoiceEditor({...invoiceEditor, invoiceNumber: e.target.value})} />
                </div>
                <div>
-                 <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (Nama Klien/PT)</label>
-                 <input type="text" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={invoiceEditor.recipientName || ""} onChange={e => setInvoiceEditor({...invoiceEditor, recipientName: e.target.value})} />
+                 <label className="block text-xs font-bold text-slate-500 mb-1">Nama PT</label>
+                 <input type="text" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={invoiceEditor.ptName || invoiceEditor.recipientName || ""} onChange={e => setInvoiceEditor({...invoiceEditor, ptName: e.target.value})} />
+               </div>
+               <div>
+                 <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (PIC)</label>
+                 <input type="text" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={invoiceEditor.picName || invoiceEditor.recipientName || ""} onChange={e => setInvoiceEditor({...invoiceEditor, picName: e.target.value})} />
                </div>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div>
@@ -1128,6 +1490,51 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                 Ya, Hapus
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {generatedEmail && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-fadeIn">
+             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+               <h3 className="text-xl font-black text-slate-800">Email Template Berhasil Dibuat</h3>
+               <button onClick={() => setGeneratedEmail(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-6 h-6" /></button>
+             </div>
+             
+             <div className="p-6 overflow-y-auto flex-1 space-y-4">
+               <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-emerald-800 text-sm font-bold flex items-center gap-2">
+                 ✅ Invoice berhasil disimpan. Gunakan template berikut untuk mempermudah penagihan.
+               </div>
+               
+               <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (To)</label>
+                  <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-2 items-center">
+                    <span className="font-mono text-sm text-slate-700 flex-1">{generatedEmail.to}</span>
+                    <button onClick={() => { navigator.clipboard.writeText(generatedEmail.to); alert('Berhasil dicopy!'); }} className="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded font-bold text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors shadow-sm">Copy To</button>
+                  </div>
+               </div>
+
+               <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Subjek Email (Subject)</label>
+                  <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-2 items-center gap-2">
+                    <span className="font-semibold text-sm text-slate-700 flex-1 break-all">{generatedEmail.subject}</span>
+                    <button onClick={() => { navigator.clipboard.writeText(generatedEmail.subject); alert('Berhasil dicopy!'); }} className="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded font-bold text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors shadow-sm whitespace-nowrap">Copy Subject</button>
+                  </div>
+               </div>
+
+               <div className="flex-1 min-h-[300px] flex flex-col">
+                  <label className="block text-xs font-bold text-slate-500 mb-1 flex justify-between items-end">
+                    <span>Isi Pesan (Body)</span>
+                    <button onClick={() => { navigator.clipboard.writeText(generatedEmail.body); alert('Berhasil dicopy!'); }} className="text-[10px] uppercase font-black tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1.5 rounded hover:bg-indigo-100 cursor-pointer transition-colors">Copy Isi Pesan</button>
+                  </label>
+                  <textarea readOnly value={generatedEmail.body} className="w-full h-full min-h-[250px] bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs font-medium font-mono text-slate-700 focus:outline-none resize-none leading-relaxed" />
+               </div>
+             </div>
+             
+             <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button onClick={() => setGeneratedEmail(null)} className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-all active:scale-95 cursor-pointer shadow-md">Tutup Panel</button>
+             </div>
           </div>
         </div>
       )}

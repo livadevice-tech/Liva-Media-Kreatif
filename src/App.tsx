@@ -438,7 +438,7 @@ export default function App() {
 
   useEffect(() => {
     if (agencyLogoUrl) {
-      let link = document.querySelector("link[rel~='icon']");
+      let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
       if (!link) {
         link = document.createElement("link");
         link.rel = "icon";
@@ -2384,8 +2384,14 @@ export default function App() {
   const [dbSearch, setDbSearch] = useState("");
   const [dbPlatformFilter, setDbPlatformFilter] = useState("Semua Platform");
   const [dbBrandFilter, setDbBrandFilter] = useState("Semua Brand");
-  const [dbDateFilterStart, setDbDateFilterStart] = useState("");
-  const [dbDateFilterEnd, setDbDateFilterEnd] = useState("");
+  const [dbDateFilterStart, setDbDateFilterStart] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [dbDateFilterEnd, setDbDateFilterEnd] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [dbSortDir, setDbSortDir] = useState<"desc" | "asc">("desc");
 
   // Filter/Sort for Operator Data Brand tab

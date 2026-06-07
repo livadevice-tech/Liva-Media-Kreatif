@@ -151,7 +151,9 @@ export interface BrandInvoice {
   issueDate: string;
   dueDate: string;
   status: "Draft" | "Open Invoice" | "Paid" | "Overdue";
-  recipientName: string;
+  recipientName: string; // legacy
+  ptName?: string;
+  picName?: string;
   email: string;
   address: string;
   totalAmount: number;
