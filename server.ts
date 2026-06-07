@@ -261,9 +261,15 @@ async function bootstrap() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Host Intelligence Platform Backend is listening on port ${PORT}`);
-  });
+  if (process.env.NODE_ENV !== "production") {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Host Intelligence Platform Backend is listening on port ${PORT} (dev)`);
+    });
+  } else {
+    app.listen(PORT, () => {
+      console.log(`Host Intelligence Platform Backend is listening on port ${PORT} (prod)`);
+    });
+  }
 }
 
 bootstrap().catch(err => {
