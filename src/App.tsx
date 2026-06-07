@@ -67,6 +67,7 @@ import {
   Upload,
   LineChart,
   Lock,
+  Receipt,
   Eye,
   EyeOff,
   ChevronDown,
@@ -83,7 +84,8 @@ import {
   ArrowRight,
   MoreHorizontal,
   Star,
-  UserPlus
+  UserPlus,
+  ArrowUpDown
 } from "lucide-react";
 
 import { HostEmployee, AttendanceLog, ChatMessage, StudioItem, ClientBrand, ClientReporting, ClientLead } from "./types";
@@ -103,7 +105,9 @@ import {
   fetchSpreadsheetData
 } from "./sheets";
 
+import { FileText } from 'lucide-react';
 import { DoubleDatePicker } from "./components/DoubleDatePicker";
+import { InvoiceDashboard } from "./components/InvoiceDashboard";
 import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { db } from "./firebase";
 import { syncToFirestore } from "./firestoreSync";
@@ -143,7 +147,7 @@ export function LivaLogo({ className = "h-11" }: { className?: string }) {
         {/* Camcorder triangle lens pointing right */}
         <path d="M 85 51 Q 88 50, 99 44 Q 104 41, 104 47 L 104 79 Q 104 85, 99 82 Q 88 76, 85 75 Z" fill="white" />
 
-        {/* Liva Branding Typo */}
+        {/* Liva Agency Branding Typo */}
         {/* Blocky capital L */}
         <path d="M 132 32 L 132 82 L 165 82" stroke="#772bf2" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" />
         
@@ -161,7 +165,7 @@ export function LivaLogo({ className = "h-11" }: { className?: string }) {
         <circle cx="282" cy="66" r="16" stroke="#772bf2" strokeWidth="13" fill="none" />
         <path d="M 298 50 L 298 82" stroke="#772bf2" strokeWidth="13" strokeLinecap="round" />
 
-        {/* Cleaner subtitle "Attendence System" */}
+        {/* Cleaner subtitle "Agency" */}
         <text
           x="132"
           y="114"
@@ -171,7 +175,7 @@ export function LivaLogo({ className = "h-11" }: { className?: string }) {
           fontFamily="system-ui, -apple-system, sans-serif"
           letterSpacing="0.8"
         >
-          Attendence System
+          Agency
         </text>
       </svg>
     </div>
@@ -237,6 +241,25 @@ export function HorizontalFunnel({ steps, title = "Sales Funnel", subtitle = "Ti
   );
 }
 // --- END HORIZONTAL FUNNEL COMPONENT ---
+
+const getBrandColor = (brandName: string) => {
+  if (!brandName) return { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-300' };
+  const colors = [
+    { bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-300' },
+    { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-300' },
+    { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-300' },
+    { bg: 'bg-sky-100', text: 'text-sky-800', border: 'border-sky-300' },
+    { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', border: 'border-fuchsia-300' },
+    { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-300' },
+    { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300' },
+    { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300' },
+  ];
+  let hash = 0;
+  for (let i = 0; i < brandName.length; i++) {
+    hash = brandName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
 
 export default function App() {
   const initPath = window.location.pathname;
@@ -381,6 +404,7 @@ export default function App() {
 
   const [dbStatusFilter, setDbStatusFilter] = useState<"All" | "Present" | "Late" | "Absent" | "Excused">("All");
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
+  const [isClientSidebarVisible, setIsClientSidebarVisible] = useState<boolean>(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
   const [isGoogleSheetsImportModalOpen, setIsGoogleSheetsImportModalOpen] = useState<boolean>(false);
   const [importSpreadsheetUrl, setImportSpreadsheetUrl] = useState<string>("");
@@ -635,6 +659,7 @@ export default function App() {
 
   // Modal States
   const [brandFormEditor, setBrandFormEditor] = useState<Partial<ClientBrand> | null>(null);
+  const [brandInvoiceModalInfo, setBrandInvoiceModalInfo] = useState<ClientBrand | null>(null);
   const [reportFormModal, setReportFormModal] = useState<{isOpen: boolean, data: Partial<ClientReporting>}>({isOpen: false, data: {}});
   const [leadFormModal, setLeadFormModal] = useState<{isOpen: boolean, data: Partial<ClientLead>}>({isOpen: false, data: {}});
 
@@ -694,12 +719,14 @@ export default function App() {
   const [clientCustomEndDate, setClientCustomEndDate] = useState("");
   const [clientPlatformFilter, setClientPlatformFilter] = useState("");
   const [operatorDateFilterType, setOperatorDateFilterType] = useState<"all" | "month" | "custom">("all");
+  const [operatorPlatformFilter, setOperatorPlatformFilter] = useState("");
   const [operatorCustomStartDate, setOperatorCustomStartDate] = useState("");
   const [operatorCustomEndDate, setOperatorCustomEndDate] = useState("");
   const [operatorSelectedMonth, setOperatorSelectedMonth] = useState<string>(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [operatorMonthPickerYear, setOperatorMonthPickerYear] = useState<number>(() => new Date().getFullYear());
   const [isOperatorMonthOpen, setIsOperatorMonthOpen] = useState(false);
   const [operatorCalendarYear, setOperatorCalendarYear] = useState<number>(() => new Date().getFullYear());
   const [operatorCalendarMonth, setOperatorCalendarMonth] = useState<number>(() => new Date().getMonth() + 1);
@@ -890,7 +917,7 @@ export default function App() {
     customWorkingDaysTarget?: number;
   }) => {
     const nextIdNum = hosts.length > 0 ? Math.max(...hosts.map(h => {
-      const parsed = parseInt(h.id.replace("h", ""));
+      const parsed = parseInt((h.id || "").replace("h", ""));
       return isNaN(parsed) ? 0 : parsed;
     })) + 1 : 1;
     const id = `h${nextIdNum}`;
@@ -915,7 +942,7 @@ export default function App() {
       baseMonthlyTargetRevenue: 120000000,
       consistencyScore: 100,
       joinedDate,
-      email: `${(newHostData.username || newHostData.name.toLowerCase().replace(/\s+/g, "")).trim()}@livamedia.com`,
+      email: `${(newHostData.username || newHostData.name.toLowerCase().replace(/\s+/g, "")).trim()}@livaagency.com`,
       customWorkingDaysTarget: newHostData.customWorkingDaysTarget
     };
 
@@ -1063,6 +1090,7 @@ export default function App() {
     const randomOrders = Math.floor(Math.random() * 250) + 80;
     const randomConversion = parseFloat((Math.random() * 3 + 2.5).toFixed(2)); // 2.5% to 5.5%
     const randomEngagement = parseFloat((Math.random() * 5 + 6.0).toFixed(2)); // 6% to 11%
+    const randomAvgViewDuration = Math.floor(Math.random() * 120 + 40); // 40 to 160 seconds
     const randomRevenue = randomOrders * (Math.floor(Math.random() * 50000) + 40000); // ~IDR 6M - 15M
 
     const newLog: AttendanceLog = {
@@ -1082,6 +1110,7 @@ export default function App() {
       revenueGenerated: randomRevenue,
       conversionRate: randomConversion,
       engagementRate: randomEngagement,
+      avgViewDuration: randomAvgViewDuration,
       orders: randomOrders
     };
 
@@ -1115,7 +1144,7 @@ export default function App() {
 
   // --- OPERATOR SYSTEM CONSTANTS & SALARY RECAP ---
   const [operatorTab, setOperatorTab] = useState<
-    "dashboard_utama" | "absensi" | "rekap_gaji" | "database" | "sheets" | "credentials" | "settings" | "data_brand" | "reporting_brand" | "leads" | "copilot" | "admin_privacy"
+    "dashboard_utama" | "absensi" | "rekap_gaji" | "database" | "sheets" | "credentials" | "settings" | "data_brand" | "reporting_brand" | "leads" | "copilot" | "admin_privacy" | "invoice"
   >("dashboard_utama");
   const [activeReportBrandId, setActiveReportBrandId] = useState<string | null>(null);
   const [reportBrandSearchQuery, setReportBrandSearchQuery] = useState("");
@@ -1231,6 +1260,45 @@ export default function App() {
     localStorage.setItem("mcn_notifications_v1", JSON.stringify([]));
   };
 
+  // --- HOST NOTIFICATION ENGINE ---
+  const [hostNotifications, setHostNotifications] = useState<any[]>(() => {
+    const saved = localStorage.getItem("mcn_host_notifications_v1");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return [];
+  });
+
+  const [isHostNotificationOpen, setIsHostNotificationOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("mcn_host_notifications_v1", JSON.stringify(hostNotifications));
+    syncToFirestore("host_notifications", [], hostNotifications);
+  }, [hostNotifications]);
+
+  const addHostNotification = useCallback((hostId: string, title: string, message: string, dateStr: string) => {
+    setHostNotifications(prev => {
+      const newNotif = {
+        id: `hnotif_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        hostId,
+        title,
+        message,
+        date: dateStr,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+      return [newNotif, ...prev].slice(0, 50); // cap at 50
+    });
+  }, []);
+
+  const markHostNotificationsAsRead = (hostId: string) => {
+    setHostNotifications(prev => prev.map(n => n.hostId === hostId ? { ...n, read: true } : n));
+  };
+
+
   const [reportingRawData, setReportingRawData] = useState<any[]>([]);
   const [isDragOverReporting, setIsDragOverReporting] = useState(false);
   const [saveTargetBrandId, setSaveTargetBrandId] = useState("");
@@ -1329,10 +1397,10 @@ export default function App() {
 
         // Help detect platform from columns if not detected yet
         if (!detectedPlatform) {
-          if (headers.some(h => h.includes("tiktok") || h.includes("live room") || h.includes("anchor") || h.includes("uid"))) {
+          if (headers.some(h => h.includes("tiktok") || h.includes("live room") || h.includes("anchor") || h.includes("uid") || h.includes("live impressions") || h.includes("attributed gmv") || h.includes("product impressions"))) {
             detectedPlatform = "TikTok Live";
             setSaveTargetPlatform(detectedPlatform);
-          } else if (headers.some(h => h.includes("shopee") || h.includes("username pembeli") || h.includes("live id") || h.includes("nama produk"))) {
+          } else if (headers.some(h => h.includes("shopee") || h.includes("username pembeli") || h.includes("live id") || h.includes("nama produk") || h.includes("nama livestream") || h.includes("tambah ke keranjang") || h.includes("penonton aktif") || h.includes("pesanan(pesanan dibuat)"))) {
             detectedPlatform = "Shopee Live";
             setSaveTargetPlatform(detectedPlatform);
           }
@@ -1351,29 +1419,36 @@ export default function App() {
 
         // Helper to find indices
         const findColIdx = (aliases: string[]) => {
-          // 1st pass: exact match
-          let idx = headers.findIndex(h => aliases.some(alias => h === alias));
-          if (idx !== -1) return idx;
-          // 2nd pass: partial string match
-          return headers.findIndex(h => aliases.some(alias => h.includes(alias)));
+          // 1st pass: exact match (prioritize the first alias in the list)
+          for (const alias of aliases) {
+            const idx = headers.findIndex(h => h === alias);
+            if (idx !== -1) return idx;
+          }
+          // 2nd pass: partial match
+          for (const alias of aliases) {
+            const idx = headers.findIndex(h => h.includes(alias));
+            if (idx !== -1) return idx;
+          }
+          return -1;
         };
 
-        const titleIdx = findColIdx(['streaming', 'judul', 'live', 'nama_brand', 'brand']);
-        const startIdx = findColIdx(['waktu', 'mulai', 'start', 'tanggal', 'date']);
+        const titleIdx = findColIdx(['nama livestream', 'livestream', 'streaming', 'judul', 'live', 'nama_brand', 'brand']);
+        const startIdx = findColIdx(['start time', 'waktu', 'mulai', 'start', 'tanggal', 'date']);
         const durationIdx = findColIdx(['durasi', 'duration', 'lama', 'waktu streaming']);
-        const gmvIdx = findColIdx(['attributed gmv', 'gmv', 'perolehan', 'omset', 'revenue']);
-        const productIdx = findColIdx(['attributed items sold', 'produk', 'product', 'terjual', 'item', 'items']);
+        const gmvIdx = findColIdx(['penjualan(pesanan siap dikirim)', 'penjualan(pesanan dibuat)', 'penjualan', 'attributed gmv', 'gmv', 'perolehan', 'omset', 'revenue']);
+        const productIdx = findColIdx(['produk terjual(pesanan siap dikirim)', 'produk terjual(pesanan dibuat)', 'produk terjual', 'attributed items sold', 'produk', 'product', 'terjual', 'item', 'items']);
         const buyerIdx = findColIdx(['customers', 'customer', 'pembeli', 'buyer', 'pelanggan']);
         const aovIdx = findColIdx(['avg. price', 'aov', 'rata-rata', 'order value']);
-        const impressionsIdx = findColIdx(['live impressions', 'impression', 'tayangan', 'penonton', 'visitor', 'traffic', 'pemirsa', 'exposure']);
-        const liveVisitsIdx = findColIdx(['live visits', 'views', 'viewers', 'view', 'kunjungan live']);
+        const impressionsIdx = findColIdx(['penonton', 'live impressions', 'impression', 'tayangan', 'visitor', 'traffic', 'pemirsa', 'exposure']);
+        const liveVisitsIdx = findColIdx(['penonton aktif', 'live visits', 'views', 'viewers', 'view', 'kunjungan live']);
         const productImpressionsIdx = findColIdx(['product views', 'product impression', 'tayangan produk']);
-        const clicksIdx = findColIdx(['product clicks', 'clicks', 'click', 'klik', 'kunjungan', 'detail', 'buka']);
-        const ordersIdx = findColIdx(['attributed sku orders', 'orders', 'created', 'add to cart', 'keranjang', 'buat pesanan', 'order created', 'pesanan dibuat']);
+        const avgViewDurationIdx = findColIdx(['durasi rata-rata menonton', 'avg view', 'average view', 'rata-rata menonton', 'rata rata menonton', 'waktu menonton', 'rata-rata view']);
+        const clicksIdx = findColIdx(['tambah ke keranjang', 'product clicks', 'clicks', 'click', 'klik', 'kunjungan', 'detail', 'buka']);
+        const ordersIdx = findColIdx(['pesanan(pesanan siap dikirim)', 'pesanan(pesanan dibuat)', 'pesanan', 'attributed sku orders', 'orders', 'created', 'add to cart', 'keranjang', 'buat pesanan', 'order created', 'pesanan dibuat']);
         const followersIdx = findColIdx(['new followers', 'pengikut', 'follower', 'followers', 'fans']);
         const likesIdx = findColIdx(['likes', 'suka', 'like', 'love']);
         const sharesIdx = findColIdx(['shares', 'share', 'bagikan', 'sebar']);
-        const commentsIdx = findColIdx(['comments', 'komen', 'comment', 'komentar']);
+        const commentsIdx = findColIdx(['komentar', 'comments', 'komen', 'comment']);
 
         const parseIndonesianNumber = (val: any): number => {
           if (val === undefined || val === null || val === '-' || val === '') return 0;
@@ -1498,18 +1573,40 @@ export default function App() {
           const duration = durationIdx !== -1 ? parseIndonesianNumber(rowData[durationIdx]) : 0;
           const gmv = gmvIdx !== -1 ? parseIndonesianNumber(rowData[gmvIdx]) : 0;
           const products_sold = productIdx !== -1 ? parseIndonesianNumber(rowData[productIdx]) : 0;
-          const buyers = buyerIdx !== -1 ? parseIndonesianNumber(rowData[buyerIdx]) : 0;
-          const aov = aovIdx !== -1 ? parseIndonesianNumber(rowData[aovIdx]) : (buyers > 0 ? (gmv / buyers) : 0);
 
           const parsedImpressions = impressionsIdx !== -1 ? parseIndonesianNumber(rowData[impressionsIdx]) : 0;
           const parsedLiveVisits = liveVisitsIdx !== -1 ? parseIndonesianNumber(rowData[liveVisitsIdx]) : 0;
           const parsedProductImpressions = productImpressionsIdx !== -1 ? parseIndonesianNumber(rowData[productImpressionsIdx]) : 0;
           const parsedClicks = clicksIdx !== -1 ? parseIndonesianNumber(rowData[clicksIdx]) : 0;
           const parsedOrders = ordersIdx !== -1 ? parseIndonesianNumber(rowData[ordersIdx]) : 0;
+          
+          let buyers = buyerIdx !== -1 ? parseIndonesianNumber(rowData[buyerIdx]) : parsedOrders;
+          // Use parsedOrders as fallback for buyers since Shopee reports often lack an explicit buyers column
+          
+          const aov = aovIdx !== -1 ? parseIndonesianNumber(rowData[aovIdx]) : (buyers > 0 ? (gmv / buyers) : 0);
+
           const parsedFollowers = followersIdx !== -1 ? parseIndonesianNumber(rowData[followersIdx]) : 0;
           const parsedLikes = likesIdx !== -1 ? parseIndonesianNumber(rowData[likesIdx]) : 0;
           const parsedShares = sharesIdx !== -1 ? parseIndonesianNumber(rowData[sharesIdx]) : 0;
           const parsedComments = commentsIdx !== -1 ? parseIndonesianNumber(rowData[commentsIdx]) : 0;
+          const rawAvgViewDuration = avgViewDurationIdx !== -1 ? String(rowData[avgViewDurationIdx]) : '';
+          let parsedAvgViewDuration = 0;
+          if (rawAvgViewDuration.includes(':')) {
+            const parts = rawAvgViewDuration.split(':').map(Number);
+            if (parts.length === 3) {
+              parsedAvgViewDuration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+            } else if (parts.length === 2) {
+              parsedAvgViewDuration = parts[0] * 60 + parts[1];
+            }
+          } else {
+            parsedAvgViewDuration = parseFloat(rawAvgViewDuration.replace(/[^0-9.]/g, '')) || 0;
+          }
+          
+          let fileLevelAvgView = parsedAvgViewDuration;
+          if (fileLevelAvgView > 0 && fileLevelAvgView < 10) {
+             // If the file actually wrote it in minutes, let's normalize to seconds roughly
+             fileLevelAvgView = Math.floor(fileLevelAvgView * 60);
+          }
 
           const impressions = parsedImpressions || Math.max(Math.round(buyers * 125 * (1 + (r % 5) * 0.05)), 100);
           const clicks = parsedClicks || Math.max(Math.round(buyers * 10 * (1 + (r % 5) * 0.08)), Math.round(products_sold * 1.5));
@@ -1520,6 +1617,7 @@ export default function App() {
           const likes = parsedLikes || Math.max(Math.round(buyers * 45 * (1 + (r % 5) * 0.12)), 120);
           const shares = parsedShares || Math.max(Math.round(buyers * 1.2 * (1 + (r % 5) * 0.05)), 1);
           const comments = parsedComments || (commentsIdx !== -1 ? 0 : Math.max(Math.round(buyers * 5 * (1 + (r % 5) * 0.04)), 10));
+          const avgViewDuration = fileLevelAvgView || Math.floor((60 + (r % 4) * 30)); // 60 to 150 seconds
           
           const hasFunnelInFile = parsedImpressions > 0 || parsedClicks > 0 || parsedOrders > 0;
 
@@ -1542,6 +1640,7 @@ export default function App() {
             likes,
             shares,
             comments,
+            avgViewDuration,
             hasFunnelInFile
           });
         }
@@ -1845,11 +1944,17 @@ export default function App() {
   }, [columnWidths]);
 
   // --- CALENDAR WORKSPACE OPERATIONS STATES ---
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState("2026-05-24");
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
-  const [pickerTempDate, setPickerTempDate] = useState("2026-05-24");
-  const [pickerMonth, setPickerMonth] = useState(4); // 4 = May
-  const [pickerYear, setPickerYear] = useState(2026);
+  const [pickerTempDate, setPickerTempDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [pickerMonth, setPickerMonth] = useState(() => new Date().getMonth()); 
+  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
 
   const getPickerDays = (year: number, month: number) => {
     const firstDayIndex = new Date(year, month, 1).getDay(); // Sunday is 0
@@ -1918,18 +2023,21 @@ export default function App() {
       }
     }
   };
-  const [selectedHostCalendarDate, setSelectedHostCalendarDate] = useState<string | null>(null);
-  const [calendarMonth, setCalendarMonth] = useState(4); // 4 = May (0-indexed)
-  const [calendarYear, setCalendarYear] = useState(2026);
-  const [scheduleActionMonth, setScheduleActionMonth] = useState(4); // default to May
-  const [scheduleActionYear, setScheduleActionYear] = useState(2026);
+  const [selectedHostCalendarDate, setSelectedHostCalendarDate] = useState<string | null>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
+  const [scheduleActionMonth, setScheduleActionMonth] = useState(() => new Date().getMonth());
+  const [scheduleActionYear, setScheduleActionYear] = useState(() => new Date().getFullYear());
 
   useEffect(() => {
     setScheduleActionMonth(calendarMonth);
     setScheduleActionYear(calendarYear);
   }, [calendarMonth, calendarYear]);
-  const [hostCalendarMonth, setHostCalendarMonth] = useState(4); // 4 = May (0-indexed)
-  const [hostCalendarYear, setHostCalendarYear] = useState(2026);
+  const [hostCalendarMonth, setHostCalendarMonth] = useState(() => new Date().getMonth());
+  const [hostCalendarYear, setHostCalendarYear] = useState(() => new Date().getFullYear());
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [scheduleModalSearch, setScheduleModalSearch] = useState("");
   
@@ -2207,6 +2315,9 @@ export default function App() {
   const [dbSearch, setDbSearch] = useState("");
   const [dbPlatformFilter, setDbPlatformFilter] = useState("Semua Platform");
   const [dbBrandFilter, setDbBrandFilter] = useState("Semua Brand");
+  const [dbDateFilterStart, setDbDateFilterStart] = useState("");
+  const [dbDateFilterEnd, setDbDateFilterEnd] = useState("");
+  const [dbSortDir, setDbSortDir] = useState<"desc" | "asc">("desc");
 
   // Filter/Sort for Operator Data Brand tab
   const [brandDataSearch, setBrandDataSearch] = useState("");
@@ -2448,14 +2559,38 @@ export default function App() {
   // Filtered database logs list for "Data absen" tab
   const filteredLogsList = useMemo(() => {
     return logs.filter(item => {
-      const matchSearch = item.hostName.toLowerCase().includes(dbSearch.toLowerCase()) || 
-                          (item.employeeId && item.employeeId.toLowerCase().includes(dbSearch.toLowerCase()));
+      const dbSearchLower = (dbSearch || "").toLowerCase();
+      const matchSearch = (item.hostName || "").toLowerCase().includes(dbSearchLower) || 
+                          (item.employeeId && item.employeeId.toLowerCase().includes(dbSearchLower));
       const matchPlatform = dbPlatformFilter === "Semua Platform" || item.platform === dbPlatformFilter;
       const matchBrand = dbBrandFilter === "Semua Brand" || item.brandHandled === dbBrandFilter;
       const matchStatus = dbStatusFilter === "All" || item.status === dbStatusFilter;
-      return matchSearch && matchPlatform && matchBrand && matchStatus;
+      
+      let matchDate = true;
+      if (dbDateFilterStart || dbDateFilterEnd) {
+        // use item.date if available, else fallback to extracting from timestamp if it's a string
+        const datePart = item.date || (typeof item.timestamp === "string" ? item.timestamp.split(" ")[0] : "");
+        if (!datePart) {
+           matchDate = false;
+        } else {
+           if (dbDateFilterStart && dbDateFilterEnd) {
+              matchDate = datePart >= dbDateFilterStart && datePart <= dbDateFilterEnd;
+           } else if (dbDateFilterStart) {
+              matchDate = datePart >= dbDateFilterStart;
+           } else if (dbDateFilterEnd) {
+              matchDate = datePart <= dbDateFilterEnd;
+           }
+        }
+      }
+
+      return matchSearch && matchPlatform && matchBrand && matchStatus && matchDate;
+    }).sort((a, b) => {
+      // Sort primarily by date then by timestamp
+      const timeA = new Date(a.date || a.timestamp || 0).getTime();
+      const timeB = new Date(b.date || b.timestamp || 0).getTime();
+      return dbSortDir === "desc" ? timeB - timeA : timeA - timeB;
     });
-  }, [logs, dbSearch, dbPlatformFilter, dbBrandFilter, dbStatusFilter]);
+  }, [logs, dbSearch, dbPlatformFilter, dbBrandFilter, dbStatusFilter, dbDateFilterStart, dbDateFilterEnd, dbSortDir]);
 
   // Total Statistics across Agency for Operators
   const agencyOverviewStats = useMemo(() => {
@@ -3009,7 +3144,7 @@ export default function App() {
                   Portal Partner Brand & Klien
                 </span>
                 <h2 className="text-[17px] font-extrabold text-[#111827] mt-3 tracking-tight">
-                  LIVA • Performance Portal
+                  Liva Agency • Performance Portal
                 </h2>
                 <p className="text-[11px] text-slate-500 font-semibold mt-1">
                   Pantau laporan performa dan statistik live streaming brand Anda
@@ -3077,27 +3212,16 @@ export default function App() {
 
                   <button
                     type="submit"
-                    className="w-full bg-indigo-650 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-xl text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
+                    className="w-full relative group overflow-hidden bg-[#111827] text-white font-black py-3.5 rounded-xl text-[13px] tracking-widest uppercase transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-slate-900/40 hover:-translate-y-0.5 cursor-pointer mt-6 flex justify-center items-center gap-2 border border-slate-800"
                   >
-                    Akses Portal Klien
+                    <span className="relative z-10">Masuk Portal</span>
+                    <ChevronRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-800 to-slate-900 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   </button>
               </form>
 
-              <div className="text-center mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2.5">
-                <span className="text-[10px] text-slate-400 font-bold">Harap hubungi Admin Agency untuk detail akun Anda.</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.history.pushState({}, '', '/login/host');
-                    setActiveRole("host");
-                    setHostError("");
-                    setHostLoginUser("");
-                    setHostLoginPass("");
-                  }}
-                  className="text-[11px] text-[#5642f5] hover:text-[#422ff2] font-black transition-all cursor-pointer hover:underline"
-                >
-                  ← Masuk sebagai Host/Staff Admin
-                </button>
+              <div className="text-center mt-6 pt-5 border-t border-slate-100">
+                <span className="text-[11px] text-slate-400 font-medium">Harap hubungi Admin Agency untuk detail akun Anda.</span>
               </div>
             </div>
           ) : (
@@ -3289,14 +3413,72 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setLoggedInHostId(null)}
-                        className="text-[9.5px] font-black text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors"
-                        id="host_logout_button"
-                      >
-                        LOG OUT
-                      </button>
+                      
+                      <div className="flex items-center gap-2 relative">
+                        {/* Notifications Dropdown */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsHostNotificationOpen(!isHostNotificationOpen);
+                              if (!isHostNotificationOpen && activeHostObj) {
+                                markHostNotificationsAsRead(activeHostObj.id);
+                              }
+                            }}
+                            className="relative p-2 rounded-xl hover:bg-purple-50 text-purple-700 transition-all cursor-pointer border border-transparent hover:border-purple-100 flex items-center justify-center bg-transparent active:scale-95"
+                          >
+                            <Bell className="w-5 h-5 text-purple-600" />
+                            {hostNotifications.filter(n => n.hostId === activeHostObj?.id && !n.read).length > 0 && (
+                              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white shadow-sm animate-pulse"></span>
+                            )}
+                          </button>
+
+                          {isHostNotificationOpen && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setIsHostNotificationOpen(false)}></div>
+                              <div className="absolute right-0 top-[120%] w-[280px] bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-purple-100 z-50 overflow-hidden transform opacity-100 scale-100 transition-all origin-top-right">
+                                <div className="p-3.5 border-b border-purple-50 flex justify-between items-center bg-purple-50/40">
+                                  <h4 className="text-xs font-black text-purple-900 flex items-center gap-1.5"><Bell className="w-3.5 h-3.5 text-purple-600 font-bold" /> Notifikasi Jadwal</h4>
+                                </div>
+                                <div className="max-h-[300px] overflow-y-auto bg-white">
+                                  {hostNotifications.filter(n => n.hostId === activeHostObj?.id).length === 0 ? (
+                                    <div className="p-8 flex flex-col items-center text-center text-purple-900/40">
+                                      <Bell className="w-8 h-8 mb-3 opacity-30" />
+                                      <span className="text-[11px] font-bold block text-purple-900/60 leading-snug">Tidak Ada Perubahan</span>
+                                      <span className="text-[10px] font-medium mt-1">Belum ada update jadwal terbaru untuk Anda.</span>
+                                    </div>
+                                  ) : (
+                                    hostNotifications.filter(n => n.hostId === activeHostObj?.id).map(notif => (
+                                      <div key={notif.id} className="p-3.5 border-b border-purple-50/60 hover:bg-purple-50/40 transition-colors text-left flex items-start gap-3 relative">
+                                        {!notif.read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>}
+                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${notif.title.includes('Dihapus') ? 'bg-red-50 text-red-500' : 'bg-purple-100 text-purple-600'}`}>
+                                          <Bell className="w-3.5 h-3.5" />
+                                        </div>
+                                        <div className="flex-1 pr-2">
+                                          <div className="text-[11px] font-black text-slate-800 leading-tight">
+                                            {notif.title}
+                                          </div>
+                                          <div className="text-[10px] text-slate-600 mt-1 leading-snug font-medium">{notif.message}</div>
+                                          <div className="text-[8px] font-bold text-slate-400 mt-1.5 flex items-center gap-1"><Clock className="w-3 h-3 text-slate-300" />{new Date(notif.createdAt).toLocaleDateString("id-ID", {day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit'})}</div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setLoggedInHostId(null)}
+                          className="text-[9.5px] font-black text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-3 py-2 rounded-xl cursor-pointer transition-colors"
+                          id="host_logout_button"
+                        >
+                          LOG OUT
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -3756,13 +3938,13 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => {
-                            setHostCalendarMonth(4); // Reset to May
-                            setHostCalendarYear(2026); // 2026
+                            setHostCalendarMonth(new Date().getMonth());
+                            setHostCalendarYear(new Date().getFullYear());
                           }}
                           className="px-1.5 py-0.5 text-[8.5px] font-black hover:bg-purple-50 active:scale-95 border border-purple-100/70 rounded-md cursor-pointer transition-all text-purple-700"
-                          title="Kembalikan ke Mei 2026"
+                          title="Kembalikan ke Bulan Ini"
                         >
-                          Mei '26
+                          Bulan Ini
                         </button>
 
                         <button
@@ -3808,8 +3990,8 @@ export default function App() {
                           );
                           
                           // Decide background check
-                          let cellBg = "bg-pink-100 text-pink-800 font-extrabold"; // Default to pink if no schedules
-                          let borderStyle = "border border-pink-300";
+                          let cellBg = "bg-slate-50 text-slate-400 font-bold border border-slate-200 border-dashed"; // Default if no schedules
+                          let borderStyle = "";
                           
                           if (daySchedules.length > 0) {
                             const hasOffDay = daySchedules.some(s => s.isOffDay && s.hostId === loggedInHostId);
@@ -3818,12 +4000,16 @@ export default function App() {
                               cellBg = "bg-rose-100 text-rose-800 font-extrabold";
                               borderStyle = "border border-rose-300";
                             } else {
-                              cellBg = "bg-emerald-100 text-emerald-800 font-extrabold";
-                              borderStyle = "border border-emerald-300";
+                              const primarySchedule = daySchedules.find(s => s.hostId === loggedInHostId && !s.isOffDay) || daySchedules[0];
+                              const bColor = getBrandColor(primarySchedule?.brand || "");
+                              cellBg = `${bColor.bg} ${bColor.text} font-extrabold`;
+                              borderStyle = `border ${bColor.border}`;
                             }
                           }
 
-                          const isSimulatedToday = dateString === "2026-05-24";
+                          const today = new Date();
+                          const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                          const isSimulatedToday = dateString === todayLocal;
                           
                           const isSelectedHostDay = selectedHostCalendarDate === dateString;
 
@@ -3845,7 +4031,7 @@ export default function App() {
                                   }
                                 }, 80);
                               }}
-                              className={`h-6 text-[10px] rounded-md font-bold flex items-center justify-center relative cursor-pointer ${cellBg} ${borderStyle} ${isSimulatedToday ? "ring-2 ring-purple-600 ring-offset-1" : ""} ${isSelectedHostDay ? "ring-2 ring-indigo-500 font-extrabold shadow-sm scale-110 z-10" : ""}`}
+                              className={`h-6 text-[10px] rounded-md flex items-center justify-center relative cursor-pointer ${cellBg} ${borderStyle} ${isSimulatedToday ? "ring-2 ring-purple-600 ring-offset-1" : ""} ${isSelectedHostDay ? "ring-2 ring-indigo-500 font-extrabold shadow-sm scale-110 z-10" : ""}`}
                             >
                               {dayNum}
                             </button>
@@ -3855,18 +4041,40 @@ export default function App() {
                     </div>
 
                     {/* Legend */}
-                    <div className="mt-3 bg-purple-50/50 p-2 rounded-lg flex items-center justify-between text-[8px] text-purple-650 font-bold font-sans">
-                      <div className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded bg-emerald-100 border border-emerald-300 block"></span>
-                        <span>Jadwal (Masuk)</span>
+                    <div className="mt-3 bg-purple-50/50 p-2 rounded-lg flex flex-col gap-1.5 text-[8px] text-purple-650 font-bold font-sans">
+                      <div className="flex border-b border-purple-100/50 pb-1.5 flex-wrap gap-2 items-center justify-start">
+                        <div className="flex items-center gap-1 w-full text-[9px] text-purple-900 mb-0.5">
+                           <span>Keterangan Warna Shift Brand:</span>
+                        </div>
+                        {(()=>{
+                           const mySchedsMonth = computedSchedules.filter(s => 
+                             (s.hostId === loggedInHostId || s.backupHostId === loggedInHostId) &&
+                             !s.isOffDay &&
+                             s.date && 
+                             s.date.startsWith(`${hostCalendarYear}-${String(hostCalendarMonth + 1).padStart(2, '0')}`)
+                           );
+                           const uniqueBrands = Array.from(new Set(mySchedsMonth.map(s => s.brand))).filter(Boolean) as string[];
+                           if (uniqueBrands.length === 0) return <span className="text-purple-400 font-normal italic">Belum ada brand di bulan ini</span>;
+                           return uniqueBrands.map(b => {
+                             const c = getBrandColor(b);
+                             return (
+                               <div key={b} className="flex items-center gap-1">
+                                 <span className={`w-2.5 h-2.5 rounded ${c.bg} border ${c.border} block`}></span>
+                                 <span className="truncate max-w-[60px]" title={b}>{b}</span>
+                               </div>
+                             );
+                           })
+                        })()}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded bg-rose-100 border border-rose-300 block"></span>
-                        <span>Libur (Off-Day)</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="w-2.5 h-2.5 rounded bg-pink-100 border border-pink-300 block"></span>
-                        <span>Tidak Ada Jadwal</span>
+                      <div className="flex items-center gap-3 pt-0.5">
+                        <div className="flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 rounded bg-rose-100 border border-rose-300 block"></span>
+                          <span>Libur (Off-Day)</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 rounded bg-slate-50 border border-slate-200 border-dashed block"></span>
+                          <span>Tidak Ada Jadwal</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -4024,505 +4232,756 @@ export default function App() {
           : 0;
 
         return (
-          <main className="flex-1 min-h-screen bg-[#fafafd] text-slate-800 p-4 sm:p-8 font-sans antialiased text-left animate-fadeIn" id="client-main-viewport">
-            <div className="max-w-7xl mx-auto space-y-8">
-              
-              {/* HEADER CONTAINER */}
-              <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-indigo-50 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full blur-[80px] -z-10"></div>
-                <div>
+          <div className="flex h-screen bg-[#fafbfc] overflow-hidden text-slate-800 font-sans" id="client-wrapper">
+            {/* LEFT SIDEBAR */}
+            <aside className={`transition-all duration-200 ease-in-out ${isClientSidebarVisible ? "w-64 p-0 opacity-100 border-r" : "w-0 p-0 overflow-hidden opacity-0 border-r-0"} bg-white border-slate-200 flex flex-col justify-between flex-shrink-0 hidden md:flex font-sans`}>
+              <div>
+                <div className="h-20 flex items-center px-8 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <span className="bg-indigo-600 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-1 rounded-full">Portal Klien Resmi</span>
-                    <span className="text-slate-400 font-bold text-xs font-mono">• Live Real-Time</span>
+                     <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center min-w-[32px]">
+                       <span className="text-white font-black text-sm">L</span>
+                     </div>
+                     <span className="font-bold text-lg text-slate-900 truncate whitespace-nowrap">{clientBrand?.name || "Brand Partner"}</span>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
-                    Laporan Performa <span className="text-indigo-600 font-extrabold">{clientBrand?.name || "Brand Partner"}</span>
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">Sistem tracking analitik operasional live streaming Liva Agency.</p>
                 </div>
-                
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoggedInClientBrandId(null);
-                    setClientLoginBrandId("");
-                    setClientLoginPass("");
-                  }}
-                  className="px-6 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-150 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-2xs flex items-center gap-2 cursor-pointer border-0"
-                >
-                  <LogOut className="w-3.5 h-3.5" /> Keluar Portal
-                </button>
-              </header>
-
-              {/* FILTER OPTIONS WRAPPER */}
-              <div className="bg-white border border-slate-100 p-5 rounded-3xl shadow-2xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="font-extrabold text-sm text-slate-800 flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-indigo-600" /> Konfigurasi Periode & Opsi Performa
-                  </h3>
-                  <span className="text-slate-400 font-bold text-[10px]">{filteredLogs.length} Data Streaming Muncul</span>
+                <div className="py-6 px-4 space-y-1">
+                  {[
+                    { id: "performance", label: "Report Live", icon: BarChart2 },
+                  ].map(item => (
+                    <button key={item.id} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${item.id === "performance" ? "bg-indigo-50 text-indigo-700" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"} border-0`}>
+                      <item.icon className={`w-4 h-4 min-w-[16px] ${item.id === "performance" ? "text-indigo-600" : "text-slate-400"}`} />
+                      {item.label}
+                    </button>
+                  ))}
                 </div>
+              </div>
+              
+              <div className="p-4 space-y-1 border-t border-slate-100">
+                <div className="mt-4 px-4 flex justify-between items-center bg-slate-50 p-2 rounded-xl border border-slate-100 whitespace-nowrap">
+                  <div className="text-xs font-semibold text-slate-700 truncate max-w-[120px]">{clientBrand?.name} Admin</div>
+                  <button onClick={() => { setLoggedInClientBrandId(null); setClientLoginBrandId(""); setClientLoginPass(""); }} className="text-slate-400 hover:text-rose-500 cursor-pointer border-0 bg-transparent p-1 hidden sm:block delay-150 relative">
+                     <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </aside>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* PRESET DATE FILTERS */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Preset Rentang Waktu</label>
-                    <div className="flex bg-slate-50 border border-slate-150 p-1 rounded-xl gap-1">
-                      <button 
-                        onClick={() => setClientDateFilterType("all")}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border-0 cursor-pointer ${clientDateFilterType === "all" ? "bg-white text-indigo-750 shadow-xs font-black" : "text-slate-500 hover:text-slate-700"}`}
-                      >
-                        Semua
-                      </button>
-                      <button 
-                        onClick={() => setClientDateFilterType("month")}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border-0 cursor-pointer ${clientDateFilterType === "month" ? "bg-white text-indigo-750 shadow-xs font-black" : "text-slate-500 hover:text-slate-700"}`}
-                      >
-                        30 Hari
-                      </button>
-                      <button 
-                        onClick={() => setClientDateFilterType("weekly")}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border-0 cursor-pointer ${clientDateFilterType === "weekly" ? "bg-white text-indigo-750 shadow-xs font-black" : "text-slate-500 hover:text-slate-700"}`}
-                      >
-                        7 Hari
-                      </button>
-                      <button 
-                        onClick={() => setClientDateFilterType("custom")}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all border-0 cursor-pointer ${clientDateFilterType === "custom" ? "bg-white text-indigo-750 shadow-xs font-black" : "text-slate-500 hover:text-slate-700"}`}
-                      >
-                        Custom
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* CUSTOM DATE RANGE PICKER */}
-                  <div className={`transition-all duration-200 ${clientDateFilterType === "custom" ? "opacity-100" : "opacity-40 select-none"}`}>
-                    <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Custom Tanggal (Mulai - Selesai)</label>
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="date"
-                        disabled={clientDateFilterType !== "custom"}
-                        value={clientCustomStartDate}
-                        onChange={(e) => setClientCustomStartDate(e.target.value)}
-                        className="w-full bg-[#f8fafc] border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500"
-                      />
-                      <span className="text-slate-400 text-xs font-semibold">s/d</span>
-                      <input 
-                        type="date"
-                        disabled={clientDateFilterType !== "custom"}
-                        value={clientCustomEndDate}
-                        onChange={(e) => setClientCustomEndDate(e.target.value)}
-                        className="w-full bg-[#f8fafc] border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* PLATFORM FILTER */}
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Filter Marketplace</label>
-                    <select 
-                      value={clientPlatformFilter}
-                      onChange={(e) => setClientPlatformFilter(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+            {/* MAIN CONTENT AREA */}
+            <main className="flex-1 overflow-y-auto w-full p-4 md:p-8 animate-fadeIn bg-[#fafafd]" id="client-main-viewport">
+              <div className="max-w-6xl mx-auto space-y-8">
+                {/* TOP HEADER */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => setIsClientSidebarVisible(!isClientSidebarVisible)} 
+                      className="hidden md:flex p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all cursor-pointer items-center justify-center shadow-sm"
+                      title={isClientSidebarVisible ? "Tutup Sidebar" : "Buka Sidebar"}
                     >
-                      <option value="">Semua Platform</option>
-                      <option value="TikTok Live">TikTok Live</option>
-                      <option value="Shopee Live">Shopee Live</option>
-                      <option value="Tokopedia">Tokopedia</option>
-                      <option value="Lazada">Lazada</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* CORE METRICS GRID */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-3xl border border-indigo-50 shadow-2xs relative overflow-hidden">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Total Nilai GMV</span>
-                  <p className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalGmv)}
-                  </p>
-                  <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded mt-3 inline-block">Realized Gross Margin</span>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-indigo-50 shadow-2xs">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Jumlah Sesi Streaming</span>
-                  <p className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-                    {totalSessions} <span className="font-semibold text-slate-450 text-xs">kali live</span>
-                  </p>
-                  <span className="text-[10px] text-indigo-650 font-bold bg-indigo-50 px-2 py-0.5 rounded mt-3 inline-block font-sans">Sesi Ter-upload</span>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-indigo-50 shadow-2xs">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Total Produk Terjual</span>
-                  <p className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-                    {new Intl.NumberFormat('id-ID').format(totalSold)} <span className="font-semibold text-slate-450 text-xs text-slate-400">pcs</span>
-                  </p>
-                  <span className="text-[10px] text-purple-650 font-bold bg-purple-50 px-2 py-0.5 rounded mt-3 inline-block">Volume Penjualan</span>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-indigo-50 shadow-2xs">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">AOV Rata-rata</span>
-                  <p className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(averageAov)}
-                  </p>
-                  <span className="text-[10px] text-blue-650 font-bold bg-blue-50 px-2 py-0.5 rounded mt-3 inline-block">Average Order Value</span>
-                </div>
-              </div>
-
-              {/* TIKTOK ENGAGEMENT & LIVE METRICS PANEL (CLIENT VIEW) */}
-              {(() => {
-                const clientTiktokLogs = filteredLogs.filter(log => log.platform === "TikTok Live" || log.platform === "TikTok");
-                const showClientTiktokMetrics = clientTiktokLogs.length > 0;
-                if (!showClientTiktokMetrics) return null;
-
-                const totalTiktokImpressions = clientTiktokLogs.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
-                const totalTiktokClicks = clientTiktokLogs.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
-                const totalTiktokOrders = clientTiktokLogs.reduce((acc, curr) => acc + (curr.orders || 0), 0);
-                const totalTiktokBuyers = clientTiktokLogs.reduce((acc, curr) => acc + (curr.buyers || 0), 0);
-                const totalTiktokFollowers = clientTiktokLogs.reduce((acc, curr) => acc + (curr.followers || 0), 0);
-                const totalTiktokLikes = clientTiktokLogs.reduce((acc, curr) => acc + (curr.likes || 0), 0);
-                const totalTiktokShares = clientTiktokLogs.reduce((acc, curr) => acc + (curr.shares || 0), 0);
-
-                const tCtrRate = totalTiktokImpressions > 0 ? (totalTiktokClicks / totalTiktokImpressions) * 100 : 0;
-                const tCartToClickRate = totalTiktokClicks > 0 ? (totalTiktokOrders / totalTiktokClicks) * 100 : 0;
-                const tCheckoutRate = totalTiktokOrders > 0 ? (totalTiktokBuyers / totalTiktokOrders) * 100 : 0;
-                const tOverallCvr = totalTiktokImpressions > 0 ? (totalTiktokBuyers / totalTiktokImpressions) * 100 : 0;
-
-                const tClickWidth = totalTiktokImpressions > 0 ? Math.max((totalTiktokClicks / totalTiktokImpressions) * 100, 30) : 75;
-                const tOrderWidth = totalTiktokImpressions > 0 ? Math.max((totalTiktokOrders / totalTiktokImpressions) * 100, 15) : 40;
-                const tBuyerWidth = totalTiktokImpressions > 0 ? Math.max((totalTiktokBuyers / totalTiktokImpressions) * 100, 5) : 15;
-
-                return (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-900 border border-slate-800 p-6 rounded-3xl text-left shadow-lg relative overflow-hidden dark:bg-slate-950">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl"></div>
-                      <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl"></div>
-                      <div className="col-span-2 md:col-span-4 flex items-center justify-between pb-2 border-b border-white/10">
-                        <h5 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 font-sans">
-                          <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" /> TikTok Shop Liveroom Metrics (Portal Klien)
-                        </h5>
-                        <span className="text-[8px] font-black text-indigo-300 uppercase bg-indigo-500/15 px-2 py-0.5 rounded border border-indigo-500/30">Live Performance</span>
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-pink-300">Penonton Sesi (Views)</p>
-                        <h3 className="text-lg sm:text-xl font-black text-white font-mono mt-0.5">
-                          {new Intl.NumberFormat('id-ID').format(totalTiktokImpressions)}
-                        </h3>
-                        <p className="text-[8px] text-slate-500 font-semibold mt-0.5">Unique Impressions</p>
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-green-300">Pengikut Baru (Fans)</p>
-                        <h3 className="text-lg sm:text-xl font-black text-green-400 font-mono mt-0.5">
-                          +{new Intl.NumberFormat('id-ID').format(totalTiktokFollowers)}
-                        </h3>
-                        <p className="text-[8px] text-green-300 font-semibold mt-0.5">Followers Gained</p>
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-rose-300">Total Suka (Likes)</p>
-                        <h3 className="text-lg sm:text-xl font-black text-pink-400 font-mono mt-0.5">
-                          {new Intl.NumberFormat('id-ID').format(totalTiktokLikes)}
-                        </h3>
-                        <p className="text-[8px] text-pink-300 font-semibold mt-0.5">Stream Likes</p>
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-cyan-300">Dibagikan (Shares)</p>
-                        <h3 className="text-lg sm:text-xl font-black text-cyan-400 font-mono mt-0.5">
-                          {new Intl.NumberFormat('id-ID').format(totalTiktokShares)}
-                        </h3>
-                        <p className="text-[8px] text-cyan-300 font-semibold mt-0.5 max-w-full truncate">Session Shared</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-white border border-slate-150 rounded-3xl p-6 shadow-xs flex flex-col md:flex-row gap-6 text-left">
-                      <div className="md:w-1/2 flex flex-col justify-between">
-                        <div>
-                          <div className="flex justify-between items-start mb-1">
-                            <div>
-                              <h4 className="text-base font-black text-slate-800 flex items-center gap-1.5 font-sans">
-                                <Sparkles className="w-4 h-4 text-amber-500" /> Corong Konversi Live (Funnel Portal Klien)
-                              </h4>
-                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">TikTok Shop Live Performance</p>
-                            </div>
-                            <span className="text-[8px] bg-indigo-50 font-extrabold text-indigo-700 px-2 py-0.5 rounded-md">
-                              Live Database Data
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500 mb-6 font-semibold leading-relaxed">
-                            Interaksi audiens dari sekadar impresi penonton masuk hingga checkout pembayaran akhir. 
-                            Ini membantu mengukur efektivitas interaksi visual host serta penempatan link keranjang kuning Anda.
-                          </p>
-                        </div>
-
-                        <div className="mt-5 pt-3 border-t border-slate-100 bg-slate-50/50 p-4 rounded-xl border border-dashed border-slate-200">
-                          <h5 className="text-[10px] font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-indigo-500 animate-pulse" /> Analisis Konversi (CVR) Klien
-                          </h5>
-                          <p className="text-[10px] text-slate-500 font-semibold leading-relaxed mt-1">
-                            Rasio penonton-ke-pembeli Anda tercatat sebesar <strong className="text-indigo-950 font-extrabold">{tOverallCvr.toFixed(2)}%</strong>.
-                            {tOverallCvr >= 1.5 ? " Performa konversi live streaming brand Anda sangat bagus di atas benchmark rata-rata lokal Liva!" : " Hubungi PIC Liva Agency Anda untuk mengoptimasi interaksi penawaran kargo diskon live host."}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="md:w-1/2 space-y-4 pt-4 md:pt-0">
-                        {/* Step 1 */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs font-bold text-slate-700">
-                            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-indigo-600 block"></span> 1. Penonton Live (Impression)</span>
-                            <span className="font-black font-mono">{new Intl.NumberFormat('id-ID').format(totalTiktokImpressions)}</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-6.5 rounded-lg overflow-hidden relative border border-slate-100">
-                            <div className="bg-indigo-600 h-full rounded-lg transition-all duration-500 ease-out" style={{ width: "100%" }}></div>
-                            <span className="absolute inset-0 flex items-center justify-end pr-3 text-[10px] font-black text-white">Baseline 100%</span>
-                          </div>
-                        </div>
-
-                        {/* Step CTR */}
-                        <div className="flex justify-center -my-1">
-                          <div className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded-full text-[9px] font-extrabold text-indigo-700 flex items-center gap-1">
-                            <span>Rasio Klik Keranjang (CTR):</span>
-                            <span className="text-indigo-950 font-mono font-black">{tCtrRate.toFixed(1)}%</span>
-                          </div>
-                        </div>
-
-                        {/* Step 2 */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs font-bold text-slate-700">
-                            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-indigo-400 block"></span> 2. Klik Produk (Clicks)</span>
-                            <span className="font-black font-mono">{new Intl.NumberFormat('id-ID').format(totalTiktokClicks)}</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-6.5 rounded-lg overflow-hidden relative border border-slate-100">
-                            <div className="bg-indigo-400 h-full rounded-lg transition-all duration-500 ease-out" style={{ width: `${Math.max(tClickWidth, 15)}%` }}></div>
-                            <span className="absolute inset-0 flex items-center justify-end pr-3 text-[10px] font-black text-indigo-950">
-                              {tCtrRate.toFixed(1)}% dari views
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Step Cart-to-Click */}
-                        <div className="flex justify-center -my-1">
-                          <div className="px-2 py-0.5 bg-pink-50 border border-pink-100 rounded-full text-[9px] font-extrabold text-pink-700 flex items-center gap-1">
-                            <span>Cart-to-Click Rate:</span>
-                            <span className="text-pink-950 font-mono font-black">{tCartToClickRate.toFixed(1)}%</span>
-                          </div>
-                        </div>
-
-                        {/* Step 3 */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs font-bold text-slate-700">
-                            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-pink-500 block"></span> 3. Ditambah ke Keranjang</span>
-                            <span className="font-black font-mono">{new Intl.NumberFormat('id-ID').format(totalTiktokOrders)}</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-6.5 rounded-lg overflow-hidden relative border border-slate-100">
-                            <div className="bg-pink-500 h-full rounded-lg transition-all duration-500 ease-out" style={{ width: `${Math.max(tOrderWidth, 8)}%` }}></div>
-                            <span className="absolute inset-0 flex items-center justify-end pr-3 text-[10px] font-black text-pink-950">
-                              {tCartToClickRate.toFixed(1)}% click
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Step Checkout */}
-                        <div className="flex justify-center -my-1">
-                          <div className="px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded-full text-[9px] font-extrabold text-emerald-700 flex items-center gap-1">
-                            <span>Checkout CVR:</span>
-                            <span className="text-emerald-950 font-mono font-black">{tCheckoutRate.toFixed(1)}%</span>
-                          </div>
-                        </div>
-
-                        {/* Step 4 */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs font-bold text-slate-700">
-                            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 block"></span> 4. Pesanan Dibayar (Buyers)</span>
-                            <span className="font-black font-mono">{new Intl.NumberFormat('id-ID').format(totalTiktokBuyers)}</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-6.5 rounded-lg overflow-hidden relative border border-slate-100">
-                            <div className="bg-emerald-500 h-full rounded-lg transition-all duration-500 ease-out" style={{ width: `${Math.max(tBuyerWidth, 4)}%` }}></div>
-                            <span className="absolute inset-0 flex items-center justify-end pr-3 text-[10px] font-black text-emerald-950">
-                              {tOverallCvr.toFixed(2)}% dari views
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* TREN CHART & ACCOUNTS ROW */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* LINE CHART CONTAINER */}
-                <div className="bg-white border border-slate-100 rounded-3xl p-6 lg:col-span-8 shadow-2xs flex flex-col justify-between">
-                  <div className="mb-4">
-                    <h4 className="text-base font-black text-slate-800">Visualisasi Metrik Tren GMV Harian</h4>
-                    <p className="text-[11px] font-semibold text-slate-450 mt-0.5">Rentang performa berdasarkan filter waktu yang Anda tentukan.</p>
-                  </div>
-
-                  <div className="h-64 w-full">
-                    {filteredLogs.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center p-4">
-                        <span className="text-slate-400 text-xs italic font-bold">Belum ada data visualisasi dalam rentang waktu terfilter.</span>
-                      </div>
-                    ) : (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsLineChart
-                          data={[...filteredLogs].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis dataKey="date" tick={{fontSize: 9, fill: '#64748b', fontWeight: 'bold'}} axisLine={false} tickLine={false} />
-                          <YAxis 
-                            yAxisId="left" 
-                            tick={{fontSize: 9, fill: '#64748b', fontWeight: 'bold'}} 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tickFormatter={(val) => `Rp${(val/1000).toFixed(0)}rb`}
-                          />
-                          <Tooltip 
-                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', fontWeight: 'bold', fontSize: '12px' }}
-                            formatter={(value: any, name: string) => [
-                              name === "GMV" ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value) : value, 
-                              name
-                            ]}
-                          />
-                          <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
-                          <Line yAxisId="left" type="monotone" name="GMV" dataKey="gmv" stroke="#4f46e5" strokeWidth={3} dot={{r:4, fill: "#4f46e5", strokeWidth: 2, stroke: "#fff"}} />
-                        </RechartsLineChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
-                </div>
-
-                {/* BRAND ACCOUNTS SIDEBAR CARD */}
-                <div className="lg:col-span-4 flex flex-col gap-6">
-                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-2xs flex-1 flex flex-col justify-between">
+                       <Menu className="w-4 h-4" />
+                    </button>
                     <div>
-                      <h4 className="text-base font-black text-slate-800 flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-indigo-600" /> Kredensial & PIC Akun Live
-                      </h4>
-                      <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Akun marketplace Anda yang didaftarkan pada Liva.</p>
-                      
-                      <div className="space-y-3 mt-4">
-                        {clientBrand?.accounts && clientBrand.accounts.length > 0 ? (
-                          clientBrand.accounts.map((acc, idx) => (
-                            <div key={acc.id || idx} className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 text-xs text-left">
-                              <span className="font-black text-indigo-700 uppercase tracking-widest text-[9px] block mb-1.5">{acc.type}</span>
-                              <div className="space-y-1 font-mono text-[11px] text-slate-600">
-                                <div>Username: <strong className="text-slate-800">{acc.username}</strong></div>
-                                <div>Password: <strong className="text-slate-800">{acc.password}</strong></div>
-                              </div>
-                              <div className="text-[10px] text-slate-500 font-bold mt-2.5 pt-1.5 border-t border-slate-200/60 flex items-center gap-1.5">
-                                PIC OTP: <span className="bg-white px-1.5 py-0.5 rounded border border-slate-250 text-indigo-950 font-black">{acc.picOtp || "-"}</span>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-slate-400 italic font-semibold py-6 text-center text-xs">Belum ada akun terdaftar.</div>
-                        )}
-                      </div>
+                      <h1 className="text-2xl font-black text-slate-900 tracking-tight">Data Analytics Dashboard</h1>
+                      <p className="text-sm text-slate-500 mt-1 font-medium">Pantau performa penjualan dan engagement Live stream secara real-time.</p>
                     </div>
                   </div>
-                </div>
-              </div>
-                                {/* DETAILED LOG FEED TABLE */}
-              <div className="bg-white border border-slate-100 rounded-3xl shadow-2xs overflow-hidden">
-                <div className="p-6 border-b border-indigo-50/50 bg-[#fafafd] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                  <div>
-                    <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                      <ListFilter className="w-5 h-5 text-indigo-600" /> Log Transaksi & GMV Lengkap (All-Time)
-                    </h3>
-                    <p className="text-xs text-slate-500 font-semibold mt-0.5">Rincian data penyiaran per shift live streaming brand Anda.</p>
+                  
+                  {/* MOBILE CONTROLS */}
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => { setLoggedInClientBrandId(null); setClientLoginBrandId(""); setClientLoginPass(""); }} className="md:hidden flex items-center gap-2 p-2 rounded-lg bg-rose-50 text-rose-600 border border-rose-100">
+                       <LogOut className="w-4 h-4" />
+                    </button>
+                    <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all shadow-sm border-0 cursor-pointer flex items-center gap-2">
+                      <Download className="w-4 h-4" /> Unduh Laporan
+                    </button>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-indigo-50/50 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                        <th className="px-6 py-4">Waktu Mulai</th>
-                        <th className="px-6 py-4">Streaming / Sesi</th>
-                        <th className="px-6 py-4 text-right">Durasi & Fans</th>
-                        <th className="px-6 py-4 text-right">Perolehan GMV & AOV</th>
-                        <th className="px-6 py-4 text-right">Qty Terjual & Klik</th>
-                        <th className="px-6 py-4 text-right">Pembeli & Checkout</th>
-                        <th className="px-6 py-4 text-right">CTR / CVR</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredLogs.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold text-xs bg-slate-50/20">
-                            Belum ada rekam data laporan yang diunggah untuk kriteria filter periode ini.
-                          </td>
-                        </tr>
-                      ) : (
-                        [...filteredLogs]
-                          .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                          .map((row, idx) => {
-                            const actualCtr = row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0;
-                            const finalCvr = row.impressions > 0 ? (row.buyers / row.impressions) * 100 : 0;
-                            return (
-                              <tr key={idx} className="hover:bg-indigo-55/10 transition-colors text-xs font-semibold text-slate-700">
-                                <td className="px-6 py-4 whitespace-nowrap text-slate-850">
-                                  {row.date}
-                                  <span className="block text-[9px] font-extrabold uppercase text-slate-400 mt-1">
-                                    {row.platform}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 text-left">
-                                  <div className="font-extrabold text-indigo-950 leading-tight">{row.title}</div>
-                                  {row.platform === "TikTok Live" && (
-                                    <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
-                                      <span>❤️ {new Intl.NumberFormat('id-ID').format(row.likes || 0)} Likes</span>
-                                      <span>•</span>
-                                      <span>🔗 {new Intl.NumberFormat('id-ID').format(row.shares || 0)} Shares</span>
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 text-right whitespace-nowrap">
-                                  <div className="font-semibold text-slate-650">{row.duration} mnt</div>
-                                  {row.platform === "TikTok Live" && row.followers > 0 && (
-                                    <div className="text-[9px] font-black text-green-600 mt-1">+{row.followers} Fans</div>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 text-right whitespace-nowrap">
-                                  <div className="font-black text-emerald-600">
-                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.gmv)}
-                                  </div>
-                                  <div className="text-[9px] font-extrabold text-slate-400 mt-0.5">AOV: Rp{Math.round(row.aov || 0).toLocaleString('id-ID')}</div>
-                                </td>
-                                <td className="px-6 py-4 text-right whitespace-nowrap">
-                                  <div className="font-bold text-slate-700">{row.products_sold || 0} Pcs</div>
-                                  {row.platform === "TikTok Live" && row.clicks > 0 && (
-                                    <div className="text-[9px] text-slate-400 font-bold mt-1">🛍️ {row.clicks} Klik</div>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 text-right whitespace-nowrap">
-                                  <div className="font-bold text-slate-755">{row.buyers || 0} Users</div>
-                                  {row.platform === "TikTok Live" && row.orders > 0 && (
-                                    <div className="text-[9px] text-pink-500 font-bold mt-1">🛒 {row.orders} Checkout</div>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 text-right whitespace-nowrap">
-                                  {row.platform === "TikTok Live" ? (
-                                    <>
-                                      <div className="font-black text-indigo-600">CTR: {actualCtr.toFixed(1)}%</div>
-                                      <div className="text-[9px] font-black text-slate-500 mt-1">CVR: {finalCvr.toFixed(2)}%</div>
-                                    </>
-                                  ) : (
-                                    <span className="text-slate-300 font-bold">-</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                {/* THE ADMIN DB VIEWER PORTED TO CLIENT */}
+                  {/* STORED DATABASE VIEWER - NEW DESIGN */}
+                  <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
+                     {(() => {
+                         const filteredDb = brandPerformanceLogs.filter(log => log.brandId === loggedInClientBrandId);
+                         // Chart Data Filtered By Search & Date
+                         const tableLogs = filteredDb.filter(log => {
+                           if (log.date && operatorDateFilterType !== "all") {
+                             let logMonth = log.date.substring(0, 7); // format YYYY-MM
+                             let normalizedLogDate = log.date;
+                             
+                             // Handle DD/MM/YYYY or DD-MM-YYYY
+                             if (log.date.indexOf('/') !== -1 || (log.date.indexOf('-') !== -1 && log.date.split('-')[0].length <= 2)) {
+                               const parts = log.date.split(/[\/\-]/);
+                               if (parts.length === 3) {
+                                 const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+                                 const m = String(parts[1]).padStart(2, '0');
+                                 const d = String(parts[0]).padStart(2, '0');
+                                 
+                                 if (parts[0].length === 4) {
+                                     normalizedLogDate = `${parts[0]}-${m}-${parts[2].padStart(2, '0')}`;
+                                     logMonth = `${parts[0]}-${m}`;
+                                 } else {
+                                     normalizedLogDate = `${y}-${m}-${d}`;
+                                     logMonth = `${y}-${m}`;
+                                 }
+                               }
+                             }
 
-            </div>
-          </main>
+                             if (operatorDateFilterType === "month") {
+                               if (logMonth !== operatorSelectedMonth) return false;
+                             } else if (operatorDateFilterType === "custom") {
+                               if (operatorCustomStartDate && normalizedLogDate < operatorCustomStartDate) return false;
+                               if (operatorCustomEndDate && normalizedLogDate > operatorCustomEndDate) return false;
+                             }
+                           }
+                           if (reportDbSearchQuery.trim()) {
+                             const q = reportDbSearchQuery.toLowerCase();
+                             const matchTitle = String(log.title || "").toLowerCase().includes(q);
+                             const matchDate = String(log.date || "").toLowerCase().includes(q);
+                             const matchPlatformStr = String(log.platform || "").toLowerCase().includes(q);
+                             if (!matchTitle && !matchDate && !matchPlatformStr) return false;
+                           }
+                           if (operatorPlatformFilter) {
+                             if (log.platform !== operatorPlatformFilter) return false;
+                           }
+                           return true;
+                         });
+
+                         const totalSessionsDb = tableLogs.length;
+                         const totalGmvDb = tableLogs.reduce((sum, item) => sum + (item.gmv || 0), 0);
+                         const totalBuyersDb = tableLogs.reduce((sum, item) => sum + (item.buyers || 0), 0);
+                         const totalOrdersDb = tableLogs.reduce((sum, item) => sum + (item.orders || 0), 0);
+                         const totalItemsSoldDb = tableLogs.reduce((sum, item) => sum + (item.products_sold || 0), 0);
+                         const avgAovDb = totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
+
+                         // Engagement metrics
+                         const totalLikesDb = tableLogs.reduce((sum, item) => sum + (item.likes || 0), 0);
+                         const totalCommentsDb = tableLogs.reduce((sum, item) => sum + (item.comments || 0), 0);
+                         const totalSharesDb = tableLogs.reduce((sum, item) => sum + (item.shares || 0), 0);
+                         const totalClicksDb = tableLogs.reduce((sum, item) => sum + (item.clicks || 0), 0);
+ 
+                         // For Funnel 
+                         const totalDbImpressions = tableLogs.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
+                         const totalDbLiveVisits = tableLogs.reduce((acc, curr) => acc + (curr.liveVisits || 0), 0);
+                         const totalDbProductImpressions = tableLogs.reduce((acc, curr) => acc + (curr.productImpressions || 0), 0);
+                         const totalDbClicks = tableLogs.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
+                         const totalDbBuyers = tableLogs.reduce((acc, curr) => acc + (curr.buyers || 0), 0);
+                         const totalDbOrdersFunnel = tableLogs.reduce((acc, curr) => acc + (curr.orders || 0), 0);
+
+                         const funnelCtr = totalDbProductImpressions > 0 ? ((totalDbClicks / totalDbProductImpressions) * 100) : 0;
+                         const funnelCtor = totalDbClicks > 0 ? ((totalDbOrdersFunnel / totalDbClicks) * 100) : 0;
+
+                         const totalAvgViewDurationSum = tableLogs.reduce((sum, item) => sum + (item.avgViewDuration || 0), 0);
+                         const avgViewDurationDb = tableLogs.length > 0 ? totalAvgViewDurationSum / tableLogs.length : 0;
+
+                         const chartDataObj = [...tableLogs].reduce((acc: any, curr: any) => {
+                           let d = curr.date;
+                           if (d && (d.indexOf('/') !== -1 || (d.indexOf('-') !== -1 && d.split('-')[0].length <= 2))) {
+                               const parts = d.split(/[\/\-]/);
+                               if (parts.length === 3) {
+                                 if (parts[0].length === 4) {
+                                     d = `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
+                                 } else {
+                                     const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+                                     d = `${y}-${String(parts[1]).padStart(2, '0')}-${String(parts[0]).padStart(2, '0')}`;
+                                 }
+                               }
+                           }
+                           
+                           if (!acc[d]) acc[d] = { date: d, gmv: 0, impressions: 0 };
+                           acc[d].gmv += (curr.gmv || 0);
+                           acc[d].impressions += (curr.impressions || curr.views || curr.liveVisits || 0);
+                           return acc;
+                         }, {});
+                         const chartData = Object.values(chartDataObj).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                         
+                         // Apply Sorting for Table
+                         const sortedTableLogs = [...tableLogs].sort((a, b) => {
+                           let valA = a[reportDbSortCol] || '';
+                           let valB = b[reportDbSortCol] || '';
+                           
+                           if (reportDbSortCol === 'date') {
+                             const normalizeDateStr = (d: string) => {
+                               if (!d) return "";
+                               if (d.indexOf('/') !== -1 || (d.indexOf('-') !== -1 && d.split('-')[0].length <= 2)) {
+                                   const parts = d.split(/[\/\-]/);
+                                   if (parts.length === 3) {
+                                     if (parts[0].length === 4) {
+                                         return `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
+                                     }
+                                     const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+                                     return `${y}-${String(parts[1]).padStart(2, '0')}-${String(parts[0]).padStart(2, '0')}`;
+                                   }
+                               }
+                               return d;
+                             };
+                             valA = normalizeDateStr(a.date);
+                             valB = normalizeDateStr(b.date);
+                           } else if (reportDbSortCol === 'views') {
+                             valA = a.impressions || a.views || 0;
+                             valB = b.impressions || b.views || 0;
+                           } else if (reportDbSortCol === 'ctr') {
+                             valA = a.productImpressions ? (a.clicks / a.productImpressions) : 0;
+                             valB = b.productImpressions ? (b.clicks / b.productImpressions) : 0;
+                           } else if (reportDbSortCol === 'ctor') {
+                             valA = a.clicks ? (a.orders / a.clicks) : 0;
+                             valB = b.clicks ? (b.orders / b.clicks) : 0;
+                           } else if (reportDbSortCol === 'customers') {
+                             valA = a.buyers || 0;
+                             valB = b.buyers || 0;
+                           }
+
+                           if (typeof valA === 'string' && typeof valB === 'string') {
+                             return reportDbSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                           }
+                           return reportDbSortAsc ? (valA > valB ? 1 : -1) : (valB > valA ? 1 : -1);
+                         });
+
+                         const paginatedLogs = sortedTableLogs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+                         const totalPages = Math.ceil(sortedTableLogs.length / ITEMS_PER_PAGE);
+
+                         const handleSort = (col) => {
+                           if (reportDbSortCol === col) {
+                             setReportDbSortAsc(!reportDbSortAsc);
+                           } else { 
+                             setReportDbSortCol(col); 
+                             setReportDbSortAsc(true); // default to asc on new col
+                           }
+                         };
+ 
+                         return (
+                           <>
+                             {/* Table Filters */}
+                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap">
+                               <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
+                                 <div className="relative w-full sm:w-72">
+                                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                   <input
+                                     type="text"
+                                     placeholder="Search sessions..."
+                                     value={reportDbSearchQuery}
+                                     onChange={(e) => setReportDbSearchQuery(e.target.value)}
+                                     className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 transition-colors shadow-sm"
+                                   />
+                                 </div>
+                                 <select
+                                   value={operatorPlatformFilter}
+                                   onChange={(e) => setOperatorPlatformFilter(e.target.value)}
+                                   className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
+                                 >
+                                   <option value="">Semua Platform</option>
+                                   {platforms.map(p => (
+                                     <option key={p} value={p}>{p}</option>
+                                   ))}
+                                 </select>
+                               </div>
+                               <div className="relative flex gap-2 w-full sm:w-auto h-9">
+                                 <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                                   {[
+                                     { id: "all", label: "Semua" },
+                                     { id: "month", label: "Bulan" },
+                                     { id: "custom", label: "Custom" }
+                                   ].map(item => (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setOperatorDateFilterType(item.id);
+                                          if (item.id === "all") {
+                                            setIsOperatorCalendarOpen(false);
+                                            setIsOperatorMonthOpen(false);
+                                          } else if (item.id === "month") {
+                                            setIsOperatorMonthOpen(true);
+                                            setIsOperatorCalendarOpen(false);
+                                          } else if (item.id === "custom") {
+                                            setIsOperatorCalendarOpen(true);
+                                            setIsOperatorMonthOpen(false);
+                                            setOperatorTempStartDate(operatorCustomStartDate || formatDateYYYYMMDD(new Date()));
+                                            setOperatorTempEndDate(operatorCustomEndDate || formatDateYYYYMMDD(new Date()));
+                                          }
+                                        }}
+                                        className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
+                                          operatorDateFilterType === item.id 
+                                          ? "bg-white text-indigo-700 shadow-sm border border-slate-100" 
+                                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
+                                        }`}
+                                      >
+                                        {item.label}
+                                      </button>
+                                   ))}
+                                 </div>
+                                  
+                                 {((operatorDateFilterType === "custom" && operatorCustomStartDate) || operatorDateFilterType === "month") && (
+                                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                      <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                                      <span className="text-[10px] font-bold text-slate-700">
+                                        {operatorDateFilterType === "month" 
+                                          ? getIndonesianMonthLabel(operatorSelectedMonth) 
+                                          : `${operatorCustomStartDate} to ${operatorCustomEndDate}`}
+                                      </span>
+                                    </div>
+                                 )}
+
+                                 {/* Custom Date Overlay UI (Month) */}
+                                 {isOperatorMonthOpen && operatorDateFilterType === "month" && (
+                                   <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
+                                     <div className="flex justify-between items-center mb-4 text-slate-800">
+                                       <button 
+                                         type="button" 
+                                         onClick={() => setOperatorMonthPickerYear(y => y - 1)} 
+                                         className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                       >
+                                         &laquo;
+                                       </button>
+                                       <div className="text-sm font-bold tracking-widest">{operatorMonthPickerYear}</div>
+                                       <button 
+                                         type="button" 
+                                         onClick={() => setOperatorMonthPickerYear(y => y + 1)} 
+                                         className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                       >
+                                         &raquo;
+                                       </button>
+                                     </div>
+                                     <div className="grid grid-cols-3 gap-y-2 pb-1 border-t border-slate-100 pt-3 relative">
+                                       {[
+                                         { val: "01", label: "Jan" }, { val: "02", label: "Feb" }, { val: "03", label: "Mar" },
+                                         { val: "04", label: "Apr" }, { val: "05", label: "May" }, { val: "06", label: "Jun" },
+                                         { val: "07", label: "Jul" }, { val: "08", label: "Aug" }, { val: "09", label: "Sept" },
+                                         { val: "10", label: "Oct" }, { val: "11", label: "Nov" }, { val: "12", label: "Dec" }
+                                       ].map((m, idx) => {
+                                         const mVal = `${operatorMonthPickerYear}-${m.val}`;
+                                         const isSelected = operatorSelectedMonth === mVal;
+                                         
+                                         const currentDate = new Date();
+                                         const isFuture = operatorMonthPickerYear > currentDate.getFullYear() || 
+                                                          (operatorMonthPickerYear === currentDate.getFullYear() && parseInt(m.val) > currentDate.getMonth() + 1);
+
+                                         return (
+                                           <button
+                                             key={m.val}
+                                             type="button"
+                                             onClick={() => { 
+                                               if (!isFuture) {
+                                                 setOperatorSelectedMonth(mVal); 
+                                                 setIsOperatorMonthOpen(false); 
+                                               }
+                                             }}
+                                             className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
+                                               isFuture 
+                                               ? "bg-slate-50 text-slate-400 cursor-not-allowed" 
+                                               : "bg-white text-slate-800 hover:bg-slate-50 cursor-pointer"
+                                             } ${isSelected ? "bg-slate-50 shadow-sm relative" : ""}`}
+                                           >
+                                             {m.label}
+                                             {isSelected && !isFuture && <div className="w-1.5 h-1.5 rounded-full bg-slate-300 absolute bottom-1"></div>}
+                                           </button>
+                                         )
+                                       })}
+                                     </div>
+                                   </div>
+                                 )}
+
+                                 {/* Custom Date Overlay UI (Custom) */}
+                                 {isOperatorCalendarOpen && operatorDateFilterType === "custom" && (
+                                   <div className="absolute right-0 top-full mt-2 z-50 animate-fadeIn">
+                                     <DoubleDatePicker 
+                                       startDate={operatorTempStartDate} 
+                                       endDate={operatorTempEndDate} 
+                                       onChange={(start, end) => {
+                                         setOperatorTempStartDate(start);
+                                         setOperatorTempEndDate(end);
+                                       }} 
+                                       onApply={() => {
+                                         setOperatorCustomStartDate(operatorTempStartDate);
+                                         setOperatorCustomEndDate(operatorTempEndDate);
+                                         setIsOperatorCalendarOpen(false);
+                                       }} 
+                                       onCancel={() => setIsOperatorCalendarOpen(false)} 
+                                     />
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
+ 
+                              {/* Summary Cards */}
+                             <div className="space-y-6 mb-6">
+                               <div>
+                                 <h4 className="text-xs font-bold text-slate-800 mb-3 uppercase tracking-wider">Sale Metrics</h4>
+                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">GMV</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(totalGmvDb)}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Item Sold</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalItemsSoldDb)}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Customers</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalBuyersDb)}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">SKU Orders</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalOrdersDb)}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">AOV</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(avgAovDb)}</div>
+                                    </div>
+                                 </div>
+                               </div>
+
+                               <div>
+                                 <h4 className="text-xs font-bold text-slate-800 mb-3 uppercase tracking-wider">Engagement Metrics</h4>
+                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Like</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalLikesDb)}</div>
+                                    </div>
+                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Comment</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalCommentsDb)}</div>
+                                    </div>
+                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Share</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalSharesDb)}</div>
+                                    </div>
+                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Product Clicks</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalClicksDb)}</div>
+                                    </div>
+                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Avg View Time</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{Math.round(avgViewDurationDb)} <span className="text-[10px] text-slate-400 font-bold">detik</span></div>
+                                    </div>
+                                 </div>
+                               </div>
+                             </div>
+ 
+                             {/* Funnel */}
+                             {totalDbImpressions > 0 && (
+                               <div className="mb-6">
+                                 <HorizontalFunnel 
+                                   title="Live Sales Funnel"
+                                   subtitle="All Platform & Dates"
+                                   steps={(tableLogs.length > 0 && tableLogs[0].platform !== "TikTok Live" && tableLogs[0].platform?.toLowerCase().includes("shopee")) ? [
+                                     { label: "Total Viewers", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
+                                     { label: "Active Viewers", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
+                                     { label: "Add To Cart", value: new Intl.NumberFormat('id-ID').format(totalDbClicks) },
+                                     { label: "Orders", value: new Intl.NumberFormat('id-ID').format(totalDbOrdersFunnel) }
+                                   ] : [
+                                     { label: "LIVE impressions", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
+                                     { label: "Video/Live Visits", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
+                                     { label: "Product impressions", value: new Intl.NumberFormat('id-ID').format(totalDbProductImpressions) },
+                                     { label: `Product clicks (CTR: ${funnelCtr.toFixed(2)}%)`, value: new Intl.NumberFormat('id-ID').format(totalDbClicks) },
+                                     { label: `Orders paid (CTOR: ${funnelCtor.toFixed(2)}%)`, value: new Intl.NumberFormat('id-ID').format(totalDbBuyers) }
+                                   ]}
+                                 />
+                               </div>
+                             )}
+ 
+                           {/* Charts */}
+                             <div className="mb-6">
+                                 <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm h-[400px] flex flex-col">
+                                   <div className="flex items-center justify-between mb-6">
+                                     <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Trend Performa</h4>
+                                     <div className="flex gap-4">
+                                       <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600">
+                                         <input 
+                                           type="checkbox" 
+                                           checked={trendFilters.gmv}
+                                            onChange={(e) => setTrendFilters({...trendFilters, gmv: e.target.checked})}
+                                           className="w-3.5 h-3.5 rounded border-slate-300 text-teal-500 focus:ring-teal-500"
+                                         />
+                                         GMV
+                                       </label>
+                                       <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600">
+                                         <input 
+                                           type="checkbox" 
+                                           checked={trendFilters.views}
+                                           onChange={(e) => setTrendFilters({...trendFilters, views: e.target.checked})}
+                                           className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500"
+                                         />
+                                         Views
+                                       </label>
+                                     </div>
+                                   </div>
+                                   <div className="flex-1 w-full min-h-0">
+                                     <ResponsiveContainer width="100%" height="100%" className="focus:outline-none">
+                                       <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} className="focus:outline-none" style={{ outline: 'none' }}>
+                                         <defs>
+                                           <linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1">
+                                             <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.2}/>
+                                             <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                                           </linearGradient>
+                                           <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                                             <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                                             <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                           </linearGradient>
+                                         </defs>
+                                         <CartesianGrid strokeDasharray="3 3" vertical={true} horizontal={false} stroke="#f1f5f9" />
+                                          <XAxis 
+                                            dataKey="date" 
+                                            tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}} 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tickFormatter={(val) => {
+                                              if (!val) return '';
+                                              const d = new Date(val);
+                                              return d.toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
+                                            }}
+                                          />
+                                          {trendFilters.gmv && <YAxis yAxisId="left" orientation="left" tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}} axisLine={false} tickLine={false} tickFormatter={(val) => `Rp${(val/1000000).toFixed(0)}M`} />}
+                                          {trendFilters.views && <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}} axisLine={false} tickLine={false} tickFormatter={(val) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(val)} />}
+                                          <Tooltip 
+                                            isAnimationActive={false}
+                                            content={({ active, payload, label }) => {
+                                              if (active && payload && payload.length) {
+                                                const d = new Date(label).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
+                                                return (
+                                                  <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-xl min-w-[200px]">
+                                                    <div className="text-[10px] font-bold text-slate-800 mb-2 uppercase">{d}</div>
+                                                    <div className="space-y-1.5">
+                                                      {payload.map((entry: any, idx: number) => (
+                                                        <div key={idx} className="flex justify-between items-center text-xs font-bold gap-4">
+                                                          <span className="text-slate-500 uppercase text-[9px]">{entry.name}</span>
+                                                          <span style={{ color: entry.color || entry.stroke }}>
+                                                            {entry.name === 'GMV' ? `Rp ${new Intl.NumberFormat('id-ID').format(entry.value)}` : new Intl.NumberFormat('id-ID').format(entry.value)}
+                                                          </span>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              }
+                                              return null;
+                                            }} 
+                                            cursor={{ stroke: '#10b981', strokeWidth: 32, opacity: 0.1 }}
+                                          />
+                                          {trendFilters.gmv && <Area yAxisId="left" type="monotone" name="GMV" dataKey="gmv" stroke="#14b8a6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorGmv)" dot={{r: 3, fill: "#fff", stroke: "#14b8a6", strokeWidth: 2}} activeDot={{r: 6, fill: "#14b8a6", stroke: "#fff", strokeWidth: 2}} />}
+                                          {trendFilters.views && <Area yAxisId="right" type="monotone" name="Views" dataKey="impressions" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorViews)" dot={{r: 3, fill: "#fff", stroke: "#10b981", strokeWidth: 2}} activeDot={{r: 6, fill: "#10b981", stroke: "#fff", strokeWidth: 2}} />}
+                                        </AreaChart>
+                                      </ResponsiveContainer>
+                                    </div>
+                                  </div>
+                              </div>
+
+                             {/* Time & Day Analytics */}
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                {/* Revenue Based on Time (Shift) */}
+                                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm flex flex-col">
+                                  <h4 className="text-[14px] font-bold text-slate-800 mb-4 px-1">Revenue Based on Time</h4>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-left whitespace-nowrap">
+                                      <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
+                                        <tr>
+                                          <th className="px-5 py-3 rounded-l-lg w-16 text-center">No</th>
+                                          <th className="px-5 py-3">Sesi Jam</th>
+                                          <th className="px-5 py-3 rounded-r-lg cursor-pointer">Revenue ▾</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
+                                        {(() => {
+                                          const shiftData: Record<string, number> = {};
+                                          tableLogs.forEach(log => {
+                                            let s = "N/A";
+                                            if (log.dateTime) {
+                                              const timeMatch = String(log.dateTime).match(/(\d{1,2}):\d{2}/);
+                                              if (timeMatch) {
+                                                const hour = parseInt(timeMatch[1], 10);
+                                                if (!isNaN(hour)) {
+                                                  if (hour >= 5 && hour < 11) s = "05.00-11.00";
+                                                  else if (hour >= 11 && hour < 17) s = "11.00-17.00";
+                                                  else if (hour >= 17 && hour < 23) s = "17.00-23.00";
+                                                  else s = "23.00-05.00";
+                                                }
+                                              }
+                                            }
+                                            if (s === "N/A") {
+                                               s = log.shift || "Shift Lainnya";
+                                            }
+                                            if (!shiftData[s]) shiftData[s] = 0;
+                                            shiftData[s] += (log.gmv || 0);
+                                          });
+                                          const shiftsArray = Object.keys(shiftData).map(k => ({ name: k, gmv: shiftData[k] })).sort((a,b) => b.gmv - a.gmv);
+                                          
+                                          if (shiftsArray.length === 0) {
+                                            return <tr><td colSpan={3} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
+                                          }
+                                          return shiftsArray.map((sh, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50">
+                                              <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
+                                              <td className="px-5 py-3.5 text-slate-700 font-mono text-[11px]">{sh.name}</td>
+                                              <td className="px-5 py-3.5 text-slate-700">{new Intl.NumberFormat('id-ID').format(sh.gmv)}</td>
+                                            </tr>
+                                          ));
+                                        })()}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                                
+                                {/* Revenue Based on Day */}
+                                <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm flex flex-col">
+                                  <h4 className="text-[14px] font-bold text-slate-800 mb-4 px-1">Revenue Based on Day</h4>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-left whitespace-nowrap">
+                                      <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
+                                        <tr>
+                                          <th className="px-5 py-3 rounded-l-lg w-16 text-center">No</th>
+                                          <th className="px-5 py-3 cursor-pointer hover:bg-slate-200/50 transition-colors" onClick={() => { setDayAnalyticsSortCol('name'); setDayAnalyticsSortAsc(prev => dayAnalyticsSortCol === 'name' ? !prev : true); }}>Hari {dayAnalyticsSortCol === 'name' ? (dayAnalyticsSortAsc ? '↑' : '↓') : ''}</th>
+                                          <th className="px-5 py-3 cursor-pointer hover:bg-slate-200/50 transition-colors" onClick={() => { setDayAnalyticsSortCol('views'); setDayAnalyticsSortAsc(prev => dayAnalyticsSortCol === 'views' ? !prev : false); }}>Views {dayAnalyticsSortCol === 'views' ? (dayAnalyticsSortAsc ? '↑' : '↓') : ''}</th>
+                                          <th className="px-5 py-3 rounded-r-lg cursor-pointer hover:bg-slate-200/50 transition-colors" onClick={() => { setDayAnalyticsSortCol('gmv'); setDayAnalyticsSortAsc(prev => dayAnalyticsSortCol === 'gmv' ? !prev : false); }}>Revenue {dayAnalyticsSortCol === 'gmv' ? (dayAnalyticsSortAsc ? '↑' : '↓') : ''}</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
+                                        {(() => {
+                                          const dayNamesId = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+                                          const dayData: Record<string, {gmv: number, views: number}> = {};
+                                          tableLogs.forEach(log => {
+                                            if (log.date) {
+                                              const dateParts = String(log.date).split("-");
+                                              const processDay = (d: Date) => {
+                                                if (!isNaN(d.getTime())) {
+                                                  const dayName = dayNamesId[d.getDay()];
+                                                  if (!dayData[dayName]) dayData[dayName] = { gmv: 0, views: 0 };
+                                                  dayData[dayName].gmv += (log.gmv || 0);
+                                                  dayData[dayName].views += (log.impressions || log.views || log.liveVisits || 0);
+                                                }
+                                              };
+                                              if (dateParts.length === 3) {
+                                                processDay(new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])));
+                                              } else {
+                                                processDay(new Date(log.date));
+                                              }
+                                            }
+                                          });
+                                          const daysArray = Object.keys(dayData).map(k => ({ name: k, ...dayData[k] })).sort((a,b) => {
+                                            let valA = a[dayAnalyticsSortCol];
+                                            let valB = b[dayAnalyticsSortCol];
+                                            if (valA < valB) return dayAnalyticsSortAsc ? -1 : 1;
+                                            if (valA > valB) return dayAnalyticsSortAsc ? 1 : -1;
+                                            return 0;
+                                          });
+                                          if (daysArray.length === 0) {
+                                            return <tr><td colSpan={4} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
+                                          }
+                                          
+                                          return daysArray.map((dy, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50">
+                                              <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
+                                              <td className="px-5 py-3.5 text-slate-700">{dy.name}</td>
+                                              <td className="px-5 py-3.5 text-slate-700">{new Intl.NumberFormat('id-ID').format(dy.views)}</td>
+                                              <td className="px-5 py-3.5 text-slate-700">Rp {new Intl.NumberFormat('id-ID').format(dy.gmv)}</td>
+                                            </tr>
+                                          ));
+                                        })()}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </div>
+                             
+                             {/* Table */}
+                             <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
+                               <table className="w-full text-left whitespace-nowrap">
+                                 <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
+                                   <tr>
+                                     <th className="px-5 py-3.5">No</th>
+                                     <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('date')}>Tanggal {reportDbSortCol === 'date' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
+                                     <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('views')}>Views {reportDbSortCol === 'views' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
+                                     <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('gmv')}>GMV {reportDbSortCol === 'gmv' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
+                                     <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('products_sold')}>Produk Terjual {reportDbSortCol === 'products_sold' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
+                                     <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('customers')}>Customer {reportDbSortCol === 'customers' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
+                                     <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('ctr')}>CTR {reportDbSortCol === 'ctr' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
+                                     <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('ctor')}>CTOR {reportDbSortCol === 'ctor' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
+                                     
+                                   </tr>
+                                 </thead>
+                                 <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
+                                   {isLogsLoading ? (
+                                     <tr>
+                                       <td colSpan={9} className="px-5 py-16 text-center text-slate-500 font-bold w-full">
+                                          <div className="flex flex-col items-center justify-center gap-4">
+                                            <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
+                                            Sedang memuat data dari database...
+                                          </div>
+                                       </td>
+                                     </tr>
+                                   ) : sortedTableLogs.length === 0 ? (
+                                     <tr>
+                                       <td colSpan={9} className="px-5 py-10 text-center text-slate-400">Tidak ada sesi ditemukan.</td>
+                                     </tr>
+                                   ) : (
+                                     paginatedLogs.map((log, idx) => {
+                                       const lViews = log.impressions || log.views || log.liveVisits || 0;
+                                       const lCtr = log.productImpressions > 0 ? ((log.clicks / log.productImpressions) * 100) : 0;
+                                       const lCtor = log.clicks > 0 ? ((log.orders / log.clicks) * 100) : 0;
+
+                                       return (
+                                       <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                                         <td className="px-5 py-3.5 text-slate-400">{((currentPage - 1) * ITEMS_PER_PAGE) + idx + 1}</td>
+                                         <td className="px-5 py-3.5 text-slate-500">
+                                           <div className="flex flex-col">
+                                              <span>{log.date}</span>
+                                              <span className="text-[9px] text-indigo-500">{log.platform}</span>
+                                           </div>
+                                         </td>
+                                         <td className="px-5 py-3.5">{new Intl.NumberFormat('id-ID').format(lViews)}</td>
+                                         <td className="px-5 py-3.5">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(log.gmv || 0)}</td>
+                                         <td className="px-5 py-3.5">{new Intl.NumberFormat('id-ID').format(log.products_sold || log.items_sold || 0)}</td>
+                                         <td className="px-5 py-3.5">{new Intl.NumberFormat('id-ID').format(log.buyers || 0)}</td>
+                                         <td className="px-5 py-3.5">{lCtr.toFixed(2)}%</td>
+                                         <td className="px-5 py-3.5">{lCtor.toFixed(2)}%</td>
+                                         <td className="px-5 py-3.5 text-right">
+                                           <button 
+                                             onClick={() => handleDeletePerformanceLog(log.id, log.brandName, log.date)}
+                                             className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-transparent border-0"
+                                             title="Hapus Log"
+                                           >
+                                             ✕
+                                           </button>
+                                         </td>
+                                       </tr>
+                                       );
+                                     })
+                                   )}
+                                 </tbody>
+                               </table>
+                             </div>
+                             
+                             {totalPages > 1 && (
+                               <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+                                 <div>
+                                   Menampilkan {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, sortedTableLogs.length)} dari {sortedTableLogs.length} data
+                                 </div>
+                                 <div className="flex gap-2">
+                                   <button 
+                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                     disabled={currentPage === 1}
+                                     className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                   >
+                                     Sebelumnya
+                                   </button>
+                                   <span className="px-3 py-1.5">
+                                      Halaman {currentPage} / {totalPages}
+                                   </span>
+                                   <button 
+                                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                     disabled={currentPage === totalPages}
+                                     className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                   >
+                                     Selanjutnya
+                                   </button>
+                                 </div>
+                               </div>
+                             )}
+                           </>
+                         );
+                       })()}
+                    </div>
+              </div>
+            </main>
+
+          </div>
         );
       })()}
 
@@ -4540,7 +4999,7 @@ export default function App() {
                         LM
                       </div>
                       <div>
-                        <span className="text-[9px] font-black tracking-widest text-[#2563eb] block uppercase">LIVA MEDIA</span>
+                        <span className="text-[9px] font-black tracking-widest text-[#2563eb] block uppercase">Liva Agency</span>
                         <h2 className="text-xs font-black text-slate-900 font-sans tracking-wide">OPERATOR DESKTOP</h2>
                       </div>
                     </div>
@@ -4556,6 +5015,7 @@ export default function App() {
                         { type: "header", label: "Manajemen Client", key: "cat-client" },
                         { tabId: "data_brand", label: "Data Brand", icon: Briefcase, category: "cat-client" },
                         { tabId: "reporting_brand", label: "Reporting Brand (Upload)", icon: LineChart, category: "cat-client" },
+                        { tabId: "invoice", label: "Invoice & Berkas", icon: Receipt, category: "cat-client" },
                         { tabId: "leads", label: "Leads/Calon Client", icon: Users, category: "cat-client" },
                         { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
                         { tabId: "copilot", label: "Asisten AI Copilot", icon: Sparkles, category: "cat-system" },
@@ -4667,6 +5127,7 @@ export default function App() {
                         {operatorTab === "rekap_gaji" && <span>Kalkulator & Penggajian Streamer</span>}
                         {operatorTab === "database" && <span>Database Logs Kehadiran</span>}
                         {operatorTab === "data_brand" && <span>Manajemen Data Brand Klien</span>}
+                        {operatorTab === "invoice" && <span>Invoice & Berkas Klien</span>}
                         {operatorTab === "reporting_brand" && <span>Reporting Eksternal Brand</span>}
                         {operatorTab === "leads" && <span>Leads & Calon Klien</span>}
                         {operatorTab === "copilot" && <span>Asisten AI Agency Copilot</span>}
@@ -5749,6 +6210,9 @@ export default function App() {
                                                           confirmText: "Hapus",
                                                           onConfirm: () => {
                                                             setSchedules(prev => prev.filter(s => s.id !== sch.id));
+                                                            if (sch.hostId) {
+                                                              addHostNotification(sch.hostId, "Jadwal Dihapus", `Jadwal siaran Anda pada tanggal ${sch.date} telah dihapus.`, sch.date);
+                                                            }
                                                             setConfirmModal(null);
                                                           }
                                                         });
@@ -6128,6 +6592,7 @@ export default function App() {
 
                               const finalizeSchedule = () => {
                                 setSchedules(prev => [...prev, newSchedule]);
+                                addHostNotification(selectedHost.id, "Jadwal Baru", `Anda ditugaskan siaran pada tanggal ${selectedCalendarDate} untuk sesi ${newSchedule.timeSlot}.`, selectedCalendarDate);
                                 // Reset state
                                 setScheduleForm({
                                   id: "",
@@ -6146,6 +6611,7 @@ export default function App() {
                               if (scheduleForm.id) {
                                 // Modifying an existing manual schedule
                                 setSchedules(prev => prev.map(s => s.id === scheduleForm.id ? newSchedule : s));
+                                addHostNotification(selectedHost.id, "Jadwal Diperbarui", `Jadwal Anda pada tanggal ${selectedCalendarDate} telah diperbarui (Sesi: ${newSchedule.timeSlot}).`, selectedCalendarDate);
                                 // Reset state
                                 setScheduleForm({
                                   id: "",
@@ -7751,45 +8217,87 @@ export default function App() {
                 </div>
 
                 {/* SEARCH & FILTERS SPECIFIC FOR PLATFORM & BRAND */}
-                <div className="flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center bg-[#faf9fe]/80 p-4 rounded-xl border border-purple-100" id="database_logs_toolbar">
-                  {/* Search query input */}
-                  <div className="relative flex-1" id="db_search_input_wrapper">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" />
-                    <input
-                      type="text"
-                      id="db_search_host"
-                      placeholder="Cari log absen berdasarkan nama host atau ID..."
-                      value={dbSearch}
-                      onChange={(e) => setDbSearch(e.target.value)}
-                      className="w-full bg-white border border-purple-150 rounded-xl pl-10 pr-4 py-2.5 text-xs text-purple-950 focus:outline-none focus:border-purple-400 transition-all font-sans font-extrabold shadow-2xs"
-                    />
+                <div className="flex flex-col gap-3 bg-[#faf9fe]/80 p-4 rounded-xl border border-purple-100" id="database_logs_toolbar">
+                  <div className="flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center">
+                    {/* Search query input */}
+                    <div className="relative flex-1" id="db_search_input_wrapper">
+                      <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" />
+                      <input
+                        type="text"
+                        id="db_search_host"
+                        placeholder="Cari log absen berdasarkan nama host atau ID..."
+                        value={dbSearch}
+                        onChange={(e) => setDbSearch(e.target.value)}
+                        className="w-full bg-white border border-purple-150 rounded-xl pl-10 pr-4 py-2.5 text-xs text-purple-950 focus:outline-none focus:border-purple-400 transition-all font-sans font-extrabold shadow-2xs"
+                      />
+                    </div>
+
+                    {/* Platform option Selector */}
+                    <select
+                      id="db_filter_platform_dropdown"
+                      value={dbPlatformFilter}
+                      onChange={(e) => setDbPlatformFilter(e.target.value)}
+                      className="bg-white border border-purple-150 rounded-xl px-4 py-2 text-xs text-purple-955 focus:outline-none cursor-pointer font-bold shadow-2xs hover:border-purple-300 w-full md:w-auto"
+                    >
+                      <option value="Semua Platform">Semua Platform</option>
+                      {platforms.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+
+                    {/* Brand option Selector */}
+                    <select
+                      id="db_filter_brand_dropdown"
+                      value={dbBrandFilter}
+                      onChange={(e) => setDbBrandFilter(e.target.value)}
+                      className="bg-white border border-purple-150 rounded-xl px-4 py-2 text-xs text-purple-955 focus:outline-none cursor-pointer font-bold shadow-2xs hover:border-purple-300 w-full md:w-auto"
+                    >
+                      <option value="Semua Brand">Semua Brand</option>
+                      {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
                   </div>
+                  
+                  <div className="flex flex-col md:flex-row gap-3 items-center mt-1 flex-wrap">
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                      <span className="text-[10px] font-bold text-purple-700 uppercase">Dari Tgl:</span>
+                      <input 
+                        type="date"
+                        value={dbDateFilterStart}
+                        onChange={e => setDbDateFilterStart(e.target.value)}
+                        className="flex-1 bg-white border border-purple-150 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-purple-400"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                      <span className="text-[10px] font-bold text-purple-700 uppercase">Sampai Tgl:</span>
+                      <input 
+                        type="date"
+                        value={dbDateFilterEnd}
+                        onChange={e => setDbDateFilterEnd(e.target.value)}
+                        className="flex-1 bg-white border border-purple-150 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-purple-400"
+                      />
+                    </div>
+                    {(dbDateFilterStart || dbDateFilterEnd) && (
+                      <button 
+                        onClick={() => { setDbDateFilterStart(""); setDbDateFilterEnd(""); }}
+                        className="text-[10px] font-bold text-red-500 hover:text-red-700 px-3 py-1.5 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer w-full md:w-auto text-center"
+                      >
+                        Reset Tanggal
+                      </button>
+                    )}
+                    
+                    <div className="flex-1"></div> {/* Spacer */}
 
-                  {/* Platform option Selector */}
-                  <select
-                    id="db_filter_platform_dropdown"
-                    value={dbPlatformFilter}
-                    onChange={(e) => setDbPlatformFilter(e.target.value)}
-                    className="bg-white border border-purple-150 rounded-xl px-4 py-2 text-xs text-purple-955 focus:outline-none cursor-pointer font-bold shadow-2xs hover:border-purple-300"
-                  >
-                    <option value="Semua Platform">Semua Platform</option>
-                    {platforms.map(p => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-
-                  {/* Brand option Selector */}
-                  <select
-                    id="db_filter_brand_dropdown"
-                    value={dbBrandFilter}
-                    onChange={(e) => setDbBrandFilter(e.target.value)}
-                    className="bg-white border border-purple-150 rounded-xl px-4 py-2 text-xs text-purple-955 focus:outline-none cursor-pointer font-bold shadow-2xs hover:border-purple-300"
-                  >
-                    <option value="Semua Brand">Semua Brand</option>
-                    {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
-                  </select>
+                    <button
+                      type="button"
+                      onClick={() => setDbSortDir(d => d === "desc" ? "asc" : "desc")}
+                      className="text-[10px] items-center gap-1.5 font-bold text-purple-700 hover:text-purple-900 px-3 py-1.5 bg-white border border-purple-150 rounded-xl transition-colors cursor-pointer w-full md:w-auto text-center flex justify-center"
+                    >
+                      <ArrowUpDown className="w-3.5 h-3.5" />
+                      Urutkan Berdasarkan Tgl: {dbSortDir === "desc" ? "Terbaru (Z-A)" : "Terlama (A-Z)"}
+                    </button>
+                  </div>
                 </div>
 
                 {/* MANUAL LOG INSERTION FORM (EXPANDABLE SECTOINE) */}
@@ -8201,7 +8709,7 @@ export default function App() {
                           addNotification("💼 Brand Diperbarui", `Data brand "${newBrand.name}" berhasil diperbarui oleh admin.`, "info", "data_brand");
                         } else {
                           setClientBrands(prev => [...prev, newBrand]);
-                          addNotification("🎉 Brand Klien Baru", `Brand "${newBrand.name}" baru saja didaftarkan ke sistem livamedia.`, "success", "data_brand");
+                          addNotification("🎉 Brand Klien Baru", `Brand "${newBrand.name}" baru saja didaftarkan ke sistem Liva Agency.`, "success", "data_brand");
                         }
                         setBrandFormEditor(null);
                       }} className="space-y-4 text-xs">
@@ -8447,6 +8955,11 @@ export default function App() {
                               <td className="px-4 py-3 text-right align-top">
                                 <div className="flex justify-end gap-1">
                                   <button onClick={() => {
+                                      setOperatorTab("invoice");
+                                  }} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded cursor-pointer border-0" title="Buka Manajemen Invoice">
+                                    <Receipt className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button onClick={() => {
                                       setBrandFormEditor(brand);
                                   }} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded cursor-pointer border-0" title="Edit Brand">
                                     <Edit2 className="w-3.5 h-3.5" />
@@ -8471,6 +8984,14 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* ==================== SUBTAB: INVOICE BRAND ==================== */}
+            {operatorTab === "invoice" && (
+              <InvoiceDashboard 
+                clientBrands={clientBrands} 
+                onUpdateBrands={setClientBrands} 
+              />
             )}
 
             {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
@@ -8700,8 +9221,18 @@ export default function App() {
                     )}
 
                     {isUploadModalOpen && (
-                      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 overflow-y-auto flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn" id="upload_report_modal">
-                        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-5xl w-full p-6 sm:p-8 text-left relative animate-scaleUp my-auto sm:my-4">
+                      <div className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn" id="upload_report_modal">
+                        {/* Backdrop */}
+                        <div 
+                          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+                          onClick={() => {
+                            if (isSavingReport) return;
+                            setIsUploadModalOpen(false);
+                            setReportingRawData([]);
+                            setAutoDetectNotice("");
+                          }}
+                        ></div>
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-5xl w-full p-6 sm:p-8 text-left relative animate-scaleUp my-auto sm:my-4 z-10">
                           {/* Close Button */}
                           <button
                             onClick={() => {
@@ -8809,9 +9340,21 @@ export default function App() {
                             <Upload className="w-10 h-10 text-indigo-500" />
                           </div>
                           <div>
-                            <h4 className="text-base font-black text-slate-800">Upload Raw Data Marketplace</h4>
-                            <p className="text-xs text-slate-500 font-semibold mt-1 max-w-sm mx-auto">Tarik & lepas file Export TikTok/Shopee (Excel/CSV) ke area ini, atau klik untuk memilih file.</p>
-                            <p className="text-[10px] text-indigo-600 font-mono font-bold mt-2">💡 Tips: Beri nama file yang mengandung nama Brand & Platform Anda (contoh: Laporan_Hanasui_TikTok.xlsx) untuk auto-detect otomatis!</p>
+                            <h4 className="text-base font-black text-slate-800">Upload Raw Data {saveTargetPlatform !== "Semua" ? saveTargetPlatform : "Marketplace"}</h4>
+                            <p className="text-xs text-slate-500 font-semibold mt-1 max-w-sm mx-auto">
+                              {saveTargetPlatform === "Shopee Live" 
+                                ? "Tarik & lepas file Export Shopee Live Seller (Daftar Sesi) ke area ini." 
+                                : saveTargetPlatform === "TikTok Live" 
+                                ? "Tarik & lepas file Export TikTok Center (Analisis Live) ke area ini."
+                                : "Tarik & lepas file Export TikTok/Shopee (Excel/CSV) ke area ini, atau klik untuk memilih file."}
+                            </p>
+                            <p className="text-[10px] text-indigo-600 font-mono font-bold mt-2">
+                              {saveTargetPlatform === "Shopee Live"
+                                ? "💡 File Shopee harus mengandung kolom: Nama Livestream, Durasi Rata-Rata Menonton, Tambah ke Keranjang, Pesanan Dibuat."
+                                : saveTargetPlatform === "TikTok Live"
+                                ? "💡 File TikTok harus mengandung: Live impressions, Product clicks, Orders, Gross profit."
+                                : "💡 Tips: Beri nama file yang mengandung nama Brand & Platform Anda (contoh: Laporan_Hanasui_TikTok.xlsx) untuk auto-detect otomatis!"}
+                            </p>
                           </div>
                           <div className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
                             Pilih File Excel / CSV
@@ -8831,15 +9374,28 @@ export default function App() {
                             <p className="text-[10px] sm:text-xs font-semibold text-indigo-700">{reportingRawData.length} Sesi Live Terdeteksi</p>
                           </div>
                         </div>
-                        <button 
-                          onClick={() => {
-                            setReportingRawData([]);
-                            setAutoDetectNotice("");
-                          }}
-                          className="px-4 py-2 bg-white text-rose-600 border border-rose-200 text-xs font-black rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                        >
-                          Reset Data
-                        </button>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => {
+                              if (isSavingReport) return;
+                              setIsUploadModalOpen(false);
+                              setReportingRawData([]);
+                              setAutoDetectNotice("");
+                            }}
+                            className="px-4 py-2 bg-white text-slate-600 border border-slate-200 text-xs font-black rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                          >
+                            Tutup
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setReportingRawData([]);
+                              setAutoDetectNotice("");
+                            }}
+                            className="px-4 py-2 bg-white text-rose-600 border border-rose-200 text-xs font-black rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                          >
+                            Reset File
+                          </button>
+                        </div>
                       </div>
 
                       {/* BAR AKSI PENYIMPANAN DATABASE */}
@@ -8872,7 +9428,7 @@ export default function App() {
                       </div>
 
                       {/* STATS OVERVIEW */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Perolehan GMV</p>
                           <h3 className="text-xl sm:text-2xl font-black text-slate-800">
@@ -8904,6 +9460,12 @@ export default function App() {
                               (reportingRawData.reduce((acc, curr) => acc + (curr.gmv || 0), 0)) / 
                               (reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0) || 1)
                             )}
+                          </h3>
+                        </div>
+                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Avg View Time</p>
+                          <h3 className="text-xl sm:text-2xl font-black text-slate-800">
+                            {Math.round(reportingRawData.length > 0 ? reportingRawData.reduce((acc, curr) => acc + (curr.avgViewDuration || 0), 0) / reportingRawData.length : 0)} <span className="text-xs font-bold text-slate-400 ml-1">detik</span>
                           </h3>
                         </div>
                       </div>
@@ -9024,10 +9586,10 @@ export default function App() {
                                 { label: "Product clicks", value: new Intl.NumberFormat('id-ID').format(totalClicks) },
                                 { label: "Orders paid for", value: new Intl.NumberFormat('id-ID').format(totalBuyers) }
                               ] : [
-                                { label: "Sessions", value: new Intl.NumberFormat('id-ID').format(totalImpressions) },
-                                { label: "Product View", value: new Intl.NumberFormat('id-ID').format(totalClicks) },
-                                { label: "Add to Cart", value: new Intl.NumberFormat('id-ID').format(totalOrders) },
-                                { label: "Purchase", value: new Intl.NumberFormat('id-ID').format(totalBuyers) }
+                                { label: "Total Viewers", value: new Intl.NumberFormat('id-ID').format(totalImpressions) },
+                                { label: "Active Viewers", value: new Intl.NumberFormat('id-ID').format(totalLiveVisits) },
+                                { label: "Add To Cart", value: new Intl.NumberFormat('id-ID').format(totalClicks) },
+                                { label: "Orders", value: new Intl.NumberFormat('id-ID').format(totalOrders) }
                               ]}
                             />
                           </div>
@@ -9146,8 +9708,11 @@ export default function App() {
                              const q = reportDbSearchQuery.toLowerCase();
                              const matchTitle = String(log.title || "").toLowerCase().includes(q);
                              const matchDate = String(log.date || "").toLowerCase().includes(q);
-                             const matchPlatform = String(log.platform || "").toLowerCase().includes(q);
-                             if (!matchTitle && !matchDate && !matchPlatform) return false;
+                             const matchPlatformStr = String(log.platform || "").toLowerCase().includes(q);
+                             if (!matchTitle && !matchDate && !matchPlatformStr) return false;
+                           }
+                           if (operatorPlatformFilter) {
+                             if (log.platform !== operatorPlatformFilter) return false;
                            }
                            return true;
                          });
@@ -9175,6 +9740,9 @@ export default function App() {
 
                          const funnelCtr = totalDbProductImpressions > 0 ? ((totalDbClicks / totalDbProductImpressions) * 100) : 0;
                          const funnelCtor = totalDbClicks > 0 ? ((totalDbOrdersFunnel / totalDbClicks) * 100) : 0;
+
+                         const totalAvgViewDurationSum = tableLogs.reduce((sum, item) => sum + (item.avgViewDuration || 0), 0);
+                         const avgViewDurationDb = tableLogs.length > 0 ? totalAvgViewDurationSum / tableLogs.length : 0;
 
                          const chartDataObj = [...tableLogs].reduce((acc: any, curr: any) => {
                            let d = curr.date;
@@ -9254,16 +9822,28 @@ export default function App() {
                          return (
                            <>
                              {/* Table Filters */}
-                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                               <div className="relative w-full sm:w-72">
-                                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                 <input
-                                   type="text"
-                                   placeholder="Search sessions..."
-                                   value={reportDbSearchQuery}
-                                   onChange={(e) => setReportDbSearchQuery(e.target.value)}
-                                   className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 transition-colors shadow-sm"
-                                 />
+                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap">
+                               <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
+                                 <div className="relative w-full sm:w-72">
+                                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                   <input
+                                     type="text"
+                                     placeholder="Search sessions..."
+                                     value={reportDbSearchQuery}
+                                     onChange={(e) => setReportDbSearchQuery(e.target.value)}
+                                     className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 transition-colors shadow-sm"
+                                   />
+                                 </div>
+                                 <select
+                                   value={operatorPlatformFilter}
+                                   onChange={(e) => setOperatorPlatformFilter(e.target.value)}
+                                   className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
+                                 >
+                                   <option value="">Semua Platform</option>
+                                   {platforms.map(p => (
+                                     <option key={p} value={p}>{p}</option>
+                                   ))}
+                                 </select>
                                </div>
                                <div className="relative flex gap-2 w-full sm:w-auto h-9">
                                  <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
@@ -9315,28 +9895,58 @@ export default function App() {
                                  {/* Custom Date Overlay UI (Month) */}
                                  {isOperatorMonthOpen && operatorDateFilterType === "month" && (
                                    <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
-                                     <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
-                                       <h5 className="text-[10px] font-black uppercase text-slate-500">Pilih Bulan</h5>
-                                       <button type="button" onClick={() => setIsOperatorMonthOpen(false)} className="text-slate-400 hover:text-slate-700 font-black cursor-pointer border-0 bg-transparent">✕</button>
+                                     <div className="flex justify-between items-center mb-4 text-slate-800">
+                                       <button 
+                                         type="button" 
+                                         onClick={() => setOperatorMonthPickerYear(y => y - 1)} 
+                                         className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                       >
+                                         &laquo;
+                                       </button>
+                                       <div className="text-sm font-bold tracking-widest">{operatorMonthPickerYear}</div>
+                                       <button 
+                                         type="button" 
+                                         onClick={() => setOperatorMonthPickerYear(y => y + 1)} 
+                                         className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                       >
+                                         &raquo;
+                                       </button>
                                      </div>
-                                     <div className="grid grid-cols-2 gap-2 text-[10px] font-bold max-h-48 overflow-y-auto">
-                                       {(() => {
-                                         const mList = []; 
-                                         const cDate = new Date();
-                                         for(let i=-2; i<=22; i++) {
-                                           const d = new Date(cDate.getFullYear(), cDate.getMonth() - i, 1);
-                                           mList.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}`);
-                                         }
-                                         return mList.map(mVal => (
+                                     <div className="grid grid-cols-3 gap-y-2 pb-1 border-t border-slate-100 pt-3 relative">
+                                       {[
+                                         { val: "01", label: "Jan" }, { val: "02", label: "Feb" }, { val: "03", label: "Mar" },
+                                         { val: "04", label: "Apr" }, { val: "05", label: "May" }, { val: "06", label: "Jun" },
+                                         { val: "07", label: "Jul" }, { val: "08", label: "Aug" }, { val: "09", label: "Sept" },
+                                         { val: "10", label: "Oct" }, { val: "11", label: "Nov" }, { val: "12", label: "Dec" }
+                                       ].map((m, idx) => {
+                                         const mVal = `${operatorMonthPickerYear}-${m.val}`;
+                                         const isSelected = operatorSelectedMonth === mVal;
+                                         
+                                         const currentDate = new Date();
+                                         const isFuture = operatorMonthPickerYear > currentDate.getFullYear() || 
+                                                          (operatorMonthPickerYear === currentDate.getFullYear() && parseInt(m.val) > currentDate.getMonth() + 1);
+
+                                         return (
                                            <button
-                                             key={mVal} type="button"
-                                             onClick={() => { setOperatorSelectedMonth(mVal); setIsOperatorMonthOpen(false); }}
-                                             className={`py-1.5 rounded-lg border-0 cursor-pointer ${
-                                               operatorSelectedMonth === mVal ? "bg-indigo-600 text-white" : "bg-slate-50 hover:bg-slate-100 text-slate-700"
-                                             }`}
-                                           >{getIndonesianMonthLabel(mVal)}</button>
-                                         ));
-                                       })()}
+                                             key={m.val}
+                                             type="button"
+                                             onClick={() => { 
+                                               if (!isFuture) {
+                                                 setOperatorSelectedMonth(mVal); 
+                                                 setIsOperatorMonthOpen(false); 
+                                               }
+                                             }}
+                                             className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
+                                               isFuture 
+                                               ? "bg-slate-50 text-slate-400 cursor-not-allowed" 
+                                               : "bg-white text-slate-800 hover:bg-slate-50 cursor-pointer"
+                                             } ${isSelected ? "bg-slate-50 shadow-sm relative" : ""}`}
+                                           >
+                                             {m.label}
+                                             {isSelected && !isFuture && <div className="w-1.5 h-1.5 rounded-full bg-slate-300 absolute bottom-1"></div>}
+                                           </button>
+                                         )
+                                       })}
                                      </div>
                                    </div>
                                  )}
@@ -9393,7 +10003,7 @@ export default function App() {
 
                                <div>
                                  <h4 className="text-xs font-bold text-slate-800 mb-3 uppercase tracking-wider">Engagement Metrics</h4>
-                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                                     <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
                                       <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Like</div>
                                       <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalLikesDb)}</div>
@@ -9410,6 +10020,10 @@ export default function App() {
                                       <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Product Clicks</div>
                                       <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalClicksDb)}</div>
                                     </div>
+                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Avg View Time</div>
+                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{Math.round(avgViewDurationDb)} <span className="text-[10px] text-slate-400 font-bold">detik</span></div>
+                                    </div>
                                  </div>
                                </div>
                              </div>
@@ -9420,7 +10034,12 @@ export default function App() {
                                  <HorizontalFunnel 
                                    title="Live Sales Funnel"
                                    subtitle="All Platform & Dates"
-                                   steps={[
+                                   steps={(tableLogs.length > 0 && tableLogs[0].platform !== "TikTok Live" && tableLogs[0].platform?.toLowerCase().includes("shopee")) ? [
+                                     { label: "Total Viewers", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
+                                     { label: "Active Viewers", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
+                                     { label: "Add To Cart", value: new Intl.NumberFormat('id-ID').format(totalDbClicks) },
+                                     { label: "Orders", value: new Intl.NumberFormat('id-ID').format(totalDbOrdersFunnel) }
+                                   ] : [
                                      { label: "LIVE impressions", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
                                      { label: "Video/Live Visits", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
                                      { label: "Product impressions", value: new Intl.NumberFormat('id-ID').format(totalDbProductImpressions) },
@@ -9986,7 +10605,7 @@ export default function App() {
                           <div className="space-y-4 bg-slate-50/50 border border-slate-100 p-4 sm:p-5 rounded-2xl">
                             <div>
                               <label className="block text-[#3c2f56] font-black uppercase text-[10px] tracking-widest mb-1.5">Nama Brand Klien *</label>
-                              <input required name="name" defaultValue={leadFormModal.data.name} type="text" placeholder="Misal: PT. Liva Kosmetik" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 shadow-sm" />
+                              <input required name="name" defaultValue={leadFormModal.data.name} type="text" placeholder="Misal: PT. Liva Agency Kosmetik" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 shadow-sm" />
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -10054,7 +10673,7 @@ export default function App() {
                 <div className="bg-[#f8f6fc] p-5 rounded-2xl border border-purple-100 h-fit space-y-4 shadow-sm">
                   <div className="flex items-center gap-2.5 text-purple-700 font-black text-sm">
                     <Sparkles className="w-4.5 h-4.5 text-purple-500" />
-                    AI AGENT COPILOT LIVA ATTENDENCE SYSTEM
+                    AI AGENT COPILOT Liva Agency
                   </div>
                   <p className="text-xs text-purple-900 font-semibold leading-relaxed">
                     Asisten intelijen ini mempelajari database operator secara dinamis. Anda dapat berkonsultasi tentang rekapitulasi gaji, keterlambatan host, denda, dan saran roster siaran dalam Bahasa Indonesia.
@@ -11363,34 +11982,14 @@ export default function App() {
 
                 {/* Collapsible Add New Host Form */}
                 {showAddForm && (
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!newHostName.trim()) return;
-                    handleAddHost({
-                      name: newHostName,
-                      role: newHostRole,
-                      studio: newHostStudio,
-                      phone: "-",
-                      bankAccount: "-",
-                      username: newHostUser,
-                      password: newHostPass,
-                      customWorkingDaysTarget: undefined
-                    });
-                    // Reset fields
-                    setNewHostName("");
-                    setNewHostRole("Reguler Host");
-                    setNewHostStudio("Bandar Lampung");
-                    setNewHostUser("");
-                    setNewHostPass("");
-                    setShowAddForm(false);
-                  }} className="bg-purple-50/40 p-5 rounded-2xl border border-purple-100 space-y-4 animate-fadeIn" id="add_host_form">
+                  <div className="bg-purple-50/40 p-5 rounded-2xl border border-purple-100 space-y-4 animate-fadeIn" id="add_host_form">
                     <div className="text-xs font-black text-purple-950 uppercase tracking-widest flex items-center gap-1.5 border-b border-purple-100 pb-2">
                       <span>👤 Pendaftaran Host Agency Baru</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-semibold">
                       <div>
-                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Nama Lengkap Host:</label>
+                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Nama Lengkap Host <span className="text-red-500">*</span>:</label>
                         <input
                           type="text"
                           required
@@ -11453,10 +12052,38 @@ export default function App() {
                           className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 font-mono"
                         />
                       </div>
+                      
+                      <div>
+                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Nomor HP:</label>
+                        <input
+                          type="text"
+                          value={newHostPhone}
+                          onChange={(e) => setNewHostPhone(e.target.value)}
+                          placeholder="Opsional, misal: 0812345678"
+                          className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">Rekening Bank:</label>
+                        <input
+                          type="text"
+                          value={newHostBank}
+                          onChange={(e) => setNewHostBank(e.target.value)}
+                          placeholder="Opsional, misal: BCA 12345"
+                          className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
                     </div>
 
+                    {(!newHostName.trim()) && (
+                      <div className="text-[10px] font-bold text-red-500 px-1 font-mono">
+                        * Nama Lengkap Host wajib diisi untuk didaftarkan.
+                      </div>
+                    )}
+
                     <div className="flex justify-end gap-3 pt-2">
-                      <button
+                       <button
                         type="button"
                         onClick={() => setShowAddForm(false)}
                         className="bg-white hover:bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl text-xs border border-gray-200 transition-all cursor-pointer select-none"
@@ -11464,13 +12091,36 @@ export default function App() {
                         Batalkan
                       </button>
                       <button
-                        type="submit"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-5 py-2 rounded-xl text-xs transition-all shadow-xs cursor-pointer select-none"
+                        type="button"
+                        onClick={() => {
+                          if (!newHostName.trim()) return;
+                          handleAddHost({
+                            name: newHostName,
+                            role: newHostRole,
+                            studio: newHostStudio,
+                            phone: newHostPhone.trim() || "-",
+                            bankAccount: newHostBank.trim() || "-",
+                            username: newHostUser,
+                            password: newHostPass,
+                            customWorkingDaysTarget: undefined
+                          });
+                          // Reset fields
+                          setNewHostName("");
+                          setNewHostRole("Reguler Host");
+                          setNewHostStudio("Bandar Lampung");
+                          setNewHostPhone("");
+                          setNewHostBank("");
+                          setNewHostUser("");
+                          setNewHostPass("");
+                          setShowAddForm(false);
+                        }}
+                        className={`font-black px-5 py-2 rounded-xl text-xs transition-all shadow-xs select-none ${!newHostName.trim() ? "bg-indigo-300 text-white cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"}`}
+                        disabled={!newHostName.trim()}
                       >
                         Daftarkan Host Baru ➜
                       </button>
                     </div>
-                  </form>
+                  </div>
                 )}
 
                 <div className="overflow-x-auto border border-purple-100 rounded-2xl bg-white bg-white">

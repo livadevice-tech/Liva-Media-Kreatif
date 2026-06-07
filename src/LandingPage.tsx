@@ -265,7 +265,7 @@ export default function LandingPage() {
               <Video className="w-5 h-5 text-white" />
             </div>
             <span className="text-2xl font-black tracking-tight text-slate-900">
-              Liva
+              Liva Agency
             </span>
           </div>
           
@@ -274,7 +274,7 @@ export default function LandingPage() {
                <a href="#layanan" className="flex items-center gap-1.5 hover:text-violet-600 transition-colors">
                  Layanan <ChevronDown className="w-4 h-4" />
                </a>
-               <a href="#tentang" className="hover:text-violet-600 transition-colors">Tentang Liva</a>
+               <a href="#tentang" className="hover:text-violet-600 transition-colors">Tentang Liva Agency</a>
             </div>
 
             <button className="flex items-center gap-2.5 px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full font-bold text-sm transition-all shadow-sm">
@@ -316,7 +316,7 @@ export default function LandingPage() {
         <div className="flex-1 flex flex-col items-center text-center lg:items-start lg:text-left z-10">
           <h1 className="text-4xl md:text-[46px] font-extrabold tracking-tight leading-[1.15] mb-6">
             <span className="text-violet-600">Capek Live Sendiri?</span><br />
-            Biar Liva Aja Yang Handle!
+            Biar Liva Agency Aja Yang Handle!
           </h1>
           <p className="text-slate-500 text-base md:text-lg font-medium leading-relaxed mb-10 max-w-xl">
             Tingkatkan omzet toko Anda di Tiktok, Shopee, & Tokopedia. Kami siapkan Host berpengalaman, Studio, Alat, & Strategi—semua terima beres.
@@ -532,7 +532,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 4. TENTANG LIVA */}
+      {/* 4. TENTANG LIVA AGENCY */}
       <section id="tentang" className="py-12 md:py-20 px-6 md:px-12 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 lg:gap-20">
          <div className="w-full md:w-[45%] lg:w-[40%] shrink-0 relative flex justify-center items-center min-h-[460px] md:min-h-[500px]">
             {/* Background Shape */}
@@ -596,13 +596,13 @@ export default function LandingPage() {
          
          <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
             <div className="px-4 py-1.5 rounded-full border border-violet-500 text-violet-600 font-bold text-sm mb-6 inline-block">
-               Tentang Liva
+               Tentang Liva Agency
             </div>
             <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold leading-[1.15] mb-6">
-               Kamu Ngga Perlu Mikirin Optimasi Live Shopping <span className="text-violet-600">Liva Siap Bantu!</span>
+               Kamu Ngga Perlu Mikirin Optimasi Live Shopping <span className="text-violet-600">Liva Agency Siap Bantu!</span>
             </h2>
             <p className="text-slate-600 mb-8 leading-relaxed text-[16px] max-w-xl">
-               Fokus pada pengembangan produk dan bisnis Anda, biarkan tim profesional Liva yang mengurus seluruh kebutuhan Live Shopping Anda dari persiapan hingga eksekusi dengan hasil yang memuaskan.
+               Fokus pada pengembangan produk dan bisnis Anda, biarkan tim profesional Liva Agency yang mengurus seluruh kebutuhan Live Shopping Anda dari persiapan hingga eksekusi dengan hasil yang memuaskan.
             </p>
             <div className={`px-5 py-2 rounded-lg text-white font-bold text-sm mb-6 shadow-md inline-block w-max transition-colors duration-500 ${portfolioData[currentPortfolioSlide].colorClass}`}>
                {portfolioData[currentPortfolioSlide].category}
@@ -679,7 +679,7 @@ export default function LandingPage() {
       <section id="fitur-usp" className="py-12 md:py-20 px-6 md:px-12 max-w-[1400px] mx-auto overflow-hidden">
         {/* Top Header Area */}
         <div className="flex flex-col items-center text-center mb-16 max-w-3xl mx-auto">
-          <div className="text-violet-600 font-bold text-sm mb-3">Bagaimana Liva Bisa Membantu</div>
+          <div className="text-violet-600 font-bold text-sm mb-3">Bagaimana Liva Agency Bisa Membantu</div>
           <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold mb-4 tracking-tight leading-[1.15]">
             Maksimalkan Live Brand Kamu,<br /> <span className="text-violet-600">Terukur & Effortless</span>
           </h2>
@@ -756,7 +756,7 @@ export default function LandingPage() {
           {/* Floating Card */}
           <div className="absolute -bottom-8 md:bottom-8 md:-right-8 bg-white p-5 md:p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-100 max-w-[260px] z-20">
             <div className="font-bold text-slate-800 text-sm mb-2">Dipercaya 1.100+ Partner</div>
-            <p className="text-xs text-slate-500 leading-relaxed mb-4">Bergabung dengan ++ bisnis lainnya yang telah mempercayakan Liva</p>
+            <p className="text-xs text-slate-500 leading-relaxed mb-4">Bergabung dengan ++ bisnis lainnya yang telah mempercayakan Liva Agency</p>
             <div className="flex items-center justify-between">
                <div className="flex -space-x-2">
                   <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white overflow-hidden"><img src="https://i.pravatar.cc/100?img=1" alt="user" className="w-full h-full object-cover" /></div>
@@ -782,7 +782,7 @@ export default function LandingPage() {
         <div className="w-full lg:w-[55%] flex flex-col md:pl-8 mt-12 lg:mt-0">
           <div className="w-max bg-orange-50 text-orange-600 font-bold text-xs px-3 py-1.5 rounded-full flex items-center gap-2 mb-6">
              <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-             Statistik Liva
+             Statistik Liva Agency
           </div>
           
           <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold mb-5 max-w-lg leading-[1.2] text-slate-900 tracking-tight">
@@ -845,10 +845,10 @@ export default function LandingPage() {
       <section className="py-16 md:py-24 px-6 md:px-12 bg-slate-50 border-t border-slate-100 flex flex-col items-center">
          <div className="text-center mb-16 max-w-4xl mx-auto">
             <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold tracking-tight leading-[1.15] mb-6 text-slate-900">
-               Kenapa Pilih Liva?
+               Kenapa Pilih Liva Agency?
             </h2>
             <p className="text-slate-500 text-base md:text-lg font-medium leading-relaxed max-w-2xl mx-auto">
-               Karena yang terlihat hemat, sering kali justru menjadi paling mahal. Bandingkan sendiri keuntungan menggunakan Liva dibandingkan in-house atau agency lain.
+               Karena yang terlihat hemat, sering kali justru menjadi paling mahal. Bandingkan sendiri keuntungan menggunakan Liva Agency dibandingkan in-house atau agency lain.
             </p>
          </div>
 
@@ -866,7 +866,7 @@ export default function LandingPage() {
                      <span className="text-lg">Agency Lain</span>
                   </div>
                   <div className="font-black text-violet-700 text-center px-6 py-4 bg-violet-50 rounded-2xl flex flex-col items-center shadow-inner border border-violet-100/50">
-                     <span className="text-2xl mb-0.5">Liva</span>
+                     <span className="text-2xl mb-0.5">Liva Agency</span>
                      <span className="text-xs font-bold text-violet-500">(Growth Partner)</span>
                   </div>
                </div>
@@ -1092,7 +1092,7 @@ export default function LandingPage() {
       <section className="py-16 md:py-24 px-6 md:px-12 max-w-[1200px] mx-auto flex flex-col items-center">
         <div className="text-center mb-16">
            <h3 className="font-bold text-sm md:text-base mb-3 text-violet-600 uppercase tracking-widest">Project Roadmap</h3>
-           <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold text-slate-900 leading-[1.15]">Alur Kerja Sama di Liva</h2>
+           <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold text-slate-900 leading-[1.15]">Alur Kerja Sama di Liva Agency</h2>
         </div>
         
         {/* Desktop horizontal flow, Mobile vertical flow */}
@@ -1185,7 +1185,7 @@ export default function LandingPage() {
         <div className="flex-1 lg:max-w-sm mb-8 lg:mb-0">
            <h2 className="text-4xl md:text-5xl lg:text-[48px] font-extrabold text-slate-900 mb-6 tracking-tight">FAQ</h2>
            <p className="text-slate-800 font-medium text-[17px] mb-10 leading-relaxed max-w-[320px]">
-             Temukan jawaban tentang bagaimana LIVA bekerja dan apa yang bisa kami lakukan untuk Anda
+             Temukan jawaban tentang bagaimana LIVA AGENCY bekerja dan apa yang bisa kami lakukan untuk Anda
            </p>
            <p className="text-slate-900 font-medium mb-6 text-[17px]">
              Ada pertanyaan lebih lanjut?
@@ -1200,12 +1200,12 @@ export default function LandingPage() {
            <div className="border-t border-slate-300 w-full"></div>
            {[
              {
-               q: "Apakah Liva hanya menyediakan host saja?",
-               a: "Tentu tidak! Liva menyediakan satu paket komplit mulai dari Host Live Profesional, Studio Standar/Custom, alat-alat (kamera, lighting, dll), hingga Basic/Advanced OBS setup. Kamu tinggal terima beres."
+               q: "Apakah Liva Agency hanya menyediakan host saja?",
+               a: "Tentu tidak! Liva Agency menyediakan satu paket komplit mulai dari Host Live Profesional, Studio Standar/Custom, alat-alat (kamera, lighting, dll), hingga Basic/Advanced OBS setup. Kamu tinggal terima beres."
              },
              {
-               q: "Berapa lama masa kontrak minimal di Liva?",
-               a: "Di Liva, kami sangat fleksibel. Kamu bisa mencoba dari 1 bulan pertama dulu dan kemudian bisa diperpanjang sesuai kebutuhan operasional GMV mu (fleksibel hingga 1-12 bulan)."
+               q: "Berapa lama masa kontrak minimal di Liva Agency?",
+               a: "Di Liva Agency, kami sangat fleksibel. Kamu bisa mencoba dari 1 bulan pertama dulu dan kemudian bisa diperpanjang sesuai kebutuhan operasional GMV mu (fleksibel hingga 1-12 bulan)."
              },
              {
                q: "Apakah ada masa coba (trial)?",
@@ -1213,11 +1213,11 @@ export default function LandingPage() {
              },
              {
                q: "Siapa yang menyiapkan produk untuk kebutuhan livestream?",
-               a: "Brand akan mengirimkan produk demo/sampel beserta guideline ukuran/warna dan aset pendukung livestream ke tim Liva. Kami yang akan merapikan display pada saat live berjalan."
+               a: "Brand akan mengirimkan produk demo/sampel beserta guideline ukuran/warna dan aset pendukung livestream ke tim Liva Agency. Kami yang akan merapikan display pada saat live berjalan."
              },
              {
-               q: "Dimana lokasi studio Liva?",
-               a: "Studio liva berada di lokasi strategis yang memudahkan mobilitas talent. Saat ini studio eksklusif kami berpusat di Jakarta dengan fasilitas lengkap untuk support operasional harian."
+               q: "Dimana lokasi studio Liva Agency?",
+               a: "Studio liva agency berada di lokasi strategis yang memudahkan mobilitas talent. Saat ini studio eksklusif kami berpusat di Jakarta dengan fasilitas lengkap untuk support operasional harian."
              }
            ].map((faq, index) => (
              <div 
@@ -1250,7 +1250,7 @@ export default function LandingPage() {
           <div className="flex flex-col gap-6 max-w-xs">
              <div className="flex items-center gap-2 text-white mb-2">
                 <Video className="w-8 h-8 text-violet-500" />
-                <span className="text-2xl font-black tracking-tight">LIVA</span>
+                <span className="text-2xl font-black tracking-tight">LIVA AGENCY</span>
              </div>
              <p className="text-slate-400 text-sm leading-relaxed">
                Agensi Live Shopping terpercaya yang siap membantu bisnis kamu berkembang lewati batas dengan layanan eksekusi live streaming terbaik.
@@ -1280,7 +1280,7 @@ export default function LandingPage() {
              </div>
              <div className="flex flex-col gap-3">
                <h4 className="text-white font-bold text-sm mb-3">Perusahaan</h4>
-               <a href="#" className="hover:text-violet-400 transition-colors text-slate-400 font-medium text-sm">Tentang Liva</a>
+               <a href="#" className="hover:text-violet-400 transition-colors text-slate-400 font-medium text-sm">Tentang Liva Agency</a>
                <a href="#" className="hover:text-violet-400 transition-colors text-slate-400 font-medium text-sm">Karir</a>
                <a href="#" className="hover:text-violet-400 transition-colors text-slate-400 font-medium text-sm">Hubungi Kami</a>
                <a href="#" className="hover:text-violet-400 transition-colors text-slate-400 font-medium text-sm">Klien & Portofolio</a>
@@ -1298,7 +1298,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2">
                 <Video className="w-5 h-5 text-violet-500" />
-                <span className="text-lg font-black text-white tracking-tight">LIVA</span>
+                <span className="text-lg font-black text-white tracking-tight">LIVA AGENCY</span>
              </div>
              <span className="ml-4">Liva Agency • All rights reserved • ©2026</span>
           </div>

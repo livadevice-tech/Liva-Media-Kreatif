@@ -337,7 +337,10 @@ const createLogs = (): AttendanceLog[] => {
     // Distribute logically
     for (let d = 1; d <= 26; d++) {
       if (t.type === "Reguler") {
-        const dateString = `2026-05-${d.toString().padStart(2, "0")}`;
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const dateString = `${yyyy}-${mm}-${d.toString().padStart(2, "0")}`;
         let status: "Present" | "Late" | "Absent" | "Excused" = "Present";
 
         // Assign excused days
@@ -380,6 +383,7 @@ const createLogs = (): AttendanceLog[] => {
           orders: orders,
           conversionRate: isExcused ? 0 : 4.2,
           engagementRate: isExcused ? 0 : 11.5,
+          avgViewDuration: isExcused ? 0 : Math.floor(70 + (d % 3) * 20),
           checkInTime: isExcused ? undefined : (status === "Late" ? (d % 2 === 0 ? "13:12:05" : "18:05:42") : (d % 2 === 0 ? "12:56:12" : "17:51:20"))
         });
       } else {
@@ -387,7 +391,10 @@ const createLogs = (): AttendanceLog[] => {
         // t.presentDays determines how many entries they have
         // Let's pack them from d = 1 till presentDays
         if (d <= t.presentDays) {
-          const dateString = `2026-05-${d.toString().padStart(2, "0")}`;
+          const now = new Date();
+          const yyyy = now.getFullYear();
+          const mm = String(now.getMonth() + 1).padStart(2, "0");
+          const dateString = `${yyyy}-${mm}-${d.toString().padStart(2, "0")}`;
           generated.push({
             id: `gen_l_${t.hostId}_${d}`,
             hostId: t.hostId,
@@ -404,6 +411,7 @@ const createLogs = (): AttendanceLog[] => {
             orders: Math.round(45 + (d % 6) * 15),
             conversionRate: 3.5,
             engagementRate: 9.8,
+            avgViewDuration: Math.floor(60 + (d % 2) * 15),
             checkInTime: d % 2 === 0 ? "12:54:15" : "17:52:10"
           });
         }
@@ -416,14 +424,25 @@ const createLogs = (): AttendanceLog[] => {
 
 export const INITIAL_LOGS = createLogs();
 
-// Standard shift rosters reference 2026-05-24
+const todayDateString = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const twoDaysAgoString = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 2);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Standard shift rosters reference today
 export const INITIAL_SCHEDULE: ShiftSchedule[] = [
   {
     id: "sched_1",
     hostId: "h1",
     hostName: "Cica",
     employeeId: "EMP-26-001",
-    date: "2026-05-24",
+    date: todayDateString(),
     timeSlot: "Evening (18:00 - 22:00)",
     platform: "TikTok Live",
     brand: "Somethinc",
@@ -434,7 +453,7 @@ export const INITIAL_SCHEDULE: ShiftSchedule[] = [
     hostId: "h3",
     hostName: "Nabila",
     employeeId: "EMP-26-003",
-    date: "2026-05-24",
+    date: todayDateString(),
     timeSlot: "Afternoon (13:00 - 17:00)",
     platform: "Shopee Live",
     brand: "Jiniso",
@@ -445,7 +464,7 @@ export const INITIAL_SCHEDULE: ShiftSchedule[] = [
     hostId: "h6",
     hostName: "Adinda",
     employeeId: "EMP-26-006",
-    date: "2026-05-24",
+    date: todayDateString(),
     timeSlot: "Evening (18:00 - 22:00)",
     platform: "TikTok Live",
     brand: "Wardah",
@@ -461,7 +480,7 @@ export const INITIAL_ALERTS: KPIAlert[] = [
     metricType: "Attendance",
     severity: "High",
     message: "Toleransi keterlambatan terlampaui: Host Rahma terlambat sebanyak 4 kali masa kerja reguler.",
-    date: "2026-05-24",
+    date: todayDateString(),
     currentValue: "4 Keterlambatan",
     targetValue: "Maksimal 3 Keterlambatan",
     resolved: false
@@ -473,7 +492,7 @@ export const INITIAL_ALERTS: KPIAlert[] = [
     metricType: "Engagement",
     severity: "Medium",
     message: "Nadya absen / sakit sebanyak 4 kali bulan ini secara akumulatif. Evaluasi kondisi fisik / jadwal.",
-    date: "2026-05-22",
+    date: twoDaysAgoString(),
     currentValue: "4 Sakit/Izin",
     targetValue: "Sehat & Hadir Sesuai Siklus",
     resolved: false

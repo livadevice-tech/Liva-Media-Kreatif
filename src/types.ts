@@ -46,6 +46,7 @@ export interface AttendanceLog {
   conversionRate: number; // percentage (e.g. 4.2)
   engagementRate: number; // percentage (e.g. 8.5)
   orders: number;
+  avgViewDuration?: number; // e.g. minutes, like 2.5
   studio?: string; // Add optional studio
   flaggedAsAnomaly?: boolean;
   anomalyReason?: string;
@@ -136,6 +137,24 @@ export interface BrandAccount {
   picOtp: string;
 }
 
+export interface BrandInvoice {
+  id: string;
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
+  status: "Draft" | "Open Invoice" | "Paid" | "Overdue";
+  recipientName: string;
+  email: string;
+  address: string;
+  totalAmount: number;
+  sessionItems: {
+    sessionId: string;
+    description: string;
+    qty: number;
+    cost: number;
+  }[];
+}
+
 export interface ClientBrand {
   id: string;
   name: string;
@@ -146,6 +165,11 @@ export interface ClientBrand {
   monthlyMeetingDate: string;
   clientPassword?: string;
   clientUsername?: string;
+  picName?: string;
+  picEmail?: string;
+  companyAddress?: string;
+  invoices?: BrandInvoice[];
+  berkas?: {id: string; name: string; type: string; url: string;}[];
 }
 
 export interface ClientReporting {
