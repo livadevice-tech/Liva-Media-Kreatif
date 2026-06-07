@@ -3,6 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export interface AdminAccount {
+  id: string;
+  name: string;
+  username: string;
+  password: string;
+  accessTabs: string[];
+}
+
 export type UserRole = "Admin" | "Manager" | "Host";
 
 export interface HostEmployee {

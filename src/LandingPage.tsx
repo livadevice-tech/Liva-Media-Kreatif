@@ -262,7 +262,7 @@ export default function LandingPage({ agencyLogoUrl, onEnterApp }: { agencyLogoU
         <div className="max-w-7xl mx-auto px-6 md:px-12 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {agencyLogoUrl ? (
-              <img src={agencyLogoUrl} className="w-9 h-9 object-contain" alt="Liva Agency Logo" />
+              <img src={agencyLogoUrl} className="h-10 w-auto object-contain max-w-[150px] sm:max-w-[180px]" alt="Liva Agency Logo" />
             ) : (
               <div className="w-9 h-9 bg-violet-600 rounded-lg flex items-center justify-center shadow-md">
                 <Video className="w-5 h-5 text-white" />
@@ -1302,7 +1302,7 @@ export default function LandingPage({ agencyLogoUrl, onEnterApp }: { agencyLogoU
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2">
                 {agencyLogoUrl ? (
-                  <img src={agencyLogoUrl} className="object-contain h-6 grayscale opacity-70" alt="Liva Agency Logo" />
+                  <img src={agencyLogoUrl} className="object-contain h-8 grayscale opacity-70 max-w-[150px]" alt="Liva Agency Logo" />
                 ) : (
                   <>
                     <Video className="w-5 h-5 text-violet-500" />

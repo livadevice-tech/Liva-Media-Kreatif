@@ -88,7 +88,7 @@ import {
   ArrowUpDown
 } from "lucide-react";
 
-import { HostEmployee, AttendanceLog, ChatMessage, StudioItem, ClientBrand, ClientReporting, ClientLead } from "./types";
+import { HostEmployee, AttendanceLog, ChatMessage, StudioItem, ClientBrand, ClientReporting, ClientLead, AdminAccount } from "./types";
 import {
   INITIAL_HOSTS,
   INITIAL_LOGS,
@@ -860,6 +860,30 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("mcn_admin_credentials", JSON.stringify(adminCredentials));
   }, [adminCredentials]);
+
+  const [adminAccounts, setAdminAccounts] = useState<AdminAccount[]>(() => {
+    try { return JSON.parse(localStorage.getItem("mcn_admin_accounts") || "[]"); } catch { return []; }
+  });
+  useEffect(() => {
+    localStorage.setItem("mcn_admin_accounts", JSON.stringify(adminAccounts));
+    // Optionally sync to Firestore if needed, but keeping it local/simple for admin
+  }, [adminAccounts]);
+
+  const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(() => {
+    return localStorage.getItem("mcn_logged_in_admin_id") || null;
+  });
+  useEffect(() => {
+    if (loggedInAdminId) localStorage.setItem("mcn_logged_in_admin_id", loggedInAdminId);
+    else localStorage.removeItem("mcn_logged_in_admin_id");
+  }, [loggedInAdminId]);
+
+  // STATE ADMIN AKUN TAMBAHAN
+  const [showAdminAccountForm, setShowAdminAccountForm] = useState(false);
+  const [newAdminName, setNewAdminName] = useState("");
+  const [newAdminUser, setNewAdminUser] = useState("");
+  const [newAdminPass, setNewAdminPass] = useState("");
+  const [newAdminAccess, setNewAdminAccess] = useState<string[]>([]);
+  const [editingAdminId, setEditingAdminId] = useState<string | null>(null);
 
   const [isOperatorLoggedIn, setIsOperatorLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem("mcn_is_operator_logged_in") === "true";
@@ -3339,9 +3363,25 @@ export default function App() {
                       // Admin Login
                       if (hostLoginUser.trim() === adminCredentials.username && hostLoginPass === adminCredentials.password) {
                           setIsOperatorLoggedIn(true);
+                          setLoggedInAdminId(null); // Master Admin
                           setHostLoginUser("");
                           setHostLoginPass("");
                           setHostError("");
+                          return;
+                      }
+                      
+                      // Custom Admin Login
+                      const foundAdmin = adminAccounts.find(a => a.username === hostLoginUser.trim() && a.password === hostLoginPass);
+                      if (foundAdmin) {
+                          setIsOperatorLoggedIn(true);
+                          setLoggedInAdminId(foundAdmin.id);
+                          setHostLoginUser("");
+                          setHostLoginPass("");
+                          setHostError("");
+                          // Force navigation to the first allowed tab
+                          if (foundAdmin.accessTabs.length > 0) {
+                              setOperatorTab(foundAdmin.accessTabs[0] as any);
+                          }
                           return;
                       } else {
                           setHostError("ID Admin atau Password Admin salah!");
@@ -5024,7 +5064,7 @@ export default function App() {
                   <div className="space-y-6">
                     <div className="px-2 py-4 border-b border-purple-50 flex items-center gap-3">
                       {agencyLogoUrl ? (
-                         <img src={agencyLogoUrl} className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100" alt="Logo" />
+                         <img src={agencyLogoUrl} className="h-10 w-auto max-w-[140px] rounded-lg object-contain bg-slate-50 border border-slate-100 px-1" alt="Logo" />
                       ) : (
                          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white text-xs">LM</div>
                       )}
@@ -5035,25 +5075,48 @@ export default function App() {
                     </div>
 
                     <nav className="space-y-1.5" id="sidebar_nav">
-                      {[
-                        { tabId: "dashboard_utama", label: "Dashboard Utama", icon: LayoutDashboard },
-                        { type: "header", label: "Manajemen Host", key: "cat-host" },
-                        { tabId: "absensi", label: "Calender Kerja Host", icon: Calendar, category: "cat-host" },
-                        { tabId: "rekap_gaji", label: "Absen & Payroll", icon: DollarSign, category: "cat-host" },
-                        { tabId: "database", label: "Database Absen", badgeCount: logs.length, icon: ClipboardList, category: "cat-host" },
-                        { tabId: "credentials", label: "Kredensial Host", icon: ShieldCheck, category: "cat-host" },
-                        { type: "header", label: "Manajemen Client", key: "cat-client" },
-                        { tabId: "data_brand", label: "Data Brand", icon: Briefcase, category: "cat-client" },
-                        { tabId: "reporting_brand", label: "Reporting Brand (Upload)", icon: LineChart, category: "cat-client" },
-                        { tabId: "invoice", label: "Invoice & Berkas", icon: Receipt, category: "cat-client" },
-                        { tabId: "leads", label: "Leads/Calon Client", icon: Users, category: "cat-client" },
-                        { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
-                        { tabId: "copilot", label: "Asisten AI Copilot", icon: Sparkles, category: "cat-system" },
-                        { tabId: "settings", label: "Platform & Shift", icon: Sliders, category: "cat-system" },
-                        { tabId: "sheets", label: "Spreadsheet Sync", icon: FileSpreadsheet, category: "cat-system" },
-                        { type: "header", label: "Keamanan Akun", key: "cat-security" },
-                        { tabId: "admin_privacy", label: "Privasi Master Admin", icon: Lock, category: "cat-security" },
-                      ].map((item, index) => {
+                      {(() => {
+                        const allItems = [
+                          { tabId: "dashboard_utama", label: "Dashboard Utama", icon: LayoutDashboard },
+                          { type: "header", label: "Manajemen Host", key: "cat-host" },
+                          { tabId: "absensi", label: "Calender Kerja Host", icon: Calendar, category: "cat-host" },
+                          { tabId: "rekap_gaji", label: "Absen & Payroll", icon: DollarSign, category: "cat-host" },
+                          { tabId: "database", label: "Database Absen", badgeCount: logs.length, icon: ClipboardList, category: "cat-host" },
+                          { tabId: "credentials", label: "Kredensial Host", icon: ShieldCheck, category: "cat-host" },
+                          { type: "header", label: "Manajemen Client", key: "cat-client" },
+                          { tabId: "data_brand", label: "Data Brand", icon: Briefcase, category: "cat-client" },
+                          { tabId: "reporting_brand", label: "Reporting Brand (Upload)", icon: LineChart, category: "cat-client" },
+                          { tabId: "invoice", label: "Invoice & Berkas", icon: Receipt, category: "cat-client" },
+                          { tabId: "leads", label: "Leads/Calon Client", icon: Users, category: "cat-client" },
+                          { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
+                          { tabId: "copilot", label: "Asisten AI Copilot", icon: Sparkles, category: "cat-system" },
+                          { tabId: "settings", label: "Platform & Shift", icon: Sliders, category: "cat-system" },
+                          { tabId: "sheets", label: "Spreadsheet Sync", icon: FileSpreadsheet, category: "cat-system" },
+                          { type: "header", label: "Keamanan Akun", key: "cat-security" },
+                          { tabId: "admin_privacy", label: "Privasi Master Admin", icon: Lock, category: "cat-security" },
+                        ];
+                        
+                        let allowedTabs: string[] | null = null;
+                        if (loggedInAdminId) {
+                           const adm = adminAccounts.find(a => a.id === loggedInAdminId);
+                           if (adm) allowedTabs = adm.accessTabs;
+                        }
+                        
+                        const filteredItems = allItems.filter(item => {
+                           if (item.type === 'header') return true;
+                           if (allowedTabs && item.tabId && !allowedTabs.includes(item.tabId)) return false;
+                           return true;
+                        });
+                        
+                        return filteredItems.filter(item => {
+                           if (item.type === 'header') {
+                               // Check if there are any child items for this header's category
+                               const hasChildren = filteredItems.some(child => child.category === item.key);
+                               return hasChildren;
+                           }
+                           return true;
+                        });
+                      })().map((item, index) => {
                         if (item.type === "header") {
                           const isExpanded = expandedCategories[item.key!];
                           return (
@@ -5126,7 +5189,7 @@ export default function App() {
                         </div>
                       </div>
                       <button
-                        onClick={() => setIsOperatorLoggedIn(false)}
+                        onClick={() => { setIsOperatorLoggedIn(false); setLoggedInAdminId(null); }}
                         className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all cursor-pointer border-0 bg-transparent"
                         title="Sign Out"
                       >
@@ -5363,7 +5426,7 @@ export default function App() {
                   <div className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 pb-24 relative">
 
                     {/* Proactive Security Check: Warn on default password */}
-                    {adminCredentials.password === "123" && (
+                    {!loggedInAdminId && adminCredentials.password === "123" && (
                       <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn" id="cybersecurity_alert_banner">
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-amber-100 rounded-lg text-amber-800 text-sm">⚠️</div>
@@ -11805,7 +11868,7 @@ export default function App() {
               </div>
             )}
                         {/* ==================== SUBTAB: PRIVASI MASTER ADMIN ==================== */}
-            {operatorTab === "admin_privacy" && (
+            {!loggedInAdminId && operatorTab === "admin_privacy" && (
               <div className="space-y-6 animate-fadeIn" id="operator_admin_privacy_content">
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
@@ -12014,6 +12077,173 @@ export default function App() {
 
                     </div>
                   </div>
+                  
+                  {/* ======= MANAJEMEN AKUN ADMIN TAMBAHAN ======= */}
+                  <div className="mt-8 pt-8 border-t border-slate-100">
+                    <div className="flex justify-between items-center mb-6">
+                      <div>
+                        <h4 className="text-base font-black text-slate-800 flex items-center gap-2">
+                          <Users className="w-5 h-5 text-indigo-500" />
+                          Manajemen Akses Admin (Sub-Akun)
+                        </h4>
+                        <p className="text-xs text-slate-500 font-semibold mt-1">
+                           Buat akun admin tambahan dengan kontrol akses halaman secara custom.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (showAdminAccountForm) {
+                            setShowAdminAccountForm(false);
+                            setEditingAdminId(null);
+                            setNewAdminName(""); setNewAdminUser(""); setNewAdminPass(""); setNewAdminAccess([]);
+                          } else {
+                            setShowAdminAccountForm(true);
+                          }
+                        }}
+                        className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-xl transition-all flex items-center gap-2 border-0 cursor-pointer"
+                      >
+                        {showAdminAccountForm ? (editingAdminId ? 'Batal Edit' : 'Tutup Form') : '+ Tambah Admin Baru'}
+                      </button>
+                    </div>
+
+                    {showAdminAccountForm && (
+                      <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-100 mb-6 animate-fadeIn">
+                        <form onSubmit={(e) => {
+                          e.preventDefault();
+                          if(!newAdminName || !newAdminUser || !newAdminPass) return;
+                          
+                          if (editingAdminId) {
+                            setAdminAccounts(adminAccounts.map(a => 
+                              a.id === editingAdminId 
+                                ? { ...a, name: newAdminName, username: newAdminUser, password: newAdminPass, accessTabs: newAdminAccess }
+                                : a
+                            ));
+                          } else {
+                            const newAdmin: AdminAccount = {
+                              id: Date.now().toString(),
+                              name: newAdminName,
+                              username: newAdminUser,
+                              password: newAdminPass,
+                              accessTabs: newAdminAccess
+                            };
+                            setAdminAccounts([...adminAccounts, newAdmin]);
+                          }
+                          setNewAdminName(""); setNewAdminUser(""); setNewAdminPass(""); setNewAdminAccess([]);
+                          setEditingAdminId(null);
+                          setShowAdminAccountForm(false);
+                        }}>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                            <div>
+                               <label className="block text-[11px] font-bold text-slate-600 mb-1.5">Nama Admin</label>
+                               <input type="text" required value={newAdminName} onChange={e=>setNewAdminName(e.target.value)} placeholder="Contoh: Admin 1" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none" />
+                            </div>
+                            <div>
+                               <label className="block text-[11px] font-bold text-slate-600 mb-1.5">Username Login</label>
+                               <input type="text" required value={newAdminUser} onChange={e=>setNewAdminUser(e.target.value)} placeholder="admin_spv" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none" />
+                            </div>
+                            <div>
+                               <label className="block text-[11px] font-bold text-slate-600 mb-1.5">Password</label>
+                               <input type="text" required value={newAdminPass} onChange={e=>setNewAdminPass(e.target.value)} placeholder="Katasandi123" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none" />
+                            </div>
+                          </div>
+                          
+                          <div className="mb-5">
+                            <label className="block text-[11px] font-bold text-slate-600 mb-2">Pilih Hak Akses Halaman (Centang fitur yang diperbolehkan):</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                              {[
+                                { id: "dashboard_utama", label: "Dashboard Utama" },
+                                { id: "absensi", label: "Calender Kerja Host" },
+                                { id: "rekap_gaji", label: "Absen & Payroll" },
+                                { id: "database", label: "Database Absen" },
+                                { id: "credentials", label: "Kredensial Host" },
+                                { id: "data_brand", label: "Data Brand" },
+                                { id: "reporting_brand", label: "Reporting Brand (Upload)" },
+                                { id: "invoice", label: "Invoice & Berkas" },
+                                { id: "leads", label: "Leads/Calon Client" },
+                                { id: "copilot", label: "Asisten AI Copilot" },
+                                { id: "settings", label: "Platform & Shift" },
+                                { id: "sheets", label: "Spreadsheet Sync" }
+                              ].map(tab => (
+                                <label key={tab.id} className="flex items-center gap-2 p-2.5 bg-white border border-slate-100 rounded-lg cursor-pointer hover:border-indigo-300 transition-colors">
+                                   <input 
+                                     type="checkbox" 
+                                     checked={newAdminAccess.includes(tab.id)}
+                                     onChange={(e) => {
+                                        if (e.target.checked) setNewAdminAccess([...newAdminAccess, tab.id]);
+                                        else setNewAdminAccess(newAdminAccess.filter(id => id !== tab.id));
+                                     }}
+                                     className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                   />
+                                   <span className="text-[11px] font-semibold text-slate-700">{tab.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-end">
+                             <button type="submit" className="px-5 py-2.5 bg-indigo-600 text-white font-bold text-xs rounded-lg hover:bg-indigo-700 transition-all border-0 shadow-sm cursor-pointer">
+                               {editingAdminId ? 'Perbarui Akun Admin' : 'Simpan Akun Admin'}
+                             </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+                    
+                    {adminAccounts.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {adminAccounts.map(ad => (
+                          <div key={ad.id} className="bg-white border text-left border-slate-200 rounded-xl p-5 shadow-sm relative">
+                            <div className="absolute top-4 right-4 flex items-center gap-1">
+                              <button
+                                onClick={() => {
+                                  setEditingAdminId(ad.id);
+                                  setNewAdminName(ad.name);
+                                  setNewAdminUser(ad.username);
+                                  setNewAdminPass(ad.password);
+                                  setNewAdminAccess(ad.accessTabs);
+                                  setShowAdminAccountForm(true);
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer transition-colors bg-transparent border-0"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                   if(window.confirm("Hapus akun admin ini?")) {
+                                      setAdminAccounts(adminAccounts.filter(a => a.id !== ad.id));
+                                   }
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer transition-colors bg-transparent border-0"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                            
+                            <h5 className="text-sm font-black text-slate-800 mb-1">{ad.name}</h5>
+                            <p className="text-xs font-semibold font-mono text-indigo-600 mb-3">@{ad.username}</p>
+                            
+                            <div className="text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Akses yang diberikan ({ad.accessTabs.length}):</div>
+                            <div className="flex flex-wrap gap-1.5">
+                               {ad.accessTabs.length === 0 ? (
+                                  <span className="text-[10px] text-red-500 bg-red-50 px-2 py-0.5 rounded font-medium">Tidak ada akses</span>
+                               ) : (
+                                  ad.accessTabs.map(tab => (
+                                    <span key={tab} className="text-[9px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-semibold">
+                                      {tab.replace(/_/g, ' ')}
+                                    </span>
+                                  ))
+                               )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-slate-400 text-xs font-semibold bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                         Belum ada akun admin tambahan.
+                      </div>
+                    )}
+                  </div>
+
                 </div>
               </div>
             )}
