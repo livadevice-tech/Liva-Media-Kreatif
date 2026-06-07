@@ -114,7 +114,8 @@ import { syncToFirestore } from "./firestoreSync";
 
 const getAvatarUrl = (name: string) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Host")}&background=f3e8ff&color=7e22ce&bold=true`;
 
-export function LivaLogo({ className = "h-11" }: { className?: string }) {
+export function LivaLogo({ className = "h-11", url }: { className?: string, url?: string }) {
+  if (url) return <img src={url} className={`object-contain ${className}`} alt="Liva Agency Logo" />;
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <svg
@@ -434,6 +435,18 @@ export default function App() {
       return next;
     });
   }, []);
+
+  useEffect(() => {
+    if (agencyLogoUrl) {
+      let link = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.href = agencyLogoUrl;
+    }
+  }, [agencyLogoUrl]);
 
   const [brands, _setBrands] = useState<string[]>(() => {
     const saved = localStorage.getItem("mcn_brands");
@@ -3109,7 +3122,7 @@ export default function App() {
   };
 
   if (showLandingPage) {
-    return <LandingPage onEnterApp={() => setShowLandingPage(false)} />;
+    return <LandingPage onEnterApp={() => setShowLandingPage(false)} agencyLogoUrl={agencyLogoUrl} />;
   }
 
   return (
@@ -3154,7 +3167,7 @@ export default function App() {
             /* BRAND LOGIN PAGE - COMPLETELY SEPARATED */
             <div className="bg-white p-8 rounded-3xl border border-indigo-150 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
               <div className="text-center mb-6">
-                <LivaLogo className="h-10 mx-auto mb-4" />
+                <LivaLogo className="" url={agencyLogoUrl} />
                 <span className="bg-indigo-50 border border-indigo-100 text-[#5642f5] font-black text-[9px] tracking-wider uppercase px-3 py-1 rounded-full">
                   Portal Partner Brand & Klien
                 </span>
@@ -3243,7 +3256,7 @@ export default function App() {
             /* HOST & ADMIN LOGIN PORTAL - COMPLETELY SEPARATED FROM BRAND */
             <div className="bg-white p-8 rounded-3xl border border-purple-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
               <div className="text-center mb-4">
-                <LivaLogo className="h-10 mx-auto mb-4" />
+                <LivaLogo className="" url={agencyLogoUrl} />
                 <h2 className="text-[16px] font-black text-purple-950">
                     {activeRole === "host" ? "Login Streamer (Host)" : "Login Master Admin"}
                 </h2>
@@ -4205,7 +4218,7 @@ export default function App() {
                         Keluar Akses (Logout)
                     </button>
                     <p className="text-center text-[9px] text-[#4c3e6b]/60 mt-3 font-semibold">
-                        Sistem manajemen kehadiran aman <br/> Liva Agency 2026.
+                        Sistem manajemen kehadiran aman <br/> {agencyLogoUrl ? "Agency Management 2026." : "Liva Agency 2026."}
                     </p>
                 </div>
             </div>
@@ -12228,7 +12241,7 @@ export default function App() {
             <span className="font-bold font-mono text-purple-700">INTELLIGENCE PLATFORM DEPLOYED (UTC LOCALTIME)</span>
           </div>
           <div>
-            <span className="font-medium">© 2026 Liva Agency. Dikembangkan secara khusus untuk manajemen kehadiran & payroll.</span>
+            {agencyLogoUrl ? <img src={agencyLogoUrl} className="h-6 object-contain grayscale opacity-50" /> : <span className="font-medium">© 2026 Liva Agency.</span>} <span className="font-medium">Dikembangkan secara khusus untuk manajemen kehadiran & payroll.</span>
           </div>
         </footer>
       )}

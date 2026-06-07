@@ -40,7 +40,7 @@ const CountUp = ({ end, duration = 2000, prefix = "", suffix = "", isCurrency = 
   return <span>{prefix}{formatNumber(count)}{suffix}</span>;
 }
 
-export default function LandingPage() {
+export default function LandingPage({ agencyLogoUrl, onEnterApp }: { agencyLogoUrl?: string, onEnterApp?: () => void }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentPortfolioSlide, setCurrentPortfolioSlide] = useState(0);
   const [currentPhoneSlide, setCurrentPhoneSlide] = useState(0);
@@ -261,11 +261,15 @@ export default function LandingPage() {
       <nav className="w-full bg-white z-50 sticky top-0 border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-6 md:px-12 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-violet-600 rounded-lg flex items-center justify-center shadow-md">
-              <Video className="w-5 h-5 text-white" />
-            </div>
+            {agencyLogoUrl ? (
+              <img src={agencyLogoUrl} className="w-9 h-9 object-contain" alt="Liva Agency Logo" />
+            ) : (
+              <div className="w-9 h-9 bg-violet-600 rounded-lg flex items-center justify-center shadow-md">
+                <Video className="w-5 h-5 text-white" />
+              </div>
+            )}
             <span className="text-2xl font-black tracking-tight text-slate-900">
-              Liva Agency
+              {agencyLogoUrl ? null : 'Liva Agency'}
             </span>
           </div>
           
@@ -1297,10 +1301,16 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6 text-[13px] text-slate-500 font-medium">
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2">
-                <Video className="w-5 h-5 text-violet-500" />
-                <span className="text-lg font-black text-white tracking-tight">LIVA AGENCY</span>
+                {agencyLogoUrl ? (
+                  <img src={agencyLogoUrl} className="object-contain h-6 grayscale opacity-70" alt="Liva Agency Logo" />
+                ) : (
+                  <>
+                    <Video className="w-5 h-5 text-violet-500" />
+                    <span className="text-lg font-black text-white tracking-tight">LIVA AGENCY</span>
+                  </>
+                )}
              </div>
-             <span className="ml-4">Liva Agency • All rights reserved • ©2026</span>
+             <span className="ml-4">All rights reserved • ©2026</span>
           </div>
           <div className="flex items-center gap-6">
              <a href="#" className="hover:text-slate-300 transition-colors">Privacy policy</a>
