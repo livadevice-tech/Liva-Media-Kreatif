@@ -559,6 +559,9 @@ export default function App() {
   
   useEffect(() => {
     let unsubs: any[] = [];
+    unsubs.push(onSnapshot(collection(db, "admin_accounts"), (snap) => {
+      _setAdminAccounts(snap.docs.map(d => d.data() as AdminAccount));
+    }, (err) => console.error("Firestore admin_accounts err:", err)));
     unsubs.push(onSnapshot(collection(db, "hosts"), (snap) => {
       const data = snap.docs.map(d => d.data() as HostEmployee);
       _setHosts(data);
@@ -861,13 +864,27 @@ export default function App() {
     localStorage.setItem("mcn_admin_credentials", JSON.stringify(adminCredentials));
   }, [adminCredentials]);
 
-  const [adminAccounts, setAdminAccounts] = useState<AdminAccount[]>(() => {
-    try { return JSON.parse(localStorage.getItem("mcn_admin_accounts") || "[]"); } catch { return []; }
-  });
+  const [adminAccounts, _setAdminAccounts] = useState<AdminAccount[]>([]);
+  const setAdminAccounts = useCallback((action: any) => {
+    _setAdminAccounts(prev => {
+      const next = typeof action === "function" ? action(prev) : action;
+      syncToFirestore("admin_accounts", prev, next);
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
-    localStorage.setItem("mcn_admin_accounts", JSON.stringify(adminAccounts));
-    // Optionally sync to Firestore if needed, but keeping it local/simple for admin
-  }, [adminAccounts]);
+    try { 
+      // Seed missing firestore admin accounts from localstorage
+      const local = JSON.parse(localStorage.getItem("mcn_admin_accounts") || "[]");
+      if (local && local.length > 0) {
+         if (adminAccounts.length === 0) {
+            syncToFirestore("admin_accounts", [], local);
+            localStorage.removeItem("mcn_admin_accounts"); // clear after seeding
+         }
+      }
+    } catch {}
+  }, []);
 
   const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(() => {
     return localStorage.getItem("mcn_logged_in_admin_id") || null;
