@@ -114,6 +114,14 @@ import { syncToFirestore } from "./firestoreSync";
 
 const getAvatarUrl = (name: string) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Host")}&background=f3e8ff&color=7e22ce&bold=true`;
 
+const isPlatformMatch = (lp: string, fp: string) => {
+  if (!fp || fp === "Semua Platform") return true;
+  if (!lp) return false;
+  const val1 = String(lp).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const val2 = String(fp).toLowerCase().replace(/[^a-z0-9]/g, '');
+  return val1 === val2 || val1.includes(val2) || val2.includes(val1);
+};
+
 export function LivaLogo({ className = "h-11", url }: { className?: string, url?: string }) {
   if (url) return <img src={url} className={`object-contain ${className}`} alt="Liva Agency Logo" />;
   return (
@@ -2647,7 +2655,7 @@ export default function App() {
       const dbSearchLower = (dbSearch || "").toLowerCase();
       const matchSearch = (item.hostName || "").toLowerCase().includes(dbSearchLower) || 
                           (item.employeeId && item.employeeId.toLowerCase().includes(dbSearchLower));
-      const matchPlatform = dbPlatformFilter === "Semua Platform" || item.platform === dbPlatformFilter;
+      const matchPlatform = isPlatformMatch(item.platform, dbPlatformFilter);
       const matchBrand = dbBrandFilter === "Semua Brand" || item.brandHandled === dbBrandFilter;
       const matchStatus = dbStatusFilter === "All" || item.status === dbStatusFilter;
       
@@ -4305,7 +4313,7 @@ export default function App() {
         // Filter the performance logs based on client settings
         const filteredLogs = brandPerformanceLogs.filter(log => {
           if (log.brandId !== loggedInClientBrandId) return false;
-          if (clientPlatformFilter && log.platform !== clientPlatformFilter) return false;
+          if (clientPlatformFilter && !isPlatformMatch(log.platform, clientPlatformFilter)) return false;
           if (log.date) {
             if (clientDateFilterType === "month") {
               const limitDate = new Date();
@@ -4441,7 +4449,7 @@ export default function App() {
                              if (!matchTitle && !matchDate && !matchPlatformStr) return false;
                            }
                            if (operatorPlatformFilter) {
-                             if (log.platform !== operatorPlatformFilter) return false;
+                             if (!isPlatformMatch(log.platform, operatorPlatformFilter)) return false;
                            }
                            return true;
                          });
@@ -9833,7 +9841,7 @@ export default function App() {
                              if (!matchTitle && !matchDate && !matchPlatformStr) return false;
                            }
                            if (operatorPlatformFilter) {
-                             if (log.platform !== operatorPlatformFilter) return false;
+                             if (!isPlatformMatch(log.platform, operatorPlatformFilter)) return false;
                            }
                            return true;
                          });
