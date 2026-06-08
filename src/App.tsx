@@ -2098,12 +2098,22 @@ export default function App() {
   });
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
-  const [scheduleActionMonth, setScheduleActionMonth] = useState(() => new Date().getMonth());
-  const [scheduleActionYear, setScheduleActionYear] = useState(() => new Date().getFullYear());
+  const [scheduleActionStartDate, setScheduleActionStartDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [scheduleActionEndDate, setScheduleActionEndDate] = useState(() => {
+    const d = new Date();
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+  });
 
   useEffect(() => {
-    setScheduleActionMonth(calendarMonth);
-    setScheduleActionYear(calendarYear);
+    const month = calendarMonth;
+    const year = calendarYear;
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    setScheduleActionStartDate(`${year}-${String(month + 1).padStart(2, '0')}-01`);
+    setScheduleActionEndDate(`${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`);
   }, [calendarMonth, calendarYear]);
   const [hostCalendarMonth, setHostCalendarMonth] = useState(() => new Date().getMonth());
   const [hostCalendarYear, setHostCalendarYear] = useState(() => new Date().getFullYear());
@@ -5719,45 +5729,44 @@ export default function App() {
                           {/* Periode Actions Selector */}
                           <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/60 border border-slate-200/50 rounded-xl px-2.5 py-1 transition-all">
                             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider whitespace-nowrap">Target:</span>
-                            <select
-                              value={scheduleActionMonth}
-                              onChange={(e) => setScheduleActionMonth(parseInt(e.target.value))}
+                            <input
+                              type="date"
+                              value={scheduleActionStartDate}
+                              onChange={(e) => setScheduleActionStartDate(e.target.value)}
                               className="px-1.5 py-0.5 bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none transition-all"
-                            >
-                              {['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map((m, idx) => (
-                                <option key={idx} value={idx}>{m}</option>
-                              ))}
-                            </select>
-                            <span className="text-slate-300">/</span>
-                            <select
-                              value={scheduleActionYear}
-                              onChange={(e) => setScheduleActionYear(parseInt(e.target.value))}
+                            />
+                            <span className="text-slate-300">s/d</span>
+                            <input
+                              type="date"
+                              value={scheduleActionEndDate}
+                              onChange={(e) => setScheduleActionEndDate(e.target.value)}
                               className="px-1.5 py-0.5 bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none transition-all"
-                            >
-                              {[2025, 2026, 2027, 2028].map(y => (
-                                <option key={y} value={y}>{y}</option>
-                              ))}
-                            </select>
+                            />
                           </div>
 
                           <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
                           <button 
                             type="button"
                             onClick={() => {
-                              
-                               requestConfirm("Konfirmasi Auto Generate", `Auto Generate akan membuat jadwal harian untuk seluruh sesi di bulan ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][scheduleActionMonth]} ${scheduleActionYear} (dan menghapus jadwal lama yang berpotongan). Lanjutkan?`, () => {
-                               const year = scheduleActionYear;
-                               const month = scheduleActionMonth; // 0-indexed
+                               const startParts = scheduleActionStartDate.split("-");
+                               const endParts = scheduleActionEndDate.split("-");
+                               const startObj = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
+                               const endObj = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]));
+                               if (startObj > endObj) {
+                                  addNotification("Error", "Tanggal mulai tidak boleh lebih besar dari tanggal akhir.", "danger", "absensi");
+                                  return;
+                               }
                                
-                               const daysInMonth = new Date(year, month + 1, 0).getDate();
-                               const newSchedules = [];
+                               requestConfirm("Konfirmasi Auto Generate", `Auto Generate akan membuat jadwal harian untuk seluruh sesi dari tanggal ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} (dan menghapus jadwal lama yang berpotongan). Lanjutkan?`, () => {
                                
-                               for (let day = 1; day <= daysInMonth; day++) {
-                                 const d = new Date(year, month, day);
+                               const newSchedules: any[] = [];
+                               const dateWalker = new Date(startObj);
+                               
+                               while(dateWalker <= endObj) {
                                  // format YYYY-MM-DD
-                                 const yyyy = d.getFullYear();
-                                 const mm = String(d.getMonth() + 1).padStart(2, '0');
-                                 const dd = String(d.getDate()).padStart(2, '0');
+                                 const yyyy = dateWalker.getFullYear();
+                                 const mm = String(dateWalker.getMonth() + 1).padStart(2, '0');
+                                 const dd = String(dateWalker.getDate()).padStart(2, '0');
                                  const dateStr = `${yyyy}-${mm}-${dd}`;
                                  
                                  clientBrands.forEach(brand => {
@@ -5788,20 +5797,19 @@ export default function App() {
                                      });
                                    }
                                  });
+                                 dateWalker.setDate(dateWalker.getDate() + 1);
                                }
                                
-                               // Replace existing schedules for this month with the newly generated ones
+                               // Replace existing schedules for this period with the newly generated ones
                                setSchedules(prev => {
                                  const filtered = prev.filter(s => {
                                    if (!s.date) return true;
-                                   const [sYear, sMonth] = s.date.split("-");
-                                   return parseInt(sYear) !== year || parseInt(sMonth) !== (month + 1);
+                                   return s.date < scheduleActionStartDate || s.date > scheduleActionEndDate;
                                  });
                                  return [...filtered, ...newSchedules];
                                });
                                
-                               const mNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-                               addNotification("Jadwal Berhasil Dibuat", `Auto Generate selesai memproduksi ${newSchedules.length} sesi untuk bulan ${mNames[scheduleActionMonth]} ${scheduleActionYear}.`, "success", "absensi");
+                               addNotification("Jadwal Berhasil Dibuat", `Auto Generate selesai memproduksi ${newSchedules.length} sesi dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}.`, "success", "absensi");
                                }, "info");
 
                             }}
@@ -5812,17 +5820,14 @@ export default function App() {
                             type="button"
                             onClick={() => {
                                requestConfirm(
-                                 `Reset Jadwal Bulan ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][scheduleActionMonth]} ${scheduleActionYear}`, 
-                                 `Apakah Anda yakin ingin menghapus SELURUH jadwal untuk bulan ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][scheduleActionMonth]} ${scheduleActionYear}? Tindakan ini tidak dapat dibatalkan.`, 
+                                 `Reset Jadwal (${scheduleActionStartDate} s.d. ${scheduleActionEndDate})`, 
+                                 `Apakah Anda yakin ingin menghapus SELURUH jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}? Tindakan ini tidak dapat dibatalkan.`, 
                                  () => {
-                                    const year = scheduleActionYear;
-                                    const month = scheduleActionMonth + 1; // 1-indexed
                                     setSchedules(prev => prev.filter(s => {
                                         if (!s.date) return true;
-                                        const [sYear, sMonth] = s.date.split("-");
-                                        return parseInt(sYear) !== year || parseInt(sMonth) !== month;
+                                        return s.date < scheduleActionStartDate || s.date > scheduleActionEndDate;
                                     }));
-                                    addNotification("Jadwal Direset", `Seluruh jadwal bulan ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][scheduleActionMonth]} ${scheduleActionYear} berhasil dihapus.`, "danger", "absensi");
+                                    addNotification("Jadwal Direset", `Seluruh jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} berhasil dihapus.`, "danger", "absensi");
                                  }, 
                                  "danger"
                                );
