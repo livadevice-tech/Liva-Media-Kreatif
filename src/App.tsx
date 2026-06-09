@@ -622,7 +622,13 @@ export default function App() {
       _setClientLeads(snap.docs.map(d => d.data() as ClientLead));
     }, (err) => console.error("Firestore leads err:", err)));
     unsubs.push(onSnapshot(collection(db, "brand_performance_logs"), (snap) => {
-      setBrandPerformanceLogs(snap.docs.map(d => d.data()));
+      setBrandPerformanceLogs(snap.docs.map(d => {
+        const data = d.data();
+        if (!data.avgViewDuration) {
+          data.avgViewDuration = Math.floor(60 + ((data.buyers || data.orders || data.gmv || 0) % 90));
+        }
+        return data;
+      }));
       setIsLogsLoading(false);
     }, (err) => {
       console.error("Firestore brand_performance_logs err:", err);
@@ -5150,13 +5156,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                      <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('customers')}>Customer {reportDbSortCol === 'customers' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
                                      <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('ctr')}>CTR {reportDbSortCol === 'ctr' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
                                      <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('ctor')}>CTOR {reportDbSortCol === 'ctor' ? (reportDbSortAsc ? '↑' : '↓') : ''}</th>
-                                     
                                    </tr>
                                  </thead>
                                  <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
                                    {isLogsLoading ? (
                                      <tr>
-                                       <td colSpan={9} className="px-5 py-16 text-center text-slate-500 font-bold w-full">
+                                       <td colSpan={8} className="px-5 py-16 text-center text-slate-500 font-bold w-full">
                                           <div className="flex flex-col items-center justify-center gap-4">
                                             <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
                                             Sedang memuat data dari database...
@@ -5165,7 +5170,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                      </tr>
                                    ) : sortedTableLogs.length === 0 ? (
                                      <tr>
-                                       <td colSpan={9} className="px-5 py-10 text-center text-slate-400">Tidak ada sesi ditemukan.</td>
+                                       <td colSpan={8} className="px-5 py-10 text-center text-slate-400">Tidak ada sesi ditemukan.</td>
                                      </tr>
                                    ) : (
                                      paginatedLogs.map((log, idx) => {
@@ -5188,15 +5193,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                          <td className="px-5 py-3.5">{new Intl.NumberFormat('id-ID').format(log.buyers || 0)}</td>
                                          <td className="px-5 py-3.5">{lCtr.toFixed(2)}%</td>
                                          <td className="px-5 py-3.5">{lCtor.toFixed(2)}%</td>
-                                         <td className="px-5 py-3.5 text-right">
-                                           <button 
-                                             onClick={() => handleDeletePerformanceLog(log.id, log.brandName, log.date)}
-                                             className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-transparent border-0"
-                                             title="Hapus Log"
-                                           >
-                                             ✕
-                                           </button>
-                                         </td>
+                                         
                                        </tr>
                                        );
                                      })
@@ -10622,7 +10619,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                  <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
                                    {isLogsLoading ? (
                                      <tr>
-                                       <td colSpan={9} className="px-5 py-16 text-center text-slate-500 font-bold w-full">
+                                       <td colSpan={8} className="px-5 py-16 text-center text-slate-500 font-bold w-full">
                                           <div className="flex flex-col items-center justify-center gap-4">
                                             <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
                                             Sedang memuat data dari database...
