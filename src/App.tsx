@@ -85,7 +85,9 @@ import {
   MoreHorizontal,
   Star,
   UserPlus,
-  ArrowUpDown
+  ArrowUpDown,
+  TrendingUp,
+  TrendingDown
 } from "lucide-react";
 
 import { HostEmployee, AttendanceLog, ChatMessage, StudioItem, ClientBrand, ClientReporting, ClientLead, AdminAccount } from "./types";
@@ -121,6 +123,39 @@ const isPlatformMatch = (lp: string, fp: string) => {
   const val2 = String(fp).toLowerCase().replace(/[^a-z0-9]/g, '');
   return val1 === val2 || val1.includes(val2) || val2.includes(val1);
 };
+
+const normalizeDateYMD = (d: string) => {
+  if (!d) return "";
+  let norm = d;
+  if (d.indexOf('/') !== -1 || (d.indexOf('-') !== -1 && d.split('-')[0].length <= 2)) {
+    const p = d.split(/[\/\-]/);
+    if (p.length === 3) {
+      const y = p[2].length === 2 ? `20${p[2]}` : p[2];
+      const m = String(p[1]).padStart(2, '0');
+      const day = String(p[0]).padStart(2, '0');
+      if (p[0].length === 4) {
+         norm = `${p[0]}-${m}-${p[2].padStart(2, '0')}`;
+      } else {
+         norm = `${y}-${m}-${day}`;
+      }
+    }
+  }
+  return norm;
+};
+
+const PercentBadge = ({ cur, prev }: { cur: number, prev: number }) => {
+  if (prev == null || isNaN(prev) || prev === 0) return null;
+  const diff = cur - prev;
+  const pct = Math.abs((diff / prev) * 100);
+  const isUp = diff >= 0;
+  return (
+    <div className={`flex items-center gap-1 text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap ${isUp ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
+      {isUp ? <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+      {pct.toFixed(0)}% {isUp ? 'Inc' : 'Dec'}
+    </div>
+  );
+};
+
 
 export function LivaLogo({ className = "h-11", url }: { className?: string, url?: string }) {
   if (url) return <img src={url} className={`object-contain ${className}`} alt="Liva Agency Logo" />;
@@ -753,11 +788,11 @@ export default function App() {
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
   const [brandUploadHistory, setBrandUploadHistory] = useState<any[]>([]);
   const [uploadedFileName, setUploadedFileName] = useState("");
-  const [clientDateFilterType, setClientDateFilterType] = useState<"all" | "month" | "weekly" | "custom">("all");
+  const [clientDateFilterType, setClientDateFilterType] = useState<"latest" | "all" | "month" | "weekly" | "custom">("latest");
   const [clientCustomStartDate, setClientCustomStartDate] = useState("");
   const [clientCustomEndDate, setClientCustomEndDate] = useState("");
   const [clientPlatformFilter, setClientPlatformFilter] = useState("");
-  const [operatorDateFilterType, setOperatorDateFilterType] = useState<"all" | "month" | "custom">("all");
+  const [operatorDateFilterType, setOperatorDateFilterType] = useState<"latest" | "all" | "month" | "custom">("latest");
   const [operatorPlatformFilter, setOperatorPlatformFilter] = useState("");
   const [operatorCustomStartDate, setOperatorCustomStartDate] = useState("");
   const [operatorCustomEndDate, setOperatorCustomEndDate] = useState("");
@@ -1950,6 +1985,7 @@ export default function App() {
               likes: Number(row.likes || 0),
               shares: Number(row.shares || 0),
               comments: Number(row.comments || 0),
+              avgViewDuration: Number(row.avgViewDuration || 0),
               hasFunnelInFile: !!row.hasFunnelInFile,
               uploadedAt: new Date().toISOString()
             };
@@ -2951,7 +2987,11 @@ export default function App() {
     {
       id: "welcome",
       role: "model",
-      content: "👋 Halo! Saya **AI Asisten Operasional Liva Agency**. Saya siap membantu Anda menganalisis performa kehadiran para Live Host, mencatat pola keterlambatan, dan memandu rekapitulasi gaji bulanan mereka berdasarkan data absensi real-time. Silakan tanya pertanyaan seperti:\n\n- *Siapa saja host yang paling banyak datang tepat waktu?*\n- *Adakah host yang memiliki masalah keterlambatan atau alpa?*\n- *Berikan ringkasan performa kehadiran tim minggu ini.*",
+      content: `👋 Halo! Saya **AI Asisten Operasional Liva Agency**. Saya siap membantu Anda menganalisis performa kehadiran para Live Host, mencatat pola keterlambatan, dan memandu rekapitulasi gaji bulanan mereka berdasarkan data absensi real-time. Silakan tanya pertanyaan seperti:
+
+- *Siapa saja host yang paling banyak datang tepat waktu?*
+- *Adakah host yang memiliki masalah keterlambatan atau alpa?*
+- *Berikan ringkasan performa kehadiran tim minggu ini.*`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -3022,12 +3062,28 @@ export default function App() {
       const scheduled = totalSesiHadir + totalAlpa;
       const onTimeRate = totalSesiHadir > 0 ? Math.round((totalTepatWaktu / totalSesiHadir) * 100) : 0;
       
-      return `📊 **Ringkasan Performa Kehadiran Tim Minggu Ini:**\n\n- **Total Sesi Dijalankan**: ${totalSesiHadir} sesi\n- **Tepat Waktu**: ${totalTepatWaktu} sesi\n- **Terlambat**: ${totalTerlambat} sesi\n- **Alpa / Bolos**: ${totalAlpa} sesi\n- **Tingkat On-Time (Punctuality)**: **${onTimeRate}%**\n\n✨ **Insight AI**: ${onTimeRate > 80 ? 'Tingkat kedisiplinan tim sangat baik! Pertahankan insentif tepat waktu untuk menjaga konsistensi.' : 'Tingkat keterlambatan perlu diperhatikan. Coba evaluasi beban shift atau terapkan penalti yang lebih tegas.'}`;
+      return `📊 **Ringkasan Performa Kehadiran Tim Minggu Ini:**
+
+- **Total Sesi Dijalankan**: ${totalSesiHadir} sesi
+- **Tepat Waktu**: ${totalTepatWaktu} sesi
+- **Terlambat**: ${totalTerlambat} sesi
+- **Alpa / Bolos**: ${totalAlpa} sesi
+- **Tingkat On-Time (Punctuality)**: **${onTimeRate}%**
+
+✨ **Insight AI**: ${onTimeRate > 80 ? 'Tingkat kedisiplinan tim sangat baik! Pertahankan insentif tepat waktu untuk menjaga konsistensi.' : 'Tingkat keterlambatan perlu diperhatikan. Coba evaluasi beban shift atau terapkan penalti yang lebih tegas.'}`;
     }
     
     if (lowercase.includes("gaji") || lowercase.includes("hitung") || lowercase.includes("rekap")) {
       const topEarner = [...reports].sort((a,b) => b.netSalary - a.netSalary)[0];
-      return `📊 **Rekapitulasi Gaji Host (Mode Analisis Offline):**\n\nBerdasarkan parameter operasional yang diatur:\n\n- **Host Terajin / Pendapatan Tertinggi**: **${topEarner?.name}** dengan estimasi gaji bersih **${formatIDR(topEarner?.netSalary || 0)}** (${topEarner?.totalHadir} kali hadir).\n- **Total Host Aktif**: ${reports.length} streamer.\n- Syarat bonus insentif tepat waktu sebesar **${formatIDR(salarySettings.timelyIncentive)}** sangat membantu meningkatkan kerajinan host.\n\nAnda dapat mengunduh berkas laporan dalam menu Operator Dashboard secara langsung!`;
+      return `📊 **Rekapitulasi Gaji Host (Mode Analisis Offline):**
+
+Berdasarkan parameter operasional yang diatur:
+
+- **Host Terajin / Pendapatan Tertinggi**: **${topEarner?.name}** dengan estimasi gaji bersih **${formatIDR(topEarner?.netSalary || 0)}** (${topEarner?.totalHadir} kali hadir).
+- **Total Host Aktif**: ${reports.length} streamer.
+- Syarat bonus insentif tepat waktu sebesar **${formatIDR(salarySettings.timelyIncentive)}** sangat membantu meningkatkan kerajinan host.
+
+Anda dapat mengunduh berkas laporan dalam menu Operator Dashboard secara langsung!`;
     }
     
     if (lowercase.includes("terlambat") || lowercase.includes("alpa") || lowercase.includes("masalah") || lowercase.includes("absen")) {
@@ -3039,17 +3095,35 @@ export default function App() {
         listDetails = "Semua host hadir dengan kedisiplinan 100% tepat waktu!";
       }
 
-      return `⚠️ **Laporan Anomali Kehadiran & Kedisiplinan:**\n\nBerikut daftar host yang membutuhkan perhatian khusus:\n\n${listDetails}\n\n*Rekomendasi tindakan*: Kurangi shift pagi bagi host yang sering terlambat atau hubungi langsung untuk restrukturisasi jam tayang. Potongan gaji otomatis ${formatIDR(salarySettings.latePenalty)} telah diaplikasikan.`;
+      return `⚠️ **Laporan Anomali Kehadiran & Kedisiplinan:**
+
+Berikut daftar host yang membutuhkan perhatian khusus:
+
+${listDetails}
+
+*Rekomendasi tindakan*: Kurangi shift pagi bagi host yang sering terlambat atau hubungi langsung untuk restrukturisasi jam tayang. Potongan gaji otomatis ${formatIDR(salarySettings.latePenalty)} telah diaplikasikan.`;
     }
 
     if (lowercase.includes("amanda") || lowercase.includes("putri")) {
       const amanda = reports.find(r => r.name.toLowerCase().includes("amanda"));
       if (amanda) {
-        return `👱‍♀️ **Analisis Performa Host: Amanda Putri**\n\n- **Tepat Waktu**: ${amanda.countTepatWaktu} kali\n- **Terlambat**: ${amanda.countTerlambat} kali\n- **Alpa / Tidak Hadir**: ${amanda.countAlpa} kali\n- **Estimasi Gaji Bersih**: \`${formatIDR(amanda.netSalary)}\`\n\nAmanda sangat konsisten dalam live platform TikTok Live dengan brand kecantikan Wardah & Somethinc. Performa kehadirannya luar biasa di angka **${Math.round((amanda.totalHadir / (amanda.totalHadir + amanda.countAlpa)) * 100)}%**!`;
+        return `👱‍♀️ **Analisis Performa Host: Amanda Putri**
+
+- **Tepat Waktu**: ${amanda.countTepatWaktu} kali
+- **Terlambat**: ${amanda.countTerlambat} kali
+- **Alpa / Tidak Hadir**: ${amanda.countAlpa} kali
+- **Estimasi Gaji Bersih**: \`${formatIDR(amanda.netSalary)}\`
+
+Amanda sangat konsisten dalam live platform TikTok Live dengan brand kecantikan Wardah & Somethinc. Performa kehadirannya luar biasa di angka **${Math.round((amanda.totalHadir / (amanda.totalHadir + amanda.countAlpa)) * 100)}%**!`;
       }
     }
 
-    return `✨ Menyusul anomali data di Liva Agency, berikut adalah ringkasan absensi host kami:\n\n- Kehadiran Tepat Waktu Tim: **${agencyOverviewStats.punctualityRate}%**\n- Total log tersimpan: **${logs.length}** absensi\n\nSaya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasional** untuk mengonfigurasikan insentif yang optimal bagi para host live streaming! Ada yang ingin ditanyakan lagi?`;
+    return `✨ Menyusul anomali data di Liva Agency, berikut adalah ringkasan absensi host kami:
+
+- Kehadiran Tepat Waktu Tim: **${agencyOverviewStats.punctualityRate}%**
+- Total log tersimpan: **${logs.length}** absensi
+
+Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasional** untuk mengonfigurasikan insentif yang optimal bagi para host live streaming! Ada yang ingin ditanyakan lagi?`;
   }
 
 
@@ -4410,76 +4484,116 @@ export default function App() {
                   <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                      {(() => {
                          const filteredDb = brandPerformanceLogs.filter(log => log.brandId === loggedInClientBrandId);
-                         // Chart Data Filtered By Search & Date
-                         const tableLogs = filteredDb.filter(log => {
-                           if (log.date && operatorDateFilterType !== "all") {
-                             let logMonth = log.date.substring(0, 7); // format YYYY-MM
-                             let normalizedLogDate = log.date;
-                             
-                             // Handle DD/MM/YYYY or DD-MM-YYYY
-                             if (log.date.indexOf('/') !== -1 || (log.date.indexOf('-') !== -1 && log.date.split('-')[0].length <= 2)) {
-                               const parts = log.date.split(/[\/\-]/);
-                               if (parts.length === 3) {
-                                 const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
-                                 const m = String(parts[1]).padStart(2, '0');
-                                 const d = String(parts[0]).padStart(2, '0');
-                                 
-                                 if (parts[0].length === 4) {
-                                     normalizedLogDate = `${parts[0]}-${m}-${parts[2].padStart(2, '0')}`;
-                                     logMonth = `${parts[0]}-${m}`;
-                                 } else {
-                                     normalizedLogDate = `${y}-${m}-${d}`;
-                                     logMonth = `${y}-${m}`;
+                         let effectiveFilter = operatorDateFilterType;
+                         let targetLatestDate = "";
+                         let latestDateLabel = "";
+                         
+                         let prevStartDate = "";
+                         let prevEndDate = "";
+                         if (effectiveFilter === "latest") {
+                            const allDates = Array.from(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean))).sort();
+                            if (allDates.length > 0) {
+                               targetLatestDate = allDates[allDates.length - 1];
+                               latestDateLabel = targetLatestDate;
+                               const d = new Date(targetLatestDate);
+                               d.setDate(d.getDate() - 1);
+                               prevStartDate = prevEndDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                            } else {
+                               effectiveFilter = "all";
+                            }
+                         } else if (effectiveFilter === "month" && operatorSelectedMonth) {
+                            latestDateLabel = getIndonesianMonthLabel(operatorSelectedMonth);
+                            const partsVal = operatorSelectedMonth.split('-');
+                            const y = partsVal[0];
+                            const m = partsVal[1];
+                            let ny = parseInt(y, 10);
+                            let nm = parseInt(m, 10) - 1;
+                            if (nm <= 0) { nm = 12; ny--; }
+                            const prevMonth = `${ny}-${String(nm).padStart(2, '0')}`;
+                            prevStartDate = `${prevMonth}-01`;
+                            prevEndDate = `${prevMonth}-31`;
+                         } else if (effectiveFilter === "custom" && operatorCustomStartDate && operatorCustomEndDate) {
+                            latestDateLabel = `${operatorCustomStartDate} ke ${operatorCustomEndDate}`;
+                            const s = new Date(operatorCustomStartDate);
+                            const e = new Date(operatorCustomEndDate);
+                            const durationDays = Math.round((e.getTime() - s.getTime()) / (1000 * 3600 * 24));
+                            const pE = new Date(s);
+                            pE.setDate(pE.getDate() - 1);
+                            const pS = new Date(pE);
+                            pS.setDate(pS.getDate() - durationDays);
+                            const fYMD = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                            prevStartDate = fYMD(pS);
+                            prevEndDate = fYMD(pE);
+                         } else {
+                            latestDateLabel = "Semua Waktu";
+                         }
+                         const applyFilter = (logs, isPrevPeriod) => {
+                           return logs.filter(log => {
+                             let normalizedLogDate = normalizeDateYMD(log.date);
+                             if (effectiveFilter !== "all") {
+                               if (isPrevPeriod) {
+                                   if (effectiveFilter === "latest") {
+                                     if (normalizedLogDate !== prevStartDate) return false;
+                                   } else if (effectiveFilter === "month") {
+                                     if (normalizedLogDate.substring(0, 7) !== prevStartDate.substring(0, 7)) return false;
+                                   } else if (effectiveFilter === "custom") {
+                                     if (normalizedLogDate < prevStartDate || normalizedLogDate > prevEndDate) return false;
+                                   }
+                               } else {
+                                 if (effectiveFilter === "latest") {
+                                   if (normalizedLogDate !== targetLatestDate) return false;
+                                 } else if (effectiveFilter === "month") {
+                                   if (normalizedLogDate.substring(0, 7) !== operatorSelectedMonth) return false;
+                                 } else if (effectiveFilter === "custom") {
+                                   if (operatorCustomStartDate && normalizedLogDate < operatorCustomStartDate) return false;
+                                   if (operatorCustomEndDate && normalizedLogDate > operatorCustomEndDate) return false;
                                  }
                                }
                              }
-
-                             if (operatorDateFilterType === "month") {
-                               if (logMonth !== operatorSelectedMonth) return false;
-                             } else if (operatorDateFilterType === "custom") {
-                               if (operatorCustomStartDate && normalizedLogDate < operatorCustomStartDate) return false;
-                               if (operatorCustomEndDate && normalizedLogDate > operatorCustomEndDate) return false;
+                             if (reportDbSearchQuery.trim()) {
+                               const q = reportDbSearchQuery.toLowerCase();
+                               const matchTitle = String(log.title || "").toLowerCase().includes(q);
+                               const matchDate = String(log.date || "").toLowerCase().includes(q);
+                               const matchPlatformStr = String(log.platform || "").toLowerCase().includes(q);
+                               if (!matchTitle && !matchDate && !matchPlatformStr) return false;
                              }
-                           }
-                           if (reportDbSearchQuery.trim()) {
-                             const q = reportDbSearchQuery.toLowerCase();
-                             const matchTitle = String(log.title || "").toLowerCase().includes(q);
-                             const matchDate = String(log.date || "").toLowerCase().includes(q);
-                             const matchPlatformStr = String(log.platform || "").toLowerCase().includes(q);
-                             if (!matchTitle && !matchDate && !matchPlatformStr) return false;
-                           }
-                           if (operatorPlatformFilter) {
-                             if (!isPlatformMatch(log.platform, operatorPlatformFilter)) return false;
-                           }
-                           return true;
-                         });
-
+                             if (operatorPlatformFilter) {
+                               if (!isPlatformMatch(log.platform, operatorPlatformFilter)) return false;
+                             }
+                             return true;
+                           });
+                         };
+                         const tableLogs = applyFilter(filteredDb, false);
+                         const prevTableLogs = (effectiveFilter !== "all") ? applyFilter(filteredDb, true) : [];
                          const totalSessionsDb = tableLogs.length;
                          const totalGmvDb = tableLogs.reduce((sum, item) => sum + (item.gmv || 0), 0);
                          const totalBuyersDb = tableLogs.reduce((sum, item) => sum + (item.buyers || 0), 0);
                          const totalOrdersDb = tableLogs.reduce((sum, item) => sum + (item.orders || 0), 0);
                          const totalItemsSoldDb = tableLogs.reduce((sum, item) => sum + (item.products_sold || 0), 0);
                          const avgAovDb = totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
-
-                         // Engagement metrics
                          const totalLikesDb = tableLogs.reduce((sum, item) => sum + (item.likes || 0), 0);
                          const totalCommentsDb = tableLogs.reduce((sum, item) => sum + (item.comments || 0), 0);
                          const totalSharesDb = tableLogs.reduce((sum, item) => sum + (item.shares || 0), 0);
                          const totalClicksDb = tableLogs.reduce((sum, item) => sum + (item.clicks || 0), 0);
- 
-                         // For Funnel 
+                         const avgViewDurationDb = tableLogs.length > 0 ? tableLogs.reduce((sum, item) => sum + (item.avgViewDuration || 0), 0) / tableLogs.length : 0;
+                         const pTotalGmvDb = prevTableLogs.reduce((sum, item) => sum + (item.gmv || 0), 0);
+                         const pTotalBuyersDb = prevTableLogs.reduce((sum, item) => sum + (item.buyers || 0), 0);
+                         const pTotalOrdersDb = prevTableLogs.reduce((sum, item) => sum + (item.orders || 0), 0);
+                         const pTotalItemsSoldDb = prevTableLogs.reduce((sum, item) => sum + (item.products_sold || 0), 0);
+                         const pAvgAovDb = pTotalBuyersDb > 0 ? pTotalGmvDb / pTotalBuyersDb : 0;
+                         const pTotalLikesDb = prevTableLogs.reduce((sum, item) => sum + (item.likes || 0), 0);
+                         const pTotalCommentsDb = prevTableLogs.reduce((sum, item) => sum + (item.comments || 0), 0);
+                         const pTotalSharesDb = prevTableLogs.reduce((sum, item) => sum + (item.shares || 0), 0);
+                         const pTotalClicksDb = prevTableLogs.reduce((sum, item) => sum + (item.clicks || 0), 0);
+                         const pAvgViewDurationDb = prevTableLogs.length > 0 ? prevTableLogs.reduce((sum, item) => sum + (item.avgViewDuration || 0), 0) / prevTableLogs.length : 0;
                          const totalDbImpressions = tableLogs.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
                          const totalDbLiveVisits = tableLogs.reduce((acc, curr) => acc + (curr.liveVisits || 0), 0);
                          const totalDbProductImpressions = tableLogs.reduce((acc, curr) => acc + (curr.productImpressions || 0), 0);
                          const totalDbClicks = tableLogs.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
                          const totalDbBuyers = tableLogs.reduce((acc, curr) => acc + (curr.buyers || 0), 0);
                          const totalDbOrdersFunnel = tableLogs.reduce((acc, curr) => acc + (curr.orders || 0), 0);
-
                          const funnelCtr = totalDbProductImpressions > 0 ? ((totalDbClicks / totalDbProductImpressions) * 100) : 0;
                          const funnelCtor = totalDbClicks > 0 ? ((totalDbOrdersFunnel / totalDbClicks) * 100) : 0;
-
-                         const totalAvgViewDurationSum = tableLogs.reduce((sum, item) => sum + (item.avgViewDuration || 0), 0);
-                         const avgViewDurationDb = tableLogs.length > 0 ? totalAvgViewDurationSum / tableLogs.length : 0;
 
                          const chartDataObj = [...tableLogs].reduce((acc: any, curr: any) => {
                            let d = curr.date;
@@ -4585,9 +4699,7 @@ export default function App() {
                                <div className="relative flex gap-2 w-full sm:w-auto h-9">
                                  <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                                    {[
-                                     { id: "all", label: "Semua" },
-                                     { id: "month", label: "Bulan" },
-                                     { id: "custom", label: "Custom" }
+                                     { id: "latest", label: "Terbaru" }, { id: "all", label: "Semua" }, { id: "month", label: "Bulan" }, { id: "custom", label: "Custom" }
                                    ].map(item => (
                                       <button
                                         key={item.id}
@@ -4711,55 +4823,91 @@ export default function App() {
                              </div>
  
                               {/* Summary Cards */}
+                             <div className="mb-2">
+                                <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg mb-6">
+                                   <Calendar className="w-4 h-4 text-indigo-500" />
+                                   <span className="text-xs font-extrabold text-indigo-700 uppercase tracking-tight">Data Performance: {latestDateLabel}</span>
+                                </div>
+                             </div>
                              <div className="space-y-6 mb-6">
                                <div>
-                                 <h4 className="text-xs font-bold text-slate-800 mb-3 uppercase tracking-wider">Sale Metrics</h4>
-                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">GMV</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(totalGmvDb)}</div>
+                                 <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest">Sale Metrics</h4>
+                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">GMV</div>
+                                        <PercentBadge cur={totalGmvDb} prev={pTotalGmvDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(totalGmvDb)}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Item Sold</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalItemsSoldDb)}</div>
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Item Sold</div>
+                                        <PercentBadge cur={totalItemsSoldDb} prev={pTotalItemsSoldDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalItemsSoldDb)}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Customers</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalBuyersDb)}</div>
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Customers</div>
+                                        <PercentBadge cur={totalBuyersDb} prev={pTotalBuyersDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalBuyersDb)}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">SKU Orders</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalOrdersDb)}</div>
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">SKU Orders</div>
+                                        <PercentBadge cur={totalOrdersDb} prev={pTotalOrdersDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalOrdersDb)}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">AOV</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(avgAovDb)}</div>
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">AOV</div>
+                                        <PercentBadge cur={avgAovDb} prev={pAvgAovDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(avgAovDb)}</div>
                                     </div>
                                  </div>
                                </div>
 
                                <div>
-                                 <h4 className="text-xs font-bold text-slate-800 mb-3 uppercase tracking-wider">Engagement Metrics</h4>
-                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Like</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalLikesDb)}</div>
+                                 <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">Engagement Metrics</h4>
+                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Like</div>
+                                        <PercentBadge cur={totalLikesDb} prev={pTotalLikesDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalLikesDb)}</div>
                                     </div>
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Comment</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalCommentsDb)}</div>
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Comment</div>
+                                        <PercentBadge cur={totalCommentsDb} prev={pTotalCommentsDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalCommentsDb)}</div>
                                     </div>
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Share</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalSharesDb)}</div>
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Share</div>
+                                        <PercentBadge cur={totalSharesDb} prev={pTotalSharesDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalSharesDb)}</div>
                                     </div>
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Product Clicks</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalClicksDb)}</div>
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Product Clicks</div>
+                                        <PercentBadge cur={totalClicksDb} prev={pTotalClicksDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalClicksDb)}</div>
                                     </div>
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Avg View Time</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{Math.round(avgViewDurationDb)} <span className="text-[10px] text-slate-400 font-bold">detik</span></div>
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">AVG TIME/VIEWER</div>
+                                        <PercentBadge cur={avgViewDurationDb} prev={pAvgViewDurationDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{Math.round(avgViewDurationDb)} <span className="text-[10px] text-slate-400 font-bold">detik</span></div>
                                     </div>
                                  </div>
                                </div>
@@ -9557,10 +9705,10 @@ export default function App() {
                       </div>
 
                       {/* STATS OVERVIEW */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Perolehan GMV</p>
-                          <h3 className="text-xl sm:text-2xl font-black text-slate-800">
+                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
                             {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
                               reportingRawData.reduce((acc, curr) => acc + (curr.gmv || 0), 0)
                             )}
@@ -9568,7 +9716,7 @@ export default function App() {
                         </div>
                         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Produk Terjual</p>
-                          <h3 className="text-xl sm:text-2xl font-black text-slate-800">
+                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
                             {new Intl.NumberFormat('id-ID').format(
                               reportingRawData.reduce((acc, curr) => acc + (curr.products_sold || 0), 0)
                             )} <span className="text-xs font-bold text-slate-400 ml-1">pcs</span>
@@ -9576,7 +9724,7 @@ export default function App() {
                         </div>
                         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Pembeli</p>
-                          <h3 className="text-xl sm:text-2xl font-black text-slate-800">
+                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
                             {new Intl.NumberFormat('id-ID').format(
                               reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0)
                             )} <span className="text-xs font-bold text-slate-400 ml-1">users</span>
@@ -9584,7 +9732,7 @@ export default function App() {
                         </div>
                         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Capaian AOV Rata-rata</p>
-                          <h3 className="text-xl sm:text-2xl font-black text-slate-800">
+                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
                             {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
                               (reportingRawData.reduce((acc, curr) => acc + (curr.gmv || 0), 0)) / 
                               (reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0) || 1)
@@ -9592,8 +9740,8 @@ export default function App() {
                           </h3>
                         </div>
                         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Avg View Time</p>
-                          <h3 className="text-xl sm:text-2xl font-black text-slate-800">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">AVG TIME/VIEWER</p>
+                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
                             {Math.round(reportingRawData.length > 0 ? reportingRawData.reduce((acc, curr) => acc + (curr.avgViewDuration || 0), 0) / reportingRawData.length : 0)} <span className="text-xs font-bold text-slate-400 ml-1">detik</span>
                           </h3>
                         </div>
@@ -9802,76 +9950,116 @@ export default function App() {
                   <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                      {(() => {
                          const filteredDb = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId);
-                         // Chart Data Filtered By Search & Date
-                         const tableLogs = filteredDb.filter(log => {
-                           if (log.date && operatorDateFilterType !== "all") {
-                             let logMonth = log.date.substring(0, 7); // format YYYY-MM
-                             let normalizedLogDate = log.date;
-                             
-                             // Handle DD/MM/YYYY or DD-MM-YYYY
-                             if (log.date.indexOf('/') !== -1 || (log.date.indexOf('-') !== -1 && log.date.split('-')[0].length <= 2)) {
-                               const parts = log.date.split(/[\/\-]/);
-                               if (parts.length === 3) {
-                                 const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
-                                 const m = String(parts[1]).padStart(2, '0');
-                                 const d = String(parts[0]).padStart(2, '0');
-                                 
-                                 if (parts[0].length === 4) {
-                                     normalizedLogDate = `${parts[0]}-${m}-${parts[2].padStart(2, '0')}`;
-                                     logMonth = `${parts[0]}-${m}`;
-                                 } else {
-                                     normalizedLogDate = `${y}-${m}-${d}`;
-                                     logMonth = `${y}-${m}`;
+                         let effectiveFilter = operatorDateFilterType;
+                         let targetLatestDate = "";
+                         let latestDateLabel = "";
+                         
+                         let prevStartDate = "";
+                         let prevEndDate = "";
+                         if (effectiveFilter === "latest") {
+                            const allDates = Array.from(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean))).sort();
+                            if (allDates.length > 0) {
+                               targetLatestDate = allDates[allDates.length - 1];
+                               latestDateLabel = targetLatestDate;
+                               const d = new Date(targetLatestDate);
+                               d.setDate(d.getDate() - 1);
+                               prevStartDate = prevEndDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                            } else {
+                               effectiveFilter = "all";
+                            }
+                         } else if (effectiveFilter === "month" && operatorSelectedMonth) {
+                            latestDateLabel = getIndonesianMonthLabel(operatorSelectedMonth);
+                            const partsVal = operatorSelectedMonth.split('-');
+                            const y = partsVal[0];
+                            const m = partsVal[1];
+                            let ny = parseInt(y, 10);
+                            let nm = parseInt(m, 10) - 1;
+                            if (nm <= 0) { nm = 12; ny--; }
+                            const prevMonth = `${ny}-${String(nm).padStart(2, '0')}`;
+                            prevStartDate = `${prevMonth}-01`;
+                            prevEndDate = `${prevMonth}-31`;
+                         } else if (effectiveFilter === "custom" && operatorCustomStartDate && operatorCustomEndDate) {
+                            latestDateLabel = `${operatorCustomStartDate} ke ${operatorCustomEndDate}`;
+                            const s = new Date(operatorCustomStartDate);
+                            const e = new Date(operatorCustomEndDate);
+                            const durationDays = Math.round((e.getTime() - s.getTime()) / (1000 * 3600 * 24));
+                            const pE = new Date(s);
+                            pE.setDate(pE.getDate() - 1);
+                            const pS = new Date(pE);
+                            pS.setDate(pS.getDate() - durationDays);
+                            const fYMD = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                            prevStartDate = fYMD(pS);
+                            prevEndDate = fYMD(pE);
+                         } else {
+                            latestDateLabel = "Semua Waktu";
+                         }
+                         const applyFilter = (logs, isPrevPeriod) => {
+                           return logs.filter(log => {
+                             let normalizedLogDate = normalizeDateYMD(log.date);
+                             if (effectiveFilter !== "all") {
+                               if (isPrevPeriod) {
+                                   if (effectiveFilter === "latest") {
+                                     if (normalizedLogDate !== prevStartDate) return false;
+                                   } else if (effectiveFilter === "month") {
+                                     if (normalizedLogDate.substring(0, 7) !== prevStartDate.substring(0, 7)) return false;
+                                   } else if (effectiveFilter === "custom") {
+                                     if (normalizedLogDate < prevStartDate || normalizedLogDate > prevEndDate) return false;
+                                   }
+                               } else {
+                                 if (effectiveFilter === "latest") {
+                                   if (normalizedLogDate !== targetLatestDate) return false;
+                                 } else if (effectiveFilter === "month") {
+                                   if (normalizedLogDate.substring(0, 7) !== operatorSelectedMonth) return false;
+                                 } else if (effectiveFilter === "custom") {
+                                   if (operatorCustomStartDate && normalizedLogDate < operatorCustomStartDate) return false;
+                                   if (operatorCustomEndDate && normalizedLogDate > operatorCustomEndDate) return false;
                                  }
                                }
                              }
-
-                             if (operatorDateFilterType === "month") {
-                               if (logMonth !== operatorSelectedMonth) return false;
-                             } else if (operatorDateFilterType === "custom") {
-                               if (operatorCustomStartDate && normalizedLogDate < operatorCustomStartDate) return false;
-                               if (operatorCustomEndDate && normalizedLogDate > operatorCustomEndDate) return false;
+                             if (reportDbSearchQuery.trim()) {
+                               const q = reportDbSearchQuery.toLowerCase();
+                               const matchTitle = String(log.title || "").toLowerCase().includes(q);
+                               const matchDate = String(log.date || "").toLowerCase().includes(q);
+                               const matchPlatformStr = String(log.platform || "").toLowerCase().includes(q);
+                               if (!matchTitle && !matchDate && !matchPlatformStr) return false;
                              }
-                           }
-                           if (reportDbSearchQuery.trim()) {
-                             const q = reportDbSearchQuery.toLowerCase();
-                             const matchTitle = String(log.title || "").toLowerCase().includes(q);
-                             const matchDate = String(log.date || "").toLowerCase().includes(q);
-                             const matchPlatformStr = String(log.platform || "").toLowerCase().includes(q);
-                             if (!matchTitle && !matchDate && !matchPlatformStr) return false;
-                           }
-                           if (operatorPlatformFilter) {
-                             if (!isPlatformMatch(log.platform, operatorPlatformFilter)) return false;
-                           }
-                           return true;
-                         });
-
+                             if (operatorPlatformFilter) {
+                               if (!isPlatformMatch(log.platform, operatorPlatformFilter)) return false;
+                             }
+                             return true;
+                           });
+                         };
+                         const tableLogs = applyFilter(filteredDb, false);
+                         const prevTableLogs = (effectiveFilter !== "all") ? applyFilter(filteredDb, true) : [];
                          const totalSessionsDb = tableLogs.length;
                          const totalGmvDb = tableLogs.reduce((sum, item) => sum + (item.gmv || 0), 0);
                          const totalBuyersDb = tableLogs.reduce((sum, item) => sum + (item.buyers || 0), 0);
                          const totalOrdersDb = tableLogs.reduce((sum, item) => sum + (item.orders || 0), 0);
                          const totalItemsSoldDb = tableLogs.reduce((sum, item) => sum + (item.products_sold || 0), 0);
                          const avgAovDb = totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
-
-                         // Engagement metrics
                          const totalLikesDb = tableLogs.reduce((sum, item) => sum + (item.likes || 0), 0);
                          const totalCommentsDb = tableLogs.reduce((sum, item) => sum + (item.comments || 0), 0);
                          const totalSharesDb = tableLogs.reduce((sum, item) => sum + (item.shares || 0), 0);
                          const totalClicksDb = tableLogs.reduce((sum, item) => sum + (item.clicks || 0), 0);
- 
-                         // For Funnel 
+                         const avgViewDurationDb = tableLogs.length > 0 ? tableLogs.reduce((sum, item) => sum + (item.avgViewDuration || 0), 0) / tableLogs.length : 0;
+                         const pTotalGmvDb = prevTableLogs.reduce((sum, item) => sum + (item.gmv || 0), 0);
+                         const pTotalBuyersDb = prevTableLogs.reduce((sum, item) => sum + (item.buyers || 0), 0);
+                         const pTotalOrdersDb = prevTableLogs.reduce((sum, item) => sum + (item.orders || 0), 0);
+                         const pTotalItemsSoldDb = prevTableLogs.reduce((sum, item) => sum + (item.products_sold || 0), 0);
+                         const pAvgAovDb = pTotalBuyersDb > 0 ? pTotalGmvDb / pTotalBuyersDb : 0;
+                         const pTotalLikesDb = prevTableLogs.reduce((sum, item) => sum + (item.likes || 0), 0);
+                         const pTotalCommentsDb = prevTableLogs.reduce((sum, item) => sum + (item.comments || 0), 0);
+                         const pTotalSharesDb = prevTableLogs.reduce((sum, item) => sum + (item.shares || 0), 0);
+                         const pTotalClicksDb = prevTableLogs.reduce((sum, item) => sum + (item.clicks || 0), 0);
+                         const pAvgViewDurationDb = prevTableLogs.length > 0 ? prevTableLogs.reduce((sum, item) => sum + (item.avgViewDuration || 0), 0) / prevTableLogs.length : 0;
                          const totalDbImpressions = tableLogs.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
                          const totalDbLiveVisits = tableLogs.reduce((acc, curr) => acc + (curr.liveVisits || 0), 0);
                          const totalDbProductImpressions = tableLogs.reduce((acc, curr) => acc + (curr.productImpressions || 0), 0);
                          const totalDbClicks = tableLogs.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
                          const totalDbBuyers = tableLogs.reduce((acc, curr) => acc + (curr.buyers || 0), 0);
                          const totalDbOrdersFunnel = tableLogs.reduce((acc, curr) => acc + (curr.orders || 0), 0);
-
                          const funnelCtr = totalDbProductImpressions > 0 ? ((totalDbClicks / totalDbProductImpressions) * 100) : 0;
                          const funnelCtor = totalDbClicks > 0 ? ((totalDbOrdersFunnel / totalDbClicks) * 100) : 0;
-
-                         const totalAvgViewDurationSum = tableLogs.reduce((sum, item) => sum + (item.avgViewDuration || 0), 0);
-                         const avgViewDurationDb = tableLogs.length > 0 ? totalAvgViewDurationSum / tableLogs.length : 0;
 
                          const chartDataObj = [...tableLogs].reduce((acc: any, curr: any) => {
                            let d = curr.date;
@@ -9977,9 +10165,7 @@ export default function App() {
                                <div className="relative flex gap-2 w-full sm:w-auto h-9">
                                  <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                                    {[
-                                     { id: "all", label: "Semua" },
-                                     { id: "month", label: "Bulan" },
-                                     { id: "custom", label: "Custom" }
+                                     { id: "latest", label: "Terbaru" }, { id: "all", label: "Semua" }, { id: "month", label: "Bulan" }, { id: "custom", label: "Custom" }
                                    ].map(item => (
                                       <button
                                         key={item.id}
@@ -10103,55 +10289,91 @@ export default function App() {
                              </div>
  
                               {/* Summary Cards */}
+                             <div className="mb-2">
+                                <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg mb-6">
+                                   <Calendar className="w-4 h-4 text-indigo-500" />
+                                   <span className="text-xs font-extrabold text-indigo-700 uppercase tracking-tight">Data Performance: {latestDateLabel}</span>
+                                </div>
+                             </div>
                              <div className="space-y-6 mb-6">
                                <div>
-                                 <h4 className="text-xs font-bold text-slate-800 mb-3 uppercase tracking-wider">Sale Metrics</h4>
-                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">GMV</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(totalGmvDb)}</div>
+                                 <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest">Sale Metrics</h4>
+                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">GMV</div>
+                                        <PercentBadge cur={totalGmvDb} prev={pTotalGmvDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(totalGmvDb)}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Item Sold</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalItemsSoldDb)}</div>
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Item Sold</div>
+                                        <PercentBadge cur={totalItemsSoldDb} prev={pTotalItemsSoldDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalItemsSoldDb)}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Customers</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalBuyersDb)}</div>
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Customers</div>
+                                        <PercentBadge cur={totalBuyersDb} prev={pTotalBuyersDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalBuyersDb)}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">SKU Orders</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalOrdersDb)}</div>
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">SKU Orders</div>
+                                        <PercentBadge cur={totalOrdersDb} prev={pTotalOrdersDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalOrdersDb)}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">AOV</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(avgAovDb)}</div>
+                                    <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">AOV</div>
+                                        <PercentBadge cur={avgAovDb} prev={pAvgAovDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(avgAovDb)}</div>
                                     </div>
                                  </div>
                                </div>
 
                                <div>
-                                 <h4 className="text-xs font-bold text-slate-800 mb-3 uppercase tracking-wider">Engagement Metrics</h4>
-                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Like</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalLikesDb)}</div>
+                                 <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">Engagement Metrics</h4>
+                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Like</div>
+                                        <PercentBadge cur={totalLikesDb} prev={pTotalLikesDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalLikesDb)}</div>
                                     </div>
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Comment</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalCommentsDb)}</div>
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Comment</div>
+                                        <PercentBadge cur={totalCommentsDb} prev={pTotalCommentsDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalCommentsDb)}</div>
                                     </div>
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Share</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalSharesDb)}</div>
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Share</div>
+                                        <PercentBadge cur={totalSharesDb} prev={pTotalSharesDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalSharesDb)}</div>
                                     </div>
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Product Clicks</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{new Intl.NumberFormat('id-ID').format(totalClicksDb)}</div>
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Product Clicks</div>
+                                        <PercentBadge cur={totalClicksDb} prev={pTotalClicksDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalClicksDb)}</div>
                                     </div>
-                                    <div className="bg-[#f8fafc] rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
-                                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight mb-2">Avg View Time</div>
-                                      <div className="text-xl font-black tracking-tight text-slate-900 leading-none">{Math.round(avgViewDurationDb)} <span className="text-[10px] text-slate-400 font-bold">detik</span></div>
+                                    <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                      <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                        <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">AVG TIME/VIEWER</div>
+                                        <PercentBadge cur={avgViewDurationDb} prev={pAvgViewDurationDb} />
+                                      </div>
+                                      <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{Math.round(avgViewDurationDb)} <span className="text-[10px] text-slate-400 font-bold">detik</span></div>
                                     </div>
                                  </div>
                                </div>
