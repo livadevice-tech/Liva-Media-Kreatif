@@ -8972,6 +8972,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           contractEndDate: fd.get("contractEndDate") as string,
                           invoiceDate: fd.get("invoiceDate") as string,
                           monthlyMeetingDate: fd.get("monthlyMeetingDate") as string,
+                          picName: fd.get("picName") as string,
+                          picPhone: fd.get("picPhone") as string,
                           sessions: brandFormEditor.sessions || [],
                           accounts: brandFormEditor.accounts || [],
                           clientUsername: enteredUsername || brandFormEditor.clientUsername || defaultUsername,
@@ -12719,7 +12721,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
       )}
 
       {/* --- FOOTER STATUS & SIGNATURE --- */}
-      {!isOperatorLoggedIn && (
+      {!isOperatorLoggedIn && !loggedInClientBrandId && (
         <footer className="bg-white border-t border-purple-100 py-6 px-4 md:px-8 mt-auto flex flex-col md:flex-row justify-between w-full items-center gap-4 text-xs text-purple-500" id="system-footer-credits">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>

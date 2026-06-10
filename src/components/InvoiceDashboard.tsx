@@ -227,6 +227,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       recipientName: brand.picName || brand.name,
       ptName: brand.name,
       picName: brand.picName || "",
+      picPhone: brand.picPhone || "",
       email: brand.picEmail || "",
       address: brand.companyAddress || "",
       sessionItems: [
@@ -255,6 +256,11 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       if (b.id === selectedBrandId) {
         return {
           ...b,
+          name: draftInvoice.ptName || b.name,
+          picName: draftInvoice.picName || b.picName,
+          picPhone: draftInvoice.picPhone || b.picPhone,
+          picEmail: draftInvoice.email || b.picEmail,
+          companyAddress: draftInvoice.address || b.companyAddress,
           invoices: [...(b.invoices || []), finalInvoice]
         };
       }
@@ -337,7 +343,7 @@ PT. Liva Media Kreatif
     const picName = invoice.picName || invoice.recipientName || brand?.picName || "-";
     const address = invoice.address || "-";
     const email = invoice.email || "-";
-    const phone = brand?.picName ? "" : ""; // Not available in new schema easily
+    const phone = invoice.picPhone || brand?.picPhone || "-";
 
     const printWindow = window.open('', '', 'width=900,height=1000');
     if (!printWindow) return;
@@ -438,7 +444,8 @@ PT. Liva Media Kreatif
                 <span style="font-size: 14px; font-weight: 600;">UP: ${picName}</span>
                 <div class="address-block">
                   <div class="address-details">
-                    <strong>Email:</strong> <span>${email}</span>
+                    <strong>Email:</strong> <span>${email}</span><br/>
+                    <strong>Telp:</strong> <span>${phone}</span><br/>
                     <strong>Address:</strong> <span style="white-space: pre-wrap;">${address}</span>
                   </div>
                 </div>
@@ -774,6 +781,10 @@ PT. Liva Media Kreatif
                       <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (PIC)</label>
                         <input type="text" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.picName || ""} onChange={e => setDraftInvoice({...draftInvoice, picName: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">No. Telp PIC</label>
+                        <input type="text" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.picPhone || ""} onChange={e => setDraftInvoice({...draftInvoice, picPhone: e.target.value})} />
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">Email Pengirim (opsional)</label>
@@ -1245,6 +1256,10 @@ PT. Liva Media Kreatif
                  <label className="block text-xs font-bold text-slate-500 mb-1">Kepada (PIC)</label>
                  <input type="text" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={invoiceEditor.picName || invoiceEditor.recipientName || ""} onChange={e => setInvoiceEditor({...invoiceEditor, picName: e.target.value})} />
                </div>
+               <div>
+                 <label className="block text-xs font-bold text-slate-500 mb-1">No. Telp PIC</label>
+                 <input type="text" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={invoiceEditor.picPhone || ""} onChange={e => setInvoiceEditor({...invoiceEditor, picPhone: e.target.value})} />
+               </div>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div>
                    <label className="block text-xs font-bold text-slate-500 mb-1">Email</label>
@@ -1356,6 +1371,11 @@ PT. Liva Media Kreatif
                       const updatedInvoice = { ...invoiceEditor, totalAmount };
                       return {
                         ...b,
+                        name: invoiceEditor.ptName || b.name,
+                        picName: invoiceEditor.picName || b.picName,
+                        picPhone: invoiceEditor.picPhone || b.picPhone,
+                        picEmail: invoiceEditor.email || b.picEmail,
+                        companyAddress: invoiceEditor.address || b.companyAddress,
                         invoices: (b.invoices || []).map(i => i.id === invoiceEditor.id ? updatedInvoice : i)
                       }
                     }

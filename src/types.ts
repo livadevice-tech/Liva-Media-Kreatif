@@ -154,6 +154,7 @@ export interface BrandInvoice {
   recipientName: string; // legacy
   ptName?: string;
   picName?: string;
+  picPhone?: string;
   email: string;
   address: string;
   totalAmount: number;
@@ -176,6 +177,7 @@ export interface ClientBrand {
   clientPassword?: string;
   clientUsername?: string;
   picName?: string;
+  picPhone?: string;
   picEmail?: string;
   companyAddress?: string;
   invoices?: BrandInvoice[];
