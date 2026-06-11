@@ -1518,7 +1518,7 @@ export default function App() {
           if (headers.some(h => h.includes("tiktok") || h.includes("live room") || h.includes("anchor") || h.includes("uid") || h.includes("live impressions") || h.includes("attributed gmv") || h.includes("product impressions"))) {
             detectedPlatform = "TikTok Live";
             setSaveTargetPlatform(detectedPlatform);
-          } else if (headers.some(h => h.includes("shopee") || h.includes("username pembeli") || h.includes("live id") || h.includes("nama produk") || h.includes("nama livestream") || h.includes("tambah ke keranjang") || h.includes("penonton aktif") || h.includes("pesanan(pesanan dibuat)"))) {
+          } else if (headers.some(h => h.includes("shopee") || h.includes("username pembeli") || h.includes("live id") || h.includes("nama produk") || h.includes("nama livestream") || h.includes("livestream name") || h.includes("tambah ke keranjang") || h.includes("penonton aktif") || h.includes("pesanan(pesanan dibuat)") || h.includes("max concurrent viewers") || h.includes("orders(orders paid)"))) {
             detectedPlatform = "Shopee Live";
             setSaveTargetPlatform(detectedPlatform);
           }
@@ -1550,20 +1550,20 @@ export default function App() {
           return -1;
         };
 
-        const titleIdx = findColIdx(['nama livestream', 'livestream', 'streaming', 'judul', 'live', 'nama_brand', 'brand']);
+        const titleIdx = findColIdx(['nama livestream', 'livestream name', 'livestream', 'streaming', 'judul', 'live', 'nama_brand', 'brand']);
         const startIdx = findColIdx(['start time', 'waktu', 'mulai', 'start', 'tanggal', 'date']);
         const durationIdx = findColIdx(['durasi', 'duration', 'lama', 'waktu streaming']);
-        const gmvIdx = findColIdx(['penjualan(pesanan siap dikirim)', 'penjualan(pesanan dibuat)', 'penjualan', 'attributed gmv', 'gmv', 'perolehan', 'omset', 'revenue']);
-        const productIdx = findColIdx(['produk terjual(pesanan siap dikirim)', 'produk terjual(pesanan dibuat)', 'produk terjual', 'attributed items sold', 'produk', 'product', 'terjual', 'item', 'items']);
-        const buyerIdx = findColIdx(['customers', 'customer', 'pembeli', 'buyer', 'pelanggan']);
-        const aovIdx = findColIdx(['avg. price', 'aov', 'rata-rata', 'order value']);
-        const impressionsIdx = findColIdx(['penonton', 'live impressions', 'impression', 'tayangan', 'visitor', 'traffic', 'pemirsa', 'exposure']);
-        const liveVisitsIdx = findColIdx(['penonton aktif', 'live visits', 'views', 'viewers', 'view', 'kunjungan live']);
-        const productImpressionsIdx = findColIdx(['product views', 'product impression', 'tayangan produk']);
-        const avgViewDurationIdx = findColIdx(['durasi rata-rata menonton', 'avg view', 'average view', 'rata-rata menonton', 'rata rata menonton', 'waktu menonton', 'rata-rata view']);
+        const gmvIdx = findColIdx(['penjualan(pesanan siap dikirim)', 'penjualan(pesanan dibuat)', 'sales(orders paid)', 'sales(orders created)', 'penjualan', 'attributed gmv', 'gmv', 'perolehan', 'omset', 'revenue']);
+        const productIdx = findColIdx(['produk terjual(pesanan siap dikirim)', 'produk terjual(pesanan dibuat)', 'items sold(orders paid)', 'items sold(orders created)', 'produk terjual', 'attributed items sold', 'produk', 'product', 'terjual', 'item', 'items sold', 'items']);
+        const buyerIdx = findColIdx(['pembeli', 'buyers(orders paid)', 'buyers(orders created)', 'buyers', 'customers', 'customer', 'buyer', 'pelanggan']);
+        const aovIdx = findColIdx(['avg. price', 'sales per buyer(orders paid)', 'sales per buyer(orders created)', 'sales per buyer', 'aov', 'rata-rata', 'order value']);
+        const impressionsIdx = findColIdx(['penonton', 'total viewers', 'live impressions', 'impression', 'tayangan', 'visitor', 'traffic', 'pemirsa', 'exposure', 'viewers']);
+        const liveVisitsIdx = findColIdx(['penonton aktif', 'max concurrent viewers', 'viewers(max concurrent)', 'viewers(max co-current)', 'live visits', 'views', 'kunjungan live']);
+        const productImpressionsIdx = findColIdx(['tayangan produk', 'product views', 'product impression', 'product impressions']);
+        const avgViewDurationIdx = findColIdx(['durasi rata-rata menonton', 'avg. watch duration', 'average watch time', 'watch duration', 'avg view', 'average view', 'rata-rata menonton', 'rata rata menonton', 'waktu menonton', 'rata-rata view']);
         const clicksIdx = findColIdx(['tambah ke keranjang', 'product clicks', 'clicks', 'click', 'klik', 'kunjungan', 'detail', 'buka']);
-        const ordersIdx = findColIdx(['pesanan(pesanan siap dikirim)', 'pesanan(pesanan dibuat)', 'pesanan', 'attributed sku orders', 'orders', 'created', 'add to cart', 'keranjang', 'buat pesanan', 'order created', 'pesanan dibuat']);
-        const followersIdx = findColIdx(['new followers', 'pengikut', 'follower', 'followers', 'fans']);
+        const ordersIdx = findColIdx(['pesanan(pesanan siap dikirim)', 'pesanan(pesanan dibuat)', 'orders(orders paid)', 'orders(orders created)', 'pesanan', 'attributed sku orders', 'orders', 'created', 'add to cart', 'keranjang', 'buat pesanan', 'order created', 'pesanan dibuat']);
+        const followersIdx = findColIdx(['pengikut baru', 'new followers', 'pengikut', 'follower', 'followers', 'fans']);
         const likesIdx = findColIdx(['likes', 'suka', 'like', 'love']);
         const sharesIdx = findColIdx(['shares', 'share', 'bagikan', 'sebar']);
         const commentsIdx = findColIdx(['komentar', 'comments', 'komen', 'comment']);
