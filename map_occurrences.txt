@@ -1,0 +1,851 @@
+248-      
+249-      <div className="flex w-full mb-6 mt-2">
+250:        {steps.map((step, i) => (
+251-          <div key={i} className={`flex-1 ${i !== 0 ? 'border-l border-slate-200' : ''} px-4`}>
+252-            <div className="text-[11px] sm:text-[13px] text-slate-500 mb-2 font-medium whitespace-nowrap overflow-hidden text-ellipsis">{step.label}</div>
+--
+268-          
+269-          <g clipPath={`url(#funnel-inner-clip-${title.replace(/[^a-zA-Z0-9]/g, '')})`}>
+270:            {steps.map((_, i) => (
+271-              <rect 
+272-                key={i} 
+--
+432-  
+433-  const [showMappingModal, setShowMappingModal] = useState<boolean>(false);
+434:  const [mappingHeaders, setMappingHeaders] = useState<string[]>([]);
+435:  const [mappingRawData, setMappingRawData] = useState<any[]>([]);
+436-  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({
+437-    date: "",
+--
+563-           const brand = clientBrands.find(b => b.id === brandId)?.name || brandId;
+564-           // Group by platform so we can show one entry per platform
+565:           const platforms = Array.from(new Set((records as any[]).map(r => r.platform || "Tiktok")));
+566-           platforms.forEach(plat => {
+567-               const platRecords = (records as any[]).filter(r => (r.platform || "Tiktok") === plat);
+--
+583-    // 2. Fix nicely any badly recovered brand names (where brand was saved as UUID instead of name)
+584-    if (newHistory.length > 0 && clientBrands.length > 0) {
+585:        newHistory = newHistory.map(h => {
+586-             if (h.id?.toString().startsWith("recovered-")) {
+587-                 const matchingBrand = clientBrands.find(b => b.id === h.brand);
+--
+603-    let unsubs: any[] = [];
+604-    unsubs.push(onSnapshot(collection(db, "admin_accounts"), (snap) => {
+605:      _setAdminAccounts(snap.docs.map(d => d.data() as AdminAccount));
+606-    }, (err) => console.error("Firestore admin_accounts err:", err)));
+607-    unsubs.push(onSnapshot(collection(db, "hosts"), (snap) => {
+608:      const data = snap.docs.map(d => d.data() as HostEmployee);
+609-      _setHosts(data);
+610-    }, (err) => {
+--
+613-    }));
+614-    unsubs.push(onSnapshot(collection(db, "logs"), (snap) => {
+615:      _setLogs(snap.docs.map(d => d.data() as AttendanceLog));
+616-    }, (err) => console.error("Firestore logs err:", err)));
+617-    unsubs.push(onSnapshot(collection(db, "client_brands"), (snap) => {
+618:      _setClientBrands(snap.docs.map(d => d.data() as ClientBrand));
+619-    }, (err) => console.error("Firestore brands err:", err)));
+620-    unsubs.push(onSnapshot(collection(db, "client_leads"), (snap) => {
+621:      _setClientLeads(snap.docs.map(d => d.data() as ClientLead));
+622-    }, (err) => console.error("Firestore leads err:", err)));
+623-    unsubs.push(onSnapshot(collection(db, "brand_performance_logs"), (snap) => {
+624:      setBrandPerformanceLogs(snap.docs.map(d => {
+625-        const data = d.data();
+626-        if (!data.avgViewDuration) {
+--
+635-    }));
+636-    unsubs.push(onSnapshot(collection(db, "brand_upload_history"), (snap) => {
+637:      setBrandUploadHistory(snap.docs.map(d => d.data()));
+638-    }, (err) => console.error("Firestore brand_upload_history err:", err)));
+639-    
+--
+656-        }
+657-      }
+658:      _setSchedules(snap.docs.map(d => d.data()));
+659-    }, (err) => console.error("Firestore schedules err:", err)));
+660-
+--
+984-
+985-  const handleUpdateHost = (hostId: string, updatedFields: Partial<HostEmployee>) => {
+986:    setHosts(prev => prev.map(h => {
+987-      if (h.id === hostId) {
+988-        return { ...h, ...updatedFields };
+--
+1032-    customWorkingDaysTarget?: number;
+1033-  }) => {
+1034:    const nextIdNum = hosts.length > 0 ? Math.max(...hosts.map(h => {
+1035-      const parsed = parseInt((h.id || "").replace("h", ""));
+1036-      return isNaN(parsed) ? 0 : parsed;
+--
+1357-  const markAllNotificationsAsRead = () => {
+1358-    setNotifications(prev => {
+1359:      const updated = prev.map(n => ({ ...n, read: true }));
+1360-      localStorage.setItem("mcn_notifications_v1", JSON.stringify(updated));
+1361-      return updated;
+--
+1411-
+1412-  const markHostNotificationsAsRead = (hostId: string) => {
+1413:    setHostNotifications(prev => prev.map(n => n.hostId === hostId ? { ...n, read: true } : n));
+1414-  };
+1415-
+--
+1495-        }
+1496-
+1497:        // Find headers row and map columns
+1498-        let headerRowIdx = -1;
+1499-        for (let r = 0; r < Math.min(jsonData.length, 10); r++) {
+--
+1509-        }
+1510-
+1511:        const headers = (jsonData[headerRowIdx] as any[]).map(h => String(h || '').trim().toLowerCase());
+1512-
+1513-        // Help detect platform from columns if not detected yet
+--
+1631-             continue; // Skip total aggregated row from export files
+1632-          }
+1633:          if (titleIdx !== -1 && !rowData[titleIdx]) continue; // Skip if title column is mapped but it's empty
+1634-          
+1635-          const title = titleRaw || `Stream ${r}`;
+--
+1708-          let parsedAvgViewDuration = 0;
+1709-          if (rawAvgViewDuration.includes(':')) {
+1710:            const parts = rawAvgViewDuration.split(':').map(Number);
+1711-            if (parts.length === 3) {
+1712-              parsedAvgViewDuration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+--
+2390-    if (!logDateStr) return false;
+2391-
+2392:    const [logY, logM, logD] = logDateStr.split('-').map(Number);
+2393-    if (!logY || !logM || !logD) return false;
+2394-    
+2395-    // Parse Reference Date safely
+2396:    const [refY, refM, refD] = filterReferenceDate.split('-').map(Number);
+2397-    if (!refY || !refM || !refD) return true;
+2398-    
+--
+2534-  // Operator-level list of Host detailed stats & Salary recapitulation
+2535-  const hostReportList = useMemo(() => {
+2536:    return hosts.map(host => {
+2537-      const records = logs.filter(l => (l.hostId === host.id || l.hostName === host.name) && isLogDateMatching(l.date || (typeof (l as any).timestamp === "string" ? (l as any).timestamp.split(" ")[0] : "")));
+2538-      
+--
+2886-
+2887-  const handleUpdateLogStatus = (id: string, newStatus: "Present" | "Late" | "Absent" | "Excused") => {
+2888:    setLogs(prev => prev.map(l => {
+2889-      if (l.id === id) {
+2890-        return { ...l, status: newStatus };
+--
+2896-  const handleBulkMarkPresent = () => {
+2897-    if (selectedLogIds.length === 0) return;
+2898:    setLogs(prev => prev.map(log => {
+2899-      if (selectedLogIds.includes(log.id)) {
+2900-        return { ...log, status: "Present" };
+--
+2907-  const handleBulkMarkLate = () => {
+2908-    if (selectedLogIds.length === 0) return;
+2909:    setLogs(prev => prev.map(log => {
+2910-      if (selectedLogIds.includes(log.id)) {
+2911-        return { ...log, status: "Late" };
+--
+2918-  const handleBulkMarkAbsent = () => {
+2919-    if (selectedLogIds.length === 0) return;
+2920:    setLogs(prev => prev.map(log => {
+2921-      if (selectedLogIds.includes(log.id)) {
+2922-        return { ...log, status: "Absent" };
+--
+2964-    };
+2965-
+2966:    let parsedData = mappingRawData.map((row: any, index: number) => {
+2967-      const getVal = (colIdxStr: string) => {
+2968-         const idx = parseInt(colIdxStr);
+--
+3166-      let listDetails = "";
+3167-      if (toxicHosts.length > 0) {
+3168:        listDetails = toxicHosts.map(h => `- **${h.name}**: Terlambat **${h.countTerlambat} kali**, Alpa/Tidak Hadir **${h.countAlpa} kali**. (Kehadiran: ${Math.round((h.totalHadir / (h.totalHadir + h.countAlpa)) * 100)}%)`).join("\n");
+3169-      } else {
+3170-        listDetails = "Semua host hadir dengan kedisiplinan 100% tepat waktu!";
+--
+3707-                                    </div>
+3708-                                  ) : (
+3709:                                    hostNotifications.filter(n => n.hostId === activeHostObj?.id).map(notif => (
+3710-                                      <div key={notif.id} className="p-3.5 border-b border-purple-50/60 hover:bg-purple-50/40 transition-colors text-left flex items-start gap-3 relative">
+3711-                                        {!notif.read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>}
+--
+3871-                        >
+3872-                          <option value="" disabled className="text-purple-300 font-normal">-- Pilih Brand Besutan --</option>
+3873:                          {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
+3874-                            <option key={b} value={b} className="text-purple-950 font-semibold">{b}</option>
+3875-                          ))}
+--
+3894-                        >
+3895-                          <option value="" disabled className="text-purple-300 font-normal">-- Pilih Platform Streaming --</option>
+3896:                          {platforms.map(p => (
+3897-                            <option key={p} value={p} className="text-purple-950 font-semibold">{p}</option>
+3898-                          ))}
+--
+3917-                        >
+3918-                          <option value="" disabled className="text-purple-300 font-normal">-- Pilih Shift Kerja --</option>
+3919:                          {shifts.map(s => (
+3920-                            <option key={s} value={s} className="text-purple-950 font-semibold">{s}</option>
+3921-                          ))}
+--
+3940-                        >
+3941-                          <option value="" disabled className="text-purple-300 font-normal">-- Pilih Studio & Lokasi --</option>
+3942:                          {studios.map(st => (
+3943-                            <option key={st.id} value={st.name} className="text-purple-950 font-semibold">{st.name} - {st.location}</option>
+3944-                          ))}
+--
+3984-                          { year: 2025, months: [1,2,3,4,5,6,7,8,9,10,11,12] }
+3985-                        ].flatMap(group => 
+3986:                          group.months.map(m => {
+3987-                            const monthNames = [
+3988-                              "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+--
+4098-                      </div>
+4099-                    ) : (
+4100:                      hostLogs.map((item, idx) => (
+4101-                        <div key={item.id + "_" + idx} className="bg-purple-50/35 p-2 rounded-xl border border-purple-100/60 flex justify-between items-center transition-all">
+4102-                          <div>
+--
+4218-                      {(() => {
+4219-                        const offset = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
+4220:                        return Array.from({ length: offset }).map((_, i) => (
+4221-                          <div key={`host-empty-${i}`} className="h-6"></div>
+4222-                        ));
+--
+4225-                      {(() => {
+4226-                        const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
+4227:                        return Array.from({ length: daysInMonth }).map((_, i) => {
+4228-                          const dayNum = i + 1;
+4229-                          const dateString = `${hostCalendarYear}-${String(hostCalendarMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+--
+4297-                             s.date.startsWith(`${hostCalendarYear}-${String(hostCalendarMonth + 1).padStart(2, '0')}`)
+4298-                           );
+4299:                           const uniqueBrands = Array.from(new Set(mySchedsMonth.map(s => s.brand))).filter(Boolean) as string[];
+4300-                           if (uniqueBrands.length === 0) return <span className="text-purple-400 font-normal italic">Belum ada brand di bulan ini</span>;
+4301:                           return uniqueBrands.map(b => {
+4302-                             const c = getBrandColor(b);
+4303-                             return (
+--
+4343-                      const sortedScheds = [...myAllScheds].sort((a,b) => a.date.localeCompare(b.date));
+4344-                      
+4345:                      return sortedScheds.map(sch => {
+4346-                        const isPrimaryOff = sch.isOffDay && sch.hostId === loggedInHostId;
+4347-                        const isReplacement = sch.backupHostId === loggedInHostId;
+--
+4491-                  {[
+4492-                    { id: "performance", label: "Report Live", icon: BarChart2 },
+4493:                  ].map(item => (
+4494-                    <button key={item.id} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${item.id === "performance" ? "bg-indigo-50 text-indigo-700" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"} border-0`}>
+4495-                      <item.icon className={`w-4 h-4 min-w-[16px] ${item.id === "performance" ? "text-indigo-600" : "text-slate-400"}`} />
+--
+4552-                         let prevEndDate = "";
+4553-                         if (effectiveFilter === "latest") {
+4554:                            const allDates = Array.from<string>(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean) as string[])); allDates.sort();
+4555-                            if (allDates.length > 0) {
+4556-                               targetLatestDate = allDates[allDates.length - 1];
+--
+4752-                                 >
+4753-                                   <option value="">Semua Platform</option>
+4754:                                   {platforms.map(p => (
+4755-                                     <option key={p} value={p}>{p}</option>
+4756-                                   ))}
+--
+4761-                                   {[
+4762-                                     { id: "latest", label: "Terbaru" }, { id: "all", label: "Semua" }, { id: "month", label: "Bulan" }, { id: "custom", label: "Custom" }
+4763:                                   ].map(item => (
+4764-                                      <button
+4765-                                        key={item.id}
+--
+4828-                                         { val: "07", label: "Jul" }, { val: "08", label: "Aug" }, { val: "09", label: "Sept" },
+4829-                                         { val: "10", label: "Oct" }, { val: "11", label: "Nov" }, { val: "12", label: "Dec" }
+4830:                                       ].map((m, idx) => {
+4831-                                         const mVal = `${operatorMonthPickerYear}-${m.val}`;
+4832-                                         const isSelected = operatorSelectedMonth === mVal;
+--
+5058-                                                    <div className="text-[10px] font-bold text-slate-800 mb-2 uppercase">{d}</div>
+5059-                                                    <div className="space-y-1.5">
+5060:                                                      {payload.map((entry: any, idx: number) => (
+5061-                                                        <div key={idx} className="flex justify-between items-center text-xs font-bold gap-4">
+5062-                                                          <span className="text-slate-500 uppercase text-[9px]">{entry.name}</span>
+--
+5119-                                            shiftData[s] += (log.gmv || 0);
+5120-                                          });
+5121:                                          const shiftsArray = Object.keys(shiftData).map(k => ({ name: k, gmv: shiftData[k] })).sort((a,b) => b.gmv - a.gmv);
+5122-                                          
+5123-                                          if (shiftsArray.length === 0) {
+5124-                                            return <tr><td colSpan={3} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
+5125-                                          }
+5126:                                          return shiftsArray.map((sh, idx) => (
+5127-                                            <tr key={idx} className="hover:bg-slate-50">
+5128-                                              <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
+--
+5172-                                            }
+5173-                                          });
+5174:                                          const daysArray = Object.keys(dayData).map(k => ({ name: k, ...dayData[k] })).sort((a,b) => {
+5175-                                            let valA = a[dayAnalyticsSortCol];
+5176-                                            let valB = b[dayAnalyticsSortCol];
+--
+5183-                                          }
+5184-                                          
+5185:                                          return daysArray.map((dy, idx) => (
+5186-                                            <tr key={idx} className="hover:bg-slate-50">
+5187-                                              <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
+--
+5228-                                     </tr>
+5229-                                   ) : (
+5230:                                     paginatedLogs.map((log, idx) => {
+5231-                                       const lViews = log.impressions || log.views || log.liveVisits || 0;
+5232-                                       const lCtr = log.productImpressions > 0 ? ((log.clicks / log.productImpressions) * 100) : 0;
+--
+5357-                           return true;
+5358-                        });
+5359:                      })().map((item, index) => {
+5360-                        if (item.type === "header") {
+5361-                          const isExpanded = expandedCategories[item.key!];
+--
+5567-                                  </div>
+5568-                                ) : (
+5569:                                  notifications.map((notif) => {
+5570-                                    let typeBg = "bg-indigo-50 text-indigo-600 border-indigo-100";
+5571-                                    if (notif.type === "success") {
+--
+5584-                                        onClick={() => {
+5585-                                          setNotifications(prev => {
+5586:                                            const updated = prev.map(n => n.id === notif.id ? { ...n, read: true } : n);
+5587-                                            localStorage.setItem("mcn_notifications_v1", JSON.stringify(updated));
+5588-                                            return updated;
+--
+5744-                          return acc;
+5745-                        }, {} as Record<string, number>)
+5746:                    ).map(([plat, count]) => (
+5747-                      <div key={plat} className="p-4 rounded-xl border border-purple-50 bg-[#fbfaff]/50 flex flex-col justify-center items-center">
+5748-                        <span className="text-[11px] font-black text-purple-950 block mb-1 text-center">📱 {plat}</span>
+--
+5778-                            </thead>
+5779-                            <tbody className="divide-y divide-slate-100">
+5780:                                {clientBrands.length > 0 ? clientBrands.map((b) => (
+5781-                                    <tr key={`inv-${b.id}`} className="hover:bg-slate-50 transition-colors">
+5782-                                        <td className="py-2 px-3 font-bold text-slate-800">{b.name}</td>
+--
+5814-                            </thead>
+5815-                            <tbody className="divide-y divide-slate-100">
+5816:                                {clientBrands.length > 0 ? clientBrands.map((b) => (
+5817-                                    <tr key={`meet-${b.id}`} className="hover:bg-slate-50 transition-colors">
+5818-                                        <td className="py-2 px-3 font-bold text-slate-800">{b.name}</td>
+--
+5845-                            <tr className="bg-[#f8f9fc] border-b border-slate-200 uppercase text-[10px] font-black tracking-wider text-slate-500 whitespace-nowrap">
+5846-                                <th className="py-3 px-4 border-r border-slate-100">Nama Studio</th>
+5847:                                {shifts.map(sh => (
+5848-                                    <th key={sh} className="py-3 px-4 border-r border-slate-100 last:border-r-0">{sh}</th>
+5849-                                ))}
+--
+5853-                            {(() => {
+5854-                                const allStudioNames = Array.from(new Set([
+5855:                                  ...studios.map(s => s.name),
+5856:                                  ...clientBrands.flatMap(b => b.sessions?.map(s => s.studio || "") || []).filter(Boolean)
+5857-                                ])).sort();
+5858-
+--
+5867-                                }
+5868-
+5869:                                return allStudioNames.map((studioName, i) => (
+5870-                                    <tr key={`studio-row-${i}`} className="hover:bg-purple-50/40 transition-colors">
+5871-                                        <td className="py-2.5 px-4 font-extrabold text-slate-800 border-r border-slate-100 whitespace-nowrap">{studioName}</td>
+5872:                                        {shifts.map(shift => {
+5873-                                            const occupyingBrands = clientBrands
+5874-                                                .filter(b => b.sessions?.some(s => s.studio === studioName && s.shift === shift))
+5875:                                                .map(b => b.name);
+5876-                                            
+5877-                                            return (
+--
+5911-                      <div className="flex items-center gap-4">
+5912-                         <div className="flex -space-x-2">
+5913:                           {hosts.slice(0, 4).map((h, i) => (
+5914-                             <div key={h.id} className="w-8 h-8 rounded-full border-[3px] border-white flex items-center justify-center text-[10px] font-bold z-30 shadow-sm" style={{ backgroundColor: '#' + Math.floor(Math.random()*16777215).toString(16).padEnd(6, '0') + '40', color: '#1e293b' }}>
+5915-                               {h.name.substring(0, 2).toUpperCase()}
+--
+6213-                                    {/* Weekday indicator labels */}
+6214-                                    <div className="grid grid-cols-7 text-center mb-1.5 select-none">
+6215:                                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+6216-                                        <span key={day} className="text-[9px] font-black uppercase text-slate-400 w-8 h-5 flex items-center justify-center tracking-wider">
+6217-                                          {day}
+--
+6224-                                      {(() => {
+6225-                                        const dCells = getPickerDays(pickerYear, pickerMonth);
+6226:                                        return dCells.map((dObj, idx) => {
+6227-                                          const isSelectedInPicker = pickerTempDate === dObj.dateString;
+6228-                                          const isToday = (new Date().toISOString().split('T')[0]) === dObj.dateString;
+--
+6333-                                {idleHosts.length > 0 ? (
+6334-                                  <div className="flex flex-wrap gap-2 mt-2.5">
+6335:                                    {idleHosts.map(h => (
+6336-                                      <span 
+6337-                                        key={h.id} 
+--
+6389-                              }
+6390-
+6391:                              const uniqueScheds: any[] = Array.from(new Map(dayScheds.map((s: any) => [s.id, s])).values());
+6392-                              
+6393-                              // Extract all unique studio names from both master studios state and active schedules
+6394-                              const studioNames = Array.from(new Set([
+6395:                                ...studios.map(st => st.name),
+6396:                                ...uniqueScheds.map(s => s.studio || "Tanpa Studio")
+6397-                              ].filter(Boolean)));
+6398-
+6399-                              return (
+6400-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 pb-2">
+6401:                                  {studioNames.map(studioName => {
+6402-                                    // Filter schedules for this studio and explicitly sort them based on shift time
+6403-                                    const studioScheds = uniqueScheds
+--
+6453-                                            </div>
+6454-                                          ) : (
+6455:                                            studioScheds.map((sch: any, idxSch: number) => {
+6456-                                              const isOff = sch.isOffDay;
+6457-                                              const isPindah = sch.isPindahStudio;
+--
+6595-                         >
+6596-                           <option value="all">Semua Host</option>
+6597:                           {hosts.map(h => (
+6598-                             <option key={h.id} value={h.id}>{h.name}</option>
+6599-                           ))}
+--
+6640-                      {/* Weekday Titles Header */}
+6641-                      <div className="grid grid-cols-7 border-b border-slate-100 bg-white">
+6642:                        {["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"].map((dayName, idx) => (
+6643-                           <div key={dayName} className="py-4 text-center border-r border-slate-100 last:border-r-0 flex flex-col items-center justify-center">
+6644-                             <span className={`text-[10px] font-extrabold uppercase tracking-wider mb-1 ${idx === 0 ? "text-red-500" : "text-slate-400"}`}>
+--
+6708-                                     });
+6709-
+6710:                                     return Object.entries(groupedSchedules).slice(0, 3).map(([stdName, scheds]: [string, any[]]) => (
+6711-                                       <div key={stdName} className="mb-1.5 last:mb-0 bg-slate-50 rounded p-1 border border-slate-100">
+6712-                                         <div className="text-[8px] font-black uppercase text-slate-500 mb-1 tracking-wider">{stdName}</div>
+6713-                                         <div className="space-y-1">
+6714:                                           {scheds.slice(0, 4).map((sch: any, idxSch: number) => {
+6715-                                              const bColor = getBrandColor(sch.brand || sch.timeSlot || "");
+6716-                                              const colorClasses = `${bColor.bg} border ${bColor.border} ${bColor.text}`;
+--
+6947-                              if (scheduleForm.id) {
+6948-                                // Modifying an existing manual schedule
+6949:                                setSchedules(prev => prev.map(s => s.id === scheduleForm.id ? newSchedule : s));
+6950-                                addHostNotification(selectedHost.id, "Jadwal Diperbarui", `Jadwal Anda pada tanggal ${selectedCalendarDate} telah diperbarui (Sesi: ${newSchedule.timeSlot}).`, selectedCalendarDate);
+6951-                                // Reset state
+--
+7001-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
+7002-                                >
+7003:                                  {studios.map(s => (
+7004-                                    <option key={s.id} value={s.name}>{s.name} ({s.location})</option>
+7005-                                  ))}
+--
+7045-                                >
+7046-                                  <option value="">-- Pilih Host --</option>
+7047:                                  {hosts.map(h => (
+7048-                                    <option key={h.id} value={h.id}>
+7049-                                      {h.name} ({h.hostType === "Reguler" ? "Reguler" : "Backup"})
+--
+7062-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
+7063-                                >
+7064:                                  {shifts.map(sh => (
+7065-                                    <option key={sh} value={sh}>{sh}</option>
+7066-                                  ))}
+--
+7075-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
+7076-                                >
+7077:                                  {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
+7078-                                    <option key={b} value={b}>{b}</option>
+7079-                                  ))}
+--
+7088-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
+7089-                                >
+7090:                                  {platforms.map(p => (
+7091-                                    <option key={p} value={p}>{p}</option>
+7092-                                  ))}
+--
+7381-                                  { year: 2025, months: [1,2,3,4,5,6,7,8,9,10,11,12] }
+7382-                                ].flatMap(group => 
+7383:                                  group.months.map(m => {
+7384-                                    const monthNames = [
+7385-                                      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+--
+7483-                          { year: 2025, months: [1,2,3,4,5,6,7,8,9,10,11,12] }
+7484-                        ].flatMap(group => 
+7485:                          group.months.map(m => {
+7486-                            const monthNames = [
+7487-                              "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+--
+7900-                          </tr>
+7901-                        ) : (
+7902:                          filteredHostReportList.map((item, idx) => {
+7903-                            const isTanggamus = item.studio && item.studio.includes("Tanggamus");
+7904-                            const hostType = item.hostType || "Reguler";
+--
+8223-                      </div>
+8224-                    ) : (
+8225:                      filteredHostReportList.map((item, idx) => {
+8226-                        const isTanggamus = item.studio && item.studio.includes("Tanggamus");
+8227-                        const hostType = item.hostType || "Reguler";
+--
+8423-                        ];
+8424-                        
+8425:                        const rows = filteredHostReportList.map(h => [
+8426-                          h.name,
+8427-                          h.studio || "Studio Bandar Lampung",
+--
+8437-                        const csvContent = "\uFEFF" + [
+8438-                          headers.join(","),
+8439:                          ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+8440-                        ].join("\n");
+8441-
+--
+8523-                    { id: "Absent", label: "Absent / Alpa", statusChoice: "Absent", color: "bg-red-500", text: "text-red-700", activeBg: "bg-red-50 text-red-850 shadow-3xs border border-red-250" },
+8524-                    { id: "Excused", label: "Excused / Izin", statusChoice: "Excused", color: "bg-[#2563eb]", text: "text-indigo-750", activeBg: "bg-indigo-50 text-indigo-850 shadow-3xs border border-indigo-250" },
+8525:                  ].map((pill) => {
+8526-                    const isPillActive = dbStatusFilter === pill.id;
+8527-                    const count = pill.id === "All" 
+--
+8579-                    >
+8580-                      <option value="Semua Platform">Semua Platform</option>
+8581:                      {platforms.map(p => (
+8582-                        <option key={p} value={p}>{p}</option>
+8583-                      ))}
+--
+8592-                    >
+8593-                      <option value="Semua Brand">Semua Brand</option>
+8594:                      {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
+8595-                        <option key={b} value={b}>{b}</option>
+8596-                      ))}
+--
+8670-                            className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
+8671-                          >
+8672:                            {hosts.map(h => (
+8673-                              <option key={h.id} value={h.id}>{h.name} ({h.studio || "Studio Bandar Lampung"})</option>
+8674-                            ))}
+--
+8676-                        ) : (
+8677-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[150px] overflow-y-auto">
+8678:                            {hosts.map(h => (
+8679-                              <label key={h.id} className="flex items-start gap-2 bg-white p-2 rounded border border-slate-200 cursor-pointer hover:border-indigo-300 transition-colors">
+8680-                                <input 
+--
+8697-                        {manualForm.isBulkHost && (
+8698-                          <div className="flex gap-2 mt-2">
+8699:                             <button type="button" onClick={() => setManualForm(p => ({ ...p, hostIds: hosts.map(h => h.id) }))} className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded cursor-pointer border-0">Pilih Semua</button>
+8700-                             <button type="button" onClick={() => setManualForm(p => ({ ...p, hostIds: [] }))} className="text-[9px] font-bold text-slate-500 bg-slate-200 px-2 py-1 rounded cursor-pointer border-0">Hapus Semua</button>
+8701-                          </div>
+--
+8716-                          className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
+8717-                        >
+8718:                          {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
+8719-                            <option key={b} value={b}>{b}</option>
+8720-                          ))}
+--
+8730-                          className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
+8731-                        >
+8732:                          {platforms.map(p => (
+8733-                            <option key={p} value={p}>{p}</option>
+8734-                          ))}
+--
+8744-                          className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
+8745-                        >
+8746:                          {shifts.map(s => (
+8747-                            <option key={s} value={s}>{s}</option>
+8748-                          ))}
+--
+8758-                          className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
+8759-                        >
+8760:                          {studios.map(st => (
+8761-                            <option key={st.id} value={st.name}>{st.name} - {st.location}</option>
+8762-                          ))}
+--
+8787-                        ) : (
+8788-                          <div className="flex flex-col gap-2">
+8789:                             {manualForm.dates.map((d, i) => (
+8790-                               <div key={i} className="flex items-center gap-2">
+8791-                                 <input
+--
+8877-                      </thead>
+8878-                      <tbody>
+8879:                        {filteredLogsList.map((item) => {
+8880-                          const isRowChecked = selectedLogIds.includes(item.id);
+8881-                          return (
+--
+9114-                        
+9115-                        if (brandFormEditor.id) {
+9116:                          setClientBrands(prev => prev.map(b => b.id === newBrand.id ? newBrand : b));
+9117-                          addNotification("💼 Brand Diperbarui", `Data brand "${newBrand.name}" berhasil diperbarui oleh admin.`, "info", "data_brand");
+9118-                        } else {
+--
+9161-                          </div>
+9162-                          <div className="space-y-2">
+9163:                            {(brandFormEditor.sessions || []).map((sess, idx) => (
+9164-                              <div key={sess.id} className="flex flex-col xl:flex-row items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+9165-                                <select 
+9166-                                  value={sess.platform} 
+9167:                                  onChange={e => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, platform: e.target.value } : s) } : prev)}
+9168-                                  className="w-full xl:w-[140px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
+9169-                                >
+9170:                                  {platforms.map((p, i) => <option key={p + '_' + i} value={p}>{p}</option>)}
+9171-                                </select>
+9172-                                <select 
+9173-                                  value={sess.shift} 
+9174:                                  onChange={e => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, shift: e.target.value } : s) } : prev)}
+9175-                                  className="w-full xl:flex-1 bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
+9176-                                >
+9177:                                  {shifts.map((sh, i) => <option key={sh + '_' + i} value={sh}>{sh}</option>)}
+9178-                                </select>
+9179-                                <select 
+9180-                                  value={sess.studio || ""}
+9181:                                  onChange={e => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, studio: e.target.value } : s) } : prev)}
+9182-                                  className="w-full xl:w-[180px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
+9183-                                >
+9184-                                  <option value="">Pilih Studio...</option>
+9185:                                  {studios.map((st, i) => <option key={st.id + '_' + i} value={st.name}>{st.name} - {st.location}</option>)}
+9186-                                </select>
+9187-                                <select 
+9188-                                  value={sess.host || ""}
+9189:                                  onChange={e => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, host: e.target.value } : s) } : prev)}
+9190-                                  className="w-full xl:w-[180px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
+9191-                                >
+9192-                                  <option value="">Host Reguler / Dedicated (Opsional)...</option>
+9193:                                  {hosts.map((h, i) => <option key={h.id + '_' + i} value={h.name}>{h.name}</option>)}
+9194-                                </select>
+9195-                                <button type="button" onClick={() => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.filter((_, i) => i !== idx) } : prev)} className="w-full xl:w-auto p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded border border-transparent hover:border-red-100 cursor-pointer bg-white transition-all flex justify-center items-center">
+--
+9213-                          </div>
+9214-                          <div className="space-y-3">
+9215:                            {(brandFormEditor.accounts || []).map((acc, idx) => (
+9216-                              <div key={acc.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 items-start">
+9217-                                <div className="sm:col-span-3">
+--
+9219-                                   <select 
+9220-                                     value={acc.type}
+9221:                                     onChange={e => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, type: e.target.value } : a) } : prev)}
+9222-                                     className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none text-slate-700"
+9223-                                   >
+9224-                                     <option value="">Pilih Platform...</option>
+9225:                                     {platforms.map((p, i) => <option key={p + '_' + i} value={p}>{p}</option>)}
+9226-                                     <option value="Lainnya">Lainnya</option>
+9227-                                   </select>
+--
+9232-                                     type="text" 
+9233-                                     value={acc.username}
+9234:                                     onChange={e => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, username: e.target.value } : a) } : prev)}
+9235-                                     className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-mono text-[10px] focus:border-indigo-500 outline-none" 
+9236-                                   />
+--
+9241-                                     type="text" 
+9242-                                     value={acc.password}
+9243:                                     onChange={e => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, password: e.target.value } : a) } : prev)}
+9244-                                     className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-mono text-[10px] focus:border-indigo-500 outline-none" 
+9245-                                   />
+--
+9250-                                     type="text" 
+9251-                                     value={acc.picOtp}
+9252:                                     onChange={e => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, picOtp: e.target.value } : a) } : prev)}
+9253-                                     className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] focus:border-indigo-500 outline-none" 
+9254-                                     placeholder="Cth: WA Pak Budi"
+--
+9321-                          </tr>
+9322-                        ) : (
+9323:                          filteredAndSortedBrands.map((brand, i) => (
+9324-                            <tr key={brand.id} className="hover:bg-slate-50/50 transition-colors">
+9325-                              <td className="px-4 py-3 align-top font-bold text-slate-500">{i + 1}</td>
+--
+9330-                              <td className="px-4 py-3 align-top">
+9331-                                <div className="space-y-1 min-w-[140px]">
+9332:                                  {brand.sessions && brand.sessions.length > 0 ? brand.sessions.map((sess) => (
+9333-                                    <div key={sess.id} className="bg-white border border-slate-100 rounded p-1.5 shadow-sm text-[9px]">
+9334-                                      <div className="font-black text-indigo-700 uppercase mb-0.5">{sess.platform}</div>
+--
+9351-                              <td className="px-4 py-3 align-top">
+9352-                                <div className="space-y-1">
+9353:                                  {brand.accounts && brand.accounts.length > 0 ? brand.accounts.map((acc) => (
+9354-                                    <div key={acc.id} className="bg-slate-50 border border-slate-100 rounded p-1.5 text-[9px]">
+9355-                                      <div className="font-black tracking-wide text-slate-700 uppercase mb-1">{acc.type}</div>
+--
+9451-                          return brand.name.toLowerCase().includes(q) || brand.id.toLowerCase().includes(q);
+9452-                        })
+9453:                        .map(brand => {
+9454-                          const numBrandLogs = brandPerformanceLogs.filter(log => log.brandId === brand.id).length;
+9455-                          const numUploadBatches = brandUploadHistory.filter(batch => batch.brandId === brand.id).length;
+--
+9690-                        >
+9691-                          <option value="">-- Pilih Brand Klien --</option>
+9692:                          {clientBrands.map(b => (
+9693-                            <option key={b.id} value={b.id}>{b.name}</option>
+9694-                          ))}
+--
+10021-                            </thead>
+10022-                            <tbody className="divide-y divide-slate-100">
+10023:                              {reportingRawData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((row, idx) => {
+10024-                                const actualCtr = row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0;
+10025-                                const actualCvr = row.impressions > 0 ? (row.buyers / row.impressions) * 105 : 0; // standard multiplier
+--
+10089-                         let prevEndDate = "";
+10090-                         if (effectiveFilter === "latest") {
+10091:                            const allDates = Array.from<string>(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean) as string[])); allDates.sort();
+10092-                            if (allDates.length > 0) {
+10093-                               targetLatestDate = allDates[allDates.length - 1];
+--
+10289-                                 >
+10290-                                   <option value="">Semua Platform</option>
+10291:                                   {platforms.map(p => (
+10292-                                     <option key={p} value={p}>{p}</option>
+10293-                                   ))}
+--
+10298-                                   {[
+10299-                                     { id: "latest", label: "Terbaru" }, { id: "all", label: "Semua" }, { id: "month", label: "Bulan" }, { id: "custom", label: "Custom" }
+10300:                                   ].map(item => (
+10301-                                      <button
+10302-                                        key={item.id}
+--
+10365-                                         { val: "07", label: "Jul" }, { val: "08", label: "Aug" }, { val: "09", label: "Sept" },
+10366-                                         { val: "10", label: "Oct" }, { val: "11", label: "Nov" }, { val: "12", label: "Dec" }
+10367:                                       ].map((m, idx) => {
+10368-                                         const mVal = `${operatorMonthPickerYear}-${m.val}`;
+10369-                                         const isSelected = operatorSelectedMonth === mVal;
+--
+10595-                                                    <div className="text-[10px] font-bold text-slate-800 mb-2 uppercase">{d}</div>
+10596-                                                    <div className="space-y-1.5">
+10597:                                                      {payload.map((entry: any, idx: number) => (
+10598-                                                        <div key={idx} className="flex justify-between items-center text-xs font-bold gap-4">
+10599-                                                          <span className="text-slate-500 uppercase text-[9px]">{entry.name}</span>
+--
+10656-                                            shiftData[s] += (log.gmv || 0);
+10657-                                          });
+10658:                                          const shiftsArray = Object.keys(shiftData).map(k => ({ name: k, gmv: shiftData[k] })).sort((a,b) => b.gmv - a.gmv);
+10659-                                          
+10660-                                          if (shiftsArray.length === 0) {
+10661-                                            return <tr><td colSpan={3} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
+10662-                                          }
+10663:                                          return shiftsArray.map((sh, idx) => (
+10664-                                            <tr key={idx} className="hover:bg-slate-50">
+10665-                                              <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
+--
+10709-                                            }
+10710-                                          });
+10711:                                          const daysArray = Object.keys(dayData).map(k => ({ name: k, ...dayData[k] })).sort((a,b) => {
+10712-                                            let valA = a[dayAnalyticsSortCol];
+10713-                                            let valB = b[dayAnalyticsSortCol];
+--
+10720-                                          }
+10721-                                          
+10722:                                          return daysArray.map((dy, idx) => (
+10723-                                            <tr key={idx} className="hover:bg-slate-50">
+10724-                                              <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
+--
+10766-                                     </tr>
+10767-                                   ) : (
+10768:                                     paginatedLogs.map((log, idx) => {
+10769-                                       const lViews = log.impressions || log.views || log.liveVisits || 0;
+10770-                                       const lCtr = log.productImpressions > 0 ? ((log.clicks / log.productImpressions) * 100) : 0;
+--
+10856-                        });
+10857-
+10858:                        const existingBatchIds = new Set(brandUploadHistory.map(h => h.id));
+10859-                        const missingBatches = Object.values(batchesMap).filter(b => !existingBatchIds.has(b.id)); // from raw logs
+10860-
+--
+10903-                                     </tr>
+10904-                                   ) : (
+10905:                                     completeUploadHistory.map((history, idx) => (
+10906-                                       <tr key={history.id} className="hover:bg-slate-50/50 transition-colors">
+10907-                                         <td className="px-5 py-3.5 text-slate-500">
+--
+11002-                              );
+11003-                            }
+11004:                            return filteredLeads.map((lead, idx) => (
+11005-                            <tr key={lead.id} className="hover:bg-indigo-50/30 transition-colors">
+11006-                              <td className="px-6 py-4 text-[11px] font-bold text-slate-500">{idx + 1}</td>
+--
+11020-                                  }`}
+11021-                                  value={lead.status}
+11022:                                  onChange={(e) => setClientLeads(p => p.map(x => x.id === lead.id ? {...x, status: e.target.value as any} : x))}
+11023-                                >
+11024-                                  <option value="New">🏷️ New</option>
+--
+11102-                          
+11103-                          if (leadFormModal.data.id) {
+11104:                            setClientLeads(prev => prev.map(l => l.id === newLead.id ? newLead : l));
+11105-                            addNotification("💼 Informasi Lead Diupdate", `Data lead "${newLead.name}" telah diupdate oleh admin.`, "info", "leads");
+11106-                          } else {
+--
+11132-                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Platform Target</label>
+11133-                                  <select name="platformInterest" defaultValue={leadFormModal.data.platformInterest || platforms[0]} className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-[0_2px_10px_rgba(79,70,229,0.03)] cursor-pointer appearance-none">
+11134:                                    {platforms.map((p, i) => <option key={p + '_' + i} value={p}>{p}</option>)}
+11135-                                    <option value="Multi-platform">Multi-platform</option>
+11136-                                  </select>
+--
+11219-                  {/* Message Streams view */}
+11220-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs font-sans" id="chat_scroll_area">
+11221:                    {chatMessages.map(msg => (
+11222-                      <div
+11223-                        key={msg.id}
+--
+11405-                      {/* Items List */}
+11406-                      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+11407:                        {platforms.map((platform, idx) => (
+11408-                          <div key={idx} className="flex justify-between items-center bg-purple-50/25 p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2">
+11409-                            {editingPlatformIdx === idx ? (
+--
+11549-                      {/* Items List */}
+11550-                      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+11551:                        {brands.map((brand, idx) => (
+11552-                          <div key={idx} className="flex justify-between items-center bg-purple-50/25 p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2">
+11553-                            {editingBrandIdx === idx ? (
+--
+11693-                      {/* Items List */}
+11694-                      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+11695:                        {shifts.map((shift, idx) => (
+11696-                          <div key={idx} className="flex justify-between items-center bg-purple-50/25 p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2">
+11697-                            {editingShiftIdx === idx ? (
+--
+11852-                      {/* Items List */}
+11853-                      <div className="space-y-2 max-h-[170px] overflow-y-auto pr-1">
+11854:                        {studios.map((studio, idx) => (
+11855-                          <div key={studio.id} className="flex justify-between items-center bg-[#faf9fe] p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2">
+11856-                            {editingStudioIdx === idx ? (
+--
+12529-                          
+12530-                          if (editingAdminId) {
+12531:                            setAdminAccounts(adminAccounts.map(a => 
+12532-                              a.id === editingAdminId 
+12533-                                ? { ...a, name: newAdminName, username: newAdminUser, password: newAdminPass, accessTabs: newAdminAccess }
+--
+12579-                                { id: "settings", label: "Platform & Shift" },
+12580-                                { id: "sheets", label: "Spreadsheet Sync" }
+12581:                              ].map(tab => (
+12582-                                <label key={tab.id} className="flex items-center gap-2 p-2.5 bg-white border border-slate-100 rounded-lg cursor-pointer hover:border-indigo-300 transition-colors">
+12583-                                   <input 
+--
+12607-                    {adminAccounts.length > 0 ? (
+12608-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+12609:                        {adminAccounts.map(ad => (
+12610-                          <div key={ad.id} className="bg-white border text-left border-slate-200 rounded-xl p-5 shadow-sm relative">
+12611-                            <div className="absolute top-4 right-4 flex items-center gap-1">
+--
+12643-                                  <span className="text-[10px] text-red-500 bg-red-50 px-2 py-0.5 rounded font-medium">Tidak ada akses</span>
+12644-                               ) : (
+12645:                                  ad.accessTabs.map(tab => (
+12646-                                    <span key={tab} className="text-[9px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-semibold">
+12647-                                      {tab.replace(/_/g, ' ')}
+--
+12727-                        >
+12728-                          {studios.length > 0 ? (
+12729:                            studios.map((std, i) => ( <option key={std.id + '_' + i} value={std.location}>{std.location}</option>
+12730-                            ))
+12731-                          ) : (
+--
+12843-                    </thead>
+12844-                    <tbody className="divide-y divide-purple-100">
+12845:                      {hosts.map(h => (
+12846-                        <HostCredentialRow
+12847-                          key={h.id}
+--
+13060-          >
+13061-            {studios.length > 0 ? (
+13062:              studios.map((std, i) => ( <option key={std.id + '_' + i} value={std.name}>{std.name} ({std.location})</option>
+13063-              ))
+13064-            ) : (

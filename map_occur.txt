@@ -1,0 +1,149 @@
+250:        {steps.map((step, i) => (
+270:            {steps.map((_, i) => (
+565:           const platforms = Array.from(new Set((records as any[]).map(r => r.platform || "Tiktok")));
+585:        newHistory = newHistory.map(h => {
+605:      _setAdminAccounts(snap.docs.map(d => d.data() as AdminAccount));
+608:      const data = snap.docs.map(d => d.data() as HostEmployee);
+615:      _setLogs(snap.docs.map(d => d.data() as AttendanceLog));
+618:      _setClientBrands(snap.docs.map(d => d.data() as ClientBrand));
+621:      _setClientLeads(snap.docs.map(d => d.data() as ClientLead));
+624:      setBrandPerformanceLogs(snap.docs.map(d => {
+637:      setBrandUploadHistory(snap.docs.map(d => d.data()));
+658:      _setSchedules(snap.docs.map(d => d.data()));
+986:    setHosts(prev => prev.map(h => {
+1034:    const nextIdNum = hosts.length > 0 ? Math.max(...hosts.map(h => {
+1359:      const updated = prev.map(n => ({ ...n, read: true }));
+1413:    setHostNotifications(prev => prev.map(n => n.hostId === hostId ? { ...n, read: true } : n));
+1511:        const headers = (jsonData[headerRowIdx] as any[]).map(h => String(h || '').trim().toLowerCase());
+1710:            const parts = rawAvgViewDuration.split(':').map(Number);
+2392:    const [logY, logM, logD] = logDateStr.split('-').map(Number);
+2396:    const [refY, refM, refD] = filterReferenceDate.split('-').map(Number);
+2536:    return hosts.map(host => {
+2888:    setLogs(prev => prev.map(l => {
+2898:    setLogs(prev => prev.map(log => {
+2909:    setLogs(prev => prev.map(log => {
+2920:    setLogs(prev => prev.map(log => {
+2966:    let parsedData = mappingRawData.map((row: any, index: number) => {
+3168:        listDetails = toxicHosts.map(h => `- **${h.name}**: Terlambat **${h.countTerlambat} kali**, Alpa/Tidak Hadir **${h.countAlpa} kali**. (Kehadiran: ${Math.round((h.totalHadir / (h.totalHadir + h.countAlpa)) * 100)}%)`).join("\n");
+3709:                                    hostNotifications.filter(n => n.hostId === activeHostObj?.id).map(notif => (
+3873:                          {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
+3896:                          {platforms.map(p => (
+3919:                          {shifts.map(s => (
+3942:                          {studios.map(st => (
+3986:                          group.months.map(m => {
+4100:                      hostLogs.map((item, idx) => (
+4220:                        return Array.from({ length: offset }).map((_, i) => (
+4227:                        return Array.from({ length: daysInMonth }).map((_, i) => {
+4299:                           const uniqueBrands = Array.from(new Set(mySchedsMonth.map(s => s.brand))).filter(Boolean) as string[];
+4301:                           return uniqueBrands.map(b => {
+4345:                      return sortedScheds.map(sch => {
+4493:                  ].map(item => (
+4554:                            const allDates = Array.from<string>(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean) as string[])); allDates.sort();
+4754:                                   {platforms.map(p => (
+4763:                                   ].map(item => (
+4830:                                       ].map((m, idx) => {
+5060:                                                      {payload.map((entry: any, idx: number) => (
+5121:                                          const shiftsArray = Object.keys(shiftData).map(k => ({ name: k, gmv: shiftData[k] })).sort((a,b) => b.gmv - a.gmv);
+5126:                                          return shiftsArray.map((sh, idx) => (
+5174:                                          const daysArray = Object.keys(dayData).map(k => ({ name: k, ...dayData[k] })).sort((a,b) => {
+5185:                                          return daysArray.map((dy, idx) => (
+5230:                                     paginatedLogs.map((log, idx) => {
+5359:                      })().map((item, index) => {
+5569:                                  notifications.map((notif) => {
+5586:                                            const updated = prev.map(n => n.id === notif.id ? { ...n, read: true } : n);
+5746:                    ).map(([plat, count]) => (
+5780:                                {clientBrands.length > 0 ? clientBrands.map((b) => (
+5816:                                {clientBrands.length > 0 ? clientBrands.map((b) => (
+5847:                                {shifts.map(sh => (
+5855:                                  ...studios.map(s => s.name),
+5856:                                  ...clientBrands.flatMap(b => b.sessions?.map(s => s.studio || "") || []).filter(Boolean)
+5869:                                return allStudioNames.map((studioName, i) => (
+5872:                                        {shifts.map(shift => {
+5875:                                                .map(b => b.name);
+5913:                           {hosts.slice(0, 4).map((h, i) => (
+6215:                                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+6226:                                        return dCells.map((dObj, idx) => {
+6335:                                    {idleHosts.map(h => (
+6391:                              const uniqueScheds: any[] = Array.from(new Map(dayScheds.map((s: any) => [s.id, s])).values());
+6395:                                ...studios.map(st => st.name),
+6396:                                ...uniqueScheds.map(s => s.studio || "Tanpa Studio")
+6401:                                  {studioNames.map(studioName => {
+6455:                                            studioScheds.map((sch: any, idxSch: number) => {
+6597:                           {hosts.map(h => (
+6642:                        {["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"].map((dayName, idx) => (
+6710:                                     return Object.entries(groupedSchedules).slice(0, 3).map(([stdName, scheds]: [string, any[]]) => (
+6714:                                           {scheds.slice(0, 4).map((sch: any, idxSch: number) => {
+6949:                                setSchedules(prev => prev.map(s => s.id === scheduleForm.id ? newSchedule : s));
+7003:                                  {studios.map(s => (
+7047:                                  {hosts.map(h => (
+7064:                                  {shifts.map(sh => (
+7077:                                  {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
+7090:                                  {platforms.map(p => (
+7383:                                  group.months.map(m => {
+7485:                          group.months.map(m => {
+7902:                          filteredHostReportList.map((item, idx) => {
+8225:                      filteredHostReportList.map((item, idx) => {
+8425:                        const rows = filteredHostReportList.map(h => [
+8439:                          ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+8525:                  ].map((pill) => {
+8581:                      {platforms.map(p => (
+8594:                      {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
+8672:                            {hosts.map(h => (
+8678:                            {hosts.map(h => (
+8699:                             <button type="button" onClick={() => setManualForm(p => ({ ...p, hostIds: hosts.map(h => h.id) }))} className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded cursor-pointer border-0">Pilih Semua</button>
+8718:                          {Array.from(new Set([...brands, ...clientBrands.map(cb => cb.name)])).filter(Boolean).map(b => (
+8732:                          {platforms.map(p => (
+8746:                          {shifts.map(s => (
+8760:                          {studios.map(st => (
+8789:                             {manualForm.dates.map((d, i) => (
+8879:                        {filteredLogsList.map((item) => {
+9116:                          setClientBrands(prev => prev.map(b => b.id === newBrand.id ? newBrand : b));
+9163:                            {(brandFormEditor.sessions || []).map((sess, idx) => (
+9167:                                  onChange={e => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, platform: e.target.value } : s) } : prev)}
+9170:                                  {platforms.map((p, i) => <option key={p + '_' + i} value={p}>{p}</option>)}
+9174:                                  onChange={e => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, shift: e.target.value } : s) } : prev)}
+9177:                                  {shifts.map((sh, i) => <option key={sh + '_' + i} value={sh}>{sh}</option>)}
+9181:                                  onChange={e => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, studio: e.target.value } : s) } : prev)}
+9185:                                  {studios.map((st, i) => <option key={st.id + '_' + i} value={st.name}>{st.name} - {st.location}</option>)}
+9189:                                  onChange={e => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, host: e.target.value } : s) } : prev)}
+9193:                                  {hosts.map((h, i) => <option key={h.id + '_' + i} value={h.name}>{h.name}</option>)}
+9215:                            {(brandFormEditor.accounts || []).map((acc, idx) => (
+9221:                                     onChange={e => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, type: e.target.value } : a) } : prev)}
+9225:                                     {platforms.map((p, i) => <option key={p + '_' + i} value={p}>{p}</option>)}
+9234:                                     onChange={e => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, username: e.target.value } : a) } : prev)}
+9243:                                     onChange={e => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, password: e.target.value } : a) } : prev)}
+9252:                                     onChange={e => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, picOtp: e.target.value } : a) } : prev)}
+9323:                          filteredAndSortedBrands.map((brand, i) => (
+9332:                                  {brand.sessions && brand.sessions.length > 0 ? brand.sessions.map((sess) => (
+9353:                                  {brand.accounts && brand.accounts.length > 0 ? brand.accounts.map((acc) => (
+9453:                        .map(brand => {
+9692:                          {clientBrands.map(b => (
+10023:                              {reportingRawData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((row, idx) => {
+10091:                            const allDates = Array.from<string>(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean) as string[])); allDates.sort();
+10291:                                   {platforms.map(p => (
+10300:                                   ].map(item => (
+10367:                                       ].map((m, idx) => {
+10597:                                                      {payload.map((entry: any, idx: number) => (
+10658:                                          const shiftsArray = Object.keys(shiftData).map(k => ({ name: k, gmv: shiftData[k] })).sort((a,b) => b.gmv - a.gmv);
+10663:                                          return shiftsArray.map((sh, idx) => (
+10711:                                          const daysArray = Object.keys(dayData).map(k => ({ name: k, ...dayData[k] })).sort((a,b) => {
+10722:                                          return daysArray.map((dy, idx) => (
+10768:                                     paginatedLogs.map((log, idx) => {
+10858:                        const existingBatchIds = new Set(brandUploadHistory.map(h => h.id));
+10905:                                     completeUploadHistory.map((history, idx) => (
+11004:                            return filteredLeads.map((lead, idx) => (
+11022:                                  onChange={(e) => setClientLeads(p => p.map(x => x.id === lead.id ? {...x, status: e.target.value as any} : x))}
+11104:                            setClientLeads(prev => prev.map(l => l.id === newLead.id ? newLead : l));
+11134:                                    {platforms.map((p, i) => <option key={p + '_' + i} value={p}>{p}</option>)}
+11221:                    {chatMessages.map(msg => (
+11407:                        {platforms.map((platform, idx) => (
+11551:                        {brands.map((brand, idx) => (
+11695:                        {shifts.map((shift, idx) => (
+11854:                        {studios.map((studio, idx) => (
+12531:                            setAdminAccounts(adminAccounts.map(a => 
+12581:                              ].map(tab => (
+12609:                        {adminAccounts.map(ad => (
+12645:                                  ad.accessTabs.map(tab => (
+12729:                            studios.map((std, i) => ( <option key={std.id + '_' + i} value={std.location}>{std.location}</option>
+12845:                      {hosts.map(h => (
+13062:              studios.map((std, i) => ( <option key={std.id + '_' + i} value={std.name}>{std.name} ({std.location})</option>

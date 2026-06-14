@@ -23,6 +23,10 @@ console.warn = (...args) => {
 const originalError = console.error;
 console.error = (...args) => {
   const msg = args.map(arg => String(arg)).join(" ");
+  if (msg.includes('unique "key" prop')) {
+    originalError("STACK TRACE FOR KEY WARNING: ", new Error().stack);
+    originalError("REACT COMPONENT STACK (from args): ", ...args);
+  }
   if (
     msg.includes("@firebase/firestore") || 
     msg.includes("WebChannelConnection") || 

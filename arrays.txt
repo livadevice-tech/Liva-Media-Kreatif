@@ -1,0 +1,3 @@
+4930:                                   steps={(tableLogs.length > 0 && tableLogs[0].platform !== "TikTok Live" && tableLogs[0].platform?.toLowerCase().includes("shopee")) ? [
+9868:                              steps={(saveTargetPlatform === "TikTok Live" || activeReportPlatform === "TikTok Live") ? [
+10397:                                   steps={(tableLogs.length > 0 && tableLogs[0].platform !== "TikTok Live" && tableLogs[0].platform?.toLowerCase().includes("shopee")) ? [

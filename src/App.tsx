@@ -86,7 +86,6 @@ import {
   Star,
   UserPlus,
   ArrowUpDown,
-  TrendingUp,
   TrendingDown
 } from "lucide-react";
 
@@ -742,6 +741,7 @@ export default function App() {
   const [brandInvoiceModalInfo, setBrandInvoiceModalInfo] = useState<ClientBrand | null>(null);
   const [reportFormModal, setReportFormModal] = useState<{isOpen: boolean, data: Partial<ClientReporting>}>({isOpen: false, data: {}});
   const [leadFormModal, setLeadFormModal] = useState<{isOpen: boolean, data: Partial<ClientLead>}>({isOpen: false, data: {}});
+  const [leadSearchQuery, setLeadSearchQuery] = useState("");
 
   // --- SCHEDULES SYSTEM FOR HOST WORKING CALENDAR ---
   const [schedules, _setSchedules] = useState<any[]>(() => {
@@ -971,9 +971,6 @@ export default function App() {
   const [passwordChangeError, setPasswordChangeError] = useState("");
   const [passwordChangeSuccess, setPasswordChangeSuccess] = useState("");
 
-  // Toast status notifier for host credentials adjustments
-  const [credentialsToast, setCredentialsToast] = useState("");
-
   // States for Adding New Host
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHostName, setNewHostName] = useState("");
@@ -992,9 +989,9 @@ export default function App() {
       }
       return h;
     }));
-    setCredentialsToast("Data host berhasil diperbarui di database!");
+    customAlert("Data host berhasil diperbarui di database!");
     setTimeout(() => {
-      setCredentialsToast("");
+      
     }, 4000);
   };
 
@@ -1065,23 +1062,23 @@ export default function App() {
     };
 
     setHosts(prev => [...prev, newHost]);
-    setCredentialsToast(`Host "${newHost.name}" berhasil didaftarkan ke sistem!`);
+    customAlert(`Host "${newHost.name}" berhasil didaftarkan ke sistem!`);
     setTimeout(() => {
-      setCredentialsToast("");
+      
     }, 4000);
   };
 
   const handleDeleteHost = (hostId: string) => {
     if (hosts.length <= 1) {
-      setCredentialsToast("Gagal! Harus ada minimal 1 Host di sistem.");
-      setTimeout(() => setCredentialsToast(""), 4000);
+      customAlert("Gagal! Harus ada minimal 1 Host di sistem.");
+      
       return;
     }
     const hostToDelete = hosts.find(h => h.id === hostId);
     setHosts(prev => prev.filter(h => h.id !== hostId));
-    setCredentialsToast(`Host "${hostToDelete?.name || hostId}" berhasil dihapus.`);
+    customAlert(`Host "${hostToDelete?.name || hostId}" berhasil dihapus.`);
     setTimeout(() => {
-      setCredentialsToast("");
+      
     }, 4000);
     
     // Safety check: if host logged in, logout
@@ -1515,7 +1512,7 @@ export default function App() {
 
         // Help detect platform from columns if not detected yet
         if (!detectedPlatform) {
-          if (headers.some(h => h.includes("tiktok") || h.includes("live room") || h.includes("anchor") || h.includes("uid") || h.includes("live impressions") || h.includes("attributed gmv") || h.includes("product impressions"))) {
+          if (headers.some(h => h.includes("tiktok") || h.includes("live room") || h.includes("judul ruang live") || h.includes("highest ccu") || h.includes("penonton serentak tertinggi") || h.includes("anchor") || h.includes("uid") || h.includes("live impressions") || h.includes("attributed gmv") || h.includes("product impressions"))) {
             detectedPlatform = "TikTok Live";
             setSaveTargetPlatform(detectedPlatform);
           } else if (headers.some(h => h.includes("shopee") || h.includes("username pembeli") || h.includes("live id") || h.includes("nama produk") || h.includes("nama livestream") || h.includes("livestream name") || h.includes("tambah ke keranjang") || h.includes("penonton aktif") || h.includes("pesanan(pesanan dibuat)") || h.includes("max concurrent viewers") || h.includes("orders(orders paid)"))) {
@@ -1550,18 +1547,18 @@ export default function App() {
           return -1;
         };
 
-        const titleIdx = findColIdx(['nama livestream', 'livestream name', 'livestream', 'streaming', 'judul', 'live', 'nama_brand', 'brand']);
-        const startIdx = findColIdx(['start time', 'waktu', 'mulai', 'start', 'tanggal', 'date']);
+        const titleIdx = findColIdx(['nama livestream', 'livestream name', 'live room title', 'judul ruang live', 'judul', 'livestream', 'streaming', 'live', 'nama_brand', 'brand']);
+        const startIdx = findColIdx(['start time', 'waktu mulai', 'waktu', 'mulai', 'start', 'tanggal', 'date']);
         const durationIdx = findColIdx(['durasi', 'duration', 'lama', 'waktu streaming']);
-        const gmvIdx = findColIdx(['penjualan(pesanan siap dikirim)', 'penjualan(pesanan dibuat)', 'sales(orders paid)', 'sales(orders created)', 'penjualan', 'attributed gmv', 'gmv', 'perolehan', 'omset', 'revenue']);
-        const productIdx = findColIdx(['produk terjual(pesanan siap dikirim)', 'produk terjual(pesanan dibuat)', 'items sold(orders paid)', 'items sold(orders created)', 'produk terjual', 'attributed items sold', 'produk', 'product', 'terjual', 'item', 'items sold', 'items']);
+        const gmvIdx = findColIdx(['penjualan(pesanan siap dikirim)', 'penjualan(pesanan dibuat)', 'sales(orders paid)', 'sales(orders created)', 'penjualan', 'attributed gmv', 'gmv', 'perolehan', 'omset', 'revenue', 'pendapatan']);
+        const productIdx = findColIdx(['produk terjual(pesanan siap dikirim)', 'produk terjual(pesanan dibuat)', 'items sold(orders paid)', 'items sold(orders created)', 'produk terjual', 'attributed items sold', 'unit terjual', 'produk', 'product', 'terjual', 'item', 'items sold', 'items']);
         const buyerIdx = findColIdx(['pembeli', 'buyers(orders paid)', 'buyers(orders created)', 'buyers', 'customers', 'customer', 'buyer', 'pelanggan']);
-        const aovIdx = findColIdx(['avg. price', 'sales per buyer(orders paid)', 'sales per buyer(orders created)', 'sales per buyer', 'aov', 'rata-rata', 'order value']);
-        const impressionsIdx = findColIdx(['penonton', 'total viewers', 'live impressions', 'impression', 'tayangan', 'visitor', 'traffic', 'pemirsa', 'exposure', 'viewers']);
-        const liveVisitsIdx = findColIdx(['penonton aktif', 'max concurrent viewers', 'viewers(max concurrent)', 'viewers(max co-current)', 'live visits', 'views', 'kunjungan live']);
+        const aovIdx = findColIdx(['avg. price', 'sales per buyer(orders paid)', 'sales per buyer(orders created)', 'sales per buyer', 'aov', 'average order value', 'rata-rata', 'order value']);
+        const impressionsIdx = findColIdx(['penonton', 'total viewers', 'live impressions', 'tayangan live', 'impression', 'tayangan', 'visitor', 'traffic', 'pemirsa', 'exposure', 'viewers']);
+        const liveVisitsIdx = findColIdx(['penonton aktif', 'max concurrent viewers', 'viewers(max concurrent)', 'viewers(max co-current)', 'highest ccu', 'penonton serentak tertinggi', 'live visits', 'views', 'kunjungan live']);
         const productImpressionsIdx = findColIdx(['tayangan produk', 'product views', 'product impression', 'product impressions']);
         const avgViewDurationIdx = findColIdx(['durasi rata-rata menonton', 'avg. watch duration', 'average watch time', 'watch duration', 'avg view', 'average view', 'rata-rata menonton', 'rata rata menonton', 'waktu menonton', 'rata-rata view']);
-        const clicksIdx = findColIdx(['tambah ke keranjang', 'product clicks', 'clicks', 'click', 'klik', 'kunjungan', 'detail', 'buka']);
+        const clicksIdx = findColIdx(['tambah ke keranjang', 'product clicks', 'klik produk', 'clicks', 'click', 'klik', 'kunjungan', 'detail', 'buka']);
         const ordersIdx = findColIdx(['pesanan(pesanan siap dikirim)', 'pesanan(pesanan dibuat)', 'orders(orders paid)', 'orders(orders created)', 'pesanan', 'attributed sku orders', 'orders', 'created', 'add to cart', 'keranjang', 'buat pesanan', 'order created', 'pesanan dibuat']);
         const followersIdx = findColIdx(['pengikut baru', 'new followers', 'pengikut', 'follower', 'followers', 'fans']);
         const likesIdx = findColIdx(['likes', 'suka', 'like', 'love']);
@@ -2148,6 +2145,7 @@ export default function App() {
   });
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
+  const [adminCalendarHostFilter, setAdminCalendarHostFilter] = useState("all");
   const [scheduleActionStartDate, setScheduleActionStartDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -2364,7 +2362,7 @@ export default function App() {
     const totalSession = hostLogs.length;
     const timely = hostLogs.filter(l => l.status === "Present").length;
     const late = hostLogs.filter(l => l.status === "Late").length;
-    const absent = hostLogs.filter(l => l.status === "Absent").length;
+    const absent = hostLogs.filter(l => l.status !== "Present" && l.status !== "Late" && l.status !== "Excused").length;
     const excused = hostLogs.filter(l => l.status === "Excused").length;
     
     // Attendance rate
@@ -2376,31 +2374,37 @@ export default function App() {
   }, [hostLogs]);
 
   // Periodic categorization states for Attendance / Salary
-  const [timeFilter, setTimeFilter] = useState("Bulanan"); // "Semua" | "Harian" | "Mingguan" | "Bulanan"
+  const [timeFilter, setTimeFilter] = useState("Semua"); // "Semua" | "Harian" | "Mingguan" | "Bulanan"
   const [filterReferenceDate, setFilterReferenceDate] = useState(() => {
     const d = new Date();
     const pad = (num: number) => String(num).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   });
 
-  const isLogDateMatching = useCallback((logDateStr: string) => {
+  const pad = (num: number | string) => String(num).padStart(2, "0");
+
+  const isLogDateMatching = useCallback((rawLogDateStr: string) => {
     if (timeFilter === "Semua") return true;
     
-    // Parse "YYYY-MM-DD" safely
-    const logDate = new Date(logDateStr);
-    const refDate = new Date(filterReferenceDate);
+    const logDateStr = normalizeDateYMD(rawLogDateStr);
+    if (!logDateStr) return false;
+
+    const [logY, logM, logD] = logDateStr.split('-').map(Number);
+    if (!logY || !logM || !logD) return false;
     
-    if (isNaN(logDate.getTime()) || isNaN(refDate.getTime())) return true;
+    // Parse Reference Date safely
+    const [refY, refM, refD] = filterReferenceDate.split('-').map(Number);
+    if (!refY || !refM || !refD) return true;
     
     if (timeFilter === "Harian") {
-      // strictly matches the chosen date
       return logDateStr === filterReferenceDate;
     }
     
     if (timeFilter === "Mingguan") {
-      // matches days within the same week: up to 6 days prior to reference date
-      const diffTime = refDate.getTime() - logDate.getTime();
-      const diffDays = diffTime / (1000 * 60 * 60 * 24);
+      // For week differences, since we rely on 7 backward days, use UTC date objects to avoid timezone jumps
+      const logUtc = Date.UTC(logY, logM - 1, logD);
+      const refUtc = Date.UTC(refY, refM - 1, refD);
+      const diffDays = (refUtc - logUtc) / (1000 * 60 * 60 * 24);
       return diffDays >= 0 && diffDays < 7;
     }
     
@@ -2409,28 +2413,33 @@ export default function App() {
         const startDay = salarySettings.cutOffStartDay ?? 16;
         const endDay = salarySettings.cutOffEndDay ?? 15;
         
-        let periodStart: Date;
-        let periodEnd: Date;
+        let startPeriodY = refY;
+        let startPeriodM = refM;
+        let endPeriodY = refY;
+        let endPeriodM = refM;
         
-        const refDay = refDate.getDate();
-        
-        if (refDay >= startDay) {
-          periodStart = new Date(refDate.getFullYear(), refDate.getMonth(), startDay, 0, 0, 0);
-          periodEnd = new Date(refDate.getFullYear(), refDate.getMonth() + 1, endDay, 23, 59, 59);
+        if (refD >= startDay) {
+          endPeriodM += 1;
+          if (endPeriodM > 12) {
+            endPeriodM = 1;
+            endPeriodY += 1;
+          }
         } else {
-          periodStart = new Date(refDate.getFullYear(), refDate.getMonth() - 1, startDay, 0, 0, 0);
-          periodEnd = new Date(refDate.getFullYear(), refDate.getMonth(), endDay, 23, 59, 59);
+          startPeriodM -= 1;
+          if (startPeriodM < 1) {
+             startPeriodM = 12;
+             startPeriodY -= 1;
+          }
         }
         
-        return logDate >= periodStart && logDate <= periodEnd;
+        const startStr = `${startPeriodY}-${pad(startPeriodM)}-${pad(startDay)}`;
+        const endStr = `${endPeriodY}-${pad(endPeriodM)}-${pad(endDay)}`;
+        
+        return logDateStr >= startStr && logDateStr <= endStr;
       }
 
-      // matches same year & month
-      const logYear = logDate.getFullYear();
-      const logMonth = logDate.getMonth();
-      const refYear = refDate.getFullYear();
-      const refMonth = refDate.getMonth();
-      return logYear === refYear && logMonth === refMonth;
+      // matches same year & month (without cutoff)
+      return logY === refY && logM === refM;
     }
     
     return true;
@@ -2444,14 +2453,8 @@ export default function App() {
   const [dbSearch, setDbSearch] = useState("");
   const [dbPlatformFilter, setDbPlatformFilter] = useState("Semua Platform");
   const [dbBrandFilter, setDbBrandFilter] = useState("Semua Brand");
-  const [dbDateFilterStart, setDbDateFilterStart] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
-  const [dbDateFilterEnd, setDbDateFilterEnd] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
+  const [dbDateFilterStart, setDbDateFilterStart] = useState("");
+  const [dbDateFilterEnd, setDbDateFilterEnd] = useState("");
   const [dbSortDir, setDbSortDir] = useState<"desc" | "asc">("desc");
 
   // Filter/Sort for Operator Data Brand tab
@@ -2531,11 +2534,11 @@ export default function App() {
   // Operator-level list of Host detailed stats & Salary recapitulation
   const hostReportList = useMemo(() => {
     return hosts.map(host => {
-      const records = logs.filter(l => l.hostId === host.id && isLogDateMatching(l.date));
+      const records = logs.filter(l => (l.hostId === host.id || l.hostName === host.name) && isLogDateMatching(l.date || (typeof (l as any).timestamp === "string" ? (l as any).timestamp.split(" ")[0] : "")));
       
       const countTepatWaktu = records.filter(r => r.status === "Present").length;
       const countTerlambat = records.filter(r => r.status === "Late").length;
-      const countAlpa = records.filter(r => r.status === "Absent").length;
+      const countAlpa = records.filter(r => r.status !== "Present" && r.status !== "Late" && r.status !== "Excused").length;
       const countIzin = records.filter(r => r.status === "Excused").length;
       const totalHadir = countTepatWaktu + countTerlambat;
 
@@ -2699,12 +2702,20 @@ export default function App() {
                           (item.employeeId && item.employeeId.toLowerCase().includes(dbSearchLower));
       const matchPlatform = isPlatformMatch(item.platform, dbPlatformFilter);
       const matchBrand = dbBrandFilter === "Semua Brand" || item.brandHandled === dbBrandFilter;
-      const matchStatus = dbStatusFilter === "All" || item.status === dbStatusFilter;
+      let matchStatus = false;
+      if (dbStatusFilter === "All") {
+        matchStatus = true;
+      } else if (dbStatusFilter === "Absent") {
+        matchStatus = item.status !== "Present" && item.status !== "Late" && item.status !== "Excused";
+      } else {
+        matchStatus = item.status === dbStatusFilter;
+      }
       
       let matchDate = true;
       if (dbDateFilterStart || dbDateFilterEnd) {
         // use item.date if available, else fallback to extracting from timestamp if it's a string
-        const datePart = item.date || (typeof item.timestamp === "string" ? item.timestamp.split(" ")[0] : "");
+        const datePartRaw = item.date || (typeof item.timestamp === "string" ? item.timestamp.split(" ")[0] : "");
+        const datePart = normalizeDateYMD(datePartRaw);
         if (!datePart) {
            matchDate = false;
         } else {
@@ -2732,7 +2743,7 @@ export default function App() {
     const totalEntries = logs.length;
     const countTepatWaktu = logs.filter(l => l.status === "Present").length;
     const countTerlambat = logs.filter(l => l.status === "Late").length;
-    const countAlpa = logs.filter(l => l.status === "Absent").length;
+    const countAlpa = logs.filter(l => l.status !== "Present" && l.status !== "Late" && l.status !== "Excused").length;
     const countIzin = logs.filter(l => l.status === "Excused").length;
     
     const punctualityRate = (countTepatWaktu + countTerlambat) > 0
@@ -2762,46 +2773,104 @@ export default function App() {
 
   // --- MANUAL ATTENDANCE LOG GENERATION (MANAGEMENT TOOL) ---
   const [showManualForm, setShowManualForm] = useState(false);
-  const [manualForm, setManualForm] = useState(() => ({
+  const [manualForm, setManualForm] = useState<{
+    hostId: string;
+    hostIds: string[];
+    isBulkHost: boolean;
+    brand: string;
+    platform: string;
+    shift: string;
+    studio: string;
+    date: string;
+    dates: string[];
+    isBulkDate: boolean;
+    status: "Present" | "Late" | "Absent" | "Excused";
+  }>(() => ({
     hostId: hosts[0]?.id || "",
+    hostIds: [],
+    isBulkHost: false,
     brand: brands[0] || "Wardah",
     platform: platforms[0] || "TikTok Live",
     shift: shifts[0] || "Shift 1 (05.00 - 11.00)",
     studio: studios[0]?.name || "Studio Bandar Lampung",
     date: new Date().toISOString().split("T")[0],
+    dates: [new Date().toISOString().split("T")[0]],
+    isBulkDate: false,
     status: "Present" as "Present" | "Late" | "Absent" | "Excused",
-    simulatedHours: 4.0
   }));
 
   const handleManualLogSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const targetedHost = hosts.find(h => h.id === manualForm.hostId);
-    if (!targetedHost) return;
+    try {
+      let targetHostIds = manualForm.isBulkHost ? manualForm.hostIds : [manualForm.hostId];
+      if (targetHostIds.length === 0 && manualForm.hostId) {
+        targetHostIds = [manualForm.hostId];
+      }
+      if (targetHostIds.length === 0 && hosts.length > 0) {
+        targetHostIds = [hosts[0].id];
+      }
 
-    const randomOrders = manualForm.status === "Absent" ? 0 : Math.floor(Math.random() * 200) + 100;
-    const randomRevenue = manualForm.status === "Absent" ? 0 : randomOrders * 60000;
+      const matchedHosts = hosts.filter((h) => targetHostIds.includes(h.id));
+      if (matchedHosts.length === 0) {
+        customAlert("Gagal: Tidak ada host yang dipilih.");
+        
+        return;
+      }
 
-    const newLog: AttendanceLog = {
-      id: `log_manual_${Date.now()}`,
-      hostId: targetedHost.id,
-      hostName: targetedHost.name,
-      employeeId: targetedHost.employeeId,
-      date: manualForm.date,
-      shiftHours: manualForm.shift,
-      platform: manualForm.platform,
-      brandHandled: manualForm.brand,
-      studio: manualForm.studio,
-      liveDuration: manualForm.status === "Absent" ? 0 : Number(manualForm.simulatedHours),
-      sessionCount: manualForm.status === "Absent" ? 0 : 1,
-      status: manualForm.status,
-      revenueGenerated: randomRevenue,
-      conversionRate: manualForm.status === "Absent" ? 0 : 3.8,
-      engagementRate: manualForm.status === "Absent" ? 0 : 7.2,
-      orders: randomOrders
-    };
+      let targetDates: string[] = [];
+      if (manualForm.isBulkDate) {
+        // filter out empty dates and ensure uniqueness
+        targetDates = Array.from(new Set(manualForm.dates.filter(d => Boolean(d))));
+      } else {
+        if (!manualForm.date) {
+           customAlert("Gagal: Tanggal tidak boleh kosong.");
+           
+           return;
+        }
+        targetDates = [manualForm.date];
+      }
 
-    setLogs(prev => [newLog, ...prev]);
-    setShowManualForm(false);
+      if (targetDates.length === 0) {
+        customAlert("Gagal: Minimal harus ada satu tanggal yang valid.");
+        
+        return;
+      }
+
+      const newLogs: AttendanceLog[] = [];
+      targetDates.forEach((dateStr, dIdx) => {
+        matchedHosts.forEach((targetedHost, hIdx) => {
+          const randomOrders = manualForm.status === "Absent" ? 0 : Math.floor(Math.random() * 200) + 100;
+          const randomRevenue = manualForm.status === "Absent" ? 0 : randomOrders * 60000;
+          newLogs.push({
+            id: `log_manual_${Date.now()}_${dIdx}_${hIdx}`,
+            hostId: targetedHost.id,
+            hostName: targetedHost.name,
+            employeeId: targetedHost.employeeId,
+            date: dateStr,
+            shiftHours: manualForm.shift,
+            platform: manualForm.platform,
+            brandHandled: manualForm.brand,
+            studio: manualForm.studio,
+            liveDuration: manualForm.status === "Absent" ? 0 : 4,
+            sessionCount: manualForm.status === "Absent" ? 0 : 1,
+            status: manualForm.status,
+            revenueGenerated: randomRevenue,
+            conversionRate: manualForm.status === "Absent" ? 0 : 3.8,
+            engagementRate: manualForm.status === "Absent" ? 0 : 7.2,
+            orders: randomOrders
+          });
+        });
+      });
+
+      if (newLogs.length > 0) {
+        setLogs((prev: AttendanceLog[]) => [...newLogs, ...prev]);
+        customAlert(`Berhasil menyimpan ${newLogs.length} data absensi manual.`);
+        
+      }
+      setShowManualForm(false);
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    }
   };
 
   const handleDeleteLog = (id: string) => {
@@ -3142,8 +3211,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
         syncToFirestore("logs", logs, []);
         syncToFirestore("client_brands", clientBrands, []);
         syncToFirestore("client_leads", clientLeads, []);
-        setCredentialsToast("Semua data di database cloud berhasil dikosongkan.");
-        setTimeout(() => setCredentialsToast(""), 3000);
+        customAlert("Semua data di database cloud berhasil dikosongkan.");
+        
       },
       "danger"
     );
@@ -3175,8 +3244,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
         checkAndMigrate("client_brands", "mcn_client_brands");
         checkAndMigrate("client_leads", "mcn_client_leads");
 
-        setCredentialsToast(`Berhasil memeriksa dan menyinkronkan data lokal. (Menemukan dan mencoba memulihkan item)`);
-        setTimeout(() => setCredentialsToast(""), 4000);
+        customAlert(`Berhasil memeriksa dan menyinkronkan data lokal. (Menemukan dan mencoba memulihkan item)`);
+        
       },
       "warning"
     );
@@ -3202,8 +3271,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-      setCredentialsToast("Berhasil mengunduh berkas backup data JSON!");
-      setTimeout(() => setCredentialsToast(""), 3000);
+      customAlert("Berhasil mengunduh berkas backup data JSON!");
+      
     } catch (err: any) {
       customAlert("Gagal mengekspor data: " + err.message);
     }
@@ -3254,8 +3323,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                 setPlatforms(parsed.platforms);
               }
               
-              setCredentialsToast("Database berhasil diimpor & disinkronkan ke Cloud dari file JSON secara real-time!");
-              setTimeout(() => setCredentialsToast(""), 4000);
+              customAlert("Database berhasil diimpor & disinkronkan ke Cloud dari file JSON secara real-time!");
+              
             },
             "warning"
           );
@@ -3671,22 +3740,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     </div>
                   </div>
 
-                {/* Live Automatically Recorded Clock Widget */}
-                <div className="bg-gradient-to-br from-purple-600 to-indigo-700 border border-purple-500/20 p-4 rounded-xl text-center mb-6 shadow-md shadow-purple-950/10">
-                  <div className="text-xs text-purple-100 flex items-center justify-center gap-1.5 mb-1">
-                    <Clock className="w-3.5 h-3.5 text-purple-200" />
-                    Waktu Server Sekarang (WIB):
-                  </div>
-                  <div className="text-2xl font-black font-mono tracking-widest text-[#fcfbfe] text-center drop-shadow-sm">
-                    {formattedLiveTime}
-                  </div>
-                  <div className="text-[10px] tracking-wide text-purple-200 mt-1 uppercase font-bold">
-                    {formattedLiveDate}
-                  </div>
-                  <p className="text-[9px] text-purple-200/80 font-mono mt-2 pt-2 border-t border-purple-500/40">
-                    🔒 Jam & Tanggal otomatis tercatat saat kirim data (Anti-Falsifikasi)
-                  </p>
-                </div>
+                {/* Live Automatically Recorded Clock Widget Removed */}
 
                 {/* Gated Access Area for Host Interactive Controls */}
                 {loggedInHostId && (
@@ -4043,8 +4097,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         Belum ada sejarah absen hari ini.
                       </div>
                     ) : (
-                      hostLogs.map(item => (
-                        <div key={item.id} className="bg-purple-50/35 p-2 rounded-xl border border-purple-100/60 flex justify-between items-center transition-all">
+                      hostLogs.map((item, idx) => (
+                        <div key={item.id + "_" + idx} className="bg-purple-50/35 p-2 rounded-xl border border-purple-100/60 flex justify-between items-center transition-all">
                           <div>
                             <div className="font-bold text-purple-950">
                               {item.brandHandled}
@@ -4294,8 +4348,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         const isSelectedInList = selectedHostCalendarDate === sch.date;
                         
                         return (
-                          <div 
-                            key={sch.id} 
+                                                  <div 
+                                                    key={(sch?.id || "") + "_" + Math.random().toString(36).substr(2, 9)} 
                             id={`host-shift-${sch.date}`}
                             className={`p-3 rounded-xl border transition-all ${
                               isSelectedInList
@@ -4497,7 +4551,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                          let prevStartDate = "";
                          let prevEndDate = "";
                          if (effectiveFilter === "latest") {
-                            const allDates = Array.from(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean))).sort();
+                            const allDates = Array.from<string>(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean) as string[])); allDates.sort();
                             if (allDates.length > 0) {
                                targetLatestDate = allDates[allDates.length - 1];
                                latestDateLabel = targetLatestDate;
@@ -5067,10 +5121,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           const shiftsArray = Object.keys(shiftData).map(k => ({ name: k, gmv: shiftData[k] })).sort((a,b) => b.gmv - a.gmv);
                                           
                                           if (shiftsArray.length === 0) {
-                                            return <tr><td colSpan={3} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
+                                            return <tr key="empty-data"><td colSpan={3} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
                                           }
                                           return shiftsArray.map((sh, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50">
+                                            <tr key={sh.name || idx} className="hover:bg-slate-50">
                                               <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
                                               <td className="px-5 py-3.5 text-slate-700 font-mono text-[11px]">{sh.name}</td>
                                               <td className="px-5 py-3.5 text-slate-700">{new Intl.NumberFormat('id-ID').format(sh.gmv)}</td>
@@ -5125,11 +5179,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             return 0;
                                           });
                                           if (daysArray.length === 0) {
-                                            return <tr><td colSpan={4} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
+                                            return <tr key="empty-data"><td colSpan={3} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
                                           }
                                           
                                           return daysArray.map((dy, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50">
+                                            <tr key={dy.name || idx} className="hover:bg-slate-50">
                                               <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
                                               <td className="px-5 py-3.5 text-slate-700">{dy.name}</td>
                                               <td className="px-5 py-3.5 text-slate-700">{new Intl.NumberFormat('id-ID').format(dy.views)}</td>
@@ -5179,7 +5233,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                        const lCtor = log.clicks > 0 ? ((log.orders / log.clicks) * 100) : 0;
 
                                        return (
-                                       <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                                       <tr key={log.id || idx} className="hover:bg-slate-50/50 transition-colors">
                                          <td className="px-5 py-3.5 text-slate-400">{((currentPage - 1) * ITEMS_PER_PAGE) + idx + 1}</td>
                                          <td className="px-5 py-3.5 text-slate-500">
                                            <div className="flex flex-col">
@@ -6253,7 +6307,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             const regularHosts = hosts.filter(h => (h.hostType || "Reguler") === "Reguler");
                             
                             // Get active schedules for selected calendar date
-                            const dayScheds = computedSchedules.filter(s => s.date === selectedCalendarDate && !s.isOffDay);
+                            let dayScheds = computedSchedules.filter(s => s.date === selectedCalendarDate && !s.isOffDay);
+                            
+                            // Let the host availability be based on ALL schedules, not just filtered ones, to show true availability.
+                            // But wait, the list of schedules below it SHOULD be filtered by adminCalendarHostFilter.
                             
                             // Hosts currently active/assigned on this day in any studio
                             const activeHostIds = new Set(
@@ -6299,7 +6356,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                           <div className="pt-1">
                             {(() => {
-                              let dayScheds = computedSchedules.filter(s => s.date === selectedCalendarDate);
+                              let dayScheds = computedSchedules.filter(s => s.date === selectedCalendarDate && (adminCalendarHostFilter === "all" || s.hostId === adminCalendarHostFilter));
                               
                               if (scheduleModalSearch.trim()) {
                                 const q = scheduleModalSearch.toLowerCase();
@@ -6395,12 +6452,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               Kosong
                                             </div>
                                           ) : (
-                                            studioScheds.map((sch: any) => {
+                                            studioScheds.map((sch: any, idxSch: number) => {
                                               const isOff = sch.isOffDay;
                                               const isPindah = sch.isPindahStudio;
                                               return (
-                                                <div 
-                                                  key={sch.id}
+                                                  <div 
+                                                    key={(sch?.id || "") + "_" + Math.random().toString(36).substr(2, 9)}
                                                   className={`p-2 rounded-lg border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all flex flex-col justify-between hover:border-slate-300 text-[11px] ${
                                                     isOff 
                                                       ? "border-l-[3.5px] border-l-amber-500 border-y-slate-100 border-r-slate-100" 
@@ -6530,6 +6587,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                            className="px-3 py-1.5 bg-white border border-slate-200 shadow-sm rounded-lg text-[11px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">
                            Hari Ini
                          </button>
+                         <div className="hidden min-[400px]:block w-px h-6 bg-slate-200"></div>
+                         <select 
+                           value={adminCalendarHostFilter}
+                           onChange={(e) => setAdminCalendarHostFilter(e.target.value)}
+                           className="bg-white border border-slate-200 shadow-sm rounded-lg text-xs font-bold text-slate-700 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                         >
+                           <option value="all">Semua Host</option>
+                           {hosts.map(h => (
+                             <option key={h.id} value={h.id}>{h.name}</option>
+                           ))}
+                         </select>
                       </div>
                       
                       <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto">
@@ -6595,7 +6663,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                            // Fill actual days
                            for (let i = 1; i <= daysInMonth; i++) {
                              const dateString = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                             const daySchedules = computedSchedules.filter(s => s.date === dateString);
+                             const daySchedules = computedSchedules.filter(s => s.date === dateString && (adminCalendarHostFilter === "all" || s.hostId === adminCalendarHostFilter));
                              const isSelected = selectedCalendarDate === dateString;
                              const isToday = (new Date().toISOString().split('T')[0]) === dateString;
                              
@@ -6643,22 +6711,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                        <div key={stdName} className="mb-1.5 last:mb-0 bg-slate-50 rounded p-1 border border-slate-100">
                                          <div className="text-[8px] font-black uppercase text-slate-500 mb-1 tracking-wider">{stdName}</div>
                                          <div className="space-y-1">
-                                           {scheds.slice(0, 4).map((sch: any) => {
-                                              const colorNum = sch.timeSlot.charCodeAt(0) % 5;
-                                              const colorClasses = [
-                                                "bg-[#f3e8ff] border-[#d8b4fe] text-[#6b21a8]",
-                                                "bg-[#e0f2fe] border-[#bae6fd] text-[#0369a1]",
-                                                "bg-[#dcfce7] border-[#bbf7d0] text-[#15803d]",
-                                                "bg-[#ffedd5] border-[#fdba74] text-[#c2410c]",
-                                                "bg-[#fce7f3] border-[#fbcfe8] text-[#be185d]"
-                                              ][colorNum];
+                                           {scheds.slice(0, 4).map((sch: any, idxSch: number) => {
+                                              const bColor = getBrandColor(sch.brand || sch.timeSlot || "");
+                                              const colorClasses = `${bColor.bg} border ${bColor.border} ${bColor.text}`;
                                               
                                               const isOff = sch.isOffDay;
                                               
                                               if (isOff) {
                                                 return (
                                                   <div 
-                                                    key={sch.id} 
+                                                    key={(sch?.id || "") + "_" + Math.random().toString(36).substr(2, 9)} 
                                                     onClick={(e) => { 
                                                       e.stopPropagation(); 
                                                       setIsScheduleModalOpen(true); 
@@ -6683,8 +6745,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               }
 
                                               return (
-                                                <div 
-                                                  key={sch.id} 
+                                                  <div 
+                                                    key={(sch?.id || "") + "_" + Math.random().toString(36).substr(2, 9)} 
                                                   onClick={(e) => { 
                                                       e.stopPropagation(); 
                                                       setIsScheduleModalOpen(true); 
@@ -7831,7 +7893,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </thead>
                       <tbody>
                         {filteredHostReportList.length === 0 ? (
-                          <tr>
+                          <tr key="empty">
                             <td colSpan={7} className="text-center py-12 text-slate-400 font-mono font-medium">
                               Tidak ada rekam data host yang cocok untuk proses kalkulasi draf gaji.
                             </td>
@@ -7843,7 +7905,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             const isAtTop = idx < 3;
 
                             return (
-                              <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all font-sans" id={`salary_row_${item.id}`}>
+                              <tr key={item.id || idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all font-sans" id={`salary_row_${item.id}`}>
                                 <td className="py-4 px-6">
                                   <div className="flex items-center gap-3">
                                     <img
@@ -8160,12 +8222,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         Tidak ada rekam data host yang cocok untuk proses kalkulasi draf gaji.
                       </div>
                     ) : (
-                      filteredHostReportList.map((item) => {
+                      filteredHostReportList.map((item, idx) => {
                         const isTanggamus = item.studio && item.studio.includes("Tanggamus");
                         const hostType = item.hostType || "Reguler";
 
                         return (
-                          <div key={item.id} className="p-4 space-y-4 font-sans bg-white" id={`salary_mobile_card_${item.id}`}>
+                          <div key={item.id + "_" + idx} className="p-4 space-y-4 font-sans bg-white" id={`salary_mobile_card_${item.id}`}>
                             
                             {/* Profile Header Block */}
                             <div className="flex items-center justify-between gap-3">
@@ -8464,6 +8526,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     const isPillActive = dbStatusFilter === pill.id;
                     const count = pill.id === "All" 
                       ? logs.length 
+                      : pill.id === "Absent" 
+                      ? logs.filter(l => l.status !== "Present" && l.status !== "Late" && l.status !== "Excused").length
                       : logs.filter(l => l.status === pill.statusChoice).length;
 
                     return (
@@ -8584,19 +8648,63 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       <p className="text-[10px] text-purple-500 mt-0.5 font-semibold">Gunakan ini jika streamer melupakan smartphone check-in saat siaran live.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-xs">
-                      <div>
-                        <label className="block text-purple-950 font-bold mb-1">Nama Host:</label>
-                        <select
-                          id="manual_field_host"
-                          value={manualForm.hostId}
-                          onChange={(e) => setManualForm(prev => ({ ...prev, hostId: e.target.value }))}
-                          className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
-                        >
-                          {hosts.map(h => (
-                            <option key={h.id} value={h.id}>{h.name} ({h.studio || "Studio Bandar Lampung"})</option>
-                          ))}
-                        </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                      <div className="sm:col-span-1 md:col-span-2 lg:col-span-4 bg-slate-50 border border-slate-100 rounded-lg p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="block text-purple-950 font-bold mb-1">Nama Host:</label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <span className="text-[10px] font-bold text-slate-500">Input Masal Host?</span>
+                            <div className="relative">
+                              <input type="checkbox" className="sr-only" checked={manualForm.isBulkHost} onChange={(e) => setManualForm(prev => ({ ...prev, isBulkHost: e.target.checked, hostIds: e.target.checked ? [] : prev.hostIds }))} />
+                              <div className={`block w-8 h-4 rounded-full transition-colors ${manualForm.isBulkHost ? "bg-indigo-500" : "bg-slate-300"}`}></div>
+                              <div className={`absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full transition-transform ${manualForm.isBulkHost ? "translate-x-4" : ""}`}></div>
+                            </div>
+                          </label>
+                        </div>
+                        
+                        {!manualForm.isBulkHost ? (
+                          <select
+                            id="manual_field_host"
+                            value={manualForm.hostId}
+                            onChange={(e) => setManualForm(prev => ({ ...prev, hostId: e.target.value }))}
+                            className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
+                          >
+                            {hosts.map(h => (
+                              <option key={h.id} value={h.id}>{h.name} ({h.studio || "Studio Bandar Lampung"})</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[150px] overflow-y-auto">
+                            {hosts.map(h => (
+                              <label key={h.id} className="flex items-start gap-2 bg-white p-2 rounded border border-slate-200 cursor-pointer hover:border-indigo-300 transition-colors">
+                                <input 
+                                  type="checkbox" 
+                                  className="mt-0.5" 
+                                  checked={manualForm.hostIds.includes(h.id)} 
+                                  onChange={(e) => {
+                                    if (e.target.checked) setManualForm(prev => ({ ...prev, hostIds: [...prev.hostIds, h.id] }));
+                                    else setManualForm(prev => ({ ...prev, hostIds: prev.hostIds.filter(id => id !== h.id) }));
+                                  }} 
+                                />
+                                <div className="text-[10px] leading-tight">
+                                  <div className="font-bold text-slate-800">{h.name}</div>
+                                  <div className="text-slate-500">{h.studio || "Studio B. Lampung"}</div>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {manualForm.isBulkHost && (
+                          <div className="flex gap-2 mt-2">
+                             <button type="button" onClick={() => setManualForm(p => ({ ...p, hostIds: hosts.map(h => h.id) }))} className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded cursor-pointer border-0">Pilih Semua</button>
+                             <button type="button" onClick={() => setManualForm(p => ({ ...p, hostIds: [] }))} className="text-[9px] font-bold text-slate-500 bg-slate-200 px-2 py-1 rounded cursor-pointer border-0">Hapus Semua</button>
+                          </div>
+                        )}
+                        {manualForm.isBulkHost && manualForm.hostIds.length > 0 && (
+                          <div className="mt-2 text-[10px] font-bold text-indigo-600">
+                           {manualForm.hostIds.length} host terpilih
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -8655,15 +8763,51 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </select>
                       </div>
 
-                      <div>
-                        <label className="block text-purple-950 font-bold mb-1">Tanggal Absen:</label>
-                        <input
-                          type="date"
-                          id="manual_field_date"
-                          value={manualForm.date}
-                          onChange={(e) => setManualForm(prev => ({ ...prev, date: e.target.value }))}
-                          className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 font-mono focus:outline-none font-bold"
-                        />
+                      <div className="sm:col-span-1 lg:col-span-2 bg-slate-50 border border-slate-100 rounded-lg p-3">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="block text-purple-950 font-bold mb-1">Tanggal Absen:</label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <span className="text-[10px] font-bold text-slate-500">Input Masal Tanggal?</span>
+                            <div className="relative">
+                              <input type="checkbox" className="sr-only" checked={manualForm.isBulkDate} onChange={(e) => setManualForm(prev => ({ ...prev, isBulkDate: e.target.checked }))} />
+                              <div className={`block w-8 h-4 rounded-full transition-colors ${manualForm.isBulkDate ? "bg-indigo-500" : "bg-slate-300"}`}></div>
+                              <div className={`absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full transition-transform ${manualForm.isBulkDate ? "translate-x-4" : ""}`}></div>
+                            </div>
+                          </label>
+                        </div>
+                        
+                        {!manualForm.isBulkDate ? (
+                          <input
+                            type="date"
+                            id="manual_field_date"
+                            value={manualForm.date}
+                            onChange={(e) => setManualForm(prev => ({ ...prev, date: e.target.value }))}
+                            className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 font-mono focus:outline-none font-bold"
+                          />
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                             {manualForm.dates.map((d, i) => (
+                               <div key={i} className="flex items-center gap-2">
+                                 <input
+                                   type="date"
+                                   value={d}
+                                   onChange={(e) => setManualForm(prev => {
+                                     const newDates = [...prev.dates];
+                                     newDates[i] = e.target.value;
+                                     return { ...prev, dates: newDates };
+                                   })}
+                                   className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 font-mono focus:outline-none font-bold"
+                                 />
+                                 {manualForm.dates.length > 1 && (
+                                   <button type="button" onClick={() => setManualForm(prev => ({ ...prev, dates: prev.dates.filter((_, idx) => idx !== i) }))} className="px-2.5 py-2 text-rose-500 bg-rose-50 rounded-lg border flex-shrink-0 cursor-pointer font-bold border-rose-100"><Trash2 className="w-3.5 h-3.5" /></button>
+                                 )}
+                               </div>
+                             ))}
+                             <button type="button" onClick={() => setManualForm(prev => ({...prev, dates: [...prev.dates, new Date().toISOString().split("T")[0]]}))} className="text-[10px] w-full mt-1 bg-white border border-dashed border-indigo-200 text-indigo-500 font-bold py-2 rounded flex items-center justify-center gap-1 hover:bg-indigo-50 transition-colors shadow-none cursor-pointer">
+                               <Plus className="w-3.5 h-3.5" /> Tambah Tanggal Masal
+                             </button>
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -8679,18 +8823,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           <option value="Absent">Absent (Alpa / Bolos)</option>
                           <option value="Excused">Excused (Sakit / Izin)</option>
                         </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-purple-950 font-bold mb-1">Simulasi Live Hours:</label>
-                        <input
-                          type="number"
-                          id="manual_field_hours"
-                          step="0.5"
-                          value={manualForm.simulatedHours}
-                          onChange={(e) => setManualForm(prev => ({ ...prev, simulatedHours: Number(e.target.value) }))}
-                          className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
-                        />
                       </div>
 
                       <div className="flex items-end">
@@ -8747,8 +8879,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         {filteredLogsList.map((item) => {
                           const isRowChecked = selectedLogIds.includes(item.id);
                           return (
-                            <tr 
-                              key={item.id} 
+                            <tr key={item.id || idx} 
                               className={`border-b border-purple-50 transition-all duration-150 select-none relative ${
                                 isRowChecked 
                                   ? "bg-blue-50/45 hover:bg-blue-50/65" 
@@ -8992,31 +9123,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-slate-600 font-bold mb-1">Nama Brand</label>
-                            <input required name="name" defaultValue={brandFormEditor.name} type="text" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-bold focus:border-indigo-500 outline-none" />
+                            <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Nama Brand</label>
+                            <input required name="name" defaultValue={brandFormEditor.name} type="text" className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]" />
                           </div>
                           <div>
-                            <label className="block text-slate-600 font-bold mb-1">End Kontrak</label>
-                            <input name="contractEndDate" defaultValue={brandFormEditor.contractEndDate || new Date().toISOString().split('T')[0]} type="date" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-bold focus:border-indigo-500 outline-none" />
+                            <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">End Kontrak</label>
+                            <input name="contractEndDate" defaultValue={brandFormEditor.contractEndDate || new Date().toISOString().split('T')[0]} type="date" className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]" />
                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <div>
-                           <label className="block text-slate-600 font-bold mb-1">Tanggal Invoice (Setiap Bulan)</label>
-                            <input name="invoiceDate" defaultValue={brandFormEditor.invoiceDate} type="number" min="1" max="31" placeholder="Contoh: 5" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-bold focus:border-indigo-500 outline-none" />
+                           <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Tanggal Invoice (Setiap Bulan)</label>
+                            <input name="invoiceDate" defaultValue={brandFormEditor.invoiceDate} type="number" min="1" max="31" placeholder="Contoh: 5" className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]" />
                           </div>
                           <div>
-                            <label className="block text-slate-600 font-bold mb-1">Tgl Monthly Meeting (Setiap Bulan)</label>
-                            <input name="monthlyMeetingDate" defaultValue={brandFormEditor.monthlyMeetingDate} type="number" min="1" max="31" placeholder="Contoh: 10" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-bold focus:border-indigo-500 outline-none" />
+                            <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Tgl Monthly Meeting (Setiap Bulan)</label>
+                            <input name="monthlyMeetingDate" defaultValue={brandFormEditor.monthlyMeetingDate} type="number" min="1" max="31" placeholder="Contoh: 10" className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]" />
                           </div>
                           <div>
-                            <label className="block text-slate-600 font-bold mb-1 text-indigo-700">Username Portal Klien</label>
-                            <input name="clientUsername" defaultValue={brandFormEditor.clientUsername} type="text" placeholder="Kosongkan utk default (huruf kecil)" className="w-full bg-white border border-indigo-200 text-indigo-900 rounded-lg px-3 py-2 font-bold focus:border-indigo-500 outline-none" />
+                            <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Username Portal Klien</label>
+                            <input name="clientUsername" defaultValue={brandFormEditor.clientUsername} type="text" placeholder="Kosongkan utk default (huruf kecil)" className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]" />
                           </div>
                           <div>
-                            <label className="block text-slate-600 font-bold mb-1 text-indigo-700">Password Portal Klien</label>
-                            <input name="clientPassword" defaultValue={brandFormEditor.clientPassword || "liva123"} type="text" placeholder="Default: liva123" className="w-full bg-white border border-indigo-200 text-indigo-900 rounded-lg px-3 py-2 font-bold focus:border-indigo-500 outline-none" />
+                            <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Password Portal Klien</label>
+                            <input name="clientPassword" defaultValue={brandFormEditor.clientPassword || "liva123"} type="text" placeholder="Default: liva123" className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]" />
                           </div>
                         </div>
 
@@ -9182,14 +9313,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </thead>
                       <tbody className="divide-y divide-slate-100 flex-1">
                         {filteredAndSortedBrands.length === 0 ? (
-                          <tr>
+                          <tr key="empty">
                             <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold text-xs bg-slate-50/50">
                               {brandDataSearch ? "Brand tidak ditemukan berdasarkan pencarian." : "Belum ada data brand klien."}
                             </td>
                           </tr>
                         ) : (
                           filteredAndSortedBrands.map((brand, i) => (
-                            <tr key={brand.id} className="hover:bg-slate-50/50 transition-colors">
+                            <tr key={brand.id || i} className="hover:bg-slate-50/50 transition-colors">
                               <td className="px-4 py-3 align-top font-bold text-slate-500">{i + 1}</td>
                               <td className="px-4 py-3 align-top">
                                 <div className="font-bold text-slate-800 text-sm">{brand.name}</div>
@@ -9956,7 +10087,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                          let prevStartDate = "";
                          let prevEndDate = "";
                          if (effectiveFilter === "latest") {
-                            const allDates = Array.from(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean))).sort();
+                            const allDates = Array.from<string>(new Set(filteredDb.map(l => normalizeDateYMD(l.date)).filter(Boolean) as string[])); allDates.sort();
                             if (allDates.length > 0) {
                                targetLatestDate = allDates[allDates.length - 1];
                                latestDateLabel = targetLatestDate;
@@ -10526,10 +10657,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           const shiftsArray = Object.keys(shiftData).map(k => ({ name: k, gmv: shiftData[k] })).sort((a,b) => b.gmv - a.gmv);
                                           
                                           if (shiftsArray.length === 0) {
-                                            return <tr><td colSpan={3} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
+                                            return <tr key="empty-data"><td colSpan={3} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
                                           }
                                           return shiftsArray.map((sh, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50">
+                                            <tr key={sh.name || idx} className="hover:bg-slate-50">
                                               <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
                                               <td className="px-5 py-3.5 text-slate-700 font-mono text-[11px]">{sh.name}</td>
                                               <td className="px-5 py-3.5 text-slate-700">{new Intl.NumberFormat('id-ID').format(sh.gmv)}</td>
@@ -10584,11 +10715,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             return 0;
                                           });
                                           if (daysArray.length === 0) {
-                                            return <tr><td colSpan={4} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
+                                            return <tr key="empty-data"><td colSpan={3} className="px-5 py-8 text-center text-slate-400">Tidak ada data.</td></tr>;
                                           }
                                           
                                           return daysArray.map((dy, idx) => (
-                                            <tr key={idx} className="hover:bg-slate-50">
+                                            <tr key={dy.name || idx} className="hover:bg-slate-50">
                                               <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
                                               <td className="px-5 py-3.5 text-slate-700">{dy.name}</td>
                                               <td className="px-5 py-3.5 text-slate-700">{new Intl.NumberFormat('id-ID').format(dy.views)}</td>
@@ -10639,7 +10770,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                        const lCtor = log.clicks > 0 ? ((log.orders / log.clicks) * 100) : 0;
 
                                        return (
-                                       <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                                       <tr key={log.id || idx} className="hover:bg-slate-50/50 transition-colors">
                                          <td className="px-5 py-3.5 text-slate-400">{((currentPage - 1) * ITEMS_PER_PAGE) + idx + 1}</td>
                                          <td className="px-5 py-3.5 text-slate-500">
                                            <div className="flex flex-col">
@@ -10757,7 +10888,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                  </thead>
                                  <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
                                    {isLogsLoading ? (
-                                     <tr>
+                                     <tr key="loading">
                                        <td colSpan={6} className="px-5 py-16 text-center text-slate-500 font-bold w-full">
                                           <div className="flex flex-col items-center justify-center gap-4">
                                             <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
@@ -10766,12 +10897,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                        </td>
                                      </tr>
                                    ) : completeUploadHistory.length === 0 ? (
-                                     <tr>
+                                     <tr key="empty-history">
                                        <td colSpan={6} className="px-5 py-10 text-center text-slate-400">Belum ada riwayat upload untuk brand ini.</td>
                                      </tr>
                                    ) : (
                                      completeUploadHistory.map((history, idx) => (
-                                       <tr key={history.id} className="hover:bg-slate-50/50 transition-colors">
+                                       <tr key={history.id || idx} className="hover:bg-slate-50/50 transition-colors">
                                          <td className="px-5 py-3.5 text-slate-500">
                                            {new Date(history.uploadedAt).toLocaleString('id-ID', {day: 'numeric', month: 'short', year:'numeric', hour:'2-digit', minute:'2-digit'})}
                                          </td>
@@ -10810,51 +10941,73 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
             {operatorTab === "leads" && (
               <div className="space-y-6 animate-fadeIn" id="operator_leads_content">
                  <div className="bg-white p-6 rounded-3xl border border-indigo-100 shadow-sm relative overflow-hidden">
-                  <div className="flex justify-between items-center mb-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
                       <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
                         <Users className="w-6 h-6 text-indigo-600" /> Pipeline Leads & Calon Klien
                       </h3>
                       <p className="text-xs text-slate-500 font-semibold mt-1">Tracking status penawaran harga & dealing Liva Agency.</p>
                     </div>
-                    <button
-                      onClick={() => setLeadFormModal({isOpen: true, data: {}})}
-                      className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all border-0 cursor-pointer flex items-center gap-2 shadow-sm"
-                    >
-                      <Plus className="w-4 h-4" /> Lead Baru
-                    </button>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Cari lead..."
+                          value={leadSearchQuery}
+                          onChange={(e) => setLeadSearchQuery(e.target.value)}
+                          className="w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-400"
+                        />
+                      </div>
+                      <button
+                        onClick={() => setLeadFormModal({isOpen: true, data: {}})}
+                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all border-0 cursor-pointer flex items-center justify-center gap-2 shadow-sm whitespace-nowrap"
+                      >
+                        <Plus className="w-4 h-4" /> Lead Baru
+                      </button>
+                    </div>
                   </div>
 
                   <div className="overflow-x-auto rounded-2xl border border-indigo-50 bg-white shadow-sm font-sans">
                     <table className="w-full text-left border-collapse min-w-[700px]">
                       <thead className="bg-indigo-50/50 border-b border-indigo-50">
                         <tr>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">Info Calon Klien</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">Platform</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">Status Pipeline</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">Notes History</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">No</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">Nama Leads</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">Brand</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">Status Leads</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">Channel</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">Contact (HP/Email)</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider text-right">Aksi</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-indigo-50">
                         {clientLeads.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="py-12 text-center text-slate-400 font-semibold text-xs bg-slate-50/20">Belum ada pipeline leads tersedia. Tambahkan data lead baru.</td>
+                          <tr key="empty-all">
+                            <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold text-xs bg-slate-50/20">Belum ada pipeline leads tersedia. Tambahkan data lead baru.</td>
                           </tr>
-                        ) : (
-                          clientLeads.map(lead => (
-                            <tr key={lead.id} className="hover:bg-indigo-50/30 transition-colors">
+                        ) : (() => {
+                            const filteredLeads = clientLeads.filter(lead => 
+                              leadSearchQuery === "" || 
+                              lead.name.toLowerCase().includes(leadSearchQuery.toLowerCase()) || 
+                              (lead.contactPerson || "").toLowerCase().includes(leadSearchQuery.toLowerCase()) ||
+                              (lead.contactNumber || "").toLowerCase().includes(leadSearchQuery.toLowerCase())
+                            );
+                            if (filteredLeads.length === 0) {
+                              return (
+                                <tr key="empty-search">
+                                  <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold text-xs bg-slate-50/20">Tidak ada lead yang cocok dengan pencarian "{leadSearchQuery}".</td>
+                                </tr>
+                              );
+                            }
+                            return filteredLeads.map((lead, idx) => (
+                            <tr key={lead.id || idx} className="hover:bg-indigo-50/30 transition-colors">
+                              <td className="px-6 py-4 text-[11px] font-bold text-slate-500">{idx + 1}</td>
                               <td className="px-6 py-4">
-                                <div className="font-black text-indigo-950 text-sm mb-1">{lead.name}</div>
-                                <div className="text-[11px] text-slate-600 font-bold flex items-center gap-1">
-                                  <Users className="w-3 h-3 text-slate-400" /> PIC: {lead.contactPerson}
-                                </div>
-                                <div className="text-[11px] text-slate-600 font-mono mt-0.5">{lead.contactNumber}</div>
+                                <div className="font-bold text-indigo-950 text-sm mb-1">{lead.contactPerson || "-"}</div>
                               </td>
                               <td className="px-6 py-4">
-                                <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-md inline-block">
-                                  {lead.platformInterest}
-                                </span>
+                                <div className="font-black text-slate-800 text-sm bg-slate-100/50 px-2.5 py-1 rounded-lg inline-block border border-slate-200/60 shadow-sm">{lead.name}</div>
                               </td>
                               <td className="px-6 py-4">
                                 <select 
@@ -10877,9 +11030,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </select>
                               </td>
                               <td className="px-6 py-4">
-                                <div className="text-[11px] font-medium text-slate-600 line-clamp-2 max-w-[250px] leading-relaxed" title={lead.notes}>
-                                  {lead.notes || <span className="text-slate-400 italic">Belum ada notes</span>}
-                                </div>
+                                <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-md inline-block">
+                                  {lead.platformInterest}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-[11px] text-slate-600 font-mono mt-0.5">{lead.contactNumber || "-"}</div>
                               </td>
                               <td className="px-6 py-4 text-right text-nowrap">
                                 <div className="flex justify-end gap-1.5">
@@ -10901,8 +11057,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </div>
                               </td>
                             </tr>
-                          ))
-                        )}
+                            ));
+                          })()
+                        }
                       </tbody>
                     </table>
                   </div>
@@ -10952,57 +11109,57 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           setLeadFormModal({isOpen: false, data: {}});
                         }} className="space-y-5 text-xs font-medium">
                           
-                          <div className="space-y-4 bg-slate-50/50 border border-slate-100 p-4 sm:p-5 rounded-2xl">
+                          <div className="space-y-4">
                             <div>
-                              <label className="block text-[#3c2f56] font-black uppercase text-[10px] tracking-widest mb-1.5">Nama Brand Klien *</label>
-                              <input required name="name" defaultValue={leadFormModal.data.name} type="text" placeholder="Misal: PT. Liva Agency Kosmetik" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 shadow-sm" />
+                              <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Nama Brand Klien *</label>
+                              <input required name="name" defaultValue={leadFormModal.data.name} type="text" placeholder="Misal: PT. Liva Agency Kosmetik" className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]" />
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
-                                <label className="block text-[#3c2f56] font-black uppercase text-[10px] tracking-widest mb-1.5">Nama PIC</label>
-                                <input name="contactPerson" defaultValue={leadFormModal.data.contactPerson} type="text" placeholder="Misal: Budi / HRD" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 shadow-sm" />
+                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Nama PIC</label>
+                                <input name="contactPerson" defaultValue={leadFormModal.data.contactPerson} type="text" placeholder="Misal: Budi / HRD" className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]" />
                               </div>
                               <div>
-                                <label className="block text-[#3c2f56] font-black uppercase text-[10px] tracking-widest mb-1.5">No. WhatsApp/HP</label>
-                                <input name="contactNumber" defaultValue={leadFormModal.data.contactNumber} type="text" placeholder="08..." className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 shadow-sm font-mono" />
+                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">No. WhatsApp/HP</label>
+                                <input name="contactNumber" defaultValue={leadFormModal.data.contactNumber} type="text" placeholder="08..." className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)] font-mono" />
                               </div>
                             </div>
-                          </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-[#3c2f56] font-black uppercase text-[10px] tracking-widest mb-1.5">Platform Target</label>
-                                <select name="platformInterest" defaultValue={leadFormModal.data.platformInterest || platforms[0]} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm">
-                                  {platforms.map((p, i) => <option key={p + '_' + i} value={p}>{p}</option>)}
-                                  <option value="Multi-platform">Multi-platform</option>
-                                </select>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Platform Target</label>
+                                  <select name="platformInterest" defaultValue={leadFormModal.data.platformInterest || platforms[0]} className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-[0_2px_10px_rgba(79,70,229,0.03)] cursor-pointer appearance-none">
+                                    {platforms.map((p, i) => <option key={p + '_' + i} value={p}>{p}</option>)}
+                                    <option value="Multi-platform">Multi-platform</option>
+                                  </select>
+                              </div>
+                              <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Status Interaksi</label>
+                                  <select name="status" defaultValue={leadFormModal.data.status || "New"} className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-[0_2px_10px_rgba(79,70,229,0.03)] cursor-pointer appearance-none">
+                                        <option value="New">🏷️ New Lead</option>
+                                        <option value="Contacted">📞 Sudah Dihubungi</option>
+                                        <option value="Meeting Scheduled">📅 Jadwal Meeting</option>
+                                        <option value="Proposal Sent">📤 Proposal Dikirim</option>
+                                        <option value="Negotiation">💬 Proses Negosiasi</option>
+                                        <option value="Closed Won">🎉 Deal / Project Goal</option>
+                                        <option value="Closed Lost">❌ Gagal / Batal</option>
+                                  </select>
+                              </div>
                             </div>
-                            <div>
-                                <label className="block text-[#3c2f56] font-black uppercase text-[10px] tracking-widest mb-1.5">Status Interaksi</label>
-                                <select name="status" defaultValue={leadFormModal.data.status || "New"} className="w-full bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 font-black text-indigo-700 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm">
-                                      <option value="New">🏷️ New Lead</option>
-                                      <option value="Contacted">📞 Sudah Dihubungi</option>
-                                      <option value="Meeting Scheduled">📅 Jadwal Meeting</option>
-                                      <option value="Proposal Sent">📤 Proposal Dikirim</option>
-                                      <option value="Negotiation">💬 Proses Negosiasi</option>
-                                      <option value="Closed Won">🎉 Deal / Project Goal</option>
-                                      <option value="Closed Lost">❌ Gagal / Batal</option>
-                                </select>
-                            </div>
-                          </div>
 
-                          <div>
-                            <label className="block text-[#3c2f56] font-black uppercase text-[10px] tracking-widest mb-1.5">Catatan / Detail</label>
-                            <textarea name="notes" defaultValue={leadFormModal.data.notes} rows={3} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-semibold text-slate-700 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm leading-relaxed" placeholder="Tuliskan detail permintaan klien, budget, hasil meeting, atau catatan lainnya di sini..." />
+                            <div>
+                              <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">Catatan / Detail</label>
+                              <textarea name="notes" defaultValue={leadFormModal.data.notes} rows={3} className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]" placeholder="Tuliskan detail permintaan klien, budget, hasil meeting, atau catatan lainnya di sini..." />
+                            </div>
                           </div>
                           
-                          <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-3">
-                             <button type="button" onClick={() => setLeadFormModal({isOpen: false, data: {}})} className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-600 font-black rounded-xl transition-all border border-slate-200 cursor-pointer text-sm order-2 sm:order-1 text-center">
+                          <div className="pt-4 mt-6 border-t border-slate-100 flex justify-end gap-3">
+                             <button type="button" onClick={() => setLeadFormModal({isOpen: false, data: {}})} className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-600 font-bold rounded-lg border border-slate-200 cursor-pointer text-sm">
                                Batal
                              </button>
-                             <button type="submit" className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-black rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer border-0 text-sm order-1 sm:order-2">
-                               <Check className="w-5 h-5" /> {leadFormModal.data.id ? "Simpan Perbaikan" : "Tambah Lead"}
+                             <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-lg border-0 cursor-pointer text-sm">
+                               {leadFormModal.data.id ? "Simpan Perbaikan" : "Tambah Lead"}
                              </button>
                           </div>
 
@@ -11042,7 +11199,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
 
                   <div className="p-3 bg-[#f3effa] rounded-xl border border-purple-100 text-[10.5px] text-purple-800 font-bold leading-normal">
-                    💡 <em>Asisten ini memvalidasi data logs real-time, termasuk data absensi yang baru saja diisikan host lewat simulasi ponsel!</em>
+                    💡 <em>Asisten ini memvalidasi data logs real-time, termasuk data absensi yang baru saja diisikan host lewat Portal Host!</em>
                   </div>
                 </div>
 
@@ -12528,12 +12685,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </button>
                 </div>
 
-                {credentialsToast && (
-                  <div className="bg-emerald-50 border border-emerald-250 text-emerald-800 p-3.5 rounded-xl text-xs font-black flex items-center gap-2 animate-fadeIn shadow-3xs" id="credentials_toast_notifier">
-                    <span>✨ {credentialsToast}</span>
-                  </div>
-                )}
-
                 {/* Collapsible Add New Host Form */}
                 {showAddForm && (
                   <div className="bg-purple-50/40 p-5 rounded-2xl border border-purple-100 space-y-4 animate-fadeIn" id="add_host_form">
@@ -12707,7 +12858,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   <span className="text-lg">💡</span>
                   <div className="leading-relaxed font-semibold">
                     <strong className="text-purple-950 font-bold block mb-0.5">Petunjuk Privasi Kredensial Agency:</strong>
-                    Beritahukan kepada masing-masing host tentang username dan password yang tercatat di atas agar mereka dapat melakukan absen masuk secara mandiri melalui handphone simulator di atas. Password bersifat transparan untuk operator guna pemulihan akun cepat.
+                    Beritahukan kepada masing-masing host tentang username dan password yang tercatat di atas agar mereka dapat melakukan absen masuk secara mandiri melalui Portal Host. Password bersifat transparan untuk operator guna pemulihan akun cepat.
                   </div>
                 </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "Liva Agency",
-  "description": "SaaS analytics and intelligence platform for a live streaming agency featuring attendance monitoring, performance scoring, partner recommendations, and a built-in AI assistant.",
+  "description": "Platform intelijen dan analitik SaaS untuk agensi live streaming yang dilengkapi fitur pemantauan absensi, penilaian performa, rekomendasi mitra, dan asisten AI bawaan.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
