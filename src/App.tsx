@@ -82,11 +82,13 @@ import {
   Package,
   GripVertical,
   ArrowRight,
+  Gift,
   MoreHorizontal,
   Star,
   UserPlus,
   ArrowUpDown,
-  TrendingDown
+  TrendingDown,
+  Loader2
 } from "lucide-react";
 
 import { HostEmployee, AttendanceLog, ChatMessage, StudioItem, ClientBrand, ClientReporting, ClientLead, AdminAccount } from "./types";
@@ -109,7 +111,7 @@ import {
 import { FileText } from 'lucide-react';
 import { DoubleDatePicker } from "./components/DoubleDatePicker";
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import { syncToFirestore } from "./firestoreSync";
 
@@ -121,6 +123,18 @@ const isPlatformMatch = (lp: string, fp: string) => {
   const val1 = String(lp).toLowerCase().replace(/[^a-z0-9]/g, '');
   const val2 = String(fp).toLowerCase().replace(/[^a-z0-9]/g, '');
   return val1 === val2 || val1.includes(val2) || val2.includes(val1);
+};
+
+const formatDisplayDate = (dString: string) => {
+  if (!dString) return "";
+  const mainPart = String(dString).split(' ')[0];
+  const timePart = String(dString).substring(mainPart.length).trim();
+  const parts = mainPart.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const newDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    return timePart ? `${newDate} ${timePart}` : newDate;
+  }
+  return dString;
 };
 
 const normalizeDateYMD = (d: string) => {
@@ -232,19 +246,23 @@ export function HorizontalFunnel({ steps, title = "Sales Funnel", subtitle = "Ti
   
   return (
     <div className="w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm font-sans flex flex-col justify-between text-left col-span-full">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h4 className="text-sm font-black text-slate-800 flex items-center gap-1.5 font-sans">
-            <Sparkles className="w-4 h-4 text-amber-500" /> {title}
-          </h4>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{subtitle}</p>
+      {(title || subtitle || tag) && (
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            {title && (
+              <h4 className="text-sm font-black text-slate-800 flex items-center gap-1.5 font-sans">
+                <Sparkles className="w-4 h-4 text-amber-500" /> {title}
+              </h4>
+            )}
+            {subtitle && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">{subtitle}</p>}
+          </div>
+          {tag && (
+            <span className="text-[9px] bg-slate-100 font-extrabold text-slate-500 px-2 py-0.5 rounded-md">
+              {tag}
+            </span>
+          )}
         </div>
-        {tag && (
-          <span className="text-[9px] bg-slate-100 font-extrabold text-slate-500 px-2 py-0.5 rounded-md">
-            {tag}
-          </span>
-        )}
-      </div>
+      )}
       
       <div className="flex w-full mb-6 mt-2">
         {steps.map((step, i) => (
@@ -449,6 +467,8 @@ export default function App() {
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
   const [isClientSidebarVisible, setIsClientSidebarVisible] = useState<boolean>(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [uploadTargetTab, setUploadTargetTab] = useState<"live" | "engagement">("live");
+  const [isSkuUploadModalOpen, setIsSkuUploadModalOpen] = useState<boolean>(false);
   const [isGoogleSheetsImportModalOpen, setIsGoogleSheetsImportModalOpen] = useState<boolean>(false);
   const [importSpreadsheetUrl, setImportSpreadsheetUrl] = useState<string>("");
 
@@ -602,40 +622,38 @@ export default function App() {
   useEffect(() => {
     let unsubs: any[] = [];
     unsubs.push(onSnapshot(collection(db, "admin_accounts"), (snap) => {
-      _setAdminAccounts(snap.docs.map(d => d.data() as AdminAccount));
+      _setAdminAccounts(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as AdminAccount)));
     }, (err) => console.error("Firestore admin_accounts err:", err)));
     unsubs.push(onSnapshot(collection(db, "hosts"), (snap) => {
-      const data = snap.docs.map(d => d.data() as HostEmployee);
+      const data = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as HostEmployee));
       _setHosts(data);
     }, (err) => {
       console.error("Firestore hosts err:", err);
       customAlert("Gagal terhubung ke database hosts: " + err.message);
     }));
     unsubs.push(onSnapshot(collection(db, "logs"), (snap) => {
-      _setLogs(snap.docs.map(d => d.data() as AttendanceLog));
+      _setLogs(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as AttendanceLog)));
     }, (err) => console.error("Firestore logs err:", err)));
     unsubs.push(onSnapshot(collection(db, "client_brands"), (snap) => {
-      _setClientBrands(snap.docs.map(d => d.data() as ClientBrand));
+      _setClientBrands(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as ClientBrand)));
     }, (err) => console.error("Firestore brands err:", err)));
     unsubs.push(onSnapshot(collection(db, "client_leads"), (snap) => {
-      _setClientLeads(snap.docs.map(d => d.data() as ClientLead));
+      _setClientLeads(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as ClientLead)));
     }, (err) => console.error("Firestore leads err:", err)));
     unsubs.push(onSnapshot(collection(db, "brand_performance_logs"), (snap) => {
-      setBrandPerformanceLogs(snap.docs.map(d => {
-        const data = d.data();
-        if (!data.avgViewDuration) {
-          data.avgViewDuration = Math.floor(60 + ((data.buyers || data.orders || data.gmv || 0) % 90));
-        }
-        return data;
-      }));
+      setBrandPerformanceLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
       setIsLogsLoading(false);
     }, (err) => {
       console.error("Firestore brand_performance_logs err:", err);
       setIsLogsLoading(false);
     }));
     unsubs.push(onSnapshot(collection(db, "brand_upload_history"), (snap) => {
-      setBrandUploadHistory(snap.docs.map(d => d.data()));
+      setBrandUploadHistory(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (err) => console.error("Firestore brand_upload_history err:", err)));
+    
+    unsubs.push(onSnapshot(collection(db, "brand_shopee_sku_logs"), (snap) => {
+      setShopeeSkuLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => console.error("Firestore brand_shopee_sku_logs err:", err)));
     
     // Listens for explicit roster schedules in real-time
     unsubs.push(onSnapshot(collection(db, "schedules"), (snap) => {
@@ -655,7 +673,7 @@ export default function App() {
           console.error("Failed to seed schedules from local storage:", e);
         }
       }
-      _setSchedules(snap.docs.map(d => d.data()));
+      _setSchedules(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (err) => console.error("Firestore schedules err:", err)));
 
     // Listens for global configurations (custom brands, shifts, studios, platforms)
@@ -794,11 +812,20 @@ export default function App() {
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
   const [brandUploadHistory, setBrandUploadHistory] = useState<any[]>([]);
   const [uploadedFileName, setUploadedFileName] = useState("");
-  const [clientDateFilterType, setClientDateFilterType] = useState<"latest" | "all" | "month" | "weekly" | "custom">("latest");
+  const [clientDateFilterType, setClientDateFilterType] = useState<"latest" | "all" | "month" | "weekly" | "custom">("all");
   const [clientCustomStartDate, setClientCustomStartDate] = useState("");
   const [clientCustomEndDate, setClientCustomEndDate] = useState("");
+  const [clientTempStartDate, setClientTempStartDate] = useState("");
+  const [clientTempEndDate, setClientTempEndDate] = useState("");
+  const [isClientMonthOpen, setIsClientMonthOpen] = useState(false);
+  const [isClientCalendarOpen, setIsClientCalendarOpen] = useState(false);
   const [clientPlatformFilter, setClientPlatformFilter] = useState("");
-  const [operatorDateFilterType, setOperatorDateFilterType] = useState<"latest" | "all" | "month" | "custom">("latest");
+  const [clientSelectedMonth, setClientSelectedMonth] = useState<string>(() => {
+     const d = new Date();
+     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [clientMonthPickerYear, setClientMonthPickerYear] = useState<number>(() => new Date().getFullYear());
+  const [operatorDateFilterType, setOperatorDateFilterType] = useState<"latest" | "all" | "month" | "custom">("all");
   const [operatorPlatformFilter, setOperatorPlatformFilter] = useState("");
   const [operatorCustomStartDate, setOperatorCustomStartDate] = useState("");
   const [operatorCustomEndDate, setOperatorCustomEndDate] = useState("");
@@ -1261,11 +1288,16 @@ export default function App() {
   const [operatorTab, setOperatorTab] = useState<
     "dashboard_utama" | "absensi" | "rekap_gaji" | "database" | "sheets" | "credentials" | "settings" | "data_brand" | "reporting_brand" | "leads" | "copilot" | "admin_privacy" | "invoice"
   >("dashboard_utama");
+  const [operatorReportingTab, setOperatorReportingTab] = useState<"live" | "product" | "engagement">("live");
+  const [liveChartSelectedMetrics, setLiveChartSelectedMetrics] = useState<string[]>(["gmv", "orders", "penonton"]);
+  const [engagementChartSelectedMetrics, setEngagementChartSelectedMetrics] = useState<string[]>(["errRateNumeric", "uniqueViewers"]);
   const [activeReportBrandId, setActiveReportBrandId] = useState<string | null>(null);
   const [reportBrandSearchQuery, setReportBrandSearchQuery] = useState("");
   const [reportDbSearchQuery, setReportDbSearchQuery] = useState("");
   const [reportDbSortCol, setReportDbSortCol] = useState("date");
   const [reportDbSortAsc, setReportDbSortAsc] = useState(false);
+  const [skuSortCol, setSkuSortCol] = useState<"sold"|"revenue">("sold");
+  const [skuSortAsc, setSkuSortAsc] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 30;
 
@@ -1415,12 +1447,43 @@ export default function App() {
 
 
   const [reportingRawData, setReportingRawData] = useState<any[]>([]);
+  const [skuRawData, setSkuRawData] = useState<any[]>([]);
+  const [shopeeSkuLogs, setShopeeSkuLogs] = useState<any[]>([]);
   const [isDragOverReporting, setIsDragOverReporting] = useState(false);
   const [saveTargetBrandId, setSaveTargetBrandId] = useState("");
   const [saveTargetPlatform, setSaveTargetPlatform] = useState("TikTok Live");
   const [adminReportBrandFilter, setAdminReportBrandFilter] = useState("");
   const [autoDetectNotice, setAutoDetectNotice] = useState("");
   const [isSavingReport, setIsSavingReport] = useState(false);
+
+  useEffect(() => {
+    // --- ONE-TIME AUTO CLEANUP FOR BUGGED 2026-12-01 DATES ---
+    const cleanupBadDates = async () => {
+      try {
+        if (!db) return;
+        const q = collection(db, "brand_performance_logs");
+        const snap = await getDocs(q);
+        const badDocs = snap.docs.filter(d => {
+          const date = d.data()?.date;
+          return date && (date.includes("2026-12-") || date.includes("2026-11-") || date > "2026-06-30");
+        });
+        
+        if (badDocs.length > 0) {
+          console.log(`Auto-cleaning ${badDocs.length} bad future date records...`);
+          for (const d of badDocs) {
+            await deleteDoc(doc(db, "brand_performance_logs", d.id));
+          }
+          console.log("Cleanup complete!");
+          // Reload the page to refresh data so the user sees it's gone
+          window.location.reload();
+        }
+      } catch (err) {
+        console.error("Failed to auto-clean bad dates:", err);
+      }
+    };
+    
+    cleanupBadDates();
+  }, []);
 
   const handleDeletePerformanceLog = async (id: string, brandName: string, date: string) => {
     requestConfirm(
@@ -1437,6 +1500,252 @@ export default function App() {
       },
       "danger"
     );
+  };
+
+  const handleUploadSkuRaw = (file: File) => {
+    setAutoDetectNotice("");
+    setUploadedFileName(file.name);
+    
+    // Auto-detect brand from filename
+    let detectedBrandObj = null;
+    const fileNameLower = file.name.toLowerCase();
+    for (const b of clientBrands) {
+      const brandNameClean = b.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (fileNameLower.includes(brandNameClean)) {
+        detectedBrandObj = b;
+        break;
+      }
+      const words = b.name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      if (words.some(word => fileNameLower.includes(word))) {
+        detectedBrandObj = b;
+        break;
+      }
+    }
+
+    if (detectedBrandObj) {
+      setSaveTargetBrandId(detectedBrandObj.id);
+    }
+    setSaveTargetPlatform(fileNameLower.includes("tiktok") ? "TikTok Live" : "Shopee Live");
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array', raw: true });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[];
+
+        if (jsonData.length < 2) {
+          alert("File kosong atau format salah.");
+          return;
+        }
+
+        // Find headers
+        let headerRowIdx = -1;
+        for (let r = 0; r < Math.min(jsonData.length, 50); r++) {
+          const row = jsonData[r];
+          if (row && row.some(cell => typeof cell === 'string' && (cell.toLowerCase().includes('sku') || cell.toLowerCase().includes('produk') || cell.toLowerCase().includes('product')))) {
+            headerRowIdx = r;
+            break;
+          }
+        }
+        if (headerRowIdx === -1) headerRowIdx = 0;
+
+        const headers = Array.from(jsonData[headerRowIdx] || []).map((h: any) => String(h || '').trim().toLowerCase());
+
+        let detectedPlatform = fileNameLower.includes('tiktok') ? 'TikTok Live' : (fileNameLower.includes('shopee') ? 'Shopee Live' : '');
+        if (!detectedPlatform) {
+           if (headers.some(h => h.includes('tiktok') || h.includes('attributed') || h.includes('product impressions') || h.includes('product clicks'))) {
+               detectedPlatform = 'TikTok Live';
+           } else if (headers.some(h => h.includes('shopee'))) {
+               detectedPlatform = 'Shopee Live';
+           }
+        }
+        if (detectedPlatform) {
+            setSaveTargetPlatform(detectedPlatform);
+        }
+
+
+        let isMonthFirst = false;
+        let shouldSwapExcelDates = false;
+        let firstVals = new Set<number>();
+        let secondVals = new Set<number>();
+        let definiteMatchFound = false;
+
+        for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
+          const row = jsonData[r] as any[];
+          if (!row || row.length === 0) continue;
+          let dtMatchStr = "";
+          let rawStart: any = null;
+          headers.forEach((h, idx) => {
+              if (h.includes('tanggal') || h.includes('waktu') || h.includes('date') || h.includes('start time') || h.includes('start') || h.includes('time') || h.includes('periode')) {
+                  rawStart = row[idx];
+                  dtMatchStr = String(row[idx]);
+              }
+          });
+          
+          if (rawStart && typeof rawStart === 'number') {
+            const dateObj = XLSX.SSF.parse_date_code(rawStart);
+            firstVals.add(dateObj.d);
+            secondVals.add(dateObj.m);
+            if (dateObj.d > 12) {
+               shouldSwapExcelDates = false;
+               definiteMatchFound = true;
+            } else if (dateObj.m > 12) {
+               shouldSwapExcelDates = true;
+               definiteMatchFound = true;
+            }
+          } else if (dtMatchStr && typeof dtMatchStr === 'string') {
+             const dtSplit = dtMatchStr.split(' ')[0].split(/[\/\-]/);
+             if (dtSplit.length === 3) {
+                 let firstStr = dtSplit[0];
+                 let secondStr = dtSplit[1];
+                 if (dtSplit[0].length === 4) {
+                     firstStr = dtSplit[1];
+                     secondStr = dtSplit[2];
+                 }
+                 const first = parseInt(firstStr, 10);
+                 const second = parseInt(secondStr, 10);
+                 if (!isNaN(first) && !isNaN(second)) {
+                    firstVals.add(first);
+                    secondVals.add(second);
+                    if (first > 12) {
+                        isMonthFirst = false; // DD/MM
+                        shouldSwapExcelDates = false;
+                        definiteMatchFound = true;
+                    } else if (second > 12) {
+                        isMonthFirst = true; // MM/DD
+                        shouldSwapExcelDates = true;
+                        definiteMatchFound = true;
+                    }
+                 }
+             }
+          }
+        }
+        
+        if (!definiteMatchFound) {
+           if (firstVals.size > 1 && secondVals.size === 1) {
+               isMonthFirst = false;
+               shouldSwapExcelDates = false;
+           } else if (secondVals.size > 1 && firstVals.size === 1) {
+               isMonthFirst = true;
+               shouldSwapExcelDates = true;
+           } else {
+               isMonthFirst = false;
+               shouldSwapExcelDates = false;
+           }
+        }
+
+        const parseDate = (val: any) => {
+          if (!val) return '';
+          if (typeof val === 'number') {
+            const dateObj = XLSX.SSF.parse_date_code(val);
+            const y = dateObj.y;
+            let m = dateObj.m;
+            let d = dateObj.d;
+            if (shouldSwapExcelDates) {
+                const temp = m;
+                m = d;
+                d = temp;
+            }
+            const mStr = String(m).padStart(2, '0');
+            const dStr = String(d).padStart(2, '0');
+            return `${y}-${mStr}-${dStr}`;
+          }
+          let str = String(val).trim();
+          let match = str.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+          if (match) {
+             let dStr = match[3];
+             let mStr = match[2];
+             if (shouldSwapExcelDates) {
+                 mStr = match[3];
+                 dStr = match[2];
+             }
+             return `${match[1]}-${mStr.padStart(2,'0')}-${dStr.padStart(2,'0')}`;
+          }
+          match = str.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+          if (match) {
+             let dStr, mStr;
+             if (isMonthFirst) {
+                mStr = match[1];
+                dStr = match[2];
+             } else {
+                dStr = match[1];
+                mStr = match[2];
+             }
+             return `${match[3]}-${mStr.padStart(2,'0')}-${dStr.padStart(2,'0')}`;
+          }
+          return str;
+        };
+
+        const parseNum = (val: any) => {
+          if (!val) return 0;
+          if (typeof val === 'number') return val;
+          let s = String(val).trim().replace(/Rp|rp|IDR|idr|\s/g, '');
+          if (s.indexOf(',') === -1 && s.indexOf('.') !== -1 && s.split('.').length > 2) {
+              s = s.replace(/\./g, '');
+          } else if (s.indexOf(',') !== -1 && s.indexOf('.') !== -1) {
+              if (s.indexOf(',') < s.indexOf('.')) {
+                  s = s.replace(/,/g, '');
+              } else {
+                  s = s.replace(/\./g, '').replace(/,/g, '.');
+              }
+          } else if (s.indexOf(',') !== -1 && s.indexOf('.') === -1) {
+              s = s.replace(/,/g, '.');
+          } else if (s.indexOf('.') !== -1 && s.split('.').length === 2 && s.split('.')[1].length === 3) {
+              s = s.replace(/\./g, '');
+          }
+          return Number(s.replace(/[^0-9.-]+/g, ''));
+        };
+
+        const parsedData = [];
+        for (let i = headerRowIdx + 1; i < jsonData.length; i++) {
+          const row = jsonData[i] as any[];
+          if (!row || row.length === 0) continue;
+          
+          let sku = '', productName = '', sold = 0, revenue = 0, date = '';
+          
+          headers.forEach((h, idx) => {
+             const val = row[idx];
+             if (!val) return;
+             if (h.includes('nama produk') || h.includes('product name') || h.includes('judul produk') || h.includes('item name') || h.includes('nama item') || h === 'produk' || h === 'product' || h.includes('product list') || h.includes('title')) productName = String(val);
+             else if (h.includes('sku') || h.includes('induk') || h.includes('product id') || h.includes('item id')) sku = String(val);
+             else if (h.includes('produk terjual(pesanan dibayar)') || h.includes('produk terjual (pesanan dibayar)') || h.includes('jumlah terjual') || h.includes('items sold') || h.includes('produk terjual(pesanan dibuat)') || h.includes('attributed items sold')) sold = parseNum(val);
+             else if (h.includes('penjualan(pesanan dibayar)') || h.includes('penjualan (pesanan dibayar)') || h.includes('revenue') || h.includes('gmv') || h.includes('penjualan(pesanan dibuat)') || h.includes('penjualan (idr)') || h.includes('attributed gmv')) revenue = parseNum(val);
+             else if (h.includes('tanggal') || h.includes('waktu') || h.includes('date') || h.includes('start time') || h.includes('start') || h.includes('time') || h.includes('periode')) date = parseDate(val);
+             
+             // Fallbacks for Shopee export
+             else if (h.includes('pesanan dibayar') || h.includes('orders paid') || h.includes('pesanan(pesanan dibuat)')) {
+                 if (sold === 0) sold = parseNum(val);
+             }
+             else if (h.includes('sales') || h.includes('penjualan')) {
+                 if (revenue === 0) revenue = parseNum(val);
+             }
+          });
+          
+          if (productName || sku) {
+            parsedData.push({
+               id: `sku_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+               sku: sku || 'N/A',
+               productName: productName || 'Unnamed Product',
+               sold: sold,
+               revenue: revenue,
+               date: date || new Date().toISOString().split('T')[0]
+            });
+          }
+        }
+        
+        setSkuRawData(parsedData);
+        if (detectedBrandObj) {
+           setAutoDetectNotice(`💡 Auto-detected Klien: ${detectedBrandObj.name} (${parsedData.length} records).`);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error: " + err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleUploadReportingRaw = (file: File) => {
@@ -1484,7 +1793,7 @@ export default function App() {
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', raw: true });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[];
@@ -1496,9 +1805,28 @@ export default function App() {
 
         // Find headers row and map columns
         let headerRowIdx = -1;
-        for (let r = 0; r < Math.min(jsonData.length, 10); r++) {
+        for (let r = 0; r < Math.min(jsonData.length, 50); r++) {
           const row = jsonData[r];
-          if (row && row.some(cell => typeof cell === 'string' && (cell.toLowerCase().includes('streaming') || cell.toLowerCase().includes('mulai') || cell.toLowerCase().includes('gmv')))) {
+          if (row && row.some(cell => {
+            if (typeof cell !== 'string') return false;
+            const cLower = cell.toLowerCase().trim();
+            // Filter out row 0 main grouping titles
+            if (cLower === 'interaksi' || cLower === 'promosi' || cLower === 'konversi' || cLower === 'data utama') {
+              const nonEmpStrCols = row.filter(c => typeof c === 'string' && c.trim().length > 0).length;
+              if (nonEmpStrCols < 8) return false;
+            }
+            return (
+              cLower.includes('streaming') || 
+              cLower.includes('mulai') || 
+              cLower.includes('gmv') ||
+              cLower.includes('user id') ||
+              cLower === 'penonton' ||
+              cLower === 'penonton aktif' ||
+              cLower === 'suka' ||
+              cLower === 'komentar' ||
+              cLower.includes('pembeli(pesanan')
+            );
+          })) {
             headerRowIdx = r;
             break;
           }
@@ -1508,7 +1836,20 @@ export default function App() {
           headerRowIdx = 0; // fallback to first row
         }
 
-        const headers = (jsonData[headerRowIdx] as any[]).map(h => String(h || '').trim().toLowerCase());
+        const headers = Array.from(jsonData[headerRowIdx] || []).map((h: any) => String(h || '').trim().toLowerCase());
+
+        let detectedPlatform = fileNameLower.includes('tiktok') ? 'TikTok Live' : (fileNameLower.includes('shopee') ? 'Shopee Live' : '');
+        if (!detectedPlatform) {
+           if (headers.some(h => h.includes('tiktok') || h.includes('attributed') || h.includes('product impressions') || h.includes('product clicks'))) {
+               detectedPlatform = 'TikTok Live';
+           } else if (headers.some(h => h.includes('shopee'))) {
+               detectedPlatform = 'Shopee Live';
+           }
+        }
+        if (detectedPlatform) {
+            setSaveTargetPlatform(detectedPlatform);
+        }
+
 
         // Help detect platform from columns if not detected yet
         if (!detectedPlatform) {
@@ -1548,22 +1889,27 @@ export default function App() {
         };
 
         const titleIdx = findColIdx(['nama livestream', 'livestream name', 'live room title', 'judul ruang live', 'judul', 'livestream', 'streaming', 'live', 'nama_brand', 'brand']);
-        const startIdx = findColIdx(['start time', 'waktu mulai', 'waktu', 'mulai', 'start', 'tanggal', 'date']);
+        const startIdx = findColIdx(['periode data', 'periode', 'start time', 'waktu mulai', 'waktu', 'mulai', 'start', 'tanggal', 'date']);
         const durationIdx = findColIdx(['durasi', 'duration', 'lama', 'waktu streaming']);
         const gmvIdx = findColIdx(['penjualan(pesanan siap dikirim)', 'penjualan(pesanan dibuat)', 'sales(orders paid)', 'sales(orders created)', 'penjualan', 'attributed gmv', 'gmv', 'perolehan', 'omset', 'revenue', 'pendapatan']);
         const productIdx = findColIdx(['produk terjual(pesanan siap dikirim)', 'produk terjual(pesanan dibuat)', 'items sold(orders paid)', 'items sold(orders created)', 'produk terjual', 'attributed items sold', 'unit terjual', 'produk', 'product', 'terjual', 'item', 'items sold', 'items']);
-        const buyerIdx = findColIdx(['pembeli', 'buyers(orders paid)', 'buyers(orders created)', 'buyers', 'customers', 'customer', 'buyer', 'pelanggan']);
+        const buyerIdx = findColIdx(['pembeli(pesanan siap dikirim)', 'pembeli(pesanan dibuat)', 'pembeli', 'buyers(orders paid)', 'buyers(orders created)', 'buyers', 'customers', 'customer', 'buyer', 'pelanggan']);
         const aovIdx = findColIdx(['avg. price', 'sales per buyer(orders paid)', 'sales per buyer(orders created)', 'sales per buyer', 'aov', 'average order value', 'rata-rata', 'order value']);
-        const impressionsIdx = findColIdx(['penonton', 'total viewers', 'live impressions', 'tayangan live', 'impression', 'tayangan', 'visitor', 'traffic', 'pemirsa', 'exposure', 'viewers']);
-        const liveVisitsIdx = findColIdx(['penonton aktif', 'max concurrent viewers', 'viewers(max concurrent)', 'viewers(max co-current)', 'highest ccu', 'penonton serentak tertinggi', 'live visits', 'views', 'kunjungan live']);
+        const impressionsIdx = findColIdx(['dilihat', 'total viewers', 'live impressions', 'tayangan live', 'impression', 'tayangan', 'visitor', 'traffic', 'pemirsa', 'exposure', 'viewers']);
+        const penontonIdx = findColIdx(['penonton', 'unique viewers', 'viewer']);
+        const liveVisitsIdx = findColIdx(['penonton aktif', 'max concurrent viewers', 'viewers(max concurrent)', 'viewers(max co-current)', 'highest ccu', 'penonton serentak tertinggi', 'live visits', 'views', 'kunjungan live', 'engaged viewers', 'active viewers']);
         const productImpressionsIdx = findColIdx(['tayangan produk', 'product views', 'product impression', 'product impressions']);
-        const avgViewDurationIdx = findColIdx(['durasi rata-rata menonton', 'avg. watch duration', 'average watch time', 'watch duration', 'avg view', 'average view', 'rata-rata menonton', 'rata rata menonton', 'waktu menonton', 'rata-rata view']);
-        const clicksIdx = findColIdx(['tambah ke keranjang', 'product clicks', 'klik produk', 'clicks', 'click', 'klik', 'kunjungan', 'detail', 'buka']);
-        const ordersIdx = findColIdx(['pesanan(pesanan siap dikirim)', 'pesanan(pesanan dibuat)', 'orders(orders paid)', 'orders(orders created)', 'pesanan', 'attributed sku orders', 'orders', 'created', 'add to cart', 'keranjang', 'buat pesanan', 'order created', 'pesanan dibuat']);
-        const followersIdx = findColIdx(['pengikut baru', 'new followers', 'pengikut', 'follower', 'followers', 'fans']);
-        const likesIdx = findColIdx(['likes', 'suka', 'like', 'love']);
-        const sharesIdx = findColIdx(['shares', 'share', 'bagikan', 'sebar']);
-        const commentsIdx = findColIdx(['komentar', 'comments', 'komen', 'comment']);
+        const avgViewDurationIdx = findColIdx(['rata-rata durasi ditonton', 'durasi ditonton', 'durasi rata-rata menonton', 'avg. watch duration', 'average watch time', 'watch duration', 'avg view', 'average view', 'rata-rata menonton', 'rata rata menonton', 'waktu menonton', 'rata-rata view', 'avg. viewing duration', 'avg viewing duration', 'viewing duration']);
+        const clicksIdx = findColIdx(['tambah ke keranjang', 'add to cart', 'keranjang', 'product clicks', 'klik produk', 'clicks', 'click', 'klik', 'kunjungan', 'detail', 'buka']);
+        const ordersIdx = findColIdx(['pesanan(pesanan siap dikirim)', 'pesanan(pesanan dibuat)', 'orders(orders paid)', 'orders(orders created)', 'pesanan', 'attributed sku orders', 'attributed orders', 'orders', 'created', 'buat pesanan', 'order created', 'pesanan dibuat']);
+        const followersIdx = findColIdx(['pengikut baru dari livestream', 'pengikut baru', 'new followers', 'pengikut', 'follower', 'followers', 'fans']);
+        const likesIdx = findColIdx(['suka', 'likes', 'like', 'love']);
+        const sharesIdx = findColIdx(['dibagikan', 'share', 'shares', 'bagikan', 'sebar']);
+        const commentsIdx = findColIdx(['komentar', 'comment', 'komen', 'comments']);
+        const peakViewersIdx = findColIdx(['penonton tertinggi', 'peak viewers', 'highest viewers']);
+        const shopVouchersIdx = findColIdx(['voucher toko diklaim', 'shop voucher claimed']);
+        const specialVouchersIdx = findColIdx(['voucher spesial live diklaim', 'special live voucher claimed']);
+        const coinsClaimedIdx = findColIdx(['koin diklaim', 'coins claimed']);
 
         const parseIndonesianNumber = (val: any): number => {
           if (val === undefined || val === null || val === '-' || val === '') return 0;
@@ -1619,6 +1965,74 @@ export default function App() {
           return (isNaN(parsed) ? 0 : parsed) * multiplier;
         };
 
+        // Heuristic detection: check if string dates are MM/DD or DD/MM
+        let isMonthFirst = false; // assume DD/MM/YYYY by default
+        let shouldSwapExcelDates = false;
+        let firstVals = new Set<number>();
+        let secondVals = new Set<number>();
+        let definiteMatchFound = false;
+
+        for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
+          const rowData = jsonData[r] as any[];
+          if (!rowData || rowData.length === 0) continue;
+          const rawStart = rowData[startIdx !== -1 ? startIdx : 0];
+          
+          if (rawStart && typeof rawStart === 'number') {
+            const dateObj = XLSX.SSF.parse_date_code(rawStart);
+            firstVals.add(dateObj.d);
+            secondVals.add(dateObj.m);
+            if (dateObj.d > 12) {
+               shouldSwapExcelDates = false;
+               definiteMatchFound = true;
+            } else if (dateObj.m > 12) {
+               shouldSwapExcelDates = true;
+               definiteMatchFound = true;
+            }
+          } else if (rawStart && typeof rawStart === 'string') {
+             const dtSplit = rawStart.split(' ')[0].split(/[\/\-]/);
+             if (dtSplit.length === 3) {
+                 let firstStr = dtSplit[0];
+                 let secondStr = dtSplit[1];
+                 let checkIdx1 = 0;
+                 let checkIdx2 = 1;
+                 if (dtSplit[0].length === 4) {
+                     firstStr = dtSplit[1];
+                     secondStr = dtSplit[2];
+                     checkIdx1 = 1;
+                     checkIdx2 = 2;
+                 }
+                 const first = parseInt(firstStr, 10);
+                 const second = parseInt(secondStr, 10);
+                 if (!isNaN(first) && !isNaN(second)) {
+                    firstVals.add(first);
+                    secondVals.add(second);
+                    if (first > 12) {
+                        isMonthFirst = false; // DD/MM (or YYYY/MM/DD if 4 length)
+                        shouldSwapExcelDates = false;
+                        definiteMatchFound = true;
+                    } else if (second > 12) {
+                        isMonthFirst = true; // MM/DD (or swapped YYYY/DD/MM)
+                        shouldSwapExcelDates = true;
+                        definiteMatchFound = true;
+                    }
+                 }
+             }
+          }
+        }
+        
+        if (!definiteMatchFound) {
+           if (firstVals.size > 1 && secondVals.size === 1) {
+               isMonthFirst = false;
+               shouldSwapExcelDates = false;
+           } else if (secondVals.size > 1 && firstVals.size === 1) {
+               isMonthFirst = true;
+               shouldSwapExcelDates = true;
+           } else {
+               isMonthFirst = false;
+               shouldSwapExcelDates = false;
+           }
+        }
+
         const rows: any[] = [];
         for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
           const rowData = jsonData[r] as any[];
@@ -1641,11 +2055,18 @@ export default function App() {
             if (typeof rawStart === 'number') {
               const dateObj = XLSX.SSF.parse_date_code(rawStart);
               const y = dateObj.y;
-              const m = String(dateObj.m).padStart(2, '0');
-              const d = String(dateObj.d).padStart(2, '0');
+              let m = dateObj.m;
+              let d = dateObj.d;
+              if (shouldSwapExcelDates) {
+                const temp = m;
+                m = d;
+                d = temp;
+              }
+              const mStr = String(m).padStart(2, '0');
+              const dStr = String(d).padStart(2, '0');
               const hh = String(dateObj.H).padStart(2, '0');
               const mm = String(dateObj.M).padStart(2, '0');
-              formattedDate = `${y}-${m}-${d} ${hh}:${mm}`;
+              formattedDate = `${y}-${mStr}-${dStr} ${hh}:${mm}`;
               
               const hour = parseInt(hh, 10);
               if (hour >= 6 && hour < 14) shift = "Shift 1";
@@ -1654,18 +2075,38 @@ export default function App() {
             } else {
               formattedDate = String(rawStart).trim();
               
-              // Normalize DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
+              // Normalize DD/MM/YYYY or MM/DD/YYYY or DD-MM-YYYY to YYYY-MM-DD
               if (formattedDate.indexOf('/') !== -1 || (formattedDate.indexOf('-') !== -1 && formattedDate.split('-')[0].length <= 2)) {
                  const dtSplit = formattedDate.split(' ')[0].split(/[\/\-]/);
                  if (dtSplit.length === 3) {
                      const tmPart = formattedDate.split(' ')[1] || "";
                      let y = dtSplit[2].length === 2 ? `20${dtSplit[2]}` : dtSplit[2];
-                     let m = String(dtSplit[1]).padStart(2, '0');
-                     let d = String(dtSplit[0]).padStart(2, '0');
+                     
+                     let m, d;
+                     if (isMonthFirst) {
+                        m = String(dtSplit[0]).padStart(2, '0');
+                        d = String(dtSplit[1]).padStart(2, '0');
+                     } else {
+                        m = String(dtSplit[1]).padStart(2, '0');
+                        d = String(dtSplit[0]).padStart(2, '0');
+                     }
+                     
                      if (dtSplit[0].length === 4) {
                          y = dtSplit[0];
-                         m = String(dtSplit[1]).padStart(2, '0');
-                         d = String(dtSplit[2]).padStart(2, '0');
+                         if (isMonthFirst) {
+                            m = String(dtSplit[1]).padStart(2, '0');
+                            d = String(dtSplit[2]).padStart(2, '0');
+                         } else {
+                            // If `firstVals` (which is Day) is in the 3rd index (YYYY-MM-DD format normally, but here dtSplit[2] is the varied one).
+                            // Wait, if it natively is YYYY-MM-DD, the day is the 3rd index. We should determine this properly.
+                            m = String(dtSplit[1]).padStart(2, '0');
+                            d = String(dtSplit[2]).padStart(2, '0');
+                            // If heuristic said it's swapped (day is dtSplit[1])
+                            if (shouldSwapExcelDates) {
+                                m = String(dtSplit[2]).padStart(2, '0');
+                                d = String(dtSplit[1]).padStart(2, '0');
+                            }
+                         }
                      }
                      formattedDate = `${y}-${m}-${d} ${tmPart}`.trim();
                  }
@@ -1685,11 +2126,33 @@ export default function App() {
 
           const dateOnly = formattedDate.split(' ')[0] || formattedDate;
 
-          const duration = durationIdx !== -1 ? parseIndonesianNumber(rowData[durationIdx]) : 0;
+          let duration = 0;
+          if (durationIdx !== -1) {
+            const rawDur = String(rowData[durationIdx] || "");
+            if (rawDur.includes(':')) {
+              const parts = rawDur.split(':').map(Number);
+              if (parts.length === 3) {
+                 duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+              } else if (parts.length === 2) {
+                 duration = parts[0] * 60 + parts[1];
+              }
+            } else {
+              // Direct replace commas to dot for safe float cast
+              const safeFloat = parseFloat(rawDur.replace(/,/g, '.'));
+              if (!isNaN(safeFloat)) {
+                 if (safeFloat > 0 && safeFloat < 1.0) {
+                     duration = Math.round(safeFloat * 86400); // Excel fractional day
+                 } else {
+                     duration = safeFloat;
+                 }
+              }
+            }
+          }
           const gmv = gmvIdx !== -1 ? parseIndonesianNumber(rowData[gmvIdx]) : 0;
           const products_sold = productIdx !== -1 ? parseIndonesianNumber(rowData[productIdx]) : 0;
 
           const parsedImpressions = impressionsIdx !== -1 ? parseIndonesianNumber(rowData[impressionsIdx]) : 0;
+          const parsedPenonton = penontonIdx !== -1 ? parseIndonesianNumber(rowData[penontonIdx]) : 0;
           const parsedLiveVisits = liveVisitsIdx !== -1 ? parseIndonesianNumber(rowData[liveVisitsIdx]) : 0;
           const parsedProductImpressions = productImpressionsIdx !== -1 ? parseIndonesianNumber(rowData[productImpressionsIdx]) : 0;
           const parsedClicks = clicksIdx !== -1 ? parseIndonesianNumber(rowData[clicksIdx]) : 0;
@@ -1704,6 +2167,12 @@ export default function App() {
           const parsedLikes = likesIdx !== -1 ? parseIndonesianNumber(rowData[likesIdx]) : 0;
           const parsedShares = sharesIdx !== -1 ? parseIndonesianNumber(rowData[sharesIdx]) : 0;
           const parsedComments = commentsIdx !== -1 ? parseIndonesianNumber(rowData[commentsIdx]) : 0;
+          
+          const parsedPeakViewers = peakViewersIdx !== -1 ? parseIndonesianNumber(rowData[peakViewersIdx]) : 0;
+          const parsedShopVouchers = shopVouchersIdx !== -1 ? parseIndonesianNumber(rowData[shopVouchersIdx]) : 0;
+          const parsedSpecialVouchers = specialVouchersIdx !== -1 ? parseIndonesianNumber(rowData[specialVouchersIdx]) : 0;
+          const parsedCoinsClaimed = coinsClaimedIdx !== -1 ? parseIndonesianNumber(rowData[coinsClaimedIdx]) : 0;
+
           const rawAvgViewDuration = avgViewDurationIdx !== -1 ? String(rowData[avgViewDurationIdx]) : '';
           let parsedAvgViewDuration = 0;
           if (rawAvgViewDuration.includes(':')) {
@@ -1723,16 +2192,21 @@ export default function App() {
              fileLevelAvgView = Math.floor(fileLevelAvgView * 60);
           }
 
-          const impressions = parsedImpressions || Math.max(Math.round(buyers * 125 * (1 + (r % 5) * 0.05)), 100);
-          const clicks = parsedClicks || Math.max(Math.round(buyers * 10 * (1 + (r % 5) * 0.08)), Math.round(products_sold * 1.5));
-          const liveVisits = parsedLiveVisits || Math.max(Math.round(impressions * 0.18), clicks * 4);
-          const productImpressions = parsedProductImpressions || Math.max(Math.round(liveVisits * 1.17), clicks * 15);
-          const orders = parsedOrders || Math.max(Math.round(buyers * 1.8 * (1 + (r % 5) * 0.04)), Math.round(products_sold * 1.1));
-          const followers = parsedFollowers || Math.max(Math.round(buyers * 1.5 * (1 + (r % 5) * 0.06)), 2);
-          const likes = parsedLikes || Math.max(Math.round(buyers * 45 * (1 + (r % 5) * 0.12)), 120);
-          const shares = parsedShares || Math.max(Math.round(buyers * 1.2 * (1 + (r % 5) * 0.05)), 1);
-          const comments = parsedComments || (commentsIdx !== -1 ? 0 : Math.max(Math.round(buyers * 5 * (1 + (r % 5) * 0.04)), 10));
-          const avgViewDuration = fileLevelAvgView || Math.floor((60 + (r % 4) * 30)); // 60 to 150 seconds
+          const impressions = parsedImpressions || 0;
+          const penonton = parsedPenonton || parsedImpressions || 0;
+          const clicks = parsedClicks || 0;
+          const liveVisits = parsedLiveVisits || 0;
+          const productImpressions = parsedProductImpressions || 0;
+          const orders = parsedOrders || 0;
+          const followers = parsedFollowers || 0;
+          const likes = parsedLikes || 0;
+          const shares = parsedShares || 0;
+          const comments = parsedComments || 0;
+          const avgViewDuration = fileLevelAvgView || 0;
+          const peakViewers = parsedPeakViewers || 0;
+          const shopVouchers = parsedShopVouchers || 0;
+          const specialVouchers = parsedSpecialVouchers || 0;
+          const coinsClaimed = parsedCoinsClaimed || 0;
           
           const hasFunnelInFile = parsedImpressions > 0 || parsedClicks > 0 || parsedOrders > 0;
 
@@ -1747,6 +2221,7 @@ export default function App() {
             buyers,
             aov,
             impressions,
+            penonton,
             liveVisits,
             productImpressions,
             clicks,
@@ -1756,6 +2231,10 @@ export default function App() {
             shares,
             comments,
             avgViewDuration,
+            peakViewers,
+            shopVouchers,
+            specialVouchers,
+            coinsClaimed,
             hasFunnelInFile
           });
         }
@@ -1767,6 +2246,35 @@ export default function App() {
       }
     };
     reader.readAsArrayBuffer(file);
+  };
+
+  const handleDeleteSkuBatch = async (batchId: string) => {
+    requestConfirm(
+      "Hapus History Upload SKU",
+      "Apakah Anda yakin ingin menghapus data dari batch upload ini secara permanen?",
+      async () => {
+         try {
+             setIsSavingReport(true);
+             const batchDelete = writeBatch(db);
+             const relatedLogs = shopeeSkuLogs.filter(r => r.batchId === batchId);
+             const chunkSize = 400; // max 500
+             for (let i = 0; i < relatedLogs.length; i += chunkSize) {
+               const chunk = relatedLogs.slice(i, i + chunkSize);
+               const b = writeBatch(db);
+               for (const log of chunk) {
+                  if (log.id) b.delete(doc(db, "brand_shopee_sku_logs", log.id));
+               }
+               await b.commit();
+             }
+             customAlert("Data upload history SKU berhasil dihapus.");
+         } catch (e: any) {
+             console.error(e);
+             customAlert("Gagal menghapus data: " + e.message);
+         } finally {
+             setIsSavingReport(false);
+         }
+      }
+    );
   };
 
   const handleDeleteAllBrandRawData = async (brandId: string, brandName: string) => {
@@ -1806,8 +2314,19 @@ export default function App() {
             }
             await batchDelete.commit();
           }
+
+          // Delete SKU logs in chunks
+          const brandSkuLogs = shopeeSkuLogs.filter(log => log.brandId === brandId);
+          for (let i = 0; i < brandSkuLogs.length; i += chunkSize) {
+            const chunk = brandSkuLogs.slice(i, i + chunkSize);
+            const batchDelete = writeBatch(db);
+            for (const l of chunk) {
+              batchDelete.delete(doc(db, "shopee_sku_logs", l.id));
+            }
+            await batchDelete.commit();
+          }
           
-          customAlert(`Berhasil menghapus seluruh raw data (${brandLogs.length} sesi) dan riwayat upload (${brandBatches.length} batch) untuk brand "${brandName}" dari database!`);
+          customAlert(`Berhasil menghapus seluruh raw data (${brandLogs.length} sesi), ${brandSkuLogs.length} SKU logs, dan riwayat upload (${brandBatches.length} batch) untuk brand "${brandName}" dari database!`);
         } catch (err: any) {
           console.error("Gagal menghapus semua data raw brand:", err);
           customAlert("Error saat menghapus data brand: " + err.message);
@@ -1945,56 +2464,138 @@ export default function App() {
     setIsSavingReport(true); // Flag to show background saving in UI
     
     // Notify user it runs in background
-    addNotification("⏳ Menyimpan Data", `Sedang memproses ${dataToSave.length} data laporan ${brandNameToSave} ke database di latar belakang...`, "info", "reporting_brand");
+    addNotification("⏳ Menyimpan Data", `Sedang memproses ${dataToSave.length} baris laporan ${brandNameToSave} ke database di latar belakang...`, "info", "reporting_brand");
 
     const runBackgroundSave = async () => {
       try {
         const batchId = "batch_" + Date.now();
-        let savedCount = 0;
         let totalBatchGmv = 0;
+        let allRecordsToSave: any[] = [];
 
-        const chunkSize = 400; // max is 500 for Firestore batch
-        for (let i = 0; i < dataToSave.length; i += chunkSize) {
-          const chunk = dataToSave.slice(i, i + chunkSize);
-          const batchSave = writeBatch(db);
-
-          for (const row of chunk) {
+        for (const row of dataToSave) {
             const sanitizedTitle = String(row.title || "Live").toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
-            const docId = `${brandIdToSave}_${platformToSave.toLowerCase().replace(/\s/g, "_")}_${row.date}_${sanitizedTitle}_${Math.random().toString(36).substring(2, 9)}`;
+            const baseId = `${brandIdToSave}_${platformToSave.toLowerCase().replace(/\s/g, "_")}_${row.date}_${sanitizedTitle}_${Math.random().toString(36).substring(2, 9)}`;
             const rowGmv = Number(row.gmv || 0);
             totalBatchGmv += rowGmv;
 
-            const record = {
-              id: docId,
-              batchId: batchId,
-              brandId: brandIdToSave,
-              brandName: brandNameToSave,
-              platform: platformToSave,
-              title: row.title,
-              date: row.date,
-              dateTime: row.dateTime || row.date,
-              shift: row.shift || "Shift Lainnya",
-              duration: Number(row.duration || 0),
-              gmv: rowGmv,
-              products_sold: Number(row.products_sold || 0),
-              buyers: Number(row.buyers || 0),
-              aov: Number(row.aov || 0),
-              impressions: Number(row.impressions || 0),
-              liveVisits: Number(row.liveVisits || 0),
-              productImpressions: Number(row.productImpressions || 0),
-              clicks: Number(row.clicks || 0),
-              orders: Number(row.orders || 0),
-              followers: Number(row.followers || 0),
-              likes: Number(row.likes || 0),
-              shares: Number(row.shares || 0),
-              comments: Number(row.comments || 0),
-              avgViewDuration: Number(row.avgViewDuration || 0),
-              hasFunnelInFile: !!row.hasFunnelInFile,
-              uploadedAt: new Date().toISOString()
-            };
+            if (platformToSave === "TikTok Live") {
+                allRecordsToSave.push({
+                   id: baseId + "_live",
+                   batchId: batchId,
+                   brandId: brandIdToSave,
+                   brandName: brandNameToSave,
+                   platform: platformToSave,
+                   title: row.title,
+                   date: row.date,
+                   dateTime: row.dateTime || row.date,
+                   uploadedAt: new Date().toISOString(),
+                   reportType: "live",
+                   shift: row.shift || "Shift Lainnya",
+                   duration: Number(row.duration || 0),
+                   gmv: rowGmv,
+                   products_sold: Number(row.products_sold || 0),
+                   buyers: Number(row.buyers || 0),
+                   aov: Number(row.aov || 0),
+                   impressions: Number(row.impressions || 0),
+                   penonton: Number(row.penonton || row.impressions || 0),
+                   liveVisits: Number(row.liveVisits || 0),
+                   productImpressions: Number(row.productImpressions || 0),
+                   clicks: Number(row.clicks || 0),
+                   orders: Number(row.orders || 0),
+                   followers: Number(row.followers || 0),
+                   likes: Number(row.likes || 0),
+                   shares: Number(row.shares || 0),
+                   comments: Number(row.comments || 0),
+                   avgViewDuration: Number(row.avgViewDuration || 0),
+                   peakViewers: Number(row.peakViewers || 0),
+                   shopVouchers: Number(row.shopVouchers || 0),
+                   specialVouchers: Number(row.specialVouchers || 0),
+                   coinsClaimed: Number(row.coinsClaimed || 0),
+                   hasFunnelInFile: !!row.hasFunnelInFile
+                });
+                
+                allRecordsToSave.push({
+                   id: baseId + "_eng",
+                   batchId: batchId,
+                   brandId: brandIdToSave,
+                   brandName: brandNameToSave,
+                   platform: platformToSave,
+                   title: row.title,
+                   date: row.date,
+                   dateTime: row.dateTime || row.date,
+                   uploadedAt: new Date().toISOString(),
+                   reportType: "engagement",
+                   likes: Number(row.likes || 0),
+                   comments: Number(row.comments || 0),
+                   shares: Number(row.shares || 0),
+                   followers: Number(row.followers || 0),
+                   peakViewers: Number(row.peakViewers || 0),
+                   penonton: Number(row.penonton || row.impressions || 0),
+                   impressions: Number(row.impressions || 0),
+                   shopVouchers: Number(row.shopVouchers || 0),
+                   specialVouchers: Number(row.specialVouchers || 0),
+                   coinsClaimed: Number(row.coinsClaimed || 0)
+                });
+            } else {
+               const isEngagement = uploadTargetTab === "engagement";
+               const record: any = {
+                 id: baseId,
+                 batchId: batchId,
+                 brandId: brandIdToSave,
+                 brandName: brandNameToSave,
+                 platform: platformToSave,
+                 title: row.title,
+                 date: row.date,
+                 dateTime: row.dateTime || row.date,
+                 uploadedAt: new Date().toISOString(),
+                 reportType: uploadTargetTab
+               };
 
-            batchSave.set(doc(db, "brand_performance_logs", docId), record);
-            savedCount++;
+               if (isEngagement) {
+                 record.likes = Number(row.likes || 0); 
+                 record.comments = Number(row.comments || 0); 
+                 record.shares = Number(row.shares || 0); 
+                 record.followers = Number(row.followers || 0); 
+                 record.peakViewers = Number(row.peakViewers || 0); 
+                 record.penonton = Number(row.penonton || row.impressions || 0); 
+                 record.impressions = Number(row.impressions || 0); 
+                 record.shopVouchers = Number(row.shopVouchers || 0); 
+                 record.specialVouchers = Number(row.specialVouchers || 0); 
+                 record.coinsClaimed = Number(row.coinsClaimed || 0); 
+               } else {
+                 record.shift = row.shift || "Shift Lainnya";
+                 record.duration = Number(row.duration || 0);
+                 record.gmv = rowGmv;
+                 record.products_sold = Number(row.products_sold || 0);
+                 record.buyers = Number(row.buyers || 0);
+                 record.aov = Number(row.aov || 0);
+                 record.impressions = Number(row.impressions || 0);
+                 record.penonton = Number(row.penonton || row.impressions || 0);
+                 record.liveVisits = Number(row.liveVisits || 0);
+                 record.productImpressions = Number(row.productImpressions || 0);
+                 record.clicks = Number(row.clicks || 0);
+                 record.orders = Number(row.orders || 0);
+                 record.followers = Number(row.followers || 0);
+                 record.likes = Number(row.likes || 0);
+                 record.shares = Number(row.shares || 0);
+                 record.comments = Number(row.comments || 0);
+                 record.avgViewDuration = Number(row.avgViewDuration || 0);
+                 record.peakViewers = Number(row.peakViewers || 0);
+                 record.shopVouchers = Number(row.shopVouchers || 0);
+                 record.specialVouchers = Number(row.specialVouchers || 0);
+                 record.coinsClaimed = Number(row.coinsClaimed || 0);
+                 record.hasFunnelInFile = !!row.hasFunnelInFile;
+               }
+               allRecordsToSave.push(record);
+            }
+        }
+
+        const chunkSize = 400; // max is 500 for Firestore batch
+        for (let i = 0; i < allRecordsToSave.length; i += chunkSize) {
+          const chunk = allRecordsToSave.slice(i, i + chunkSize);
+          const batchSave = writeBatch(db);
+          for (const record of chunk) {
+            batchSave.set(doc(db, "brand_performance_logs", record.id), record);
           }
           await batchSave.commit();
         }
@@ -2007,12 +2608,13 @@ export default function App() {
           platform: platformToSave,
           fileName: currentFileName,
           uploadedAt: new Date().toISOString(),
-          rowCount: savedCount,
-          gmv: totalBatchGmv
+          rowCount: dataToSave.length,
+          gmv: totalBatchGmv,
+          reportType: platformToSave === "TikTok Live" ? "both" : uploadTargetTab
         };
         await setDoc(doc(db, "brand_upload_history", batchId), uploadHistoryRecord);
 
-        addNotification("✅ Tersimpan", `Berhasil menyimpan ${savedCount} data performa live streaming (${platformToSave}) untuk brand "${brandNameToSave}".`, "success", "reporting_brand");
+        addNotification("✅ Tersimpan", `Berhasil menyimpan data TikTok performa live streaming untuk brand "${brandNameToSave}".`, "success", "reporting_brand");
       } catch (err: any) {
         console.error("Gagal menyimpan data laporan ke Firestore di latar:", err);
         addNotification("❌ Gagal Menyimpan", `Terjadi kesalahan saat menyimpan data ${brandNameToSave}: ${err.message}`, "danger", "reporting_brand");
@@ -2445,12 +3047,11 @@ export default function App() {
     return true;
   }, [timeFilter, filterReferenceDate, salarySettings.useCutOff, salarySettings.cutOffStartDay, salarySettings.cutOffEndDay]);
 
-  const [salarySearch, setSalarySearch] = useState("");
+  const [globalSearch, setGlobalSearch] = useState("");
   const [platformFilter, setPlatformFilter] = useState("Semua Platform");
   const [brandFilter, setBrandFilter] = useState("Semua Brand");
 
   // Search states for "Data absen" tab
-  const [dbSearch, setDbSearch] = useState("");
   const [dbPlatformFilter, setDbPlatformFilter] = useState("Semua Platform");
   const [dbBrandFilter, setDbBrandFilter] = useState("Semua Brand");
   const [dbDateFilterStart, setDbDateFilterStart] = useState("");
@@ -2651,7 +3252,7 @@ export default function App() {
   // Filtered and sorted salary report list
   const filteredHostReportList = useMemo(() => {
     const filtered = hostReportList.filter(item => {
-      const matchSearch = item.name.toLowerCase().includes(salarySearch.toLowerCase());
+      const matchSearch = item.name.toLowerCase().includes(globalSearch.toLowerCase());
       const matchPlatform = platformFilter === "Semua Platform" || item.platforms.some(p => p.includes(platformFilter));
       const matchBrand = brandFilter === "Semua Brand" || item.brands.some(b => b.includes(brandFilter));
       return matchSearch && matchPlatform && matchBrand;
@@ -2692,14 +3293,14 @@ export default function App() {
       if (valA > valB) return salarySortDir === "asc" ? 1 : -1;
       return 0;
     });
-  }, [hostReportList, salarySearch, platformFilter, brandFilter, salarySortKey, salarySortDir]);
+  }, [hostReportList, globalSearch, platformFilter, brandFilter, salarySortKey, salarySortDir]);
 
   // Filtered database logs list for "Data absen" tab
   const filteredLogsList = useMemo(() => {
     return logs.filter(item => {
-      const dbSearchLower = (dbSearch || "").toLowerCase();
-      const matchSearch = (item.hostName || "").toLowerCase().includes(dbSearchLower) || 
-                          (item.employeeId && item.employeeId.toLowerCase().includes(dbSearchLower));
+      const globalSearchLower = (globalSearch || "").toLowerCase();
+      const matchSearch = (item.hostName || "").toLowerCase().includes(globalSearchLower) || 
+                          (item.employeeId && item.employeeId.toLowerCase().includes(globalSearchLower));
       const matchPlatform = isPlatformMatch(item.platform, dbPlatformFilter);
       const matchBrand = dbBrandFilter === "Semua Brand" || item.brandHandled === dbBrandFilter;
       let matchStatus = false;
@@ -2736,7 +3337,7 @@ export default function App() {
       const timeB = new Date(b.date || b.timestamp || 0).getTime();
       return dbSortDir === "desc" ? timeB - timeA : timeA - timeB;
     });
-  }, [logs, dbSearch, dbPlatformFilter, dbBrandFilter, dbStatusFilter, dbDateFilterStart, dbDateFilterEnd, dbSortDir]);
+  }, [logs, globalSearch, dbPlatformFilter, dbBrandFilter, dbStatusFilter, dbDateFilterStart, dbDateFilterEnd, dbSortDir]);
 
   // Total Statistics across Agency for Operators
   const agencyOverviewStats = useMemo(() => {
@@ -4544,7 +5145,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                      {(() => {
                          const filteredDb = brandPerformanceLogs.filter(log => log.brandId === loggedInClientBrandId);
-                         let effectiveFilter = operatorDateFilterType;
+                         let effectiveFilter = clientDateFilterType;
                          let targetLatestDate = "";
                          let latestDateLabel = "";
                          
@@ -4561,9 +5162,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             } else {
                                effectiveFilter = "all";
                             }
-                         } else if (effectiveFilter === "month" && operatorSelectedMonth) {
-                            latestDateLabel = getIndonesianMonthLabel(operatorSelectedMonth);
-                            const partsVal = operatorSelectedMonth.split('-');
+                         } else if (effectiveFilter === "month" && clientSelectedMonth) {
+                            latestDateLabel = getIndonesianMonthLabel(clientSelectedMonth);
+                            const partsVal = clientSelectedMonth.split('-');
                             const y = partsVal[0];
                             const m = partsVal[1];
                             let ny = parseInt(y, 10);
@@ -4572,10 +5173,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             const prevMonth = `${ny}-${String(nm).padStart(2, '0')}`;
                             prevStartDate = `${prevMonth}-01`;
                             prevEndDate = `${prevMonth}-31`;
-                         } else if (effectiveFilter === "custom" && operatorCustomStartDate && operatorCustomEndDate) {
-                            latestDateLabel = `${operatorCustomStartDate} ke ${operatorCustomEndDate}`;
-                            const s = new Date(operatorCustomStartDate);
-                            const e = new Date(operatorCustomEndDate);
+                         } else if (effectiveFilter === "custom" && clientCustomStartDate && clientCustomEndDate) {
+                            latestDateLabel = `${clientCustomStartDate} ke ${clientCustomEndDate}`;
+                            const s = new Date(clientCustomStartDate);
+                            const e = new Date(clientCustomEndDate);
                             const durationDays = Math.round((e.getTime() - s.getTime()) / (1000 * 3600 * 24));
                             const pE = new Date(s);
                             pE.setDate(pE.getDate() - 1);
@@ -4603,10 +5204,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                  if (effectiveFilter === "latest") {
                                    if (normalizedLogDate !== targetLatestDate) return false;
                                  } else if (effectiveFilter === "month") {
-                                   if (normalizedLogDate.substring(0, 7) !== operatorSelectedMonth) return false;
+                                   if (normalizedLogDate.substring(0, 7) !== clientSelectedMonth) return false;
                                  } else if (effectiveFilter === "custom") {
-                                   if (operatorCustomStartDate && normalizedLogDate < operatorCustomStartDate) return false;
-                                   if (operatorCustomEndDate && normalizedLogDate > operatorCustomEndDate) return false;
+                                   if (clientCustomStartDate && normalizedLogDate < clientCustomStartDate) return false;
+                                   if (clientCustomEndDate && normalizedLogDate > clientCustomEndDate) return false;
                                  }
                                }
                              }
@@ -4617,8 +5218,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                const matchPlatformStr = String(log.platform || "").toLowerCase().includes(q);
                                if (!matchTitle && !matchDate && !matchPlatformStr) return false;
                              }
-                             if (operatorPlatformFilter) {
-                               if (!isPlatformMatch(log.platform, operatorPlatformFilter)) return false;
+                             if (clientPlatformFilter) {
+                               if (!isPlatformMatch(log.platform, clientPlatformFilter)) return false;
                              }
                              return true;
                            });
@@ -4630,7 +5231,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                          const totalBuyersDb = tableLogs.reduce((sum, item) => sum + (item.buyers || 0), 0);
                          const totalOrdersDb = tableLogs.reduce((sum, item) => sum + (item.orders || 0), 0);
                          const totalItemsSoldDb = tableLogs.reduce((sum, item) => sum + (item.products_sold || 0), 0);
-                         const avgAovDb = totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
+                         let avgAovDb = totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
+                         if (tableLogs.length > 0 && tableLogs[0].platform && (tableLogs[0].platform.toLowerCase().includes("shopee") || tableLogs[0].platform.toLowerCase().includes("tiktok"))) {
+                             avgAovDb = totalOrdersDb > 0 ? totalGmvDb / totalOrdersDb : 0;
+                         }
                          const totalLikesDb = tableLogs.reduce((sum, item) => sum + (item.likes || 0), 0);
                          const totalCommentsDb = tableLogs.reduce((sum, item) => sum + (item.comments || 0), 0);
                          const totalSharesDb = tableLogs.reduce((sum, item) => sum + (item.shares || 0), 0);
@@ -4640,7 +5244,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                          const pTotalBuyersDb = prevTableLogs.reduce((sum, item) => sum + (item.buyers || 0), 0);
                          const pTotalOrdersDb = prevTableLogs.reduce((sum, item) => sum + (item.orders || 0), 0);
                          const pTotalItemsSoldDb = prevTableLogs.reduce((sum, item) => sum + (item.products_sold || 0), 0);
-                         const pAvgAovDb = pTotalBuyersDb > 0 ? pTotalGmvDb / pTotalBuyersDb : 0;
+                         let pAvgAovDb = pTotalBuyersDb > 0 ? pTotalGmvDb / pTotalBuyersDb : 0;
+                         if (prevTableLogs.length > 0 && prevTableLogs[0].platform && (prevTableLogs[0].platform.toLowerCase().includes("shopee") || prevTableLogs[0].platform.toLowerCase().includes("tiktok"))) {
+                             pAvgAovDb = pTotalOrdersDb > 0 ? pTotalGmvDb / pTotalOrdersDb : 0;
+                         }
                          const pTotalLikesDb = prevTableLogs.reduce((sum, item) => sum + (item.likes || 0), 0);
                          const pTotalCommentsDb = prevTableLogs.reduce((sum, item) => sum + (item.comments || 0), 0);
                          const pTotalSharesDb = prevTableLogs.reduce((sum, item) => sum + (item.shares || 0), 0);
@@ -4654,6 +5261,32 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                          const totalDbOrdersFunnel = tableLogs.reduce((acc, curr) => acc + (curr.orders || 0), 0);
                          const funnelCtr = totalDbProductImpressions > 0 ? ((totalDbClicks / totalDbProductImpressions) * 100) : 0;
                          const funnelCtor = totalDbClicks > 0 ? ((totalDbOrdersFunnel / totalDbClicks) * 100) : 0;
+                         const totalDbDuration = tableLogs.reduce((acc, curr) => {
+                             let dur = curr.duration || 0;
+                             if (dur > 0 && dur < 1.0) {
+                                 dur = dur * 86400; // Excel fraction to seconds
+                             }
+                             return acc + dur;
+                         }, 0);
+                         const pTotalDbDuration = prevTableLogs.reduce((acc, curr) => {
+                             let dur = curr.duration || 0;
+                             if (dur > 0 && dur < 1.0) {
+                                 dur = dur * 86400; // Excel fraction to seconds
+                             }
+                             return acc + dur;
+                         }, 0);
+                         const gmvPerHour = totalDbDuration > 0 ? (totalGmvDb / (totalDbDuration / 3600)) : 0;
+                         const pGmvPerHour = pTotalDbDuration > 0 ? (pTotalGmvDb / (pTotalDbDuration / 3600)) : 0;
+                         let conversionRateShopee = 0;
+                         let pConversionRateShopee = 0;
+                         const pTotalDbImpressions = prevTableLogs.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
+                         if (tableLogs.length > 0 && tableLogs[0].platform && tableLogs[0].platform.toLowerCase().includes("tiktok")) {
+                             conversionRateShopee = totalDbClicks > 0 ? ((totalDbOrdersFunnel / totalDbClicks) * 100) : 0;
+                             pConversionRateShopee = pTotalClicksDb > 0 ? ((pTotalOrdersDb / pTotalClicksDb) * 100) : 0;
+                         } else {
+                             conversionRateShopee = totalDbImpressions > 0 ? ((totalDbOrdersFunnel / totalDbImpressions) * 100) : 0;
+                             pConversionRateShopee = pTotalDbImpressions > 0 ? ((pTotalOrdersDb / pTotalDbImpressions) * 100) : 0;
+                         }
 
                          const chartDataObj = [...tableLogs].reduce((acc: any, curr: any) => {
                            let d = curr.date;
@@ -4746,8 +5379,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                    />
                                  </div>
                                  <select
-                                   value={operatorPlatformFilter}
-                                   onChange={(e) => setOperatorPlatformFilter(e.target.value)}
+                                   value={clientPlatformFilter}
+                                   onChange={(e) => setClientPlatformFilter(e.target.value)}
                                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
                                  >
                                    <option value="">Semua Platform</option>
@@ -4765,22 +5398,22 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         key={item.id}
                                         type="button"
                                         onClick={() => {
-                                          setOperatorDateFilterType(item.id);
-                                          if (item.id === "all") {
-                                            setIsOperatorCalendarOpen(false);
-                                            setIsOperatorMonthOpen(false);
+                                          setClientDateFilterType(item.id);
+                                          if (item.id === "all" || item.id === "latest") {
+                                            setIsClientCalendarOpen(false);
+                                            setIsClientMonthOpen(false);
                                           } else if (item.id === "month") {
-                                            setIsOperatorMonthOpen(true);
-                                            setIsOperatorCalendarOpen(false);
+                                            setIsClientMonthOpen(true);
+                                            setIsClientCalendarOpen(false);
                                           } else if (item.id === "custom") {
-                                            setIsOperatorCalendarOpen(true);
-                                            setIsOperatorMonthOpen(false);
-                                            setOperatorTempStartDate(operatorCustomStartDate || formatDateYYYYMMDD(new Date()));
-                                            setOperatorTempEndDate(operatorCustomEndDate || formatDateYYYYMMDD(new Date()));
+                                            setIsClientCalendarOpen(true);
+                                            setIsClientMonthOpen(false);
+                                            setClientTempStartDate(clientCustomStartDate || formatDateYYYYMMDD(new Date()));
+                                            setClientTempEndDate(clientCustomEndDate || formatDateYYYYMMDD(new Date()));
                                           }
                                         }}
                                         className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
-                                          operatorDateFilterType === item.id 
+                                          clientDateFilterType === item.id 
                                           ? "bg-white text-indigo-700 shadow-sm border border-slate-100" 
                                           : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
                                         }`}
@@ -4790,32 +5423,32 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                    ))}
                                  </div>
                                   
-                                 {((operatorDateFilterType === "custom" && operatorCustomStartDate) || operatorDateFilterType === "month") && (
+                                 {((clientDateFilterType === "custom" && clientCustomStartDate) || clientDateFilterType === "month") && (
                                     <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
                                       <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                                       <span className="text-[10px] font-bold text-slate-700">
-                                        {operatorDateFilterType === "month" 
-                                          ? getIndonesianMonthLabel(operatorSelectedMonth) 
-                                          : `${operatorCustomStartDate} to ${operatorCustomEndDate}`}
+                                        {clientDateFilterType === "month" 
+                                          ? getIndonesianMonthLabel(clientSelectedMonth) 
+                                          : `${clientCustomStartDate} to ${clientCustomEndDate}`}
                                       </span>
                                     </div>
                                  )}
 
                                  {/* Custom Date Overlay UI (Month) */}
-                                 {isOperatorMonthOpen && operatorDateFilterType === "month" && (
+                                 {isClientMonthOpen && clientDateFilterType === "month" && (
                                    <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
                                      <div className="flex justify-between items-center mb-4 text-slate-800">
                                        <button 
                                          type="button" 
-                                         onClick={() => setOperatorMonthPickerYear(y => y - 1)} 
+                                         onClick={() => setClientMonthPickerYear(y => y - 1)} 
                                          className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
                                        >
                                          &laquo;
                                        </button>
-                                       <div className="text-sm font-bold tracking-widest">{operatorMonthPickerYear}</div>
+                                       <div className="text-sm font-bold tracking-widest">{clientMonthPickerYear}</div>
                                        <button 
                                          type="button" 
-                                         onClick={() => setOperatorMonthPickerYear(y => y + 1)} 
+                                         onClick={() => setClientMonthPickerYear(y => y + 1)} 
                                          className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
                                        >
                                          &raquo;
@@ -4828,12 +5461,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                          { val: "07", label: "Jul" }, { val: "08", label: "Aug" }, { val: "09", label: "Sept" },
                                          { val: "10", label: "Oct" }, { val: "11", label: "Nov" }, { val: "12", label: "Dec" }
                                        ].map((m, idx) => {
-                                         const mVal = `${operatorMonthPickerYear}-${m.val}`;
-                                         const isSelected = operatorSelectedMonth === mVal;
+                                         const mVal = `${clientMonthPickerYear}-${m.val}`;
+                                         const isSelected = clientSelectedMonth === mVal;
                                          
                                          const currentDate = new Date();
-                                         const isFuture = operatorMonthPickerYear > currentDate.getFullYear() || 
-                                                          (operatorMonthPickerYear === currentDate.getFullYear() && parseInt(m.val) > currentDate.getMonth() + 1);
+                                         const isFuture = clientMonthPickerYear > currentDate.getFullYear() || 
+                                                          (clientMonthPickerYear === currentDate.getFullYear() && parseInt(m.val) > currentDate.getMonth() + 1);
 
                                          return (
                                            <button
@@ -4841,8 +5474,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                              type="button"
                                              onClick={() => { 
                                                if (!isFuture) {
-                                                 setOperatorSelectedMonth(mVal); 
-                                                 setIsOperatorMonthOpen(false); 
+                                                 setClientSelectedMonth(mVal); 
+                                                 setIsClientMonthOpen(false); 
                                                }
                                              }}
                                              className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
@@ -4861,21 +5494,21 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                  )}
 
                                  {/* Custom Date Overlay UI (Custom) */}
-                                 {isOperatorCalendarOpen && operatorDateFilterType === "custom" && (
+                                 {isClientCalendarOpen && clientDateFilterType === "custom" && (
                                    <div className="absolute right-0 top-full mt-2 z-50 animate-fadeIn">
                                      <DoubleDatePicker 
-                                       startDate={operatorTempStartDate} 
-                                       endDate={operatorTempEndDate} 
+                                       startDate={clientTempStartDate} 
+                                       endDate={clientTempEndDate} 
                                        onChange={(start, end) => {
-                                         setOperatorTempStartDate(start);
-                                         setOperatorTempEndDate(end);
+                                         setClientTempStartDate(start);
+                                         setClientTempEndDate(end);
                                        }} 
                                        onApply={() => {
-                                         setOperatorCustomStartDate(operatorTempStartDate);
-                                         setOperatorCustomEndDate(operatorTempEndDate);
-                                         setIsOperatorCalendarOpen(false);
+                                         setClientCustomStartDate(clientTempStartDate);
+                                         setClientCustomEndDate(clientTempEndDate);
+                                         setIsClientCalendarOpen(false);
                                        }} 
-                                       onCancel={() => setIsOperatorCalendarOpen(false)} 
+                                       onCancel={() => setIsClientCalendarOpen(false)} 
                                      />
                                    </div>
                                  )}
@@ -4883,15 +5516,192 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                              </div>
  
                               {/* Summary Cards */}
-                             <div className="mb-2">
-                                <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg mb-6">
-                                   <Calendar className="w-4 h-4 text-indigo-500" />
-                                   <span className="text-xs font-extrabold text-indigo-700 uppercase tracking-tight">Data Performance: {latestDateLabel}</span>
-                                </div>
-                             </div>
+                             {(() => {
+                               const isShopee = clientPlatformFilter ? clientPlatformFilter.toLowerCase().includes("shopee") : filteredDb.some(log => log.platform && log.platform.toLowerCase().includes("shopee"));
+                               if (isShopee) {
+                                 return (
+                                   <div className="space-y-6 mb-6">
+                                     <div>
+                                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+                                       <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">Performance live</h4>
+                                       <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
+                                          <button 
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              if (clientDateFilterType === 'latest' && targetLatestDate) {
+                                                pd = new Date(targetLatestDate);
+                                              } else if (clientDateFilterType === 'custom' && clientCustomStartDate) {
+                                                pd = new Date(clientCustomStartDate);
+                                              }
+                                              pd.setDate(pd.getDate() - 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                              setClientDateFilterType("custom");
+                                              setClientCustomStartDate(newD);
+                                              setClientCustomEndDate(newD);
+                                            }}
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                          >
+                                            <ChevronLeft className="w-4 h-4" />
+                                          </button>
+                                          <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
+                                            {(() => {
+                                              if (clientDateFilterType === 'month' || clientDateFilterType === 'all') return latestDateLabel || 'Semua Waktu';
+                                              let curD = new Date();
+                                              if (clientDateFilterType === 'latest' && targetLatestDate) {
+                                                curD = new Date(targetLatestDate);
+                                              } else if (clientDateFilterType === 'custom' && clientCustomStartDate) {
+                                                curD = new Date(clientCustomStartDate);
+                                              }
+                                              return curD.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                            })()}
+                                          </span>
+                                          <button 
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              if (clientDateFilterType === 'latest' && targetLatestDate) {
+                                                pd = new Date(targetLatestDate);
+                                              } else if (clientDateFilterType === 'custom' && clientCustomStartDate) {
+                                                pd = new Date(clientCustomStartDate);
+                                              }
+                                              pd.setDate(pd.getDate() + 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                              setClientDateFilterType("custom");
+                                              setClientCustomStartDate(newD);
+                                              setClientCustomEndDate(newD);
+                                            }}
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                          >
+                                            <ChevronRight className="w-4 h-4" />
+                                          </button>
+                                       </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">GMV</div>
+                                             <PercentBadge cur={totalGmvDb} prev={pTotalGmvDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(totalGmvDb)}</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Item Solds</div>
+                                             <PercentBadge cur={totalItemsSoldDb} prev={pTotalItemsSoldDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalItemsSoldDb)}</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">GMV/Hours</div>
+                                             <PercentBadge cur={gmvPerHour} prev={pGmvPerHour} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(gmvPerHour)}</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Conversion Rate %</div>
+                                             <PercentBadge cur={conversionRateShopee} prev={pConversionRateShopee} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{conversionRateShopee.toFixed(2)}%</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Orders</div>
+                                             <PercentBadge cur={totalOrdersDb} prev={pTotalOrdersDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalOrdersDb)}</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Avg. Viewer Duration</div>
+                                             <PercentBadge cur={avgViewDurationDb} prev={pAvgViewDurationDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{avgViewDurationDb.toFixed(2)}s</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">AOV</div>
+                                             <PercentBadge cur={avgAovDb} prev={pAvgAovDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(avgAovDb)}</div>
+                                         </div>
+                                      </div>
+                                     </div>
+
+                                     {totalDbImpressions > 0 && (
+                                       <div className="mb-6">
+                                         <HorizontalFunnel 
+                                           title=""
+                                           subtitle=""
+                                           steps={[
+                                             { label: "Viewer", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
+                                             { label: "Viewer Enganged", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
+                                             { label: "Add To Card", value: new Intl.NumberFormat('id-ID').format(totalDbClicks) },
+                                             { label: "Purchase", value: new Intl.NumberFormat('id-ID').format(totalDbOrdersFunnel) }
+                                           ]}
+                                         />
+                                       </div>
+                                     )}
+                                   </div>
+                                 );
+                               }
+
+                               return (
+                                <>
+
                              <div className="space-y-6 mb-6">
                                <div>
-                                 <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest">Sale Metrics</h4>
+                                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+                                       <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">Sale Metrics</h4>
+                                       <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
+                                          <button 
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              if (clientDateFilterType === 'latest' && targetLatestDate) {
+                                                pd = new Date(targetLatestDate);
+                                              } else if (clientDateFilterType === 'custom' && clientCustomStartDate) {
+                                                pd = new Date(clientCustomStartDate);
+                                              }
+                                              pd.setDate(pd.getDate() - 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                              setClientDateFilterType("custom");
+                                              setClientCustomStartDate(newD);
+                                              setClientCustomEndDate(newD);
+                                            }}
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+                                            <ChevronLeft className="w-4 h-4" />
+                                          </button>
+                                          <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
+                                            {(() => {
+                                              if (clientDateFilterType === 'month' || clientDateFilterType === 'all') return latestDateLabel || 'Semua Waktu';
+                                              let curD = new Date();
+                                              if (clientDateFilterType === 'latest' && targetLatestDate) {
+                                                curD = new Date(targetLatestDate);
+                                              } else if (clientDateFilterType === 'custom' && clientCustomStartDate) {
+                                                curD = new Date(clientCustomStartDate);
+                                              }
+                                              return curD.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                            })()}
+                                          </span>
+                                          <button 
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              if (clientDateFilterType === 'latest' && targetLatestDate) {
+                                                pd = new Date(targetLatestDate);
+                                              } else if (clientDateFilterType === 'custom' && clientCustomStartDate) {
+                                                pd = new Date(clientCustomStartDate);
+                                              }
+                                              pd.setDate(pd.getDate() + 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                              setClientDateFilterType("custom");
+                                              setClientCustomStartDate(newD);
+                                              setClientCustomEndDate(newD);
+                                            }}
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+                                            <ChevronRight className="w-4 h-4" />
+                                          </button>
+                                       </div>
+                                      </div>
                                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
                                     <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                                       <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
@@ -4972,114 +5782,84 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                  </div>
                                </div>
                              </div>
+                             </>
+                             );
+                            })()}
  
-                             {/* Funnel */}
-                             {totalDbImpressions > 0 && (
-                               <div className="mb-6">
-                                 <HorizontalFunnel 
-                                   title="Live Sales Funnel"
-                                   subtitle="All Platform & Dates"
-                                   steps={(tableLogs.length > 0 && tableLogs[0].platform !== "TikTok Live" && tableLogs[0].platform?.toLowerCase().includes("shopee")) ? [
-                                     { label: "Total Viewers", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
-                                     { label: "Active Viewers", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
-                                     { label: "Add To Cart", value: new Intl.NumberFormat('id-ID').format(totalDbClicks) },
-                                     { label: "Orders", value: new Intl.NumberFormat('id-ID').format(totalDbOrdersFunnel) }
-                                   ] : [
-                                     { label: "LIVE impressions", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
-                                     { label: "Video/Live Visits", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
-                                     { label: "Product impressions", value: new Intl.NumberFormat('id-ID').format(totalDbProductImpressions) },
-                                     { label: `Product clicks (CTR: ${funnelCtr.toFixed(2)}%)`, value: new Intl.NumberFormat('id-ID').format(totalDbClicks) },
-                                     { label: `Orders paid (CTOR: ${funnelCtor.toFixed(2)}%)`, value: new Intl.NumberFormat('id-ID').format(totalDbBuyers) }
-                                   ]}
-                                 />
-                               </div>
-                             )}
- 
-                           {/* Charts */}
-                             <div className="mb-6">
-                                 <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm h-[400px] flex flex-col">
-                                   <div className="flex items-center justify-between mb-6">
-                                     <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Trend Performa</h4>
-                                     <div className="flex gap-4">
-                                       <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600">
-                                         <input 
-                                           type="checkbox" 
-                                           checked={trendFilters.gmv}
-                                            onChange={(e) => setTrendFilters({...trendFilters, gmv: e.target.checked})}
-                                           className="w-3.5 h-3.5 rounded border-slate-300 text-teal-500 focus:ring-teal-500"
-                                         />
-                                         GMV
-                                       </label>
-                                       <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600">
-                                         <input 
-                                           type="checkbox" 
-                                           checked={trendFilters.views}
-                                           onChange={(e) => setTrendFilters({...trendFilters, views: e.target.checked})}
-                                           className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500"
-                                         />
-                                         Views
-                                       </label>
+
+                             {/* SKU Analytics */}
+                             {(() => {
+                                 const isShopee = clientPlatformFilter ? clientPlatformFilter.toLowerCase().includes("shopee") : filteredDb.some(log => log.platform && log.platform.toLowerCase().includes("shopee"));
+                                 if (!isShopee) return null;
+                                 
+                                 const applySkuFilter = (logsArr: any[]) => {
+                                   if (!logsArr) return [];
+                                   let res = logsArr.filter(r => r.brandId === loggedInClientBrandId);
+                                   if (clientDateFilterType === 'latest' && targetLatestDate) {
+                                      res = res.filter(r => r.date && r.date.startsWith(targetLatestDate.substring(0,10)));
+                                   } else if (clientDateFilterType === 'custom' && clientCustomStartDate) {
+                                      res = res.filter(r => r.date && r.date >= clientCustomStartDate && r.date <= (clientCustomEndDate||clientCustomStartDate));
+                                   } else if (clientDateFilterType === 'month' && clientSelectedMonth) {
+                                      res = res.filter(r => r.date && r.date.startsWith(clientSelectedMonth));
+                                   }
+                                   return res;
+                                 };
+                                 
+                                 const currentSkus = applySkuFilter(shopeeSkuLogs);
+                                 if (currentSkus.length === 0) return null;
+                                 
+                                 const skuMap = new Map();
+                                 currentSkus.forEach(s => {
+                                    const key = s.sku !== "N/A" ? s.sku : s.productName;
+                                    const ex = skuMap.get(key);
+                                    if (ex) {
+                                       ex.sold += Number(s.sold) || 0;
+                                       ex.revenue += Number(s.revenue) || 0;
+                                    } else {
+                                       skuMap.set(key, { sku: s.sku, productName: s.productName, sold: Number(s.sold)||0, revenue: Number(s.revenue)||0 });
+                                    }
+                                 });
+                                 
+                                 let aggregatedSkus = Array.from(skuMap.values()).sort((a,b) => b.sold - a.sold);
+                                 
+                                 return (
+                                  <div className="bg-white border border-slate-100 p-5 lg:p-7 rounded-3xl shadow-sm mb-6">
+                                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
+                                        <div>
+                                          <h4 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+                                            <Package className="w-5 h-5 text-indigo-500" /> Top Performing SKUs
+                                          </h4>
+                                          <p className="text-xs text-slate-500 font-semibold mt-1">Berdasarkan data Item Export Shopee</p>
+                                        </div>
                                      </div>
-                                   </div>
-                                   <div className="flex-1 w-full min-h-0">
-                                     <ResponsiveContainer width="100%" height="100%" className="focus:outline-none">
-                                       <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} className="focus:outline-none" style={{ outline: 'none' }}>
-                                         <defs>
-                                           <linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1">
-                                             <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.2}/>
-                                             <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
-                                           </linearGradient>
-                                           <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                                             <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                                             <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                           </linearGradient>
-                                         </defs>
-                                         <CartesianGrid strokeDasharray="3 3" vertical={true} horizontal={false} stroke="#f1f5f9" />
-                                          <XAxis 
-                                            dataKey="date" 
-                                            tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}} 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tickFormatter={(val) => {
-                                              if (!val) return '';
-                                              const d = new Date(val);
-                                              return d.toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
-                                            }}
-                                          />
-                                          {trendFilters.gmv && <YAxis yAxisId="left" orientation="left" tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}} axisLine={false} tickLine={false} tickFormatter={(val) => `Rp${(val/1000000).toFixed(0)}M`} />}
-                                          {trendFilters.views && <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}} axisLine={false} tickLine={false} tickFormatter={(val) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(val)} />}
-                                          <Tooltip 
-                                            isAnimationActive={false}
-                                            content={({ active, payload, label }) => {
-                                              if (active && payload && payload.length) {
-                                                const d = new Date(label).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
-                                                return (
-                                                  <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-xl min-w-[200px]">
-                                                    <div className="text-[10px] font-bold text-slate-800 mb-2 uppercase">{d}</div>
-                                                    <div className="space-y-1.5">
-                                                      {payload.map((entry: any, idx: number) => (
-                                                        <div key={idx} className="flex justify-between items-center text-xs font-bold gap-4">
-                                                          <span className="text-slate-500 uppercase text-[9px]">{entry.name}</span>
-                                                          <span style={{ color: entry.color || entry.stroke }}>
-                                                            {entry.name === 'GMV' ? `Rp ${new Intl.NumberFormat('id-ID').format(entry.value)}` : new Intl.NumberFormat('id-ID').format(entry.value)}
-                                                          </span>
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                );
-                                              }
-                                              return null;
-                                            }} 
-                                            cursor={{ stroke: '#10b981', strokeWidth: 32, opacity: 0.1 }}
-                                          />
-                                          {trendFilters.gmv && <Area yAxisId="left" type="monotone" name="GMV" dataKey="gmv" stroke="#14b8a6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorGmv)" dot={{r: 3, fill: "#fff", stroke: "#14b8a6", strokeWidth: 2}} activeDot={{r: 6, fill: "#14b8a6", stroke: "#fff", strokeWidth: 2}} />}
-                                          {trendFilters.views && <Area yAxisId="right" type="monotone" name="Views" dataKey="impressions" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorViews)" dot={{r: 3, fill: "#fff", stroke: "#10b981", strokeWidth: 2}} activeDot={{r: 6, fill: "#10b981", stroke: "#fff", strokeWidth: 2}} />}
-                                        </AreaChart>
-                                      </ResponsiveContainer>
-                                    </div>
+                                     
+                                     <div className="overflow-x-auto rounded-xl border border-slate-100">
+                                       <table className="w-full text-left whitespace-nowrap min-w-[700px]">
+                                         <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none">
+                                           <tr>
+                                             <th className="px-5 py-4 w-12 text-center">No</th>
+                                             <th className="px-5 py-4">Nama Produk</th>
+                                             <th className="px-5 py-4 w-32">SKU</th>
+                                             <th className="px-5 py-4 w-32 text-right">Items Sold</th>
+                                             <th className="px-5 py-4 w-40 text-right">Revenue (Rp)</th>
+                                           </tr>
+                                         </thead>
+                                         <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
+                                           {aggregatedSkus.map((sku, idx) => (
+                                              <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                                <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">{idx + 1}</td>
+                                                <td className="px-5 py-3 whitespace-normal min-w-[250px]"><div className="line-clamp-2 text-slate-800 leading-snug">{sku.productName}</div></td>
+                                                <td className="px-5 py-3 text-xs tracking-wider text-slate-500">{sku.sku}</td>
+                                                <td className="px-5 py-3 text-right text-emerald-600 font-black">{new Intl.NumberFormat('id-ID').format(sku.sold)}</td>
+                                                <td className="px-5 py-3 text-right text-slate-800 font-black">{new Intl.NumberFormat('id-ID').format(sku.revenue)}</td>
+                                              </tr>
+                                           ))}
+                                         </tbody>
+                                       </table>
+                                     </div>
                                   </div>
-                              </div>
+                                 );
+                              })()}
 
                              {/* Time & Day Analytics */}
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -5237,7 +6017,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                          <td className="px-5 py-3.5 text-slate-400">{((currentPage - 1) * ITEMS_PER_PAGE) + idx + 1}</td>
                                          <td className="px-5 py-3.5 text-slate-500">
                                            <div className="flex flex-col">
-                                              <span>{log.date}</span>
+                                              <span>{formatDisplayDate(log.dateTime || log.date)}</span>
                                               <span className="text-[9px] text-indigo-500">{log.platform}</span>
                                            </div>
                                          </td>
@@ -5472,26 +6252,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     </div>
 
                     <div className="flex items-center gap-4">
-                      {["absensi", "rekap_gaji"].includes(operatorTab) && (
+                      {["dashboard_utama", "absensi", "rekap_gaji", "database", "data_brand"].includes(operatorTab) && (
                         <div className="relative min-w-[240px] hidden md:block">
                           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                           <input
                             type="text"
-                            placeholder="Cari host streamer..."
-                            value={salarySearch}
-                            onChange={(e) => setSalarySearch(e.target.value)}
-                            className="bg-slate-55 bg-[#faf9fe] border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-950 focus:outline-none focus:border-blue-500 w-full font-bold"
-                          />
-                        </div>
-                      )}
-                      {operatorTab === "database" && (
-                        <div className="relative min-w-[240px] hidden md:block">
-                          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder="Cari nama atau ID..."
-                            value={dbSearch}
-                            onChange={(e) => setDbSearch(e.target.value)}
+                            placeholder="Ketik untuk mencari..."
+                            value={globalSearch}
+                            onChange={(e) => setGlobalSearch(e.target.value)}
                             className="bg-slate-55 bg-[#faf9fe] border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-950 focus:outline-none focus:border-blue-500 w-full font-bold"
                           />
                         </div>
@@ -7433,8 +8201,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         type="text"
                         id="search_host_salary_input"
                         placeholder="Cari host untuk perhitungan gaji..."
-                        value={salarySearch}
-                        onChange={(e) => setSalarySearch(e.target.value)}
+                        value={globalSearch}
+                        onChange={(e) => setGlobalSearch(e.target.value)}
                         className="w-full bg-white border border-purple-150 rounded-xl pl-10 pr-4 py-2.5 text-xs text-purple-950 focus:outline-none focus:border-purple-400 transition-all font-sans font-bold shadow-2xs"
                       />
                     </div>
@@ -8564,8 +9332,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         type="text"
                         id="db_search_host"
                         placeholder="Cari log absen berdasarkan nama host atau ID..."
-                        value={dbSearch}
-                        onChange={(e) => setDbSearch(e.target.value)}
+                        value={globalSearch}
+                        onChange={(e) => setGlobalSearch(e.target.value)}
                         className="w-full bg-white border border-purple-150 rounded-xl pl-10 pr-4 py-2.5 text-xs text-purple-950 focus:outline-none focus:border-purple-400 transition-all font-sans font-extrabold shadow-2xs"
                       />
                     </div>
@@ -8876,7 +9644,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredLogsList.map((item) => {
+                        {filteredLogsList.map((item, idx) => {
                           const isRowChecked = selectedLogIds.includes(item.id);
                           return (
                             <tr key={item.id || idx} 
@@ -9068,8 +9836,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
                   <div className="flex justify-between items-center mb-6">
                     <div>
-                      <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
-                        <Briefcase className="w-5 h-5 text-indigo-500" /> Manajemen Data Brand Klien
+                      <h3 className="text-sm font-black text-slate-800">
+                        Manajemen Data Brand Klien
                       </h3>
                       <p className="text-xs text-slate-500 font-semibold mt-1">Data detail terkait kontrak, invoice, dan kredensial brand aktif.</p>
                     </div>
@@ -9579,17 +10347,67 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                              Hapus Semua Data
                            </button>
 
-                           <button
-                             onClick={() => {
-                               setSaveTargetBrandId(activeReportBrandId || "");
-                               setIsUploadModalOpen(true);
-                             }}
-                             className="px-4 py-2 bg-slate-900 text-white font-bold text-[11px] rounded-lg shadow-sm border border-slate-800 hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition-all"
-                           >
-                             <Download className="w-3.5 h-3.5" />
-                             Import
-                           </button>
+                           {operatorReportingTab === "product" && (
+                             <button
+                               onClick={() => {
+                                 setSaveTargetBrandId(activeReportBrandId || "");
+                                 setIsSkuUploadModalOpen(true);
+                               }}
+                               className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-[11px] rounded-lg shadow-sm border border-indigo-200 hover:bg-indigo-100 flex items-center gap-2 cursor-pointer transition-all"
+                             >
+                               <Download className="w-3.5 h-3.5" />
+                               Import Data SKU
+                             </button>
+                           )}
+                           
+                       {(operatorReportingTab === "live" || operatorReportingTab === "engagement") && (
+                         <button
+                           onClick={() => {
+                             setSaveTargetBrandId(activeReportBrandId || "");
+                             setUploadTargetTab(operatorReportingTab === "engagement" ? "engagement" : "live");
+                             setIsUploadModalOpen(true);
+                           }}
+                           className="px-4 py-2 bg-slate-900 text-white font-bold text-[11px] rounded-lg shadow-sm border border-slate-800 hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition-all"
+                         >
+                           <Download className="w-3.5 h-3.5" />
+                           Import Raw Data
+                         </button>
+                       )}
                          </div>
+                      </div>
+
+                      {/* Operator Reporting Subtabs */}
+                      <div className="px-6 sm:px-8 mb-6 border-b border-slate-200 flex gap-6">
+                        <button
+                          onClick={() => setOperatorReportingTab("live")}
+                          className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
+                            operatorReportingTab === "live" 
+                              ? "text-indigo-600 border-indigo-600" 
+                              : "text-slate-500 border-transparent hover:text-slate-800"
+                          }`}
+                        >
+                          Live Performance
+                        </button>
+                        <button
+                          onClick={() => setOperatorReportingTab("product")}
+                          className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
+                            operatorReportingTab === "product" 
+                              ? "text-indigo-600 border-indigo-600" 
+                              : "text-slate-500 border-transparent hover:text-slate-800"
+                          }`}
+                        >
+                          Product Performance
+                        </button>
+                        <button
+                          onClick={() => setOperatorReportingTab("engagement")}
+                          className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
+                            operatorReportingTab === "engagement" 
+                              ? "text-indigo-600 border-indigo-600" 
+                              : "text-slate-500 border-transparent hover:text-slate-800"
+                          }`}
+                        >
+                          Engagement & Promotion
+                        </button>
                       </div>
 
                     {isDeleteByDateModalOpen && (
@@ -9627,6 +10445,168 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
                     )}
 
+                    {isSkuUploadModalOpen && (
+                      <div className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn" id="upload_sku_modal">
+                        <div 
+                          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+                          onClick={() => {
+                            if (isSavingReport) return;
+                            setIsSkuUploadModalOpen(false);
+                            setSkuRawData([]);
+                            setAutoDetectNotice("");
+                          }}
+                        ></div>
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full p-6 sm:p-8 text-left relative animate-scaleUp my-auto sm:my-4 z-10">
+                          <button
+                            onClick={() => {
+                              if (isSavingReport) return;
+                              setIsSkuUploadModalOpen(false);
+                              setSkuRawData([]);
+                              setAutoDetectNotice("");
+                            }}
+                            className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors z-20"
+                            disabled={isSavingReport}
+                          >
+                            ✕
+                          </button>
+                          
+                          <div className="mb-6">
+                            <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
+                              <Upload className="w-6 h-6 text-indigo-500" /> Upload SKU Data (Shopee / TikTok)
+                            </h2>
+                            <p className="text-sm text-slate-500 mt-1 font-semibold">Extract and analyze top performing SKUs directly from Shopee / TikTok item export.</p>
+                          </div>
+
+                          {!skuRawData || skuRawData.length === 0 ? (
+                            <div className="space-y-6">
+                               <div 
+                                 className={`border-2 border-dashed rounded-3xl p-10 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${isDragOverReporting ? 'border-indigo-500 bg-indigo-50/50 scale-[0.99] shadow-inner' : 'border-slate-200 hover:border-indigo-400 hover:bg-slate-50/50'}`}
+                                 onDragOver={(e) => { e.preventDefault(); setIsDragOverReporting(true); }}
+                                 onDragLeave={() => setIsDragOverReporting(false)}
+                                 onDrop={(e) => {
+                                   e.preventDefault();
+                                   setIsDragOverReporting(false);
+                                   const file = e.dataTransfer.files?.[0];
+                                   if (file) handleUploadSkuRaw(file);
+                                 }}
+                               >
+                                 <input 
+                                   type="file" 
+                                   id="sku_reporting_upload" 
+                                   className="hidden" 
+                                   accept=".xlsx,.xls,.csv"
+                                   onChange={(e) => {
+                                     const file = e.target.files?.[0];
+                                     if (file) handleUploadSkuRaw(file);
+                                   }}
+                                 />
+                                 <label htmlFor="sku_reporting_upload" className="cursor-pointer flex flex-col items-center justify-center gap-4">
+                                   <div className="w-20 h-20 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center">
+                                     <Upload className="w-10 h-10 text-indigo-500" />
+                                   </div>
+                                   <div>
+                                     <p className="font-bold text-slate-800 text-lg mb-1">Klik atau Drag & Drop file (Shopee/TikTok Item Export)</p>
+                                     <p className="text-xs text-slate-500 font-semibold mb-2">Hanya menerima .xlsx, .xls, .csv</p>
+                                   </div>
+                                 </label>
+                               </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-6">
+                               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                 <div className="flex items-center gap-3 text-left">
+                                   <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-sm">
+                                      <CheckCircle2 className="w-5 h-5 text-white" />
+                                   </div>
+                                   <div>
+                                     <h3 className="text-sm font-black text-emerald-900">
+                                       Data SKU Berhasil Diproses
+                                     </h3>
+                                     <p className="text-[10px] sm:text-xs font-semibold text-emerald-700">{skuRawData.length} Records Terdeteksi</p>
+                                   </div>
+                                 </div>
+                                 <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                                   <button 
+                                     onClick={() => {
+                                       setSkuRawData([]);
+                                       setAutoDetectNotice("");
+                                     }}
+                                     className="flex-1 sm:flex-none px-4 py-2 bg-white text-rose-600 border border-rose-200 text-xs font-black rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                                     disabled={isSavingReport}
+                                   >
+                                     Reset File
+                                   </button>
+                                   <button
+                                     onClick={async () => {
+                                        if (!saveTargetBrandId) { alert('Harap pilih brand terlebih dahulu!'); return; }
+                                        try {
+                                          setIsSavingReport(true);
+                                          const batchId = `sku_batch_${Date.now()}`;
+                                          const bLogsRef = collection(db, 'brand_shopee_sku_logs'); // we keep this db collection name for backward compatibility, but it holds TikTok too
+                                          
+                                          let savedCount = 0;
+                                          for(let i=0; i<skuRawData.length; i+=500) {
+                                              const chunk = skuRawData.slice(i, i+500);
+                                              const batch = writeBatch(db);
+                                              chunk.forEach(p => {
+                                                 const ref = doc(bLogsRef);
+                                                 batch.set(ref, {
+                                                    ...p,platform: saveTargetPlatform,batchId,brandId: saveTargetBrandId,
+                                                    uploadedAt: new Date().toISOString()
+                                                 });
+                                              });
+                                              await batch.commit();
+                                              savedCount += chunk.length;
+                                          }
+                                          customAlert('Data SKU berhasil disimpan!');
+                                          setIsSkuUploadModalOpen(false);
+                                          setSkuRawData([]);
+                                        } catch(e: any) {
+                                          console.error(e);
+                                          alert('Error saving: '+e.message);
+                                        } finally {
+                                          setIsSavingReport(false);
+                                        }
+                                     }}
+                                     disabled={isSavingReport}
+                                     className="flex-1 sm:flex-none px-6 py-2 bg-indigo-600 text-white text-xs rounded-lg font-black shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                                   >
+                                     {isSavingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                     Simpan Data
+                                   </button>
+                                 </div>
+                               </div>
+                               
+                               <div className="bg-white border text-xs border-slate-200 rounded-xl overflow-hidden max-h-[400px] overflow-y-auto">
+                                 <table className="w-full min-w-[600px] text-left">
+                                   <thead className="bg-slate-50 sticky top-0 z-10">
+                                     <tr>
+                                       <th className="px-4 py-3 font-semibold text-slate-500">Date</th>
+                                       <th className="px-4 py-3 font-semibold text-slate-500">SKU</th>
+                                       <th className="px-4 py-3 font-semibold text-slate-500">Sold</th>
+                                       <th className="px-4 py-3 font-semibold text-slate-500">Revenue</th>
+                                     </tr>
+                                   </thead>
+                                   <tbody className="divide-y divide-slate-100">
+                                     {skuRawData.slice(0,50).map((r,i) => (
+                                        <tr key={i} className="hover:bg-slate-50">
+                                          <td className="px-4 py-3 text-slate-500">{r.date}</td>
+                                          <td className="px-4 py-3 text-slate-700 truncate max-w-[200px]">{r.productName}</td>
+                                          <td className="px-4 py-3 text-emerald-600 font-bold">{r.sold}</td>
+                                          <td className="px-4 py-3 text-slate-900 font-bold">Rp {new Intl.NumberFormat('id-ID').format(r.revenue)}</td>
+                                        </tr>
+                                     ))}
+                                   </tbody>
+                                 </table>
+                               </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+
+
                     {isUploadModalOpen && (
                       <div className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn" id="upload_report_modal">
                         {/* Backdrop */}
@@ -9658,9 +10638,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-100">
                             <div>
                               <h3 className="text-xl sm:text-2xl font-black text-slate-850 flex items-center gap-3">
-                                <LineChart className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 animate-pulse" /> Upload Laporan Eksternal Marketplace
+                                <LineChart className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 animate-pulse" /> {uploadTargetTab === "engagement" ? "Upload Raw Data Engagement & Promotion" : "Upload Laporan Eksternal Marketplace"}
                               </h3>
-                              <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">Impor data performa mentah (raw data) penyiaran langsung dari platform marketplace (TikTok/Shopee/dll) untuk <strong className="text-indigo-950 uppercase">{clientBrands.find(b => b.id === activeReportBrandId)?.name}</strong>.</p>
+                              <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">Impor data performa mentah (raw data) {uploadTargetTab === "engagement" ? "engagement" : "penyiaran langsung"} dari platform marketplace (TikTok/Shopee/dll) untuk <strong className="text-indigo-950 uppercase">{clientBrands.find(b => b.id === activeReportBrandId)?.name}</strong>.</p>
                             </div>
                           </div>
 
@@ -9747,20 +10727,36 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             <Upload className="w-10 h-10 text-indigo-500" />
                           </div>
                           <div>
-                            <h4 className="text-base font-black text-slate-800">Upload Raw Data {saveTargetPlatform !== "Semua" ? saveTargetPlatform : "Marketplace"}</h4>
+                            <h4 className="text-base font-black text-slate-800">Upload Raw {uploadTargetTab === "engagement" ? "Engagement & Promotion" : "Data"} {saveTargetPlatform !== "Semua" ? saveTargetPlatform : "Marketplace"}</h4>
                             <p className="text-xs text-slate-500 font-semibold mt-1 max-w-sm mx-auto">
-                              {saveTargetPlatform === "Shopee Live" 
-                                ? "Tarik & lepas file Export Shopee Live Seller (Daftar Sesi) ke area ini." 
-                                : saveTargetPlatform === "TikTok Live" 
-                                ? "Tarik & lepas file Export TikTok Center (Analisis Live) ke area ini."
-                                : "Tarik & lepas file Export TikTok/Shopee (Excel/CSV) ke area ini, atau klik untuk memilih file."}
+                              {uploadTargetTab === "engagement" ? (
+                                saveTargetPlatform === "Shopee Live" 
+                                  ? "Tarik & lepas file Export Shopee Live Seller (Analisis Interaksi & Promosi) ke area ini." 
+                                  : saveTargetPlatform === "TikTok Live" 
+                                  ? "Tarik & lepas file Export TikTok Center (Analisis Interaksi & Promosi) ke area ini."
+                                  : "Tarik & lepas file Export TikTok/Shopee (Interaksi & Promosi) ke area ini, atau klik untuk memilih file."
+                              ) : (
+                                saveTargetPlatform === "Shopee Live" 
+                                  ? "Tarik & lepas file Export Shopee Live Seller (Daftar Sesi) ke area ini." 
+                                  : saveTargetPlatform === "TikTok Live" 
+                                  ? "Tarik & lepas file Export TikTok Center (Analisis Live) ke area ini."
+                                  : "Tarik & lepas file Export TikTok/Shopee (Excel/CSV) ke area ini, atau klik untuk memilih file."
+                              )}
                             </p>
                             <p className="text-[10px] text-indigo-600 font-mono font-bold mt-2">
-                              {saveTargetPlatform === "Shopee Live"
-                                ? "💡 File Shopee harus mengandung kolom: Nama Livestream, Durasi Rata-Rata Menonton, Tambah ke Keranjang, Pesanan Dibuat."
-                                : saveTargetPlatform === "TikTok Live"
-                                ? "💡 File TikTok harus mengandung: Live impressions, Product clicks, Orders, Gross profit."
-                                : "💡 Tips: Beri nama file yang mengandung nama Brand & Platform Anda (contoh: Laporan_Hanasui_TikTok.xlsx) untuk auto-detect otomatis!"}
+                              {uploadTargetTab === "engagement" ? (
+                                saveTargetPlatform === "Shopee Live"
+                                  ? "💡 File Shopee harus mengandung kolom: Nama Livestream, Suka (Likes), Komentar (Comments), Membagikan (Shares), Voucher Toko Diklaim, Voucher Spesial Live Diklaim, Koin Diklaim."
+                                  : saveTargetPlatform === "TikTok Live"
+                                  ? "💡 File TikTok harus mengandung: Live impressions, New followers, Likes, Shares, Comments."
+                                  : "💡 Tips: Beri nama file yang mengandung nama Brand & Platform Anda (contoh: Laporan_Hanasui_TikTok_Engagement.xlsx) untuk auto-detect otomatis!"
+                              ) : (
+                                saveTargetPlatform === "Shopee Live"
+                                  ? "💡 File Shopee harus mengandung kolom: Nama Livestream, Durasi Rata-Rata Menonton, Tambah ke Keranjang, Pesanan Dibuat."
+                                  : saveTargetPlatform === "TikTok Live"
+                                  ? "💡 File TikTok harus mengandung: Live impressions, Product clicks, Orders, Gross profit."
+                                  : "💡 Tips: Beri nama file yang mengandung nama Brand & Platform Anda (contoh: Laporan_Hanasui_TikTok.xlsx) untuk auto-detect otomatis!"
+                              )}
                             </p>
                           </div>
                           <div className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
@@ -9835,47 +10831,92 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
 
                       {/* STATS OVERVIEW */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Perolehan GMV</p>
-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
-                              reportingRawData.reduce((acc, curr) => acc + (curr.gmv || 0), 0)
-                            )}
-                          </h3>
+                      {uploadTargetTab === "engagement" ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Impressions / Tayangan</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              {new Intl.NumberFormat('id-ID').format(
+                                reportingRawData.reduce((acc, curr) => acc + (curr.impressions || 0), 0)
+                              )}
+                            </h3>
+                          </div>
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Interaksi (Like+Komen+Share)</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              {new Intl.NumberFormat('id-ID').format(
+                                reportingRawData.reduce((acc, curr) => acc + (curr.likes || 0) + (curr.comments || 0) + (curr.shares || 0), 0)
+                              )}
+                            </h3>
+                          </div>
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Pengikut Baru</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              +{new Intl.NumberFormat('id-ID').format(
+                                reportingRawData.reduce((acc, curr) => acc + (curr.followers || 0), 0)
+                              )}
+                            </h3>
+                          </div>
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Voucher Toko & Spesial Diklaim</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              {new Intl.NumberFormat('id-ID').format(
+                                reportingRawData.reduce((acc, curr) => acc + (curr.shopVouchers || 0) + (curr.specialVouchers || 0), 0)
+                              )}
+                            </h3>
+                          </div>
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Koin Diklaim</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              {new Intl.NumberFormat('id-ID').format(
+                                reportingRawData.reduce((acc, curr) => acc + (curr.coinsClaimed || 0), 0)
+                              )}
+                            </h3>
+                          </div>
                         </div>
-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Produk Terjual</p>
-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                            {new Intl.NumberFormat('id-ID').format(
-                              reportingRawData.reduce((acc, curr) => acc + (curr.products_sold || 0), 0)
-                            )} <span className="text-xs font-bold text-slate-400 ml-1">pcs</span>
-                          </h3>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Perolehan GMV</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+                                reportingRawData.reduce((acc, curr) => acc + (curr.gmv || 0), 0)
+                              )}
+                            </h3>
+                          </div>
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Produk Terjual</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              {new Intl.NumberFormat('id-ID').format(
+                                reportingRawData.reduce((acc, curr) => acc + (curr.products_sold || 0), 0)
+                              )} <span className="text-xs font-bold text-slate-400 ml-1">pcs</span>
+                            </h3>
+                          </div>
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Pembeli</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              {new Intl.NumberFormat('id-ID').format(
+                                reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0)
+                              )} <span className="text-xs font-bold text-slate-400 ml-1">users</span>
+                            </h3>
+                          </div>
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Capaian AOV Rata-rata</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+                                (reportingRawData.reduce((acc, curr) => acc + (curr.gmv || 0), 0)) / 
+                                (reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0) || 1)
+                              )}
+                            </h3>
+                          </div>
+                          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">AVG TIME/VIEWER</p>
+                            <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+                              {Math.round(reportingRawData.length > 0 ? reportingRawData.reduce((acc, curr) => acc + (curr.avgViewDuration || 0), 0) / reportingRawData.length : 0)} <span className="text-xs font-bold text-slate-400 ml-1">detik</span>
+                            </h3>
+                          </div>
                         </div>
-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Pembeli</p>
-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                            {new Intl.NumberFormat('id-ID').format(
-                              reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0)
-                            )} <span className="text-xs font-bold text-slate-400 ml-1">users</span>
-                          </h3>
-                        </div>
-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Capaian AOV Rata-rata</p>
-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
-                              (reportingRawData.reduce((acc, curr) => acc + (curr.gmv || 0), 0)) / 
-                              (reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0) || 1)
-                            )}
-                          </h3>
-                        </div>
-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">AVG TIME/VIEWER</p>
-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                            {Math.round(reportingRawData.length > 0 ? reportingRawData.reduce((acc, curr) => acc + (curr.avgViewDuration || 0), 0) / reportingRawData.length : 0)} <span className="text-xs font-bold text-slate-400 ml-1">detik</span>
-                          </h3>
-                        </div>
-                      </div>
+                      )}
 
                       {/* TIKTOK ENGAGEMENT & LIVE METRICS PANEL */}
                       {saveTargetPlatform === "TikTok Live" && (
@@ -9919,95 +10960,193 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </div>
                       )}
 
-                      {/* CHART CONTAINER & FUNNEL */}
-                      {(() => {
-                        const totalImpressions = reportingRawData.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
-                        const totalLiveVisits = reportingRawData.reduce((acc, curr) => acc + (curr.liveVisits || 0), 0);
-                        const totalProductImpressions = reportingRawData.reduce((acc, curr) => acc + (curr.productImpressions || 0), 0);
-                        const totalClicks = reportingRawData.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
-                        const totalOrders = reportingRawData.reduce((acc, curr) => acc + (curr.orders || 0), 0);
-                        const totalBuyers = reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0);
-
-                        const ctrRate = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
-                        const cartToClickRate = totalClicks > 0 ? (totalOrders / totalClicks) * 100 : 0;
-                        const checkoutRate = totalOrders > 0 ? (totalBuyers / totalOrders) * 100 : 0;
-                        const overallCvr = totalImpressions > 0 ? (totalBuyers / totalImpressions) * 100 : 0;
-
-                        const clickWidth = totalImpressions > 0 ? Math.max((totalClicks / totalImpressions) * 100, 30) : 75;
-                        const orderWidth = totalImpressions > 0 ? Math.max((totalOrders / totalImpressions) * 100, 15) : 40;
-                        const buyerWidth = totalImpressions > 0 ? Math.max((totalBuyers / totalImpressions) * 100, 5) : 15;
+                      {/* SHOPEE ENGAGEMENT & PROMOTION METRICS PANEL */}
+                      {saveTargetPlatform === "Shopee Live" && uploadTargetTab === "engagement" && (() => {
+                        const totalLikes = reportingRawData.reduce((acc, curr) => acc + (curr.likes || 0), 0);
+                        const totalComments = reportingRawData.reduce((acc, curr) => acc + (curr.comments || 0), 0);
+                        const totalShares = reportingRawData.reduce((acc, curr) => acc + (curr.shares || 0), 0);
+                        const totalFollowers = reportingRawData.reduce((acc, curr) => acc + (curr.followers || 0), 0);
+                        const totalPenonton = reportingRawData.reduce((acc, curr) => acc + (curr.penonton || curr.impressions || 0), 0);
+                        const totalShopVouchers = reportingRawData.reduce((acc, curr) => acc + (curr.shopVouchers || 0), 0);
+                        const totalSpecialVouchers = reportingRawData.reduce((acc, curr) => acc + (curr.specialVouchers || 0), 0);
+                        const totalCoinsClaimed = reportingRawData.reduce((acc, curr) => acc + (curr.coinsClaimed || 0), 0);
+                        const peakViewers = reportingRawData.length > 0 ? Math.round(reportingRawData.reduce((acc, curr) => acc + (curr.peakViewers || 0), 0) / reportingRawData.length) : 0;
+                        const errRate = totalPenonton > 0 ? ((totalLikes + totalComments + totalShares + totalFollowers) / totalPenonton) * 100 : 0;
 
                         return (
-                          <div className="grid grid-cols-1 gap-6">
-                            {/* CHART */}
-                            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm min-h-[350px] flex flex-col justify-between">
-                              <div>
-                                <h4 className="text-sm font-black text-slate-800 mb-6 text-left">Tren GMV & Transaksi Harian</h4>
-                                <div className="h-64 w-full">
-                                  <ResponsiveContainer width="100%" height="100%">
-                                    <RechartsLineChart
-                                      data={[...reportingRawData].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
-                                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                                    >
-                                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                      <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} axisLine={false} tickLine={false} />
-                                      <YAxis 
-                                        yAxisId="left" 
-                                        tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tickFormatter={(val) => `Rp${(val/1000000).toFixed(1)}M`}
-                                      />
-                                      <YAxis 
-                                        yAxisId="right" 
-                                        orientation="right"
-                                        tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                      />
-                                      <Tooltip 
-                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '12px' }}
-                                        formatter={(value: any, name: string) => [
-                                          name === "GMV" ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value) : value, 
-                                          name
-                                        ]}
-                                      />
-                                      <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
-                                      <Line yAxisId="left" type="monotone" name="GMV" dataKey="gmv" stroke="#4f46e5" strokeWidth={3} dot={{r:4, fill: "#4f46e5", strokeWidth: 2, stroke: "#fff"}} activeDot={{r: 6}} />
-                                      <Line yAxisId="right" type="monotone" name="Produk Terjual" dataKey="products_sold" stroke="#ec4899" strokeWidth={3} dot={{r:4, fill: "#ec4899", strokeWidth: 2, stroke: "#fff"}} />
-                                    </RechartsLineChart>
-                                  </ResponsiveContainer>
-                                </div>
-                              </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 bg-orange-600 p-5 rounded-2xl text-left shadow-lg relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+                            <div className="col-span-2 sm:col-span-4 lg:col-span-8 flex items-center justify-between pb-2 border-b border-white/25">
+                              <h5 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                                <Sparkles className="w-4 h-4 text-white animate-pulse" /> Shopee Live Interaction & Promotion Metrics
+                              </h5>
+                              <span className="text-[8px] font-black text-white uppercase bg-white/20 px-2 py-0.5 rounded border border-white/30">Engagement & Promotion</span>
                             </div>
-
-                            {/* FUNNEL CARD */}
-                            <HorizontalFunnel 
-                              title="Corong Konversi Live (Funnel)"
-                              subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
-                              tag={reportingRawData.some(r => r.hasFunnelInFile) ? "Parsed Excel" : "Benchmark Estimate"}
-                              steps={(saveTargetPlatform === "TikTok Live" || activeReportPlatform === "TikTok Live") ? [
-                                { label: "LIVE impressions", value: new Intl.NumberFormat('id-ID').format(totalImpressions) },
-                                { label: "LIVE visits", value: new Intl.NumberFormat('id-ID').format(totalLiveVisits) },
-                                { label: "Product impressions", value: new Intl.NumberFormat('id-ID').format(totalProductImpressions) },
-                                { label: "Product clicks", value: new Intl.NumberFormat('id-ID').format(totalClicks) },
-                                { label: "Orders paid for", value: new Intl.NumberFormat('id-ID').format(totalBuyers) }
-                              ] : [
-                                { label: "Total Viewers", value: new Intl.NumberFormat('id-ID').format(totalImpressions) },
-                                { label: "Active Viewers", value: new Intl.NumberFormat('id-ID').format(totalLiveVisits) },
-                                { label: "Add To Cart", value: new Intl.NumberFormat('id-ID').format(totalClicks) },
-                                { label: "Orders", value: new Intl.NumberFormat('id-ID').format(totalOrders) }
-                              ]}
-                            />
+                            <div>
+                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">Suka (Likes)</p>
+                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
+                                {new Intl.NumberFormat('id-ID').format(totalLikes)}
+                              </h3>
+                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">Total Suka</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">Komentar</p>
+                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
+                                {new Intl.NumberFormat('id-ID').format(totalComments)}
+                              </h3>
+                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">Total Komen</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">Membagikan (Shares)</p>
+                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
+                                {new Intl.NumberFormat('id-ID').format(totalShares)}
+                              </h3>
+                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">Total Share</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">Pengikut Baru</p>
+                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
+                                +{new Intl.NumberFormat('id-ID').format(totalFollowers)}
+                              </h3>
+                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">New Followers</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">Penonton Tertinggi</p>
+                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
+                                {new Intl.NumberFormat('id-ID').format(peakViewers)}
+                              </h3>
+                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">Penonton Terbanyak</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">Voucher Diklaim</p>
+                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
+                                {new Intl.NumberFormat('id-ID').format(totalShopVouchers + totalSpecialVouchers)}
+                              </h3>
+                              <p className="text-[8px] text-orange-200 font-semibold mt-0.5">Toko & Spesial Live</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">Koin Diklaim</p>
+                              <h3 className="text-base sm:text-lg font-bold text-yellow-300 font-mono mt-0.5">
+                                {new Intl.NumberFormat('id-ID').format(totalCoinsClaimed)}
+                              </h3>
+                              <p className="text-[8px] text-orange-200 font-semibold mt-0.5">Coin Reward</p>
+                            </div>
+                            <div className="bg-white/15 p-2 rounded-xl border border-white/20">
+                              <p className="text-[9px] font-black text-yellow-250 uppercase tracking-widest leading-none mb-1">ERR %</p>
+                              <h3 className="text-sm sm:text-base font-black text-white font-mono mt-0.5">
+                                {errRate.toFixed(2)}%
+                              </h3>
+                              <p className="text-[7px] text-orange-150 leading-normal font-bold mt-0.5 uppercase tracking-wide">
+                                (Like + Comment + Share + Follow) / Unique Viewers
+                              </p>
+                            </div>
                           </div>
                         );
                       })()}
 
-                      {/* DATA TABLE */}
-                      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left">
-                            <thead>
+                    {/* CHART CONTAINER & FUNNEL */}
+                    {(() => {
+                      const totalImpressions = reportingRawData.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
+                      const totalLiveVisits = reportingRawData.reduce((acc, curr) => acc + (curr.liveVisits || 0), 0);
+                      const totalProductImpressions = reportingRawData.reduce((acc, curr) => acc + (curr.productImpressions || 0), 0);
+                      const totalClicks = reportingRawData.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
+                      const totalOrders = reportingRawData.reduce((acc, curr) => acc + (curr.orders || 0), 0);
+                      const totalBuyers = reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0);
+
+                      const ctrRate = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+                      const cartToClickRate = totalClicks > 0 ? (totalOrders / totalClicks) * 100 : 0;
+                      const checkoutRate = totalOrders > 0 ? (totalBuyers / totalOrders) * 100 : 0;
+                      const overallCvr = totalImpressions > 0 ? (totalBuyers / totalImpressions) * 100 : 0;
+
+                      const clickWidth = totalImpressions > 0 ? Math.max((totalClicks / totalImpressions) * 100, 30) : 75;
+                      const orderWidth = totalImpressions > 0 ? Math.max((totalOrders / totalImpressions) * 100, 15) : 40;
+                      const buyerWidth = totalImpressions > 0 ? Math.max((totalBuyers / totalImpressions) * 100, 5) : 15;
+
+                      return (
+                        <div className="grid grid-cols-1 gap-6">
+                          {/* CHART */}
+                          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm min-h-[350px] flex flex-col justify-between">
+                            <div>
+                              <h4 className="text-sm font-black text-slate-800 mb-6 text-left">Tren GMV & Transaksi Harian</h4>
+                              <div className="h-64 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <RechartsLineChart
+                                    data={[...reportingRawData].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
+                                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                  >
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} axisLine={false} tickLine={false} />
+                                    <YAxis 
+                                      yAxisId="left" 
+                                      tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} 
+                                      axisLine={false} 
+                                      tickLine={false} 
+                                      tickFormatter={(val) => `Rp${(val/1000000).toFixed(1)}M`}
+                                    />
+                                    <YAxis 
+                                      yAxisId="right" 
+                                      orientation="right"
+                                      tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} 
+                                      axisLine={false} 
+                                      tickLine={false} 
+                                    />
+                                    <Tooltip 
+                                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '12px' }}
+                                      formatter={(value: any, name: string) => [
+                                        name === "GMV" ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value) : value, 
+                                        name
+                                      ]}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
+                                    <Line yAxisId="left" type="monotone" name="GMV" dataKey="gmv" stroke="#4f46e5" strokeWidth={3} dot={{r:4, fill: "#4f46e5", strokeWidth: 2, stroke: "#fff"}} activeDot={{r: 6}} />
+                                    <Line yAxisId="right" type="monotone" name="Produk Terjual" dataKey="products_sold" stroke="#ec4899" strokeWidth={3} dot={{r:4, fill: "#ec4899", strokeWidth: 2, stroke: "#fff"}} />
+                                  </RechartsLineChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* FUNNEL CARD */}
+                          <HorizontalFunnel 
+                            title="Corong Konversi Live (Funnel)"
+                            subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
+                            tag={reportingRawData.some(r => r.hasFunnelInFile) ? "Parsed Excel" : "Benchmark Estimate"}
+                            steps={(saveTargetPlatform === "TikTok Live" || activeReportPlatform === "TikTok Live") ? [
+                              { label: "LIVE impressions", value: new Intl.NumberFormat('id-ID').format(totalImpressions) },
+                              { label: "LIVE visits", value: new Intl.NumberFormat('id-ID').format(totalLiveVisits) },
+                              { label: "Product impressions", value: new Intl.NumberFormat('id-ID').format(totalProductImpressions) },
+                              { label: "Product clicks", value: new Intl.NumberFormat('id-ID').format(totalClicks) },
+                              { label: "Orders paid for", value: new Intl.NumberFormat('id-ID').format(totalBuyers) }
+                            ] : [
+                              { label: "Total Viewers", value: new Intl.NumberFormat('id-ID').format(totalImpressions) },
+                              { label: "Active Viewers", value: new Intl.NumberFormat('id-ID').format(totalLiveVisits) },
+                              { label: "Add To Cart", value: new Intl.NumberFormat('id-ID').format(totalClicks) },
+                              { label: "Orders", value: new Intl.NumberFormat('id-ID').format(totalOrders) }
+                            ]}
+                          />
+                        </div>
+                      );
+                    })()}
+
+                    {/* DATA TABLE */}
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            {uploadTargetTab === "engagement" ? (
+                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <th className="px-5 py-4">Waktu Sesi</th>
+                                <th className="px-5 py-4">Streaming / Akun</th>
+                                <th className="px-5 py-4 text-right">Tayangan Sesi</th>
+                                <th className="px-5 py-4 text-right">Suka (Likes)</th>
+                                <th className="px-5 py-4 text-right">Komentar / Share</th>
+                                <th className="px-5 py-4 text-right">Pengikut Baru</th>
+                                <th className="px-5 py-4 text-right">Penonton Tertinggi</th>
+                                <th className="px-5 py-4 text-right">Voucher & Koin</th>
+                                <th className="px-5 py-4 text-right">ERR %</th>
+                              </tr>
+                            ) : (
                               <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
                                 <th className="px-5 py-4">Waktu Mulai</th>
                                 <th className="px-5 py-4">Streaming / Akun</th>
@@ -10017,52 +11156,92 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 <th className="px-5 py-4 text-right">Pembeli (Orders)</th>
                                 <th className="px-5 py-4 text-right">Rasio CTR / CVR</th>
                               </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {reportingRawData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((row, idx) => {
-                                const actualCtr = row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0;
-                                const actualCvr = row.impressions > 0 ? (row.buyers / row.impressions) * 105 : 0; // standard multiplier
-                                const finalCvr = row.impressions > 0 ? (row.buyers / row.impressions) * 100 : 0;
-                                return (
-                                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
-                                      {row.date}
-                                      <span className="block text-[9px] font-semibold text-slate-400 mt-1 font-mono">Platform: {saveTargetPlatform}</span>
-                                    </td>
-                                    <td className="px-5 py-3.5 text-xs text-left">
-                                      <div className="font-extrabold text-indigo-950 leading-tight">{row.title}</div>
-                                      {saveTargetPlatform === "TikTok Live" && (
-                                        <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
-                                          <span>❤️ {new Intl.NumberFormat('id-ID').format(row.likes || 0)} Likes</span>
-                                          <span>•</span>
-                                          <span>🔗 {new Intl.NumberFormat('id-ID').format(row.shares || 0)} Shares</span>
-                                        </div>
-                                      )}
-                                    </td>
-                                    <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                      <div className="text-xs font-semibold text-slate-600">{Math.round(row.duration / 60) || row.duration} Mnt</div>
-                                      {saveTargetPlatform === "TikTok Live" && (
-                                        <div className="text-[9px] font-black text-green-600 mt-1 animate-pulse">+{row.followers} Fans</div>
-                                      )}
-                                    </td>
-                                    <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                      <div className="text-xs font-black text-emerald-600">
-                                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.gmv)}
+                            )}
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {reportingRawData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((row, idx) => {
+                              const actualCtr = row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0;
+                              const finalCvr = row.impressions > 0 ? (row.buyers / row.impressions) * 100 : 0;
+                              return (
+                                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                  <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
+                                    {formatDisplayDate(row.dateTime || row.date)}
+                                    <span className="block text-[9px] font-semibold text-slate-400 mt-1 font-mono">Platform: {saveTargetPlatform}</span>
+                                  </td>
+                                  <td className="px-5 py-3.5 text-xs text-left">
+                                    <div className="font-extrabold text-indigo-950 leading-tight">{row.title}</div>
+                                    {saveTargetPlatform === "TikTok Live" && (
+                                      <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
+                                        <span>❤️ {new Intl.NumberFormat('id-ID').format(row.likes || 0)} Likes</span>
+                                        <span>•</span>
+                                        <span>🔗 {new Intl.NumberFormat('id-ID').format(row.shares || 0)} Shares</span>
                                       </div>
-                                      <div className="text-[9px] font-extrabold text-slate-400 mt-0.5">AOV: Rp{Math.round(row.aov || 0).toLocaleString('id-ID')}</div>
-                                    </td>
-                                    <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                      <div className="text-xs font-bold text-slate-700">{row.products_sold} Pcs</div>
-                                      <div className="text-[9px] text-slate-400 font-bold mt-1">🛍️ {row.clicks} Klik Keranjang</div>
-                                    </td>
-                                    <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                      <div className="text-xs font-bold text-slate-700">{row.buyers} Users</div>
-                                      <div className="text-[9px] text-pink-600 font-bold mt-1">🛒 {row.orders} Checkout</div>
-                                    </td>
-                                    <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                      <div className="text-xs font-black text-indigo-600">CTR: {actualCtr.toFixed(1)}%</div>
-                                      <div className="text-[9px] font-black text-slate-500 mt-1">CVR: {finalCvr.toFixed(2)}%</div>
-                                    </td>
+                                    )}
+                                    {saveTargetPlatform === "Shopee Live" && (
+                                      <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
+                                        <span>❤️ {new Intl.NumberFormat('id-ID').format(row.likes || 0)} Likes</span>
+                                        <span>•</span>
+                                        <span>💬 {new Intl.NumberFormat('id-ID').format(row.comments || 0)} Komen</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  {uploadTargetTab === "engagement" ? (
+                                    <>
+                                      <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-slate-700 font-mono">
+                                        {new Intl.NumberFormat('id-ID').format(row.impressions || 0)}
+                                      </td>
+                                      <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-slate-700 font-mono">
+                                        {new Intl.NumberFormat('id-ID').format(row.likes || 0)}
+                                      </td>
+                                      <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-mono">
+                                        <div className="font-semibold text-slate-700">💬 {new Intl.NumberFormat('id-ID').format(row.comments || 0)}</div>
+                                        <div className="text-[9px] font-bold text-slate-400 mt-1">🔗 {new Intl.NumberFormat('id-ID').format(row.shares || 0)} Share</div>
+                                      </td>
+                                      <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-extrabold text-emerald-600 font-mono">
+                                        +{new Intl.NumberFormat('id-ID').format(row.followers || 0)} Fans
+                                      </td>
+                                      <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-slate-700 font-mono">
+                                        {new Intl.NumberFormat('id-ID').format(row.peakViewers || 0)}
+                                      </td>
+                                      <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-mono">
+                                        <div className="font-semibold text-slate-700">🎫 {new Intl.NumberFormat('id-ID').format((row.shopVouchers || 0) + (row.specialVouchers || 0))} Vcr</div>
+                                        <div className="text-[9px] text-amber-600 font-bold mt-1">🪙 {new Intl.NumberFormat('id-ID').format(row.coinsClaimed || 0)} Koin</div>
+                                      </td>
+                                      <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600 font-mono">
+                                        {(() => {
+                                          const rowUniqueViewers = row.penonton || row.impressions || 0;
+                                          return rowUniqueViewers > 0 ? (((row.likes + row.comments + row.shares + row.followers) / rowUniqueViewers) * 100).toFixed(2) : '0.00';
+                                        })()}%
+                                      </td>
+                                    </>
+                                    ) : (
+                                      <>
+                                        <td className="px-5 py-3.5 whitespace-nowrap text-right">
+                                          <div className="text-xs font-semibold text-slate-600">{Math.round(row.duration / 60) || row.duration} Mnt</div>
+                                          {saveTargetPlatform === "TikTok Live" && (
+                                            <div className="text-[9px] font-black text-green-600 mt-1 animate-pulse">+{row.followers} Fans</div>
+                                          )}
+                                        </td>
+                                        <td className="px-5 py-3.5 whitespace-nowrap text-right">
+                                          <div className="text-xs font-black text-emerald-600">
+                                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(row.gmv)}
+                                          </div>
+                                          <div className="text-[9px] font-extrabold text-slate-400 mt-0.5">AOV: Rp{Math.round(row.aov || 0).toLocaleString('id-ID')}</div>
+                                        </td>
+                                        <td className="px-5 py-3.5 whitespace-nowrap text-right">
+                                          <div className="text-xs font-bold text-slate-700">{row.products_sold} Pcs</div>
+                                          <div className="text-[9px] text-slate-400 font-bold mt-1">🛍️ {row.clicks} Klik Keranjang</div>
+                                        </td>
+                                        <td className="px-5 py-3.5 whitespace-nowrap text-right">
+                                          <div className="text-xs font-bold text-slate-700">{row.buyers} Users</div>
+                                          <div className="text-[9px] text-pink-600 font-bold mt-1">🛒 {row.orders} Checkout</div>
+                                        </td>
+                                        <td className="px-5 py-3.5 whitespace-nowrap text-right">
+                                          <div className="text-xs font-black text-indigo-600">CTR: {actualCtr.toFixed(1)}%</div>
+                                          <div className="text-[9px] font-black text-slate-500 mt-1">CVR: {finalCvr.toFixed(2)}%</div>
+                                        </td>
+                                      </>
+                                    )}
                                   </tr>
                                 );
                               })}
@@ -10077,9 +11256,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     )}
 
                   {/* STORED DATABASE VIEWER - NEW DESIGN */}
-                  <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
+                  {operatorReportingTab === "live" && (
+                    <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                      {(() => {
-                         const filteredDb = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId);
+                         const filteredDb = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId && log.reportType !== 'engagement');
+
                          let effectiveFilter = operatorDateFilterType;
                          let targetLatestDate = "";
                          let latestDateLabel = "";
@@ -10161,12 +11342,44 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                          };
                          const tableLogs = applyFilter(filteredDb, false);
                          const prevTableLogs = (effectiveFilter !== "all") ? applyFilter(filteredDb, true) : [];
+
+                         // Group live performance data daily for the trend chart on tableLogs (fully filtered)
+                         const liveGroupedByDate: { [key: string]: any } = {};
+                         tableLogs.forEach(log => {
+                           const dateStr = log.date || "Tanpa Tanggal";
+                           if (!liveGroupedByDate[dateStr]) {
+                             liveGroupedByDate[dateStr] = {
+                               date: dateStr,
+                               gmv: 0,
+                               orders: 0,
+                               itemsSold: 0,
+                               clicks: 0, penonton: 0,
+                             };
+                           }
+                           liveGroupedByDate[dateStr].gmv += (log.gmv || 0);
+                           liveGroupedByDate[dateStr].orders += (log.orders || 0);
+                           liveGroupedByDate[dateStr].itemsSold += (log.products_sold || 0);
+                           liveGroupedByDate[dateStr].clicks += (log.clicks || 0); liveGroupedByDate[dateStr].penonton += (log.penonton || log.impressions || 0);
+                         });
+
+                         const liveChartData = Object.values(liveGroupedByDate)
+                           .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                           .map((item: any) => ({
+                             date: item.date,
+                             gmv: item.gmv,
+                             orders: item.orders,
+                             itemsSold: item.itemsSold,
+                             clicks: item.clicks, penonton: item.penonton,
+                           }));
                          const totalSessionsDb = tableLogs.length;
                          const totalGmvDb = tableLogs.reduce((sum, item) => sum + (item.gmv || 0), 0);
                          const totalBuyersDb = tableLogs.reduce((sum, item) => sum + (item.buyers || 0), 0);
                          const totalOrdersDb = tableLogs.reduce((sum, item) => sum + (item.orders || 0), 0);
                          const totalItemsSoldDb = tableLogs.reduce((sum, item) => sum + (item.products_sold || 0), 0);
-                         const avgAovDb = totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
+                         let avgAovDb = totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
+                         if (tableLogs.length > 0 && tableLogs[0].platform && (tableLogs[0].platform.toLowerCase().includes("shopee") || tableLogs[0].platform.toLowerCase().includes("tiktok"))) {
+                             avgAovDb = totalOrdersDb > 0 ? totalGmvDb / totalOrdersDb : 0;
+                         }
                          const totalLikesDb = tableLogs.reduce((sum, item) => sum + (item.likes || 0), 0);
                          const totalCommentsDb = tableLogs.reduce((sum, item) => sum + (item.comments || 0), 0);
                          const totalSharesDb = tableLogs.reduce((sum, item) => sum + (item.shares || 0), 0);
@@ -10176,7 +11389,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                          const pTotalBuyersDb = prevTableLogs.reduce((sum, item) => sum + (item.buyers || 0), 0);
                          const pTotalOrdersDb = prevTableLogs.reduce((sum, item) => sum + (item.orders || 0), 0);
                          const pTotalItemsSoldDb = prevTableLogs.reduce((sum, item) => sum + (item.products_sold || 0), 0);
-                         const pAvgAovDb = pTotalBuyersDb > 0 ? pTotalGmvDb / pTotalBuyersDb : 0;
+                         let pAvgAovDb = pTotalBuyersDb > 0 ? pTotalGmvDb / pTotalBuyersDb : 0;
+                         if (prevTableLogs.length > 0 && prevTableLogs[0].platform && (prevTableLogs[0].platform.toLowerCase().includes("shopee") || prevTableLogs[0].platform.toLowerCase().includes("tiktok"))) {
+                             pAvgAovDb = pTotalOrdersDb > 0 ? pTotalGmvDb / pTotalOrdersDb : 0;
+                         }
                          const pTotalLikesDb = prevTableLogs.reduce((sum, item) => sum + (item.likes || 0), 0);
                          const pTotalCommentsDb = prevTableLogs.reduce((sum, item) => sum + (item.comments || 0), 0);
                          const pTotalSharesDb = prevTableLogs.reduce((sum, item) => sum + (item.shares || 0), 0);
@@ -10190,6 +11406,32 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                          const totalDbOrdersFunnel = tableLogs.reduce((acc, curr) => acc + (curr.orders || 0), 0);
                          const funnelCtr = totalDbProductImpressions > 0 ? ((totalDbClicks / totalDbProductImpressions) * 100) : 0;
                          const funnelCtor = totalDbClicks > 0 ? ((totalDbOrdersFunnel / totalDbClicks) * 100) : 0;
+                         const totalDbDuration = tableLogs.reduce((acc, curr) => {
+                             let dur = curr.duration || 0;
+                             if (dur > 0 && dur < 1.0) {
+                                 dur = dur * 86400; // Excel fraction to seconds
+                             }
+                             return acc + dur;
+                         }, 0);
+                         const pTotalDbDuration = prevTableLogs.reduce((acc, curr) => {
+                             let dur = curr.duration || 0;
+                             if (dur > 0 && dur < 1.0) {
+                                 dur = dur * 86400; // Excel fraction to seconds
+                             }
+                             return acc + dur;
+                         }, 0);
+                         const gmvPerHour = totalDbDuration > 0 ? (totalGmvDb / (totalDbDuration / 3600)) : 0;
+                         const pGmvPerHour = pTotalDbDuration > 0 ? (pTotalGmvDb / (pTotalDbDuration / 3600)) : 0;
+                         let conversionRateShopee = 0;
+                         let pConversionRateShopee = 0;
+                         const pTotalDbImpressions = prevTableLogs.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
+                         if (tableLogs.length > 0 && tableLogs[0].platform && tableLogs[0].platform.toLowerCase().includes("tiktok")) {
+                             conversionRateShopee = totalDbClicks > 0 ? ((totalDbOrdersFunnel / totalDbClicks) * 100) : 0;
+                             pConversionRateShopee = pTotalClicksDb > 0 ? ((pTotalOrdersDb / pTotalClicksDb) * 100) : 0;
+                         } else {
+                             conversionRateShopee = totalDbImpressions > 0 ? ((totalDbOrdersFunnel / totalDbImpressions) * 100) : 0;
+                             pConversionRateShopee = pTotalDbImpressions > 0 ? ((pTotalOrdersDb / pTotalDbImpressions) * 100) : 0;
+                         }
 
                          const chartDataObj = [...tableLogs].reduce((acc: any, curr: any) => {
                            let d = curr.date;
@@ -10302,7 +11544,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         type="button"
                                         onClick={() => {
                                           setOperatorDateFilterType(item.id);
-                                          if (item.id === "all") {
+                                          if (item.id === "all" || item.id === "latest") {
                                             setIsOperatorCalendarOpen(false);
                                             setIsOperatorMonthOpen(false);
                                           } else if (item.id === "month") {
@@ -10419,15 +11661,192 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                              </div>
  
                               {/* Summary Cards */}
-                             <div className="mb-2">
-                                <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg mb-6">
-                                   <Calendar className="w-4 h-4 text-indigo-500" />
-                                   <span className="text-xs font-extrabold text-indigo-700 uppercase tracking-tight">Data Performance: {latestDateLabel}</span>
-                                </div>
-                             </div>
+                             {(() => {
+                               const isShopee = operatorPlatformFilter ? operatorPlatformFilter.toLowerCase().includes("shopee") : filteredDb.some(log => log.platform && log.platform.toLowerCase().includes("shopee"));
+                               if (isShopee) {
+                                 return (
+                                   <div className="space-y-6 mb-6">
+                                     <div>
+                                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+                                       <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">Performance live</h4>
+                                       <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
+                                          <button 
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              if (operatorDateFilterType === 'latest' && targetLatestDate) {
+                                                pd = new Date(targetLatestDate);
+                                              } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                                pd = new Date(operatorCustomStartDate);
+                                              }
+                                              pd.setDate(pd.getDate() - 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                              setOperatorDateFilterType("custom");
+                                              setOperatorCustomStartDate(newD);
+                                              setOperatorCustomEndDate(newD);
+                                            }}
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                          >
+                                            <ChevronLeft className="w-4 h-4" />
+                                          </button>
+                                          <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
+                                            {(() => {
+                                              if (operatorDateFilterType === 'month' || operatorDateFilterType === 'all') return latestDateLabel || 'Semua Waktu';
+                                              let curD = new Date();
+                                              if (operatorDateFilterType === 'latest' && targetLatestDate) {
+                                                curD = new Date(targetLatestDate);
+                                              } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                                curD = new Date(operatorCustomStartDate);
+                                              }
+                                              return curD.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                            })()}
+                                          </span>
+                                          <button 
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              if (operatorDateFilterType === 'latest' && targetLatestDate) {
+                                                pd = new Date(targetLatestDate);
+                                              } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                                pd = new Date(operatorCustomStartDate);
+                                              }
+                                              pd.setDate(pd.getDate() + 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                              setOperatorDateFilterType("custom");
+                                              setOperatorCustomStartDate(newD);
+                                              setOperatorCustomEndDate(newD);
+                                            }}
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                          >
+                                            <ChevronRight className="w-4 h-4" />
+                                          </button>
+                                       </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">GMV</div>
+                                             <PercentBadge cur={totalGmvDb} prev={pTotalGmvDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(totalGmvDb)}</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Item Solds</div>
+                                             <PercentBadge cur={totalItemsSoldDb} prev={pTotalItemsSoldDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalItemsSoldDb)}</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">GMV/Hours</div>
+                                             <PercentBadge cur={gmvPerHour} prev={pGmvPerHour} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(gmvPerHour)}</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Conversion Rate %</div>
+                                             <PercentBadge cur={conversionRateShopee} prev={pConversionRateShopee} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{conversionRateShopee.toFixed(2)}%</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Orders</div>
+                                             <PercentBadge cur={totalOrdersDb} prev={pTotalOrdersDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{new Intl.NumberFormat('id-ID').format(totalOrdersDb)}</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">Avg. Viewer Duration</div>
+                                             <PercentBadge cur={avgViewDurationDb} prev={pAvgViewDurationDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">{avgViewDurationDb.toFixed(2)}s</div>
+                                         </div>
+                                         <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                           <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
+                                             <div className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider leading-tight flex-1">AOV</div>
+                                             <PercentBadge cur={avgAovDb} prev={pAvgAovDb} />
+                                           </div>
+                                           <div className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 mt-1 xl:mt-2">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(avgAovDb)}</div>
+                                         </div>
+                                      </div>
+                                     </div>
+
+                                     {totalDbImpressions > 0 && (
+                                       <div className="mb-6">
+                                         <HorizontalFunnel 
+                                           title=""
+                                           subtitle=""
+                                           steps={[
+                                             { label: "Viewer", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
+                                             { label: "Viewer Enganged", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
+                                             { label: "Add To Card", value: new Intl.NumberFormat('id-ID').format(totalDbClicks) },
+                                             { label: "Purchase", value: new Intl.NumberFormat('id-ID').format(totalDbOrdersFunnel) }
+                                           ]}
+                                         />
+                                       </div>
+                                     )}
+                                   </div>
+                                 );
+                               }
+
+                               return (
+                                <>
+
                              <div className="space-y-6 mb-6">
                                <div>
-                                 <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest">Sale Metrics</h4>
+                                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+                                       <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">Sale Metrics</h4>
+                                       <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
+                                          <button 
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              if (operatorDateFilterType === 'latest' && targetLatestDate) {
+                                                pd = new Date(targetLatestDate);
+                                              } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                                pd = new Date(operatorCustomStartDate);
+                                              }
+                                              pd.setDate(pd.getDate() - 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                              setOperatorDateFilterType("custom");
+                                              setOperatorCustomStartDate(newD);
+                                              setOperatorCustomEndDate(newD);
+                                            }}
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+                                            <ChevronLeft className="w-4 h-4" />
+                                          </button>
+                                          <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
+                                            {(() => {
+                                              if (operatorDateFilterType === 'month' || operatorDateFilterType === 'all') return latestDateLabel || 'Semua Waktu';
+                                              let curD = new Date();
+                                              if (operatorDateFilterType === 'latest' && targetLatestDate) {
+                                                curD = new Date(targetLatestDate);
+                                              } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                                curD = new Date(operatorCustomStartDate);
+                                              }
+                                              return curD.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                            })()}
+                                          </span>
+                                          <button 
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              if (operatorDateFilterType === 'latest' && targetLatestDate) {
+                                                pd = new Date(targetLatestDate);
+                                              } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                                pd = new Date(operatorCustomStartDate);
+                                              }
+                                              pd.setDate(pd.getDate() + 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                              setOperatorDateFilterType("custom");
+                                              setOperatorCustomStartDate(newD);
+                                              setOperatorCustomEndDate(newD);
+                                            }}
+                                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+                                            <ChevronRight className="w-4 h-4" />
+                                          </button>
+                                       </div>
+                                      </div>
                                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
                                     <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                                       <div className="flex justify-between items-start mb-2 gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
@@ -10508,114 +11927,129 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                  </div>
                                </div>
                              </div>
+                             </>
+                             );
+                            })()}
  
-                             {/* Funnel */}
-                             {totalDbImpressions > 0 && (
-                               <div className="mb-6">
-                                 <HorizontalFunnel 
-                                   title="Live Sales Funnel"
-                                   subtitle="All Platform & Dates"
-                                   steps={(tableLogs.length > 0 && tableLogs[0].platform !== "TikTok Live" && tableLogs[0].platform?.toLowerCase().includes("shopee")) ? [
-                                     { label: "Total Viewers", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
-                                     { label: "Active Viewers", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
-                                     { label: "Add To Cart", value: new Intl.NumberFormat('id-ID').format(totalDbClicks) },
-                                     { label: "Orders", value: new Intl.NumberFormat('id-ID').format(totalDbOrdersFunnel) }
-                                   ] : [
-                                     { label: "LIVE impressions", value: new Intl.NumberFormat('id-ID').format(totalDbImpressions) },
-                                     { label: "Video/Live Visits", value: new Intl.NumberFormat('id-ID').format(totalDbLiveVisits) },
-                                     { label: "Product impressions", value: new Intl.NumberFormat('id-ID').format(totalDbProductImpressions) },
-                                     { label: `Product clicks (CTR: ${funnelCtr.toFixed(2)}%)`, value: new Intl.NumberFormat('id-ID').format(totalDbClicks) },
-                                     { label: `Orders paid (CTOR: ${funnelCtor.toFixed(2)}%)`, value: new Intl.NumberFormat('id-ID').format(totalDbBuyers) }
-                                   ]}
-                                 />
-                               </div>
-                             )}
- 
-                           {/* Charts */}
-                             <div className="mb-6">
-                                 <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm h-[400px] flex flex-col">
-                                   <div className="flex items-center justify-between mb-6">
-                                     <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">Trend Performa</h4>
-                                     <div className="flex gap-4">
-                                       <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600">
-                                         <input 
-                                           type="checkbox" 
-                                           checked={trendFilters.gmv}
-                                            onChange={(e) => setTrendFilters({...trendFilters, gmv: e.target.checked})}
-                                           className="w-3.5 h-3.5 rounded border-slate-300 text-teal-500 focus:ring-teal-500"
-                                         />
-                                         GMV
-                                       </label>
-                                       <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600">
-                                         <input 
-                                           type="checkbox" 
-                                           checked={trendFilters.views}
-                                           onChange={(e) => setTrendFilters({...trendFilters, views: e.target.checked})}
-                                           className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500"
-                                         />
-                                         Views
-                                       </label>
+
+                             {/* CHART TRENDS FOR LIVE PERFORMANCE */}
+                             {liveChartData.length > 0 && (
+                               <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm mb-6">
+                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                                   <div>
+                                     <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
+                                        <TrendingUp className="w-5 h-5 text-emerald-500" /> Tren Kinerja Penjualan Live Harian
+                                     </h4>
+                                     <p className="text-[11px] text-slate-400 font-bold mt-1">
+                                        Visualisasi harian data penyiaran langsung (Live Streaming) dinamis harian.
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
+                                      <div className="flex items-center gap-1 mr-1 select-none">
+                                        <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
+                                        <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">Metrik:</span>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {[
+                                          { key: "gmv", label: "GMV", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                                          { key: "orders", label: "Pesanan", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+                                          { key: "itemsSold", label: "Produk", color: "bg-amber-50 text-amber-700 border-amber-200" },
+                                          { key: "clicks", label: "Klik", color: "bg-pink-50 text-pink-700 border-pink-200" },
+                                          { key: "penonton", label: "Penonton", color: "bg-cyan-50 text-cyan-750 border-cyan-200" },
+                                        ].map((m) => {
+                                          const isSelected = liveChartSelectedMetrics.includes(m.key);
+                                          return (
+                                            <button
+                                              key={m.key}
+                                              onClick={() => {
+                                                if (isSelected) {
+                                                  if (liveChartSelectedMetrics.length > 1) {
+                                                    setLiveChartSelectedMetrics(liveChartSelectedMetrics.filter(x => x !== m.key));
+                                                  }
+                                                } else {
+                                                  setLiveChartSelectedMetrics([...liveChartSelectedMetrics, m.key]);
+                                                }
+                                              }}
+                                              className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
+                                                isSelected
+                                                  ? `${m.color} scale-[1.02] shadow-xs font-extrabold`
+                                                  : "bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50"
+                                              }`}
+                                            >
+                                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                                m.key === 'gmv' ? 'bg-emerald-500' :
+                                                m.key === 'orders' ? 'bg-indigo-600' :
+                                                m.key === 'itemsSold' ? 'bg-amber-500' :
+                                                m.key === 'clicks' ? 'bg-pink-500' : 'bg-cyan-500'
+                                              }`}></span>
+                                              {m.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                      <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
+                                        <button onClick={() => setLiveChartSelectedMetrics(["gmv", "orders", "itemsSold", "clicks", "penonton"])} className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black">Semua</button>
+                                        <span>|</span>
+                                        <button onClick={() => setLiveChartSelectedMetrics(["gmv", "orders"])} className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black">Reset</button>
+                                      </div>
+                                    </div>
+                                    <div className="hidden">
+                                      <p>
+                                     </p>
+                                   </div>
+                                   <div className="hidden">
+                                     <div className="flex items-center gap-1.5">
+                                       <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                                       <span>GMV</span>
+                                     </div>
+                                     <div className="flex items-center gap-1.5">
+                                       <span className="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
+                                       <span>Pesanan (Orders)</span>
                                      </div>
                                    </div>
-                                   <div className="flex-1 w-full min-h-0">
-                                     <ResponsiveContainer width="100%" height="100%" className="focus:outline-none">
-                                       <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} className="focus:outline-none" style={{ outline: 'none' }}>
-                                         <defs>
-                                           <linearGradient id="colorGmv" x1="0" y1="0" x2="0" y2="1">
-                                             <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.2}/>
-                                             <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
-                                           </linearGradient>
-                                           <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                                             <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                                             <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                           </linearGradient>
-                                         </defs>
-                                         <CartesianGrid strokeDasharray="3 3" vertical={true} horizontal={false} stroke="#f1f5f9" />
-                                          <XAxis 
-                                            dataKey="date" 
-                                            tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}} 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tickFormatter={(val) => {
-                                              if (!val) return '';
-                                              const d = new Date(val);
-                                              return d.toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
-                                            }}
-                                          />
-                                          {trendFilters.gmv && <YAxis yAxisId="left" orientation="left" tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}} axisLine={false} tickLine={false} tickFormatter={(val) => `Rp${(val/1000000).toFixed(0)}M`} />}
-                                          {trendFilters.views && <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}} axisLine={false} tickLine={false} tickFormatter={(val) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(val)} />}
-                                          <Tooltip 
-                                            isAnimationActive={false}
-                                            content={({ active, payload, label }) => {
-                                              if (active && payload && payload.length) {
-                                                const d = new Date(label).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
-                                                return (
-                                                  <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-xl min-w-[200px]">
-                                                    <div className="text-[10px] font-bold text-slate-800 mb-2 uppercase">{d}</div>
-                                                    <div className="space-y-1.5">
-                                                      {payload.map((entry: any, idx: number) => (
-                                                        <div key={idx} className="flex justify-between items-center text-xs font-bold gap-4">
-                                                          <span className="text-slate-500 uppercase text-[9px]">{entry.name}</span>
-                                                          <span style={{ color: entry.color || entry.stroke }}>
-                                                            {entry.name === 'GMV' ? `Rp ${new Intl.NumberFormat('id-ID').format(entry.value)}` : new Intl.NumberFormat('id-ID').format(entry.value)}
-                                                          </span>
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                );
-                                              }
-                                              return null;
-                                            }} 
-                                            cursor={{ stroke: '#10b981', strokeWidth: 32, opacity: 0.1 }}
-                                          />
-                                          {trendFilters.gmv && <Area yAxisId="left" type="monotone" name="GMV" dataKey="gmv" stroke="#14b8a6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorGmv)" dot={{r: 3, fill: "#fff", stroke: "#14b8a6", strokeWidth: 2}} activeDot={{r: 6, fill: "#14b8a6", stroke: "#fff", strokeWidth: 2}} />}
-                                          {trendFilters.views && <Area yAxisId="right" type="monotone" name="Views" dataKey="impressions" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorViews)" dot={{r: 3, fill: "#fff", stroke: "#10b981", strokeWidth: 2}} activeDot={{r: 6, fill: "#10b981", stroke: "#fff", strokeWidth: 2}} />}
-                                        </AreaChart>
-                                      </ResponsiveContainer>
-                                    </div>
-                                  </div>
-                              </div>
+                                 </div>
+                                 <div className="h-72 w-full mt-4">
+                                   <ResponsiveContainer width="100%" height="100%">
+                                     <RechartsLineChart
+                                       data={liveChartData}
+                                       margin={{ top: 10, right: 35, left: 15, bottom: 5 }}
+                                     >
+                                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                       <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} axisLine={false} tickLine={false} />
+                                       <YAxis 
+                                         yAxisId="left" 
+                                         tick={{fontSize: 10, fill: '#10b981', fontWeight: 'bold'}} 
+                                         axisLine={false} 
+                                         tickLine={false}
+                                         tickFormatter={(val) => `Rp${new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(val)}`} hide={!liveChartSelectedMetrics.includes("gmv")}
+                                       />
+                                       <YAxis 
+                                         yAxisId="right" 
+                                         orientation="right"
+                                         tick={{fontSize: 10, fill: '#4f46e5', fontWeight: 'bold'}} 
+                                         axisLine={false} 
+                                         tickLine={false} 
+                                         tickFormatter={(val) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(val)}
+                                       />
+                                       <Tooltip 
+                                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', fontWeight: 'bold', fontSize: '11px' }}
+                                         formatter={(value: any, name: string) => [
+                                           name === "GMV (Pendapatan)" ? `Rp${new Intl.NumberFormat('id-ID').format(value)}` : new Intl.NumberFormat('id-ID').format(value), 
+                                           name
+                                         ]}
+                                       />
+                                       <Line yAxisId="left" type="monotone" name="GMV (Pendapatan)" dataKey="gmv" stroke="#10b981" strokeWidth={3} dot={{r:4, fill: "#10b981", strokeWidth: 2, stroke: "#fff"}} activeDot={{r: 6}} hide={!liveChartSelectedMetrics.includes("gmv")} />
+                                       <Line yAxisId="right" type="monotone" name="Pesanan (Orders)" dataKey="orders" stroke="#4f46e5" strokeWidth={3} dot={{r:4, fill: "#4f46e5", strokeWidth: 2, stroke: "#fff"}} hide={!liveChartSelectedMetrics.includes("orders")} />
+                                       <Line yAxisId="right" type="monotone" name="Produk Terjual" dataKey="itemsSold" stroke="#f59e0b" strokeWidth={3} dot={{r:4, fill: "#f59e0b", strokeWidth: 2, stroke: "#fff"}} hide={!liveChartSelectedMetrics.includes("itemsSold")} />
+                                       <Line yAxisId="right" type="monotone" name="Klik Produk" dataKey="clicks" stroke="#ec4899" strokeWidth={3} dot={{r:4, fill: "#ec4899", strokeWidth: 2, stroke: "#fff"}} hide={!liveChartSelectedMetrics.includes("clicks")} />
+                                       <Line yAxisId="right" type="monotone" name="Penonton (Views)" dataKey="penonton" stroke="#0ea5e9" strokeWidth={3} dot={{r:4, fill: "#0ea5e9", strokeWidth: 2, stroke: "#fff"}} hide={!liveChartSelectedMetrics.includes("penonton")} />
+                                     </RechartsLineChart>
+                                   </ResponsiveContainer>
+                                 </div>
+                               </div>
+                             )}
+
+                             {/* Removed duplicated SKU Analytics here */}
 
                              {/* Time & Day Analytics */}
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -10774,7 +12208,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                          <td className="px-5 py-3.5 text-slate-400">{((currentPage - 1) * ITEMS_PER_PAGE) + idx + 1}</td>
                                          <td className="px-5 py-3.5 text-slate-500">
                                            <div className="flex flex-col">
-                                              <span>{log.date}</span>
+                                              <span>{formatDisplayDate(log.dateTime || log.date)}</span>
                                               <span className="text-[9px] text-indigo-500">{log.platform}</span>
                                            </div>
                                          </td>
@@ -10833,7 +12267,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                      {/* BATCH UPLOAD HISTORY VIEWER */}
                      {(() => {
-                        const brandLogsForHistory = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId);
+                        const brandLogsForHistory = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId && log.reportType !== 'engagement');
                         const batchesMap = {} as Record<string, any>;
                         brandLogsForHistory.forEach(log => {
                            const bId = log.batchId;
@@ -10858,8 +12292,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         const missingBatches = Object.values(batchesMap).filter(b => !existingBatchIds.has(b.id)); // from raw logs
 
                         // merge local uploadHistory as well
-                        const localHistories = uploadHistory.filter(h => h.brandId === activeReportBrandId && !existingBatchIds.has(h.id));
-                        const completeUploadHistory = [...brandUploadHistory.filter(h => h.brandId === activeReportBrandId), ...missingBatches, ...localHistories]
+                        const localHistories = uploadHistory.filter(h => h.brandId === activeReportBrandId && h.reportType !== 'engagement' && !existingBatchIds.has(h.id));
+                        const completeUploadHistory = [...brandUploadHistory.filter(h => h.brandId === activeReportBrandId && h.reportType !== 'engagement'), ...missingBatches, ...localHistories]
                         .reduce((acc, current) => {
                              const x = acc.find((item: any) => item.id === current.id);
                              if (!x) { return acc.concat([current]); } else { return acc; }
@@ -10932,6 +12366,1021 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                      })()}
 
                     </div>
+                  )}
+                  
+                  {/* STORED SKU DATABASE VIEWER */}
+                  {operatorReportingTab === "product" && (
+                    <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
+                       {/* Table Filters */}
+                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap mt-0">
+                         <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
+                           <div className="relative w-full sm:w-72">
+                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                             <input
+                               type="text"
+                               placeholder="Search SKU..."
+                               value={reportDbSearchQuery}
+                               onChange={(e) => setReportDbSearchQuery(e.target.value)}
+                               className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 transition-colors shadow-sm"
+                             />
+                           </div>
+                           <select
+                             value={operatorPlatformFilter}
+                             onChange={(e) => setOperatorPlatformFilter(e.target.value)}
+                             className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
+                           >
+                             <option value="">Semua Platform</option>
+                             {platforms.map(p => (
+                               <option key={p} value={p}>{p}</option>
+                             ))}
+                           </select>
+                         </div>
+                         <div className="relative flex gap-2 w-full sm:w-auto h-9">
+                           <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                             {[
+                               { id: "latest", label: "Terbaru" }, { id: "all", label: "Semua" }, { id: "month", label: "Bulan" }, { id: "custom", label: "Custom" }
+                             ].map(item => (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setOperatorDateFilterType(item.id);
+                                    if (item.id === "all" || item.id === "latest") {
+                                      setIsOperatorCalendarOpen(false);
+                                      setIsOperatorMonthOpen(false);
+                                    } else if (item.id === "month") {
+                                      setIsOperatorMonthOpen(true);
+                                      setIsOperatorCalendarOpen(false);
+                                    } else if (item.id === "custom") {
+                                      setIsOperatorCalendarOpen(true);
+                                      setIsOperatorMonthOpen(false);
+                                      setOperatorTempStartDate(operatorCustomStartDate || formatDateYYYYMMDD(new Date()));
+                                      setOperatorTempEndDate(operatorCustomEndDate || formatDateYYYYMMDD(new Date()));
+                                    }
+                                  }}
+                                  className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
+                                    operatorDateFilterType === item.id 
+                                    ? "bg-white text-indigo-700 shadow-sm border border-slate-100" 
+                                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
+                                  }`}
+                                >
+                                  {item.label}
+                                </button>
+                             ))}
+                           </div>
+                            
+                           {((operatorDateFilterType === "custom" && operatorCustomStartDate) || operatorDateFilterType === "month") && (
+                              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                                <span className="text-[10px] font-bold text-slate-700">
+                                  {operatorDateFilterType === "month" 
+                                    ? getIndonesianMonthLabel(operatorSelectedMonth) 
+                                    : `${operatorCustomStartDate} to ${operatorCustomEndDate}`}
+                                </span>
+                              </div>
+                           )}
+
+                           {/* Custom Date Overlay UI (Month) */}
+                           {isOperatorMonthOpen && operatorDateFilterType === "month" && (
+                             <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
+                               <div className="flex justify-between items-center mb-4 text-slate-800">
+                                 <button 
+                                   type="button" 
+                                   onClick={() => setOperatorMonthPickerYear(y => y - 1)} 
+                                   className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                 >
+                                   &laquo;
+                                 </button>
+                                 <div className="text-sm font-bold tracking-widest">{operatorMonthPickerYear}</div>
+                                 <button 
+                                   type="button" 
+                                   onClick={() => setOperatorMonthPickerYear(y => y + 1)} 
+                                   className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                 >
+                                   &raquo;
+                                 </button>
+                               </div>
+                               <div className="grid grid-cols-3 gap-y-2 pb-1 border-t border-slate-100 pt-3 relative">
+                                 {[
+                                   { val: "01", label: "Jan" }, { val: "02", label: "Feb" }, { val: "03", label: "Mar" },
+                                   { val: "04", label: "Apr" }, { val: "05", label: "May" }, { val: "06", label: "Jun" },
+                                   { val: "07", label: "Jul" }, { val: "08", label: "Aug" }, { val: "09", label: "Sept" },
+                                   { val: "10", label: "Oct" }, { val: "11", label: "Nov" }, { val: "12", label: "Dec" }
+                                 ].map((m, idx) => {
+                                   const mVal = `${operatorMonthPickerYear}-${m.val}`;
+                                   const isSelected = operatorSelectedMonth === mVal;
+                                   
+                                   const currentDate = new Date();
+                                   const isFuture = operatorMonthPickerYear > currentDate.getFullYear() || 
+                                                    (operatorMonthPickerYear === currentDate.getFullYear() && parseInt(m.val) > currentDate.getMonth() + 1);
+
+                                   return (
+                                     <button
+                                       key={m.val}
+                                       type="button"
+                                       onClick={() => { 
+                                         if (!isFuture) {
+                                           setOperatorSelectedMonth(mVal); 
+                                           setIsOperatorMonthOpen(false); 
+                                         }
+                                       }}
+                                       className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
+                                         isFuture 
+                                         ? "bg-slate-50 text-slate-400 cursor-not-allowed" 
+                                         : "bg-white text-slate-800 hover:bg-slate-50 cursor-pointer"
+                                       } ${isSelected ? "bg-slate-50 shadow-sm relative" : ""}`}
+                                     >
+                                       {m.label}
+                                       {isSelected && !isFuture && <div className="w-1.5 h-1.5 rounded-full bg-slate-300 absolute bottom-1"></div>}
+                                     </button>
+                                   )
+                                 })}
+                               </div>
+                             </div>
+                           )}
+
+                           {/* Custom Date Overlay UI (Custom) */}
+                           {isOperatorCalendarOpen && operatorDateFilterType === "custom" && (
+                             <div className="absolute right-0 top-full mt-2 z-50 animate-fadeIn">
+                               <DoubleDatePicker 
+                                 startDate={operatorTempStartDate} 
+                                 endDate={operatorTempEndDate} 
+                                 onChange={(start, end) => {
+                                   setOperatorTempStartDate(start);
+                                   setOperatorTempEndDate(end);
+                                 }} 
+                                 onApply={() => {
+                                   setOperatorCustomStartDate(operatorTempStartDate);
+                                   setOperatorCustomEndDate(operatorTempEndDate);
+                                   setIsOperatorCalendarOpen(false);
+                                 }} 
+                                 onCancel={() => setIsOperatorCalendarOpen(false)} 
+                               />
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                       
+                      {/* SKU Analytics */}
+                             {(() => {
+                                 const applySkuFilter = (logsArr: any[]) => {
+                                   if (!logsArr) return [];
+                                   let res = logsArr.filter(r => r.brandId === activeReportBrandId);
+                                   if (operatorDateFilterType === 'latest' && brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId).length > 0) {
+                                      const targetLatestDate = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId).sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                                      res = res.filter(r => r.date && r.date.startsWith(targetLatestDate.substring(0,10)));
+                                   } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                      res = res.filter(r => r.date && r.date >= operatorCustomStartDate && r.date <= (operatorCustomEndDate||operatorCustomStartDate));
+                                   } else if (operatorDateFilterType === 'month' && operatorSelectedMonth) {
+                                      res = res.filter(r => r.date && r.date.startsWith(operatorSelectedMonth));
+                                   }
+                                   
+                                   if (operatorPlatformFilter) {
+                                     res = res.filter(r => {
+                                        return r.platform && operatorPlatformFilter && r.platform.toLowerCase().includes(operatorPlatformFilter.toLowerCase());
+                                     });
+                                   }
+                                   
+                                   if (reportDbSearchQuery) {
+                                      const q = reportDbSearchQuery.toLowerCase();
+                                      res = res.filter(r => (r.sku && r.sku.toLowerCase().includes(q)) || (r.productName && r.productName.toLowerCase().includes(q)));
+                                   }
+                                   
+                                   return res;
+                                 };
+                                 
+                                 const currentSkus = applySkuFilter(shopeeSkuLogs);
+                                 if (currentSkus.length === 0) return (
+                                   <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-sm mb-6 text-center text-slate-500 font-semibold text-sm">
+                                      Tidak ada data product performance / SKU untuk filter saat ini.
+                                   </div>
+                                 );
+                                 
+                                 const skuMap = new Map();
+                                 currentSkus.forEach(s => {
+                                    const key = s.sku !== "N/A" ? s.sku : s.productName;
+                                    const ex = skuMap.get(key);
+                                    if (ex) {
+                                       ex.sold += Number(s.sold) || 0;
+                                       ex.revenue += Number(s.revenue) || 0;
+                                    } else {
+                                       skuMap.set(key, { sku: s.sku, productName: s.productName, sold: Number(s.sold)||0, revenue: Number(s.revenue)||0 });
+                                    }
+                                 });
+                                 
+                                 let aggregatedSkus = Array.from(skuMap.values()).sort((a,b) => {
+                                      if (skuSortCol === 'sold') return skuSortAsc ? a.sold - b.sold : b.sold - a.sold;
+                                      if (skuSortCol === 'revenue') return skuSortAsc ? a.revenue - b.revenue : b.revenue - a.revenue;
+                                      return 0;
+                                 });
+
+                                 let productDateLabel = "Semua Waktu";
+                                 if (operatorDateFilterType === 'latest' && brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId).length > 0) {
+                                    const targetLatestDate = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId).sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                                    if (targetLatestDate) productDateLabel = targetLatestDate.split(' ')[0];
+                                 } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                    productDateLabel = `${operatorCustomStartDate} to ${operatorCustomEndDate}`;
+                                 } else if (operatorDateFilterType === 'month' && operatorSelectedMonth) {
+                                    productDateLabel = getIndonesianMonthLabel(operatorSelectedMonth);
+                                 }
+                                 
+                                 return (
+                                  <div className="bg-white border border-slate-100 p-5 lg:p-7 rounded-3xl shadow-sm mb-6">
+                                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
+                                        <div>
+                                          <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">Product Performance</h4>
+                                          <p className="text-[10px] sm:text-xs text-slate-500 font-semibold mt-1">Distribusi revenue & sales by SKU</p>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                          <div className="flex items-center gap-2 sm:gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
+                                           <button 
+                                             onClick={() => {
+                                               let pd = new Date();
+                                               let tld = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId).sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                                               if (operatorDateFilterType === 'latest' && tld) {
+                                                 pd = new Date(tld);
+                                               } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                                 pd = new Date(operatorCustomStartDate);
+                                               }
+                                               pd.setDate(pd.getDate() - 1);
+                                               const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                               setOperatorDateFilterType("custom");
+                                               setOperatorCustomStartDate(newD);
+                                               setOperatorCustomEndDate(newD);
+                                             }}
+                                             className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+                                             <ChevronLeft className="w-4 h-4" />
+                                           </button>
+                                           <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[140px] sm:min-w-[160px] text-center">
+                                             {(() => {
+                                               if (operatorDateFilterType === 'month' || operatorDateFilterType === 'all') return productDateLabel || 'Semua Waktu';
+                                               let curD = new Date();
+                                               let tld = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId).sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                                               if (operatorDateFilterType === 'latest' && tld) {
+                                                 curD = new Date(tld);
+                                               } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                                 curD = new Date(operatorCustomStartDate);
+                                               }
+                                               return curD.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                             })()}
+                                           </span>
+                                           <button 
+                                             onClick={() => {
+                                               let pd = new Date();
+                                               let tld = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId).sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                                               if (operatorDateFilterType === 'latest' && tld) {
+                                                 pd = new Date(tld);
+                                               } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                                 pd = new Date(operatorCustomStartDate);
+                                               }
+                                               pd.setDate(pd.getDate() + 1);
+                                               const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                               setOperatorDateFilterType("custom");
+                                               setOperatorCustomStartDate(newD);
+                                               setOperatorCustomEndDate(newD);
+                                             }}
+                                             className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+                                             <ChevronRight className="w-4 h-4" />
+                                           </button>
+                                          </div>
+                                          <div className="bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-xs h-[36px] sm:h-[40px] flex items-center">
+                                            Total Item Sold: {new Intl.NumberFormat('id-ID').format(aggregatedSkus.reduce((sum, item) => sum + item.sold, 0))}
+                                          </div>
+                                       </div>
+                                     </div>
+                                     
+                                     <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-[500px] overflow-y-auto custom-scrollbar">
+                                       <table className="w-full text-left bg-white">
+                                         <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                                           <tr>
+                                             <th className="px-5 py-4 w-16 text-center text-slate-500 font-semibold text-xs tracking-widest uppercase">No</th>
+                                             <th className="px-5 py-4 text-slate-500 font-semibold text-xs tracking-widest uppercase">SKU</th>
+                                             <th 
+                                               className="px-5 py-4 w-32 cursor-pointer hover:bg-slate-100 transition-colors"
+                                               onClick={() => {
+                                                  if (skuSortCol === "sold") setSkuSortAsc(!skuSortAsc);
+                                                  else { setSkuSortCol("sold"); setSkuSortAsc(false); }
+                                               }}
+                                             >
+                                               <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
+                                                  Sold
+                                                  {skuSortCol === "sold" && (skuSortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                               </div>
+                                             </th>
+                                             <th 
+                                               className="px-5 py-4 w-40 cursor-pointer hover:bg-slate-100 transition-colors"
+                                               onClick={() => {
+                                                  if (skuSortCol === "revenue") setSkuSortAsc(!skuSortAsc);
+                                                  else { setSkuSortCol("revenue"); setSkuSortAsc(false); }
+                                               }}
+                                             >
+                                                <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
+                                                  Revenue
+                                                  {skuSortCol === "revenue" && (skuSortAsc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                                </div>
+                                             </th>
+                                           </tr>
+                                         </thead>
+                                         <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
+                                           {aggregatedSkus.map((sku, idx) => (
+                                              <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                                <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">{idx + 1}</td>
+                                                <td className="px-5 py-3 whitespace-normal min-w-[250px]"><div className="line-clamp-2 text-slate-800 leading-snug">{sku.productName}</div></td>
+                                                <td className="px-5 py-3 text-right text-emerald-600 font-black">{new Intl.NumberFormat('id-ID').format(sku.sold)}</td>
+                                                <td className="px-5 py-3 text-right text-slate-800 font-black">Rp {new Intl.NumberFormat('id-ID').format(sku.revenue)}</td>
+                                              </tr>
+                                           ))}
+                                         </tbody>
+
+                                       </table>
+                                     </div>
+                                  </div>
+                                 );
+                             })()}
+
+                     {/* UPLOAD HISTORY SKU VIEWER */}
+                     {(() => {
+                         const brandSkuLogs = shopeeSkuLogs.filter(r => r.brandId === activeReportBrandId);
+                         
+                         const uploadHistoryMap = new Map();
+                         brandSkuLogs.forEach(log => {
+                            if (!log.batchId) return;
+                            const existing = uploadHistoryMap.get(log.batchId);
+                            if (existing) {
+                               existing.records += 1;
+                            } else {
+                               uploadHistoryMap.set(log.batchId, {
+                                  batchId: log.batchId,
+                                  uploadedAt: log.uploadedAt || "",
+                                  records: 1,
+                                  platform: log.platform || 'Shopee Live'
+                               });
+                            }
+                         });
+                         const uploadHistoryList = Array.from(uploadHistoryMap.values()).sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+                         
+                         const totalPages = Math.max(1, Math.ceil(uploadHistoryList.length / ITEMS_PER_PAGE));
+                         const paginatedHistory = uploadHistoryList.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+                         
+                         return (
+                           <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-6">
+                             <div className="bg-[#f8fafc] border-b border-slate-100 px-5 lg:px-7 py-5 flex items-center justify-between gap-4">
+                               <div>
+                                 <h4 className="text-base font-black text-slate-800 uppercase flex items-center gap-2 tracking-widest"><Database className="w-5 h-5 text-indigo-500" /> History Upload SKU</h4>
+                                 <p className="text-xs text-slate-500 font-semibold mt-1.5 flex items-center gap-1.5">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    {uploadHistoryList.length} riwayat batch ditemukan
+                                 </p>
+                               </div>
+                             </div>
+                             
+                             <div className="overflow-x-auto w-full">
+                               <table className="w-full text-left whitespace-nowrap min-w-[700px]">
+                                 <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none border-b border-slate-100">
+                                   <tr>
+                                     <th className="px-5 py-4 w-12 text-center">No</th>
+                                     <th className="px-5 py-4 w-40">Tanggal Upload</th>
+                                     <th className="px-5 py-4 min-w-[150px]">Batch ID</th>
+                                     <th className="px-5 py-4 w-32">Platform</th>
+                                     <th className="px-5 py-4 w-32 text-right">Jumlah Record</th>
+                                     <th className="px-5 py-4 w-24 text-center">Aksi</th>
+                                   </tr>
+                                 </thead>
+                                 <tbody className="divide-y divide-slate-100 text-[11px] font-semibold text-slate-700 bg-white">
+                                   {paginatedHistory.length === 0 ? (
+                                     <tr>
+                                       <td colSpan={6} className="px-5 py-10 text-center text-slate-400">Belum ada riwayat upload.</td>
+                                     </tr>
+                                   ) : (
+                                     paginatedHistory.map((batch, idx) => {
+                                       return (
+                                       <tr key={batch.batchId} className="hover:bg-slate-50/50 transition-colors">
+                                          <td className="px-5 py-3 text-center text-slate-400 font-bold">{((currentPage - 1) * ITEMS_PER_PAGE) + idx + 1}</td>
+                                          <td className="px-5 py-3">{new Date(batch.uploadedAt).toLocaleString('id-ID', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})}</td>
+                                          <td className="px-5 py-3">
+                                            <div className="bg-slate-100 text-slate-500 px-2 py-1 rounded inline-block text-[10px] font-mono tracking-tight">{batch.batchId}</div>
+                                          </td>
+                                          <td className="px-5 py-3">
+                                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#FF5722]/10 text-[#FF5722] font-black text-[10px] uppercase">
+                                              {batch.platform}
+                                            </span>
+                                          </td>
+                                          <td className="px-5 py-3 text-right text-emerald-600 font-bold">{new Intl.NumberFormat('id-ID').format(batch.records)}</td>
+                                          <td className="px-5 py-3 text-center">
+                                            <button
+                                              onClick={() => handleDeleteSkuBatch(batch.batchId)}
+                                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                              title="Hapus History"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </button>
+                                          </td>
+                                       </tr>
+                                       );
+                                     })
+                                   )}
+                                 </tbody>
+                               </table>
+                             </div>
+                             
+                             {totalPages > 1 && (
+                               <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+                                 <div>
+                                   Menampilkan {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, uploadHistoryList.length)} dari {uploadHistoryList.length} data
+                                 </div>
+                                 <div className="flex gap-2">
+                                   <button 
+                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                     disabled={currentPage === 1}
+                                     className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                   >
+                                     Sebelumnya
+                                   </button>
+                                   <span className="px-3 py-1.5">
+                                      Halaman {currentPage} / {totalPages}
+                                   </span>
+                                   <button 
+                                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                     disabled={currentPage === totalPages}
+                                     className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                   >
+                                     Selanjutnya
+                                   </button>
+                                 </div>
+                               </div>
+                             )}
+                           </div>
+                         );
+                     })()}
+
+                    </div>
+                  )}
+
+                  {operatorReportingTab === "engagement" && (
+                    <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
+                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap mt-0">
+                         <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
+                           <select
+                             value={operatorPlatformFilter}
+                             onChange={(e) => setOperatorPlatformFilter(e.target.value)}
+                             className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
+                           >
+                             <option value="">Semua Platform</option>
+                             {platforms.map(p => (
+                               <option key={p} value={p}>{p}</option>
+                             ))}
+                           </select>
+                         </div>
+                         <div className="relative flex gap-2 w-full sm:w-auto h-9">
+                           <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                             {[
+                               { id: "latest", label: "Terbaru" }, { id: "all", label: "Semua" }, { id: "month", label: "Bulan" }, { id: "custom", label: "Custom" }
+                             ].map(item => (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setOperatorDateFilterType(item.id);
+                                    if (item.id === "all" || item.id === "latest") {
+                                      setIsOperatorCalendarOpen(false);
+                                      setIsOperatorMonthOpen(false);
+                                    } else if (item.id === "month") {
+                                      setIsOperatorMonthOpen(true);
+                                      setIsOperatorCalendarOpen(false);
+                                    } else if (item.id === "custom") {
+                                      setIsOperatorCalendarOpen(true);
+                                      setIsOperatorMonthOpen(false);
+                                      setOperatorTempStartDate(operatorCustomStartDate || formatDateYYYYMMDD(new Date()));
+                                      setOperatorTempEndDate(operatorCustomEndDate || formatDateYYYYMMDD(new Date()));
+                                    }
+                                  }}
+                                  className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
+                                    operatorDateFilterType === item.id 
+                                    ? "bg-white text-indigo-700 shadow-sm border border-slate-100" 
+                                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
+                                  }`}
+                                >
+                                  {item.label}
+                                </button>
+                             ))}
+                           </div>
+                            
+                           {((operatorDateFilterType === "custom" && operatorCustomStartDate) || operatorDateFilterType === "month") && (
+                              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                                <span className="text-[10px] font-bold text-slate-700">
+                                  {operatorDateFilterType === "month" 
+                                    ? getIndonesianMonthLabel(operatorSelectedMonth) 
+                                    : `${operatorCustomStartDate} to ${operatorCustomEndDate}`}
+                                </span>
+                              </div>
+                           )}
+
+                           {/* Custom Date Overlay UI (Month) */}
+                           {isOperatorMonthOpen && operatorDateFilterType === "month" && (
+                             <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
+                               <div className="flex justify-between items-center mb-4 text-slate-800">
+                                 <button 
+                                   type="button" 
+                                   onClick={() => setOperatorMonthPickerYear(y => y - 1)} 
+                                   className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                 >
+                                   &laquo;
+                                 </button>
+                                 <div className="text-sm font-bold tracking-widest">{operatorMonthPickerYear}</div>
+                                 <button 
+                                   type="button" 
+                                   onClick={() => setOperatorMonthPickerYear(y => y + 1)} 
+                                   className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                 >
+                                   &raquo;
+                                 </button>
+                               </div>
+                               <div className="grid grid-cols-3 gap-y-2 pb-1 border-t border-slate-100 pt-3 relative">
+                                 {[
+                                   { val: "01", label: "Jan" }, { val: "02", label: "Feb" }, { val: "03", label: "Mar" },
+                                   { val: "04", label: "Apr" }, { val: "05", label: "May" }, { val: "06", label: "Jun" },
+                                   { val: "07", label: "Jul" }, { val: "08", label: "Aug" }, { val: "09", label: "Sept" },
+                                   { val: "10", label: "Oct" }, { val: "11", label: "Nov" }, { val: "12", label: "Dec" }
+                                 ].map((m, idx) => {
+                                   const mVal = `${operatorMonthPickerYear}-${m.val}`;
+                                   const isSelected = operatorSelectedMonth === mVal;
+                                   
+                                   const currentDate = new Date();
+                                   const isFuture = operatorMonthPickerYear > currentDate.getFullYear() || 
+                                                    (operatorMonthPickerYear === currentDate.getFullYear() && parseInt(m.val) > currentDate.getMonth() + 1);
+
+                                   return (
+                                     <button
+                                       key={m.val}
+                                       type="button"
+                                       onClick={() => { 
+                                         if (!isFuture) {
+                                           setOperatorSelectedMonth(mVal); 
+                                           setIsOperatorMonthOpen(false); 
+                                         }
+                                       }}
+                                       className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
+                                         isFuture 
+                                         ? "bg-slate-50 text-slate-400 cursor-not-allowed" 
+                                         : "bg-white text-slate-800 hover:bg-slate-50 cursor-pointer"
+                                       } ${isSelected ? "bg-slate-50 shadow-sm relative" : ""}`}
+                                     >
+                                       {m.label}
+                                       {isSelected && !isFuture && <div className="w-1.5 h-1.5 rounded-full bg-slate-300 absolute bottom-1"></div>}
+                                     </button>
+                                   )
+                                 })}
+                               </div>
+                             </div>
+                           )}
+
+                           {/* Custom Date Overlay UI (Custom) */}
+                           {isOperatorCalendarOpen && operatorDateFilterType === "custom" && (
+                             <div className="absolute right-0 top-full mt-2 z-50 animate-fadeIn">
+                               <DoubleDatePicker 
+                                 startDate={operatorTempStartDate} 
+                                 endDate={operatorTempEndDate} 
+                                 onChange={(start, end) => {
+                                   setOperatorTempStartDate(start);
+                                   setOperatorTempEndDate(end);
+                                 }} 
+                                 onApply={() => {
+                                   setOperatorCustomStartDate(operatorTempStartDate);
+                                   setOperatorCustomEndDate(operatorTempEndDate);
+                                   setIsOperatorCalendarOpen(false);
+                                 }} 
+                                 onCancel={() => setIsOperatorCalendarOpen(false)} 
+                               />
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                      {/* Oh wait, actually let's just make it a table based on aggregated brandPerformanceLogs */}
+                      {(() => {
+                         let engagementDateLabel = "Semua Waktu";
+                         if (operatorDateFilterType === 'latest' && brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId && log.reportType === 'engagement').length > 0) {
+                            const targetLatestDate = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId && log.reportType === 'engagement').sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                            if (targetLatestDate) engagementDateLabel = targetLatestDate.split(' ')[0];
+                         } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                            engagementDateLabel = `${operatorCustomStartDate} to ${operatorCustomEndDate}`;
+                         } else if (operatorDateFilterType === 'month' && operatorSelectedMonth) {
+                            engagementDateLabel = getIndonesianMonthLabel(operatorSelectedMonth);
+                         }
+
+                         let logs = brandPerformanceLogs.filter((l) => l.brandId === activeReportBrandId && l.reportType === 'engagement');
+                         
+                         // Apply same date/platform filters if needed 
+                         if (operatorDateFilterType === 'latest' && logs.length > 0) {
+                            const latestDate = [...logs].sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                            logs = logs.filter(r => r.date === latestDate);
+                         } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                            logs = logs.filter(r => r.date >= operatorCustomStartDate && r.date <= (operatorCustomEndDate||operatorCustomStartDate));
+                         } else if (operatorDateFilterType === 'month' && operatorSelectedMonth) {
+                            logs = logs.filter(r => r.date.startsWith(operatorSelectedMonth));
+                         }
+
+                         if (operatorPlatformFilter) {
+                            logs = logs.filter(r => r.platform && r.platform.toLowerCase() === operatorPlatformFilter.toLowerCase());
+                         }
+                         
+                         // Grouped or detailed? Let's just sum it up.
+                         const totalImpressions = logs.reduce((sum, l) => sum + (l.impressions || 0), 0);
+                         const totalPenonton = logs.reduce((sum, l) => sum + (l.penonton || l.impressions || 0), 0);
+                         const avgPeakViewers = logs.length > 0 ? Math.round(logs.reduce((sum, l) => sum + (l.peakViewers || 0), 0) / logs.length) : 0;
+                         const totalLikes = logs.reduce((sum, l) => sum + (l.likes || 0), 0);
+                         const totalShares = logs.reduce((sum, l) => sum + (l.shares || 0), 0);
+                         const totalComments = logs.reduce((sum, l) => sum + (l.comments || 0), 0);
+                         const totalFollowers = logs.reduce((sum, l) => sum + (l.followers || 0), 0);
+                         const formattedErrRate = totalPenonton > 0 ? (((totalLikes + totalComments + totalShares + totalFollowers) / totalPenonton) * 100).toFixed(2) + "%" : "0.00%";
+                         
+                         const totalShopVouchers = logs.reduce((sum, l) => sum + (l.shopVouchers || 0), 0);
+                         const totalSpecialVouchers = logs.reduce((sum, l) => sum + (l.specialVouchers || 0), 0);
+                         const totalCoinsClaimed = logs.reduce((sum, l) => sum + (l.coinsClaimed || 0), 0);
+
+                         // Group log data daily for the trend chart to prevent multi-session point clutter
+                         const groupedByDate: { [key: string]: any } = {};
+                         logs.forEach(log => {
+                           const dateStr = log.date || "Tanpa Tanggal";
+                           if (!groupedByDate[dateStr]) {
+                             groupedByDate[dateStr] = {
+                               date: dateStr,
+                               penonton: 0,
+                               likes: 0,
+                               shares: 0,
+                               comments: 0,
+                               followers: 0,
+                             };
+                           }
+                           groupedByDate[dateStr].penonton += (log.penonton || log.impressions || 0);
+                           groupedByDate[dateStr].likes += (log.likes || 0);
+                           groupedByDate[dateStr].shares += (log.shares || 0);
+                           groupedByDate[dateStr].comments += (log.comments || 0);
+                           groupedByDate[dateStr].followers += (log.followers || 0);
+                         });
+
+                         const chartData = Object.values(groupedByDate)
+                           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                           .map((item: any) => {
+                             const interactionsSum = item.likes + item.comments + item.shares + item.followers;
+                             const errVal = item.penonton > 0 ? (interactionsSum / item.penonton) * 100 : 0;
+                             return {
+                               date: item.date,
+                               uniqueViewers: item.penonton,
+                               errRateNumeric: parseFloat(errVal.toFixed(2)),
+                               likes: item.likes,
+                               comments: item.comments,
+                               shares: item.shares,
+                               followers: item.followers,
+                             };
+                           });
+
+                         return (
+                           <div className="space-y-6">
+                             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                               <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest pl-1">Performance Engagement</h4>
+                               <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm w-fit">
+                                  <button 
+                                    onClick={() => {
+                                      let pd = new Date();
+                                      let tld = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId && log.reportType === 'engagement').sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                                      if (operatorDateFilterType === 'latest' && tld) {
+                                        pd = new Date(tld);
+                                      } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                        pd = new Date(operatorCustomStartDate);
+                                      }
+                                      pd.setDate(pd.getDate() - 1);
+                                      const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                      setOperatorDateFilterType("custom");
+                                      setOperatorCustomStartDate(newD);
+                                      setOperatorCustomEndDate(newD);
+                                    }}
+                                    className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </button>
+                                  <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[140px] sm:min-w-[160px] text-center">
+                                    {(() => {
+                                      if (operatorDateFilterType === 'month' || operatorDateFilterType === 'all') return engagementDateLabel || 'Semua Waktu';
+                                      let curD = new Date();
+                                      let tld = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId && log.reportType === 'engagement').sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                                      if (operatorDateFilterType === 'latest' && tld) {
+                                        curD = new Date(tld);
+                                      } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                        curD = new Date(operatorCustomStartDate);
+                                      }
+                                      return curD.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                    })()}
+                                  </span>
+                                  <button 
+                                    onClick={() => {
+                                      let pd = new Date();
+                                      let tld = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId && log.reportType === 'engagement').sort((a,b) => new Date(b.date||"0").getTime() - new Date(a.date||"0").getTime())[0]?.date || "";
+                                      if (operatorDateFilterType === 'latest' && tld) {
+                                        pd = new Date(tld);
+                                      } else if (operatorDateFilterType === 'custom' && operatorCustomStartDate) {
+                                        pd = new Date(operatorCustomStartDate);
+                                      }
+                                      pd.setDate(pd.getDate() + 1);
+                                      const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}-${String(pd.getDate()).padStart(2, '0')}`;
+                                      setOperatorDateFilterType("custom");
+                                      setOperatorCustomStartDate(newD);
+                                      setOperatorCustomEndDate(newD);
+                                    }}
+                                    className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
+                                    <ChevronRight className="w-4 h-4" />
+                                  </button>
+                               </div>
+                             </div>
+                             {/* INTERAKSI */}
+                             <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
+                               <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
+                                  <Users className="w-5 h-5 text-indigo-500" /> Interaksi (Engagement)
+                               </h4>
+                               
+                               <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+                                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Dilihat</div>
+                                    <div className="text-lg font-black text-slate-800">{new Intl.NumberFormat('id-ID').format(totalImpressions)}</div>
+                                  </div>
+                                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Penonton Tertinggi</div>
+                                    <div className="text-lg font-black text-slate-800">{new Intl.NumberFormat('id-ID').format(avgPeakViewers)}</div>
+                                  </div>
+                                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Suka</div>
+                                    <div className="text-lg font-black text-slate-800">{new Intl.NumberFormat('id-ID').format(totalLikes)}</div>
+                                  </div>
+                                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Share</div>
+                                    <div className="text-lg font-black text-slate-800">{new Intl.NumberFormat('id-ID').format(totalShares)}</div>
+                                  </div>
+                                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Komentar</div>
+                                    <div className="text-lg font-black text-slate-800">{new Intl.NumberFormat('id-ID').format(totalComments)}</div>
+                                  </div>
+                                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pengikut Baru</div>
+                                    <div className="text-lg text-emerald-600 font-black">{new Intl.NumberFormat('id-ID').format(totalFollowers)}</div>
+                                  </div>
+                                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                                    <div className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">ERR %</div>
+                                    <div className="text-lg text-indigo-600 font-extrabold">{formattedErrRate}</div>
+                                  </div>
+                               </div>
+                             </div>
+
+                              {/* CHART TRENDS */}
+                              {chartData.length > 0 && (
+                                <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                                    <div>
+                                      <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
+                                         <TrendingUp className="w-5 h-5 text-indigo-500" /> Tren Kinerja Interaksi Harian
+                                      </h4>
+                                      <p className="text-[11px] text-slate-400 font-bold mt-1">
+                                         Visualisasi harian metrik interaksi terpilih dari data historis siaran langsung.
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
+                                      <div className="flex items-center gap-1 mr-1 select-none">
+                                        <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
+                                        <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">Metrik:</span>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {[
+                                          { key: "errRateNumeric", label: "ERR %", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+                                          { key: "uniqueViewers", label: "Unique Viewers", color: "bg-cyan-50 text-cyan-750 border-cyan-200" },
+                                          { key: "likes", label: "Suka", color: "bg-amber-50 text-amber-700 border-amber-200" },
+                                          { key: "comments", label: "Komentar", color: "bg-pink-50 text-pink-700 border-pink-200" },
+                                          { key: "shares", label: "Share", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                                          { key: "followers", label: "Pengikut", color: "bg-orange-50 text-orange-700 border-orange-200" },
+                                        ].map((m) => {
+                                          const isSelected = engagementChartSelectedMetrics.includes(m.key);
+                                          return (
+                                            <button
+                                              key={m.key}
+                                              onClick={() => {
+                                                if (isSelected) {
+                                                  if (engagementChartSelectedMetrics.length > 1) {
+                                                    setEngagementChartSelectedMetrics(engagementChartSelectedMetrics.filter(x => x !== m.key));
+                                                  }
+                                                } else {
+                                                  setEngagementChartSelectedMetrics([...engagementChartSelectedMetrics, m.key]);
+                                                }
+                                              }}
+                                              className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
+                                                isSelected
+                                                  ? `${m.color} scale-[1.02] shadow-xs font-extrabold`
+                                                  : "bg-white text-slate-400 border-slate-200 hover:text-slate-650 hover:bg-slate-50"
+                                              }`}
+                                            >
+                                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                                m.key === 'errRateNumeric' ? 'bg-indigo-600' :
+                                                m.key === 'uniqueViewers' ? 'bg-cyan-500' :
+                                                m.key === 'likes' ? 'bg-amber-500' :
+                                                m.key === 'comments' ? 'bg-pink-500' :
+                                                m.key === 'shares' ? 'bg-emerald-500' : 'bg-orange-550'
+                                              }`}></span>
+                                              {m.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                      <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
+                                        <button onClick={() => setEngagementChartSelectedMetrics(["errRateNumeric", "uniqueViewers", "likes", "comments", "shares", "followers"])} className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black">Semua</button>
+                                        <span>|</span>
+                                        <button onClick={() => setEngagementChartSelectedMetrics(["errRateNumeric", "uniqueViewers"])} className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black">Reset</button>
+                                      </div>
+                                    </div>
+                                    <div className="hidden">
+                                      <p>
+                                      </p>
+                                    </div>
+                                    <div className="hidden">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
+                                        <span>ERR %</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span>
+                                        <span>Unique Viewers</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="h-72 w-full mt-4">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                      <RechartsLineChart
+                                        data={chartData}
+                                        margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
+                                      >
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} axisLine={false} tickLine={false} />
+                                        <YAxis 
+                                          yAxisId="left" 
+                                          tick={{fontSize: 10, fill: '#4f46e5', fontWeight: 'bold'}} 
+                                          axisLine={false} 
+                                          tickLine={false}
+                                          tickFormatter={(val) => `${val}%`} hide={!engagementChartSelectedMetrics.includes("errRateNumeric")}
+                                        />
+                                        <YAxis 
+                                          yAxisId="right" 
+                                          orientation="right"
+                                          tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} hide={!["uniqueViewers", "likes", "comments", "shares", "followers"].some(k => engagementChartSelectedMetrics.includes(k))} 
+                                          axisLine={false} 
+                                          tickLine={false} 
+                                          tickFormatter={(val) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(val)}
+                                        />
+                                        <Tooltip 
+                                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', fontWeight: 'bold', fontSize: '11px' }}
+                                          formatter={(value: any, name: string) => [
+                                            name === "Tingkat Interaksi (ERR)" ? `${parseFloat(value).toFixed(2)}%` : new Intl.NumberFormat('id-ID').format(value), 
+                                            name
+                                          ]}
+                                        />
+                                        <Line yAxisId="left" type="monotone" name="Tingkat Interaksi (ERR)" dataKey="errRateNumeric" stroke="#4f46e5" strokeWidth={3} dot={{r:4, fill: "#4f46e5", strokeWidth: 2, stroke: "#fff"}} activeDot={{r: 6}} hide={!engagementChartSelectedMetrics.includes("errRateNumeric")} />
+                                        <Line yAxisId="right" type="monotone" name="Unique Viewers (Penonton)" dataKey="uniqueViewers" stroke="#0ea5e9" strokeWidth={3} dot={{r:4, fill: "#0ea5e9", strokeWidth: 2, stroke: "#fff"}} hide={!engagementChartSelectedMetrics.includes("uniqueViewers")} />
+                                         <Line yAxisId="right" type="monotone" name="Suka" dataKey="likes" stroke="#f59e0b" strokeWidth={3} dot={{r:4, fill: "#f59e0b", strokeWidth: 2, stroke: "#fff"}} hide={!engagementChartSelectedMetrics.includes("likes")} />
+                                         <Line yAxisId="right" type="monotone" name="Komentar" dataKey="comments" stroke="#ec4899" strokeWidth={3} dot={{r:4, fill: "#ec4899", strokeWidth: 2, stroke: "#fff"}} hide={!engagementChartSelectedMetrics.includes("comments")} />
+                                         <Line yAxisId="right" type="monotone" name="Share" dataKey="shares" stroke="#10b981" strokeWidth={3} dot={{r:4, fill: "#10b981", strokeWidth: 2, stroke: "#fff"}} hide={!engagementChartSelectedMetrics.includes("shares")} />
+                                         <Line yAxisId="right" type="monotone" name="Followers" dataKey="followers" stroke="#f97316" strokeWidth={3} dot={{r:4, fill: "#f97316", strokeWidth: 2, stroke: "#fff"}} hide={!engagementChartSelectedMetrics.includes("followers")} />
+                                      </RechartsLineChart>
+                                    </ResponsiveContainer>
+                                  </div>
+                                </div>
+                              )}
+
+                             {/* PROMOSI */}
+                             <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
+                               <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
+                                  <Gift className="w-5 h-5 text-indigo-500" /> Promosi (Vouchers & Koin)
+                               </h4>
+                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Voucher Toko Diklaim</div>
+                                    <div className="text-lg font-black text-slate-800">{new Intl.NumberFormat('id-ID').format(totalShopVouchers)}</div>
+                                  </div>
+                                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Voucher Spesial Live Diklaim</div>
+                                    <div className="text-lg font-black text-slate-800">{new Intl.NumberFormat('id-ID').format(totalSpecialVouchers)}</div>
+                                  </div>
+                                  <div className="bg-slate-50 border border-amber-100 rounded-xl p-4 bg-amber-50/30">
+                                    <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">Koin Diklaim</div>
+                                    <div className="text-lg font-black text-amber-700">{new Intl.NumberFormat('id-ID').format(totalCoinsClaimed)}</div>
+                                  </div>
+                               </div>
+                             </div>
+                             
+                             <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                               <div className="text-xs text-slate-400 font-semibold italic text-center">
+                                  Menampilkan metrik agregat Engagement dan Promosi dari file Raw Data yang diunggah. Filter periode dan platform yang sama seperti di tab Live/Product berlaku di data ini.
+                               </div>
+                             </div>
+
+                             {/* BATCH UPLOAD HISTORY VIEWER (REUSED) */}
+                             {(() => {
+                                const brandLogsForHistory = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId && log.reportType === 'engagement');
+                                const batchesMap = {} as Record<string, any>;
+                                brandLogsForHistory.forEach(log => {
+                                   const bId = log.batchId;
+                                   if (!bId) return;
+                                   if (!batchesMap[bId]) {
+                                     batchesMap[bId] = {
+                                       id: bId,
+                                       brandId: log.brandId,
+                                       brandName: log.brandName || "Unknown",
+                                       platform: log.platform || "Unknown",
+                                       fileName: `Manual Upload / Legacy Import`,
+                                       uploadedAt: log.uploadedAt || new Date(2023, 0, 1).toISOString(),
+                                       rowCount: 0,
+                                       gmv: 0
+                                     };
+                                   }
+                                   batchesMap[bId].rowCount += 1;
+                                   batchesMap[bId].gmv += (Number(log.gmv) || 0);
+                                });
+
+                                const existingBatchIds = new Set(brandUploadHistory.map(h => h.id));
+                                const missingBatches = Object.values(batchesMap).filter(b => !existingBatchIds.has(b.id));
+
+                                const localHistories = uploadHistory.filter(h => h.brandId === activeReportBrandId && h.reportType === 'engagement' && !existingBatchIds.has(h.id));
+                                const completeUploadHistory = [...brandUploadHistory.filter(h => h.brandId === activeReportBrandId && h.reportType === 'engagement'), ...missingBatches, ...localHistories]
+                                .reduce((acc, current) => {
+                                     const x = acc.find((item: any) => item.id === current.id);
+                                     if (!x) { return acc.concat([current]); } else { return acc; }
+                                }, [])
+                                .sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+
+                                return (
+                                  <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden mt-8">
+                                     <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                                       <div>
+                                         <h4 className="text-base font-black text-slate-800">Riwayat Upload Data Engagement</h4>
+                                         <p className="text-[11px] text-slate-500 font-medium">History file CSV raw data performa yang telah berhasil dikonversi & masuk ke database sentral.</p>
+                                       </div>
+                                     </div>
+                                     <div className="overflow-x-auto">
+                                       <table className="w-full text-left whitespace-nowrap">
+                                         <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
+                                           <tr>
+                                             <th className="px-5 py-3.5">Waktu Upload</th>
+                                             <th className="px-5 py-3.5">Nama File / Tipe</th>
+                                             <th className="px-5 py-3.5">Platform</th>
+                                             <th className="px-5 py-3.5">Total Baris</th>
+                                             <th className="px-5 py-3.5">Total GMV (Rp)</th>
+                                             <th className="px-5 py-3.5 text-right">Aksi</th>
+                                           </tr>
+                                         </thead>
+                                         <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
+                                           {isLogsLoading ? (
+                                             <tr key="loading">
+                                               <td colSpan={6} className="px-5 py-16 text-center text-slate-500 font-bold w-full">
+                                                  <div className="flex flex-col items-center justify-center gap-4">
+                                                    <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
+                                                    Sedang memuat data dari database...
+                                                  </div>
+                                               </td>
+                                             </tr>
+                                           ) : completeUploadHistory.length === 0 ? (
+                                             <tr key="empty-history">
+                                               <td colSpan={6} className="px-5 py-10 text-center text-slate-400">Belum ada riwayat upload untuk brand ini.</td>
+                                             </tr>
+                                           ) : (
+                                             completeUploadHistory.map((history, idx) => (
+                                               <tr key={history.id || idx} className="hover:bg-slate-50/50 transition-colors">
+                                                 <td className="px-5 py-3.5 text-slate-500">
+                                                   {new Date(history.uploadedAt).toLocaleString('id-ID', {day: 'numeric', month: 'short', year:'numeric', hour:'2-digit', minute:'2-digit'})}
+                                                 </td>
+                                                 <td className="px-5 py-3.5 max-w-[200px] truncate" title={history.fileName}>{history.fileName}</td>
+                                                 <td className="px-5 py-3.5">
+                                                   <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded uppercase font-bold">{history.platform || 'UNKNOWN'}</span>
+                                                 </td>
+                                                 <td className="px-5 py-3.5">{new Intl.NumberFormat('id-ID').format(history.rowCount || 0)}</td>
+                                                 <td className="px-5 py-3.5">Rp{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(history.gmv || 0)}</td>
+                                                 <td className="px-5 py-3.5 text-right">
+                                                   <button 
+                                                     onClick={() => handleDeleteUploadBatch(history.id, history.fileName, history.rowCount || 0)}
+                                                     className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-slate-50 hover:bg-red-50 p-1.5 rounded-lg border border-slate-200 hover:border-red-200 text-[10px] font-bold inline-flex items-center gap-1"
+                                                     title="Hapus Batch & Semua Data Raw"
+                                                   >
+                                                     Hapus Batch
+                                                   </button>
+                                                 </td>
+                                               </tr>
+                                             ))
+                                           )}
+                                         </tbody>
+                                       </table>
+                                     </div>
+                                  </div>
+                                );
+                             })()}
+
+                           </div>
+                         );
+                      })()}
+                    </div>
+                  )}
+
                   </div>
                 </>
               )}

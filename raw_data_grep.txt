@@ -1,0 +1,174 @@
+1415-  const markHostNotificationsAsRead = (hostId: string) => {
+1416-    setHostNotifications(prev => prev.map(n => n.hostId === hostId ? { ...n, read: true } : n));
+1417-  };
+1418-
+1419-
+1420:  const [reportingRawData, setReportingRawData] = useState<any[]>([]);
+1421-  const [skuRawData, setSkuRawData] = useState<any[]>([]);
+1422-  const [shopeeSkuLogs, setShopeeSkuLogs] = useState<any[]>([]);
+1423-  const [isDragOverReporting, setIsDragOverReporting] = useState(false);
+1424-  const [saveTargetBrandId, setSaveTargetBrandId] = useState("");
+1425-  const [saveTargetPlatform, setSaveTargetPlatform] = useState("TikTok Live");
+--
+2070-    if (!targetBrandObj) {
+2071-      customAlert("Brand yang dipilih tidak valid.");
+2072-      return;
+2073-    }
+2074-
+2075:    const dataToSave = [...reportingRawData];
+2076-    const platformToSave = saveTargetPlatform;
+2077-    const brandIdToSave = saveTargetBrandId;
+2078-    const brandNameToSave = targetBrandObj.name;
+2079-    const currentFileName = uploadedFileName || `Laporan ${platformToSave} - ${new Date().toLocaleDateString('id-ID')}`;
+2080-
+--
+10175-                        </div>
+10176-                      </div>
+10177-                    )}
+10178-                  </div>
+10179-
+10180:                  {reportingRawData.length === 0 ? (
+10181-                    <div className="space-y-4">
+10182-                      <div 
+10183-                        className={`relative border-2 border-dashed rounded-3xl p-10 sm:p-14 text-center transition-all ${isDragOverReporting ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-400 bg-slate-50/50'}`}
+10184-                        onDragOver={(e) => { e.preventDefault(); setIsDragOverReporting(true); }}
+10185-                        onDragLeave={(e) => { e.preventDefault(); setIsDragOverReporting(false); }}
+--
+10234-                          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+10235-                            <Sparkles className="w-5 h-5 text-white" />
+10236-                          </div>
+10237-                          <div>
+10238-                            <h4 className="text-sm font-black text-indigo-900">Data Analytics Berhasil Diproses</h4>
+10239:                            <p className="text-[10px] sm:text-xs font-semibold text-indigo-700">{reportingRawData.length} Sesi Live Terdeteksi</p>
+10240-                          </div>
+10241-                        </div>
+10242-                        <div className="flex gap-2">
+10243-                          <button 
+10244-                            onClick={() => {
+--
+10296-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+10297-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+10298-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Perolehan GMV</p>
+10299-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+10300-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+10301:                              reportingRawData.reduce((acc, curr) => acc + (curr.gmv || 0), 0)
+10302-                            )}
+10303-                          </h3>
+10304-                        </div>
+10305-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+10306-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Produk Terjual</p>
+10307-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+10308-                            {new Intl.NumberFormat('id-ID').format(
+10309:                              reportingRawData.reduce((acc, curr) => acc + (curr.products_sold || 0), 0)
+10310-                            )} <span className="text-xs font-bold text-slate-400 ml-1">pcs</span>
+10311-                          </h3>
+10312-                        </div>
+10313-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+10314-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Pembeli</p>
+10315-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+10316-                            {new Intl.NumberFormat('id-ID').format(
+10317:                              reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0)
+10318-                            )} <span className="text-xs font-bold text-slate-400 ml-1">users</span>
+10319-                          </h3>
+10320-                        </div>
+10321-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+10322-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Capaian AOV Rata-rata</p>
+10323-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+10324-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+10325:                              (reportingRawData.reduce((acc, curr) => acc + (curr.gmv || 0), 0)) / 
+10326:                              (reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0) || 1)
+10327-                            )}
+10328-                          </h3>
+10329-                        </div>
+10330-                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
+10331-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">AVG TIME/VIEWER</p>
+10332-                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
+10333:                            {Math.round(reportingRawData.length > 0 ? reportingRawData.reduce((acc, curr) => acc + (curr.avgViewDuration || 0), 0) / reportingRawData.length : 0)} <span className="text-xs font-bold text-slate-400 ml-1">detik</span>
+10334-                          </h3>
+10335-                        </div>
+10336-                      </div>
+10337-
+10338-                      {/* TIKTOK ENGAGEMENT & LIVE METRICS PANEL */}
+--
+10347-                            <span className="text-[8px] font-black text-indigo-300 uppercase bg-indigo-500/15 px-2 py-0.5 rounded border border-indigo-500/30">Live Performance</span>
+10348-                          </div>
+10349-                          <div>
+10350-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-pink-300">Penonton Sesi (Views)</p>
+10351-                            <h3 className="text-lg sm:text-xl font-black text-white font-mono mt-0.5">
+10352:                              {new Intl.NumberFormat('id-ID').format(reportingRawData.reduce((acc, curr) => acc + (curr.impressions || 0), 0))}
+10353-                            </h3>
+10354-                            <p className="text-[8px] text-slate-500 font-semibold mt-0.5">Unique Impressions</p>
+10355-                          </div>
+10356-                          <div>
+10357-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-green-300">Pengikut Baru (Fans)</p>
+10358-                            <h3 className="text-lg sm:text-xl font-black text-green-400 font-mono mt-0.5">
+10359:                              +{new Intl.NumberFormat('id-ID').format(reportingRawData.reduce((acc, curr) => acc + (curr.followers || 0), 0))}
+10360-                            </h3>
+10361-                            <p className="text-[8px] text-green-300 font-semibold mt-0.5">Followers Gained</p>
+10362-                          </div>
+10363-                          <div>
+10364-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-rose-300">Total Suka (Likes)</p>
+10365-                            <h3 className="text-lg sm:text-xl font-black text-pink-400 font-mono mt-0.5">
+10366:                              {new Intl.NumberFormat('id-ID').format(reportingRawData.reduce((acc, curr) => acc + (curr.likes || 0), 0))}
+10367-                            </h3>
+10368-                            <p className="text-[8px] text-pink-300 font-semibold mt-0.5">Stream Likes</p>
+10369-                          </div>
+10370-                          <div>
+10371-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-cyan-300">Dibagikan (Shares)</p>
+10372-                            <h3 className="text-lg sm:text-xl font-black text-cyan-400 font-mono mt-0.5">
+10373:                              {new Intl.NumberFormat('id-ID').format(reportingRawData.reduce((acc, curr) => acc + (curr.shares || 0), 0))}
+10374-                            </h3>
+10375-                            <p className="text-[8px] text-cyan-300 font-semibold mt-0.5 max-w-full truncate">Session Shared</p>
+10376-                          </div>
+10377-                        </div>
+10378-                      )}
+10379-
+10380-                      {/* CHART CONTAINER & FUNNEL */}
+10381-                      {(() => {
+10382:                        const totalImpressions = reportingRawData.reduce((acc, curr) => acc + (curr.impressions || 0), 0);
+10383:                        const totalLiveVisits = reportingRawData.reduce((acc, curr) => acc + (curr.liveVisits || 0), 0);
+10384:                        const totalProductImpressions = reportingRawData.reduce((acc, curr) => acc + (curr.productImpressions || 0), 0);
+10385:                        const totalClicks = reportingRawData.reduce((acc, curr) => acc + (curr.clicks || 0), 0);
+10386:                        const totalOrders = reportingRawData.reduce((acc, curr) => acc + (curr.orders || 0), 0);
+10387:                        const totalBuyers = reportingRawData.reduce((acc, curr) => acc + (curr.buyers || 0), 0);
+10388-
+10389-                        const ctrRate = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+10390-                        const cartToClickRate = totalClicks > 0 ? (totalOrders / totalClicks) * 100 : 0;
+10391-                        const checkoutRate = totalOrders > 0 ? (totalBuyers / totalOrders) * 100 : 0;
+10392-                        const overallCvr = totalImpressions > 0 ? (totalBuyers / totalImpressions) * 100 : 0;
+--
+10402-                              <div>
+10403-                                <h4 className="text-sm font-black text-slate-800 mb-6 text-left">Tren GMV & Transaksi Harian</h4>
+10404-                                <div className="h-64 w-full">
+10405-                                  <ResponsiveContainer width="100%" height="100%">
+10406-                                    <RechartsLineChart
+10407:                                      data={[...reportingRawData].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
+10408-                                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+10409-                                    >
+10410-                                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+10411-                                      <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b', fontWeight: 'bold'}} axisLine={false} tickLine={false} />
+10412-                                      <YAxis 
+--
+10441-
+10442-                            {/* FUNNEL CARD */}
+10443-                            <HorizontalFunnel 
+10444-                              title="Corong Konversi Live (Funnel)"
+10445-                              subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
+10446:                              tag={reportingRawData.some(r => r.hasFunnelInFile) ? "Parsed Excel" : "Benchmark Estimate"}
+10447-                              steps={(saveTargetPlatform === "TikTok Live" || activeReportPlatform === "TikTok Live") ? [
+10448-                                { label: "LIVE impressions", value: new Intl.NumberFormat('id-ID').format(totalImpressions) },
+10449-                                { label: "LIVE visits", value: new Intl.NumberFormat('id-ID').format(totalLiveVisits) },
+10450-                                { label: "Product impressions", value: new Intl.NumberFormat('id-ID').format(totalProductImpressions) },
+10451-                                { label: "Product clicks", value: new Intl.NumberFormat('id-ID').format(totalClicks) },
+--
+10475-                                <th className="px-5 py-4 text-right">Pembeli (Orders)</th>
+10476-                                <th className="px-5 py-4 text-right">Rasio CTR / CVR</th>
+10477-                              </tr>
+10478-                            </thead>
+10479-                            <tbody className="divide-y divide-slate-100">
+10480:                              {reportingRawData.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((row, idx) => {
+10481-                                const actualCtr = row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0;
+10482-                                const actualCvr = row.impressions > 0 ? (row.buyers / row.impressions) * 105 : 0; // standard multiplier
+10483-                                const finalCvr = row.impressions > 0 ? (row.buyers / row.impressions) * 100 : 0;
+10484-                                return (
+10485-                                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
