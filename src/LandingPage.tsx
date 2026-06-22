@@ -363,9 +363,9 @@ export default function LandingPage({ agencyLogoUrl, onEnterApp }: { agencyLogoU
                {/* Stream Status Overlay */}
                <div className="absolute top-8 left-3 right-3">
                  <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 flex-1">
-                   <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center text-[8px] text-white font-bold">Soulyu</div>
+                   <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center text-[8px] text-white font-bold">Liva</div>
                    <div className="flex flex-col flex-1 pl-0.5">
-                     <span className="text-white text-[10px] font-bold leading-tight">Soulyu Be...</span>
+                     <span className="text-white text-[10px] font-bold leading-tight">Liva Be...</span>
                      <span className="text-white/80 text-[8px] leading-tight">Power Shop</span>
                    </div>
                    <div className="bg-orange-500 rounded-full px-2 py-0.5 text-white text-[9px] font-bold flex items-center gap-1">
@@ -525,7 +525,7 @@ export default function LandingPage({ agencyLogoUrl, onEnterApp }: { agencyLogoU
                   <div key={i} className="flex gap-16 md:gap-24 items-center shrink-0 pr-16 md:pr-24 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
                      <span className="text-xl md:text-2xl font-serif tracking-widest font-bold text-slate-800">SARIAYU</span>
                      <span className="text-2xl md:text-3xl font-sans tracking-wide font-black italic text-slate-800">Uray</span>
-                     <span className="text-xl md:text-2xl font-serif font-bold text-slate-800">Soulyu</span>
+                     <span className="text-xl md:text-2xl font-serif font-bold text-slate-800">Liva</span>
                      <span className="text-xl md:text-2xl font-sans font-bold flex items-center text-slate-800"><span className="bg-slate-800 text-white px-1.5 py-0.5 mr-1.5 rounded-sm">R</span> RUDY</span>
                      <span className="text-xl md:text-2xl font-black tracking-tighter text-slate-800">Barefood</span>
                      <span className="text-xl md:text-2xl font-serif tracking-widest font-bold text-slate-800">BIOKOS</span>

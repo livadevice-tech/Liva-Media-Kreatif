@@ -1,0 +1,47 @@
+7471-                          : valB > valA
+7472-                            ? 1
+7473-                            : -1;
+7474-                      });
+7475-
+7476:                      const paginatedLogs = sortedTableLogs.slice(
+7477-                        (currentPage - 1) * ITEMS_PER_PAGE,
+7478-                        currentPage * ITEMS_PER_PAGE,
+7479-                      );
+7480-                      const totalPages = Math.ceil(
+7481-                        sortedTableLogs.length / ITEMS_PER_PAGE,
+--
+8755-                                    >
+8756-                                      Tidak ada sesi ditemukan.
+8757-                                    </td>
+8758-                                  </tr>
+8759-                                ) : (
+8760:                                  paginatedLogs.map((log, idx) => {
+8761-                                    const lViews =
+8762-                                      log.impressions ||
+8763-                                      log.views ||
+8764-                                      log.liveVisits ||
+8765-                                      0;
+--
+18867-                                        ? 1
+18868-                                        : -1;
+18869-                                  },
+18870-                                );
+18871-
+18872:                                const paginatedLogs = sortedTableLogs.slice(
+18873-                                  (currentPage - 1) * ITEMS_PER_PAGE,
+18874-                                  currentPage * ITEMS_PER_PAGE,
+18875-                                );
+18876-                                const totalPages = Math.ceil(
+18877-                                  sortedTableLogs.length / ITEMS_PER_PAGE,
+--
+20388-                                                      </td>
+20389-                                                      <td className="px-5 py-3.5"></td>
+20390-                                                    </tr>
+20391-                                                ));
+20392-                                              }
+20393:                                              return paginatedLogs.map((log, idx) => {
+20394-                                              const lViews =
+20395-                                                log.impressions ||
+20396-                                                log.views ||
+20397-                                                log.liveVisits ||
+20398-                                                0;

@@ -1,0 +1,120 @@
+                                            {(() => {
+                                              if (
+                                                saveTargetPlatform ===
+                                                  "Shopee Live" &&
+                                                uploadTargetTab === "live" &&
+                                                shopeeRawTab !== "raw"
+                                              ) {
+                                                const groups = {};
+
+                                                reportingRawData.forEach(
+                                                  (row) => {
+                                                    let key = "";
+                                                    const dPart = String(
+                                                      row.dateTime ||
+                                                        row.date ||
+                                                        "",
+                                                    ).split(" ")[0];
+                                                    const timeMatch = String(
+                                                      row.dateTime ||
+                                                        row.date ||
+                                                        "",
+                                                    ).match(/\d{1,2}:\d{2}/);
+                                                    const timeVal = timeMatch
+                                                      ? timeMatch[0]
+                                                      : "00:00";
+
+                                                    if (
+                                                      shopeeRawTab === "day"
+                                                    ) {
+                                                      const dSplit =
+                                                        dPart.split("-");
+                                                      if (dSplit.length === 3) {
+                                                        key = `${dSplit[0]}-${dSplit[1]}-${dSplit[2]}`;
+                                                      } else {
+                                                        key = dPart;
+                                                      }
+                                                    } else if (
+                                                      shopeeRawTab === "shift"
+                                                    ) {
+                                                      key = "Lainnya";
+                                                      if (timeMatch) {
+                                                        const [hStr, mStr] =
+                                                          timeVal.split(":");
+                                                        const mins =
+                                                          parseInt(hStr) * 60 +
+                                                          parseInt(mStr);
+                                                        for (const s of shifts) {
+                                                          const m = s.match(
+                                                            /(\d{1,2})[\.:](\d{2})\s*-\s*(\d{1,2})[\.:](\d{2})/,
+                                                          );
+                                                          if (m) {
+                                                            const sVal =
+                                                              parseInt(m[1]) *
+                                                                60 +
+                                                              parseInt(m[2]);
+                                                            const eVal =
+                                                              parseInt(m[3]) *
+                                                                60 +
+                                                              parseInt(m[4]);
+                                                            if (eVal < sVal) {
+                                                              if (
+                                                                mins >= sVal ||
+                                                                mins <= eVal
+                                                              ) {
+                                                                key = s;
+                                                                break;
+                                                              }
+                                                            } else {
+                                                              if (
+                                                                mins >= sVal &&
+                                                                mins <= eVal
+                                                              ) {
+                                                                key = s;
+                                                                break;
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    } else if (
+                                                      shopeeRawTab ===
+                                                      "dayOfWeek"
+                                                    ) {
+                                                      const dSplit =
+                                                        dPart.split("-");
+                                                      if (dSplit.length === 3) {
+                                                        const dateObj =
+                                                          new Date(
+                                                            `${dSplit[2]}-${dSplit[1]}-${dSplit[0]}`,
+                                                          );
+                                                        if (
+                                                          !isNaN(
+                                                            dateObj.getTime(),
+                                                          )
+                                                        ) {
+                                                          const days = [
+                                                            "Minggu",
+                                                            "Senin",
+                                                            "Selasa",
+                                                            "Rabu",
+                                                            "Kamis",
+                                                            "Jumat",
+                                                            "Sabtu",
+                                                          ];
+                                                          key =
+                                                            days[
+                                                              dateObj.getDay()
+                                                            ];
+                                                        } else key = "Unknown";
+                                                      } else key = "Unknown";
+                                                    }
+
+                                                    if (!groups[key]) {
+                                                      groups[key] = {
+                                                        label: key,
+                                                        penonton: 0,
+                                                        gmv: 0,
+                                                        products_sold: 0,
+                                                        orders: 0,
+                                                      };

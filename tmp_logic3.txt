@@ -1,0 +1,59 @@
+                                                    }
+                                                    groups[key].penonton +=
+                                                      row.penonton || 0;
+                                                    groups[key].gmv +=
+                                                      row.gmv || 0;
+                                                    groups[key].products_sold +=
+                                                      row.products_sold || 0;
+                                                    groups[key].orders +=
+                                                      row.orders || 0;
+                                                  },
+                                                );
+
+                                                return Object.values(
+                                                  groups,
+                                                ).map((g, idx) => (
+                                                  <tr
+                                                    key={idx}
+                                                    className="hover:bg-slate-50/50 transition-colors"
+                                                  >
+                                                    <td
+                                                      className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800"
+                                                      colSpan={2}
+                                                    >
+                                                      {g.label}
+                                                    </td>
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
+                                                      {new Intl.NumberFormat(
+                                                        "id-ID",
+                                                      ).format(g.penonton)}
+                                                    </td>
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-emerald-600">
+                                                      Rp
+                                                      {new Intl.NumberFormat(
+                                                        "id-ID",
+                                                      ).format(g.gmv)}
+                                                    </td>
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
+                                                      {new Intl.NumberFormat(
+                                                        "id-ID",
+                                                      ).format(g.products_sold)}
+                                                    </td>
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-indigo-600">
+                                                      {new Intl.NumberFormat(
+                                                        "id-ID",
+                                                      ).format(g.orders)}
+                                                    </td>
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600">
+                                                      {g.penonton > 0
+                                                        ? (
+                                                            (g.orders /
+                                                              g.penonton) *
+                                                            100
+                                                          ).toFixed(2)
+                                                        : "0.00"}
+                                                      %
+                                                    </td>
+                                                  </tr>
+                                                ));
+                                              }

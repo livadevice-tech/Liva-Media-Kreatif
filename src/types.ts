@@ -61,6 +61,8 @@ export interface AttendanceLog {
   isDuplicate?: boolean; // Fraud check flag
   flaggedAsFraud?: boolean;
   fraudReason?: string;
+  overtimeHours?: number;
+  isBackupShift?: boolean;
 }
 
 export interface StudioItem {
@@ -170,6 +172,7 @@ export interface ClientBrand {
   id: string;
   name: string;
   sessions: BrandSession[];
+  contractStartDate?: string;
   contractEndDate: string;
   invoiceDate: string;
   accounts: BrandAccount[];
