@@ -4437,7 +4437,7 @@ export default function App() {
   }, [hostLogs]);
 
   // Periodic categorization states for Attendance / Salary
-  const [timeFilter, setTimeFilter] = useState("Semua"); // "Semua" | "Harian" | "Mingguan" | "Bulanan"
+  const [timeFilter, setTimeFilter] = useState("Bulanan"); // "Semua" | "Harian" | "Mingguan" | "Bulanan"
   const [filterReferenceDate, setFilterReferenceDate] = useState(() => {
     const d = new Date();
     const pad = (num: number) => String(num).padStart(2, "0");
