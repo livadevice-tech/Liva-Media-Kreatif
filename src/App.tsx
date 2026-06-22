@@ -195,6 +195,121 @@ const normalizeDateYMD = (d: string) => {
   return norm;
 };
 
+// Dynamic color generators for Brand, Shift, and Studio to boost UX readability
+const getBrandStyle = (brandName: string) => {
+  if (!brandName) return "bg-slate-50 text-slate-700 border-slate-200/40";
+  const b = brandName.toLowerCase().trim();
+  
+  // High-contrast, beautifully paired visual identities
+  if (b.includes("somethinc") || b.includes("skin")) {
+    return "bg-rose-50 text-rose-700 border-rose-200/50";
+  }
+  if (b.includes("wardah") || b.includes("cosmetic") || b.includes("cosmetics")) {
+    return "bg-emerald-50 text-emerald-700 border-emerald-200/50";
+  }
+  if (b.includes("skintific") || b.includes("scientific") || b.includes("scien")) {
+    return "bg-sky-50 text-sky-750 border-sky-200/50";
+  }
+  if (b.includes("scarlett") || b.includes("scarlet")) {
+    return "bg-purple-50 text-purple-700 border-purple-200/50";
+  }
+  if (b.includes("avoskin") || b.includes("nourish") || b.includes("hair")) {
+    return "bg-teal-50 text-teal-700 border-teal-200/50";
+  }
+  if (b.includes("make over") || b.includes("over") || b.includes("beauty")) {
+    return "bg-slate-100 text-slate-800 border-slate-300/50";
+  }
+  if (b.includes("maybelline")) {
+    return "bg-amber-50 text-amber-805 border-amber-200/50";
+  }
+
+  // Consistent hashing for custom brands
+  let hash = 0;
+  for (let i = 0; i < brandName.length; i++) {
+    hash = brandName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % 7;
+  const colorMap = [
+    "bg-indigo-50 text-indigo-700 border-indigo-200/50",
+    "bg-fuchsia-100/50 text-fuchsia-800 border-fuchsia-200/50",
+    "bg-violet-50 text-violet-750 border-violet-200/50",
+    "bg-pink-100/50 text-pink-700 border-pink-200/50",
+    "bg-cyan-50 text-cyan-750 border-cyan-200/50",
+    "bg-orange-50 text-orange-755 border-orange-200/50",
+    "bg-lime-50 text-lime-800 border-lime-200/50"
+  ];
+  return colorMap[index];
+};
+
+const getShiftStyle = (timeSlot: string) => {
+  if (!timeSlot) return "bg-slate-50 text-slate-600 border-slate-200/40";
+  const t = timeSlot.toLowerCase();
+
+  // Highlight shift times dynamically with beautiful morning/afternoon/night/backup palettes
+  if (t.includes("pagi") || t.includes("06:") || t.includes("07:") || t.includes("08:") || t.includes("09:")) {
+    return "bg-sky-50 text-sky-850 border border-sky-200/40";
+  }
+  if (t.includes("siang") || t.includes("10:") || t.includes("11:") || t.includes("12:") || t.includes("13:") || t.includes("14:")) {
+    return "bg-amber-50 text-amber-850 border border-amber-200/40";
+  }
+  if (t.includes("sore") || t.includes("15:") || t.includes("16:") || t.includes("17:") || t.includes("18:")) {
+    return "bg-teal-50 text-teal-850 border border-teal-200/40";
+  }
+  if (t.includes("malam") || t.includes("19:") || t.includes("20:") || t.includes("21:") || t.includes("22:") || t.includes("23:") || t.includes("00:")) {
+    return "bg-indigo-50 text-indigo-850 border border-indigo-200/40";
+  }
+
+  // General hash-based mapping for generic shifts like "Shift 1", "Shift 2", etc.
+  let hash = 0;
+  for (let i = 0; i < timeSlot.length; i++) {
+    hash = timeSlot.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % 4;
+  const palettes = [
+    "bg-sky-50/85 text-sky-850 border border-sky-200/30",
+    "bg-amber-50/85 text-amber-850 border border-amber-200/30",
+    "bg-rose-50/85 text-rose-850 border border-rose-200/30",
+    "bg-emerald-50/85 text-emerald-850 border border-emerald-200/30"
+  ];
+  return palettes[index];
+};
+
+const getStudioHeaderStyle = (studioName: string) => {
+  if (!studioName) return "bg-gradient-to-r from-slate-100 to-slate-50 text-slate-100";
+  const s = studioName.toLowerCase();
+  
+  if (s.includes("1") || s.includes("satu") || s.includes("reguler")) {
+    return "bg-gradient-to-r from-blue-500/10 to-blue-500/5 border-l-[3.5px] border-l-blue-600 text-blue-900 border-y border-r border-blue-150/40";
+  }
+  if (s.includes("2") || s.includes("dua") || s.includes("backup")) {
+    return "bg-gradient-to-r from-teal-500/10 to-teal-500/5 border-l-[3.5px] border-l-teal-600 text-teal-900 border-y border-r border-teal-150/40";
+  }
+  if (s.includes("3") || s.includes("tiga")) {
+    return "bg-gradient-to-r from-purple-500/10 to-purple-500/5 border-l-[3.5px] border-l-purple-600 text-purple-900 border-y border-r border-purple-150/40";
+  }
+  if (s.includes("4") || s.includes("empat")) {
+    return "bg-gradient-to-r from-amber-500/10 to-amber-500/5 border-l-[3.5px] border-l-amber-600 text-amber-900 border-y border-r border-amber-150/40";
+  }
+  if (s.includes("5") || s.includes("lima")) {
+    return "bg-gradient-to-r from-pink-500/10 to-pink-500/5 border-l-[3.5px] border-l-pink-600 text-pink-900 border-y border-r border-pink-150/40";
+  }
+  
+  // Hash fallback
+  let hash = 0;
+  for (let i = 0; i < studioName.length; i++) {
+    hash = studioName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % 5;
+  const gradients = [
+    "bg-gradient-to-r from-indigo-500/10 to-indigo-500/5 border-l-[3.5px] border-l-indigo-600 text-indigo-950 border-y border-r border-indigo-150/40",
+    "bg-gradient-to-r from-cyan-500/10 to-cyan-500/5 border-l-[3.5px] border-l-cyan-600 text-cyan-950 border-y border-r border-cyan-150/40",
+    "bg-gradient-to-r from-rose-500/10 to-rose-500/5 border-l-[3.5px] border-l-rose-600 text-rose-950 border-y border-r border-rose-150/40",
+    "bg-gradient-to-r from-violet-500/10 to-violet-500/5 border-l-[3.5px] border-l-violet-600 text-violet-950 border-y border-r border-violet-150/40",
+    "bg-gradient-to-r from-emerald-505/10 to-emerald-500/5 border-l-[3.5px] border-l-emerald-600 text-emerald-950 border-y border-r border-emerald-150/40"
+  ];
+  return gradients[index];
+};
+
 const getCutoffMonthForDate = (rawDate: string) => {
   const norm = normalizeDateYMD(rawDate);
   if (!norm) return "";
@@ -6831,8 +6946,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             className="bg-purple-50/35 p-2 rounded-xl border border-purple-100/60 flex justify-between items-center transition-all"
                           >
                             <div>
-                              <div className="font-bold text-purple-950">
-                                {item.brandHandled}
+                              <div className="font-bold text-slate-800 flex items-center mb-1">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border uppercase tracking-wider ${getBrandStyle(item.brandHandled)}`}>
+                                  🛍️ {item.brandHandled}
+                                </span>
                               </div>
                               <div className="text-[10px] text-[#4c3e6b]/80 flex items-center gap-1 mt-0.5 flex-wrap">
                                 <span>{item.platform}</span>
@@ -7233,21 +7350,21 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </span>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-y-1.5 gap-x-1 text-[11px] font-sans mt-2">
+                              <div className="grid grid-cols-2 gap-2 text-[11px] font-sans mt-2">
                                 <div>
-                                  <span className="text-[9px] text-purple-400/80 block uppercase font-bold tracking-wider font-mono">
+                                  <span className="text-[9px] text-purple-400/80 block uppercase font-bold tracking-wider font-mono mb-1">
                                     Shift:
                                   </span>
-                                  <span className="font-extrabold font-sans text-[10.5px]">
-                                    {sch.timeSlot}
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-black border leading-none ${getShiftStyle(sch.timeSlot)}`}>
+                                    ⏱️ {sch.timeSlot}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-[9px] text-purple-400/80 block uppercase font-bold tracking-wider font-mono">
+                                  <span className="text-[9px] text-purple-400/80 block uppercase font-bold tracking-wider font-mono mb-1">
                                     Brand:
                                   </span>
-                                  <span className="font-extrabold font-sans text-[10.5px]">
-                                    {sch.brand} ({sch.platform})
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-black border leading-none ${getBrandStyle(sch.brand)}`}>
+                                    🛍️ {sch.brand}
                                   </span>
                                 </div>
                                 <div className="col-span-2 pt-1 border-t border-purple-50/50 mt-1">
@@ -11021,26 +11138,22 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         className="w-full bg-slate-50/70 border border-slate-200/50 rounded-xl p-2.5 flex flex-col transition-all hover:bg-slate-50 shadow-3xs"
                                       >
                                         {/* Column Header */}
-                                        <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5 mb-2.5 flex-shrink-0">
-                                          <div className="min-w-0 max-w-[75%]">
+                                        <div className={`p-2 rounded-lg mb-2.5 flex items-center justify-between flex-shrink-0 shadow-3xs border border-slate-200/40 ${getStudioHeaderStyle(studioName)}`}>
+                                          <div className="min-w-0">
                                             <h4
-                                              className="font-bold text-slate-800 text-[11px] sm:text-[12px] truncate"
+                                              className="font-black text-[11px] sm:text-[12px] truncate uppercase tracking-wider"
                                               title={studioName}
                                             >
                                               🏢 {displayStudioName}
                                             </h4>
                                             {location && (
-                                              <span className="text-[9px] text-slate-400 font-semibold block truncate">
+                                              <span className="text-[9px] font-semibold block truncate opacity-80">
                                                 📍 {location}
                                               </span>
                                             )}
                                           </div>
                                           <span
-                                            className={`px-1.5 py-0.5 rounded text-[9px] font-black flex-shrink-0 ${
-                                              studioScheds.length > 0
-                                                ? "bg-indigo-50/80 text-indigo-600 border border-indigo-100/30"
-                                                : "bg-slate-200/50 text-slate-400"
-                                            }`}
+                                            className="px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 bg-white/90 shadow-2xs text-slate-900 border border-slate-200/20 animate-pulse"
                                           >
                                             {studioScheds.length}
                                           </span>
@@ -11067,7 +11180,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         .toString(36)
                                                         .substr(2, 9)
                                                     }
-                                                    className={`p-2 rounded-lg border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all flex flex-col justify-between hover:border-slate-300 text-[11px] ${
+                                                    className={`p-2.5 rounded-lg border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all flex flex-col justify-between hover:scale-[101%] hover:shadow-2xs hover:border-slate-300 text-[11px] ${
                                                       isOff
                                                         ? "border-l-[3.5px] border-l-amber-500 border-y-slate-100 border-r-slate-100"
                                                         : isPindah
@@ -11079,8 +11192,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   >
                                                     <div>
                                                       {/* Badge / Shift Line */}
-                                                      <div className="flex items-center justify-between gap-1 mb-1 font-mono text-[9px] font-bold text-slate-500">
-                                                        <span>
+                                                      <div className="flex items-center justify-between gap-1 mb-1.5 font-mono text-[9px] font-bold text-slate-500">
+                                                        <span className={`px-2 py-0.5 rounded-md font-black border tracking-wide uppercase ${getShiftStyle(sch.timeSlot)}`}>
                                                           ⏱️ {sch.timeSlot}
                                                         </span>
                                                         <div className="flex gap-0.5 shrink-0">
@@ -11089,7 +11202,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                             !isPindah && (
                                                               <span className="text-[7.5px] bg-emerald-500 text-white font-black px-1 rounded uppercase">
                                                                 Backup
-                                                              </span>
+                                                                </span>
                                                             )}
                                                           {isOff && (
                                                             <span className="text-[7.5px] bg-amber-500 text-white font-black px-1 rounded uppercase">
@@ -11115,11 +11228,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       </div>
 
                                                       {/* Session Brand Info */}
-                                                      <div className="text-[10px] text-slate-500 border-t border-slate-100/60 pt-1 flex items-center justify-between gap-1">
-                                                        <span className="font-semibold text-slate-700 truncate">
+                                                      <div className="text-[10px] text-slate-500 border-t border-slate-100/60 pt-1.5 mt-1.5 flex flex-wrap items-center justify-between gap-1">
+                                                        <span className={`px-2 py-0.5 rounded-lg text-[9.5px] font-black border uppercase tracking-wider ${getBrandStyle(sch.brand)}`}>
                                                           🛍️ {sch.brand}
                                                         </span>
-                                                        <span className="text-[8.5px] text-slate-400 font-bold shrink-0 uppercase">
+                                                        <span className={`text-[8.5px] font-extrabold px-1.5 py-0.5 rounded border ${
+                                                          sch.platform?.toLowerCase().includes("tiktok") 
+                                                            ? "bg-stone-900 text-white border-stone-950" 
+                                                            : sch.platform?.toLowerCase().includes("shopee") 
+                                                              ? "bg-amber-600 text-white border-amber-700" 
+                                                              : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                                        } shrink-0 uppercase`}>
                                                           {sch.platform}
                                                         </span>
                                                       </div>
@@ -15299,13 +15418,25 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     )}
                                   </td>
                                   <td className="py-3 px-4 text-slate-800 font-bold">
-                                    {item.brandHandled}
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border uppercase tracking-wider ${getBrandStyle(item.brandHandled)}`}>
+                                      🛍️ {item.brandHandled}
+                                    </span>
                                   </td>
                                   <td className="py-3 px-4 text-slate-550 text-slate-600 font-semibold">
-                                    {item.platform}
+                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-black border uppercase tracking-wider ${
+                                      item.platform?.toLowerCase().includes("tiktok") 
+                                        ? "bg-stone-900 text-white border-stone-950" 
+                                        : item.platform?.toLowerCase().includes("shopee") 
+                                          ? "bg-amber-600 text-white border-amber-700" 
+                                          : "bg-indigo-50 text-indigo-600 border-indigo-200"
+                                    }`}>
+                                      {item.platform}
+                                    </span>
                                   </td>
                                   <td className="py-3 px-4 text-indigo-705 text-indigo-700 font-mono text-[11px] font-bold">
-                                    {item.shiftHours}
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-black border leading-none ${getShiftStyle(item.shiftHours)}`}>
+                                      ⏱️ {item.shiftHours}
+                                    </span>
                                   </td>
 
                                   <td className="py-3 px-4 text-center">
