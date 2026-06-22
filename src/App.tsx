@@ -55,6 +55,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Check,
+  Copy,
   X,
   Building,
   Radio,
@@ -693,6 +694,7 @@ export default function App() {
     null,
   );
   const [tempSalaryValue, setTempSalaryValue] = useState<string>("");
+  const [copiedSalaryHostId, setCopiedSalaryHostId] = useState<string | null>(null);
 
   const [activeReportPlatform, setActiveReportPlatform] =
     useState<string>("Tiktok");
@@ -13749,24 +13751,56 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                     <td className="text-right py-4 px-6 pr-8 whitespace-nowrap">
                                       <div className="relative group inline-block z-10 hover:z-50">
-                                        <div className="text-sm font-black text-slate-900 font-mono hover:text-blue-600 hover:underline cursor-help transition-all duration-155 px-2 py-1.5 rounded bg-slate-50 border border-slate-200 shadow-2xs inline-flex items-center gap-1">
-                                          {formatIDR(item.netSalary)}
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="11"
-                                            height="11"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2.5"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="text-slate-400 group-hover:text-blue-600"
+                                        <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 shadow-3xs">
+                                          {/* Klik untuk Salin nominal angka saja */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              navigator.clipboard.writeText(String(item.netSalary));
+                                              setCopiedSalaryHostId(item.id);
+                                              setTimeout(() => {
+                                                setCopiedSalaryHostId(null);
+                                              }, 1500);
+                                            }}
+                                            title="Klik untuk menyalin nominal angka saja (untuk bank transfer)"
+                                            className={`text-xs font-black font-mono px-3 py-1.5 transition-all duration-155 flex items-center gap-1.5 cursor-pointer select-none active:scale-95 border-r border-slate-200/60 ${
+                                              copiedSalaryHostId === item.id
+                                                ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                                                : "text-slate-900 hover:text-blue-650 hover:bg-blue-50/40"
+                                            }`}
                                           >
-                                            <circle cx="12" cy="12" r="10" />
-                                            <path d="M12 16v-4" />
-                                            <path d="M12 8h.01" />
-                                          </svg>
+                                            {copiedSalaryHostId === item.id ? (
+                                              <>
+                                                <Check className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                                                <span>Tersalin!</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Copy className="w-3 h-3 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                                                <span>{formatIDR(item.netSalary)}</span>
+                                              </>
+                                            )}
+                                          </button>
+
+                                          {/* Info rincian rumus saat hover */}
+                                          <div className="px-2 py-1.5 hover:bg-slate-100 cursor-help transition-all flex items-center justify-center self-stretch font-medium" title="Arahkan kursor untuk melihat rincian rumus perhitungan">
+                                            <svg
+                                              xmlns="http://www.w3.org/2000/svg"
+                                              width="11"
+                                              height="11"
+                                              viewBox="0 0 24 24"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              strokeWidth="2.5"
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              className="text-slate-400 group-hover:text-blue-600"
+                                            >
+                                              <circle cx="12" cy="12" r="10" />
+                                              <path d="M12 16v-4" />
+                                              <path d="M12 8h.01" />
+                                            </svg>
+                                          </div>
                                         </div>
                                         <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-0.5 pr-2">
                                           Transfer Bank
@@ -14239,19 +14273,43 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   )}
 
                                   {/* Gaji Bersih Transfer Block */}
-                                  <div className="flex justify-between items-center bg-purple-50/50 p-2.5 rounded-lg border border-purple-100/30 mt-1.5 pt-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(String(item.netSalary));
+                                      setCopiedSalaryHostId(item.id);
+                                      setTimeout(() => {
+                                        setCopiedSalaryHostId(null);
+                                      }, 1500);
+                                    }}
+                                    className={`w-full flex justify-between items-center p-2.5 rounded-lg border transition-all duration-150 mt-1.5 active:scale-98 cursor-pointer text-left ${
+                                      copiedSalaryHostId === item.id
+                                        ? "bg-emerald-50 border-emerald-250 text-emerald-800"
+                                        : "bg-purple-50/50 border-purple-100/30 text-slate-900 hover:bg-purple-50"
+                                    }`}
+                                  >
                                     <div>
                                       <span className="text-[8px] text-slate-400 uppercase font-black block">
-                                        Estimasi Transfer Bersih
+                                        {copiedSalaryHostId === item.id ? "Berhasil Disalin" : "Estimasi Transfer Bersih (Klik untuk Salin)"}
                                       </span>
-                                      <strong className="text-purple-950 font-black text-xs">
-                                        Transfer Bank
+                                      <strong className="text-purple-950 font-bold text-xs flex items-center gap-1.5 mt-0.5">
+                                        {copiedSalaryHostId === item.id ? (
+                                          <span className="text-emerald-700 flex items-center gap-1">
+                                            <Check className="w-3 h-3 text-emerald-600 animate-bounce" />
+                                            <span>Tersalin ke Clipboard!</span>
+                                          </span>
+                                        ) : (
+                                          <>
+                                            <span>Transfer Bank</span>
+                                            <Copy className="w-3 h-3 text-slate-400 inline" />
+                                          </>
+                                        )}
                                       </strong>
                                     </div>
-                                    <div className="text-sm font-black text-blue-700 font-mono">
+                                    <div className={`text-sm font-black font-mono ${copiedSalaryHostId === item.id ? "text-emerald-700 font-extrabold" : "text-blue-700"}`}>
                                       {formatIDR(item.netSalary)}
                                     </div>
-                                  </div>
+                                  </button>
                                 </div>
                               </div>
                             );
