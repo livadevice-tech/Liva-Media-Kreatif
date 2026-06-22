@@ -950,6 +950,91 @@ export default function App() {
     }
   }, [brandReports, uploadHistory.length, clientBrands]);
 
+  // --- GOOGLE SHEETS & PAYROLL GLOBAL SYNCED CONFIGS ---
+  const [spreadsheetId, setSpreadsheetId] = useState<string>(() => {
+    return localStorage.getItem("mcn_spreadsheet_id") || "";
+  });
+
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>(() => {
+    return localStorage.getItem("mcn_spreadsheet_url") || "";
+  });
+
+  const [autoSyncSheets, setAutoSyncSheets] = useState<boolean>(() => {
+    return localStorage.getItem("mcn_auto_sync_sheets") === "true";
+  });
+
+  const [salarySettings, setSalarySettings] = useState(() => {
+    const saved = localStorage.getItem("mcn_salary_settings");
+    const defaults = {
+      workingDays: 26, // Cycle Hari Kerja Sebulan
+      bandarLampungRegulerBase: 4000000, // Gaji Pokok Bulanan Bandar Lampung
+      tanggamusRegulerBase: 3500000, // Gaji Pokok Bulanan Tanggamus
+      bandarLampungBackupPay: 175000, // Gaji per Shift Bandar Lampung
+      tanggamusBackupPay: 150000, // Gaji per Shift Tanggamus
+      bandarLampungRegulerBonus: 300000, // Bonus Bulanan Bandar Lampung untuk 100% Hadir & <=3x Terlambat
+      tanggamusRegulerBonus: 250000, // Bonus Bulanan Tanggamus untuk 100% Hadir & <=3x Terlambat
+      overtimePayPerHour: 20000, // Nominal Gaji Lembur per Jam
+      useCutOff: true, // Aktifkan Cut Off (mulai tanggal 16 ke tanggal 15 bulan depannya)
+      cutOffStartDay: 16,
+      cutOffEndDay: 15,
+    };
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return { ...defaults, ...parsed };
+      } catch (e) {
+        console.error("Error parsing saved salary settings, falling back.");
+      }
+    }
+    return defaults;
+  });
+
+  // Refs to allow the Firestore realtime snapshot listener to see the latest values without re-subscribing
+  const salarySettingsRef = useRef(salarySettings);
+  const spreadsheetIdRef = useRef(spreadsheetId);
+  const spreadsheetUrlRef = useRef(spreadsheetUrl);
+  const autoSyncSheetsRef = useRef(autoSyncSheets);
+
+  useEffect(() => {
+    salarySettingsRef.current = salarySettings;
+  }, [salarySettings]);
+
+  useEffect(() => {
+    spreadsheetIdRef.current = spreadsheetId;
+    spreadsheetUrlRef.current = spreadsheetUrl;
+    autoSyncSheetsRef.current = autoSyncSheets;
+  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets]);
+
+  // Debounced/Throttled syncing to Firestore & local storage to avoid write flooding during typing
+  useEffect(() => {
+    localStorage.setItem("mcn_salary_settings", JSON.stringify(salarySettings));
+    const timer = setTimeout(() => {
+         setDoc(doc(db, "settings", "global_configs"), {
+           salarySettings
+         }, { merge: true }).catch((err) => {
+           console.error("Gagal menyimpan salarySettings ke Firestore:", err);
+         });
+    }, 1000); // 1-second debounce
+    return () => clearTimeout(timer);
+  }, [salarySettings]);
+
+  useEffect(() => {
+    localStorage.setItem("mcn_spreadsheet_id", spreadsheetId);
+    localStorage.setItem("mcn_spreadsheet_url", spreadsheetUrl);
+    localStorage.setItem("mcn_auto_sync_sheets", String(autoSyncSheets));
+
+    const timer = setTimeout(() => {
+         setDoc(doc(db, "settings", "global_configs"), {
+           spreadsheetId,
+           spreadsheetUrl,
+           autoSyncSheets
+         }, { merge: true }).catch((err) => {
+           console.error("Gagal menyimpan sheets configuration ke Firestore:", err);
+         });
+    }, 1000); // 1-second debounce
+    return () => clearTimeout(timer);
+  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets]);
+
   useEffect(() => {
     let unsubs: any[] = [];
     unsubs.push(
@@ -1099,12 +1184,81 @@ export default function App() {
             if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
             if (typeof data.agencyLogoUrl === "string")
               _setAgencyLogoUrl(data.agencyLogoUrl);
+
+            // Handle synced salarySettings & sheets settings
+            let needsSeeding = false;
+            const seedingPayload: any = {};
+
+            if (data.salarySettings) {
+              if (JSON.stringify(data.salarySettings) !== JSON.stringify(salarySettingsRef.current)) {
+                setSalarySettings(data.salarySettings);
+              }
+            } else {
+              const savedSalary = localStorage.getItem("mcn_salary_settings");
+              if (savedSalary) {
+                try {
+                  const parsed = JSON.parse(savedSalary);
+                  seedingPayload.salarySettings = parsed;
+                  needsSeeding = true;
+                  setSalarySettings(parsed);
+                } catch (e) {}
+              }
+            }
+
+            if (typeof data.spreadsheetId === "string") {
+              if (data.spreadsheetId !== spreadsheetIdRef.current) {
+                setSpreadsheetId(data.spreadsheetId);
+              }
+            } else {
+              const savedId = localStorage.getItem("mcn_spreadsheet_id");
+              if (savedId) {
+                seedingPayload.spreadsheetId = savedId;
+                needsSeeding = true;
+                setSpreadsheetId(savedId);
+              }
+            }
+
+            if (typeof data.spreadsheetUrl === "string") {
+              if (data.spreadsheetUrl !== spreadsheetUrlRef.current) {
+                setSpreadsheetUrl(data.spreadsheetUrl);
+              }
+            } else {
+              const savedUrl = localStorage.getItem("mcn_spreadsheet_url");
+              if (savedUrl) {
+                seedingPayload.spreadsheetUrl = savedUrl;
+                needsSeeding = true;
+                setSpreadsheetUrl(savedUrl);
+              }
+            }
+
+            if (typeof data.autoSyncSheets === "boolean") {
+              if (data.autoSyncSheets !== autoSyncSheetsRef.current) {
+                setAutoSyncSheets(data.autoSyncSheets);
+              }
+            } else {
+              const savedAutoSync = localStorage.getItem("mcn_auto_sync_sheets");
+              if (savedAutoSync) {
+                const parsedVal = savedAutoSync === "true";
+                seedingPayload.autoSyncSheets = parsedVal;
+                needsSeeding = true;
+                setAutoSyncSheets(parsedVal);
+              }
+            }
+
+            if (needsSeeding) {
+              setDoc(doc(db, "settings", "global_configs"), seedingPayload, { merge: true })
+                .catch(console.error);
+            }
           } else {
             try {
               const platformsSaved = localStorage.getItem("mcn_platforms");
               const brandsSaved = localStorage.getItem("mcn_brands");
               const shiftsSaved = localStorage.getItem("mcn_shifts");
               const studiosSaved = localStorage.getItem("mcn_studios");
+              const salarySaved = localStorage.getItem("mcn_salary_settings");
+              const sheetIdSaved = localStorage.getItem("mcn_spreadsheet_id");
+              const sheetUrlSaved = localStorage.getItem("mcn_spreadsheet_url");
+              const autoSyncSaved = localStorage.getItem("mcn_auto_sync_sheets");
 
               const initialConfig: any = {};
               if (platformsSaved)
@@ -1116,6 +1270,14 @@ export default function App() {
               if (shiftsSaved) initialConfig.shifts = JSON.parse(shiftsSaved);
               if (studiosSaved)
                 initialConfig.studios = JSON.parse(studiosSaved);
+              if (salarySaved)
+                initialConfig.salarySettings = JSON.parse(salarySaved);
+              if (sheetIdSaved)
+                initialConfig.spreadsheetId = sheetIdSaved;
+              if (sheetUrlSaved)
+                initialConfig.spreadsheetUrl = sheetUrlSaved;
+              if (autoSyncSaved)
+                initialConfig.autoSyncSheets = autoSyncSaved === "true";
 
               if (Object.keys(initialConfig).length > 0) {
                 setDoc(doc(db, "settings", "global_configs"), initialConfig, {
@@ -4130,23 +4292,11 @@ export default function App() {
   const [googleToken, setGoogleToken] = useState<string | null>(null);
   const [sheetsAuthLoading, setSheetsAuthLoading] = useState(false);
 
-  const [spreadsheetId, setSpreadsheetId] = useState<string>(() => {
-    return localStorage.getItem("mcn_spreadsheet_id") || "";
-  });
-
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>(() => {
-    return localStorage.getItem("mcn_spreadsheet_url") || "";
-  });
-
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [sheetsSyncMessage, setSheetsSyncMessage] = useState<{
     text: string;
     type: "success" | "error" | "info";
   } | null>(null);
-
-  const [autoSyncSheets, setAutoSyncSheets] = useState<boolean>(() => {
-    return localStorage.getItem("mcn_auto_sync_sheets") === "true";
-  });
 
   // Load and subscribe to Auth Status Changes
   useEffect(() => {
@@ -4165,51 +4315,7 @@ export default function App() {
     };
   }, []);
 
-  // Save Settings to Storage
-  useEffect(() => {
-    localStorage.setItem("mcn_spreadsheet_id", spreadsheetId);
-  }, [spreadsheetId]);
-
-  useEffect(() => {
-    localStorage.setItem("mcn_spreadsheet_url", spreadsheetUrl);
-  }, [spreadsheetUrl]);
-
-  useEffect(() => {
-    localStorage.setItem("mcn_auto_sync_sheets", String(autoSyncSheets));
-  }, [autoSyncSheets]);
-
   const [salaryRecapLocationTab, setSalaryRecapLocationTab] = useState("Semua Host");
-
-  // Custom Global Salary Formula parameters with regional support
-  const [salarySettings, setSalarySettings] = useState(() => {
-    const saved = localStorage.getItem("mcn_salary_settings");
-    const defaults = {
-      workingDays: 26, // Cycle Hari Kerja Sebulan
-      bandarLampungRegulerBase: 4000000, // Gaji Pokok Bulanan Bandar Lampung
-      tanggamusRegulerBase: 3500000, // Gaji Pokok Bulanan Tanggamus
-      bandarLampungBackupPay: 175000, // Gaji per Shift Bandar Lampung
-      tanggamusBackupPay: 150000, // Gaji per Shift Tanggamus
-      bandarLampungRegulerBonus: 300000, // Bonus Bulanan Bandar Lampung untuk 100% Hadir & <=3x Terlambat
-      tanggamusRegulerBonus: 250000, // Bonus Bulanan Tanggamus untuk 100% Hadir & <=3x Terlambat
-      overtimePayPerHour: 20000, // Nominal Gaji Lembur per Jam
-      useCutOff: true, // Aktifkan Cut Off (mulai tanggal 16 ke tanggal 15 bulan depannya)
-      cutOffStartDay: 16,
-      cutOffEndDay: 15,
-    };
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return { ...defaults, ...parsed };
-      } catch (e) {
-        console.error("Error parsing saved salary settings, falling back.");
-      }
-    }
-    return defaults;
-  });
-
-  useEffect(() => {
-    localStorage.setItem("mcn_salary_settings", JSON.stringify(salarySettings));
-  }, [salarySettings]);
 
   // --- HOST PERSONAL ANALYTICS ---
   const [hostCutoffPeriod, setHostCutoffPeriod] = useState<string>(() => {
