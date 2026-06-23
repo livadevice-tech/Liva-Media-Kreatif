@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -8,13 +8,13 @@ const dbId = (firebaseConfig as any).firestoreDatabaseId;
 
 console.log("Firebase Init - databaseId is:", dbId);
 
-// Force real-time live database connection, do not store/cache records in browser IndexedDB/localCache
+// Mengaktifkan persistent local cache agar pengguna tetap bisa melihat
+// dan mengedit data mereka meskipun offline atau limit kuota tercapai.
 let db: any;
 
 try {
   const firestoreSettings = {
-    // Disable persistent IndexedDB cache to prevent offline split-brain across devices/iframes
-    experimentalForceLongPolling: true
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
   };
   db = dbId 
     ? initializeFirestore(app, firestoreSettings, dbId)
@@ -33,3 +33,4 @@ try {
 export { db };
 
 export const auth = getAuth();
+
