@@ -1205,6 +1205,82 @@ export default function App() {
       ),
     );
 
+    // Listens for host notifications in real-time
+    unsubs.push(
+      onSnapshot(
+        collection(db, "host_notifications"),
+        (snap) => {
+          const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+          _setHostNotifications(data);
+        },
+        (err) => console.error("Firestore host_notifications err:", err),
+      )
+    );
+
+    // Listens for general notifications in real-time
+    unsubs.push(
+      onSnapshot(
+        collection(db, "notifications"),
+        (snap) => {
+          if (snap.empty) {
+            const defaults = [
+              {
+                id: "notif-init-welcome",
+                title: "Selamat Datang di Workspace!",
+                description:
+                  "Gunakan panel notifikasi ini untuk memantau performa streaming, absensi host, upload data raw brand, dan follow-up leads.",
+                type: "success",
+                timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 mins ago
+                read: false,
+                actionTab: "dashboard_utama",
+              },
+              {
+                id: "notif-init-lead",
+                title: "⚠️ Leads Calon Klien Baru",
+                description:
+                  'Ada prospek leads masuk dari "Eiger Adventure Official". Silakan periksa detailnya di tab Leads & Calon Klien.',
+                type: "warning",
+                timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(), // 35 mins ago
+                read: false,
+                actionTab: "leads",
+              },
+              {
+                id: "notif-init-upload",
+                title: "📊 Impor Raw Data Berhasil",
+                description:
+                  'Laporan TikTok Live untuk brand "Skintific" berhasil diunggah (30 sesi streaming berhasil direkam ke database).',
+                type: "info",
+                timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 hours ago
+                read: true,
+                actionTab: "reporting_brand",
+              },
+              {
+                id: "notif-init-sheets",
+                title: "🔌 Sinkronisasi Google Sheets Berhasil",
+                description:
+                  "Semua log kehadiran dan rekapitulasi performa terbaru berhasil disinkronkan tepat waktu dengan tautan Google Sheet eksternal.",
+                type: "success",
+                timestamp: new Date(Date.now() - 1000 * 60 * 360).toISOString(), // 6 hours ago
+                read: true,
+                actionTab: "sheets",
+              },
+            ];
+            syncToFirestore("notifications", [], defaults);
+            _setNotifications(defaults);
+            return;
+          }
+          const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+          const sorted = data.sort((a: any, b: any) => {
+            const tA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const tB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return tB - tA;
+          });
+          _setNotifications(sorted);
+        },
+        (err) => console.error("Firestore notifications err:", err),
+      )
+    );
+
     // Listens for global configurations (custom brands, shifts, studios, platforms)
     unsubs.push(
       onSnapshot(
@@ -1273,6 +1349,17 @@ export default function App() {
               setUploadHistory(data.uploadHistory);
             }
 
+            // Sync other layout, credentials and checklists
+            if (data.adminCredentials) {
+              setAdminCredentials(data.adminCredentials);
+            }
+            if (data.adminShiftChecklistObj) {
+              setAdminShiftChecklistObj(data.adminShiftChecklistObj);
+            }
+            if (data.columnWidths) {
+              setColumnWidths(data.columnWidths);
+            }
+
             setIsGlobalConfigsLoaded(true);
           } else {
             // Seed defaults to Firestore if document does not exist
@@ -1311,6 +1398,17 @@ export default function App() {
               autoSyncSheets: false,
               brandReports: {},
               uploadHistory: [],
+              adminCredentials: { username: "admin", password: "123" },
+              adminShiftChecklistObj: {},
+              columnWidths: {
+                name: 240,
+                hostType: 120,
+                attendance: 100,
+                late: 90,
+                excused: 100,
+                formula: 200,
+                netSalary: 140,
+              }
             };
 
             setDoc(doc(db, "settings", "global_configs"), defaults)
@@ -1586,17 +1684,15 @@ export default function App() {
   const [hostError, setHostError] = useState("");
 
   // Admin credentials & login session
-  const [adminCredentials, setAdminCredentials] = useState(() => {
-    const saved = localStorage.getItem("mcn_admin_credentials");
-    return saved ? JSON.parse(saved) : { username: "admin", password: "123" };
-  });
+  const [adminCredentials, setAdminCredentials] = useState<{ username: string; password: string }>({ username: "admin", password: "123" });
 
   useEffect(() => {
-    localStorage.setItem(
-      "mcn_admin_credentials",
-      JSON.stringify(adminCredentials),
-    );
-  }, [adminCredentials]);
+    if (!isGlobalConfigsLoaded) return;
+    const timer = setTimeout(() => {
+      setDoc(doc(db, "settings", "global_configs"), { adminCredentials }, { merge: true }).catch(console.error);
+    }, 1000); // 1-second debounce
+    return () => clearTimeout(timer);
+  }, [adminCredentials, isGlobalConfigsLoaded]);
 
   const [adminAccounts, _setAdminAccounts] = useState<AdminAccount[]>([]);
   const setAdminAccounts = useCallback((action: any) => {
@@ -2089,60 +2185,15 @@ export default function App() {
   const [dayAnalyticsSortAsc, setDayAnalyticsSortAsc] = useState(false);
 
   // --- NOTIFICATION ENGINE ---
-  const [notifications, setNotifications] = useState<any[]>(() => {
-    const saved = localStorage.getItem("mcn_notifications_v1");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch (e) {}
-    }
-    // Rich, context-perfect sample notifications on first load
-    return [
-      {
-        id: "notif-init-welcome",
-        title: "Selamat Datang di Workspace!",
-        description:
-          "Gunakan panel notifikasi ini untuk memantau performa streaming, absensi host, upload data raw brand, dan follow-up leads.",
-        type: "success",
-        timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 mins ago
-        read: false,
-        actionTab: "dashboard_utama",
-      },
-      {
-        id: "notif-init-lead",
-        title: "⚠️ Leads Calon Klien Baru",
-        description:
-          'Ada prospek leads masuk dari "Eiger Adventure Official". Silakan periksa detailnya di tab Leads & Calon Klien.',
-        type: "warning",
-        timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(), // 35 mins ago
-        read: false,
-        actionTab: "leads",
-      },
-      {
-        id: "notif-init-upload",
-        title: "📊 Impor Raw Data Berhasil",
-        description:
-          'Laporan TikTok Live untuk brand "Skintific" berhasil diunggah (30 sesi streaming berhasil direkam ke database).',
-        type: "info",
-        timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 hours ago
-        read: true,
-        actionTab: "reporting_brand",
-      },
-      {
-        id: "notif-init-sheets",
-        title: "🔌 Sinkronisasi Google Sheets Berhasil",
-        description:
-          "Semua log kehadiran dan rekapitulasi performa terbaru berhasil disinkronkan tepat waktu dengan tautan Google Sheet eksternal.",
-        type: "success",
-        timestamp: new Date(Date.now() - 1000 * 60 * 360).toISOString(), // 6 hours ago
-        read: true,
-        actionTab: "sheets",
-      },
-    ];
-  });
+  const [notifications, _setNotifications] = useState<any[]>([]);
+
+  const setNotifications = useCallback((action: any) => {
+    _setNotifications((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      syncToFirestore("notifications", prev, next);
+      return next;
+    });
+  }, []);
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
@@ -2166,17 +2217,15 @@ export default function App() {
           },
           ...prev,
         ].slice(0, 40); // cap at 40 entries
-        localStorage.setItem("mcn_notifications_v1", JSON.stringify(updated));
         return updated;
       });
     },
-    [],
+    [setNotifications],
   );
 
   const markAllNotificationsAsRead = () => {
     setNotifications((prev) => {
       const updated = prev.map((n) => ({ ...n, read: true }));
-      localStorage.setItem("mcn_notifications_v1", JSON.stringify(updated));
       return updated;
     });
   };
@@ -2184,37 +2233,26 @@ export default function App() {
   const deleteNotification = (id: string) => {
     setNotifications((prev) => {
       const updated = prev.filter((n) => n.id !== id);
-      localStorage.setItem("mcn_notifications_v1", JSON.stringify(updated));
       return updated;
     });
   };
 
   const clearAllNotifications = () => {
     setNotifications([]);
-    localStorage.setItem("mcn_notifications_v1", JSON.stringify([]));
   };
 
   // --- HOST NOTIFICATION ENGINE ---
-  const [hostNotifications, setHostNotifications] = useState<any[]>(() => {
-    const saved = localStorage.getItem("mcn_host_notifications_v1");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-    }
-    return [];
-  });
+  const [hostNotifications, _setHostNotifications] = useState<any[]>([]);
+
+  const setHostNotifications = useCallback((action: any) => {
+    _setHostNotifications((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      syncToFirestore("host_notifications", prev, next);
+      return next;
+    });
+  }, []);
 
   const [isHostNotificationOpen, setIsHostNotificationOpen] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "mcn_host_notifications_v1",
-      JSON.stringify(hostNotifications),
-    );
-    syncToFirestore("host_notifications", [], hostNotifications);
-  }, [hostNotifications]);
 
   const addHostNotification = useCallback(
     (hostId: string, title: string, message: string, dateStr: string) => {
@@ -2231,7 +2269,7 @@ export default function App() {
         return [newNotif, ...prev].slice(0, 50); // cap at 50
       });
     },
-    [],
+    [setHostNotifications],
   );
 
   const markHostNotificationsAsRead = (hostId: string) => {
@@ -2253,19 +2291,20 @@ export default function App() {
     "day" | "shift" | "dayOfWeek" | "raw"
   >("day");
   const [adminReportBrandFilter, setAdminReportBrandFilter] = useState("");
-  const [adminShiftChecklistObj, setAdminShiftChecklistObj] = useState<Record<string, string[]>>(() => {
-    try {
-      const saved = localStorage.getItem("adminShiftChecklistObj");
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return {};
-  });
+  const [adminShiftChecklistObj, setAdminShiftChecklistObj] = useState<Record<string, string[]>>({});
   const adminShiftChecklist = adminShiftChecklistObj[adminReportBrandFilter || "default_brand"] || [];
   const setAdminShiftChecklist = (val: string[]) => {
     const newObj = { ...adminShiftChecklistObj, [adminReportBrandFilter || "default_brand"]: val };
     setAdminShiftChecklistObj(newObj);
-    localStorage.setItem("adminShiftChecklistObj", JSON.stringify(newObj));
   };
+
+  useEffect(() => {
+    if (!isGlobalConfigsLoaded) return;
+    const timer = setTimeout(() => {
+      setDoc(doc(db, "settings", "global_configs"), { adminShiftChecklistObj }, { merge: true }).catch(console.error);
+    }, 1000); // 1-second debounce
+    return () => clearTimeout(timer);
+  }, [adminShiftChecklistObj, isGlobalConfigsLoaded]);
   const [autoDetectNotice, setAutoDetectNotice] = useState("");
   const [isSavingReport, setIsSavingReport] = useState(false);
 
@@ -4119,30 +4158,23 @@ export default function App() {
   const [salarySortKey, setSalarySortKey] = useState<string>("name");
   const [salarySortDir, setSalarySortDir] = useState<"asc" | "desc">("asc");
   const [showWidthSliders, setShowWidthSliders] = useState(false);
-  const [columnWidths, setColumnWidths] = useState(() => {
-    const saved = localStorage.getItem("mcn_salary_column_widths");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return {
-      name: 240,
-      hostType: 120,
-      attendance: 100,
-      late: 90,
-      excused: 100,
-      formula: 200,
-      netSalary: 140,
-    };
+  const [columnWidths, setColumnWidths] = useState({
+    name: 240,
+    hostType: 120,
+    attendance: 100,
+    late: 90,
+    excused: 100,
+    formula: 200,
+    netSalary: 140,
   });
 
   useEffect(() => {
-    localStorage.setItem(
-      "mcn_salary_column_widths",
-      JSON.stringify(columnWidths),
-    );
-  }, [columnWidths]);
+    if (!isGlobalConfigsLoaded) return;
+    const timer = setTimeout(() => {
+      setDoc(doc(db, "settings", "global_configs"), { columnWidths }, { merge: true }).catch(console.error);
+    }, 1000); // 1-second debounce
+    return () => clearTimeout(timer);
+  }, [columnWidths, isGlobalConfigsLoaded]);
 
   // --- CALENDAR WORKSPACE OPERATIONS STATES ---
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
