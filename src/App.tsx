@@ -110,35 +110,39 @@ import {
   AdminAccount,
 } from "./types";
 import { INITIAL_HOSTS, INITIAL_LOGS, PLATFORMS, BRANDS, SHIFTS } from "./data";
-import {
-  initAuth,
-  googleSignIn,
-  logout as sheetsLogout,
-  createNewSpreadsheet,
-  syncSpreadsheetData,
-  fetchSpreadsheetData,
-} from "./sheets";
+// Google Sheets integration dihapus (Firebase removed)
+// import dari sheets.ts sudah tidak aktif
 
-import { FileText } from "lucide-react";
-import { DoubleDatePicker } from "./components/DoubleDatePicker";
-import { InvoiceDashboard } from "./components/InvoiceDashboard";
+
 import {
-  collection,
-  onSnapshot,
-  doc,
-  setDoc,
-  deleteDoc,
-  writeBatch,
-  getDocs,
-  getDoc,
-  getDocsFromCache,
-  getDocFromCache,
-} from "firebase/firestore";
-import { db } from "./firebase";
-import { syncToFirestore } from "./firestoreSync";
+  hostsApi,
+  logsApi,
+  schedulesApi,
+  alertsApi,
+  clientBrandsApi,
+  clientLeadsApi,
+  adminAccountsApi,
+} from "./api";
+import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
+
 
 const getAvatarUrl = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Host")}&background=f3e8ff&color=7e22ce&bold=true`;
+
+/**
+ * Menggantikan setDoc(doc(db, "settings", "global_configs"), ...) dari Firebase.
+ * Menyimpan config ke localStorage dengan merge (hanya update field yang diberikan).
+ */
+function saveLocalConfig(partialConfig: Record<string, any>): void {
+  try {
+    const existing = localStorage.getItem('liva_global_configs');
+    const current = existing ? JSON.parse(existing) : {};
+    const merged = { ...current, ...partialConfig };
+    localStorage.setItem('liva_global_configs', JSON.stringify(merged));
+  } catch (e) {
+    console.error('saveLocalConfig error:', e);
+  }
+}
 
 const isPlatformMatch = (lp: string, fp: string) => {
   if (!fp || fp === "Semua Platform") return true;
@@ -798,17 +802,19 @@ export default function App() {
 
   useEffect(() => {
     if (isGlobalConfigsLoaded && uploadHistory.length > 0) {
-      setDoc(doc(db, "settings", "global_configs"), { uploadHistory }, { merge: true }).catch(console.error);
+      saveLocalConfig({ uploadHistory });
     }
   }, [uploadHistory, isGlobalConfigsLoaded]);
+
 
   const [brandReports, setBrandReports] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     if (isGlobalConfigsLoaded && Object.keys(brandReports).length > 0) {
-      setDoc(doc(db, "settings", "global_configs"), { brandReports }, { merge: true }).catch(console.error);
+      saveLocalConfig({ brandReports });
     }
   }, [brandReports, isGlobalConfigsLoaded]);
+
 
   // States for custom salary overrides
   const [editingSalaryHostId, setEditingSalaryHostId] = useState<string | null>(
@@ -894,11 +900,7 @@ export default function App() {
   const setAgencyLogoUrl = useCallback((action: any) => {
     _setAgencyLogoUrl((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      setDoc(
-        doc(db, "settings", "global_configs"),
-        { agencyLogoUrl: next },
-        { merge: true },
-      ).catch(console.error);
+      saveLocalConfig({ agencyLogoUrl: next });
       return next;
     });
   }, []);
@@ -933,11 +935,7 @@ export default function App() {
   const setPlatforms = useCallback((action: any) => {
     _setPlatforms((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      setDoc(
-        doc(db, "settings", "global_configs"),
-        { platforms: next },
-        { merge: true },
-      ).catch(console.error);
+      saveLocalConfig({ platforms: next });
       return next;
     });
   }, []);
@@ -945,11 +943,7 @@ export default function App() {
   const setBrands = useCallback((action: any) => {
     _setBrands((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      setDoc(
-        doc(db, "settings", "global_configs"),
-        { brands: next },
-        { merge: true },
-      ).catch(console.error);
+      saveLocalConfig({ brands: next });
       return next;
     });
   }, []);
@@ -957,11 +951,7 @@ export default function App() {
   const setShifts = useCallback((action: any) => {
     _setShifts((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      setDoc(
-        doc(db, "settings", "global_configs"),
-        { shifts: next },
-        { merge: true },
-      ).catch(console.error);
+      saveLocalConfig({ shifts: next });
       return next;
     });
   }, []);
@@ -969,11 +959,7 @@ export default function App() {
   const setStudios = useCallback((action: any) => {
     _setStudios((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      setDoc(
-        doc(db, "settings", "global_configs"),
-        { studios: next },
-        { merge: true },
-      ).catch(console.error);
+      saveLocalConfig({ studios: next });
       return next;
     });
   }, []);
@@ -1079,7 +1065,7 @@ export default function App() {
     return sessionStorage.getItem("mcn_is_operator_logged_in") === "true";
   });
 
-  // Refs to allow the Firestore realtime snapshot listener to see the latest values without re-subscribing
+  // Refs untuk menjaga nilai terbaru tanpa re-render
   const salarySettingsRef = useRef(salarySettings);
   const spreadsheetIdRef = useRef(spreadsheetId);
   const spreadsheetUrlRef = useRef(spreadsheetUrl);
@@ -1095,32 +1081,24 @@ export default function App() {
     autoSyncSheetsRef.current = autoSyncSheets;
   }, [spreadsheetId, spreadsheetUrl, autoSyncSheets]);
 
-  // Debounced/Throttled syncing to Firestore to avoid write flooding during typing
+  // Simpan salarySettings ke localStorage (dengan debounce 1 detik)
   useEffect(() => {
     if (!isGlobalConfigsLoaded) return;
     const timer = setTimeout(() => {
-         setDoc(doc(db, "settings", "global_configs"), {
-           salarySettings
-         }, { merge: true }).catch((err) => {
-           console.error("Gagal menyimpan salarySettings ke Firestore:", err);
-         });
-    }, 1000); // 1-second debounce
+      saveLocalConfig({ salarySettings });
+    }, 1000);
     return () => clearTimeout(timer);
   }, [salarySettings, isGlobalConfigsLoaded]);
 
+  // Simpan spreadsheet settings ke localStorage
   useEffect(() => {
     if (!isGlobalConfigsLoaded) return;
     const timer = setTimeout(() => {
-         setDoc(doc(db, "settings", "global_configs"), {
-           spreadsheetId,
-           spreadsheetUrl,
-           autoSyncSheets
-         }, { merge: true }).catch((err) => {
-           console.error("Gagal menyimpan sheets configuration ke Firestore:", err);
-         });
-    }, 1000); // 1-second debounce
+      saveLocalConfig({ spreadsheetId, spreadsheetUrl, autoSyncSheets });
+    }, 1000);
     return () => clearTimeout(timer);
   }, [spreadsheetId, spreadsheetUrl, autoSyncSheets, isGlobalConfigsLoaded]);
+
 
   useEffect(() => {
     let unsubs: any[] = [];
@@ -1130,372 +1108,110 @@ export default function App() {
     const isBrand = loggedInClientBrandId;
     const isGuest = !isAdminOrOperator && !isHost && !isBrand;
 
-    // 1. admin_accounts
-    if (isGuest || isAdminOrOperator) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "admin_accounts"),
-          (snap) => {
-            _setAdminAccounts(
-              snap.docs.map(
-                (d) => ({ ...(d.data() as any), id: d.id }) as AdminAccount,
-              ),
-            );
-          },
-          (err) => handleQuotaError(err, "admin_accounts"),
-        ),
-      );
-    }
+    // MySQL REST API: load semua data sesuai role
+    // (tidak ada real-time listener, data di-fetch saat mount)
+    const loadAll = async () => {
+      try {
+        // 1. admin_accounts
+        if (isGuest || isAdminOrOperator) {
+          adminAccountsApi.getAll().then(_setAdminAccounts).catch((err) => handleQuotaError(err, 'admin_accounts'));
+        }
 
-    // 2. hosts
-    if (isGuest || isAdminOrOperator || isHost) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "hosts"),
-          (snap) => {
-            const data = snap.docs.map(
-              (d) => ({ ...(d.data() as any), id: d.id }) as HostEmployee,
-            );
-            _setHosts(data);
-          },
-          (err) => handleQuotaError(err, "hosts"),
-        ),
-      );
-    }
+        // 2. hosts
+        if (isGuest || isAdminOrOperator || isHost) {
+          hostsApi.getAll().then(_setHosts).catch((err) => handleQuotaError(err, 'hosts'));
+        }
 
-    // 3. logs
-    if (isAdminOrOperator || isHost) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "logs"),
-          (snap) => {
-            const data = snap.docs.map(
-              (d) => ({ ...(d.data() as any), id: d.id }) as AttendanceLog,
-            );
-            _setLogs(data);
-          },
-          (err) => handleQuotaError(err, "logs"),
-        ),
-      );
-    }
+        // 3. logs
+        if (isAdminOrOperator || isHost) {
+          logsApi.getAll().then(_setLogs).catch((err) => handleQuotaError(err, 'logs'));
+        }
 
-    // 4. client_brands
-    if (isGuest || isAdminOrOperator || isBrand) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "client_brands"),
-          (snap) => {
-            const data = snap.docs.map(
-              (d) => ({ ...(d.data() as any), id: d.id }) as ClientBrand,
-            );
-            _setClientBrands(data);
-          },
-          (err) => handleQuotaError(err, "client_brands"),
-        ),
-      );
-    }
+        // 4. client_brands
+        if (isGuest || isAdminOrOperator || isBrand) {
+          clientBrandsApi.getAll().then(_setClientBrands).catch((err) => handleQuotaError(err, 'client_brands'));
+        }
 
-    // 5. client_leads
-    if (isAdminOrOperator) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "client_leads"),
-          (snap) => {
-            const data = snap.docs.map(
-              (d) => ({ ...(d.data() as any), id: d.id }) as ClientLead,
-            );
-            _setClientLeads(data);
-          },
-          (err) => handleQuotaError(err, "client_leads"),
-        ),
-      );
-    }
+        // 5. client_leads
+        if (isAdminOrOperator) {
+          clientLeadsApi.getAll().then(_setClientLeads).catch((err) => handleQuotaError(err, 'client_leads'));
+        }
 
-    // 6. brand_performance_logs
-    if (isAdminOrOperator || isBrand) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "brand_performance_logs"),
-          (snap) => {
-            setBrandPerformanceLogs(
-              snap.docs.map((d) => ({ ...d.data(), id: d.id }) as any),
-            );
-            setIsLogsLoading(false);
-          },
-          (err) => {
-            handleQuotaError(err, "brand_performance_logs");
-            setIsLogsLoading(false);
-          },
-        ),
-      );
-    }
+        // 6. schedules
+        if (isAdminOrOperator || isHost || isBrand) {
+          schedulesApi.getAll().then(_setSchedules).catch((err) => handleQuotaError(err, 'schedules'));
+        }
 
-    // 7. brand_upload_history
-    if (isAdminOrOperator || isBrand) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "brand_upload_history"),
-          (snap) => {
-            setBrandUploadHistory(
-              snap.docs.map((d) => ({ ...d.data(), id: d.id })),
-            );
-          },
-          (err) => handleQuotaError(err, "brand_upload_history"),
-        ),
-      );
-    }
+        // 7. alerts
+        if (isAdminOrOperator) {
+          alertsApi.getAll().then((data) => {
+            // alerts state akan di-set jika ada state untuk itu
+            // jika tidak ada, ignore saja
+          }).catch(console.error);
+        }
 
-    // 8. brand_shopee_sku_logs
-    if (isAdminOrOperator || isBrand) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "brand_shopee_sku_logs"),
-          (snap) => {
-            setShopeeSkuLogs(snap.docs.map((d) => ({ ...d.data(), id: d.id })));
-          },
-          (err) => handleQuotaError(err, "brand_shopee_sku_logs"),
-        ),
-      );
-    }
+        // Global configs — load dari localStorage sebagai fallback
+        // (Firestore global_configs diganti dengan defaults lokal)
+        const storedConfig = localStorage.getItem('liva_global_configs');
+        if (storedConfig) {
+          try {
+            const data = JSON.parse(storedConfig);
+            if (Array.isArray(data.brands)) _setBrands(data.brands);
+            if (Array.isArray(data.shifts)) _setShifts(data.shifts);
+            if (Array.isArray(data.studios)) _setStudios(data.studios);
+            if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
+            if (typeof data.agencyLogoUrl === 'string') _setAgencyLogoUrl(data.agencyLogoUrl);
+            if (data.salarySettings) setSalarySettings(data.salarySettings);
+            if (data.adminCredentials) setAdminCredentials(data.adminCredentials);
+            if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
+            if (data.columnWidths) setColumnWidths(data.columnWidths);
+          } catch { /* ignore parse error */ }
+        } else {
+          // Seed default global configs ke localStorage
+          const defaults = {
+            platforms: PLATFORMS,
+            brands: BRANDS,
+            shifts: SHIFTS,
+            studios: [
+              { id: 'std_1', name: 'Studio Bandar Lampung', location: 'Bandar Lampung' },
+              { id: 'std_2', name: 'Studio Tanggamus', location: 'Tanggamus' },
+              { id: 'std_3', name: 'Studio 01', location: 'Bandar Lampung' },
+              { id: 'std_4', name: 'Studio 02', location: 'Tanggamus' },
+            ],
+            agencyLogoUrl: '',
+            salarySettings: {
+              workingDays: 26,
+              bandarLampungRegulerBase: 4000000,
+              tanggamusRegulerBase: 3500000,
+              bandarLampungBackupPay: 175000,
+              tanggamusBackupPay: 150000,
+              bandarLampungRegulerBonus: 300000,
+              tanggamusRegulerBonus: 250000,
+              overtimePayPerHour: 20000,
+              useCutOff: true,
+              cutOffStartDay: 16,
+              cutOffEndDay: 15,
+            },
+            adminCredentials: { username: 'admin', password: '123' },
+            adminShiftChecklistObj: {},
+            columnWidths: { name: 240, hostType: 120, attendance: 100, late: 90, excused: 100, formula: 200, netSalary: 140 },
+          };
+          localStorage.setItem('liva_global_configs', JSON.stringify(defaults));
+        }
 
-    // 9. schedules
-    if (isAdminOrOperator || isHost || isBrand) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "schedules"),
-          (snap) => {
-            const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
-            _setSchedules(data);
-          },
-          (err) => handleQuotaError(err, "schedules"),
-        ),
-      );
-    }
+        setIsGlobalConfigsLoaded(true);
 
-    // 10. host_notifications
-    if (isAdminOrOperator || isHost) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "host_notifications"),
-          (snap) => {
-            const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
-            _setHostNotifications(data);
-          },
-          (err) => handleQuotaError(err, "host_notifications"),
-        ),
-      );
-    }
-
-    // 11. notifications
-    if (isAdminOrOperator) {
-      unsubs.push(
-        onSnapshot(
-          collection(db, "notifications"),
-          (snap) => {
-            if (snap.empty) {
-              const defaults = [
-                {
-                  id: "notif-init-welcome",
-                  title: "Selamat Datang di Workspace!",
-                  description:
-                    "Gunakan panel notifikasi ini untuk memantau performa streaming, absensi host, upload data raw brand, dan follow-up leads.",
-                  type: "success",
-                  timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 mins ago
-                  read: false,
-                  actionTab: "dashboard_utama",
-                },
-                {
-                  id: "notif-init-lead",
-                  title: "⚠️ Leads Calon Klien Baru",
-                  description:
-                    'Ada prospek leads masuk dari "Eiger Adventure Official". Silakan periksa detailnya di tab Leads & Calon Klien.',
-                  type: "warning",
-                  timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(), // 35 mins ago
-                  read: false,
-                  actionTab: "leads",
-                },
-                {
-                  id: "notif-init-upload",
-                  title: "📊 Impor Raw Data Berhasil",
-                  description:
-                    'Laporan TikTok Live untuk brand "Skintific" berhasil diunggah (30 sesi streaming berhasil direkam ke database).',
-                  type: "info",
-                  timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 hours ago
-                  read: true,
-                  actionTab: "reporting_brand",
-                },
-                {
-                  id: "notif-init-sheets",
-                  title: "🔌 Sinkronisasi Google Sheets Berhasil",
-                  description:
-                    "Semua log kehadiran dan rekapitulasi performa terbaru berhasil disinkronkan tepat waktu dengan tautan Google Sheet eksternal.",
-                  type: "success",
-                  timestamp: new Date(Date.now() - 1000 * 60 * 360).toISOString(), // 6 hours ago
-                  read: true,
-                  actionTab: "sheets",
-                },
-              ];
-              syncToFirestore("notifications", [], defaults);
-              _setNotifications(defaults);
-              return;
-            }
-            const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
-            const sorted = data.sort((a: any, b: any) => {
-              const tA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-              const tB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-              return tB - tA;
-            });
-            _setNotifications(sorted);
-          },
-          (err) => handleQuotaError(err, "notifications"),
-        ),
-      );
-    }
-
-    // Listens for global configurations (custom brands, shifts, studios, platforms)
-    unsubs.push(
-      onSnapshot(
-        doc(db, "settings", "global_configs"),
-        (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            if (Array.isArray(data.brands)) {
-              _setBrands(data.brands);
-            }
-            if (Array.isArray(data.shifts)) {
-              _setShifts(data.shifts);
-            }
-            if (Array.isArray(data.studios)) {
-              _setStudios(data.studios);
-            }
-            if (Array.isArray(data.platforms)) {
-              _setPlatforms(data.platforms);
-            }
-            if (typeof data.agencyLogoUrl === "string") {
-              _setAgencyLogoUrl(data.agencyLogoUrl);
-            }
-
-            // Realtime Google Sheets Token & User Sync
-            if (typeof data.googleToken === "string") {
-              setGoogleToken(data.googleToken);
-            } else if (data.googleToken === null) {
-              setGoogleToken(null);
-            }
-            if (data.googleUser) {
-              setGoogleUser(data.googleUser);
-            } else if (data.googleUser === null) {
-              setGoogleUser(null);
-            }
-
-            // Handle synced salarySettings & sheets settings
-            if (data.salarySettings) {
-              if (JSON.stringify(data.salarySettings) !== JSON.stringify(salarySettingsRef.current)) {
-                setSalarySettings(data.salarySettings);
-              }
-            }
-
-            if (typeof data.spreadsheetId === "string") {
-              if (data.spreadsheetId !== spreadsheetIdRef.current) {
-                setSpreadsheetId(data.spreadsheetId);
-              }
-            }
-
-            if (typeof data.spreadsheetUrl === "string") {
-              if (data.spreadsheetUrl !== spreadsheetUrlRef.current) {
-                setSpreadsheetUrl(data.spreadsheetUrl);
-              }
-            }
-
-            if (typeof data.autoSyncSheets === "boolean") {
-              if (data.autoSyncSheets !== autoSyncSheetsRef.current) {
-                setAutoSyncSheets(data.autoSyncSheets);
-              }
-            }
-
-            // Realtime brandReports and uploadHistory
-            if (data.brandReports) {
-              setBrandReports(data.brandReports);
-            }
-            if (data.uploadHistory) {
-              setUploadHistory(data.uploadHistory);
-            }
-
-            // Sync other layout, credentials and checklists
-            if (data.adminCredentials) {
-              setAdminCredentials(data.adminCredentials);
-            }
-            if (data.adminShiftChecklistObj) {
-              setAdminShiftChecklistObj(data.adminShiftChecklistObj);
-            }
-            if (data.columnWidths) {
-              setColumnWidths(data.columnWidths);
-            }
-
-            setIsGlobalConfigsLoaded(true);
-          } else {
-            // Seed defaults to Firestore if document does not exist
-            const defaults = {
-              platforms: PLATFORMS,
-              brands: BRANDS,
-              shifts: SHIFTS,
-              studios: [
-                {
-                  id: "std_1",
-                  name: "Studio Bandar Lampung",
-                  location: "Bandar Lampung",
-                },
-                { id: "std_2", name: "Studio Tanggamus", location: "Tanggamus" },
-                { id: "std_3", name: "Studio 01", location: "Bandar Lampung" },
-                { id: "std_4", name: "Studio 02", location: "Tanggamus" },
-              ],
-              agencyLogoUrl: "",
-              googleToken: null,
-              googleUser: null,
-              salarySettings: {
-                workingDays: 26,
-                bandarLampungRegulerBase: 4000000,
-                tanggamusRegulerBase: 3500000,
-                bandarLampungBackupPay: 175000,
-                tanggamusBackupPay: 150000,
-                bandarLampungRegulerBonus: 300000,
-                tanggamusRegulerBonus: 250000,
-                overtimePayPerHour: 20000,
-                useCutOff: true,
-                cutOffStartDay: 16,
-                cutOffEndDay: 15,
-              },
-              spreadsheetId: "",
-              spreadsheetUrl: "",
-              autoSyncSheets: false,
-              brandReports: {},
-              uploadHistory: [],
-              adminCredentials: { username: "admin", password: "123" },
-              adminShiftChecklistObj: {},
-              columnWidths: {
-                name: 240,
-                hostType: 120,
-                attendance: 100,
-                late: 90,
-                excused: 100,
-                formula: 200,
-                netSalary: 140,
-              }
-            };
-
-            setDoc(doc(db, "settings", "global_configs"), defaults)
-              .then(() => {
-                setIsGlobalConfigsLoaded(true);
-              })
-              .catch(console.error);
-          }
-        },
-        (err) => handleQuotaError(err, "global_configs"),
-      ),
-    );
-
-    return () => {
-      unsubs.forEach((u) => u());
+      } catch (err) {
+        console.error('Error loading initial data:', err);
+        setIsGlobalConfigsLoaded(true);
+      }
     };
+
+    loadAll();
+
+    // Tidak ada unsubscribe karena tidak ada listener real-time
+    return () => {};
+
   }, [loggedInHostId, loggedInAdminId, isOperatorLoggedIn, loggedInClientBrandId]);
 
   const setHosts = useCallback((action: any) => {
@@ -1751,7 +1467,7 @@ export default function App() {
   useEffect(() => {
     if (!isGlobalConfigsLoaded) return;
     const timer = setTimeout(() => {
-      setDoc(doc(db, "settings", "global_configs"), { adminCredentials }, { merge: true }).catch(console.error);
+      saveLocalConfig({ adminCredentials });
     }, 1000); // 1-second debounce
     return () => clearTimeout(timer);
   }, [adminCredentials, isGlobalConfigsLoaded]);
@@ -2356,7 +2072,8 @@ export default function App() {
   useEffect(() => {
     if (!isGlobalConfigsLoaded) return;
     const timer = setTimeout(() => {
-      setDoc(doc(db, "settings", "global_configs"), { adminShiftChecklistObj }, { merge: true }).catch(console.error);
+      saveLocalConfig({ adminShiftChecklistObj });
+
     }, 1000); // 1-second debounce
     return () => clearTimeout(timer);
   }, [adminShiftChecklistObj, isGlobalConfigsLoaded]);
@@ -2365,39 +2082,22 @@ export default function App() {
 
   useEffect(() => {
     // --- ONE-TIME AUTO CLEANUP FOR BUGGED 2026-12-01 DATES ---
-    const cleanupBadDates = async () => {
-      try {
-        if (!db) return;
-        const q = collection(db, "brand_performance_logs");
-        const snap = await getDocs(q);
-        const badDocs = snap.docs.filter((d) => {
-          const date = d.data()?.date;
-          return (
-            date &&
-            (date.includes("2026-12-") ||
-              date.includes("2026-11-") ||
-              date > "2026-06-30")
-          );
-        });
-
-        if (badDocs.length > 0) {
-          console.log(
-            `Auto-cleaning ${badDocs.length} bad future date records...`,
-          );
-          for (const d of badDocs) {
-            await deleteDoc(doc(db, "brand_performance_logs", d.id));
-          }
-          console.log("Cleanup complete!");
-          // Reload the page to refresh data so the user sees it's gone
-          window.location.reload();
-        }
-      } catch (err) {
-        handleQuotaError(err, "cleanupBadDates");
+    // (Sekarang berbasis state lokal, bukan Firestore)
+    setBrandPerformanceLogs((prev) => {
+      const badIds = prev
+        .filter((d) => {
+          const date = d.date;
+          return date && (date.includes('2026-12-') || date.includes('2026-11-') || date > '2026-06-30');
+        })
+        .map((d) => d.id);
+      if (badIds.length > 0) {
+        console.log(`Auto-cleaning ${badIds.length} bad future date records from state...`);
+        return prev.filter((d) => !badIds.includes(d.id));
       }
-    };
-
-    cleanupBadDates();
+      return prev;
+    });
   }, []);
+
 
   const handleDeletePerformanceLog = async (
     id: string,
@@ -2409,7 +2109,8 @@ export default function App() {
       `Apakah Anda yakin ingin menghapus catatan live stream brand ${brandName} tanggal ${date}?`,
       async () => {
         try {
-          await deleteDoc(doc(db, "brand_performance_logs", id));
+          // Hapus dari state lokal
+          setBrandPerformanceLogs((prev) => prev.filter((log) => log.id !== id));
           customAlert("Data live stream berhasil dihapus dari database!");
         } catch (err: any) {
           console.error("Gagal menghapus:", err);
@@ -2419,6 +2120,7 @@ export default function App() {
       "danger",
     );
   };
+
 
   const handleUploadSkuRaw = (file: File) => {
     setAutoDetectNotice("");
@@ -3631,21 +3333,8 @@ export default function App() {
             customAlert("Tidak ada data log SKU yang ditemukan untuk batch identifier ini.");
             return;
           }
-          const chunkSize = 400; // max 500
-          for (let i = 0; i < relatedLogs.length; i += chunkSize) {
-            const chunk = relatedLogs.slice(i, i + chunkSize);
-            const b = writeBatch(db);
-            let addedCount = 0;
-            for (const log of chunk) {
-              if (log.id) {
-                b.delete(doc(db, "brand_shopee_sku_logs", log.id));
-                addedCount++;
-              }
-            }
-            if (addedCount > 0) {
-              await b.commit();
-            }
-          }
+          const idsToDelete = new Set(relatedLogs.map((l) => l.id));
+          setShopeeSkuLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
           customAlert(`Data upload history SKU (${relatedLogs.length} baris) berhasil dihapus.`);
         } catch (e: any) {
           console.error(e);
@@ -3657,6 +3346,7 @@ export default function App() {
       "danger"
     );
   };
+
 
   const handleDeleteAllBrandRawData = async (
     brandId: string,
@@ -3684,15 +3374,8 @@ export default function App() {
         async () => {
           try {
             setIsSavingReport(true);
-            const chunkSize = 400;
-            for (let i = 0; i < brandSkuLogs.length; i += chunkSize) {
-              const chunk = brandSkuLogs.slice(i, i + chunkSize);
-              const batchDelete = writeBatch(db);
-              for (const l of chunk) {
-                if(l.id) batchDelete.delete(doc(db, "brand_shopee_sku_logs", l.id));
-              }
-              await batchDelete.commit();
-            }
+            const idsToDelete = new Set(brandSkuLogs.map((l) => l.id));
+            setShopeeSkuLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
             customAlert("Data Product Performance SKU berhasil dihapus.");
           } catch(e: any) {
             console.error(e);customAlert("Gagal menghapus data: " + e.message);
@@ -3717,19 +3400,10 @@ export default function App() {
         async () => {
           try {
             setIsSavingReport(true);
-            const chunkSize = 400;
-            for (let i = 0; i < logsToDelete.length; i += chunkSize) {
-              const chunk = logsToDelete.slice(i, i + chunkSize);
-              const batchDelete = writeBatch(db);
-              for (const l of chunk) { if(l.id) batchDelete.delete(doc(db, "brand_performance_logs", l.id)); }
-              await batchDelete.commit();
-            }
-            for (let i = 0; i < batchesToDelete.length; i += chunkSize) {
-              const chunk = batchesToDelete.slice(i, i + chunkSize);
-              const batchDelete = writeBatch(db);
-              for (const b of chunk) { if(b.id) batchDelete.delete(doc(db, "brand_upload_history", b.id)); }
-              await batchDelete.commit();
-            }
+            const logIdsToDelete = new Set(logsToDelete.map((l) => l.id));
+            const batchIdsToDelete = new Set(batchesToDelete.map((b) => b.id));
+            setBrandPerformanceLogs((prev) => prev.filter((l) => !logIdsToDelete.has(l.id)));
+            setBrandUploadHistory((prev) => prev.filter((b) => !batchIdsToDelete.has(b.id)));
             customAlert("Data raw berhasil dihapus.");
           } catch(e: any) {
             console.error(e);customAlert("Gagal menghapus data: " + e.message);
@@ -3754,40 +3428,18 @@ export default function App() {
         try {
           setIsSavingReport(true);
 
-          const chunkSize = 400; // max is 500 for Firestore batch
-
-          // Delete logs in chunks
-          for (let i = 0; i < brandLogs.length; i += chunkSize) {
-            const chunk = brandLogs.slice(i, i + chunkSize);
-            const batchDelete = writeBatch(db);
-            for (const l of chunk) {
-              batchDelete.delete(doc(db, "brand_performance_logs", l.id));
-            }
-            await batchDelete.commit();
-          }
-
-          // Delete upload history in chunks
-          for (let i = 0; i < brandBatches.length; i += chunkSize) {
-            const chunk = brandBatches.slice(i, i + chunkSize);
-            const batchDelete = writeBatch(db);
-            for (const b of chunk) {
-              batchDelete.delete(doc(db, "brand_upload_history", b.id));
-            }
-            await batchDelete.commit();
-          }
-
-          // Delete SKU logs in chunks
           const brandSkuLogs = shopeeSkuLogs.filter(
             (log) => log.brandId === brandId,
           );
-          for (let i = 0; i < brandSkuLogs.length; i += chunkSize) {
-            const chunk = brandSkuLogs.slice(i, i + chunkSize);
-            const batchDelete = writeBatch(db);
-            for (const l of chunk) {
-              batchDelete.delete(doc(db, "brand_shopee_sku_logs", l.id));
-            }
-            await batchDelete.commit();
-          }
+
+          // Hapus semua dari state lokal
+          const logIds = new Set(brandLogs.map((l) => l.id));
+          const batchIds = new Set(brandBatches.map((b) => b.id));
+          const skuIds = new Set(brandSkuLogs.map((l) => l.id));
+
+          setBrandPerformanceLogs((prev) => prev.filter((l) => !logIds.has(l.id)));
+          setBrandUploadHistory((prev) => prev.filter((b) => !batchIds.has(b.id)));
+          setShopeeSkuLogs((prev) => prev.filter((l) => !skuIds.has(l.id)));
 
           customAlert(
             `Berhasil menghapus seluruh raw data (${brandLogs.length} sesi), ${brandSkuLogs.length} SKU logs, dan riwayat upload (${brandBatches.length} batch) untuk brand "${brandName}" dari database!`,
@@ -3802,6 +3454,7 @@ export default function App() {
       "danger",
     );
   };
+
 
   const handleDeleteBrandRawDataByDateRange = async () => {
     if (!deleteByDateStart || !deleteByDateEnd) {
@@ -3839,15 +3492,8 @@ export default function App() {
         async () => {
           try {
             setIsSavingReport(true);
-            const chunkSize = 400;
-            for (let i = 0; i < logsToDelete.length; i += chunkSize) {
-              const chunk = logsToDelete.slice(i, i + chunkSize);
-              const batchDelete = writeBatch(db);
-              for (const log of chunk) {
-                if(log.id) batchDelete.delete(doc(db, "brand_shopee_sku_logs", log.id));
-              }
-              await batchDelete.commit();
-            }
+            const idsToDelete = new Set(logsToDelete.map((l) => l.id));
+            setShopeeSkuLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
             customAlert(`Berhasil menghapus ${logsToDelete.length} data Product Performance untuk brand "${brandName}"!`);
             setIsDeleteByDateModalOpen(false);
             setDeleteByDateStart("");
@@ -3907,15 +3553,8 @@ export default function App() {
       async () => {
         try {
           setIsSavingReport(true);
-          const chunkSize = 400;
-          for (let i = 0; i < logsToDelete.length; i += chunkSize) {
-            const chunk = logsToDelete.slice(i, i + chunkSize);
-            const batchDelete = writeBatch(db);
-            for (const log of chunk) {
-              if(log.id) batchDelete.delete(doc(db, "brand_performance_logs", log.id));
-            }
-            await batchDelete.commit();
-          }
+          const idsToDelete = new Set(logsToDelete.map((l) => l.id));
+          setBrandPerformanceLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
           customAlert(
             `Berhasil menghapus ${logsToDelete.length} data ${displayType} untuk brand "${brandName}"!`,
           );
@@ -3933,6 +3572,7 @@ export default function App() {
     );
   };
 
+
   const handleDeleteUploadBatch = async (
     batchId: string,
     fileName: string,
@@ -3948,21 +3588,13 @@ export default function App() {
           const batchLogs = brandPerformanceLogs.filter(
             (log) => log.batchId === batchId,
           );
-          const chunkSize = 400;
 
-          // Delete batch receipt
-          await deleteDoc(doc(db, "brand_upload_history", batchId));
+          // Hapus batch receipt dari state lokal
           setUploadHistory((prev) => prev.filter((h) => h.id !== batchId));
 
-          // Delete logs in chunks
-          for (let i = 0; i < batchLogs.length; i += chunkSize) {
-            const chunk = batchLogs.slice(i, i + chunkSize);
-            const batchDelete = writeBatch(db);
-            for (const l of chunk) {
-              batchDelete.delete(doc(db, "brand_performance_logs", l.id));
-            }
-            await batchDelete.commit();
-          }
+          // Hapus log terkait dari state lokal
+          const logIds = new Set(batchLogs.map((l) => l.id));
+          setBrandPerformanceLogs((prev) => prev.filter((l) => !logIds.has(l.id)));
 
           customAlert(
             `Berhasil menghapus batch upload "${fileName}" beserta seluruh raw data terkait (${batchLogs.length} data) dari database!`,
@@ -3977,6 +3609,7 @@ export default function App() {
       "danger",
     );
   };
+
 
   const handleSaveReportingDataToDatabase = () => {
     if (!saveTargetBrandId) {
@@ -4145,17 +3778,14 @@ export default function App() {
           }
         }
 
-        const chunkSize = 400; // max is 500 for Firestore batch
-        for (let i = 0; i < allRecordsToSave.length; i += chunkSize) {
-          const chunk = allRecordsToSave.slice(i, i + chunkSize);
-          const batchSave = writeBatch(db);
-          for (const record of chunk) {
-            batchSave.set(doc(db, "brand_performance_logs", record.id), record);
-          }
-          await batchSave.commit();
-        }
+        // Simpan ke state lokal (Firebase dihapus)
+        setBrandPerformanceLogs((prev) => {
+          const existingIds = new Set(prev.map((l) => l.id));
+          const newRecords = allRecordsToSave.filter((r) => !existingIds.has(r.id));
+          return [...prev, ...newRecords];
+        });
 
-        // Save to batch history collection in Firestore
+        // Simpan upload history ke state lokal
         const uploadHistoryRecord = {
           id: batchId,
           brandId: brandIdToSave,
@@ -4168,10 +3798,7 @@ export default function App() {
           reportType:
             String(platformToSave).toLowerCase().includes("tiktok") ? "both" : uploadTargetTab,
         };
-        await setDoc(
-          doc(db, "brand_upload_history", batchId),
-          uploadHistoryRecord,
-        );
+        setUploadHistory((prev) => [...prev, uploadHistoryRecord]);
 
         addNotification(
           "✅ Tersimpan",
@@ -4181,7 +3808,7 @@ export default function App() {
         );
       } catch (err: any) {
         console.error(
-          "Gagal menyimpan data laporan ke Firestore di latar:",
+          "Gagal menyimpan data laporan:",
           err,
         );
         addNotification(
@@ -4226,7 +3853,8 @@ export default function App() {
   useEffect(() => {
     if (!isGlobalConfigsLoaded) return;
     const timer = setTimeout(() => {
-      setDoc(doc(db, "settings", "global_configs"), { columnWidths }, { merge: true }).catch(console.error);
+      saveLocalConfig({ columnWidths });
+
     }, 1000); // 1-second debounce
     return () => clearTimeout(timer);
   }, [columnWidths, isGlobalConfigsLoaded]);
@@ -4393,34 +4021,13 @@ export default function App() {
     type: "success" | "error" | "info";
   } | null>(null);
 
-  // Load and subscribe to Auth Status Changes
+  // Google Sheets auth telah dihapus (Firebase removed)
+  // initAuth tidak lagi tersedia
   useEffect(() => {
-    const unsubscribe = initAuth(
-      async (user, token) => {
-        const u = {
-          displayName: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-        };
-        setGoogleUser(u);
-        setGoogleToken(token);
-        // Sync to Firestore global configs so other browser instances share it
-        await setDoc(doc(db, "settings", "global_configs"), {
-          googleToken: token,
-          googleUser: u,
-        }, { merge: true }).catch((err) => {
-          console.error("Gagal menyinkronkan Google Token ke Firestore:", err);
-        });
-      },
-      () => {
-        // Since other devices use the shared googleToken/googleUser from Firestore,
-        // we avoid wiping out the state on local firebase auth failure if a token exists in Firestore.
-      },
-    );
-    return () => {
-      if (typeof unsubscribe === "function") unsubscribe();
-    };
+    // Tidak ada Firebase Auth — Google Sheets sync dinonaktifkan
+    return () => {};
   }, []);
+
 
   const [salaryRecapLocationTab, setSalaryRecapLocationTab] = useState("Semua Host");
 
@@ -17066,37 +16673,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             try {
                                               setIsSavingReport(true);
                                               const batchId = `sku_batch_${Date.now()}`;
-                                              const bLogsRef = collection(
-                                                db,
-                                                "brand_shopee_sku_logs",
-                                              ); // we keep this db collection name for backward compatibility, but it holds TikTok too
 
-                                              let savedCount = 0;
-                                              for (
-                                                let i = 0;
-                                                i < skuRawData.length;
-                                                i += 500
-                                              ) {
-                                                const chunk = skuRawData.slice(
-                                                  i,
-                                                  i + 500,
-                                                );
-                                                const batch = writeBatch(db);
-                                                chunk.forEach((p) => {
-                                                  const ref = doc(bLogsRef);
-                                                  batch.set(ref, {
-                                                    ...p,
-                                                    platform:
-                                                      saveTargetPlatform,
-                                                    batchId,
-                                                    brandId: saveTargetBrandId,
-                                                    uploadedAt:
-                                                      new Date().toISOString(),
-                                                  });
-                                                });
-                                                await batch.commit();
-                                                savedCount += chunk.length;
-                                              }
+                                              // Simpan ke state lokal (Firebase dihapus)
+                                              const newRecords = skuRawData.map((p) => ({
+                                                ...p,
+                                                id: `${batchId}_${Math.random().toString(36).slice(2)}`,
+                                                platform: saveTargetPlatform,
+                                                batchId,
+                                                brandId: saveTargetBrandId,
+                                                uploadedAt: new Date().toISOString(),
+                                              }));
+                                              setShopeeSkuLogs((prev) => [...prev, ...newRecords]);
                                               customAlert(
                                                 "Data SKU berhasil disimpan!",
                                               );
@@ -25452,11 +25039,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               await sheetsLogout();
                               setGoogleUser(null);
                               setGoogleToken(null);
-                              // Sync clear to Firestore so all devices disconnect
-                              await setDoc(doc(db, "settings", "global_configs"), {
+                              // Simpan ke localStorage (Firebase dihapus)
+                              saveLocalConfig({
                                 googleToken: null,
                                 googleUser: null,
-                              }, { merge: true });
+                              });
+
                               setSheetsSyncMessage({
                                 text: "Berhasil memutuskan tautan akun Google.",
                                 type: "info",
@@ -25512,11 +25100,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       };
                                       setGoogleUser(u);
                                       setGoogleToken(authResult.accessToken);
-                                      // Save to Firestore globally so other instances auto-connect immediately
-                                      await setDoc(doc(db, "settings", "global_configs"), {
+                                      // Simpan ke localStorage (Firebase dihapus)
+                                      saveLocalConfig({
                                         googleToken: authResult.accessToken,
                                         googleUser: u,
-                                      }, { merge: true });
+                                      });
+
                                       setSheetsSyncMessage({
                                         text: `Koneksi berhasil! Selamat datang, ${authResult.user.displayName}`,
                                         type: "success",
