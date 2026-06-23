@@ -4388,29 +4388,7 @@ export default function App() {
 
   // Dynamically compute schedules (combining explicit schedules with clientBrand session defaults)
   const computedSchedules = useMemo(() => {
-    const targetDates = new Set<string>();
-
-    const addDaysFromMonth = (y: number, m: number) => {
-      const days = new Date(y, m + 1, 0).getDate();
-      for (let i = 1; i <= days; i++) {
-        targetDates.add(
-          `${y}-${String(m + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`,
-        );
-      }
-    };
-
-    addDaysFromMonth(calendarYear, calendarMonth);
-    addDaysFromMonth(hostCalendarYear, hostCalendarMonth);
-    // Add today just in case
-    const today = new Date();
-    addDaysFromMonth(today.getFullYear(), today.getMonth());
-
-    const result: any[] = [];
-
-    targetDates.forEach((dateStr) => {
-      const explicitScheds = schedules.filter((s) => s.date === dateStr);
-      result.push(...explicitScheds.filter((es) => !es.isDeleted));
-    });
+    const result = schedules.filter((es) => !es.isDeleted);
 
     const uniqueResult: any[] = [];
     const seen = new Set();
@@ -4429,15 +4407,7 @@ export default function App() {
     });
 
     return uniqueResult;
-  }, [
-    schedules,
-    clientBrands,
-    hosts,
-    calendarYear,
-    calendarMonth,
-    hostCalendarYear,
-    hostCalendarMonth,
-  ]);
+  }, [schedules]);
 
   const hostLogs = useMemo(() => {
     const base = logs.filter((l) => l.hostId === selectedHostId);
