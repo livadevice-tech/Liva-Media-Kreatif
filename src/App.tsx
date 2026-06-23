@@ -776,10 +776,8 @@ export default function App() {
   };
 
   // Dynamic Platforms, Brands, and Shifts lists which can be customized
-  const [platforms, _setPlatforms] = useState<string[]>(() => {
-    const saved = localStorage.getItem("mcn_platforms");
-    return saved ? JSON.parse(saved) : PLATFORMS;
-  });
+  const [platforms, _setPlatforms] = useState<string[]>(PLATFORMS);
+  const [isGlobalConfigsLoaded, setIsGlobalConfigsLoaded] = useState(false);
 
   // --- GOOGLE SHEETS SYNC SYSTEM STATE ---
   const [googleUser, setGoogleUser] = useState<any>(null);
@@ -791,23 +789,21 @@ export default function App() {
   const [uploadBrand, setUploadBrand] = useState<string>("");
   const [uploadPlatform, setUploadPlatform] = useState<string>("Tiktok");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadHistory, setUploadHistory] = useState<any[]>(() => {
-    const saved = localStorage.getItem("mcn_upload_history");
-    return saved ? JSON.parse(saved) : [];
-  });
-  useEffect(() => {
-    localStorage.setItem("mcn_upload_history", JSON.stringify(uploadHistory));
-  }, [uploadHistory]);
+  const [uploadHistory, setUploadHistory] = useState<any[]>([]);
 
-  const [brandReports, setBrandReports] = useState<Record<string, any[]>>(
-    () => {
-      const saved = localStorage.getItem("mcn_brand_reports");
-      return saved ? JSON.parse(saved) : {};
-    },
-  );
   useEffect(() => {
-    localStorage.setItem("mcn_brand_reports", JSON.stringify(brandReports));
-  }, [brandReports]);
+    if (isGlobalConfigsLoaded && uploadHistory.length > 0) {
+      setDoc(doc(db, "settings", "global_configs"), { uploadHistory }, { merge: true }).catch(console.error);
+    }
+  }, [uploadHistory, isGlobalConfigsLoaded]);
+
+  const [brandReports, setBrandReports] = useState<Record<string, any[]>>({});
+
+  useEffect(() => {
+    if (isGlobalConfigsLoaded && Object.keys(brandReports).length > 0) {
+      setDoc(doc(db, "settings", "global_configs"), { brandReports }, { merge: true }).catch(console.error);
+    }
+  }, [brandReports, isGlobalConfigsLoaded]);
 
   // States for custom salary overrides
   const [editingSalaryHostId, setEditingSalaryHostId] = useState<string | null>(
@@ -880,13 +876,10 @@ export default function App() {
     setAlertState({ message });
   };
 
-  const [agencyLogoUrl, _setAgencyLogoUrl] = useState<string>(() => {
-    return localStorage.getItem("mcn_agency_logo") || "";
-  });
+  const [agencyLogoUrl, _setAgencyLogoUrl] = useState<string>("");
   const setAgencyLogoUrl = useCallback((action: any) => {
     _setAgencyLogoUrl((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_agency_logo", next);
       setDoc(
         doc(db, "settings", "global_configs"),
         { agencyLogoUrl: next },
@@ -908,36 +901,24 @@ export default function App() {
     }
   }, [agencyLogoUrl]);
 
-  const [brands, _setBrands] = useState<string[]>(() => {
-    const saved = localStorage.getItem("mcn_brands");
-    return saved ? JSON.parse(saved) : BRANDS;
-  });
+  const [brands, _setBrands] = useState<string[]>(BRANDS);
 
-  const [shifts, _setShifts] = useState<string[]>(() => {
-    const saved = localStorage.getItem("mcn_shifts");
-    return saved ? JSON.parse(saved) : SHIFTS;
-  });
+  const [shifts, _setShifts] = useState<string[]>(SHIFTS);
 
-  const [studios, _setStudios] = useState<StudioItem[]>(() => {
-    const saved = localStorage.getItem("mcn_studios");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            id: "std_1",
-            name: "Studio Bandar Lampung",
-            location: "Bandar Lampung",
-          },
-          { id: "std_2", name: "Studio Tanggamus", location: "Tanggamus" },
-          { id: "std_3", name: "Studio 01", location: "Bandar Lampung" },
-          { id: "std_4", name: "Studio 02", location: "Tanggamus" },
-        ];
-  });
+  const [studios, _setStudios] = useState<StudioItem[]>([
+    {
+      id: "std_1",
+      name: "Studio Bandar Lampung",
+      location: "Bandar Lampung",
+    },
+    { id: "std_2", name: "Studio Tanggamus", location: "Tanggamus" },
+    { id: "std_3", name: "Studio 01", location: "Bandar Lampung" },
+    { id: "std_4", name: "Studio 02", location: "Tanggamus" },
+  ]);
 
   const setPlatforms = useCallback((action: any) => {
     _setPlatforms((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_platforms", JSON.stringify(next));
       setDoc(
         doc(db, "settings", "global_configs"),
         { platforms: next },
@@ -950,7 +931,6 @@ export default function App() {
   const setBrands = useCallback((action: any) => {
     _setBrands((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_brands", JSON.stringify(next));
       setDoc(
         doc(db, "settings", "global_configs"),
         { brands: next },
@@ -963,7 +943,6 @@ export default function App() {
   const setShifts = useCallback((action: any) => {
     _setShifts((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_shifts", JSON.stringify(next));
       setDoc(
         doc(db, "settings", "global_configs"),
         { shifts: next },
@@ -976,7 +955,6 @@ export default function App() {
   const setStudios = useCallback((action: any) => {
     _setStudios((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_studios", JSON.stringify(next));
       setDoc(
         doc(db, "settings", "global_configs"),
         { studios: next },
@@ -987,34 +965,10 @@ export default function App() {
   }, []);
 
   // --- DATABASE & STATE PERSISTENCE ---
-  const [hosts, _setHosts] = useState<HostEmployee[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("mcn_hosts") || "[]");
-    } catch {
-      return [];
-    }
-  });
-  const [logs, _setLogs] = useState<AttendanceLog[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("mcn_logs") || "[]");
-    } catch {
-      return [];
-    }
-  });
-  const [clientBrands, _setClientBrands] = useState<ClientBrand[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("mcn_client_brands") || "[]");
-    } catch {
-      return [];
-    }
-  });
-  const [clientLeads, _setClientLeads] = useState<ClientLead[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("mcn_client_leads") || "[]");
-    } catch {
-      return [];
-    }
-  });
+  const [hosts, _setHosts] = useState<HostEmployee[]>([]);
+  const [logs, _setLogs] = useState<AttendanceLog[]>([]);
+  const [clientBrands, _setClientBrands] = useState<ClientBrand[]>([]);
+  const [clientLeads, _setClientLeads] = useState<ClientLead[]>([]);
 
   // Recover missing history if feature is newly added OR fix badly recovered names
   useEffect(() => {
@@ -1073,42 +1027,24 @@ export default function App() {
   }, [brandReports, uploadHistory.length, clientBrands]);
 
   // --- GOOGLE SHEETS & PAYROLL GLOBAL SYNCED CONFIGS ---
-  const [spreadsheetId, setSpreadsheetId] = useState<string>(() => {
-    return localStorage.getItem("mcn_spreadsheet_id") || "";
-  });
+  const [spreadsheetId, setSpreadsheetId] = useState<string>("");
 
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>(() => {
-    return localStorage.getItem("mcn_spreadsheet_url") || "";
-  });
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>("");
 
-  const [autoSyncSheets, setAutoSyncSheets] = useState<boolean>(() => {
-    return localStorage.getItem("mcn_auto_sync_sheets") === "true";
-  });
+  const [autoSyncSheets, setAutoSyncSheets] = useState<boolean>(false);
 
-  const [salarySettings, setSalarySettings] = useState(() => {
-    const saved = localStorage.getItem("mcn_salary_settings");
-    const defaults = {
-      workingDays: 26, // Cycle Hari Kerja Sebulan
-      bandarLampungRegulerBase: 4000000, // Gaji Pokok Bulanan Bandar Lampung
-      tanggamusRegulerBase: 3500000, // Gaji Pokok Bulanan Tanggamus
-      bandarLampungBackupPay: 175000, // Gaji per Shift Bandar Lampung
-      tanggamusBackupPay: 150000, // Gaji per Shift Tanggamus
-      bandarLampungRegulerBonus: 300000, // Bonus Bulanan Bandar Lampung untuk 100% Hadir & <=3x Terlambat
-      tanggamusRegulerBonus: 250000, // Bonus Bulanan Tanggamus untuk 100% Hadir & <=3x Terlambat
-      overtimePayPerHour: 20000, // Nominal Gaji Lembur per Jam
-      useCutOff: true, // Aktifkan Cut Off (mulai tanggal 16 ke tanggal 15 bulan depannya)
-      cutOffStartDay: 16,
-      cutOffEndDay: 15,
-    };
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return { ...defaults, ...parsed };
-      } catch (e) {
-        console.error("Error parsing saved salary settings, falling back.");
-      }
-    }
-    return defaults;
+  const [salarySettings, setSalarySettings] = useState({
+    workingDays: 26, // Cycle Hari Kerja Sebulan
+    bandarLampungRegulerBase: 4000000, // Gaji Pokok Bulanan Bandar Lampung
+    tanggamusRegulerBase: 3500000, // Gaji Pokok Bulanan Tanggamus
+    bandarLampungBackupPay: 175000, // Gaji per Shift Bandar Lampung
+    tanggamusBackupPay: 150000, // Gaji per Shift Tanggamus
+    bandarLampungRegulerBonus: 300000, // Bonus Bulanan Bandar Lampung untuk 100% Hadir & <=3x Terlambat
+    tanggamusRegulerBonus: 250000, // Bonus Bulanan Tanggamus untuk 100% Hadir & <=3x Terlambat
+    overtimePayPerHour: 20000, // Nominal Gaji Lembur per Jam
+    useCutOff: true, // Aktifkan Cut Off (mulai tanggal 16 ke tanggal 15 bulan depannya)
+    cutOffStartDay: 16,
+    cutOffEndDay: 15,
   });
 
   // Refs to allow the Firestore realtime snapshot listener to see the latest values without re-subscribing
@@ -1127,9 +1063,9 @@ export default function App() {
     autoSyncSheetsRef.current = autoSyncSheets;
   }, [spreadsheetId, spreadsheetUrl, autoSyncSheets]);
 
-  // Debounced/Throttled syncing to Firestore & local storage to avoid write flooding during typing
+  // Debounced/Throttled syncing to Firestore to avoid write flooding during typing
   useEffect(() => {
-    localStorage.setItem("mcn_salary_settings", JSON.stringify(salarySettings));
+    if (!isGlobalConfigsLoaded) return;
     const timer = setTimeout(() => {
          setDoc(doc(db, "settings", "global_configs"), {
            salarySettings
@@ -1138,13 +1074,10 @@ export default function App() {
          });
     }, 1000); // 1-second debounce
     return () => clearTimeout(timer);
-  }, [salarySettings]);
+  }, [salarySettings, isGlobalConfigsLoaded]);
 
   useEffect(() => {
-    localStorage.setItem("mcn_spreadsheet_id", spreadsheetId);
-    localStorage.setItem("mcn_spreadsheet_url", spreadsheetUrl);
-    localStorage.setItem("mcn_auto_sync_sheets", String(autoSyncSheets));
-
+    if (!isGlobalConfigsLoaded) return;
     const timer = setTimeout(() => {
          setDoc(doc(db, "settings", "global_configs"), {
            spreadsheetId,
@@ -1155,7 +1088,7 @@ export default function App() {
          });
     }, 1000); // 1-second debounce
     return () => clearTimeout(timer);
-  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets]);
+  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets, isGlobalConfigsLoaded]);
 
   useEffect(() => {
     let unsubs: any[] = [];
@@ -1180,7 +1113,6 @@ export default function App() {
             (d) => ({ ...(d.data() as any), id: d.id }) as HostEmployee,
           );
           _setHosts(data);
-          localStorage.setItem("mcn_hosts", JSON.stringify(data));
         },
         (err) => {
           console.error("Firestore hosts err:", err);
@@ -1196,7 +1128,6 @@ export default function App() {
             (d) => ({ ...(d.data() as any), id: d.id }) as AttendanceLog,
           );
           _setLogs(data);
-          localStorage.setItem("mcn_logs", JSON.stringify(data));
         },
         (err) => console.error("Firestore logs err:", err),
       ),
@@ -1209,7 +1140,6 @@ export default function App() {
             (d) => ({ ...(d.data() as any), id: d.id }) as ClientBrand,
           );
           _setClientBrands(data);
-          localStorage.setItem("mcn_client_brands", JSON.stringify(data));
         },
         (err) => console.error("Firestore brands err:", err),
       ),
@@ -1222,7 +1152,6 @@ export default function App() {
             (d) => ({ ...(d.data() as any), id: d.id }) as ClientLead,
           );
           _setClientLeads(data);
-          localStorage.setItem("mcn_client_leads", JSON.stringify(data));
         },
         (err) => console.error("Firestore leads err:", err),
       ),
@@ -1269,28 +1198,8 @@ export default function App() {
       onSnapshot(
         collection(db, "schedules"),
         (snap) => {
-          if (snap.empty) {
-            try {
-              const saved = localStorage.getItem("mcn_schedules_v3");
-              if (saved) {
-                const localData = JSON.parse(saved);
-                if (Array.isArray(localData) && localData.length > 0) {
-                  console.log(
-                    "Seeding schedules to Firestore from local storage:",
-                    localData.length,
-                  );
-                  syncToFirestore("schedules", [], localData);
-                  _setSchedules(localData);
-                  return;
-                }
-              }
-            } catch (e) {
-              console.error("Failed to seed schedules from local storage:", e);
-            }
-          }
           const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
           _setSchedules(data);
-          localStorage.setItem("mcn_schedules_v3", JSON.stringify(data));
         },
         (err) => console.error("Firestore schedules err:", err),
       ),
@@ -1305,23 +1214,18 @@ export default function App() {
             const data = snap.data();
             if (Array.isArray(data.brands)) {
               _setBrands(data.brands);
-              localStorage.setItem("mcn_brands", JSON.stringify(data.brands));
             }
             if (Array.isArray(data.shifts)) {
               _setShifts(data.shifts);
-              localStorage.setItem("mcn_shifts", JSON.stringify(data.shifts));
             }
             if (Array.isArray(data.studios)) {
               _setStudios(data.studios);
-              localStorage.setItem("mcn_studios", JSON.stringify(data.studios));
             }
             if (Array.isArray(data.platforms)) {
               _setPlatforms(data.platforms);
-              localStorage.setItem("mcn_platforms", JSON.stringify(data.platforms));
             }
             if (typeof data.agencyLogoUrl === "string") {
               _setAgencyLogoUrl(data.agencyLogoUrl);
-              localStorage.setItem("mcn_agency_logo", data.agencyLogoUrl);
             }
 
             // Realtime Google Sheets Token & User Sync
@@ -1337,22 +1241,9 @@ export default function App() {
             }
 
             // Handle synced salarySettings & sheets settings
-            let needsSeeding = false;
-            const seedingPayload: any = {};
-
             if (data.salarySettings) {
               if (JSON.stringify(data.salarySettings) !== JSON.stringify(salarySettingsRef.current)) {
                 setSalarySettings(data.salarySettings);
-              }
-            } else {
-              const savedSalary = localStorage.getItem("mcn_salary_settings");
-              if (savedSalary) {
-                try {
-                  const parsed = JSON.parse(savedSalary);
-                  seedingPayload.salarySettings = parsed;
-                  needsSeeding = true;
-                  setSalarySettings(parsed);
-                } catch (e) {}
               }
             }
 
@@ -1360,25 +1251,11 @@ export default function App() {
               if (data.spreadsheetId !== spreadsheetIdRef.current) {
                 setSpreadsheetId(data.spreadsheetId);
               }
-            } else {
-              const savedId = localStorage.getItem("mcn_spreadsheet_id");
-              if (savedId) {
-                seedingPayload.spreadsheetId = savedId;
-                needsSeeding = true;
-                setSpreadsheetId(savedId);
-              }
             }
 
             if (typeof data.spreadsheetUrl === "string") {
               if (data.spreadsheetUrl !== spreadsheetUrlRef.current) {
                 setSpreadsheetUrl(data.spreadsheetUrl);
-              }
-            } else {
-              const savedUrl = localStorage.getItem("mcn_spreadsheet_url");
-              if (savedUrl) {
-                seedingPayload.spreadsheetUrl = savedUrl;
-                needsSeeding = true;
-                setSpreadsheetUrl(savedUrl);
               }
             }
 
@@ -1386,61 +1263,61 @@ export default function App() {
               if (data.autoSyncSheets !== autoSyncSheetsRef.current) {
                 setAutoSyncSheets(data.autoSyncSheets);
               }
-            } else {
-              const savedAutoSync = localStorage.getItem("mcn_auto_sync_sheets");
-              if (savedAutoSync) {
-                const parsedVal = savedAutoSync === "true";
-                seedingPayload.autoSyncSheets = parsedVal;
-                needsSeeding = true;
-                setAutoSyncSheets(parsedVal);
-              }
             }
 
-            if (needsSeeding) {
-              setDoc(doc(db, "settings", "global_configs"), seedingPayload, { merge: true })
-                .catch(console.error);
+            // Realtime brandReports and uploadHistory
+            if (data.brandReports) {
+              setBrandReports(data.brandReports);
             }
+            if (data.uploadHistory) {
+              setUploadHistory(data.uploadHistory);
+            }
+
+            setIsGlobalConfigsLoaded(true);
           } else {
-            try {
-              const platformsSaved = localStorage.getItem("mcn_platforms");
-              const brandsSaved = localStorage.getItem("mcn_brands");
-              const shiftsSaved = localStorage.getItem("mcn_shifts");
-              const studiosSaved = localStorage.getItem("mcn_studios");
-              const salarySaved = localStorage.getItem("mcn_salary_settings");
-              const sheetIdSaved = localStorage.getItem("mcn_spreadsheet_id");
-              const sheetUrlSaved = localStorage.getItem("mcn_spreadsheet_url");
-              const autoSyncSaved = localStorage.getItem("mcn_auto_sync_sheets");
+            // Seed defaults to Firestore if document does not exist
+            const defaults = {
+              platforms: PLATFORMS,
+              brands: BRANDS,
+              shifts: SHIFTS,
+              studios: [
+                {
+                  id: "std_1",
+                  name: "Studio Bandar Lampung",
+                  location: "Bandar Lampung",
+                },
+                { id: "std_2", name: "Studio Tanggamus", location: "Tanggamus" },
+                { id: "std_3", name: "Studio 01", location: "Bandar Lampung" },
+                { id: "std_4", name: "Studio 02", location: "Tanggamus" },
+              ],
+              agencyLogoUrl: "",
+              googleToken: null,
+              googleUser: null,
+              salarySettings: {
+                workingDays: 26,
+                bandarLampungRegulerBase: 4000000,
+                tanggamusRegulerBase: 3500000,
+                bandarLampungBackupPay: 175000,
+                tanggamusBackupPay: 150000,
+                bandarLampungRegulerBonus: 300000,
+                tanggamusRegulerBonus: 250000,
+                overtimePayPerHour: 20000,
+                useCutOff: true,
+                cutOffStartDay: 16,
+                cutOffEndDay: 15,
+              },
+              spreadsheetId: "",
+              spreadsheetUrl: "",
+              autoSyncSheets: false,
+              brandReports: {},
+              uploadHistory: [],
+            };
 
-              const initialConfig: any = {};
-              if (platformsSaved)
-                initialConfig.platforms = JSON.parse(platformsSaved);
-              const agencyLogoSaved = localStorage.getItem("mcn_agency_logo");
-              if (agencyLogoSaved)
-                initialConfig.agencyLogoUrl = agencyLogoSaved;
-              if (brandsSaved) initialConfig.brands = JSON.parse(brandsSaved);
-              if (shiftsSaved) initialConfig.shifts = JSON.parse(shiftsSaved);
-              if (studiosSaved)
-                initialConfig.studios = JSON.parse(studiosSaved);
-              if (salarySaved)
-                initialConfig.salarySettings = JSON.parse(salarySaved);
-              if (sheetIdSaved)
-                initialConfig.spreadsheetId = sheetIdSaved;
-              if (sheetUrlSaved)
-                initialConfig.spreadsheetUrl = sheetUrlSaved;
-              if (autoSyncSaved)
-                initialConfig.autoSyncSheets = autoSyncSaved === "true";
-
-              if (Object.keys(initialConfig).length > 0) {
-                setDoc(doc(db, "settings", "global_configs"), initialConfig, {
-                  merge: true,
-                }).catch(console.error);
-              }
-            } catch (e) {
-              console.error(
-                "Failed to seed global configs from local storage:",
-                e,
-              );
-            }
+            setDoc(doc(db, "settings", "global_configs"), defaults)
+              .then(() => {
+                setIsGlobalConfigsLoaded(true);
+              })
+              .catch(console.error);
           }
         },
         (err) => console.error("Firestore global_configs err:", err),
@@ -1455,7 +1332,6 @@ export default function App() {
   const setHosts = useCallback((action: any) => {
     _setHosts((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_hosts", JSON.stringify(next));
       syncToFirestore("hosts", prev, next);
       return next;
     });
@@ -1464,7 +1340,6 @@ export default function App() {
   const setLogs = useCallback((action: any) => {
     _setLogs((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_logs", JSON.stringify(next));
       syncToFirestore("logs", prev, next);
       return next;
     });
@@ -1473,7 +1348,6 @@ export default function App() {
   const setClientBrands = useCallback((action: any) => {
     _setClientBrands((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_client_brands", JSON.stringify(next));
       syncToFirestore("client_brands", prev, next);
       return next;
     });
@@ -1482,15 +1356,10 @@ export default function App() {
   const setClientLeads = useCallback((action: any) => {
     _setClientLeads((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_client_leads", JSON.stringify(next));
       syncToFirestore("client_leads", prev, next);
       return next;
     });
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("mcn_client_leads", JSON.stringify(clientLeads));
-  }, [clientLeads]);
 
   // Modal States
   const [brandFormEditor, setBrandFormEditor] =
@@ -1508,20 +1377,11 @@ export default function App() {
   const [leadSearchQuery, setLeadSearchQuery] = useState("");
 
   // --- SCHEDULES SYSTEM FOR HOST WORKING CALENDAR ---
-  const [schedules, _setSchedules] = useState<any[]>(() => {
-    const saved = localStorage.getItem("mcn_schedules_v3");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return [];
-  });
+  const [schedules, _setSchedules] = useState<any[]>([]);
 
   const setSchedules = useCallback((action: any) => {
     _setSchedules((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
-      localStorage.setItem("mcn_schedules_v3", JSON.stringify(next));
       syncToFirestore("schedules", prev, next);
       return next;
     });
