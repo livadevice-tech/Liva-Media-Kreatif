@@ -130,6 +130,7 @@ import {
   deleteDoc,
   writeBatch,
   getDocs,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { syncToFirestore } from "./firestoreSync";
@@ -778,6 +779,8 @@ export default function App() {
   // Dynamic Platforms, Brands, and Shifts lists which can be customized
   const [platforms, _setPlatforms] = useState<string[]>(PLATFORMS);
   const [isGlobalConfigsLoaded, setIsGlobalConfigsLoaded] = useState(false);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+  const [isQuotaBannerDismissed, setIsQuotaBannerDismissed] = useState(false);
 
   // --- GOOGLE SHEETS SYNC SYSTEM STATE ---
   const [googleUser, setGoogleUser] = useState<any>(null);
@@ -875,6 +878,15 @@ export default function App() {
   const customAlert = (message: string) => {
     setAlertState({ message });
   };
+
+  const handleQuotaError = useCallback((err: any, context?: string) => {
+    if (err && err.message && err.message.toLowerCase().includes("quota")) {
+      setIsQuotaExceeded(true);
+      console.warn(`Firestore Quota Limit Exceeded detected in ${context || "general"}. Standard cached/local values are active.`);
+    } else {
+      console.error(`Firestore error in ${context || "general"}:`, err);
+    }
+  }, []);
 
   const [agencyLogoUrl, _setAgencyLogoUrl] = useState<string>("");
   const setAgencyLogoUrl = useCallback((action: any) => {
@@ -1047,6 +1059,24 @@ export default function App() {
     cutOffEndDay: 15,
   });
 
+  const [loggedInClientBrandId, setLoggedInClientBrandId] = useState<
+    string | null
+  >(() => {
+    return sessionStorage.getItem("mcn_logged_in_client_brand_id") || null;
+  });
+
+  const [loggedInHostId, setLoggedInHostId] = useState<string | null>(() => {
+    return sessionStorage.getItem("mcn_logged_in_host_id") || null;
+  });
+
+  const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(() => {
+    return sessionStorage.getItem("mcn_logged_in_admin_id") || null;
+  });
+
+  const [isOperatorLoggedIn, setIsOperatorLoggedIn] = useState<boolean>(() => {
+    return sessionStorage.getItem("mcn_is_operator_logged_in") === "true";
+  });
+
   // Refs to allow the Firestore realtime snapshot listener to see the latest values without re-subscribing
   const salarySettingsRef = useRef(salarySettings);
   const spreadsheetIdRef = useRef(spreadsheetId);
@@ -1090,185 +1120,145 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [spreadsheetId, spreadsheetUrl, autoSyncSheets, isGlobalConfigsLoaded]);
 
-  useEffect(() => {
-    let unsubs: any[] = [];
-    unsubs.push(
-      onSnapshot(
-        collection(db, "admin_accounts"),
-        (snap) => {
-          _setAdminAccounts(
-            snap.docs.map(
-              (d) => ({ ...(d.data() as any), id: d.id }) as AdminAccount,
-            ),
-          );
-        },
-        (err) => console.error("Firestore admin_accounts err:", err),
-      ),
-    );
-    unsubs.push(
-      onSnapshot(
-        collection(db, "hosts"),
-        (snap) => {
-          const data = snap.docs.map(
-            (d) => ({ ...(d.data() as any), id: d.id }) as HostEmployee,
-          );
-          _setHosts(data);
-        },
-        (err) => {
-          console.error("Firestore hosts err:", err);
-          customAlert("Gagal terhubung ke database hosts: " + err.message);
-        },
-      ),
-    );
-    unsubs.push(
-      onSnapshot(
-        collection(db, "logs"),
-        (snap) => {
-          const data = snap.docs.map(
-            (d) => ({ ...(d.data() as any), id: d.id }) as AttendanceLog,
-          );
-          _setLogs(data);
-        },
-        (err) => console.error("Firestore logs err:", err),
-      ),
-    );
-    unsubs.push(
-      onSnapshot(
-        collection(db, "client_brands"),
-        (snap) => {
-          const data = snap.docs.map(
-            (d) => ({ ...(d.data() as any), id: d.id }) as ClientBrand,
-          );
-          _setClientBrands(data);
-        },
-        (err) => console.error("Firestore brands err:", err),
-      ),
-    );
-    unsubs.push(
-      onSnapshot(
-        collection(db, "client_leads"),
-        (snap) => {
-          const data = snap.docs.map(
-            (d) => ({ ...(d.data() as any), id: d.id }) as ClientLead,
-          );
-          _setClientLeads(data);
-        },
-        (err) => console.error("Firestore leads err:", err),
-      ),
-    );
-    unsubs.push(
-      onSnapshot(
-        collection(db, "brand_performance_logs"),
-        (snap) => {
-          setBrandPerformanceLogs(
-            snap.docs.map((d) => ({ ...d.data(), id: d.id }) as any),
-          );
-          setIsLogsLoading(false);
-        },
-        (err) => {
-          console.error("Firestore brand_performance_logs err:", err);
-          setIsLogsLoading(false);
-        },
-      ),
-    );
-    unsubs.push(
-      onSnapshot(
-        collection(db, "brand_upload_history"),
-        (snap) => {
-          setBrandUploadHistory(
-            snap.docs.map((d) => ({ ...d.data(), id: d.id })),
-          );
-        },
-        (err) => console.error("Firestore brand_upload_history err:", err),
-      ),
-    );
+  const fetchFirestoreData = async () => {
+    try {
+      const isAdminOrOperator = loggedInAdminId || isOperatorLoggedIn;
+      const isHost = loggedInHostId;
+      const isBrand = loggedInClientBrandId;
+      const isGuest = !isAdminOrOperator && !isHost && !isBrand;
 
-    unsubs.push(
-      onSnapshot(
-        collection(db, "brand_shopee_sku_logs"),
-        (snap) => {
-          setShopeeSkuLogs(snap.docs.map((d) => ({ ...d.data(), id: d.id })));
-        },
-        (err) => console.error("Firestore brand_shopee_sku_logs err:", err),
-      ),
-    );
+      // 1. admin_accounts
+      if (isGuest || isAdminOrOperator) {
+        const snap = await getDocs(collection(db, "admin_accounts"));
+        _setAdminAccounts(
+          snap.docs.map(
+            (d) => ({ ...(d.data() as any), id: d.id }) as AdminAccount,
+          ),
+        );
+      }
 
-    // Listens for explicit roster schedules in real-time
-    unsubs.push(
-      onSnapshot(
-        collection(db, "schedules"),
-        (snap) => {
-          const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
-          _setSchedules(data);
-        },
-        (err) => console.error("Firestore schedules err:", err),
-      ),
-    );
+      // 2. hosts
+      if (isGuest || isAdminOrOperator || isHost) {
+        const snap = await getDocs(collection(db, "hosts"));
+        const data = snap.docs.map(
+          (d) => ({ ...(d.data() as any), id: d.id }) as HostEmployee,
+        );
+        _setHosts(data);
+      }
 
-    // Listens for host notifications in real-time
-    unsubs.push(
-      onSnapshot(
-        collection(db, "host_notifications"),
-        (snap) => {
-          const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
-          _setHostNotifications(data);
-        },
-        (err) => console.error("Firestore host_notifications err:", err),
-      )
-    );
+      // 3. logs
+      if (isAdminOrOperator || isHost) {
+        const snap = await getDocs(collection(db, "logs"));
+        const data = snap.docs.map(
+          (d) => ({ ...(d.data() as any), id: d.id }) as AttendanceLog,
+        );
+        _setLogs(data);
+      }
 
-    // Listens for general notifications in real-time
-    unsubs.push(
-      onSnapshot(
-        collection(db, "notifications"),
-        (snap) => {
-          if (snap.empty) {
-            const defaults = [
-              {
-                id: "notif-init-welcome",
-                title: "Selamat Datang di Workspace!",
-                description:
-                  "Gunakan panel notifikasi ini untuk memantau performa streaming, absensi host, upload data raw brand, dan follow-up leads.",
-                type: "success",
-                timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 mins ago
-                read: false,
-                actionTab: "dashboard_utama",
-              },
-              {
-                id: "notif-init-lead",
-                title: "⚠️ Leads Calon Klien Baru",
-                description:
-                  'Ada prospek leads masuk dari "Eiger Adventure Official". Silakan periksa detailnya di tab Leads & Calon Klien.',
-                type: "warning",
-                timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(), // 35 mins ago
-                read: false,
-                actionTab: "leads",
-              },
-              {
-                id: "notif-init-upload",
-                title: "📊 Impor Raw Data Berhasil",
-                description:
-                  'Laporan TikTok Live untuk brand "Skintific" berhasil diunggah (30 sesi streaming berhasil direkam ke database).',
-                type: "info",
-                timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 hours ago
-                read: true,
-                actionTab: "reporting_brand",
-              },
-              {
-                id: "notif-init-sheets",
-                title: "🔌 Sinkronisasi Google Sheets Berhasil",
-                description:
-                  "Semua log kehadiran dan rekapitulasi performa terbaru berhasil disinkronkan tepat waktu dengan tautan Google Sheet eksternal.",
-                type: "success",
-                timestamp: new Date(Date.now() - 1000 * 60 * 360).toISOString(), // 6 hours ago
-                read: true,
-                actionTab: "sheets",
-              },
-            ];
-            syncToFirestore("notifications", [], defaults);
-            _setNotifications(defaults);
-            return;
-          }
+      // 4. client_brands
+      if (isGuest || isAdminOrOperator || isBrand) {
+        const snap = await getDocs(collection(db, "client_brands"));
+        const data = snap.docs.map(
+          (d) => ({ ...(d.data() as any), id: d.id }) as ClientBrand,
+        );
+        _setClientBrands(data);
+      }
+
+      // 5. client_leads
+      if (isAdminOrOperator) {
+        const snap = await getDocs(collection(db, "client_leads"));
+        const data = snap.docs.map(
+          (d) => ({ ...(d.data() as any), id: d.id }) as ClientLead,
+        );
+        _setClientLeads(data);
+      }
+
+      // 6. brand_performance_logs
+      if (isAdminOrOperator || isBrand) {
+        const snap = await getDocs(collection(db, "brand_performance_logs"));
+        setBrandPerformanceLogs(
+          snap.docs.map((d) => ({ ...d.data(), id: d.id }) as any),
+        );
+        setIsLogsLoading(false);
+      }
+
+      // 7. brand_upload_history
+      if (isAdminOrOperator || isBrand) {
+        const snap = await getDocs(collection(db, "brand_upload_history"));
+        setBrandUploadHistory(
+          snap.docs.map((d) => ({ ...d.data(), id: d.id })),
+        );
+      }
+
+      // 8. brand_shopee_sku_logs
+      if (isAdminOrOperator || isBrand) {
+        const snap = await getDocs(collection(db, "brand_shopee_sku_logs"));
+        setShopeeSkuLogs(snap.docs.map((d) => ({ ...d.data(), id: d.id })));
+      }
+
+      // 9. schedules
+      if (isAdminOrOperator || isHost || isBrand) {
+        const snap = await getDocs(collection(db, "schedules"));
+        const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+        _setSchedules(data);
+      }
+
+      // 10. host_notifications
+      if (isAdminOrOperator || isHost) {
+        const snap = await getDocs(collection(db, "host_notifications"));
+        const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+        _setHostNotifications(data);
+      }
+
+      // 11. notifications
+      if (isAdminOrOperator) {
+        const snap = await getDocs(collection(db, "notifications"));
+        if (snap.empty) {
+          const defaults = [
+            {
+              id: "notif-init-welcome",
+              title: "Selamat Datang di Workspace!",
+              description:
+                "Gunakan panel notifikasi ini untuk memantau performa streaming, absensi host, upload data raw brand, dan follow-up leads.",
+              type: "success",
+              timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+              read: false,
+              actionTab: "dashboard_utama",
+            },
+            {
+              id: "notif-init-lead",
+              title: "⚠️ Leads Calon Klien Baru",
+              description:
+                'Ada prospek leads masuk dari "Eiger Adventure Official". Silakan periksa detailnya di tab Leads & Calon Klien.',
+              type: "warning",
+              timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+              read: false,
+              actionTab: "leads",
+            },
+            {
+              id: "notif-init-upload",
+              title: "📊 Impor Raw Data Berhasil",
+              description:
+                'Laporan TikTok Live untuk brand "Skintific" berhasil diunggah (30 sesi streaming berhasil direkam ke database).',
+              type: "info",
+              timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+              read: true,
+              actionTab: "reporting_brand",
+            },
+            {
+              id: "notif-init-sheets",
+              title: "🔌 Sinkronisasi Google Sheets Berhasil",
+              description:
+                "Semua log kehadiran dan rekapitulasi performa terbaru berhasil disinkronkan tepat waktu dengan tautan Google Sheet eksternal.",
+              type: "success",
+              timestamp: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
+              read: true,
+              actionTab: "sheets",
+            },
+          ];
+          syncToFirestore("notifications", [], defaults);
+          _setNotifications(defaults);
+        } else {
           const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
           const sorted = data.sort((a: any, b: any) => {
             const tA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
@@ -1276,156 +1266,154 @@ export default function App() {
             return tB - tA;
           });
           _setNotifications(sorted);
-        },
-        (err) => console.error("Firestore notifications err:", err),
-      )
-    );
+        }
+      }
 
-    // Listens for global configurations (custom brands, shifts, studios, platforms)
-    unsubs.push(
-      onSnapshot(
-        doc(db, "settings", "global_configs"),
-        (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            if (Array.isArray(data.brands)) {
-              _setBrands(data.brands);
-            }
-            if (Array.isArray(data.shifts)) {
-              _setShifts(data.shifts);
-            }
-            if (Array.isArray(data.studios)) {
-              _setStudios(data.studios);
-            }
-            if (Array.isArray(data.platforms)) {
-              _setPlatforms(data.platforms);
-            }
-            if (typeof data.agencyLogoUrl === "string") {
-              _setAgencyLogoUrl(data.agencyLogoUrl);
-            }
+      // global_configs
+      const snapGlobal = await getDoc(doc(db, "settings", "global_configs"));
+      if (snapGlobal.exists()) {
+        const data = snapGlobal.data();
+        if (Array.isArray(data.brands)) {
+          _setBrands(data.brands);
+        }
+        if (Array.isArray(data.shifts)) {
+          _setShifts(data.shifts);
+        }
+        if (Array.isArray(data.studios)) {
+          _setStudios(data.studios);
+        }
+        if (Array.isArray(data.platforms)) {
+          _setPlatforms(data.platforms);
+        }
+        if (typeof data.agencyLogoUrl === "string") {
+          _setAgencyLogoUrl(data.agencyLogoUrl);
+        }
 
-            // Realtime Google Sheets Token & User Sync
-            if (typeof data.googleToken === "string") {
-              setGoogleToken(data.googleToken);
-            } else if (data.googleToken === null) {
-              setGoogleToken(null);
-            }
-            if (data.googleUser) {
-              setGoogleUser(data.googleUser);
-            } else if (data.googleUser === null) {
-              setGoogleUser(null);
-            }
+        if (typeof data.googleToken === "string") {
+          setGoogleToken(data.googleToken);
+        } else if (data.googleToken === null) {
+          setGoogleToken(null);
+        }
+        if (data.googleUser) {
+          setGoogleUser(data.googleUser);
+        } else if (data.googleUser === null) {
+          setGoogleUser(null);
+        }
 
-            // Handle synced salarySettings & sheets settings
-            if (data.salarySettings) {
-              if (JSON.stringify(data.salarySettings) !== JSON.stringify(salarySettingsRef.current)) {
-                setSalarySettings(data.salarySettings);
-              }
-            }
-
-            if (typeof data.spreadsheetId === "string") {
-              if (data.spreadsheetId !== spreadsheetIdRef.current) {
-                setSpreadsheetId(data.spreadsheetId);
-              }
-            }
-
-            if (typeof data.spreadsheetUrl === "string") {
-              if (data.spreadsheetUrl !== spreadsheetUrlRef.current) {
-                setSpreadsheetUrl(data.spreadsheetUrl);
-              }
-            }
-
-            if (typeof data.autoSyncSheets === "boolean") {
-              if (data.autoSyncSheets !== autoSyncSheetsRef.current) {
-                setAutoSyncSheets(data.autoSyncSheets);
-              }
-            }
-
-            // Realtime brandReports and uploadHistory
-            if (data.brandReports) {
-              setBrandReports(data.brandReports);
-            }
-            if (data.uploadHistory) {
-              setUploadHistory(data.uploadHistory);
-            }
-
-            // Sync other layout, credentials and checklists
-            if (data.adminCredentials) {
-              setAdminCredentials(data.adminCredentials);
-            }
-            if (data.adminShiftChecklistObj) {
-              setAdminShiftChecklistObj(data.adminShiftChecklistObj);
-            }
-            if (data.columnWidths) {
-              setColumnWidths(data.columnWidths);
-            }
-
-            setIsGlobalConfigsLoaded(true);
-          } else {
-            // Seed defaults to Firestore if document does not exist
-            const defaults = {
-              platforms: PLATFORMS,
-              brands: BRANDS,
-              shifts: SHIFTS,
-              studios: [
-                {
-                  id: "std_1",
-                  name: "Studio Bandar Lampung",
-                  location: "Bandar Lampung",
-                },
-                { id: "std_2", name: "Studio Tanggamus", location: "Tanggamus" },
-                { id: "std_3", name: "Studio 01", location: "Bandar Lampung" },
-                { id: "std_4", name: "Studio 02", location: "Tanggamus" },
-              ],
-              agencyLogoUrl: "",
-              googleToken: null,
-              googleUser: null,
-              salarySettings: {
-                workingDays: 26,
-                bandarLampungRegulerBase: 4000000,
-                tanggamusRegulerBase: 3500000,
-                bandarLampungBackupPay: 175000,
-                tanggamusBackupPay: 150000,
-                bandarLampungRegulerBonus: 300000,
-                tanggamusRegulerBonus: 250000,
-                overtimePayPerHour: 20000,
-                useCutOff: true,
-                cutOffStartDay: 16,
-                cutOffEndDay: 15,
-              },
-              spreadsheetId: "",
-              spreadsheetUrl: "",
-              autoSyncSheets: false,
-              brandReports: {},
-              uploadHistory: [],
-              adminCredentials: { username: "admin", password: "123" },
-              adminShiftChecklistObj: {},
-              columnWidths: {
-                name: 240,
-                hostType: 120,
-                attendance: 100,
-                late: 90,
-                excused: 100,
-                formula: 200,
-                netSalary: 140,
-              }
-            };
-
-            setDoc(doc(db, "settings", "global_configs"), defaults)
-              .then(() => {
-                setIsGlobalConfigsLoaded(true);
-              })
-              .catch(console.error);
+        if (data.salarySettings) {
+          if (
+            JSON.stringify(data.salarySettings) !==
+            JSON.stringify(salarySettingsRef.current)
+          ) {
+            setSalarySettings(data.salarySettings);
           }
-        },
-        (err) => console.error("Firestore global_configs err:", err),
-      ),
-    );
+        }
 
-    return () => {
-      unsubs.forEach((u) => u());
-    };
-  }, []);
+        if (typeof data.spreadsheetId === "string") {
+          if (data.spreadsheetId !== spreadsheetIdRef.current) {
+            setSpreadsheetId(data.spreadsheetId);
+          }
+        }
+
+        if (typeof data.spreadsheetUrl === "string") {
+          if (data.spreadsheetUrl !== spreadsheetUrlRef.current) {
+            setSpreadsheetUrl(data.spreadsheetUrl);
+          }
+        }
+
+        if (typeof data.autoSyncSheets === "boolean") {
+          if (data.autoSyncSheets !== autoSyncSheetsRef.current) {
+            setAutoSyncSheets(data.autoSyncSheets);
+          }
+        }
+
+        if (data.brandReports) {
+          setBrandReports(data.brandReports);
+        }
+        if (data.uploadHistory) {
+          setUploadHistory(data.uploadHistory);
+        }
+
+        if (data.adminCredentials) {
+          setAdminCredentials(data.adminCredentials);
+        }
+        if (data.adminShiftChecklistObj) {
+          setAdminShiftChecklistObj(data.adminShiftChecklistObj);
+        }
+        if (data.columnWidths) {
+          setColumnWidths(data.columnWidths);
+        }
+
+        setIsGlobalConfigsLoaded(true);
+      } else {
+        const defaults = {
+          platforms: PLATFORMS,
+          brands: BRANDS,
+          shifts: SHIFTS,
+          studios: [
+            {
+              id: "std_1",
+              name: "Studio Bandar Lampung",
+              location: "Bandar Lampung",
+            },
+            { id: "std_2", name: "Studio Tanggamus", location: "Tanggamus" },
+            { id: "std_3", name: "Studio 01", location: "Bandar Lampung" },
+            { id: "std_4", name: "Studio 02", location: "Tanggamus" },
+          ],
+          agencyLogoUrl: "",
+          googleToken: null,
+          googleUser: null,
+          salarySettings: {
+            workingDays: 26,
+            bandarLampungRegulerBase: 4000000,
+            tanggamusRegulerBase: 3500000,
+            bandarLampungBackupPay: 175000,
+            tanggamusBackupPay: 150000,
+            bandarLampungRegulerBonus: 300000,
+            tanggamusRegulerBonus: 250000,
+            overtimePayPerHour: 20000,
+            useCutOff: true,
+            cutOffStartDay: 16,
+            cutOffEndDay: 15,
+          },
+          spreadsheetId: "",
+          spreadsheetUrl: "",
+          autoSyncSheets: false,
+          brandReports: {},
+          uploadHistory: [],
+          adminCredentials: { username: "admin", password: "123" },
+          adminShiftChecklistObj: {},
+          columnWidths: {
+            name: 240,
+            hostType: 120,
+            attendance: 100,
+            late: 90,
+            excused: 100,
+            formula: 200,
+            netSalary: 140,
+          },
+        };
+
+        await setDoc(doc(db, "settings", "global_configs"), defaults);
+        setIsGlobalConfigsLoaded(true);
+      }
+    } catch (err: any) {
+      handleQuotaError(err, "Manual Fetch Firestore Data");
+    }
+  };
+
+  useEffect(() => {
+    fetchFirestoreData();
+  }, [loggedInHostId, loggedInAdminId, isOperatorLoggedIn, loggedInClientBrandId]);
+
+  const handleGlobalSync = async () => {
+    setIsGlobalSyncing(true);
+    await fetchFirestoreData();
+    // Simulate a slightly longer sync to give positive visual feedback to the user
+    setTimeout(() => {
+      setIsGlobalSyncing(false);
+    }, 800);
+  };
 
   const setHosts = useCallback((action: any) => {
     _setHosts((prev) => {
@@ -1519,16 +1507,12 @@ export default function App() {
   }, []);
 
   // Client portal session & inputs
-  const [loggedInClientBrandId, setLoggedInClientBrandId] = useState<
-    string | null
-  >(() => {
-    return sessionStorage.getItem("mcn_logged_in_client_brand_id") || null;
-  });
   const [clientLoginBrandId, setClientLoginBrandId] = useState<string>("");
   const [clientLoginUsername, setClientLoginUsername] = useState<string>("");
   const [clientLoginPass, setClientLoginPass] = useState<string>("");
   const [brandPerformanceLogs, setBrandPerformanceLogs] = useState<any[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
+  const [isGlobalSyncing, setIsGlobalSyncing] = useState<boolean>(false);
   const [brandUploadHistory, setBrandUploadHistory] = useState<any[]>([]);
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [clientDateFilterType, setClientDateFilterType] = useState<
@@ -1659,10 +1643,6 @@ export default function App() {
   >("form");
 
   // Host credentials & login sessions
-  const [loggedInHostId, setLoggedInHostId] = useState<string | null>(() => {
-    return sessionStorage.getItem("mcn_logged_in_host_id") || null;
-  });
-
   useEffect(() => {
     if (loggedInHostId) {
       sessionStorage.setItem("mcn_logged_in_host_id", loggedInHostId);
@@ -1718,9 +1698,6 @@ export default function App() {
     } catch {}
   }, []);
 
-  const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(() => {
-    return sessionStorage.getItem("mcn_logged_in_admin_id") || null;
-  });
   useEffect(() => {
     if (loggedInAdminId)
       sessionStorage.setItem("mcn_logged_in_admin_id", loggedInAdminId);
@@ -1734,10 +1711,6 @@ export default function App() {
   const [newAdminPass, setNewAdminPass] = useState("");
   const [newAdminAccess, setNewAdminAccess] = useState<string[]>([]);
   const [editingAdminId, setEditingAdminId] = useState<string | null>(null);
-
-  const [isOperatorLoggedIn, setIsOperatorLoggedIn] = useState<boolean>(() => {
-    return sessionStorage.getItem("mcn_is_operator_logged_in") === "true";
-  });
 
   useEffect(() => {
     sessionStorage.setItem(
@@ -2337,7 +2310,7 @@ export default function App() {
           window.location.reload();
         }
       } catch (err) {
-        console.error("Failed to auto-clean bad dates:", err);
+        handleQuotaError(err, "cleanupBadDates");
       }
     };
 
@@ -5773,18 +5746,76 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
   if (showLandingPage) {
     return (
-      <LandingPage
-        onEnterApp={() => setShowLandingPage(false)}
-        agencyLogoUrl={agencyLogoUrl}
-      />
+      <>
+        {isQuotaExceeded && !isQuotaBannerDismissed && (
+          <div id="quota_exceeded_banner_landing" className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-3 shadow-sm flex items-start justify-between gap-3 sticky top-0 z-[999]">
+            <div className="flex gap-3 items-start">
+              <span className="text-xl mt-0.5" role="img" aria-label="warning">⚠️</span>
+              <div className="text-xs sm:text-sm">
+                <span className="font-extrabold text-amber-900 block sm:inline">Batas Kuota Google Firestore Terlampaui (Mode Offline Aktif)</span>
+                <span className="sm:ml-2 text-amber-850 leading-relaxed block sm:inline">
+                  Kuota harian basis data gratis untuk Workspace ini telah habis hari ini. Sistem beralih ke Mode Offline / Cache lokal secara otomatis. Anda tetap dapat menginput/mengedit data secara lokal di perangkat Anda sekarang. Semua data beralih secara dinamis.
+                </span>
+              </div>
+            </div>
+            <button 
+              onClick={() => setIsQuotaBannerDismissed(true)}
+              className="text-amber-500 hover:text-amber-700 transition font-black text-lg leading-none cursor-pointer self-center px-1 py-0.5"
+              title="Sembunyikan peringatan"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        <LandingPage
+          onEnterApp={() => setShowLandingPage(false)}
+          agencyLogoUrl={agencyLogoUrl}
+        />
+      </>
     );
   }
 
   return (
     <div
-      className="min-h-screen bg-[#f9f8fc] text-[#3c2f56] flex flex-col font-sans selection:bg-purple-500 selection:text-white"
+      className="min-h-screen bg-[#f9f8fc] text-[#3c2f56] flex flex-col font-sans selection:bg-purple-500 selection:text-white relative"
       id="main_container"
     >
+      {/* GLOBAL REFRESH DATA BUTTON */}
+      {(loggedInAdminId || isOperatorLoggedIn || loggedInHostId || loggedInClientBrandId) && (
+        <button
+          onClick={handleGlobalSync}
+          disabled={isGlobalSyncing}
+          className={`fixed bottom-6 right-6 z-[9000] p-3.5 rounded-full flex items-center justify-center shadow-2xl border ${
+            isGlobalSyncing
+              ? "bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700 hover:scale-110 active:scale-95 border-indigo-500 text-white cursor-pointer hover:shadow-indigo-500/50"
+          } transition-all duration-300`}
+          title="Muat Ulang Data (Sync)"
+        >
+          <RefreshCw className={`w-6 h-6 ${isGlobalSyncing ? "animate-spin" : ""}`} />
+        </button>
+      )}
+
+      {isQuotaExceeded && !isQuotaBannerDismissed && (
+        <div id="quota_exceeded_banner_main" className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-3 shadow-sm flex items-start justify-between gap-3 sticky top-0 z-[999]">
+          <div className="flex gap-3 items-start">
+            <span className="text-xl mt-0.5" role="img" aria-label="warning">⚠️</span>
+            <div className="text-xs sm:text-sm">
+              <span className="font-extrabold text-amber-950 block sm:inline">Batas Kuota Google Firestore Terlampaui (Mode Offline Aktif)</span>
+              <span className="sm:ml-2 text-amber-800 leading-relaxed block sm:inline">
+                Kuota harian basis data gratis untuk Workspace ini telah habis hari ini. Sistem beralih ke Mode Offline / Cache lokal secara otomatis. Anda tetap dapat menginput/mengedit data secara lokal di perangkat Anda sekarang. Semua perubahan offline Anda disimpan secara lokal dan akan disinkronisasikan otomatis ketika Google menyetel ulang batas kuota basis data harian harian (biasanya setiap pukul 15:00 WIB / 00:00 PST).
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsQuotaBannerDismissed(true)}
+            className="text-amber-500 hover:text-amber-700 transition font-black text-lg leading-none cursor-pointer self-center px-1 py-0.5"
+            title="Sembunyikan peringatan"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {confirmState && (
         <div
           className="fixed inset-0 z-[9999] overflow-y-auto bg-[#0f172a]/50 p-4 flex items-start justify-center pt-[15vh] pb-10"
