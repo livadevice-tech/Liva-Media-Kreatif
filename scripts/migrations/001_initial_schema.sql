@@ -5,11 +5,11 @@
 -- Target: Hostinger Business MySQL
 -- ==========================================================
 
-CREATE DATABASE IF NOT EXISTS liva_agency_db
+CREATE DATABASE IF NOT EXISTS u287082095_systemdb
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE liva_agency_db;
+USE u287082095_systemdb;
 
 -- ----------------------------------------------------------
 -- 1. HOSTS (HostEmployee)
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS hosts (
   role                        VARCHAR(80),
   base_monthly_target_hours   DECIMAL(10,2)   DEFAULT 0,
   base_monthly_target_revenue BIGINT          DEFAULT 0,
-  consistency_score           DECIMAL(5,2)    DEFAULT 0,
+  consistency_score           DECIMAL(5,2)      DEFAULT 0,
   joined_date                 DATE,
   email                       VARCHAR(150),
   phone                       VARCHAR(40),
