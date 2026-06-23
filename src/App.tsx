@@ -781,6 +781,11 @@ export default function App() {
     return saved ? JSON.parse(saved) : PLATFORMS;
   });
 
+  // --- GOOGLE SHEETS SYNC SYSTEM STATE ---
+  const [googleUser, setGoogleUser] = useState<any>(null);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
+  const [sheetsAuthLoading, setSheetsAuthLoading] = useState(false);
+
   // Checkbox selection states matching the UI Reference
   const [selectedLogIds, setSelectedLogIds] = useState<string[]>([]);
   const [uploadBrand, setUploadBrand] = useState<string>("");
@@ -1175,6 +1180,7 @@ export default function App() {
             (d) => ({ ...(d.data() as any), id: d.id }) as HostEmployee,
           );
           _setHosts(data);
+          localStorage.setItem("mcn_hosts", JSON.stringify(data));
         },
         (err) => {
           console.error("Firestore hosts err:", err);
@@ -1186,11 +1192,11 @@ export default function App() {
       onSnapshot(
         collection(db, "logs"),
         (snap) => {
-          _setLogs(
-            snap.docs.map(
-              (d) => ({ ...(d.data() as any), id: d.id }) as AttendanceLog,
-            ),
+          const data = snap.docs.map(
+            (d) => ({ ...(d.data() as any), id: d.id }) as AttendanceLog,
           );
+          _setLogs(data);
+          localStorage.setItem("mcn_logs", JSON.stringify(data));
         },
         (err) => console.error("Firestore logs err:", err),
       ),
@@ -1199,11 +1205,11 @@ export default function App() {
       onSnapshot(
         collection(db, "client_brands"),
         (snap) => {
-          _setClientBrands(
-            snap.docs.map(
-              (d) => ({ ...(d.data() as any), id: d.id }) as ClientBrand,
-            ),
+          const data = snap.docs.map(
+            (d) => ({ ...(d.data() as any), id: d.id }) as ClientBrand,
           );
+          _setClientBrands(data);
+          localStorage.setItem("mcn_client_brands", JSON.stringify(data));
         },
         (err) => console.error("Firestore brands err:", err),
       ),
@@ -1212,11 +1218,11 @@ export default function App() {
       onSnapshot(
         collection(db, "client_leads"),
         (snap) => {
-          _setClientLeads(
-            snap.docs.map(
-              (d) => ({ ...(d.data() as any), id: d.id }) as ClientLead,
-            ),
+          const data = snap.docs.map(
+            (d) => ({ ...(d.data() as any), id: d.id }) as ClientLead,
           );
+          _setClientLeads(data);
+          localStorage.setItem("mcn_client_leads", JSON.stringify(data));
         },
         (err) => console.error("Firestore leads err:", err),
       ),
@@ -1282,7 +1288,9 @@ export default function App() {
               console.error("Failed to seed schedules from local storage:", e);
             }
           }
-          _setSchedules(snap.docs.map((d) => ({ ...d.data(), id: d.id })));
+          const data = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+          _setSchedules(data);
+          localStorage.setItem("mcn_schedules_v3", JSON.stringify(data));
         },
         (err) => console.error("Firestore schedules err:", err),
       ),
@@ -1295,12 +1303,38 @@ export default function App() {
         (snap) => {
           if (snap.exists()) {
             const data = snap.data();
-            if (Array.isArray(data.brands)) _setBrands(data.brands);
-            if (Array.isArray(data.shifts)) _setShifts(data.shifts);
-            if (Array.isArray(data.studios)) _setStudios(data.studios);
-            if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
-            if (typeof data.agencyLogoUrl === "string")
+            if (Array.isArray(data.brands)) {
+              _setBrands(data.brands);
+              localStorage.setItem("mcn_brands", JSON.stringify(data.brands));
+            }
+            if (Array.isArray(data.shifts)) {
+              _setShifts(data.shifts);
+              localStorage.setItem("mcn_shifts", JSON.stringify(data.shifts));
+            }
+            if (Array.isArray(data.studios)) {
+              _setStudios(data.studios);
+              localStorage.setItem("mcn_studios", JSON.stringify(data.studios));
+            }
+            if (Array.isArray(data.platforms)) {
+              _setPlatforms(data.platforms);
+              localStorage.setItem("mcn_platforms", JSON.stringify(data.platforms));
+            }
+            if (typeof data.agencyLogoUrl === "string") {
               _setAgencyLogoUrl(data.agencyLogoUrl);
+              localStorage.setItem("mcn_agency_logo", data.agencyLogoUrl);
+            }
+
+            // Realtime Google Sheets Token & User Sync
+            if (typeof data.googleToken === "string") {
+              setGoogleToken(data.googleToken);
+            } else if (data.googleToken === null) {
+              setGoogleToken(null);
+            }
+            if (data.googleUser) {
+              setGoogleUser(data.googleUser);
+            } else if (data.googleUser === null) {
+              setGoogleUser(null);
+            }
 
             // Handle synced salarySettings & sheets settings
             let needsSeeding = false;
@@ -4405,9 +4439,6 @@ export default function App() {
 
   // --- GOOGLE SHEETS SYNC SYSTEM STATE ---
   const [isPayrollConfigOpen, setIsPayrollConfigOpen] = useState(false);
-  const [googleUser, setGoogleUser] = useState<any>(null);
-  const [googleToken, setGoogleToken] = useState<string | null>(null);
-  const [sheetsAuthLoading, setSheetsAuthLoading] = useState(false);
 
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [sheetsSyncMessage, setSheetsSyncMessage] = useState<{
@@ -4418,13 +4449,25 @@ export default function App() {
   // Load and subscribe to Auth Status Changes
   useEffect(() => {
     const unsubscribe = initAuth(
-      (user, token) => {
-        setGoogleUser(user);
+      async (user, token) => {
+        const u = {
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+        };
+        setGoogleUser(u);
         setGoogleToken(token);
+        // Sync to Firestore global configs so other browser instances share it
+        await setDoc(doc(db, "settings", "global_configs"), {
+          googleToken: token,
+          googleUser: u,
+        }, { merge: true }).catch((err) => {
+          console.error("Gagal menyinkronkan Google Token ke Firestore:", err);
+        });
       },
       () => {
-        setGoogleUser(null);
-        setGoogleToken(null);
+        // Since other devices use the shared googleToken/googleUser from Firestore,
+        // we avoid wiping out the state on local firebase auth failure if a token exists in Firestore.
       },
     );
     return () => {
@@ -25450,6 +25493,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               await sheetsLogout();
                               setGoogleUser(null);
                               setGoogleToken(null);
+                              // Sync clear to Firestore so all devices disconnect
+                              await setDoc(doc(db, "settings", "global_configs"), {
+                                googleToken: null,
+                                googleUser: null,
+                              }, { merge: true });
                               setSheetsSyncMessage({
                                 text: "Berhasil memutuskan tautan akun Google.",
                                 type: "info",
@@ -25498,8 +25546,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   try {
                                     const authResult = await googleSignIn();
                                     if (authResult) {
-                                      setGoogleUser(authResult.user);
+                                      const u = {
+                                        displayName: authResult.user.displayName,
+                                        email: authResult.user.email,
+                                        photoURL: authResult.user.photoURL,
+                                      };
+                                      setGoogleUser(u);
                                       setGoogleToken(authResult.accessToken);
+                                      // Save to Firestore globally so other instances auto-connect immediately
+                                      await setDoc(doc(db, "settings", "global_configs"), {
+                                        googleToken: authResult.accessToken,
+                                        googleUser: u,
+                                      }, { merge: true });
                                       setSheetsSyncMessage({
                                         text: `Koneksi berhasil! Selamat datang, ${authResult.user.displayName}`,
                                         type: "success",
