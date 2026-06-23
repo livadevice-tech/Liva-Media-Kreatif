@@ -3,8 +3,8 @@ name: Deploy to Hostinger
 on:
   push:
     branches:
-      - main
-      - master
+      - feature/mysql-migration
+      - mysql-migration
 
 jobs:
   deploy:
@@ -25,7 +25,7 @@ jobs:
             cd /path/ke/folder/liva-app
             
             echo "1. Menarik kode terbaru..."
-            git pull origin main
+            git pull origin feature/mysql-migration
             
             echo "2. Instal dependensi baru..."
             npm install --production=false
