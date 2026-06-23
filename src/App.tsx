@@ -1522,7 +1522,7 @@ export default function App() {
   const [loggedInClientBrandId, setLoggedInClientBrandId] = useState<
     string | null
   >(() => {
-    return localStorage.getItem("mcn_logged_in_client_brand_id") || null;
+    return sessionStorage.getItem("mcn_logged_in_client_brand_id") || null;
   });
   const [clientLoginBrandId, setClientLoginBrandId] = useState<string>("");
   const [clientLoginUsername, setClientLoginUsername] = useState<string>("");
@@ -1640,12 +1640,12 @@ export default function App() {
 
   useEffect(() => {
     if (loggedInClientBrandId) {
-      localStorage.setItem(
+      sessionStorage.setItem(
         "mcn_logged_in_client_brand_id",
         loggedInClientBrandId,
       );
     } else {
-      localStorage.removeItem("mcn_logged_in_client_brand_id");
+      sessionStorage.removeItem("mcn_logged_in_client_brand_id");
     }
   }, [loggedInClientBrandId]);
 
@@ -1660,14 +1660,14 @@ export default function App() {
 
   // Host credentials & login sessions
   const [loggedInHostId, setLoggedInHostId] = useState<string | null>(() => {
-    return localStorage.getItem("mcn_logged_in_host_id") || null;
+    return sessionStorage.getItem("mcn_logged_in_host_id") || null;
   });
 
   useEffect(() => {
     if (loggedInHostId) {
-      localStorage.setItem("mcn_logged_in_host_id", loggedInHostId);
+      sessionStorage.setItem("mcn_logged_in_host_id", loggedInHostId);
     } else {
-      localStorage.removeItem("mcn_logged_in_host_id");
+      sessionStorage.removeItem("mcn_logged_in_host_id");
     }
   }, [loggedInHostId]);
 
@@ -1719,12 +1719,12 @@ export default function App() {
   }, []);
 
   const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(() => {
-    return localStorage.getItem("mcn_logged_in_admin_id") || null;
+    return sessionStorage.getItem("mcn_logged_in_admin_id") || null;
   });
   useEffect(() => {
     if (loggedInAdminId)
-      localStorage.setItem("mcn_logged_in_admin_id", loggedInAdminId);
-    else localStorage.removeItem("mcn_logged_in_admin_id");
+      sessionStorage.setItem("mcn_logged_in_admin_id", loggedInAdminId);
+    else sessionStorage.removeItem("mcn_logged_in_admin_id");
   }, [loggedInAdminId]);
 
   // STATE ADMIN AKUN TAMBAHAN
@@ -1736,11 +1736,11 @@ export default function App() {
   const [editingAdminId, setEditingAdminId] = useState<string | null>(null);
 
   const [isOperatorLoggedIn, setIsOperatorLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem("mcn_is_operator_logged_in") === "true";
+    return sessionStorage.getItem("mcn_is_operator_logged_in") === "true";
   });
 
   useEffect(() => {
-    localStorage.setItem(
+    sessionStorage.setItem(
       "mcn_is_operator_logged_in",
       isOperatorLoggedIn ? "true" : "false",
     );
