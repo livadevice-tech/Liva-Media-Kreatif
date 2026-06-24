@@ -9841,7 +9841,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           Total Sesi Siaran
                         </span>
                         <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
-                          {clientBrands.flatMap((b) => b.sessions).length}
+                          {clientBrands.flatMap((b) => b.sessions || []).length}
                         </div>
                         <p className="text-[11px] text-slate-400 font-semibold mt-2 relative z-10">
                           Terjadwal di seluruh platform
@@ -9867,7 +9867,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
                         {Object.entries(
                           clientBrands
-                            .flatMap((b) => b.sessions)
+                            .flatMap((b) => b.sessions || [])
                             .reduce(
                               (acc, sess) => {
                                 if (sess.platform) {
@@ -9897,7 +9897,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             </div>
                           );
                         })}
-                        {clientBrands.flatMap((b) => b.sessions).length ===
+                        {clientBrands.flatMap((b) => b.sessions || []).length ===
                           0 && (
                           <div className="col-span-2 md:col-span-4 flex flex-col items-center justify-center py-10 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                             <Monitor className="w-10 h-10 text-slate-300 mb-3" />
