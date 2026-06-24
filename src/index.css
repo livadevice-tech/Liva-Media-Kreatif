@@ -97,3 +97,12 @@
 .recharts-wrapper:focus {
   outline: none !important;
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
+}
