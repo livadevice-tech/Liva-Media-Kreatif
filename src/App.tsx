@@ -6981,16 +6981,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             >
                               <div className="flex justify-between items-center mb-1">
                                 <span className="text-[10.5px] font-black tracking-wide uppercase font-sans text-indigo-950">
-                                  📅{" "}
                                   {(() => {
                                     try {
-                                      const d = new Date(sch.date);
-                                      if (isNaN(d.getTime())) return sch.date;
-                                      const dayName = d.toLocaleDateString(
-                                        "id-ID",
-                                        { weekday: "long" },
-                                      );
-                                      return `${dayName}, ${sch.date}`;
+                                      const raw = sch.date || "";
+                                      const datePart = raw.split("T")[0];
+                                      const [y, m, d] = datePart.split("-");
+                                      const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                                      if (isNaN(dateObj.getTime())) return raw;
+                                      const dayName = dateObj.toLocaleDateString("id-ID", { weekday: "long" });
+                                      return `${dayName}, ${d}/${m}/${y}`;
                                     } catch (e) {
                                       return sch.date;
                                     }
@@ -7013,13 +7012,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </span>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 text-[11px] font-sans mt-2">
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-sans mt-2">
                                 <div>
                                   <span className="text-[9px] text-purple-400/80 block uppercase font-bold tracking-wider font-mono mb-1">
                                     Shift:
                                   </span>
                                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-black border leading-none ${getShiftStyle(sch.timeSlot)}`}>
-                                    ⏱️ {sch.timeSlot}
+                                    {sch.timeSlot}
                                   </span>
                                 </div>
                                 <div>
@@ -7027,15 +7026,25 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     Brand:
                                   </span>
                                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-black border leading-none ${getBrandStyle(sch.brand)}`}>
-                                    🛍️ {sch.brand}
+                                    {sch.brand}
                                   </span>
                                 </div>
-                                <div className="col-span-2 pt-1 border-t border-purple-50/50 mt-1">
+                                {sch.platform && (
+                                  <div>
+                                    <span className="text-[9px] text-purple-400/80 block uppercase font-bold tracking-wider font-mono mb-1">
+                                      Platform:
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-black border leading-none bg-sky-50 text-sky-700 border-sky-200">
+                                      {sch.platform}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className={`${sch.platform ? "" : "col-span-2"} pt-1 border-t border-purple-50/50 mt-1 col-span-2`}>
                                   <span className="text-[9px] text-indigo-400/80 block uppercase font-bold tracking-wider font-mono">
                                     Penempatan Studio:
                                   </span>
                                   <span className="font-black text-xs text-indigo-950">
-                                    🏢 {sch.studio || "Studio Utama Lampung"}
+                                    {sch.studio || "Studio Utama"}
                                   </span>
                                 </div>
                               </div>
@@ -7043,7 +7052,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               {/* Additional Info about regular host off / backup replacement */}
                               {isPrimaryOff && (
                                 <div className="mt-2.5 p-2 bg-white/70 border border-amber-200/50 rounded-lg text-[9.5px] text-amber-900 font-bold leading-relaxed shadow-3xs">
-                                  ℹ️ Hari libur reguler Anda. Tugas siaran Anda
+                                  Hari libur reguler Anda. Tugas siaran Anda
                                   diisi oleh backup partner:{" "}
                                   <b className="text-amber-950 underline font-black">
                                     {sch.backupHostName || "Belum Ditentukan"}
@@ -7054,7 +7063,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                               {isReplacement && (
                                 <div className="mt-2.5 p-2 bg-white/70 border border-emerald-200/50 rounded-lg text-[9.5px] text-emerald-900 font-bold leading-relaxed shadow-3xs">
-                                  🤝 Anda ditugaskan masuk siaran menggantikan
+                                  Anda ditugaskan masuk siaran menggantikan
                                   host reguler{" "}
                                   <b className="text-emerald-950 underline font-extrabold">
                                     {sch.hostName}
