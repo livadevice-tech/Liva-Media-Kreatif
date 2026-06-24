@@ -663,10 +663,6 @@ export const getShiftFromHour = (hour: number, shiftsList: string[]) => {
 export default function App() {
   const initPath = window.location.pathname;
   const initRoleMatch = initPath.match(/\/login\/(admin|host|brand)/);
-  const isLandingPageInit = initPath === "/" || initPath === "";
-
-  const [showLandingPage, setShowLandingPage] =
-    useState<boolean>(isLandingPageInit);
 
   const formatDateYYYYMMDD = (d: Date) => {
     const yyyy = d.getFullYear();
@@ -1282,10 +1278,10 @@ export default function App() {
       : initRoleMatch[1] === "brand"
         ? "client"
         : "host"
-    : "host";
-  const [activeRole, setActiveRole] = useState<"host" | "operator" | "client">(
-    defaultRole,
-  );
+    : null;
+  const [activeRole, setActiveRole] = useState<
+    "host" | "operator" | "client" | null
+  >(defaultRole);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -5435,36 +5431,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
     }
   };
 
-  if (showLandingPage) {
-    return (
-      <>
-        {isQuotaExceeded && !isQuotaBannerDismissed && (
-          <div id="quota_exceeded_banner_landing" className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-3 shadow-sm flex items-start justify-between gap-3 sticky top-0 z-[999]">
-            <div className="flex gap-3 items-start">
-              <span className="text-xl mt-0.5" role="img" aria-label="warning">⚠️</span>
-              <div className="text-xs sm:text-sm">
-                <span className="font-extrabold text-amber-900 block sm:inline">Batas Kuota Google Firestore Terlampaui (Mode Offline Aktif)</span>
-                <span className="sm:ml-2 text-amber-850 leading-relaxed block sm:inline">
-                  Kuota harian basis data gratis untuk Workspace ini telah habis hari ini. Sistem beralih ke Mode Offline / Cache lokal secara otomatis. Anda tetap dapat menginput/mengedit data secara lokal di perangkat Anda sekarang. Semua data beralih secara dinamis.
-                </span>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsQuotaBannerDismissed(true)}
-              className="text-amber-500 hover:text-amber-700 transition font-black text-lg leading-none cursor-pointer self-center px-1 py-0.5"
-              title="Sembunyikan peringatan"
-            >
-              ×
-            </button>
-          </div>
-        )}
-        <LandingPage
-          onEnterApp={() => setShowLandingPage(false)}
-          agencyLogoUrl={agencyLogoUrl}
-        />
-      </>
-    );
-  }
 
   return (
     <div
@@ -5550,12 +5516,52 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
       {!loggedInHostId && !isOperatorLoggedIn && !loggedInClientBrandId && (
         <div className="flex-1 flex flex-col justify-center items-center p-4">
-          {activeRole === "client" ? (
+          {activeRole === null ? (
+            /* ROLE SELECTION SCREEN */
+            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto text-center">
+              <LivaLogo className="mx-auto" url={agencyLogoUrl} />
+              <h2 className="text-[17px] font-extrabold text-[#111827] mt-3 tracking-tight">
+                Portal Login
+              </h2>
+              <p className="text-[11px] text-slate-500 font-semibold mt-1 mb-8">
+                Pilih jalur akses Anda ke dalam sistem Liva Agency
+              </p>
+              
+              <button
+                onClick={() => {
+                  window.history.pushState({}, "", "/login/admin");
+                  setActiveRole("operator");
+                }}
+                className="w-full bg-[#111827] text-white font-black py-4 rounded-xl text-[13px] tracking-widest uppercase shadow-xl hover:-translate-y-0.5 transition-all mb-4 cursor-pointer"
+              >
+                Host & Admin
+              </button>
+              
+              <button
+                onClick={() => {
+                  window.history.pushState({}, "", "/login/brand");
+                  setActiveRole("client");
+                }}
+                className="w-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-black py-4 rounded-xl text-[13px] tracking-widest uppercase hover:bg-indigo-100 transition-all cursor-pointer"
+              >
+                Brand Partner
+              </button>
+            </div>
+          ) : activeRole === "client" ? (
             /* BRAND LOGIN PAGE - COMPLETELY SEPARATED */
             <div className="bg-white p-8 rounded-3xl border border-indigo-150 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
-              <div className="text-center mb-6">
+              <div className="text-center mb-6 relative">
+                <button
+                  onClick={() => {
+                    window.history.pushState({}, "", "/");
+                    setActiveRole(null);
+                  }}
+                  className="absolute left-0 top-0 text-[10px] text-slate-400 hover:text-slate-800 font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
+                >
+                  ← Kembali
+                </button>
                 <LivaLogo className="" url={agencyLogoUrl} />
-                <span className="bg-indigo-50 border border-indigo-100 text-[#5642f5] font-black text-[9px] tracking-wider uppercase px-3 py-1 rounded-full">
+                <span className="bg-indigo-50 border border-indigo-100 text-[#5642f5] font-black text-[9px] tracking-wider uppercase px-3 py-1 rounded-full mt-4 inline-block">
                   Portal Partner Brand & Klien
                 </span>
                 <h2 className="text-[17px] font-extrabold text-[#111827] mt-3 tracking-tight">
@@ -5664,10 +5670,19 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
             </div>
           ) : (
             /* HOST & ADMIN LOGIN PORTAL - COMPLETELY SEPARATED FROM BRAND */
-            <div className="bg-white p-8 rounded-3xl border border-purple-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
+            <div className="bg-white p-8 rounded-3xl border border-purple-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto relative">
               <div className="text-center mb-4">
+                <button
+                  onClick={() => {
+                    window.history.pushState({}, "", "/");
+                    setActiveRole(null);
+                  }}
+                  className="absolute left-6 top-8 text-[10px] text-slate-400 hover:text-purple-800 font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
+                >
+                  ← Kembali
+                </button>
                 <LivaLogo className="" url={agencyLogoUrl} />
-                <h2 className="text-[16px] font-black text-purple-950">
+                <h2 className="text-[16px] font-black text-purple-950 mt-4">
                   {activeRole === "host"
                     ? "Login Streamer (Host)"
                     : "Login Master Admin"}
