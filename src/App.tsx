@@ -101,6 +101,7 @@ import {
   Fingerprint,
   Building2,
   PlaySquare,
+  Settings,
 } from "lucide-react";
 
 import {
@@ -3898,6 +3899,7 @@ export default function App() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   });
   const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
+  const [isScheduleActionsOpen, setIsScheduleActionsOpen] = useState(false);
   const [pickerTempDate, setPickerTempDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -10206,173 +10208,190 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                             <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
 
-                            {/* Periode Actions Selector */}
-                            <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/60 border border-slate-200/50 rounded-xl px-2.5 py-1 transition-all">
-                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                                Target:
-                              </span>
-                              <input
-                                type="date"
-                                value={scheduleActionStartDate}
-                                onChange={(e) =>
-                                  setScheduleActionStartDate(e.target.value)
-                                }
-                                className="px-1.5 py-0.5 bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none transition-all"
-                              />
-                              <span className="text-slate-300">s/d</span>
-                              <input
-                                type="date"
-                                value={scheduleActionEndDate}
-                                onChange={(e) =>
-                                  setScheduleActionEndDate(e.target.value)
-                                }
-                                className="px-1.5 py-0.5 bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none transition-all"
-                              />
-                            </div>
-
-                            <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const startParts =
-                                  scheduleActionStartDate.split("-");
-                                const endParts =
-                                  scheduleActionEndDate.split("-");
-                                const startObj = new Date(
-                                  parseInt(startParts[0]),
-                                  parseInt(startParts[1]) - 1,
-                                  parseInt(startParts[2]),
-                                );
-                                const endObj = new Date(
-                                  parseInt(endParts[0]),
-                                  parseInt(endParts[1]) - 1,
-                                  parseInt(endParts[2]),
-                                );
-                                if (startObj > endObj) {
-                                  addNotification(
-                                    "Error",
-                                    "Tanggal mulai tidak boleh lebih besar dari tanggal akhir.",
-                                    "danger",
-                                    "absensi",
-                                  );
-                                  return;
-                                }
-
-                                requestConfirm(
-                                  "Konfirmasi Auto Generate",
-                                  `Auto Generate akan membuat jadwal harian untuk seluruh sesi dari tanggal ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} (dan menghapus jadwal lama yang berpotongan). Lanjutkan?`,
-                                  () => {
-                                    const newSchedules: any[] = [];
-                                    const dateWalker = new Date(startObj);
-
-                                    while (dateWalker <= endObj) {
-                                      // format YYYY-MM-DD
-                                      const yyyy = dateWalker.getFullYear();
-                                      const mm = String(
-                                        dateWalker.getMonth() + 1,
-                                      ).padStart(2, "0");
-                                      const dd = String(
-                                        dateWalker.getDate(),
-                                      ).padStart(2, "0");
-                                      const dateStr = `${yyyy}-${mm}-${dd}`;
-
-                                      clientBrands.forEach((brand) => {
-                                        if (brand.sessions) {
-                                          brand.sessions.forEach((sess) => {
-                                            if (!sess.host) return;
-
-                                            // find the host with robust naming check
-                                            const hostObj = hosts.find(
-                                              (h) =>
-                                                h.name.toLowerCase().trim() ===
-                                                sess.host.toLowerCase().trim(),
+                            {/* Actions Dropdown */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setIsScheduleActionsOpen(!isScheduleActionsOpen)}
+                                className="px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 transition-colors cursor-pointer"
+                              >
+                                <Settings className="w-4 h-4 text-slate-500" /> ⚙️ Aksi Lanjutan
+                              </button>
+                              
+                              {isScheduleActionsOpen && (
+                                <>
+                                  <div className="fixed inset-0 z-30" onClick={() => setIsScheduleActionsOpen(false)} />
+                                  <div className="absolute top-full left-0 mt-2 p-3 bg-white border border-slate-200 shadow-xl rounded-2xl z-40 w-80 animate-in fade-in zoom-in-95 duration-100">
+                                    <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-wider mb-3">Manajemen Massal</h4>
+                                    
+                                    <div className="flex flex-col gap-2 mb-4">
+                                      <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
+                                        Periode Eksekusi:
+                                      </span>
+                                      <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 rounded-lg px-2.5 py-1.5">
+                                        <input
+                                          type="date"
+                                          value={scheduleActionStartDate}
+                                          onChange={(e) => setScheduleActionStartDate(e.target.value)}
+                                          className="flex-1 w-full bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none"
+                                        />
+                                        <span className="text-slate-400 text-xs font-semibold">s/d</span>
+                                        <input
+                                          type="date"
+                                          value={scheduleActionEndDate}
+                                          onChange={(e) => setScheduleActionEndDate(e.target.value)}
+                                          className="flex-1 w-full bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none"
+                                        />
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex flex-col gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const startParts = scheduleActionStartDate.split("-");
+                                          const endParts = scheduleActionEndDate.split("-");
+                                          const startObj = new Date(
+                                            parseInt(startParts[0]),
+                                            parseInt(startParts[1]) - 1,
+                                            parseInt(startParts[2]),
+                                          );
+                                          const endObj = new Date(
+                                            parseInt(endParts[0]),
+                                            parseInt(endParts[1]) - 1,
+                                            parseInt(endParts[2]),
+                                          );
+                                          if (startObj > endObj) {
+                                            addNotification(
+                                              "Error",
+                                              "Tanggal mulai tidak boleh lebih besar dari tanggal akhir.",
+                                              "danger",
+                                              "absensi",
                                             );
-                                            if (hostObj) {
-                                              newSchedules.push({
-                                                id: `auto_gen_${brand.id}_${dateStr}_${sess.id}`,
-                                                hostId: hostObj.id,
-                                                hostName: hostObj.name,
-                                                employeeId: hostObj.employeeId,
-                                                date: dateStr,
-                                                timeSlot: sess.shift,
-                                                platform: sess.platform || "",
-                                                brand: brand.name,
-                                                status: "Assigned",
-                                                studio:
-                                                  sess.studio ||
-                                                  "Studio Bandar Lampung",
-                                                isOffDay: false,
-                                                isPindahStudio: false,
-                                                backupHostId: "",
-                                                backupHostName: "",
+                                            return;
+                                          }
+
+                                          requestConfirm(
+                                            "Konfirmasi Auto Generate",
+                                            `Auto Generate akan membuat jadwal harian untuk seluruh sesi dari tanggal ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} (dan menghapus jadwal lama yang berpotongan). Lanjutkan?`,
+                                            () => {
+                                              const newSchedules: any[] = [];
+                                              const dateWalker = new Date(startObj);
+
+                                              while (dateWalker <= endObj) {
+                                                // format YYYY-MM-DD
+                                                const yyyy = dateWalker.getFullYear();
+                                                const mm = String(
+                                                  dateWalker.getMonth() + 1,
+                                                ).padStart(2, "0");
+                                                const dd = String(
+                                                  dateWalker.getDate(),
+                                                ).padStart(2, "0");
+                                                const dateStr = `${yyyy}-${mm}-${dd}`;
+
+                                                clientBrands.forEach((brand) => {
+                                                  if (brand.sessions) {
+                                                    brand.sessions.forEach((sess) => {
+                                                      if (!sess.host) return;
+
+                                                      // find the host with robust naming check
+                                                      const hostObj = hosts.find(
+                                                        (h) =>
+                                                          h.name.toLowerCase().trim() ===
+                                                          sess.host.toLowerCase().trim(),
+                                                      );
+                                                      if (hostObj) {
+                                                        newSchedules.push({
+                                                          id: `auto_gen_${brand.id}_${dateStr}_${sess.id}`,
+                                                          hostId: hostObj.id,
+                                                          hostName: hostObj.name,
+                                                          employeeId: hostObj.employeeId,
+                                                          date: dateStr,
+                                                          timeSlot: sess.shift,
+                                                          platform: sess.platform || "",
+                                                          brand: brand.name,
+                                                          status: "Assigned",
+                                                          studio:
+                                                            sess.studio ||
+                                                            "Studio Bandar Lampung",
+                                                          isOffDay: false,
+                                                          isPindahStudio: false,
+                                                          backupHostId: "",
+                                                          backupHostName: "",
+                                                        });
+                                                      }
+                                                    });
+                                                  }
+                                                });
+                                                dateWalker.setDate(
+                                                  dateWalker.getDate() + 1,
+                                                );
+                                              }
+
+                                              // Replace existing schedules for this period with the newly generated ones
+                                              setSchedules((prev) => {
+                                                const filtered = prev.filter((s) => {
+                                                  if (!s.date) return true;
+                                                  return (
+                                                    s.date < scheduleActionStartDate ||
+                                                    s.date > scheduleActionEndDate
+                                                  );
+                                                });
+                                                return [...filtered, ...newSchedules];
                                               });
-                                            }
-                                          });
-                                        }
-                                      });
-                                      dateWalker.setDate(
-                                        dateWalker.getDate() + 1,
-                                      );
-                                    }
 
-                                    // Replace existing schedules for this period with the newly generated ones
-                                    setSchedules((prev) => {
-                                      const filtered = prev.filter((s) => {
-                                        if (!s.date) return true;
-                                        return (
-                                          s.date < scheduleActionStartDate ||
-                                          s.date > scheduleActionEndDate
-                                        );
-                                      });
-                                      return [...filtered, ...newSchedules];
-                                    });
-
-                                    addNotification(
-                                      "Jadwal Berhasil Dibuat",
-                                      `Auto Generate selesai memproduksi ${newSchedules.length} sesi dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}.`,
-                                      "success",
-                                      "absensi",
-                                    );
-                                  },
-                                  "info",
-                                );
-                              }}
-                              className="px-3 py-2.5 rounded-none border-b-[3px] border-transparent text-slate-400 font-bold text-[13px] flex items-center gap-2 hover:text-slate-600 transition-colors whitespace-nowrap"
-                            >
-                              <Sparkles className="w-4 h-4" strokeWidth={2.5} />{" "}
-                              Auto Generate
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                requestConfirm(
-                                  `Reset Jadwal (${scheduleActionStartDate} s.d. ${scheduleActionEndDate})`,
-                                  `Apakah Anda yakin ingin menghapus SELURUH jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}? Tindakan ini tidak dapat dibatalkan.`,
-                                  () => {
-                                    setSchedules((prev) =>
-                                      prev.filter((s) => {
-                                        if (!s.date) return true;
-                                        return (
-                                          s.date < scheduleActionStartDate ||
-                                          s.date > scheduleActionEndDate
-                                        );
-                                      }),
-                                    );
-                                    addNotification(
-                                      "Jadwal Direset",
-                                      `Seluruh jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} berhasil dihapus.`,
-                                      "danger",
-                                      "absensi",
-                                    );
-                                  },
-                                  "danger",
-                                );
-                              }}
-                              className="px-3 py-2.5 rounded-none border-b-[3px] border-transparent text-rose-500 font-bold text-[13px] flex items-center gap-2 hover:text-rose-700 transition-colors whitespace-nowrap"
-                            >
-                              <Trash2 className="w-4 h-4" strokeWidth={2.5} />{" "}
-                              Reset Jadwal
-                            </button>
+                                              addNotification(
+                                                "Jadwal Berhasil Dibuat",
+                                                `Auto Generate selesai memproduksi ${newSchedules.length} sesi dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}.`,
+                                                "success",
+                                                "absensi",
+                                              );
+                                            },
+                                            "info",
+                                          );
+                                          setIsScheduleActionsOpen(false);
+                                        }}
+                                        className="w-full px-3 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border border-indigo-100"
+                                      >
+                                        <Sparkles className="w-4 h-4" /> Auto Generate
+                                      </button>
+                                      
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          requestConfirm(
+                                            `Reset Jadwal (${scheduleActionStartDate} s.d. ${scheduleActionEndDate})`,
+                                            `Apakah Anda yakin ingin menghapus SELURUH jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}? Tindakan ini tidak dapat dibatalkan.`,
+                                            () => {
+                                              setSchedules((prev) =>
+                                                prev.filter((s) => {
+                                                  if (!s.date) return true;
+                                                  return (
+                                                    s.date < scheduleActionStartDate ||
+                                                    s.date > scheduleActionEndDate
+                                                  );
+                                                }),
+                                              );
+                                              addNotification(
+                                                "Jadwal Direset",
+                                                `Seluruh jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} berhasil dihapus.`,
+                                                "danger",
+                                                "absensi",
+                                              );
+                                            },
+                                            "danger",
+                                          );
+                                          setIsScheduleActionsOpen(false);
+                                        }}
+                                        className="w-full px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border border-rose-100"
+                                      >
+                                        <Trash2 className="w-4 h-4" /> Reset Jadwal
+                                      </button>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto hide-scrollbar">
                             <button
@@ -10395,7 +10414,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               }}
                               className="px-4 py-2 bg-[#1e1b2e] hover:bg-[#2c2844] border-0 rounded-xl text-xs font-bold text-white flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer shadow-sm"
                             >
-                              <Plus className="w-4 h-4" /> Entry Manual Baru
+                              <Plus className="w-4 h-4" /> + Tambah Jadwal
                             </button>
                           </div>
                         </div>
@@ -10529,7 +10548,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   />
                                   <div
                                     onClick={(e) => e.stopPropagation()}
-                                    className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150"
+                                    className="absolute right-[-20px] sm:right-0 top-full mt-3 w-[260px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 text-left animate-in fade-in zoom-in-95 origin-top-right duration-200"
                                   >
                                     {/* Month/Year and Next Month/Year navigation controls */}
                                     <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
@@ -10729,12 +10748,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             return (
                               <div className="mb-5 p-3.5 bg-amber-50/60 border border-amber-200/50 rounded-xl">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
-                                    ⚠️ Host Reguler Belum Bertugas
+                                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-md">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    Host Tersedia (Idle)
                                   </span>
-                                  <span className="text-xs text-amber-900 font-bold">
-                                    Host reguler yang tidak ada di jadwal studio
-                                    tanggal ini ({idleHosts.length} orang):
+                                  <span className="text-xs text-slate-500 font-medium">
+                                    Host reguler yang belum dijadwalkan hari ini ({idleHosts.length} orang):
                                   </span>
                                 </div>
                                 {idleHosts.length > 0 ? (
@@ -10831,7 +10850,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               );
 
                               return (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 pb-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 pb-2 items-start">
                                   {studioNames.map((studioName) => {
                                     // Filter schedules for this studio and explicitly sort them based on shift time
                                     const studioScheds = uniqueScheds
