@@ -152,6 +152,7 @@ app.get("/api/hosts", asyncHandler(async (req, res) => {
     host.customWorkingDaysTarget = host.custom_working_days_target;
     host.customBaseSalary = host.custom_base_salary;
     host.customShiftRate = host.custom_shift_rate;
+    host.password = host.password_hash;
   }
 
   res.json(hosts);
@@ -166,6 +167,7 @@ app.get("/api/hosts/:id", asyncHandler(async (req, res) => {
   const brands = await queryMany(`SELECT brand FROM host_brands WHERE host_id = ?`, [host.id]);
   host.platforms = platforms.map((p: any) => p.platform);
   host.brands = brands.map((b: any) => b.brand);
+  host.password = host.password_hash;
 
   res.json(host);
 }));
@@ -223,7 +225,7 @@ app.put("/api/hosts/:id", asyncHandler(async (req, res) => {
       name = ?, employee_id = ?, avatar = ?, role = ?,
       base_monthly_target_hours = ?, base_monthly_target_revenue = ?,
       consistency_score = ?, joined_date = ?, email = ?, phone = ?,
-      username = ?, bank_account = ?, studio = ?,
+      username = ?, password_hash = ?, bank_account = ?, studio = ?,
       host_type = ?, custom_working_days_target = ?,
       custom_base_salary = ?, custom_shift_rate = ?
     WHERE id = ?
@@ -232,7 +234,7 @@ app.put("/api/hosts/:id", asyncHandler(async (req, res) => {
     h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
     h.consistencyScore || 0, h.joinedDate || null,
     h.email || null, h.phone || null,
-    h.username || null, h.bankAccount || null, h.studio || null,
+    h.username || null, h.password || null, h.bankAccount || null, h.studio || null,
     h.hostType || 'Reguler',
     h.customWorkingDaysTarget ?? null,
     h.customBaseSalary ?? null,
@@ -677,10 +679,11 @@ app.delete("/api/client-leads/:id", asyncHandler(async (req, res) => {
 // ==================================================================
 
 app.get("/api/admin-accounts", asyncHandler(async (req, res) => {
-  const admins = await queryMany(`SELECT id, name, username, created_at FROM admin_accounts`);
+  const admins = await queryMany(`SELECT id, name, username, password_hash, created_at FROM admin_accounts`);
   for (const admin of admins) {
     const tabs = await queryMany(`SELECT tab_name FROM admin_access_tabs WHERE admin_id = ?`, [admin.id]);
     admin.accessTabs = tabs.map((t: any) => t.tab_name);
+    admin.password = admin.password_hash;
   }
   res.json(admins);
 }));
@@ -701,7 +704,7 @@ app.post("/api/admin-accounts", asyncHandler(async (req, res) => {
 
 app.put("/api/admin-accounts/:id", asyncHandler(async (req, res) => {
   const a = req.body;
-  await execute(`UPDATE admin_accounts SET name=?, username=? WHERE id=?`, [a.name, a.username, req.params.id]);
+  await execute(`UPDATE admin_accounts SET name=?, username=?, password_hash=? WHERE id=?`, [a.name, a.username, a.password || a.passwordHash || '', req.params.id]);
   if (Array.isArray(a.accessTabs)) {
     await execute(`DELETE FROM admin_access_tabs WHERE admin_id = ?`, [req.params.id]);
     for (const tab of a.accessTabs) {
