@@ -4752,7 +4752,7 @@ export default function App() {
 
     if (brandDataSearch.trim()) {
       const q = brandDataSearch.toLowerCase();
-      result = result.filter((b) => b.name.toLowerCase().includes(q));
+      result = result.filter((b) => (b.name || "").toLowerCase().includes(q));
     }
     result.sort((a, b) => {
       const nameA = (a.name || "").toLowerCase();
