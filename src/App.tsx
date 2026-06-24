@@ -97,6 +97,7 @@ import {
   ArrowUpDown,
   TrendingDown,
   Loader2,
+  Fingerprint,
 } from "lucide-react";
 
 import {
@@ -122,6 +123,7 @@ import {
   clientBrandsApi,
   clientLeadsApi,
   adminAccountsApi,
+  testDbConnection,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 
@@ -25604,6 +25606,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </div>
 
                         <div className="space-y-6">
+                          {/* Test Koneksi MySQL */}
+                          <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                            <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+                              <Database className="w-4 h-4 text-indigo-500" />{" "}
+                              Test Koneksi MySQL
+                            </h4>
+                            <p className="text-xs text-slate-500 font-medium mb-4">
+                              Uji coba apakah server aplikasi saat ini berhasil terhubung dengan database MySQL.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const result = await testDbConnection();
+                                  alert("✅ " + result.message);
+                                } catch (err: any) {
+                                  alert("❌ " + err.message);
+                                }
+                              }}
+                              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer border-0"
+                            >
+                              Jalankan Test Koneksi
+                            </button>
+                          </div>
+
                           {/* Authenticator */}
                           <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
                             <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">

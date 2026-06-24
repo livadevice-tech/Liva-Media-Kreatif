@@ -12,6 +12,19 @@
 const API_BASE = '/api';
 
 // ------------------------------------------------------------------
+// UTILS
+// ------------------------------------------------------------------
+
+export const testDbConnection = async (): Promise<{ success: boolean; message: string; data?: any }> => {
+  const res = await fetch(`${API_BASE}/db-test`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Gagal mengecek koneksi database');
+  }
+  return res.json();
+};
+
+// ------------------------------------------------------------------
 // Helper internal: HTTP request wrapper
 // ------------------------------------------------------------------
 async function request<T>(

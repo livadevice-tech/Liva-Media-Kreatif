@@ -907,6 +907,22 @@ app.post('/api/invoice/send-reminder', async (req, res) => {
 // ==================================================================
 // Error Handler Global
 // ==================================================================
+// ==================================================================
+// SYSTEM STATUS ENDPOINT
+// ==================================================================
+app.get('/api/db-test', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT 1 as result');
+    res.json({ success: true, message: 'Koneksi MySQL berhasil tersambung!', data: rows });
+  } catch (error: any) {
+    console.error('Database connection test failed:', error);
+    res.status(500).json({ success: false, message: `Gagal terhubung ke MySQL: ${error.message}` });
+  }
+});
+
+// ==================================================================
+// Global Error Handler
+// ==================================================================
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: getSafeErrorMessage(err) });
