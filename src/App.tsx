@@ -53,6 +53,7 @@ import {
   Sliders,
   Sparkles,
   ChevronRight,
+  Shield,
   ShieldCheck,
   Check,
   Copy,
