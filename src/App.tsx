@@ -157,6 +157,11 @@ function saveLocalConfig(partialConfig: Record<string, any>): void {
     const current = existing ? JSON.parse(existing) : {};
     const merged = { ...current, ...partialConfig };
     localStorage.setItem('liva_global_configs', JSON.stringify(merged));
+    
+    // Sync to MySQL
+    if (typeof settingsApi !== 'undefined') {
+      settingsApi.save('liva_global_configs', merged).catch(console.error);
+    }
   } catch (e) {
     console.error('saveLocalConfig error:', e);
   }
@@ -1376,53 +1381,68 @@ export default function App() {
           }
         }).catch(err => console.error("Error fetching adminCredentials from API:", err));
 
-        // Global configs — load dari localStorage sebagai fallback
-        // (Firestore global_configs diganti dengan defaults lokal)
-        const storedConfig = localStorage.getItem('liva_global_configs');
-        if (storedConfig) {
-          try {
-            const data = JSON.parse(storedConfig);
+        // Global configs — load dari MySQL (dengan fallback ke localStorage)
+        settingsApi.get('liva_global_configs').then(mysqlData => {
+          let data = mysqlData;
+          if (!data || Object.keys(data).length === 0) {
+            // fallback to localStorage jika MySQL kosong
+            const storedConfig = localStorage.getItem('liva_global_configs');
+            if (storedConfig) {
+              try {
+                data = JSON.parse(storedConfig);
+                // Migrasikan ke MySQL agar sinkron
+                settingsApi.save('liva_global_configs', data).catch(console.error);
+              } catch { /* ignore parse error */ }
+            } else {
+              // Seed default global configs
+              const defaults = {
+                platforms: PLATFORMS,
+                brands: BRANDS,
+                shifts: SHIFTS,
+                studios: [
+                  { id: 'std_1', name: 'Studio Bandar Lampung', location: 'Bandar Lampung' },
+                  { id: 'std_2', name: 'Studio Tanggamus', location: 'Tanggamus' },
+                  { id: 'std_3', name: 'Studio 01', location: 'Bandar Lampung' },
+                  { id: 'std_4', name: 'Studio 02', location: 'Tanggamus' },
+                ],
+                agencyLogoUrl: '',
+                salarySettings: {
+                  workingDays: 26,
+                  bandarLampungRegulerBase: 4000000,
+                  tanggamusRegulerBase: 3500000,
+                  bandarLampungBackupPay: 175000,
+                  tanggamusBackupPay: 150000,
+                  bandarLampungRegulerBonus: 300000,
+                  tanggamusRegulerBonus: 250000,
+                  overtimePayPerHour: 20000,
+                  useCutOff: true,
+                  cutOffStartDay: 16,
+                  cutOffEndDay: 15,
+                },
+                adminCredentials: { username: 'admin', password: 'Liva123@@' },
+                adminShiftChecklistObj: {},
+              };
+              data = defaults;
+              localStorage.setItem('liva_global_configs', JSON.stringify(defaults));
+              settingsApi.save('liva_global_configs', defaults).catch(console.error);
+            }
+          } else {
+             // MySQL has data, save to localStorage for offline cache
+             localStorage.setItem('liva_global_configs', JSON.stringify(data));
+          }
+
+          // Set all the states
+          if (data) {
             if (Array.isArray(data.brands)) _setBrands(data.brands);
             if (Array.isArray(data.shifts)) _setShifts(data.shifts);
             if (Array.isArray(data.studios)) _setStudios(data.studios);
             if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
             if (typeof data.agencyLogoUrl === 'string') _setAgencyLogoUrl(data.agencyLogoUrl);
             if (data.salarySettings) setSalarySettings(data.salarySettings);
-            // adminCredentials is now fetched from backend API above, but keep fallback if needed
             if (data.adminCredentials) setAdminCredentials(prev => prev.username === 'admin' && prev.password === 'Liva123@@' ? data.adminCredentials : prev);
             if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
-          } catch { /* ignore parse error */ }
-        } else {
-          // Seed default global configs ke localStorage
-          const defaults = {
-            platforms: PLATFORMS,
-            brands: BRANDS,
-            shifts: SHIFTS,
-            studios: [
-              { id: 'std_1', name: 'Studio Bandar Lampung', location: 'Bandar Lampung' },
-              { id: 'std_2', name: 'Studio Tanggamus', location: 'Tanggamus' },
-              { id: 'std_3', name: 'Studio 01', location: 'Bandar Lampung' },
-              { id: 'std_4', name: 'Studio 02', location: 'Tanggamus' },
-            ],
-            agencyLogoUrl: '',
-            salarySettings: {
-              workingDays: 26,
-              bandarLampungRegulerBase: 4000000,
-              tanggamusRegulerBase: 3500000,
-              bandarLampungBackupPay: 175000,
-              tanggamusBackupPay: 150000,
-              bandarLampungRegulerBonus: 300000,
-              tanggamusRegulerBonus: 250000,
-              overtimePayPerHour: 20000,
-              useCutOff: true,
-              cutOffStartDay: 16,
-              cutOffEndDay: 15,
-            },
-            adminCredentials: { username: 'admin', password: 'Liva123@@' },
-            adminShiftChecklistObj: {},
-          };
-          localStorage.setItem('liva_global_configs', JSON.stringify(defaults));
-        }
+          }
+        }).catch(err => console.error("Error loading global configs:", err));
 
         setIsGlobalConfigsLoaded(true);
 
