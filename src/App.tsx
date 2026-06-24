@@ -2128,8 +2128,8 @@ export default function App() {
     let detectedBrandObj = null;
     const fileNameLower = file.name.toLowerCase();
     for (const b of clientBrands) {
-      const brandNameClean = b.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (fileNameLower.includes(brandNameClean)) {
+      const brandNameClean = (b.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (fileNameLower.includes(brandNameClean) && brandNameClean.length > 0) {
         detectedBrandObj = b;
         break;
       }
@@ -2519,9 +2519,9 @@ export default function App() {
     // 2. Auto-detect brand from filename
     let detectedBrandObj = null;
     for (const b of clientBrands) {
-      const brandNameClean = b.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const brandNameClean = (b.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
       // Direct clean substring
-      if (fileNameLower.includes(brandNameClean)) {
+      if (fileNameLower.includes(brandNameClean) && brandNameClean.length > 0) {
         detectedBrandObj = b;
         break;
       }
@@ -5591,7 +5591,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   const targetBrand = clientBrands.find((b) => {
                     const username = (
                       b.clientUsername ||
-                      b.name.toLowerCase().replace(/[^a-z0-9]/g, "")
+                      (b.name || "").toLowerCase().replace(/[^a-z0-9]/g, "")
                     )
                       .trim()
                       .toLowerCase();
@@ -16282,7 +16282,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             if (!reportBrandSearchQuery.trim()) return true;
                             const q = reportBrandSearchQuery.toLowerCase();
                             return (
-                              brand.name.toLowerCase().includes(q) ||
+                              (brand.name || "").toLowerCase().includes(q) ||
                               brand.id.toLowerCase().includes(q)
                             );
                           }).length === 0 && (
