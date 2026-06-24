@@ -1374,7 +1374,7 @@ export default function App() {
             if (typeof data.agencyLogoUrl === 'string') _setAgencyLogoUrl(data.agencyLogoUrl);
             if (data.salarySettings) setSalarySettings(data.salarySettings);
             // adminCredentials is now fetched from backend API above, but keep fallback if needed
-            if (data.adminCredentials) setAdminCredentials(prev => prev.username === 'admin' && prev.password === '123' ? data.adminCredentials : prev);
+            if (data.adminCredentials) setAdminCredentials(prev => prev.username === 'admin' && prev.password === 'Liva123@@' ? data.adminCredentials : prev);
             if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
           } catch { /* ignore parse error */ }
         } else {
@@ -1403,7 +1403,7 @@ export default function App() {
               cutOffStartDay: 16,
               cutOffEndDay: 15,
             },
-            adminCredentials: { username: 'admin', password: '123' },
+            adminCredentials: { username: 'admin', password: 'Liva123@@' },
             adminShiftChecklistObj: {},
           };
           localStorage.setItem('liva_global_configs', JSON.stringify(defaults));
@@ -1672,7 +1672,7 @@ export default function App() {
   const [hostError, setHostError] = useState("");
 
   // Admin credentials & login session
-  const [adminCredentials, setAdminCredentials] = useState<{ username: string; password: string }>({ username: "admin", password: "123" });
+  const [adminCredentials, setAdminCredentials] = useState<{ username: string; password: string }>({ username: "admin", password: "Liva123@@" });
 
   useEffect(() => {
     if (!isGlobalConfigsLoaded) return;
@@ -9993,7 +9993,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
               {/* WORKSPACE AREA CONTAINER */}
               <div className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 pb-24 relative">
                 {/* Proactive Security Check: Warn on default password */}
-                {!loggedInAdminId && adminCredentials.password === "123" && (
+                {!loggedInAdminId && adminCredentials.password === "Liva123@@" && (
                   <div
                     className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn"
                     id="cybersecurity_alert_banner"
