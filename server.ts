@@ -939,11 +939,13 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 async function runMigrations() {
   try {
     // Tambah kolom studio ke shift_schedules jika belum ada
-    await execute(`ALTER TABLE shift_schedules ADD COLUMN IF NOT EXISTS studio VARCHAR(255) NULL`, []);
-    console.log('✅ Migration: kolom studio di shift_schedules siap.');
+    // Tidak pakai IF NOT EXISTS karena MySQL lama (sebelum 8.0) tidak support
+    await execute(`ALTER TABLE shift_schedules ADD COLUMN studio VARCHAR(255) NULL`, []);
+    console.log('✅ Migration: kolom studio ditambahkan ke shift_schedules.');
   } catch (e: any) {
-    // Jika MySQL tidak support IF NOT EXISTS untuk ADD COLUMN, coba cara alternatif
-    if (e?.code !== 'ER_DUP_FIELDNAME') {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom studio sudah ada di shift_schedules.');
+    } else {
       console.warn('Migration studio column warning:', e?.message);
     }
   }
