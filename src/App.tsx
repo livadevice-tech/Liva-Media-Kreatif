@@ -10197,7 +10197,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                         {/* Tabs & Filters */}
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-5 border-b border-slate-100/80 pb-4">
-                          <div className="flex flex-wrap items-center gap-2.5 overflow-x-auto w-full xl:w-auto pb-2 xl:pb-0 hide-scrollbar -mb-[17px]">
+                          <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto pb-2 xl:pb-0 -mb-[17px]">
                             <button
                               type="button"
                               className="px-3 py-2.5 rounded-none border-b-2 border-slate-800 text-slate-800 font-bold text-[13px] flex items-center gap-2 whitespace-nowrap"
@@ -10215,7 +10215,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 onClick={() => setIsScheduleActionsOpen(!isScheduleActionsOpen)}
                                 className="px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 transition-colors cursor-pointer"
                               >
-                                <Settings className="w-4 h-4 text-slate-500" /> ⚙️ Aksi Lanjutan
+                                <Settings className="w-4 h-4 text-slate-500" /> Aksi Lanjutan
                               </button>
                               
                               {isScheduleActionsOpen && (
