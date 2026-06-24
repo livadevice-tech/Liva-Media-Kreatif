@@ -3454,6 +3454,39 @@ export default function App() {
     );
   };
 
+  const handleEditBrand = (brand: ClientBrand) => {
+    setBrandFormEditor(brand);
+  };
+
+  const handleDeleteBrand = (brandId: string) => {
+    const brandToDelete = clientBrands.find((b) => b.id === brandId);
+    setCustomPrompt(
+      "Hapus Data Brand",
+      `Apakah Anda yakin ingin menghapus data brand "${brandToDelete?.name || brandId}" beserta seluruh data terkaitnya? TINDAKAN INI BERSIFAT PERMANEN!`,
+      "Hapus Permanen",
+      "Batal",
+      async () => {
+        try {
+          // If you have backend api delete
+          if (typeof clientBrandsApi !== "undefined" && clientBrandsApi.delete) {
+             await clientBrandsApi.delete(brandId);
+          }
+          setClientBrands((prev) => prev.filter((b) => b.id !== brandId));
+          addNotification(
+            "🗑️ Brand Dihapus",
+            `Data brand "${brandToDelete?.name || brandId}" berhasil dihapus dari sistem.`,
+            "warning",
+            "data_brand"
+          );
+          customAlert(`Data brand "${brandToDelete?.name || brandId}" berhasil dihapus permanen.`);
+        } catch (error: any) {
+          console.error("Gagal menghapus brand:", error);
+          customAlert("Error saat menghapus data brand: " + error.message);
+        }
+      },
+      "danger"
+    );
+  };
 
   const handleDeleteBrandRawDataByDateRange = async () => {
     if (!deleteByDateStart || !deleteByDateEnd) {
