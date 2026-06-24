@@ -10221,7 +10221,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               {isScheduleActionsOpen && (
                                 <>
                                   <div className="fixed inset-0 z-30" onClick={() => setIsScheduleActionsOpen(false)} />
-                                  <div className="absolute top-full left-0 mt-2 p-3 bg-white border border-slate-200 shadow-xl rounded-2xl z-40 w-80 animate-in fade-in zoom-in-95 duration-100">
+                                  <div className="absolute top-full left-0 mt-2 p-3 bg-white border border-slate-200 shadow-xl rounded-2xl z-40 w-80 animate-fadeIn">
                                     <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-wider mb-3">Manajemen Massal</h4>
                                     
                                     <div className="flex flex-col gap-2 mb-4">
@@ -10548,7 +10548,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   />
                                   <div
                                     onClick={(e) => e.stopPropagation()}
-                                    className="absolute right-[-20px] sm:right-0 top-full mt-3 w-[260px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 text-left animate-in fade-in zoom-in-95 origin-top-right duration-200"
+                                    className="absolute right-[-10px] sm:right-0 top-full mt-3 w-[260px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 text-left animate-fadeIn origin-top-right"
                                   >
                                     {/* Month/Year and Next Month/Year navigation controls */}
                                     <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
