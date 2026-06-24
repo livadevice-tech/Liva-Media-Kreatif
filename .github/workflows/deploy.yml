@@ -20,24 +20,22 @@ jobs:
           username: ${{ secrets.HOSTINGER_USER }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            # Arahkan ke folder project di server Hostinger
-            # SESUAIKAN JIKA NAMA FOLDERNYA BERBEDA
-            cd /path/ke/folder/liva-app
+            set -e
+            # Ganti 'public_html' menjadi 'nodejs' jika Anda memisahkan foldernya di Hostinger
+            cd /home/u287082095/domains/system.livaagency.com/public_html
             
             echo "1. Menarik kode terbaru..."
-            git pull origin feature/mysql-migration
+            git fetch origin
+            git reset --hard origin/${{ github.ref_name }}
             
             echo "2. Instal dependensi baru..."
-            npm install --production=false
+            npm ci || npm install --production=false
             
-            echo "3. Migrasi struktur Database..."
+            echo "3. Menjalankan migrasi database otomatis..."
             npm run migrate
             
-            echo "4. Build Frontend dan Backend..."
+            echo "4. Build ulang frontend..."
             npm run build
             
-            echo "5. Restart Server Node.js (via PM2)..."
-            # Asumsi nama aplikasi di PM2 adalah liva-backend
-            pm2 reload liva-backend --update-env || pm2 start dist/server.cjs --name "liva-backend"
-            
-            echo "✅ Deployment Selesai!"
+            echo "5. Restart PM2 Server..."
+            pm2 restart all
