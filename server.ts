@@ -912,7 +912,8 @@ app.post('/api/invoice/send-reminder', async (req, res) => {
 // ==================================================================
 app.get('/api/db-test', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT 1 as result');
+    const db = getPool();
+    const [rows] = await db.query('SELECT 1 as result');
     res.json({ success: true, message: 'Koneksi MySQL berhasil tersambung!', data: rows });
   } catch (error: any) {
     console.error('Database connection test failed:', error);
