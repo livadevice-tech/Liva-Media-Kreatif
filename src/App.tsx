@@ -127,7 +127,7 @@ import {
   testDbConnection,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
-
+import { InvoiceDashboard } from "./components/InvoiceDashboard";
 
 const getAvatarUrl = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Host")}&background=f3e8ff&color=7e22ce&bold=true`;

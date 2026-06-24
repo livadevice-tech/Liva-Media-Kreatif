@@ -1,6 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import { Download, Plus, X, FileText, CheckCircle2, Clock, Building2, ArrowRight, CheckSquare, Search, Edit2, Trash2, Calendar, Settings, Image as ImageIcon, UploadCloud, Mail } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
 
@@ -38,31 +36,18 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   });
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "invoice_settings"), (docSnap) => {
-      if (docSnap.exists()) {
-        setInvoiceSettings(docSnap.data() as InvoiceSettings);
-      }
-    });
-
-    // Fallback if needed for smooth transition from previous localStorage logic
     const saved = localStorage.getItem("mcn_invoice_settings");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (!invoiceSettings.logoUrl && parsed.logoUrl) {
-          // You might do a one-time sync here, but fetching from Firestore is priority.
-        }
+        setInvoiceSettings(parsed);
       } catch(e){}
     }
-    
-    return () => unsub();
   }, []);
 
   const saveSettings = async (newSettings: InvoiceSettings) => {
     setInvoiceSettings(newSettings);
-    // Also store to localStorage as backup
     localStorage.setItem("mcn_invoice_settings", JSON.stringify(newSettings));
-    await setDoc(doc(db, "settings", "invoice_settings"), newSettings, { merge: true });
   };
   
   // For creation
