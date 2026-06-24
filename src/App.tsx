@@ -5550,16 +5550,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
           ) : activeRole === "client" ? (
             /* BRAND LOGIN PAGE - COMPLETELY SEPARATED */
             <div className="bg-white p-8 rounded-3xl border border-indigo-150 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
-              <div className="text-center mb-6 relative">
+              <div className="flex justify-start mb-2">
                 <button
                   onClick={() => {
                     window.history.pushState({}, "", "/");
                     setActiveRole(null);
                   }}
-                  className="absolute left-0 top-0 text-[10px] text-slate-400 hover:text-slate-800 font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
+                  className="text-[10px] text-slate-400 hover:text-slate-800 font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
                 >
                   ← Kembali
                 </button>
+              </div>
+              <div className="text-center mb-6">
                 <LivaLogo className="" url={agencyLogoUrl} />
                 <span className="bg-indigo-50 border border-indigo-100 text-[#5642f5] font-black text-[9px] tracking-wider uppercase px-3 py-1 rounded-full mt-4 inline-block">
                   Portal Partner Brand & Klien
@@ -5670,17 +5672,19 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
             </div>
           ) : (
             /* HOST & ADMIN LOGIN PORTAL - COMPLETELY SEPARATED FROM BRAND */
-            <div className="bg-white p-8 rounded-3xl border border-purple-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto relative">
-              <div className="text-center mb-4">
+            <div className="bg-white p-8 rounded-3xl border border-purple-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
+              <div className="flex justify-start mb-2">
                 <button
                   onClick={() => {
                     window.history.pushState({}, "", "/");
                     setActiveRole(null);
                   }}
-                  className="absolute left-6 top-8 text-[10px] text-slate-400 hover:text-purple-800 font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
+                  className="text-[10px] text-slate-400 hover:text-purple-800 font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
                 >
                   ← Kembali
                 </button>
+              </div>
+              <div className="text-center mb-4">
                 <LivaLogo className="" url={agencyLogoUrl} />
                 <h2 className="text-[16px] font-black text-purple-950 mt-4">
                   {activeRole === "host"
