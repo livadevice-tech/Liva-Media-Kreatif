@@ -17,6 +17,19 @@ interface InvoiceSettings {
 }
 
 export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands, onUpdateBrands }) => {
+  const formatDateUI = (dateStr?: string) => {
+    if (!dateStr) return "-";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch(e) {
+      return dateStr;
+    }
+  };
   const [activeTab, setActiveTab] = useState<"overview" | "create" | "settings" | "berkas" | "reminders">("overview");
   const [globalPicEmail, setGlobalPicEmail] = useState<string>("admin1@liva-agency.com, admin2@liva.com");
   const [emailTestStatus, setEmailTestStatus] = useState<string>("");
@@ -277,7 +290,7 @@ Please find attached our quotation for the ${platformName} Livestream Full Packa
 
 ${platformName} Livestream Full Package – 6 hours/day
 
-Period: ${inv.issueDate} - ${inv.dueDate}
+Period: ${formatDateUI(inv.issueDate)} - ${formatDateUI(inv.dueDate)}
 Monthly Fee: Qty: ${totalShift} shift
 Total Amount: Rp${totalAmountStr}
 
@@ -673,8 +686,8 @@ PT. Liva Media Kreatif
                            </select>
                         </td>
                         <td className="py-4 px-6">
-                           <div className="text-xs font-bold text-slate-700 mb-0.5">Dibuat: {inv.issueDate}</div>
-                           <div className="text-[10px] font-bold text-slate-400">Tenggat: <span className={inv.status === 'Overdue' ? 'text-red-500' : ''}>{inv.dueDate}</span></div>
+                           <div className="text-xs font-bold text-slate-700 mb-0.5">Dibuat: {formatDateUI(inv.issueDate)}</div>
+                           <div className="text-[10px] font-bold text-slate-400">Tenggat: <span className={inv.status === 'Overdue' ? 'text-red-500' : ''}>{formatDateUI(inv.dueDate)}</span></div>
                         </td>
                         <td className="py-4 px-6 text-right">
                            <div className="font-black text-slate-800 text-md">Rp{new Intl.NumberFormat('id-ID').format(inv.totalAmount)}</div>

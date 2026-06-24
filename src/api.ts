@@ -192,6 +192,14 @@ export const adminAccountsApi = {
 };
 
 // ==================================================================
+// SETTINGS
+// ==================================================================
+export const settingsApi = {
+  get: (key: string) => request<any>('GET', `/settings/${key}`),
+  save: (key: string, data: any) => request<any>('POST', `/settings/${key}`, data),
+};
+
+// ==================================================================
 // CLIENT REPORTING
 // ==================================================================
 export const clientReportingApi = {

@@ -137,6 +137,7 @@ import {
   clientBrandsApi,
   clientLeadsApi,
   adminAccountsApi,
+  settingsApi,
   testDbConnection,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
@@ -861,6 +862,20 @@ export default function App() {
     return `${yyyy}-${mm}-${dd}`;
   };
 
+  const formatDateUI = (dateStr?: string) => {
+    if (!dateStr) return "-";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch(e) {
+      return dateStr;
+    }
+  };
+
   const getDaysInMonthGrid = (year: number, month: number) => {
     const firstDay = new Date(year, month - 1, 1);
     let firstDayOfWeek = firstDay.getDay();
@@ -1339,6 +1354,13 @@ export default function App() {
           }).catch(console.error);
         }
 
+        // Fetch adminCredentials from backend
+        settingsApi.get('adminCredentials').then(data => {
+          if (data && data.username && data.password) {
+            setAdminCredentials(data);
+          }
+        }).catch(err => console.error("Error fetching adminCredentials from API:", err));
+
         // Global configs — load dari localStorage sebagai fallback
         // (Firestore global_configs diganti dengan defaults lokal)
         const storedConfig = localStorage.getItem('liva_global_configs');
@@ -1351,7 +1373,8 @@ export default function App() {
             if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
             if (typeof data.agencyLogoUrl === 'string') _setAgencyLogoUrl(data.agencyLogoUrl);
             if (data.salarySettings) setSalarySettings(data.salarySettings);
-            if (data.adminCredentials) setAdminCredentials(data.adminCredentials);
+            // adminCredentials is now fetched from backend API above, but keep fallback if needed
+            if (data.adminCredentials) setAdminCredentials(prev => prev.username === 'admin' && prev.password === '123' ? data.adminCredentials : prev);
             if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
           } catch { /* ignore parse error */ }
         } else {
@@ -1655,6 +1678,7 @@ export default function App() {
     if (!isGlobalConfigsLoaded) return;
     const timer = setTimeout(() => {
       saveLocalConfig({ adminCredentials });
+      settingsApi.save('adminCredentials', adminCredentials).catch(console.error);
     }, 1000); // 1-second debounce
     return () => clearTimeout(timer);
   }, [adminCredentials, isGlobalConfigsLoaded]);
@@ -6858,7 +6882,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               <div className="text-[10px] text-[#4c3e6b]/80 flex items-center gap-1 mt-0.5 flex-wrap">
                                 <span>{item.platform}</span>
                                 <span>•</span>
-                                <span>{item.date}</span>
+                                <span>{formatDateUI(item.date)}</span>
                                 {item.checkInTime && (
                                   <>
                                     <span>•</span>
@@ -15030,7 +15054,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     </span>
                                   </td>
                                   <td className="py-3 px-4 font-mono text-slate-600 font-bold">
-                                    <div>{item.date}</div>
+                                    <div>{formatDateUI(item.date)}</div>
                                     {item.checkInTime && (
                                       <div className="text-[10px] text-purple-600 font-sans font-extrabold mt-0.5 flex items-center gap-1">
                                         <span>⏱</span>

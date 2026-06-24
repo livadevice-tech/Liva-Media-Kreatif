@@ -110,6 +110,29 @@ function getGeminiClient(): GoogleGenAI | null {
 }
 
 // ==================================================================
+// SETTINGS / GLOBAL CONFIGS
+// ==================================================================
+app.get("/api/settings/:key", asyncHandler(async (req, res) => {
+  const { key } = req.params;
+  const row = await queryOne(`SELECT setting_value FROM global_settings WHERE setting_key = ?`, [key]);
+  if (!row) {
+    return res.json(null);
+  }
+  res.json(row.setting_value);
+}));
+
+app.post("/api/settings/:key", asyncHandler(async (req, res) => {
+  const { key } = req.params;
+  const value = req.body;
+  await execute(`
+    INSERT INTO global_settings (setting_key, setting_value) 
+    VALUES (?, ?) 
+    ON DUPLICATE KEY UPDATE setting_value = ?
+  `, [key, JSON.stringify(value), JSON.stringify(value)]);
+  res.json({ success: true, key });
+}));
+
+// ==================================================================
 // HEALTH CHECK
 // ==================================================================
 app.get("/api/health", asyncHandler(async (req, res) => {
@@ -937,6 +960,20 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // Static Files & Vite Dev Server
 // ==================================================================
 async function runMigrations() {
+  try {
+    // Create global_settings table
+    await execute(`
+      CREATE TABLE IF NOT EXISTS global_settings (
+        setting_key VARCHAR(100) PRIMARY KEY,
+        setting_value JSON NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `, []);
+    console.log('✅ Migration: Tabel global_settings dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration global_settings warning:', e?.message);
+  }
+
   try {
     // Tambah kolom studio ke shift_schedules jika belum ada
     // Tidak pakai IF NOT EXISTS karena MySQL lama (sebelum 8.0) tidak support
