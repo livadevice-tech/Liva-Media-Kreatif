@@ -6913,10 +6913,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </div>
                         <div className="flex items-center gap-3 pt-0.5">
                           <div className="flex items-center gap-1">
-                            <span className="w-2.5 h-2.5 rounded bg-rose-100 border border-rose-300 block"></span>
-                            <span>Libur (Off-Day)</span>
-                          </div>
-                          <div className="flex items-center gap-1">
                             <span className="w-2.5 h-2.5 rounded bg-slate-50 border border-slate-200 border-dashed block"></span>
                             <span>Tidak Ada Jadwal</span>
                           </div>
