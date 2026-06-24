@@ -15956,7 +15956,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                             const formatContractDate = (d?: string) => {
                               if (!d) return "—";
-                              const p = d.split("-");
+                              const datePart = d.split("T")[0];
+                              const p = datePart.split("-");
                               if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
                               return d;
                             };
