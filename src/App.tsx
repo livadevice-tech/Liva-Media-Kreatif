@@ -16176,7 +16176,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               if (!reportBrandSearchQuery.trim()) return true;
                               const q = reportBrandSearchQuery.toLowerCase();
                               return (
-                                brand.name.toLowerCase().includes(q) ||
+                                (brand.name || "").toLowerCase().includes(q) ||
                                 brand.id.toLowerCase().includes(q)
                               );
                             })
