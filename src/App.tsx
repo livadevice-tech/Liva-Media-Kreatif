@@ -6964,7 +6964,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 "_" +
                                 Math.random().toString(36).substr(2, 9)
                               }
-                              id={`host-shift-${sch.date}`}
+                              id={`host-shift-${(sch.date || "").split("T")[0]}`}
                               className={`p-3 rounded-xl border transition-all ${
                                 isSelectedInList
                                   ? "ring-2 ring-indigo-500 shadow-md scale-[1.01] bg-indigo-50/10 border-indigo-350"

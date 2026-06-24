@@ -405,6 +405,7 @@ app.get("/api/schedules", asyncHandler(async (req, res) => {
     id: s.id, hostId: s.host_id, hostName: s.host_name,
     employeeId: s.employee_id, date: s.date, timeSlot: s.time_slot,
     platform: s.platform, brand: s.brand, status: s.status,
+    studio: s.studio,
   }));
   res.json(mapped);
 }));
@@ -413,18 +414,18 @@ app.post("/api/schedules", asyncHandler(async (req, res) => {
   const s = req.body;
   const id = s.id || genId('sched');
   await execute(`
-    INSERT INTO shift_schedules (id, host_id, host_name, employee_id, date, time_slot, platform, brand, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [id, s.hostId, s.hostName || null, s.employeeId || null, s.date, s.timeSlot || null, s.platform || null, s.brand || null, s.status || 'Assigned']);
+    INSERT INTO shift_schedules (id, host_id, host_name, employee_id, date, time_slot, platform, brand, status, studio)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [id, s.hostId, s.hostName || null, s.employeeId || null, s.date, s.timeSlot || null, s.platform || null, s.brand || null, s.status || 'Assigned', s.studio || null]);
   res.status(201).json({ id });
 }));
 
 app.put("/api/schedules/:id", asyncHandler(async (req, res) => {
   const s = req.body;
   await execute(`
-    UPDATE shift_schedules SET host_id=?, host_name=?, employee_id=?, date=?, time_slot=?, platform=?, brand=?, status=?
+    UPDATE shift_schedules SET host_id=?, host_name=?, employee_id=?, date=?, time_slot=?, platform=?, brand=?, status=?, studio=?
     WHERE id=?
-  `, [s.hostId, s.hostName||null, s.employeeId||null, s.date, s.timeSlot||null, s.platform||null, s.brand||null, s.status||'Assigned', req.params.id]);
+  `, [s.hostId, s.hostName||null, s.employeeId||null, s.date, s.timeSlot||null, s.platform||null, s.brand||null, s.status||'Assigned', s.studio||null, req.params.id]);
   res.json({ success: true });
 }));
 
@@ -935,7 +936,22 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // ==================================================================
 // Static Files & Vite Dev Server
 // ==================================================================
+async function runMigrations() {
+  try {
+    // Tambah kolom studio ke shift_schedules jika belum ada
+    await execute(`ALTER TABLE shift_schedules ADD COLUMN IF NOT EXISTS studio VARCHAR(255) NULL`, []);
+    console.log('✅ Migration: kolom studio di shift_schedules siap.');
+  } catch (e: any) {
+    // Jika MySQL tidak support IF NOT EXISTS untuk ADD COLUMN, coba cara alternatif
+    if (e?.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('Migration studio column warning:', e?.message);
+    }
+  }
+}
+
 async function bootstrap() {
+  await runMigrations();
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
