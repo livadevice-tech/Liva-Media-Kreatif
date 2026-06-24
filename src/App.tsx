@@ -3460,11 +3460,9 @@ export default function App() {
 
   const handleDeleteBrand = (brandId: string) => {
     const brandToDelete = clientBrands.find((b) => b.id === brandId);
-    setCustomPrompt(
+    requestConfirm(
       "Hapus Data Brand",
       `Apakah Anda yakin ingin menghapus data brand "${brandToDelete?.name || brandId}" beserta seluruh data terkaitnya? TINDAKAN INI BERSIFAT PERMANEN!`,
-      "Hapus Permanen",
-      "Batal",
       async () => {
         try {
           // If you have backend api delete
@@ -3487,6 +3485,7 @@ export default function App() {
       "danger"
     );
   };
+
 
   const handleDeleteBrandRawDataByDateRange = async () => {
     if (!deleteByDateStart || !deleteByDateEnd) {
