@@ -1,16 +1,43 @@
 /**
- * src/sheets.ts — DEPRECATED
- * ============================
- * File ini dikosongkan sebagai bagian dari migrasi Firebase → MySQL.
- * Fitur Google Sheets sync tidak lagi digunakan.
- *
- * Alasan: Firebase Authentication yang digunakan untuk Google Sign-In
- * (yang diperlukan untuk akses Google Sheets) telah dihapus sepenuhnya.
- *
- * Jika fitur export ke Google Sheets dibutuhkan kembali di masa mendatang,
- * pertimbangkan menggunakan Google Service Account di backend (server.ts)
- * tanpa memerlukan Firebase Authentication.
+ * src/sheets.ts — STUB / SHIM FOR DEPRECATED GOOGLE SHEETS
+ * ========================================================
+ * File ini berisi stub kosong / mock agar compiler TypeScript tidak error.
+ * Integrasi asli Google Sheets + Firebase telah dihapus karena migrasi ke MySQL.
  */
 
-// File dikosongkan — tidak ada export yang aktif.
-export {};
+export interface GoogleUser {
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+}
+
+export interface AuthResult {
+  user: GoogleUser;
+  accessToken: string;
+}
+
+export const googleSignIn = async (): Promise<AuthResult | null> => {
+  alert("Fitur Google Sheets dinonaktifkan sementara karena migrasi database ke MySQL.");
+  return null;
+};
+
+export const sheetsLogout = async (): Promise<void> => {
+  // no-op
+};
+
+export const createNewSpreadsheet = async (
+  accessToken: string,
+  title?: string
+): Promise<{ id: string; url: string }> => {
+  throw new Error("Fitur Google Sheets dinonaktifkan sementara.");
+};
+
+export const syncSpreadsheetData = async (
+  accessToken: string,
+  spreadsheetId: string,
+  reports: any[],
+  logs: any[],
+  salarySettings: any
+): Promise<void> => {
+  // no-op
+};

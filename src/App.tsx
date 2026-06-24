@@ -115,8 +115,13 @@ import {
   AdminAccount,
 } from "./types";
 import { INITIAL_HOSTS, INITIAL_LOGS, PLATFORMS, BRANDS, SHIFTS } from "./data";
-// Google Sheets integration dihapus (Firebase removed)
-// import dari sheets.ts sudah tidak aktif
+import {
+  googleSignIn,
+  sheetsLogout,
+  createNewSpreadsheet,
+  syncSpreadsheetData,
+} from "./sheets";
+import { DoubleDatePicker } from "./components/DoubleDatePicker";
 
 
 import {
@@ -12351,7 +12356,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-start space-y-3">
                                 <div className="space-y-2">
                                   <label className="text-slate-800 font-extrabold block">
-                                    Standard Hari Kerja Sebulan:{" "}
+                                    Target Hari Kerja Sebulan:{" "}
                                     <span className="font-mono text-[#2563eb] font-black">
                                       {salarySettings.workingDays} Hari
                                     </span>
@@ -12372,7 +12377,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   <span className="text-[10px] text-slate-500 font-semibold block leading-normal">
                                     Digunakan untuk proporsi performa kehadiran
                                     Host Reguler bulanan (Hari Kehadiran /
-                                    Standard Hari Kerja).
+                                    Target Hari Kerja).
                                   </span>
                                 </div>
                                 <div className="space-y-2 border-t border-slate-200 mt-2 pt-3">
@@ -14532,7 +14537,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         className="bg-purple-600 hover:bg-purple-700 text-white font-black py-2 px-4 rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer shadow-sm"
                       >
                         <Plus className="w-4 h-4 text-purple-100" />
-                        Input Absen Manual Operator
+                        Input Absen Manual
                       </button>
                     </div>
 
@@ -14567,7 +14572,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       {[
                         {
                           id: "All",
-                          label: "All Logs",
+                          label: "Semua Log",
                           color: "bg-slate-400",
                           text: "text-slate-600",
                           activeBg:
@@ -14575,7 +14580,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         },
                         {
                           id: "Present",
-                          label: "Present / Hadir",
+                          label: "Hadir (Tepat Waktu)",
                           statusChoice: "Present",
                           color: "bg-emerald-500",
                           text: "text-emerald-700",
@@ -14584,7 +14589,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         },
                         {
                           id: "Late",
-                          label: "Late / Terlambat",
+                          label: "Terlambat",
                           statusChoice: "Late",
                           color: "bg-amber-500",
                           text: "text-amber-700",
@@ -14593,7 +14598,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         },
                         {
                           id: "Absent",
-                          label: "Absent / Alpa",
+                          label: "Alpa / Mangkir",
                           statusChoice: "Absent",
                           color: "bg-red-500",
                           text: "text-red-700",
@@ -14602,7 +14607,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         },
                         {
                           id: "Excused",
-                          label: "Excused / Izin",
+                          label: "Izin / Sakit",
                           statusChoice: "Excused",
                           color: "bg-[#2563eb]",
                           text: "text-indigo-750",
@@ -14783,7 +14788,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               </label>
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <span className="text-[10px] font-bold text-slate-500">
-                                  Input Masal Host?
+                                  Pilih Banyak Host
                                 </span>
                                 <div className="relative">
                                   <input
@@ -15006,7 +15011,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               </label>
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <span className="text-[10px] font-bold text-slate-500">
-                                  Input Masal Tanggal?
+                                  Pilih Banyak Tanggal
                                 </span>
                                 <div className="relative">
                                   <input
@@ -15093,8 +15098,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   }
                                   className="text-[10px] w-full mt-1 bg-white border border-dashed border-indigo-200 text-indigo-500 font-bold py-2 rounded flex items-center justify-center gap-1 hover:bg-indigo-50 transition-colors shadow-none cursor-pointer"
                                 >
-                                  <Plus className="w-3.5 h-3.5" /> Tambah
-                                  Tanggal Masal
+                                  <Plus className="w-3.5 h-3.5" /> Tambah Tanggal
                                 </button>
                               </div>
                             )}
