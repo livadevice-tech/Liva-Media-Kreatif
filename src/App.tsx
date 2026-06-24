@@ -200,21 +200,23 @@ const formatDisplayDate = (dString: string, platform?: string) => {
 
 const normalizeDateYMD = (d: string) => {
   if (!d) return "";
-  let norm = d;
-  if (
-    d.indexOf("/") !== -1 ||
-    (d.indexOf("-") !== -1 && d.split("-")[0].length <= 2)
-  ) {
-    const p = d.split(/[\/\-]/);
-    if (p.length === 3) {
+  let norm = d.split("T")[0].split(" ")[0]; // strip time if ISO or datetime
+  
+  const p = norm.split(/[\/\-]/);
+  if (p.length === 3) {
+    // If format is DD/MM/YYYY or DD-MM-YYYY
+    if (p[0].length <= 2) {
       const y = p[2].length === 2 ? `20${p[2]}` : p[2];
       const m = String(p[1]).padStart(2, "0");
       const day = String(p[0]).padStart(2, "0");
-      if (p[0].length === 4) {
-        norm = `${p[0]}-${m}-${p[2].padStart(2, "0")}`;
-      } else {
-        norm = `${y}-${m}-${day}`;
-      }
+      norm = `${y}-${m}-${day}`;
+    } 
+    // If format is YYYY/MM/DD or YYYY-MM-DD or YYYY-M-D
+    else if (p[0].length === 4) {
+      const y = p[0];
+      const m = String(p[1]).padStart(2, "0");
+      const day = String(p[2]).padStart(2, "0");
+      norm = `${y}-${m}-${day}`;
     }
   }
   return norm;
