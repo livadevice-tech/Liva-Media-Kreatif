@@ -15954,14 +15954,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             const daysLeft = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
                             const isNearExpiry = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
 
-                            // Contract progress stages
-                            const stages = [
-                              { label: "Pendaftaran", done: true },
-                              { label: "Setup Sesi", done: (brand.sessions?.length || 0) > 0 },
-                              { label: "Kontrak Aktif", done: !!startDate && startDate <= today },
-                              { label: "Pelaksanaan", done: !!startDate && startDate <= today && !isExpired },
-                              { label: isExpired ? "Selesai" : "Berakhir", done: isExpired },
-                            ];
+                            const formatContractDate = (d?: string) => {
+                              if (!d) return "—";
+                              const p = d.split("-");
+                              if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
+                              return d;
+                            };
 
                             return (
                               <div
@@ -16007,7 +16005,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-semibold">
                                         <span className="flex items-center gap-1">
                                           <Clock className="w-3 h-3" />
-                                          {brand.contractStartDate || "—"} → {brand.contractEndDate || "—"}
+                                          {formatContractDate(brand.contractStartDate)} - {formatContractDate(brand.contractEndDate)}
                                         </span>
                                         {brand.invoiceDate && (
                                           <span className="flex items-center gap-1 text-emerald-600">
@@ -16132,38 +16130,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   </div>
                                 </div>
 
-                                {/* Contract Progress Tracker */}
-                                <div className="px-5 pb-4">
-                                  <div className="flex items-center gap-0">
-                                    {stages.map((stage, idx) => (
-                                      <div key={stage.label} className="flex items-center flex-1">
-                                        <div className="flex flex-col items-center">
-                                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                                            stage.done
-                                              ? isExpired && idx === stages.length - 1
-                                                ? "bg-rose-100 text-rose-500 border-2 border-rose-300"
-                                                : "bg-indigo-600 text-white"
-                                              : "bg-slate-100 border-2 border-slate-200 text-slate-300"
-                                          }`}>
-                                            {stage.done ? (
-                                              <Check className="w-2.5 h-2.5" />
-                                            ) : (
-                                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                                            )}
-                                          </div>
-                                          <span className={`text-[8px] font-bold mt-1 text-center whitespace-nowrap ${
-                                            stage.done ? (isExpired && idx === stages.length - 1 ? "text-rose-500" : "text-indigo-600") : "text-slate-300"
-                                          }`}>{stage.label}</span>
-                                        </div>
-                                        {idx < stages.length - 1 && (
-                                          <div className={`flex-1 h-0.5 mx-1 mb-4 rounded-full transition-all ${
-                                            stages[idx + 1].done ? "bg-indigo-300" : "bg-slate-100"
-                                          }`} />
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
                               </div>
                             );
                           })
