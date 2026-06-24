@@ -15867,80 +15867,70 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </div>
                       )}
 
-                      <div className="flex gap-2 mb-4">
+                      <div className="flex bg-slate-100/80 p-1 rounded-xl w-full max-w-sm mb-6 border border-slate-200">
                         <button
                           onClick={() => setBrandDataTab("active")}
-                          className={`px-4 py-2 font-bold text-xs rounded-lg transition-colors border cursor-pointer flex-1 md:flex-none ${brandDataTab === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
+                          className={`flex-1 py-2 text-xs font-black rounded-lg transition-all duration-300 ${brandDataTab === "active" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
                         >
                           Aktif (Dalam Kontrak)
                         </button>
                         <button
                           onClick={() => setBrandDataTab("inactive")}
-                          className={`px-4 py-2 font-bold text-xs rounded-lg transition-colors border cursor-pointer flex-1 md:flex-none ${brandDataTab === "inactive" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
+                          className={`flex-1 py-2 text-xs font-black rounded-lg transition-all duration-300 ${brandDataTab === "inactive" ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
                         >
-                          Habis Kontrak / Tidak Aktif
+                          Tidak Aktif / Selesai
                         </button>
                       </div>
 
-                      <div className="flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center bg-[#faf9fe]/80 p-4 rounded-xl border border-purple-100 mb-6 font-sans">
-                        <div className="relative flex-1">
-                          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" />
-                          <input
-                            type="text"
-                            placeholder="Cari nama brand..."
-                            value={brandDataSearch}
-                            onChange={(e) => setBrandDataSearch(e.target.value)}
-                            className="w-full bg-white border border-purple-150 rounded-xl pl-10 pr-4 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-400 transition-all font-bold shadow-2xs"
-                          />
-                        </div>
+                      <div className="relative mb-6">
+                        <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Ketik untuk mencari nama brand klien..."
+                          value={brandDataSearch}
+                          onChange={(e) => setBrandDataSearch(e.target.value)}
+                          className="w-full bg-white border border-slate-200 shadow-sm hover:shadow transition-shadow rounded-2xl pl-12 pr-6 py-3.5 text-sm text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-bold"
+                        />
                       </div>
 
-                      <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
-                        <table className="w-full text-left border-collapse min-w-[800px]">
-                          <thead className="bg-[#f8f9fc] border-b border-slate-100">
-                            <tr>
-                              <th className="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
+                        <table className="w-full text-left border-collapse min-w-[900px]">
+                          <thead>
+                            <tr className="bg-slate-50/80 border-b border-slate-100">
+                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest w-12 text-center">
                                 No
                               </th>
                               <th
-                                className="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none group"
+                                className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest cursor-pointer hover:text-indigo-600 transition-colors select-none group w-56"
                                 onClick={() =>
                                   setBrandDataSortDir((prev) =>
                                     prev === "asc" ? "desc" : "asc",
                                   )
                                 }
                               >
-                                <div className="flex items-center gap-1.5">
-                                  Nama Brand
-                                  <div className="flex flex-col text-[8px] leading-[0px]">
-                                    <span
-                                      className={`${brandDataSortDir === "asc" ? "text-indigo-600" : "text-slate-300 group-hover:text-slate-400"}`}
-                                    >
-                                      ▲
-                                    </span>
-                                    <span
-                                      className={`${brandDataSortDir === "desc" ? "text-indigo-600" : "text-slate-300 group-hover:text-slate-400"} mt-[2px]`}
-                                    >
-                                      ▼
-                                    </span>
+                                <div className="flex items-center gap-2">
+                                  Nama Brand Klien
+                                  <div className="flex flex-col text-[7px] leading-[0px] opacity-60 group-hover:opacity-100 transition-opacity">
+                                    <span className={`${brandDataSortDir === "asc" ? "text-indigo-600" : "text-slate-400"}`}>▲</span>
+                                    <span className={`${brandDataSortDir === "desc" ? "text-indigo-600" : "text-slate-400"} mt-[2px]`}>▼</span>
                                   </div>
                                 </div>
                               </th>
-                              <th className="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest w-64">
                                 Platform & Sesi
                               </th>
-                              <th className="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                                Kontrak & Invoice
+                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest w-64">
+                                Info Kontrak & Kredensial
                               </th>
-                              <th className="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                                Detail Akun
+                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest w-64">
+                                Akun Brand
                               </th>
-                              <th className="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider text-right">
-                                Aksi
+                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center w-24">
+                                Tindakan
                               </th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 flex-1">
+                          <tbody className="divide-y divide-slate-100/70">
                             {filteredAndSortedBrands.length === 0 ? (
                               <tr key="empty">
                                 <td
@@ -15956,177 +15946,156 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               filteredAndSortedBrands.map((brand, i) => (
                                 <tr
                                   key={brand.id || i}
-                                  className="hover:bg-slate-50/50 transition-colors"
+                                  className="hover:bg-slate-50/60 transition-colors group"
                                 >
-                                  <td className="px-4 py-3 align-top font-bold text-slate-500">
+                                  <td className="px-5 py-5 align-top font-bold text-slate-400 text-sm text-center">
                                     {i + 1}
                                   </td>
-                                  <td className="px-4 py-3 align-top">
-                                    <div className="font-bold text-slate-800 text-sm">
+                                  <td className="px-5 py-5 align-top">
+                                    <div className="font-black text-slate-800 text-[15px] mb-1">
                                       {brand.name}
                                     </div>
-                                    {brand.monthlyMeetingDate ? (
-                                      <div className="text-[10px] text-blue-600 mt-1 bg-blue-50/80 inline-block px-1.5 py-0.5 rounded font-bold border border-blue-100">
-                                        Meeting: Tgl {brand.monthlyMeetingDate}{" "}
-                                        tiap bulan
+                                    {brand.monthlyMeetingDate && (
+                                      <div className="text-[10px] text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md font-bold inline-flex items-center gap-1.5 border border-sky-100/50">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></div>
+                                        Meeting Bulanan Tgl {brand.monthlyMeetingDate}
                                       </div>
-                                    ) : (
-                                      <></>
                                     )}
                                   </td>
-                                  <td className="px-4 py-3 align-top">
-                                    <div className="space-y-1 min-w-[140px]">
-                                      {brand.sessions &&
-                                      brand.sessions.length > 0 ? (
+                                  <td className="px-5 py-5 align-top">
+                                    <div className="flex flex-wrap gap-2">
+                                      {brand.sessions && brand.sessions.length > 0 ? (
                                         brand.sessions.map((sess) => (
                                           <div
                                             key={sess.id}
-                                            className="bg-white border border-slate-100 rounded p-1.5 shadow-sm text-[9px]"
+                                            className="bg-white border border-slate-100 rounded-xl p-2.5 shadow-sm text-xs min-w-[130px] flex-1"
                                           >
-                                            <div className="font-black text-indigo-700 uppercase mb-0.5">
+                                            <div className="font-black text-indigo-700 uppercase tracking-wide text-[10px] mb-1">
                                               {sess.platform}
                                             </div>
-                                            <div className="text-slate-600 font-medium mb-0.5">
+                                            <div className="text-slate-800 font-bold mb-1.5 text-[11px]">
                                               {sess.shift}
                                             </div>
-                                            {sess.studio && (
-                                              <div className="text-slate-500 font-bold flex items-center gap-1">
-                                                <MapPin className="w-2.5 h-2.5" />{" "}
-                                                {sess.studio}
-                                              </div>
-                                            )}
-                                            {sess.host && (
-                                              <div className="text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
-                                                <UserCheck className="w-2.5 h-2.5" />{" "}
-                                                {sess.host}
-                                              </div>
-                                            )}
+                                            <div className="space-y-1">
+                                              {sess.studio && (
+                                                <div className="text-slate-500 font-semibold flex items-center gap-1.5 text-[10px]">
+                                                  <MapPin className="w-3 h-3 text-rose-500" />
+                                                  {sess.studio}
+                                                </div>
+                                              )}
+                                              {sess.host && (
+                                                <div className="text-slate-500 font-semibold flex items-center gap-1.5 text-[10px]">
+                                                  <UserCheck className="w-3 h-3 text-emerald-500" />
+                                                  <span className="text-slate-700">{sess.host}</span>
+                                                </div>
+                                              )}
+                                            </div>
                                           </div>
                                         ))
                                       ) : (
-                                        <div className="text-slate-400 text-[9px] italic">
-                                          Belum ada sesi
+                                        <div className="text-slate-400 text-xs italic bg-slate-50/50 border border-dashed border-slate-200 px-3 py-1.5 rounded-lg">
+                                          Belum ada setup sesi
                                         </div>
                                       )}
                                     </div>
                                   </td>
-                                  <td className="px-4 py-3 align-top">
-                                    <div className="text-[10px] text-blue-650 font-bold mb-1">
-                                      <span className="text-slate-500 font-medium">
-                                        Start:
-                                      </span>{" "}
-                                      {brand.contractStartDate || "-"}
-                                    </div>
-                                    <div className="text-[10px] text-red-650 font-bold mb-1">
-                                      <span className="text-slate-500 font-medium">
-                                        End:
-                                      </span>{" "}
-                                      {brand.contractEndDate}
-                                    </div>
-                                    <div className="text-[10px] text-emerald-650 font-bold mb-2">
-                                      <span className="text-slate-500 font-medium">
-                                        Inv:
-                                      </span>{" "}
-                                      {brand.invoiceDate
-                                        ? `Setiap Tanggal ${brand.invoiceDate}`
-                                        : "-"}
-                                    </div>
-                                    <div className="mt-2 pt-2 border-t border-slate-100 text-[9px] text-indigo-700 bg-indigo-50/50 p-2 rounded-lg space-y-0.5">
-                                      <div className="font-extrabold text-[8px] uppercase tracking-wider text-indigo-950 mb-0.5">
-                                        🔑 Portal Klien:
+                                  <td className="px-5 py-5 align-top">
+                                    <div className="space-y-1.5 mb-3 text-[11px]">
+                                      <div className="flex items-center justify-between border-b border-dashed border-slate-100 pb-1">
+                                        <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Start</span>
+                                        <span className="text-slate-700 font-bold">{brand.contractStartDate || "-"}</span>
                                       </div>
-                                      <div>
-                                        User:{" "}
-                                        <span className="font-mono font-black select-all bg-white px-1 py-0.2 border border-indigo-100/50 rounded">
-                                          {brand.clientUsername ||
-                                            brand.name
-                                              .toLowerCase()
-                                              .replace(/[^a-z0-9]/g, "")}
-                                        </span>
+                                      <div className="flex items-center justify-between border-b border-dashed border-slate-100 pb-1">
+                                        <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">End</span>
+                                        <span className="text-rose-600 font-bold">{brand.contractEndDate || "-"}</span>
                                       </div>
-                                      <div>
-                                        Pass:{" "}
-                                        <span className="font-mono font-black select-all bg-white px-1 py-0.2 border border-indigo-100/50 rounded">
-                                          {brand.clientPassword || "liva123"}
-                                        </span>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Tagihan</span>
+                                        <span className="text-emerald-600 font-black">{brand.invoiceDate ? `Tgl ${brand.invoiceDate}` : "-"}</span>
+                                      </div>
+                                    </div>
+                                    <div className="bg-indigo-50/80 border border-indigo-100/50 rounded-xl p-2.5">
+                                      <div className="font-black text-[9px] uppercase tracking-widest text-indigo-800 mb-1.5 flex items-center gap-1.5">
+                                        <Shield className="w-3 h-3" /> Portal Performance
+                                      </div>
+                                      <div className="space-y-1 text-[10px]">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-indigo-400/80 font-bold w-6">UID</span>
+                                          <span className="font-mono font-black text-indigo-900 bg-white/60 px-1.5 py-0.5 rounded select-all flex-1">
+                                            {brand.clientUsername || brand.name.toLowerCase().replace(/[^a-z0-9]/g, "")}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-indigo-400/80 font-bold w-6">PWD</span>
+                                          <span className="font-mono font-black text-indigo-900 bg-white/60 px-1.5 py-0.5 rounded select-all flex-1">
+                                            {brand.clientPassword || "liva123"}
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
                                   </td>
-                                  <td className="px-4 py-3 align-top">
-                                    <div className="space-y-1">
-                                      {brand.accounts &&
-                                      brand.accounts.length > 0 ? (
+                                  <td className="px-5 py-5 align-top">
+                                    <div className="flex flex-col gap-2">
+                                      {brand.accounts && brand.accounts.length > 0 ? (
                                         brand.accounts.map((acc) => (
                                           <div
                                             key={acc.id}
-                                            className="bg-slate-50 border border-slate-100 rounded p-1.5 text-[9px]"
+                                            className="bg-slate-50 border border-slate-200/60 rounded-xl p-2"
                                           >
-                                            <div className="font-black tracking-wide text-slate-700 uppercase mb-1">
+                                            <div className="font-black tracking-widest text-slate-500 uppercase mb-1.5 text-[9px] text-center bg-white border border-slate-100 rounded py-0.5">
                                               {acc.type}
                                             </div>
-                                            <div className="text-slate-500 font-mono mb-0.5">
-                                              U:{" "}
-                                              <span className="font-bold text-slate-800 bg-white px-1 py-0.5 rounded border border-slate-100">
-                                                {acc.username || "-"}
-                                              </span>
+                                            <div className="grid grid-cols-2 gap-1 text-[10px]">
+                                              <div className="flex flex-col">
+                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">User</span>
+                                                <span className="font-mono font-bold text-slate-700 break-all">{acc.username || "-"}</span>
+                                              </div>
+                                              <div className="flex flex-col border-l border-slate-200/60 pl-1.5">
+                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Pass</span>
+                                                <span className="font-mono font-bold text-slate-700 break-all">{acc.password || "-"}</span>
+                                              </div>
                                             </div>
-                                            <div className="text-slate-500 font-mono">
-                                              P:{" "}
-                                              <span className="font-bold text-slate-800 bg-white px-1 py-0.5 rounded border border-slate-100">
-                                                {acc.password || "-"}
-                                              </span>
-                                            </div>
-                                            <div className="text-slate-500 mt-1 font-semibold flex items-center gap-1">
-                                              <Smartphone className="w-2.5 h-2.5" />{" "}
-                                              OTP: {acc.picOtp || "-"}
+                                            <div className="text-slate-500 mt-1.5 pt-1.5 border-t border-slate-200/60 font-semibold flex items-center justify-center gap-1.5 text-[9px]">
+                                              <Smartphone className="w-3 h-3 text-slate-400" />
+                                              OTP: <span className="text-slate-800 font-bold">{acc.picOtp || "-"}</span>
                                             </div>
                                           </div>
                                         ))
                                       ) : (
-                                        <div className="text-slate-400 text-[9px] italic">
-                                          Belum ada akun
+                                        <div className="text-slate-400 text-[10px] italic bg-slate-50 border border-slate-100 px-3 py-2 rounded-lg text-center">
+                                          Tidak ada data
                                         </div>
                                       )}
                                     </div>
                                   </td>
-                                  <td className="px-4 py-3 text-right align-top">
-                                    <div className="flex justify-end gap-1">
+                                  <td className="px-5 py-5 align-top">
+                                    <div className="flex flex-col items-center justify-start gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                                       <button
                                         onClick={() => {
                                           setOperatorTab("invoice");
+                                          setTimeout(() => {
+                                            const e = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
+                                            window.dispatchEvent(e);
+                                          }, 300);
                                         }}
-                                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded cursor-pointer border-0"
-                                        title="Buka Manajemen Invoice"
+                                        className="w-8 h-8 flex items-center justify-center text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-full transition-all border-0 cursor-pointer"
+                                        title="Buat Invoice untuk Brand Ini"
                                       >
-                                        <Receipt className="w-3.5 h-3.5" />
+                                        <Receipt className="w-4 h-4" />
                                       </button>
                                       <button
-                                        onClick={() => {
-                                          setBrandFormEditor(brand);
-                                        }}
-                                        className="p-1.5 text-blue-500 hover:bg-blue-50 rounded cursor-pointer border-0"
-                                        title="Edit Brand"
+                                        onClick={() => handleEditBrand(brand)}
+                                        className="w-8 h-8 flex items-center justify-center text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-full transition-all border-0 cursor-pointer"
+                                        title="Edit Data"
                                       >
-                                        <Edit2 className="w-3.5 h-3.5" />
+                                        <Edit3 className="w-4 h-4" />
                                       </button>
                                       <button
-                                        onClick={() => {
-                                          requestConfirm(
-                                            "Hapus Data Klien",
-                                            `Apakah Anda yakin ingin menghapus data brand ${brand.name}?`,
-                                            () =>
-                                              setClientBrands((p) =>
-                                                p.filter(
-                                                  (b) => b.id !== brand.id,
-                                                ),
-                                              ),
-                                            "danger",
-                                          );
-                                        }}
-                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded cursor-pointer border-0"
-                                        title="Hapus"
+                                        onClick={() => handleDeleteBrand(brand.id)}
+                                        className="w-8 h-8 flex items-center justify-center text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all border-0 cursor-pointer"
+                                        title="Hapus Data"
                                       >
-                                        <Trash2 className="w-3.5 h-3.5" />
+                                        <Trash2 className="w-4 h-4" />
                                       </button>
                                     </div>
                                   </td>
