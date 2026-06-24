@@ -661,8 +661,181 @@ export const getShiftFromHour = (hour: number, shiftsList: string[]) => {
       }
     }
   }
-  return null;
 };
+
+export function SearchableHostSelect({
+  hosts,
+  value,
+  onChange,
+  placeholder = "-- Pilih Host --",
+  className = "",
+  triggerClassName = "w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold text-left text-slate-700 hover:bg-slate-100/50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 cursor-pointer transition-all flex items-center justify-between min-h-[42px]",
+  valueType = "id",
+  includeType = false,
+  includeStudio = false,
+  showAllOption = false,
+  allOptionLabel = "Semua Host",
+}: {
+  hosts: any[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  triggerClassName?: string;
+  valueType?: "id" | "name";
+  includeType?: boolean;
+  includeStudio?: boolean;
+  showAllOption?: boolean;
+  allOptionLabel?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Reset search when opening/closing
+  useEffect(() => {
+    if (!isOpen) {
+      setSearch("");
+    }
+  }, [isOpen]);
+
+  // Find currently selected host
+  const selectedHost = hosts.find((h) => 
+    valueType === "id" ? h.id === value : h.name === value
+  );
+
+  // Filter hosts based on search query
+  const filteredHosts = hosts.filter((h) =>
+    h.name.toLowerCase().includes(search.toLowerCase()) ||
+    (h.studio && h.studio.toLowerCase().includes(search.toLowerCase())) ||
+    (h.hostType && h.hostType.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const handleSelect = (val: string) => {
+    onChange(val);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={triggerClassName}
+      >
+        <span className="truncate">
+          {showAllOption && value === "all"
+            ? allOptionLabel
+            : selectedHost
+            ? `${selectedHost.name}${
+                includeType && selectedHost.hostType
+                  ? ` (${selectedHost.hostType})`
+                  : ""
+              }${
+                includeStudio && selectedHost.studio
+                  ? ` (${selectedHost.studio.replace(/^Studio\s+/, "")})`
+                  : ""
+              }`
+            : placeholder}
+        </span>
+        <span className="text-[10px] text-slate-400 select-none ml-2 shrink-0">
+          ▼
+        </span>
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-[150] p-2 flex flex-col gap-2 animate-fadeIn origin-top">
+          {/* Search Input */}
+          <div className="relative flex-shrink-0">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari host..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+              autoFocus
+            />
+          </div>
+
+          {/* Options List */}
+          <div className="max-h-[200px] overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
+            {showAllOption && !search && (
+              <button
+                type="button"
+                onClick={() => handleSelect("all")}
+                className={`w-full px-3 py-2 rounded-lg text-left text-xs font-bold transition-colors cursor-pointer ${
+                  value === "all"
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {allOptionLabel}
+              </button>
+            )}
+
+            {filteredHosts.length > 0 ? (
+              filteredHosts.map((h, i) => {
+                const isSelected = valueType === "id" ? h.id === value : h.name === value;
+                return (
+                  <button
+                    key={h.id + "_" + i}
+                    type="button"
+                    onClick={() => handleSelect(valueType === "id" ? h.id : h.name)}
+                    className={`w-full px-3 py-2 rounded-lg text-left text-xs font-bold transition-colors cursor-pointer flex justify-between items-center ${
+                      isSelected
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span className="truncate">
+                      {h.name}
+                      {includeStudio && h.studio && (
+                        <span className="text-[10px] text-slate-400 font-semibold ml-1.5">
+                          ({h.studio.replace(/^Studio\s+/, "")})
+                        </span>
+                      )}
+                    </span>
+                    {includeType && h.hostType && (
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border shrink-0 ${
+                        h.hostType === "Reguler"
+                          ? "bg-indigo-50/50 text-indigo-600 border-indigo-100"
+                          : "bg-emerald-50/50 text-emerald-600 border-emerald-100"
+                      }`}>
+                        {h.hostType}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="py-6 text-center text-xs text-slate-400 italic">
+                Host tidak ditemukan
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function App() {
   const initPath = window.location.pathname;
@@ -11140,20 +11313,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               Hari Ini
                             </button>
                             <div className="hidden min-[400px]:block w-px h-6 bg-slate-200"></div>
-                            <select
+                            <SearchableHostSelect
+                              hosts={hosts}
                               value={adminCalendarHostFilter}
-                              onChange={(e) =>
-                                setAdminCalendarHostFilter(e.target.value)
-                              }
-                              className="bg-white border border-slate-200 shadow-sm rounded-lg text-xs font-bold text-slate-700 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                            >
-                              <option value="all">Semua Host</option>
-                              {hosts.map((h) => (
-                                <option key={h.id} value={h.id}>
-                                  {h.name}
-                                </option>
-                              ))}
-                            </select>
+                              onChange={setAdminCalendarHostFilter}
+                              showAllOption={true}
+                              allOptionLabel="Semua Host"
+                              placeholder="Pilih Host..."
+                              className="w-full min-[400px]:w-[180px]"
+                              triggerClassName="w-full bg-white border border-slate-200 shadow-sm rounded-lg text-xs font-bold text-slate-700 px-3 py-1.5 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer flex items-center justify-between gap-2.5 min-h-[34px]"
+                            />
                           </div>
 
                           <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto">
@@ -11779,10 +11948,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <label className="block text-slate-500 font-extrabold mb-1.5">
                                       Host:
                                     </label>
-                                    <select
+                                    <SearchableHostSelect
+                                      hosts={hosts}
                                       value={scheduleForm.hostId}
-                                      onChange={(e) => {
-                                        const hostId = e.target.value;
+                                      onChange={(hostId) => {
                                         const hostObj = hosts.find(
                                           (h) => h.id === hostId,
                                         );
@@ -11820,20 +11989,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           timeSlot: foundShift || prev.timeSlot,
                                         }));
                                       }}
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
-                                      required
-                                    >
-                                      <option value="">-- Pilih Host --</option>
-                                      {hosts.map((h) => (
-                                        <option key={h.id} value={h.id}>
-                                          {h.name} (
-                                          {h.hostType === "Reguler"
-                                            ? "Reguler"
-                                            : "Backup"}
-                                          )
-                                        </option>
-                                      ))}
-                                    </select>
+                                      includeType={true}
+                                      placeholder="-- Pilih Host --"
+                                    />
                                   </div>
                                 </div>
 
@@ -14651,24 +14809,19 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             </div>
 
                             {!manualForm.isBulkHost ? (
-                              <select
-                                id="manual_field_host"
+                              <SearchableHostSelect
+                                hosts={hosts}
                                 value={manualForm.hostId}
-                                onChange={(e) =>
+                                onChange={(hostId) =>
                                   setManualForm((prev) => ({
                                     ...prev,
-                                    hostId: e.target.value,
+                                    hostId,
                                   }))
                                 }
-                                className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold"
-                              >
-                                {hosts.map((h) => (
-                                  <option key={h.id} value={h.id}>
-                                    {h.name} (
-                                    {h.studio || "Studio Bandar Lampung"})
-                                  </option>
-                                ))}
-                              </select>
+                                includeStudio={true}
+                                placeholder="Pilih Host..."
+                                triggerClassName="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-bold text-left flex items-center justify-between cursor-pointer min-h-[38px]"
+                              />
                             ) : (
                               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[150px] overflow-y-auto">
                                 {hosts.map((h) => (
@@ -15709,41 +15862,33 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           </option>
                                         ))}
                                       </select>
-                                      <select
+                                      <SearchableHostSelect
+                                        hosts={hosts}
                                         value={sess.host || ""}
-                                        onChange={(e) =>
+                                        valueType="name"
+                                        onChange={(hostName) =>
                                           setBrandFormEditor((prev) =>
                                             prev
                                               ? {
                                                   ...prev,
-                                                  sessions: prev.sessions?.map(
-                                                    (s, i) =>
-                                                      i === idx
-                                                        ? {
-                                                            ...s,
-                                                            host: e.target
-                                                              .value,
-                                                          }
-                                                        : s,
-                                                  ),
+                                                  sessions:
+                                                    prev.sessions?.map(
+                                                      (s, i) =>
+                                                        i === idx
+                                                          ? {
+                                                              ...s,
+                                                              host: hostName,
+                                                            }
+                                                          : s,
+                                                    ),
                                                 }
                                               : prev,
                                           )
                                         }
-                                        className="w-full xl:w-[180px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
-                                      >
-                                        <option value="">
-                                          Host Reguler / Dedicated (Opsional)...
-                                        </option>
-                                        {hosts.map((h, i) => (
-                                          <option
-                                            key={h.id + "_" + i}
-                                            value={h.name}
-                                          >
-                                            {h.name}
-                                          </option>
-                                        ))}
-                                      </select>
+                                        className="w-full xl:w-[180px]"
+                                        placeholder="Host Reguler / Dedicated (Opsional)..."
+                                        triggerClassName="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px] text-left flex items-center justify-between cursor-pointer min-h-[30px]"
+                                      />
                                       <button
                                         type="button"
                                         onClick={() =>
