@@ -10746,7 +10746,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             );
 
                             return (
-                              <div className="mb-5 p-3.5 bg-amber-50/60 border border-amber-200/50 rounded-xl">
+                              <div className="mb-5 p-3.5 bg-emerald-50/30 border border-emerald-100/50 rounded-xl">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-md">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -10761,9 +10761,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     {idleHosts.map((h) => (
                                       <span
                                         key={h.id}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-amber-100 shadow-3xs text-xs font-bold text-slate-700 hover:border-amber-300 hover:bg-amber-50/30 transition-all cursor-default"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-emerald-100/60 shadow-3xs text-xs font-bold text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/20 transition-all cursor-default"
                                       >
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                         {h.name}
                                         {h.studio && (
                                           <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 px-1 py-0.2 rounded">
