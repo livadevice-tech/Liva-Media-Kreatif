@@ -221,21 +221,28 @@ export const clientReportingApi = {
  * Strategi: compare oldArray vs newArray, PUT yang berubah, DELETE yang hilang, POST yang baru.
  */
 export async function syncToMySQL(
-  entityType: 'hosts' | 'logs' | 'schedules' | 'alerts' | 'client-brands' | 'client-leads' | 'admin-accounts',
+  entityType: any,
   oldArray: any[],
   newArray: any[]
 ): Promise<void> {
-  const apiMap = {
+  const apiMap: any = {
     'hosts':          hostsApi,
     'logs':           logsApi,
     'schedules':      schedulesApi,
     'alerts':         alertsApi,
     'client-brands':  clientBrandsApi,
+    'client_brands':  clientBrandsApi,
     'client-leads':   clientLeadsApi,
+    'client_leads':   clientLeadsApi,
     'admin-accounts': adminAccountsApi,
+    'admin_accounts': adminAccountsApi,
   };
 
   const api = apiMap[entityType] as any;
+  if (!api) {
+    console.warn(`[syncToMySQL] No API map found for entityType: ${entityType}`);
+    return;
+  }
 
   const oldIds = oldArray.map((x) => x.id).filter(Boolean);
   const newIds = newArray.map((x) => x.id).filter(Boolean);
