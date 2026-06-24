@@ -6785,7 +6785,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 (s) =>
                                   (s.hostId === loggedInHostId ||
                                     s.backupHostId === loggedInHostId) &&
-                                  s.date === dateString,
+                                  (s.date || "").split("T")[0] === dateString,
                               );
 
                               // Decide background check
@@ -6877,7 +6877,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   s.backupHostId === loggedInHostId) &&
                                 !s.isOffDay &&
                                 s.date &&
-                                s.date.startsWith(
+                                (s.date || "").split("T")[0].startsWith(
                                   `${hostCalendarYear}-${String(hostCalendarMonth + 1).padStart(2, "0")}`,
                                 ),
                             );
