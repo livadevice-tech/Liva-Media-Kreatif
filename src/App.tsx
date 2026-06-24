@@ -15900,243 +15900,274 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </div>
                       )}
 
-                      <div className="flex bg-slate-100/80 p-1 rounded-xl w-full max-w-sm mb-6 border border-slate-200">
+                      {/* Filter Tab & Search Bar */}
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-5">
+                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+                          <button
+                            onClick={() => setBrandDataTab("active")}
+                            className={`px-4 py-2 text-xs font-black rounded-lg transition-all duration-300 ${brandDataTab === "active" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                          >
+                            ✅ Aktif
+                          </button>
+                          <button
+                            onClick={() => setBrandDataTab("inactive")}
+                            className={`px-4 py-2 text-xs font-black rounded-lg transition-all duration-300 ${brandDataTab === "inactive" ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                          >
+                            🔴 Tidak Aktif
+                          </button>
+                        </div>
+                        <div className="relative flex-1 w-full">
+                          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Cari nama brand klien..."
+                            value={brandDataSearch}
+                            onChange={(e) => setBrandDataSearch(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 font-semibold"
+                          />
+                        </div>
                         <button
-                          onClick={() => setBrandDataTab("active")}
-                          className={`flex-1 py-2 text-xs font-black rounded-lg transition-all duration-300 ${brandDataTab === "active" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
+                          onClick={() => setBrandDataSortDir(prev => prev === "asc" ? "desc" : "asc")}
+                          className="flex items-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shrink-0"
                         >
-                          Aktif (Dalam Kontrak)
-                        </button>
-                        <button
-                          onClick={() => setBrandDataTab("inactive")}
-                          className={`flex-1 py-2 text-xs font-black rounded-lg transition-all duration-300 ${brandDataTab === "inactive" ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
-                        >
-                          Tidak Aktif / Selesai
+                          <ArrowUpDown className="w-3.5 h-3.5" />
+                          {brandDataSortDir === "asc" ? "A–Z" : "Z–A"}
                         </button>
                       </div>
 
-                      <div className="relative mb-6">
-                        <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Ketik untuk mencari nama brand klien..."
-                          value={brandDataSearch}
-                          onChange={(e) => setBrandDataSearch(e.target.value)}
-                          className="w-full bg-white border border-slate-200 shadow-sm hover:shadow transition-shadow rounded-2xl pl-12 pr-6 py-3.5 text-sm text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 font-bold"
-                        />
-                      </div>
+                      {/* Brand Card List */}
+                      <div className="space-y-3">
+                        {filteredAndSortedBrands.length === 0 ? (
+                          <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                            <Briefcase className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+                            <p className="text-slate-400 font-bold text-sm">
+                              {brandDataSearch ? "Brand tidak ditemukan." : "Belum ada data brand klien."}
+                            </p>
+                            <p className="text-slate-300 text-xs mt-1">Klik tombol "+ Klien Baru" untuk menambahkan.</p>
+                          </div>
+                        ) : (
+                          filteredAndSortedBrands.map((brand, i) => {
+                            const today = new Date();
+                            const endDate = brand.contractEndDate ? new Date(brand.contractEndDate) : null;
+                            const startDate = brand.contractStartDate ? new Date(brand.contractStartDate) : null;
+                            const isExpired = endDate ? endDate < today : false;
+                            const daysLeft = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                            const isNearExpiry = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
 
-                      <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
-                        <table className="w-full text-left border-collapse min-w-[900px]">
-                          <thead>
-                            <tr className="bg-slate-50/80 border-b border-slate-100">
-                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest w-12 text-center">
-                                No
-                              </th>
-                              <th
-                                className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest cursor-pointer hover:text-indigo-600 transition-colors select-none group w-56"
-                                onClick={() =>
-                                  setBrandDataSortDir((prev) =>
-                                    prev === "asc" ? "desc" : "asc",
-                                  )
-                                }
+                            // Contract progress stages
+                            const stages = [
+                              { label: "Pendaftaran", done: true },
+                              { label: "Setup Sesi", done: (brand.sessions?.length || 0) > 0 },
+                              { label: "Kontrak Aktif", done: !!startDate && startDate <= today },
+                              { label: "Pelaksanaan", done: !!startDate && startDate <= today && !isExpired },
+                              { label: isExpired ? "Selesai" : "Berakhir", done: isExpired },
+                            ];
+
+                            return (
+                              <div
+                                key={brand.id || i}
+                                className={`bg-white rounded-2xl border transition-all duration-200 hover:shadow-md group ${
+                                  isExpired
+                                    ? "border-l-4 border-l-rose-400 border-slate-100"
+                                    : isNearExpiry
+                                    ? "border-l-4 border-l-amber-400 border-slate-100"
+                                    : "border-l-4 border-l-indigo-400 border-slate-100"
+                                }`}
                               >
-                                <div className="flex items-center gap-2">
-                                  Nama Brand Klien
-                                  <div className="flex flex-col text-[7px] leading-[0px] opacity-60 group-hover:opacity-100 transition-opacity">
-                                    <span className={`${brandDataSortDir === "asc" ? "text-indigo-600" : "text-slate-400"}`}>▲</span>
-                                    <span className={`${brandDataSortDir === "desc" ? "text-indigo-600" : "text-slate-400"} mt-[2px]`}>▼</span>
+                                {/* Card Header */}
+                                <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-50">
+                                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${
+                                      isExpired ? "bg-rose-50 text-rose-500" : "bg-indigo-50 text-indigo-600"
+                                    }`}>
+                                      {(brand.name || "?").charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                                        <h4 className="font-black text-slate-800 text-[15px] leading-tight truncate">{brand.name}</h4>
+                                        {isExpired ? (
+                                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span> Selesai
+                                          </span>
+                                        ) : isNearExpiry ? (
+                                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span> {daysLeft}h lagi
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span> Aktif
+                                          </span>
+                                        )}
+                                        {brand.monthlyMeetingDate && (
+                                          <span className="text-[10px] text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full font-bold border border-sky-100 flex items-center gap-1">
+                                            <Calendar className="w-2.5 h-2.5" /> Meeting Tgl {brand.monthlyMeetingDate}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-semibold">
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="w-3 h-3" />
+                                          {brand.contractStartDate || "—"} → {brand.contractEndDate || "—"}
+                                        </span>
+                                        {brand.invoiceDate && (
+                                          <span className="flex items-center gap-1 text-emerald-600">
+                                            <DollarSign className="w-3 h-3" /> Invoice Tgl {brand.invoiceDate}
+                                          </span>
+                                        )}
+                                        {brand.picName && (
+                                          <span className="flex items-center gap-1">
+                                            <UserCheck className="w-3 h-3" /> {brand.picName}
+                                          </span>
+                                        )}
+                                        <span className="text-indigo-400 font-mono">ID: #{brand.id.slice(-6).toUpperCase()}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Action Buttons */}
+                                  <div className="flex items-center gap-1.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={() => {
+                                        setOperatorTab("invoice");
+                                        setTimeout(() => {
+                                          const e = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
+                                          window.dispatchEvent(e);
+                                        }, 300);
+                                      }}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-bold transition-all border-0 cursor-pointer"
+                                      title="Buat Invoice"
+                                    >
+                                      <Receipt className="w-3.5 h-3.5" /> Invoice
+                                    </button>
+                                    <button
+                                      onClick={() => handleEditBrand(brand)}
+                                      className="w-8 h-8 flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all border-0 cursor-pointer"
+                                      title="Edit Data"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteBrand(brand.id)}
+                                      className="w-8 h-8 flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all border-0 cursor-pointer"
+                                      title="Hapus Data"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
                                   </div>
                                 </div>
-                              </th>
-                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest w-64">
-                                Platform & Sesi
-                              </th>
-                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest w-64">
-                                Info Kontrak & Kredensial
-                              </th>
-                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest w-64">
-                                Akun Brand
-                              </th>
-                              <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center w-24">
-                                Tindakan
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100/70">
-                            {filteredAndSortedBrands.length === 0 ? (
-                              <tr key="empty">
-                                <td
-                                  colSpan={6}
-                                  className="py-8 text-center text-slate-400 font-semibold text-xs bg-slate-50/50"
-                                >
-                                  {brandDataSearch
-                                    ? "Brand tidak ditemukan berdasarkan pencarian."
-                                    : "Belum ada data brand klien."}
-                                </td>
-                              </tr>
-                            ) : (
-                              filteredAndSortedBrands.map((brand, i) => (
-                                <tr
-                                  key={brand.id || i}
-                                  className="hover:bg-slate-50/60 transition-colors group"
-                                >
-                                  <td className="px-5 py-5 align-top font-bold text-slate-400 text-sm text-center">
-                                    {i + 1}
-                                  </td>
-                                  <td className="px-5 py-5 align-top">
-                                    <div className="font-black text-slate-800 text-[15px] mb-1">
-                                      {brand.name}
-                                    </div>
-                                    {brand.monthlyMeetingDate && (
-                                      <div className="text-[10px] text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md font-bold inline-flex items-center gap-1.5 border border-sky-100/50">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></div>
-                                        Meeting Bulanan Tgl {brand.monthlyMeetingDate}
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td className="px-5 py-5 align-top">
-                                    <div className="flex flex-wrap gap-2">
+
+                                {/* Card Body */}
+                                <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  {/* Sessions */}
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Platform & Sesi</p>
+                                    <div className="flex flex-wrap gap-1.5">
                                       {brand.sessions && brand.sessions.length > 0 ? (
                                         brand.sessions.map((sess) => (
                                           <div
                                             key={sess.id}
-                                            className="bg-white border border-slate-100 rounded-xl p-2.5 shadow-sm text-xs min-w-[130px] flex-1"
+                                            className="bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-[10px]"
                                           >
-                                            <div className="font-black text-indigo-700 uppercase tracking-wide text-[10px] mb-1">
-                                              {sess.platform}
-                                            </div>
-                                            <div className="text-slate-800 font-bold mb-1.5 text-[11px]">
-                                              {sess.shift}
-                                            </div>
-                                            <div className="space-y-1">
-                                              {sess.studio && (
-                                                <div className="text-slate-500 font-semibold flex items-center gap-1.5 text-[10px]">
-                                                  <MapPin className="w-3 h-3 text-rose-500" />
-                                                  {sess.studio}
-                                                </div>
-                                              )}
-                                              {sess.host && (
-                                                <div className="text-slate-500 font-semibold flex items-center gap-1.5 text-[10px]">
-                                                  <UserCheck className="w-3 h-3 text-emerald-500" />
-                                                  <span className="text-slate-700">{sess.host}</span>
-                                                </div>
-                                              )}
-                                            </div>
+                                            <span className="font-black text-indigo-600 uppercase">{sess.platform}</span>
+                                            <span className="text-slate-400 mx-1">·</span>
+                                            <span className="font-semibold text-slate-600">{sess.shift}</span>
+                                            {sess.studio && (
+                                              <div className="text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <MapPin className="w-2.5 h-2.5 text-rose-400" /> {sess.studio}
+                                              </div>
+                                            )}
+                                            {sess.host && (
+                                              <div className="text-slate-400 flex items-center gap-1">
+                                                <UserCheck className="w-2.5 h-2.5 text-emerald-400" /> {sess.host}
+                                              </div>
+                                            )}
                                           </div>
                                         ))
                                       ) : (
-                                        <div className="text-slate-400 text-xs italic bg-slate-50/50 border border-dashed border-slate-200 px-3 py-1.5 rounded-lg">
-                                          Belum ada setup sesi
-                                        </div>
+                                        <div className="text-slate-300 text-[10px] italic">Belum ada sesi</div>
                                       )}
                                     </div>
-                                  </td>
-                                  <td className="px-5 py-5 align-top">
-                                    <div className="space-y-1.5 mb-3 text-[11px]">
-                                      <div className="flex items-center justify-between border-b border-dashed border-slate-100 pb-1">
-                                        <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Start</span>
-                                        <span className="text-slate-700 font-bold">{brand.contractStartDate || "-"}</span>
+                                  </div>
+
+                                  {/* Portal Credentials */}
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Portal Performance</p>
+                                    <div className="bg-indigo-50/70 border border-indigo-100/60 rounded-xl p-2.5 space-y-1.5">
+                                      <div className="flex items-center gap-2 text-[10px]">
+                                        <span className="text-indigo-400 font-bold w-7">UID</span>
+                                        <span className="font-mono font-black text-indigo-800 bg-white/70 px-1.5 py-0.5 rounded select-all flex-1 truncate">
+                                          {brand.clientUsername || (brand.name || "").toLowerCase().replace(/[^a-z0-9]/g, "")}
+                                        </span>
                                       </div>
-                                      <div className="flex items-center justify-between border-b border-dashed border-slate-100 pb-1">
-                                        <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">End</span>
-                                        <span className="text-rose-600 font-bold">{brand.contractEndDate || "-"}</span>
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Tagihan</span>
-                                        <span className="text-emerald-600 font-black">{brand.invoiceDate ? `Tgl ${brand.invoiceDate}` : "-"}</span>
-                                      </div>
-                                    </div>
-                                    <div className="bg-indigo-50/80 border border-indigo-100/50 rounded-xl p-2.5">
-                                      <div className="font-black text-[9px] uppercase tracking-widest text-indigo-800 mb-1.5 flex items-center gap-1.5">
-                                        <Shield className="w-3 h-3" /> Portal Performance
-                                      </div>
-                                      <div className="space-y-1 text-[10px]">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-indigo-400/80 font-bold w-6">UID</span>
-                                          <span className="font-mono font-black text-indigo-900 bg-white/60 px-1.5 py-0.5 rounded select-all flex-1">
-                                            {brand.clientUsername || (brand.name || "").toLowerCase().replace(/[^a-z0-9]/g, "")}
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-indigo-400/80 font-bold w-6">PWD</span>
-                                          <span className="font-mono font-black text-indigo-900 bg-white/60 px-1.5 py-0.5 rounded select-all flex-1">
-                                            {brand.clientPassword || "liva123"}
-                                          </span>
-                                        </div>
+                                      <div className="flex items-center gap-2 text-[10px]">
+                                        <span className="text-indigo-400 font-bold w-7">PWD</span>
+                                        <span className="font-mono font-black text-indigo-800 bg-white/70 px-1.5 py-0.5 rounded select-all flex-1">
+                                          {brand.clientPassword || "liva123"}
+                                        </span>
                                       </div>
                                     </div>
-                                  </td>
-                                  <td className="px-5 py-5 align-top">
-                                    <div className="flex flex-col gap-2">
+                                  </div>
+
+                                  {/* Accounts */}
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Akun Seller ({brand.accounts?.length || 0})</p>
+                                    <div className="flex flex-wrap gap-1.5">
                                       {brand.accounts && brand.accounts.length > 0 ? (
                                         brand.accounts.map((acc) => (
-                                          <div
-                                            key={acc.id}
-                                            className="bg-slate-50 border border-slate-200/60 rounded-xl p-2"
-                                          >
-                                            <div className="font-black tracking-widest text-slate-500 uppercase mb-1.5 text-[9px] text-center bg-white border border-slate-100 rounded py-0.5">
-                                              {acc.type}
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-1 text-[10px]">
-                                              <div className="flex flex-col">
-                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">User</span>
-                                                <span className="font-mono font-bold text-slate-700 break-all">{acc.username || "-"}</span>
+                                          <div key={acc.id} className="bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-[10px]">
+                                            <div className="font-black text-slate-500 uppercase tracking-wider text-[8px] mb-0.5">{acc.type}</div>
+                                            <div className="font-mono text-slate-700 font-bold">{acc.username || "—"}</div>
+                                            <div className="font-mono text-slate-400">{acc.password || "—"}</div>
+                                            {acc.picOtp && (
+                                              <div className="text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <Smartphone className="w-2.5 h-2.5" /> OTP: {acc.picOtp}
                                               </div>
-                                              <div className="flex flex-col border-l border-slate-200/60 pl-1.5">
-                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Pass</span>
-                                                <span className="font-mono font-bold text-slate-700 break-all">{acc.password || "-"}</span>
-                                              </div>
-                                            </div>
-                                            <div className="text-slate-500 mt-1.5 pt-1.5 border-t border-slate-200/60 font-semibold flex items-center justify-center gap-1.5 text-[9px]">
-                                              <Smartphone className="w-3 h-3 text-slate-400" />
-                                              OTP: <span className="text-slate-800 font-bold">{acc.picOtp || "-"}</span>
-                                            </div>
+                                            )}
                                           </div>
                                         ))
                                       ) : (
-                                        <div className="text-slate-400 text-[10px] italic bg-slate-50 border border-slate-100 px-3 py-2 rounded-lg text-center">
-                                          Tidak ada data
-                                        </div>
+                                        <div className="text-slate-300 text-[10px] italic">Tidak ada akun</div>
                                       )}
                                     </div>
-                                  </td>
-                                  <td className="px-5 py-5 align-top">
-                                    <div className="flex flex-col items-center justify-start gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                                      <button
-                                        onClick={() => {
-                                          setOperatorTab("invoice");
-                                          setTimeout(() => {
-                                            const e = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
-                                            window.dispatchEvent(e);
-                                          }, 300);
-                                        }}
-                                        className="w-8 h-8 flex items-center justify-center text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-full transition-all border-0 cursor-pointer"
-                                        title="Buat Invoice untuk Brand Ini"
-                                      >
-                                        <Receipt className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleEditBrand(brand)}
-                                        className="w-8 h-8 flex items-center justify-center text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-full transition-all border-0 cursor-pointer"
-                                        title="Edit Data"
-                                      >
-                                        <Edit3 className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteBrand(brand.id)}
-                                        className="w-8 h-8 flex items-center justify-center text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all border-0 cursor-pointer"
-                                        title="Hapus Data"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
+                                  </div>
+                                </div>
+
+                                {/* Contract Progress Tracker */}
+                                <div className="px-5 pb-4">
+                                  <div className="flex items-center gap-0">
+                                    {stages.map((stage, idx) => (
+                                      <div key={stage.label} className="flex items-center flex-1">
+                                        <div className="flex flex-col items-center">
+                                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                                            stage.done
+                                              ? isExpired && idx === stages.length - 1
+                                                ? "bg-rose-100 text-rose-500 border-2 border-rose-300"
+                                                : "bg-indigo-600 text-white"
+                                              : "bg-slate-100 border-2 border-slate-200 text-slate-300"
+                                          }`}>
+                                            {stage.done ? (
+                                              <Check className="w-2.5 h-2.5" />
+                                            ) : (
+                                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                            )}
+                                          </div>
+                                          <span className={`text-[8px] font-bold mt-1 text-center whitespace-nowrap ${
+                                            stage.done ? (isExpired && idx === stages.length - 1 ? "text-rose-500" : "text-indigo-600") : "text-slate-300"
+                                          }`}>{stage.label}</span>
+                                        </div>
+                                        {idx < stages.length - 1 && (
+                                          <div className={`flex-1 h-0.5 mx-1 mb-4 rounded-full transition-all ${
+                                            stages[idx + 1].done ? "bg-indigo-300" : "bg-slate-100"
+                                          }`} />
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   </div>
