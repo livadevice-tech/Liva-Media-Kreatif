@@ -11517,10 +11517,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     {/* MODAL POP-UP: FORM MASUKKAN DATA HOST & BACKUP */}
                     {isScheduleModalOpen && (
                       <div
-                        className="fixed inset-0 z-[120] overflow-y-auto bg-slate-950/50 backdrop-blur-xs flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn font-sans"
+                        className="fixed inset-0 z-[120] bg-slate-900/40 backdrop-blur-md flex justify-end animate-fadeIn font-sans overflow-hidden"
                         id="calendar_schedule_modal"
                       >
-                        <div className="bg-white max-w-2xl w-full rounded-2xl border border-slate-100 shadow-2xl flex flex-col animate-scaleUp my-auto sm:my-4 overflow-hidden">
+                        <div className="bg-white max-w-lg w-full h-full shadow-2xl flex flex-col animate-slideInRight overflow-y-auto custom-scrollbar border-l border-slate-200">
                           {/* Modal Header */}
                           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-5 flex justify-between items-center flex-shrink-0">
                             <div className="flex items-center gap-2.5">
@@ -23859,8 +23859,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     {/* MODAL LEADS */}
                     {leadFormModal.isOpen &&
                       createPortal(
-                        <div className="fixed inset-0 z-[120] overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn font-sans">
-                          <div className="bg-white max-w-lg w-full rounded-2xl md:rounded-[32px] border border-slate-100 shadow-2xl flex flex-col animate-scaleUp text-slate-800 relative shadow-[0_0_40px_rgba(79,70,229,0.15)] my-auto sm:my-4 overflow-hidden">
+                        <div className="fixed inset-0 z-[120] bg-slate-900/40 backdrop-blur-md flex justify-end animate-fadeIn font-sans overflow-hidden">
+                          <div className="bg-white max-w-md w-full h-full shadow-2xl flex flex-col animate-slideInRight text-slate-800 border-l border-slate-200">
                             <div className="bg-gradient-to-br from-indigo-50 to-white px-5 sm:px-8 py-5 sm:py-6 border-b border-indigo-100 flex justify-between items-center flex-shrink-0">
                               <div className="flex items-center gap-3">
                                 <div className="bg-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30 flex-shrink-0">
@@ -23889,7 +23889,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               </button>
                             </div>
 
-                            <div className="p-5 sm:p-8 w-full custom-scroll">
+                            <div className="p-5 sm:p-8 w-full overflow-y-auto custom-scrollbar flex-1">
                               <form
                                 onSubmit={(e) => {
                                   e.preventDefault();
