@@ -99,6 +99,8 @@ import {
   TrendingDown,
   Loader2,
   Fingerprint,
+  Building2,
+  PlaySquare,
 } from "lucide-react";
 
 import {
