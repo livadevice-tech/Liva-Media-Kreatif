@@ -16022,7 +16022,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         <div className="flex items-center gap-2">
                                           <span className="text-indigo-400/80 font-bold w-6">UID</span>
                                           <span className="font-mono font-black text-indigo-900 bg-white/60 px-1.5 py-0.5 rounded select-all flex-1">
-                                            {brand.clientUsername || brand.name.toLowerCase().replace(/[^a-z0-9]/g, "")}
+                                            {brand.clientUsername || (brand.name || "").toLowerCase().replace(/[^a-z0-9]/g, "")}
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-2">
