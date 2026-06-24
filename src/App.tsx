@@ -1346,7 +1346,6 @@ export default function App() {
             if (data.salarySettings) setSalarySettings(data.salarySettings);
             if (data.adminCredentials) setAdminCredentials(data.adminCredentials);
             if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
-            if (data.columnWidths) setColumnWidths(data.columnWidths);
           } catch { /* ignore parse error */ }
         } else {
           // Seed default global configs ke localStorage
@@ -1376,7 +1375,6 @@ export default function App() {
             },
             adminCredentials: { username: 'admin', password: '123' },
             adminShiftChecklistObj: {},
-            columnWidths: { name: 240, hostType: 120, attendance: 100, late: 90, excused: 100, formula: 200, netSalary: 140 },
           };
           localStorage.setItem('liva_global_configs', JSON.stringify(defaults));
         }
@@ -4053,25 +4051,7 @@ export default function App() {
   // Sorting & Column Widths states for Salary Recap Table
   const [salarySortKey, setSalarySortKey] = useState<string>("name");
   const [salarySortDir, setSalarySortDir] = useState<"asc" | "desc">("asc");
-  const [showWidthSliders, setShowWidthSliders] = useState(false);
-  const [columnWidths, setColumnWidths] = useState({
-    name: 240,
-    hostType: 120,
-    attendance: 100,
-    late: 90,
-    excused: 100,
-    formula: 200,
-    netSalary: 140,
-  });
-
-  useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
-    const timer = setTimeout(() => {
-      saveLocalConfig({ columnWidths });
-
-    }, 1000); // 1-second debounce
-    return () => clearTimeout(timer);
-  }, [columnWidths, isGlobalConfigsLoaded]);
+  const [expandedHostSalaryId, setExpandedHostSalaryId] = useState<string | null>(null);
 
   // --- CALENDAR WORKSPACE OPERATIONS STATES ---
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
@@ -12729,213 +12709,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           </select>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <button
-                            onClick={() =>
-                              setShowWidthSliders(!showWidthSliders)
-                            }
-                            className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 border cursor-pointer ${
-                              showWidthSliders
-                                ? "bg-purple-600 text-white border-purple-700 shadow-sm"
-                                : "bg-white text-purple-750 border-purple-150 hover:bg-purple-50"
-                            }`}
-                            title="Sesuaikan lebar tiap kolom secara manual"
-                            id="toggle_column_width_configurator"
-                          >
-                            <span>⚙️</span>
-                            <span>
-                              Atur Lebar Kolom {showWidthSliders ? "▲" : "▼"}
-                            </span>
-                          </button>
-                        </div>
                       </div>
-
-                      {showWidthSliders && (
-                        <div
-                          className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 animate-fadeIn"
-                          id="column_width_config_panel"
-                        >
-                          <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                            <span className="text-xs font-extrabold text-slate-700 flex items-center gap-1">
-                              Panel Lebar Kolom (Gunakan Slider untuk
-                              Menyesuaikan Tampilan Secara Real-time)
-                            </span>
-                            <button
-                              onClick={() =>
-                                setColumnWidths({
-                                  name: 240,
-                                  hostType: 120,
-                                  attendance: 140,
-                                  late: 100,
-                                  excused: 110,
-                                  absent: 100,
-                                  formula: 300,
-                                  netSalary: 180,
-                                })
-                              }
-                              className="px-2.5 py-1 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded transition-all cursor-pointer"
-                            >
-                              Reset Default
-                            </button>
-                          </div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 flex justify-between">
-                                <span>Host & Wilayah</span>
-                                <span className="font-mono text-purple-700 font-extrabold">
-                                  {columnWidths.name}px
-                                </span>
-                              </label>
-                              <input
-                                type="range"
-                                min={120}
-                                max={600}
-                                value={columnWidths.name}
-                                onChange={(e) =>
-                                  setColumnWidths((prev) => ({
-                                    ...prev,
-                                    name: Number(e.target.value),
-                                  }))
-                                }
-                                className="w-full accent-purple-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 flex justify-between">
-                                <span>Tipe Host</span>
-                                <span className="font-mono text-purple-700 font-extrabold">
-                                  {columnWidths.hostType}px
-                                </span>
-                              </label>
-                              <input
-                                type="range"
-                                min={80}
-                                max={300}
-                                value={columnWidths.hostType}
-                                onChange={(e) =>
-                                  setColumnWidths((prev) => ({
-                                    ...prev,
-                                    hostType: Number(e.target.value),
-                                  }))
-                                }
-                                className="w-full accent-purple-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 flex justify-between">
-                                <span>Hadir / Target</span>
-                                <span className="font-mono text-purple-700 font-extrabold">
-                                  {columnWidths.attendance}px
-                                </span>
-                              </label>
-                              <input
-                                type="range"
-                                min={100}
-                                max={300}
-                                value={columnWidths.attendance}
-                                onChange={(e) =>
-                                  setColumnWidths((prev) => ({
-                                    ...prev,
-                                    attendance: Number(e.target.value),
-                                  }))
-                                }
-                                className="w-full accent-purple-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 flex justify-between">
-                                <span>Terlambat</span>
-                                <span className="font-mono text-purple-700 font-extrabold">
-                                  {columnWidths.late}px
-                                </span>
-                              </label>
-                              <input
-                                type="range"
-                                min={80}
-                                max={250}
-                                value={columnWidths.late}
-                                onChange={(e) =>
-                                  setColumnWidths((prev) => ({
-                                    ...prev,
-                                    late: Number(e.target.value),
-                                  }))
-                                }
-                                className="w-full accent-purple-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 flex justify-between">
-                                <span>Tidak Hadir</span>
-                                <span className="font-mono text-purple-700 font-extrabold">
-                                  {columnWidths.excused}px
-                                </span>
-                              </label>
-                              <input
-                                type="range"
-                                min={80}
-                                max={250}
-                                value={columnWidths.excused}
-                                onChange={(e) =>
-                                  setColumnWidths((prev) => ({
-                                    ...prev,
-                                    excused: Number(e.target.value),
-                                  }))
-                                }
-                                className="w-full accent-purple-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 flex justify-between">
-                                <span>Kalkulasi</span>
-                                <span className="font-mono text-purple-700 font-extrabold">
-                                  {columnWidths.formula}px
-                                </span>
-                              </label>
-                              <input
-                                type="range"
-                                min={150}
-                                max={600}
-                                value={columnWidths.formula}
-                                onChange={(e) =>
-                                  setColumnWidths((prev) => ({
-                                    ...prev,
-                                    formula: Number(e.target.value),
-                                  }))
-                                }
-                                className="w-full accent-purple-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 flex justify-between">
-                                <span>Gaji Bersih</span>
-                                <span className="font-mono text-purple-700 font-extrabold">
-                                  {columnWidths.netSalary}px
-                                </span>
-                              </label>
-                              <input
-                                type="range"
-                                min={100}
-                                max={400}
-                                value={columnWidths.netSalary}
-                                onChange={(e) =>
-                                  setColumnWidths((prev) => ({
-                                    ...prev,
-                                    netSalary: Number(e.target.value),
-                                  }))
-                                }
-                                className="w-full accent-purple-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {/* --- SUMMARY METRICS REKAP GAJI --- */}
@@ -13052,29 +12826,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       {/* DESKTOP & TABLET VIEW: Rendered as a highly polished, responsive table */}
                       <div className="hidden md:block overflow-x-auto">
                         <table
-                          className="w-full text-left text-xs text-slate-900 border-collapse table-fixed"
-                          style={{ minWidth: "100%" }}
+                          className="w-full text-left text-xs text-slate-900 border-collapse table-auto"
                           id="salary_recap_table"
                         >
-                          <colgroup>
-                            <col style={{ width: `${columnWidths.name}px` }} />
-                            <col
-                              style={{ width: `${columnWidths.hostType}px` }}
-                            />
-                            <col
-                              style={{ width: `${columnWidths.attendance}px` }}
-                            />
-                            <col style={{ width: `${columnWidths.late}px` }} />
-                            <col
-                              style={{ width: `${columnWidths.excused}px` }}
-                            />
-                            <col
-                              style={{ width: `${columnWidths.formula}px` }}
-                            />
-                            <col
-                              style={{ width: `${columnWidths.netSalary}px` }}
-                            />
-                          </colgroup>
                           <thead>
                             <tr className="bg-slate-50/75 border-b border-slate-100 text-[10px] font-mono whitespace-nowrap uppercase tracking-wider text-slate-500 font-bold select-none">
                               {/* Nama Host & Wilayah */}
@@ -13093,39 +12847,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         : " ↕️"}
                                     </span>
                                   </button>
-                                  <div
-                                    className="flex items-center gap-1 mt-0.5"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          name: Math.max(120, prev.name - 15),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Sempitkan Kolom"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-[9px] text-slate-400 font-bold w-12 text-center">
-                                      {columnWidths.name}px
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          name: Math.min(600, prev.name + 15),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Lebarkan Kolom"
-                                    >
-                                      +
-                                    </button>
                                   </div>
-                                </div>
                               </th>
 
                               {/* Tipe Host */}
@@ -13144,45 +12866,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         : " ↕️"}
                                     </span>
                                   </button>
-                                  <div
-                                    className="flex items-center gap-1 mt-0.5"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          hostType: Math.max(
-                                            80,
-                                            prev.hostType - 10,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Sempitkan Kolom"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-[9px] text-slate-400 font-bold w-10 text-center">
-                                      {columnWidths.hostType}px
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          hostType: Math.min(
-                                            300,
-                                            prev.hostType + 10,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Lebarkan Kolom"
-                                    >
-                                      +
-                                    </button>
                                   </div>
-                                </div>
                               </th>
 
                               {/* Hadir / Target */}
@@ -13203,45 +12887,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         : " ↕️"}
                                     </span>
                                   </button>
-                                  <div
-                                    className="flex items-center gap-1 mt-0.5"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          attendance: Math.max(
-                                            80,
-                                            prev.attendance - 10,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Sempitkan Kolom"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-[9px] text-slate-400 font-bold w-10 text-center">
-                                      {columnWidths.attendance}px
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          attendance: Math.min(
-                                            300,
-                                            prev.attendance + 10,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Lebarkan Kolom"
-                                    >
-                                      +
-                                    </button>
                                   </div>
-                                </div>
                               </th>
 
                               {/* Terlambat */}
@@ -13260,39 +12906,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         : " ↕️"}
                                     </span>
                                   </button>
-                                  <div
-                                    className="flex items-center gap-1 mt-0.5"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          late: Math.max(80, prev.late - 10),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Sempitkan Kolom"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-[9px] text-slate-400 font-bold w-10 text-center">
-                                      {columnWidths.late}px
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          late: Math.min(250, prev.late + 10),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Lebarkan Kolom"
-                                    >
-                                      +
-                                    </button>
                                   </div>
-                                </div>
                               </th>
 
                               {/* Tidak Hadir */}
@@ -13311,45 +12925,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         : " ↕️"}
                                     </span>
                                   </button>
-                                  <div
-                                    className="flex items-center gap-1 mt-0.5"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          excused: Math.max(
-                                            80,
-                                            prev.excused - 10,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Sempitkan Kolom"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-[9px] text-slate-400 font-bold w-10 text-center">
-                                      {columnWidths.excused}px
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          excused: Math.min(
-                                            250,
-                                            prev.excused + 10,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Lebarkan Kolom"
-                                    >
-                                      +
-                                    </button>
                                   </div>
-                                </div>
                               </th>
 
                               {/* Rumus Perhitungan Gaji */}
@@ -13368,45 +12944,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         : " ↕️"}
                                     </span>
                                   </button>
-                                  <div
-                                    className="flex items-center gap-1 mt-0.5"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          formula: Math.max(
-                                            150,
-                                            prev.formula - 15,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Sempitkan Kolom"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-[9px] text-slate-400 font-bold w-12 text-center">
-                                      {columnWidths.formula}px
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          formula: Math.min(
-                                            600,
-                                            prev.formula + 15,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Lebarkan Kolom"
-                                    >
-                                      +
-                                    </button>
                                   </div>
-                                </div>
                               </th>
 
                               {/* Estimasi Gaji Bersih */}
@@ -13427,45 +12965,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         : " ↕️"}
                                     </span>
                                   </button>
-                                  <div
-                                    className="flex items-center gap-1 mt-0.5"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          netSalary: Math.max(
-                                            100,
-                                            prev.netSalary - 10,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Sempitkan Kolom"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-[9px] text-slate-400 font-bold w-12 text-center">
-                                      {columnWidths.netSalary}px
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        setColumnWidths((prev: any) => ({
-                                          ...prev,
-                                          netSalary: Math.min(
-                                            400,
-                                            prev.netSalary + 10,
-                                          ),
-                                        }))
-                                      }
-                                      className="w-4 h-4 rounded bg-slate-200/80 hover:bg-slate-300 text-[10px] flex items-center justify-center font-bold active:scale-90 text-slate-700 cursor-pointer"
-                                      title="Lebarkan Kolom"
-                                    >
-                                      +
-                                    </button>
                                   </div>
-                                </div>
                               </th>
                             </tr>
                           </thead>
@@ -13489,9 +12989,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 const isAtTop = idx < 3;
 
                                 return (
+                                  <React.Fragment key={item.id || idx}>
                                   <tr
-                                    key={item.id || idx}
-                                    className="border-b border-slate-100 hover:bg-slate-50/50 transition-all font-sans"
+                                    onClick={() => setExpandedHostSalaryId(expandedHostSalaryId === item.id ? null : item.id)}
+                                    className={`border-b border-slate-100 hover:bg-slate-50/50 transition-all font-sans cursor-pointer ${expandedHostSalaryId === item.id ? "bg-purple-50/30" : ""}`}
                                     id={`salary_row_${item.id}`}
                                   >
                                     <td className="py-4 px-6">
@@ -13777,13 +13278,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           </div>
                                           <div
                                             className="text-[9.5px] text-blue-600 font-medium flex items-center gap-1"
-                                            title="Arahkan kursor ke Estimasi Gaji Bersih untuk melihat rincian rumus"
+                                            title="Klik baris ini untuk melihat rincian rumus penggajian"
                                           >
                                             <span className="bg-blue-50 text-blue-700 px-1 py-0.5 rounded text-[8px] font-bold uppercase border border-blue-105">
                                               info
                                             </span>
                                             <span>
-                                              Hover nominal gaji untuk rincian
+                                              Klik baris untuk rincian
                                             </span>
                                           </div>
                                         </div>
@@ -13791,7 +13292,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     </td>
 
                                     <td className="text-right py-4 px-6 pr-8 whitespace-nowrap">
-                                      <div className="relative group inline-block z-10 hover:z-50">
+                                      <div className="inline-block z-10" onClick={(e) => e.stopPropagation()}>
                                         <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 shadow-3xs">
                                           {/* Klik untuk Salin nominal angka saja */}
                                           <button
@@ -13804,7 +13305,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               }, 1500);
                                             }}
                                             title="Klik untuk menyalin nominal angka saja (untuk bank transfer)"
-                                            className={`text-xs font-black font-mono px-3 py-1.5 transition-all duration-155 flex items-center gap-1.5 cursor-pointer select-none active:scale-95 border-r border-slate-200/60 ${
+                                            className={`text-xs font-black font-mono px-4 py-2 transition-all duration-155 flex items-center gap-1.5 cursor-pointer select-none active:scale-95 ${
                                               copiedSalaryHostId === item.id
                                                 ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
                                                 : "text-slate-900 hover:text-blue-650 hover:bg-blue-50/40"
@@ -13812,45 +13313,30 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           >
                                             {copiedSalaryHostId === item.id ? (
                                               <>
-                                                <Check className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
                                                 <span>Tersalin!</span>
                                               </>
                                             ) : (
                                               <>
-                                                <Copy className="w-3 h-3 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                                                <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-blue-600 transition-colors" />
                                                 <span>{formatIDR(item.netSalary)}</span>
                                               </>
                                             )}
                                           </button>
-
-                                          {/* Info rincian rumus saat hover */}
-                                          <div className="px-2 py-1.5 hover:bg-slate-100 cursor-help transition-all flex items-center justify-center self-stretch font-medium" title="Arahkan kursor untuk melihat rincian rumus perhitungan">
-                                            <svg
-                                              xmlns="http://www.w3.org/2000/svg"
-                                              width="11"
-                                              height="11"
-                                              viewBox="0 0 24 24"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              strokeWidth="2.5"
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              className="text-slate-400 group-hover:text-blue-600"
-                                            >
-                                              <circle cx="12" cy="12" r="10" />
-                                              <path d="M12 16v-4" />
-                                              <path d="M12 8h.01" />
-                                            </svg>
-                                          </div>
                                         </div>
-                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-0.5 pr-2">
+                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-1 pr-1">
                                           Transfer Bank
                                         </span>
-
-                                        <div
-                                          className={`absolute right-0 ${isAtTop ? "top-full mt-3" : "bottom-full mb-3"} hidden group-hover:block z-55 bg-slate-950 text-white rounded-xl shadow-2xl p-4 w-80 text-left pointer-events-none border border-slate-850 animate-in fade-in duration-150 ${isAtTop ? "slide-in-from-top-2" : "slide-in-from-bottom-2"} whitespace-normal`}
-                                        >
-                                          <div className="space-y-3 font-sans">
+                                      </div>
+                                    </td>
+                                  </tr>
+                                  {/* ACCORDION EXPANDED ROW */}
+                                  {expandedHostSalaryId === item.id && (
+                                    <tr className="bg-slate-950 border-b border-slate-800">
+                                      <td colSpan={7} className="p-0">
+                                        <div className="p-6 px-6 lg:px-8 border-l-4 border-l-purple-500 text-white animate-in slide-in-from-top-2 duration-200 overflow-hidden">
+                                          <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            
+<div className="space-y-3 font-sans">
                                             <div className="border-b border-slate-800 pb-2">
                                               <div className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest leading-none">
                                                 Rincian Perhitungan Gaji
@@ -14079,15 +13565,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               </div>
                                             )}
                                           </div>
-                                          {isAtTop ? (
-                                            <div className="absolute right-6 bottom-full w-3 h-3 bg-slate-950 border-l border-t border-slate-800 rotate-45 translate-y-1.5"></div>
-                                          ) : (
-                                            <div className="absolute right-6 top-full w-3 h-3 bg-slate-950 border-r border-b border-slate-800 rotate-45 -translate-y-1.5"></div>
-                                          )}
+
+                                            <div className="flex flex-col justify-center border-l border-slate-800 pl-8 space-y-4">
+                                              <div className="text-slate-400 text-xs font-medium">Rekapitulasi Final</div>
+                                              <div className="text-3xl font-mono font-black text-emerald-400">{formatIDR(item.netSalary)}</div>
+                                              <div className="text-[10px] text-slate-500 max-w-xs">Gaji bersih yang akan ditransfer ke rekening host. Pastikan kehadiran dan potongan telah dikalkulasi dengan benar.</div>
+                                            </div>
+                                          </div>
                                         </div>
-                                      </div>
-                                    </td>
-                                  </tr>
+                                      </td>
+                                    </tr>
+                                  )}
+                                  </React.Fragment>
                                 );
                               })
                             )}
