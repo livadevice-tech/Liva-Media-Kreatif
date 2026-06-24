@@ -10620,7 +10620,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               <span className="px-4 py-1.5 rounded-full bg-[#eef2ff] text-xs font-black text-[#5642f5] tracking-wide select-none shadow-3xs border border-[#e0e7ff]/60">
                                 {
                                   computedSchedules.filter(
-                                    (s) => s.date === selectedCalendarDate,
+                                    (s) => (s.date || "").split("T")[0] === selectedCalendarDate,
                                   ).length
                                 }{" "}
                                 Terdaftar
@@ -10638,7 +10638,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             // Get active schedules for selected calendar date
                             let dayScheds = computedSchedules.filter(
                               (s) =>
-                                s.date === selectedCalendarDate && !s.isOffDay,
+                                (s.date || "").split("T")[0] === selectedCalendarDate && !s.isOffDay,
                             );
 
                             // Let the host availability be based on ALL schedules, not just filtered ones, to show true availability.
@@ -10698,7 +10698,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             {(() => {
                               let dayScheds = computedSchedules.filter(
                                 (s) =>
-                                  s.date === selectedCalendarDate &&
+                                  (s.date || "").split("T")[0] === selectedCalendarDate &&
                                   (adminCalendarHostFilter === "all" ||
                                     s.hostId === adminCalendarHostFilter),
                               );
@@ -11158,7 +11158,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 const dateString = `${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
                                 const daySchedules = computedSchedules.filter(
                                   (s) =>
-                                    s.date === dateString &&
+                                    (s.date || "").split("T")[0] === dateString &&
                                     (adminCalendarHostFilter === "all" ||
                                       s.hostId === adminCalendarHostFilter),
                                 );
@@ -11275,7 +11275,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                   true,
                                                                 );
                                                                 setSelectedCalendarDate(
-                                                                  sch.date,
+                                                                  (sch.date || "").split("T")[0],
                                                                 );
                                                                 setScheduleForm(
                                                                   {
@@ -11332,7 +11332,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 true,
                                                               );
                                                               setSelectedCalendarDate(
-                                                                sch.date,
+                                                                (sch.date || "").split("T")[0],
                                                               );
                                                               setScheduleForm({
                                                                 id: sch.id,
@@ -11635,7 +11635,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     // Check for clash
                                     const isClashed = computedSchedules?.some(
                                       (s) =>
-                                        s.date === selectedCalendarDate &&
+                                        (s.date || "").split("T")[0] === selectedCalendarDate &&
                                         s.hostId === selectedHost.id &&
                                         s.timeSlot === scheduleForm.timeSlot &&
                                         s.id !== scheduleForm.id,
