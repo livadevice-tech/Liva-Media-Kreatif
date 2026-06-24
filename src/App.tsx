@@ -9909,59 +9909,63 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     </div>
 
                     {/* TABEL INVOICE & MEETING DATES */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
                       {/* Tabel Invoice Deadline */}
-                      <div className="bg-white p-6 rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
-                        <div className="flex items-center gap-2 text-purple-800 font-extrabold text-sm mb-4 border-b border-purple-50 pb-3">
-                          <DollarSign className="w-5 h-5 text-emerald-500" />
-                          DEADLINE INVOICE CLIENT
+                      <div className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                        <div className="flex items-center gap-3 mb-5 border-b border-slate-50 pb-4 relative z-10">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                            <DollarSign className="w-5 h-5 text-emerald-500" />
+                          </div>
+                          <div>
+                            <h3 className="text-slate-800 font-black text-sm">Deadline Invoice</h3>
+                            <p className="text-[11px] text-slate-400 font-semibold">Jatuh tempo penagihan ke client</p>
+                          </div>
                         </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs border-collapse">
+                        <div className="overflow-x-auto custom-scrollbar pb-2">
+                          <table className="w-full text-left text-xs border-collapse min-w-[450px]">
                             <thead>
-                              <tr className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black tracking-wider text-slate-500">
-                                <th className="py-2.5 px-3">Nama Brand</th>
-                                <th className="py-2.5 px-3">Tgl Jatuh Tempo</th>
-                                <th className="py-2.5 px-3">Jumlah Sesi</th>
-                                <th className="py-2.5 px-3 text-right">
-                                  Berakhir Kontrak
-                                </th>
+                              <tr className="bg-slate-50/80 border-y border-slate-100 uppercase text-[9px] font-black tracking-widest text-slate-500">
+                                <th className="py-3 px-4 sticky left-0 bg-slate-50/90 backdrop-blur-sm z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Nama Brand</th>
+                                <th className="py-3 px-4">Tgl Jatuh Tempo</th>
+                                <th className="py-3 px-4">Jumlah Sesi</th>
+                                <th className="py-3 px-4 text-right">Berakhir Kontrak</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-50">
                               {clientBrands.length > 0 ? (
                                 clientBrands.map((b) => (
                                   <tr
                                     key={`inv-${b.id}`}
-                                    className="hover:bg-slate-50 transition-colors"
+                                    className="hover:bg-slate-50/50 transition-colors group/row"
                                   >
-                                    <td className="py-2 px-3 font-bold text-slate-800">
+                                    <td className="py-3 px-4 font-bold text-slate-800 sticky left-0 bg-white group-hover/row:bg-slate-50/50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                                       {b.name}
                                     </td>
-                                    <td className="py-2 px-3 font-semibold text-emerald-600">
+                                    <td className="py-3 px-4">
                                       {b.invoiceDate ? (
-                                        `Tgl ${b.invoiceDate}`
-                                      ) : (
-                                        <span className="text-slate-300">
-                                          -
+                                        <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md font-bold text-[11px]">
+                                          Tgl {b.invoiceDate}
                                         </span>
+                                      ) : (
+                                        <span className="text-slate-300">-</span>
                                       )}
                                     </td>
-                                    <td className="py-2 px-3 font-semibold text-purple-600">
+                                    <td className="py-3 px-4 font-semibold text-slate-500">
                                       {b.sessions ? b.sessions.length : 0} Sesi
                                     </td>
-                                    <td className="py-2 px-3 text-right font-semibold text-slate-500">
+                                    <td className="py-3 px-4 text-right font-semibold text-slate-400">
                                       {b.contractEndDate || "-"}
                                     </td>
                                   </tr>
                                 ))
                               ) : (
                                 <tr>
-                                  <td
-                                    colSpan={4}
-                                    className="text-center py-4 text-slate-400 font-semibold"
-                                  >
-                                    Belum ada brand tersimpan
+                                  <td colSpan={4} className="py-10">
+                                    <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/30">
+                                      <Briefcase className="w-8 h-8 text-slate-300 mb-2" />
+                                      <p className="text-slate-500 font-bold text-sm">Belum ada brand aktif</p>
+                                      <p className="text-slate-400 text-[11px] mt-1">Data invoice akan muncul otomatis di sini.</p>
+                                    </div>
                                   </td>
                                 </tr>
                               )}
@@ -9971,49 +9975,52 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
 
                       {/* Tabel Tanggal Meeting */}
-                      <div className="bg-white p-6 rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
-                        <div className="flex items-center gap-2 text-purple-800 font-extrabold text-sm mb-4 border-b border-purple-50 pb-3">
-                          <Calendar className="w-5 h-5 text-blue-500" />
-                          JADWAL MEETING (MEETING DATES)
+                      <div className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                        <div className="flex items-center gap-3 mb-5 border-b border-slate-50 pb-4 relative z-10">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-blue-500" />
+                          </div>
+                          <div>
+                            <h3 className="text-slate-800 font-black text-sm">Jadwal Meeting Rutin</h3>
+                            <p className="text-[11px] text-slate-400 font-semibold">Meeting evaluasi bulanan client</p>
+                          </div>
                         </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs border-collapse">
+                        <div className="overflow-x-auto custom-scrollbar pb-2">
+                          <table className="w-full text-left text-xs border-collapse min-w-[300px]">
                             <thead>
-                              <tr className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black tracking-wider text-slate-500">
-                                <th className="py-2.5 px-3">Nama Brand</th>
-                                <th className="py-2.5 px-3 text-right">
-                                  Tgl Bulanan Meeting
-                                </th>
+                              <tr className="bg-slate-50/80 border-y border-slate-100 uppercase text-[9px] font-black tracking-widest text-slate-500">
+                                <th className="py-3 px-4 sticky left-0 bg-slate-50/90 backdrop-blur-sm z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Nama Brand</th>
+                                <th className="py-3 px-4 text-right">Tgl Bulanan Meeting</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-50">
                               {clientBrands.length > 0 ? (
                                 clientBrands.map((b) => (
                                   <tr
                                     key={`meet-${b.id}`}
-                                    className="hover:bg-slate-50 transition-colors"
+                                    className="hover:bg-slate-50/50 transition-colors group/row"
                                   >
-                                    <td className="py-2 px-3 font-bold text-slate-800">
+                                    <td className="py-3 px-4 font-bold text-slate-800 sticky left-0 bg-white group-hover/row:bg-slate-50/50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                                       {b.name}
                                     </td>
-                                    <td className="py-2 px-3 text-right font-semibold text-blue-600">
+                                    <td className="py-3 px-4 text-right">
                                       {b.monthlyMeetingDate ? (
-                                        `Tgl ${b.monthlyMeetingDate}`
-                                      ) : (
-                                        <span className="text-slate-300">
-                                          -
+                                        <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-bold text-[11px]">
+                                          Tgl {b.monthlyMeetingDate}
                                         </span>
+                                      ) : (
+                                        <span className="text-slate-300">-</span>
                                       )}
                                     </td>
                                   </tr>
                                 ))
                               ) : (
                                 <tr>
-                                  <td
-                                    colSpan={2}
-                                    className="text-center py-4 text-slate-400 font-semibold"
-                                  >
-                                    Belum ada jadwal meeting
+                                  <td colSpan={2} className="py-10">
+                                    <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/30">
+                                      <Calendar className="w-8 h-8 text-slate-300 mb-2" />
+                                      <p className="text-slate-500 font-bold text-sm">Belum ada meeting</p>
+                                    </div>
                                   </td>
                                 </tr>
                               )}
@@ -10025,36 +10032,39 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                     {/* TABEL SLOT STUDIO DI PLOT BRAND (URUTAN SHIFT JAM) */}
                     <div
-                      className="bg-white p-6 rounded-2xl border border-purple-100 shadow-sm overflow-hidden"
+                      className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm mt-6"
                       id="studio_slots_panel"
                     >
-                      <div className="flex items-center gap-2 text-purple-800 font-extrabold text-sm mb-4 border-b border-purple-50 pb-3">
-                        <Radio className="w-5 h-5 text-indigo-500" />
-                        PLOT SLOT STUDIO BERDASARKAN SHIFT
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+                          <Radio className="w-5 h-5 text-indigo-500" />
+                        </div>
+                        <div>
+                          <h3 className="text-slate-800 font-black text-sm">Plot Slot Studio (Berdasarkan Shift)</h3>
+                          <p className="text-[11px] text-slate-400 font-semibold">
+                            Pemetaan pemakaian ruang studio oleh brand sesuai jam tayang.
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-xs text-purple-900/60 font-semibold mb-4">
-                        Pemetaan pemakaian Studio yang telah dialokasikan kepada
-                        brand terkait sesuai jam tayang.
-                      </p>
 
-                      <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                      <div className="overflow-x-auto custom-scrollbar border border-slate-100 rounded-2xl mt-5 shadow-sm">
                         <table className="w-full text-left text-xs border-collapse">
                           <thead>
-                            <tr className="bg-[#f8f9fc] border-b border-slate-200 uppercase text-[10px] font-black tracking-wider text-slate-500 whitespace-nowrap">
-                              <th className="py-3 px-4 border-r border-slate-100">
+                            <tr className="bg-slate-50/80 border-b border-slate-200 uppercase text-[10px] font-black tracking-widest text-slate-500 whitespace-nowrap">
+                              <th className="py-3.5 px-5 border-r border-slate-200 sticky left-0 bg-slate-100 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                 Nama Studio
                               </th>
                               {shifts.map((sh) => (
                                 <th
                                   key={sh}
-                                  className="py-3 px-4 border-r border-slate-100 last:border-r-0"
+                                  className="py-3.5 px-5 border-r border-slate-100 last:border-r-0 min-w-[120px]"
                                 >
                                   {sh}
                                 </th>
                               ))}
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100">
+                          <tbody className="divide-y divide-slate-100 bg-white">
                             {(() => {
                               const allStudioNames = Array.from(
                                 new Set([
@@ -10075,9 +10085,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   <tr>
                                     <td
                                       colSpan={shifts.length + 1}
-                                      className="py-8 text-center text-slate-400 font-semibold"
+                                      className="py-12 px-6"
                                     >
-                                      Belum ada data studio / pemetaan slot.
+                                      <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/30 max-w-lg mx-auto">
+                                        <Radio className="w-10 h-10 text-slate-300 mb-3" />
+                                        <p className="text-slate-600 font-bold text-sm">Belum ada pemetaan studio</p>
+                                        <p className="text-slate-400 text-xs mt-1 text-center">Data studio akan otomatis terbentuk ketika Anda mendaftarkan studio baru atau memplot sesi siaran.</p>
+                                      </div>
                                     </td>
                                   </tr>
                                 );
@@ -10086,9 +10100,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               return allStudioNames.map((studioName, i) => (
                                 <tr
                                   key={`studio-row-${i}`}
-                                  className="hover:bg-purple-50/40 transition-colors"
+                                  className="hover:bg-indigo-50/30 transition-colors group/row"
                                 >
-                                  <td className="py-2.5 px-4 font-extrabold text-slate-800 border-r border-slate-100 whitespace-nowrap">
+                                  <td className="py-3 px-5 font-black text-slate-800 border-r border-slate-100 whitespace-nowrap sticky left-0 bg-white group-hover/row:bg-indigo-50/30 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                                     {studioName}
                                   </td>
                                   {shifts.map((shift) => {
@@ -10105,11 +10119,19 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     return (
                                       <td
                                         key={shift}
-                                        className="py-2.5 px-4 font-bold text-slate-700 border-r border-slate-100 last:border-r-0"
+                                        className="py-3 px-5 font-bold text-slate-600 border-r border-slate-50 last:border-r-0"
                                       >
-                                        {occupyingBrands.length > 0
-                                          ? occupyingBrands.join(", ")
-                                          : ""}
+                                        {occupyingBrands.length > 0 ? (
+                                          <div className="flex flex-wrap gap-1">
+                                            {occupyingBrands.map(bName => (
+                                              <span key={bName} className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-[10px] font-extrabold whitespace-nowrap">
+                                                {bName}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <span className="text-slate-200">-</span>
+                                        )}
                                       </td>
                                     );
                                   })}
