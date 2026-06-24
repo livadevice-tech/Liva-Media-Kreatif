@@ -9765,67 +9765,104 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   >
                     {/* Executive Summary Cards */}
                     <div
-                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
                       id="executive_metrics_dashboard"
                     >
-                      {/* Total Hosts */}
-                      <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm relative overflow-hidden">
-                        <span className="text-[10px] text-purple-400 font-extrabold uppercase tracking-widest block mb-1">
-                          Total Host Streamer
-                        </span>
-                        <div className="text-3xl font-black font-mono text-purple-950 mb-1">
-                          {hosts.length}{" "}
-                          <span className="text-xs text-purple-400 font-semibold font-sans">
-                            Orang
-                          </span>
+                      {/* Jadwal Hari Ini */}
+                      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-3xl shadow-lg shadow-purple-500/30 relative overflow-hidden text-white group">
+                        <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
+                          <Calendar className="w-16 h-16 transform rotate-12" />
                         </div>
-                        <div className="text-[11px] text-purple-600/85 font-semibold flex items-center gap-1.5 mt-2">
-                          Terbagi di {studios.length} lokasi studio Liva Agency
+                        <span className="text-[11px] text-white/80 font-black uppercase tracking-widest block mb-2 relative z-10">
+                          Jadwal Hari Ini
+                        </span>
+                        <div className="text-4xl font-black font-mono mb-1 relative z-10">
+                          {(() => {
+                            const today = new Date();
+                            const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                            return schedules.filter(s => s.date === todayLocal).length;
+                          })()}{" "}
+                          <span className="text-sm font-semibold font-sans opacity-80">Shift</span>
+                        </div>
+                        <div className="text-[11px] font-semibold flex items-center gap-1 mt-3 bg-white/20 w-max px-3 py-1 rounded-full backdrop-blur-md relative z-10 border border-white/20">
+                          <Sparkles className="w-3 h-3" /> Siaran sedang berlangsung
+                        </div>
+                      </div>
+
+                      {/* Total Hosts */}
+                      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                        <div className="absolute top-0 right-0 p-4 opacity-5">
+                          <Users className="w-16 h-16 transform -rotate-12" />
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-4 text-blue-600">
+                          <UserCheck className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] text-slate-500 font-extrabold uppercase tracking-widest block mb-1 relative z-10">
+                          Total Host Aktif
+                        </span>
+                        <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
+                          {hosts.length}
+                        </div>
+                        <div className="text-[11px] text-emerald-500 font-bold flex items-center gap-1 mt-2 relative z-10">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Tersebar di {studios.length} Studio
                         </div>
                       </div>
 
                       {/* Client Total */}
-                      <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm">
-                        <span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-widest block mb-1">
-                          Data Client (Brand) Aktif
-                        </span>
-                        <div className="text-3xl font-black font-mono text-emerald-650 mb-1">
-                          {clientBrands.length}{" "}
-                          <span className="text-xs text-emerald-400 font-semibold font-sans">
-                            Brand
-                          </span>
+                      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                        <div className="absolute top-0 right-0 p-4 opacity-5">
+                          <Briefcase className="w-16 h-16 transform -rotate-12" />
                         </div>
-                        <p className="text-[10.5px] text-purple-400 font-semibold mt-2">
-                          Total Mitra Eksklusif Liva Agency
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-4 text-emerald-600">
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] text-slate-500 font-extrabold uppercase tracking-widest block mb-1 relative z-10">
+                          Mitra Brand
+                        </span>
+                        <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
+                          {clientBrands.length}
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-semibold mt-2 relative z-10">
+                          Brand Eksklusif Liva
                         </p>
                       </div>
 
                       {/* Sesi Total */}
-                      <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm">
-                        <span className="text-[10px] text-amber-600 font-extrabold uppercase tracking-widest block mb-1">
-                          Total Penjadwalan Sesi
-                        </span>
-                        <div className="text-3xl font-black font-mono text-purple-900 mb-1 flex items-baseline gap-2">
-                          <span>
-                            {clientBrands.flatMap((b) => b.sessions).length}
-                          </span>
-                          <span className="text-[11px] font-semibold text-purple-400 font-sans tracking-wide">
-                            Sesi Siaran
-                          </span>
+                      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                        <div className="absolute top-0 right-0 p-4 opacity-5">
+                          <Video className="w-16 h-16 transform rotate-12" />
                         </div>
-                        <p className="text-[10.5px] text-purple-400 font-semibold mt-2">
-                          Siaran perputaran di berbagai platform
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-4 text-amber-500">
+                          <PlaySquare className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] text-slate-500 font-extrabold uppercase tracking-widest block mb-1 relative z-10">
+                          Total Sesi Siaran
+                        </span>
+                        <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
+                          {clientBrands.flatMap((b) => b.sessions).length}
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-semibold mt-2 relative z-10">
+                          Terjadwal di seluruh platform
                         </p>
                       </div>
                     </div>
 
                     {/* SESI BERDASARKAN PLATFORM */}
-                    <div className="bg-white p-6 rounded-2xl border border-purple-100 shadow-sm">
-                      <div className="flex items-center gap-2 text-purple-800 font-extrabold text-sm mb-4 border-b border-purple-50 pb-3">
-                        <Monitor className="w-4.5 h-4.5 text-purple-500" />
-                        TOTAL SESI DARI MASING-MASING PLATFORM
+                    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                      <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-50 rounded-full blur-3xl opacity-50 pointer-events-none" />
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-50 pb-5 relative z-10">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                            <Monitor className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-slate-800 font-black text-base">Sesi per Platform</h3>
+                            <p className="text-[11px] text-slate-400 font-semibold">Distribusi siaran host Liva Agency</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
                         {Object.entries(
                           clientBrands
                             .flatMap((b) => b.sessions)
@@ -9839,26 +9876,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               },
                               {} as Record<string, number>,
                             ),
-                        ).map(([plat, count]) => (
-                          <div
-                            key={plat}
-                            className="p-4 rounded-xl border border-purple-50 bg-[#fbfaff]/50 flex flex-col justify-center items-center"
-                          >
-                            <span className="text-[11px] font-black text-purple-950 block mb-1 text-center">
-                              {plat}
-                            </span>
-                            <span className="font-mono font-black text-2xl text-purple-700">
-                              {count}
-                            </span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                              Sesi
-                            </span>
-                          </div>
-                        ))}
+                        ).map(([plat, count]) => {
+                          const isTiktok = plat.toLowerCase().includes('tiktok');
+                          const isShopee = plat.toLowerCase().includes('shopee');
+                          const colorClass = isTiktok ? 'text-slate-900 bg-slate-50 border-slate-200' : isShopee ? 'text-orange-600 bg-orange-50 border-orange-100' : 'text-indigo-600 bg-indigo-50 border-indigo-100';
+                          
+                          return (
+                            <div
+                              key={plat}
+                              className={`p-5 rounded-2xl border ${colorClass} flex flex-col justify-center items-center transition-all hover:scale-105 hover:shadow-md cursor-default`}
+                            >
+                              <span className="text-[11px] font-black uppercase tracking-wider block mb-2 text-center opacity-80">
+                                {plat}
+                              </span>
+                              <span className="font-mono font-black text-3xl">
+                                {count}
+                              </span>
+                            </div>
+                          );
+                        })}
                         {clientBrands.flatMap((b) => b.sessions).length ===
                           0 && (
-                          <div className="col-span-2 md:col-span-4 text-center py-6 text-slate-400 text-xs font-semibold">
-                            Belum ada jadwal sesi platform.
+                          <div className="col-span-2 md:col-span-4 flex flex-col items-center justify-center py-10 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                            <Monitor className="w-10 h-10 text-slate-300 mb-3" />
+                            <p className="text-slate-500 font-bold text-sm">Belum ada sesi platform</p>
+                            <p className="text-slate-400 text-[11px] mt-1">Tambahkan sesi ke brand untuk melihat statistik di sini.</p>
                           </div>
                         )}
                       </div>
