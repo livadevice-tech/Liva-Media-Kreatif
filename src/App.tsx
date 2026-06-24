@@ -9944,7 +9944,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <td className="py-3 px-4">
                                       {b.invoiceDate ? (
                                         <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md font-bold text-[11px]">
-                                          Tgl {b.invoiceDate}
+                                          Tgl {b.invoiceDate.split('T')[0]}
                                         </span>
                                       ) : (
                                         <span className="text-slate-300">-</span>
@@ -9954,7 +9954,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       {b.sessions ? b.sessions.length : 0} Sesi
                                     </td>
                                     <td className="py-3 px-4 text-right font-semibold text-slate-400">
-                                      {b.contractEndDate || "-"}
+                                      {b.contractEndDate ? b.contractEndDate.split('T')[0] : "-"}
                                     </td>
                                   </tr>
                                 ))
@@ -10006,7 +10006,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <td className="py-3 px-4 text-right">
                                       {b.monthlyMeetingDate ? (
                                         <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-bold text-[11px]">
-                                          Tgl {b.monthlyMeetingDate}
+                                          Tgl {b.monthlyMeetingDate.split('T')[0]}
                                         </span>
                                       ) : (
                                         <span className="text-slate-300">-</span>
