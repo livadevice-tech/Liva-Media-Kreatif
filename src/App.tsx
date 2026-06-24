@@ -2483,7 +2483,7 @@ export default function App() {
         setSkuRawData(parsedData);
         if (detectedBrandObj) {
           setAutoDetectNotice(
-            `💡 Auto-detected Klien: ${detectedBrandObj.name} (${parsedData.length} records).`,
+            `Auto-detected Klien: ${detectedBrandObj.name} (${parsedData.length} records).`,
           );
         }
       } catch (err) {
@@ -2680,11 +2680,11 @@ export default function App() {
 
         if (parts.length > 0) {
           setAutoDetectNotice(
-            `💡 Auto-detection Pintar: Berhasil mendeteksi ${parts.join(" & ")} dari nama file/kolom (${file.name})!`,
+            `Auto-detection Pintar: Berhasil mendeteksi ${parts.join(" & ")} dari nama file/kolom (${file.name})!`,
           );
         } else {
           setAutoDetectNotice(
-            `📝 File "${file.name}" berhasil dibaca. Silakan pilih Brand & Platform secara manual.`,
+            `File "${file.name}" berhasil dibaca. Silakan pilih Brand & Platform secara manual.`,
           );
         }
 
@@ -3471,7 +3471,7 @@ export default function App() {
           }
           setClientBrands((prev) => prev.filter((b) => b.id !== brandId));
           addNotification(
-            "🗑️ Brand Dihapus",
+            "Brand Dihapus",
             `Data brand "${brandToDelete?.name || brandId}" berhasil dihapus dari sistem.`,
             "warning",
             "data_brand"
@@ -5137,7 +5137,7 @@ export default function App() {
     {
       id: "welcome",
       role: "model",
-      content: `👋 Halo! Saya **AI Asisten Operasional Liva Agency**. Saya siap membantu Anda menganalisis performa kehadiran para Live Host, mencatat pola keterlambatan, dan memandu rekapitulasi gaji bulanan mereka berdasarkan data absensi real-time. Silakan tanya pertanyaan seperti:
+      content: `Halo! Saya **AI Asisten Operasional Liva Agency**. Saya siap membantu Anda menganalisis performa kehadiran para Live Host, mencatat pola keterlambatan, dan memandu rekapitulasi gaji bulanan mereka berdasarkan data absensi real-time. Silakan tanya pertanyaan seperti:
 
 - *Siapa saja host yang paling banyak datang tepat waktu?*
 - *Adakah host yang memiliki masalah keterlambatan atau alpa?*
@@ -5307,7 +5307,7 @@ ${listDetails}
         r.name.toLowerCase().includes("amanda"),
       );
       if (amanda) {
-        return `👱‍♀️ **Analisis Performa Host: Amanda Putri**
+        return `**Analisis Performa Host: Amanda Putri**
 
 - **Tepat Waktu**: ${amanda.countTepatWaktu} kali
 - **Terlambat**: ${amanda.countTerlambat} kali
@@ -5970,7 +5970,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           ID: {activeHostObj?.employeeId}
                         </span>
                         <span className="text-[9px] text-indigo-700 font-extrabold flex items-center gap-1">
-                          🏢 {activeHostObj?.studio || "Studio Bandar Lampung"}
+                          {activeHostObj?.studio || "Studio Bandar Lampung"}
                         </span>
                       </div>
                     </div>
@@ -6098,7 +6098,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       }`}
                       id="host_sub_tab_form_trigger"
                     >
-                      📝 Absen
+                      Absen
                     </button>
                     <button
                       onClick={() => setHostActiveSubTab("history")}
@@ -6109,7 +6109,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       }`}
                       id="host_sub_tab_history_trigger"
                     >
-                      📊 Rekap
+                      Rekap
                     </button>
                     <button
                       onClick={() => setHostActiveSubTab("calendar")}
@@ -6120,7 +6120,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       }`}
                       id="host_sub_tab_calendar_trigger"
                     >
-                      📅 Kalender
+                      Kalender
                     </button>
                   </div>
 
@@ -6611,7 +6611,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             <div>
                               <div className="font-bold text-slate-800 flex items-center mb-1">
                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border uppercase tracking-wider ${getBrandStyle(item.brandHandled)}`}>
-                                  🛍️ {item.brandHandled}
+                                  {item.brandHandled}
                                 </span>
                               </div>
                               <div className="text-[10px] text-[#4c3e6b]/80 flex items-center gap-1 mt-0.5 flex-wrap">
@@ -6667,7 +6667,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   >
                     <div className="bg-purple-50 p-3.5 rounded-xl border border-purple-100 mb-4">
                       <h4 className="text-[11px] font-black uppercase text-purple-900 tracking-wider">
-                        📅 Jadwal Siaran & Libur
+                        Jadwal Siaran & Libur
                       </h4>
                       <p className="text-[10px] text-purple-900/60 mt-0.5 leading-relaxed font-semibold">
                         Berikut ini jadwal penempatan studio, brand, dan status
@@ -9587,7 +9587,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   <Bell className="w-5 h-5" />
                                 </div>
                                 <p className="text-xs font-black text-slate-500">
-                                  Semua Beres! 🎉
+                                  Semua Beres!
                                 </p>
                                 <p className="text-[10px] text-slate-400 font-semibold max-w-[200px] mx-auto leading-relaxed">
                                   Belum ada notifikasi baru untuk saat ini.
@@ -9841,7 +9841,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             className="p-4 rounded-xl border border-purple-50 bg-[#fbfaff]/50 flex flex-col justify-center items-center"
                           >
                             <span className="text-[11px] font-black text-purple-950 block mb-1 text-center">
-                              📱 {plat}
+                              {plat}
                             </span>
                             <span className="font-mono font-black text-2xl text-purple-700">
                               {count}
@@ -10337,7 +10337,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         >
                           <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-4 flex-wrap gap-2">
                             <h5 className="text-[14px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1">
-                              <span>📋</span> Jadwal Siaran Aktif Tanggal Ini
+                              <span></span> Jadwal Siaran Aktif Tanggal Ini
                             </h5>
                             <div className="flex items-center gap-2 relative">
                               {/* Prev Day Button */}
@@ -10464,7 +10464,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     {/* Month/Year and Next Month/Year navigation controls */}
                                     <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
                                       <span className="text-xs font-black text-slate-800 tracking-wider select-none">
-                                        📅 {pickerYear} -{" "}
+                                        {pickerYear} -{" "}
                                         {String(pickerMonth + 1).padStart(
                                           2,
                                           "0",
@@ -10812,11 +10812,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               className="font-black text-[11px] sm:text-[12px] truncate uppercase tracking-wider"
                                               title={studioName}
                                             >
-                                              🏢 {displayStudioName}
+                                              {displayStudioName}
                                             </h4>
                                             {location && (
                                               <span className="text-[9px] font-semibold block truncate opacity-80">
-                                                📍 {location}
+                                                {location}
                                               </span>
                                             )}
                                           </div>
@@ -10898,7 +10898,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       {/* Session Brand Info */}
                                                       <div className="text-[10px] text-slate-500 border-t border-slate-100/60 pt-1.5 mt-1.5 flex flex-wrap items-center justify-between gap-1">
                                                         <span className={`px-2 py-0.5 rounded-lg text-[9.5px] font-black border uppercase tracking-wider ${getBrandStyle(sch.brand)}`}>
-                                                          🛍️ {sch.brand}
+                                                          {sch.brand}
                                                         </span>
                                                         <span className={`text-[8.5px] font-extrabold px-1.5 py-0.5 rounded border ${
                                                           sch.platform?.toLowerCase().includes("tiktok") 
@@ -10915,7 +10915,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       {sch.backupHostId && (
                                                         <div className="mt-1 text-[8.5px] bg-slate-50/80 border border-slate-100/50 rounded p-1 text-slate-600 leading-tight">
                                                           <span className="font-bold">
-                                                            🔄 Backup:{" "}
+                                                            Backup:{" "}
                                                           </span>
                                                           <span className="font-black text-slate-850">
                                                             {sch.backupHostName ||
@@ -11311,7 +11311,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                               }}
                                                               className="cursor-pointer hover:bg-slate-200 text-[8.5px] font-bold px-1 py-0.5 rounded bg-slate-100 text-slate-500 border-l-[3px] border-slate-300 truncate"
                                                             >
-                                                              🏖️ {sch.hostName}{" "}
+                                                              {sch.hostName}{" "}
                                                               Off
                                                             </div>
                                                           );
@@ -11909,7 +11909,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               {/* Bandar Lampung Pay Config Card */}
                               <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
                                 <span className="font-sans font-black text-slate-800 border-b border-slate-200 pb-1.5 block flex items-center gap-1.5">
-                                  🌆 Studio Bandar Lampung
+                                  Studio Bandar Lampung
                                 </span>
                                 <div className="space-y-1">
                                   <label className="text-slate-600 block font-bold">
@@ -12164,7 +12164,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between space-y-3">
                                 <div>
                                   <span className="font-sans font-black text-slate-800 border-b border-slate-200 pb-1.5 block flex items-center gap-1.5 mb-2">
-                                    📅 Cut-Off (Tutup Buku) Bulanan
+                                    Cut-Off (Tutup Buku) Bulanan
                                   </span>
 
                                   <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-150 mb-2 hover:border-slate-300 transition-all shadow-2xs">
@@ -12503,7 +12503,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         >
                           <div className="flex justify-between items-center pb-2 border-b border-slate-200">
                             <span className="text-xs font-extrabold text-slate-700 flex items-center gap-1">
-                              📊 Panel Lebar Kolom (Gunakan Slider untuk
+                              Panel Lebar Kolom (Gunakan Slider untuk
                               Menyesuaikan Tampilan Secara Real-time)
                             </span>
                             <button
@@ -12834,8 +12834,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <span className="text-[10px] text-purple-600 font-extrabold font-sans">
                                       {salarySortKey === "name"
                                         ? salarySortDir === "asc"
-                                          ? " 🔼"
-                                          : " 🔽"
+                                          ? " ▲"
+                                          : " ▼"
                                         : " ↕️"}
                                     </span>
                                   </button>
@@ -12885,8 +12885,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <span className="text-[10px] text-purple-600 font-extrabold font-sans">
                                       {salarySortKey === "hostType"
                                         ? salarySortDir === "asc"
-                                          ? " 🔼"
-                                          : " 🔽"
+                                          ? " ▲"
+                                          : " ▼"
                                         : " ↕️"}
                                     </span>
                                   </button>
@@ -12944,8 +12944,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <span className="text-[10px] text-purple-600 font-extrabold font-sans">
                                       {salarySortKey === "attendance"
                                         ? salarySortDir === "asc"
-                                          ? " 🔼"
-                                          : " 🔽"
+                                          ? " ▲"
+                                          : " ▼"
                                         : " ↕️"}
                                     </span>
                                   </button>
@@ -13001,8 +13001,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <span className="text-[10px] text-amber-600 font-extrabold font-sans">
                                       {salarySortKey === "late"
                                         ? salarySortDir === "asc"
-                                          ? " 🔼"
-                                          : " 🔽"
+                                          ? " ▲"
+                                          : " ▼"
                                         : " ↕️"}
                                     </span>
                                   </button>
@@ -13052,8 +13052,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <span className="text-[10px] text-red-600 font-extrabold font-sans">
                                       {salarySortKey === "excused"
                                         ? salarySortDir === "asc"
-                                          ? " 🔼"
-                                          : " 🔽"
+                                          ? " ▲"
+                                          : " ▼"
                                         : " ↕️"}
                                     </span>
                                   </button>
@@ -13109,8 +13109,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <span className="text-[10px] text-purple-600 font-extrabold font-sans">
                                       {salarySortKey === "formula"
                                         ? salarySortDir === "asc"
-                                          ? " 🔼"
-                                          : " 🔽"
+                                          ? " ▲"
+                                          : " ▼"
                                         : " ↕️"}
                                     </span>
                                   </button>
@@ -13168,8 +13168,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <span className="text-[10px] text-purple-600 font-extrabold font-sans">
                                       {salarySortKey === "netSalary"
                                         ? salarySortDir === "asc"
-                                          ? " 🔼"
-                                          : " 🔽"
+                                          ? " ▲"
+                                          : " ▼"
                                         : " ↕️"}
                                     </span>
                                   </button>
@@ -13253,7 +13253,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             {item.name}
                                           </div>
                                           <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
-                                            <span>🏡</span>
+                                            
                                             <span className="truncate">
                                               {item.studio ||
                                                 "Studio Bandar Lampung"}
@@ -13266,11 +13266,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     <td className="text-center py-4 px-4 whitespace-nowrap">
                                       {hostType === "Reguler" ? (
                                         <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-55 bg-blue-50 text-blue-700 font-bold text-[9px] border border-blue-105 uppercase tracking-wider">
-                                          👔 Host Reguler
+                                          Host Reguler
                                         </span>
                                       ) : (
                                         <span className="inline-flex items-center px-2 py-1 rounded-full bg-purple-55 bg-purple-50 text-purple-700 font-bold text-[9px] border border-purple-105 uppercase tracking-wider">
-                                          🎓 Host Backup
+                                          Host Backup
                                         </span>
                                       )}
                                     </td>
@@ -13602,7 +13602,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 Rincian Perhitungan Gaji
                                               </div>
                                               <div className="text-xs font-black text-blue-400 mt-1 flex items-center gap-1.5">
-                                                <span>👱‍♀️</span> {item.name}
+                                                {item.name}
                                                 <span className="text-[8.5px] bg-blue-500/10 text-blue-300 font-extrabold border border-blue-500/25 px-1 py-0.2 rounded uppercase">
                                                   {hostType}
                                                 </span>
@@ -13687,7 +13687,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     <div className="bg-emerald-555 bg-emerald-500/10 border border-emerald-500/25 rounded-lg p-2 text-[10px]">
                                                       <div className="text-emerald-400 font-extrabold flex justify-between items-center">
                                                         <span>
-                                                          🎉 Bonus +100% Hadir:
+                                                          Bonus +100% Hadir:
                                                         </span>
                                                         <span>
                                                           +
@@ -13874,7 +13874,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         {item.name}
                                       </div>
                                       <div className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-                                        <span>🏢</span>
+                                        
                                         <span>
                                           {item.studio ||
                                             "Studio Bandar Lampung"}
@@ -14006,7 +14006,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </div>
                                       {item.isEligibleForBonus ? (
                                         <div className="text-emerald-700 font-sans font-bold flex items-center gap-1 pt-1">
-                                          <span>🎉 Bonus Kehadiran penuh:</span>
+                                          <span>Bonus Kehadiran penuh:</span>
                                           <span className="font-mono bg-emerald-50 border border-emerald-100 px-1 py-0.2 rounded text-[9px]">
                                             +{formatIDR(item.calculatedBonus)}
                                           </span>
@@ -14941,7 +14941,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               id="manual_submit_button"
                               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded-lg text-xs tracking-wider transition-all uppercase cursor-pointer"
                             >
-                              💾 Simpan Ke Database
+                              Simpan Ke Database
                             </button>
                           </div>
                         </div>
@@ -15087,7 +15087,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   </td>
                                   <td className="py-3 px-4 text-slate-800 font-bold">
                                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border uppercase tracking-wider ${getBrandStyle(item.brandHandled)}`}>
-                                      🛍️ {item.brandHandled}
+                                      {item.brandHandled}
                                     </span>
                                   </td>
                                   <td className="py-3 px-4 text-slate-550 text-slate-600 font-semibold">
