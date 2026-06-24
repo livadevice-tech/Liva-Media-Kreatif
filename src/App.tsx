@@ -715,15 +715,17 @@ export function SearchableHostSelect({
   }, [isOpen]);
 
   // Find currently selected host
-  const selectedHost = hosts.find((h) => 
-    valueType === "id" ? h.id === value : h.name === value
+  const selectedHost = (hosts || []).find((h) => 
+    h && (valueType === "id" ? h.id === value : h.name === value)
   );
 
   // Filter hosts based on search query
-  const filteredHosts = hosts.filter((h) =>
-    h.name.toLowerCase().includes(search.toLowerCase()) ||
-    (h.studio && h.studio.toLowerCase().includes(search.toLowerCase())) ||
-    (h.hostType && h.hostType.toLowerCase().includes(search.toLowerCase()))
+  const filteredHosts = (hosts || []).filter((h) =>
+    h && (
+      (h.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (h.studio && h.studio.toLowerCase().includes(search.toLowerCase())) ||
+      (h.hostType && h.hostType.toLowerCase().includes(search.toLowerCase()))
+    )
   );
 
   const handleSelect = (val: string) => {
@@ -743,7 +745,7 @@ export function SearchableHostSelect({
           {showAllOption && value === "all"
             ? allOptionLabel
             : selectedHost
-            ? `${selectedHost.name}${
+            ? `${selectedHost.name || ""}${
                 includeType && selectedHost.hostType
                   ? ` (${selectedHost.hostType})`
                   : ""
@@ -806,7 +808,7 @@ export function SearchableHostSelect({
                     }`}
                   >
                     <span className="truncate">
-                      {h.name}
+                      {h.name || ""}
                       {includeStudio && h.studio && (
                         <span className="text-[10px] text-slate-400 font-semibold ml-1.5">
                           ({h.studio.replace(/^Studio\s+/, "")})
