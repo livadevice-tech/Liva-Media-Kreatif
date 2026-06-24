@@ -869,10 +869,23 @@ export default function App() {
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const year = d.getFullYear();
-      return `${day}/${month}/${year}`;
+
+      const hasTime = dateStr.includes("T") || dateStr.includes(":");
+      const useUTC = dateStr.endsWith("Z");
+      
+      const day = String(useUTC ? d.getUTCDate() : d.getDate()).padStart(2, '0');
+      const month = String((useUTC ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
+      const year = useUTC ? d.getUTCFullYear() : d.getFullYear();
+      
+      const hh = String(useUTC ? d.getUTCHours() : d.getHours()).padStart(2, '0');
+      const mm = String(useUTC ? d.getUTCMinutes() : d.getMinutes()).padStart(2, '0');
+      const ss = String(useUTC ? d.getUTCSeconds() : d.getSeconds()).padStart(2, '0');
+      
+      if (!hasTime || (hh === '00' && mm === '00' && ss === '00')) {
+         return `${day}/${month}/${year}`;
+      } else {
+         return `${day}/${month}/${year} ${hh}:${mm}:${ss}`;
+      }
     } catch(e) {
       return dateStr;
     }
@@ -4313,18 +4326,26 @@ export default function App() {
     const endDay = salarySettings.cutOffEndDay ?? 15;
 
     return base.filter((l) => {
-      const logDate = new Date(l.date);
-      if (isNaN(logDate.getTime())) return true;
+      const rawDate = l.date || (typeof (l as any).timestamp === "string" ? (l as any).timestamp.split(" ")[0] : "");
+      const logDateStr = normalizeDateYMD(rawDate);
+      if (!logDateStr) return false;
 
       if (salarySettings.useCutOff) {
-        // Cut-off period for Month M is: startDay of month M-1 to endDay of month M.
-        const periodStart = new Date(year, month - 2, startDay, 0, 0, 0);
-        const periodEnd = new Date(year, month - 1, endDay, 23, 59, 59);
-        return logDate >= periodStart && logDate <= periodEnd;
+        let startPeriodY = year;
+        let startPeriodM = month - 1;
+        if (startPeriodM < 1) {
+          startPeriodM = 12;
+          startPeriodY -= 1;
+        }
+        
+        const padLocal = (n: number) => String(n).padStart(2, "0");
+        const startStr = `${startPeriodY}-${padLocal(startPeriodM)}-${padLocal(startDay)}`;
+        const endStr = `${year}-${padLocal(month)}-${padLocal(endDay)}`;
+
+        return logDateStr >= startStr && logDateStr <= endStr;
       } else {
-        return (
-          logDate.getFullYear() === year && logDate.getMonth() + 1 === month
-        );
+        const [logY, logM] = logDateStr.split("-").map(Number);
+        return logY === year && logM === month;
       }
     });
   }, [logs, selectedHostId, hostCutoffPeriod, salarySettings]);
