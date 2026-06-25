@@ -7274,16 +7274,21 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             s.hostId === loggedInHostId ||
                             s.backupHostId === loggedInHostId,
                         );
-                        if (myAllScheds.length === 0) {
+
+                        const filteredByDateScheds = myAllScheds.filter(
+                          (s) => (s.date || "").split("T")[0] === selectedHostCalendarDate
+                        );
+
+                        if (filteredByDateScheds.length === 0) {
                           return (
                             <div className="text-center py-6 text-purple-400 font-mono text-[10px] italic bg-white rounded-xl border border-purple-50">
-                              Belum ada jadwal yang di-assign untuk Anda.
+                              Tidak ada jadwal pada tanggal ini.
                             </div>
                           );
                         }
 
-                        // Sort by date ascending
-                        const sortedScheds = [...myAllScheds].sort((a, b) =>
+                        // Sort by date ascending (if multiple on same day)
+                        const sortedScheds = [...filteredByDateScheds].sort((a, b) =>
                           a.date.localeCompare(b.date),
                         );
 
@@ -7292,13 +7297,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             sch.isOffDay && sch.hostId === loggedInHostId;
                           const isReplacement =
                             sch.backupHostId === loggedInHostId;
-                          const isSelectedInList =
-                            selectedHostCalendarDate === sch.date;
+                          const isSelectedInList = true; // since it's filtered, it's always the selected one
 
                           return (
                             <div
                               key={
-                                (sch?.id || "") +
+                                (sch.id || "") +
                                 "_" +
                                 Math.random().toString(36).substr(2, 9)
                               }
