@@ -43,6 +43,7 @@ function getPool(): mysql.Pool {
       queueLimit: 0,
       charset: 'utf8mb4',
       timezone: '+07:00',
+      dateStrings: true,
     });
 
     console.log(`✅ MySQL pool terhubung ke ${host}/${database}`);
