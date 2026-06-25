@@ -1940,6 +1940,22 @@ export default function App() {
     studio: "",
   }));
 
+  useEffect(() => {
+    if (activeHostObj) {
+      setHostForm((prev) => ({
+        ...prev,
+        brand: activeHostObj.brands && activeHostObj.brands.length === 1 && !prev.brand ? activeHostObj.brands[0] : prev.brand,
+        platform: activeHostObj.platforms && activeHostObj.platforms.length === 1 && !prev.platform ? activeHostObj.platforms[0] : prev.platform,
+        studio: activeHostObj.studio && !prev.studio 
+          ? (() => {
+              const st = studios.find(s => s.name === activeHostObj.studio);
+              return st ? `${st.name} - ${st.location}` : "";
+            })()
+          : prev.studio,
+      }));
+    }
+  }, [activeHostObj, studios]);
+
   const [hostFormError, setHostFormError] = useState("");
   const [showLateAlert, setShowLateAlert] = useState(false);
   const [lateCheckInDetails, setLateCheckInDetails] = useState<{
@@ -6564,10 +6580,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               -- Pilih Brand Besutan --
                             </option>
                             {Array.from(
-                              new Set([
-                                ...brands,
-                                ...clientBrands.map((cb) => cb.name),
-                              ]),
+                              new Set(
+                                activeHostObj?.brands && activeHostObj.brands.length > 0
+                                  ? activeHostObj.brands
+                                  : [...brands, ...clientBrands.map((cb) => cb.name)]
+                              ),
                             )
                               .filter(Boolean)
                               .map((b) => (
@@ -6612,7 +6629,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             >
                               -- Pilih Platform Streaming --
                             </option>
-                            {platforms.map((p) => (
+                            {(activeHostObj?.platforms && activeHostObj.platforms.length > 0 ? activeHostObj.platforms : platforms).map((p) => (
                               <option
                                 key={p}
                                 value={p}
