@@ -4494,6 +4494,7 @@ export default function App() {
   // Search states for "Data absen" tab
   const [dbPlatformFilter, setDbPlatformFilter] = useState("Semua Platform");
   const [dbBrandFilter, setDbBrandFilter] = useState("Semua Brand");
+  const [dbShiftFilter, setDbShiftFilter] = useState("Semua Shift");
   const [dbDateFilterStart, setDbDateFilterStart] = useState("");
   const [dbDateFilterEnd, setDbDateFilterEnd] = useState("");
   const [dbSortDir, setDbSortDir] = useState<"desc" | "asc">("desc");
@@ -4925,6 +4926,9 @@ export default function App() {
       const matchBrand =
         dbBrandFilter === "Semua Brand" ||
         item.brandHandled === dbBrandFilter;
+      const matchShift = 
+        dbShiftFilter === "Semua Shift" ||
+        item.shift === dbShiftFilter;
 
       let matchDate = true;
       if (dbTabMode === "today") {
@@ -4955,13 +4959,14 @@ export default function App() {
         }
       }
 
-      return matchSearch && matchPlatform && matchBrand && matchDate;
+      return matchSearch && matchPlatform && matchBrand && matchShift && matchDate;
     });
   }, [
     logs,
     globalSearch,
     dbPlatformFilter,
     dbBrandFilter,
+    dbShiftFilter,
     dbDateFilterStart,
     dbDateFilterEnd,
     dbTabMode,
@@ -14331,7 +14336,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       >
                         <Settings className="w-3.5 h-3.5" />
                         {showAdvancedFilters ? "Sembunyikan Filter Lanjutan" : "Tampilkan Filter Lanjutan"}
-                        {(globalSearch || dbPlatformFilter !== "Semua Platform" || dbBrandFilter !== "Semua Brand" || dbDateFilterStart || dbDateFilterEnd) && (
+                        {(globalSearch || dbPlatformFilter !== "Semua Platform" || dbBrandFilter !== "Semua Brand" || dbShiftFilter !== "Semua Shift" || dbDateFilterStart || dbDateFilterEnd) && (
                           <span className="ml-2 px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 text-[9px] font-black">
                             Aktif
                           </span>
@@ -14397,6 +14402,21 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 {b}
                               </option>
                             ))}
+                        </select>
+
+                        {/* Shift option Selector */}
+                        <select
+                          id="db_filter_shift_dropdown"
+                          value={dbShiftFilter}
+                          onChange={(e) => setDbShiftFilter(e.target.value)}
+                          className="bg-white border border-purple-150 rounded-xl px-4 py-2 text-xs text-purple-955 focus:outline-none cursor-pointer font-bold shadow-2xs hover:border-purple-300 w-full md:w-auto"
+                        >
+                          <option value="Semua Shift">Semua Shift</option>
+                          {shifts.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
