@@ -118,7 +118,8 @@ app.get("/api/settings/:key", asyncHandler(async (req, res) => {
   if (!row) {
     return res.json(null);
   }
-  res.json(row.setting_value);
+  // setting_value is already a JSON string in MySQL
+  res.type('json').send(row.setting_value);
 }));
 
 app.post("/api/settings/:key", asyncHandler(async (req, res) => {

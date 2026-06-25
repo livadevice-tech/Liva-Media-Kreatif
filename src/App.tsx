@@ -1384,12 +1384,21 @@ export default function App() {
         // Global configs — load dari MySQL (dengan fallback ke localStorage)
         settingsApi.get('liva_global_configs').then(mysqlData => {
           let data = mysqlData;
-          if (!data || Object.keys(data).length === 0) {
+          if (typeof data === 'string') {
+            try { data = JSON.parse(data); } catch (e) {}
+          }
+          if (typeof data === 'string') {
+            try { data = JSON.parse(data); } catch (e) {} // double parse just in case
+          }
+
+          if (!data || Object.keys(data).length === 0 || typeof data !== 'object') {
             // fallback to localStorage jika MySQL kosong
             const storedConfig = localStorage.getItem('liva_global_configs');
             if (storedConfig) {
               try {
                 data = JSON.parse(storedConfig);
+                if (typeof data === 'string') data = JSON.parse(data); // fix corrupted localStorage
+
                 // Migrasikan ke MySQL agar sinkron
                 settingsApi.save('liva_global_configs', data).catch(console.error);
               } catch { /* ignore parse error */ }
