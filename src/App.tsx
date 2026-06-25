@@ -6594,11 +6594,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               -- Pilih Brand Besutan --
                             </option>
                             {Array.from(
-                              new Set(
-                                activeHostObj?.brands && activeHostObj.brands.length > 0
-                                  ? activeHostObj.brands
-                                  : [...brands, ...clientBrands.map((cb) => cb.name)]
-                              ),
+                              new Set([
+                                ...brands,
+                                ...clientBrands.map((cb) => cb.name)
+                              ]),
                             )
                               .filter(Boolean)
                               .map((b) => (
@@ -6643,7 +6642,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             >
                               -- Pilih Platform Streaming --
                             </option>
-                            {(activeHostObj?.platforms && activeHostObj.platforms.length > 0 ? activeHostObj.platforms : platforms).map((p) => (
+                            {platforms.map((p) => (
                               <option
                                 key={p}
                                 value={p}
