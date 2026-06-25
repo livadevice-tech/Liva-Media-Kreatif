@@ -7121,8 +7121,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               const dateString = `${hostCalendarYear}-${String(hostCalendarMonth + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
                               const daySchedules = computedSchedules.filter(
                                 (s) =>
-                                  (s.hostId === loggedInHostId ||
-                                    s.backupHostId === loggedInHostId) &&
+                                  (s.hostId === selectedHostId ||
+                                    s.backupHostId === selectedHostId) &&
                                   (s.date || "").split("T")[0] === dateString,
                               );
 
@@ -7134,7 +7134,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               if (daySchedules.length > 0) {
                                 const hasOffDay = daySchedules?.some(
                                   (s) =>
-                                    s.isOffDay && s.hostId === loggedInHostId,
+                                    s.isOffDay && s.hostId === selectedHostId,
                                 );
 
                                 if (hasOffDay) {
@@ -7145,7 +7145,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   const primarySchedule =
                                     daySchedules.find(
                                       (s) =>
-                                        s.hostId === loggedInHostId &&
+                                        s.hostId === selectedHostId &&
                                         !s.isOffDay,
                                     ) || daySchedules[0];
                                   const bColor = getBrandColor(
@@ -7211,8 +7211,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {(() => {
                             const mySchedsMonth = computedSchedules.filter(
                               (s) =>
-                                (s.hostId === loggedInHostId ||
-                                  s.backupHostId === loggedInHostId) &&
+                                (s.hostId === selectedHostId ||
+                                  s.backupHostId === selectedHostId) &&
                                 !s.isOffDay &&
                                 s.date &&
                                 (s.date || "").split("T")[0].startsWith(
@@ -7271,8 +7271,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       {(() => {
                         const myAllScheds = computedSchedules.filter(
                           (s) =>
-                            s.hostId === loggedInHostId ||
-                            s.backupHostId === loggedInHostId,
+                            s.hostId === selectedHostId ||
+                            s.backupHostId === selectedHostId,
                         );
 
                         const filteredByDateScheds = myAllScheds.filter(
@@ -7294,9 +7294,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                         return sortedScheds.map((sch) => {
                           const isPrimaryOff =
-                            sch.isOffDay && sch.hostId === loggedInHostId;
+                            sch.isOffDay && sch.hostId === selectedHostId;
                           const isReplacement =
-                            sch.backupHostId === loggedInHostId;
+                            sch.backupHostId === selectedHostId;
                           const isSelectedInList = true; // since it's filtered, it's always the selected one
 
                           return (
