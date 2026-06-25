@@ -1451,9 +1451,11 @@ export default function App() {
             if (data.adminCredentials) setAdminCredentials(prev => prev.username === 'admin' && prev.password === 'Liva123@@' ? data.adminCredentials : prev);
             if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
           }
-        }).catch(err => console.error("Error loading global configs:", err));
-
-        setIsGlobalConfigsLoaded(true);
+        }).catch(err => {
+          console.error("Error loading global configs:", err);
+        }).finally(() => {
+          setIsGlobalConfigsLoaded(true);
+        });
 
       } catch (err) {
         console.error('Error loading initial data:', err);
