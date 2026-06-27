@@ -546,39 +546,54 @@ PT. Liva Media Kreatif
 
   return (
     <div className="space-y-6 animate-fadeIn min-h-screen pb-12" id="operator_invoice_dashboard">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-5">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-indigo-600" /> Manajemen Invoice & Tagihan
           </h2>
           <p className="text-sm font-semibold text-slate-500 mt-1">Lacak pembayaran client, generate invoice PDF, dan kelola tagihan MCN terpusat.</p>
         </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setActiveTab("reminders")}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm cursor-pointer"
-          >
-            <Clock className="w-5 h-5" /> Pengingat Otomatis
-          </button>
-          <button 
-            onClick={() => setActiveTab("settings")}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm cursor-pointer"
-          >
-            <Settings className="w-5 h-5" /> Pengaturan Nota
-          </button>
-          <button 
-            onClick={() => setActiveTab("berkas")}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm cursor-pointer"
-          >
-            <FileText className="w-5 h-5" /> Kelola Berkas
-          </button>
-          <button 
-            onClick={() => { setActiveTab("create"); handleBrandSelectForDraft(""); }}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-5 h-5" /> Buat Invoice Baru
-          </button>
-        </div>
+        <button 
+          onClick={() => { setActiveTab("create"); handleBrandSelectForDraft(""); }}
+          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+        >
+          <Plus className="w-5 h-5" /> Buat Invoice Baru
+        </button>
+      </div>
+
+      <div className="flex gap-6 border-b border-slate-200 overflow-x-auto no-scrollbar">
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`pb-4 font-bold text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap ${
+            activeTab === "overview" || activeTab === "create" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+          }`}
+        >
+          Semua Invoice
+        </button>
+        <button
+          onClick={() => setActiveTab("berkas")}
+          className={`pb-4 font-bold text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            activeTab === "berkas" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+          }`}
+        >
+          Kelola Berkas
+        </button>
+        <button
+          onClick={() => setActiveTab("reminders")}
+          className={`pb-4 font-bold text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            activeTab === "reminders" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+          }`}
+        >
+          Pengingat Otomatis
+        </button>
+        <button
+          onClick={() => setActiveTab("settings")}
+          className={`pb-4 font-bold text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            activeTab === "settings" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+          }`}
+        >
+          Pengaturan Nota
+        </button>
       </div>
 
       {activeTab === "overview" && (
@@ -964,7 +979,6 @@ PT. Liva Media Kreatif
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 max-w-3xl animate-fadeIn">
            <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
               <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Settings className="w-6 h-6 text-indigo-600" /> Pengaturan Logo & Tanda Tangan</h3>
-              <button onClick={() => setActiveTab("overview")} className="text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer">Kembali</button>
            </div>
 
            <div className="space-y-6">
