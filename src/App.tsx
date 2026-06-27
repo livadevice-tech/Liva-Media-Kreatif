@@ -1726,15 +1726,6 @@ export default function App() {
   // Admin credentials & login session
   const [adminCredentials, setAdminCredentials] = useState<{ username: string; password: string }>({ username: "admin", password: "Liva123@@" });
 
-  useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
-    const timer = setTimeout(() => {
-      saveLocalConfig({ adminCredentials });
-      settingsApi.save('adminCredentials', adminCredentials).catch(console.error);
-    }, 1000); // 1-second debounce
-    return () => clearTimeout(timer);
-  }, [adminCredentials, isGlobalConfigsLoaded]);
-
   const [adminAccounts, _setAdminAccounts] = useState<AdminAccount[]>([]);
   const setAdminAccounts = useCallback((action: any) => {
     _setAdminAccounts((prev) => {
@@ -25446,11 +25437,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 return;
                               }
 
-                              // update secure admin credentials state (this auto triggers localStorage save via useEffect in App.tsx)
-                              setAdminCredentials({
+                              // update secure admin credentials state
+                              const newCreds = {
                                 username: adminCredentials.username,
                                 password: newPasswordInput,
-                              });
+                              };
+                              setAdminCredentials(newCreds);
+
+                              // Save explicitly to backend (Fixes the race condition reset bug)
+                              saveLocalConfig({ adminCredentials: newCreds });
+                              if (typeof settingsApi !== 'undefined') {
+                                settingsApi.save('adminCredentials', newCreds).catch(console.error);
+                              }
 
                               setCurrentPasswordInput("");
                               setNewPasswordInput("");
