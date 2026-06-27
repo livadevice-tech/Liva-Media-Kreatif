@@ -107,6 +107,7 @@ import {
   FileText,
   Settings,
   FolderOpen,
+  UserCog,
 } from "lucide-react";
 
 import {
@@ -1281,6 +1282,9 @@ export default function App() {
     return sessionStorage.getItem("mcn_logged_in_host_id") || null;
   });
 
+  const [isHostProfileModalOpen, setIsHostProfileModalOpen] = useState(false);
+  const [hostProfileForm, setHostProfileForm] = useState({ phone: "", bankAccount: "" });
+
   const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(() => {
     return sessionStorage.getItem("mcn_logged_in_admin_id") || null;
   });
@@ -1505,6 +1509,7 @@ export default function App() {
   // Modal States
   const [brandFormEditor, setBrandFormEditor] =
     useState<Partial<ClientBrand> | null>(null);
+  const [brandFormTab, setBrandFormTab] = useState<"basic" | "sessions" | "accounts">("basic");
   const [brandInvoiceModalInfo, setBrandInvoiceModalInfo] =
     useState<ClientBrand | null>(null);
   const [reportFormModal, setReportFormModal] = useState<{
@@ -6317,6 +6322,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
 
                   <div className="flex items-center gap-2 relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHostProfileForm({
+                          phone: activeHostObj?.phone || "",
+                          bankAccount: activeHostObj?.bankAccount || ""
+                        });
+                        setIsHostProfileModalOpen(true);
+                      }}
+                      className="relative p-2 rounded-xl hover:bg-purple-50 text-purple-700 transition-all cursor-pointer border border-transparent hover:border-purple-100 flex items-center justify-center bg-transparent active:scale-95"
+                      title="Profil Saya"
+                    >
+                      <UserCog className="w-5 h-5 text-purple-600" />
+                    </button>
                     {/* Notifications Dropdown */}
                     <div className="relative">
                       <button
@@ -6418,6 +6437,86 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
                 </div>
               </div>
+
+              {/* MODAL PROFIL HOST SELF-SERVICE */}
+              {isHostProfileModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                  <div 
+                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+                    onClick={() => setIsHostProfileModalOpen(false)}
+                  ></div>
+                  <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-scaleIn border border-purple-100">
+                    <div className="px-5 py-4 border-b border-purple-50 flex items-center justify-between bg-purple-50/30">
+                      <h4 className="text-sm font-black text-purple-950 flex items-center gap-2">
+                        <UserCog className="w-4 h-4 text-purple-600" /> Profil & Rekening Saya
+                      </h4>
+                      <button
+                        onClick={() => setIsHostProfileModalOpen(false)}
+                        className="w-7 h-7 flex items-center justify-center rounded-full bg-purple-100 hover:bg-purple-200 text-purple-700 transition-colors cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="p-5 overflow-y-auto space-y-4">
+                      <div>
+                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1.5 font-mono">
+                          Nomor WhatsApp:
+                        </label>
+                        <input
+                          type="text"
+                          value={hostProfileForm.phone}
+                          onChange={(e) => setHostProfileForm({ ...hostProfileForm, phone: e.target.value })}
+                          placeholder="Misal: 0812345678"
+                          className="w-full bg-[#faf9fe] border border-purple-150 rounded-xl px-3 py-2.5 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1.5 font-mono">
+                          Rekening Bank:
+                        </label>
+                        <input
+                          type="text"
+                          value={hostProfileForm.bankAccount}
+                          onChange={(e) => setHostProfileForm({ ...hostProfileForm, bankAccount: e.target.value })}
+                          placeholder="Misal: BCA 12345678 a/n Amanda"
+                          className="w-full bg-[#faf9fe] border border-purple-150 rounded-xl px-3 py-2.5 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 transition-all"
+                        />
+                        <p className="text-[9px] text-purple-500 font-medium mt-1.5 leading-snug">
+                          Rekening ini akan otomatis terhubung ke sistem Payroll Admin untuk pencairan gaji dan bonus. Pastikan data akurat.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="p-4 border-t border-purple-50 bg-white flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsHostProfileModalOpen(false)}
+                        className="px-4 py-2 text-slate-500 hover:text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activeHostObj) {
+                            const updatedHost = {
+                              ...activeHostObj,
+                              phone: hostProfileForm.phone.trim(),
+                              bankAccount: hostProfileForm.bankAccount.trim()
+                            };
+                            setHosts(prev => prev.map(h => h.id === activeHostObj.id ? updatedHost : h));
+                            
+                            addNotification("✅ Profil Diperbarui", "Nomor kontak & rekening Anda berhasil disimpan.", "success", "absensi");
+                            setIsHostProfileModalOpen(false);
+                          }
+                        }}
+                        className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Simpan Profil
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Live Automatically Recorded Clock Widget Removed */}
 
@@ -7294,7 +7393,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           a.date.localeCompare(b.date),
                         );
 
-                        return sortedScheds.map((sch) => {
+                        return sortedScheds.map((sch, idx) => {
                           const isPrimaryOff =
                             sch.isOffDay && sch.hostId === selectedHostId;
                           const isReplacement =
@@ -7305,8 +7404,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             <div
                               key={
                                 (sch.id || "") +
-                                "_" +
-                                Math.random().toString(36).substr(2, 9)
+                                "_" + String(idx)
                               }
                               id={`host-shift-${(sch.date || "").split("T")[0]}`}
                               className={`p-3 rounded-xl border transition-all ${
@@ -10514,12 +10612,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   key={h.id}
                                   className="w-8 h-8 rounded-full border-[3px] border-white flex items-center justify-center text-[10px] font-bold z-30 shadow-sm"
                                   style={{
-                                    backgroundColor:
-                                      "#" +
-                                      Math.floor(Math.random() * 16777215)
-                                        .toString(16)
-                                        .padEnd(6, "0") +
-                                      "40",
+                                    backgroundColor: `hsl(${(h.name.charCodeAt(0) * 15 + h.name.length * 10) % 360}, 80%, 90%)`,
                                     color: "#1e293b",
                                   }}
                                 >
@@ -11272,10 +11365,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   <div
                                                     key={
                                                       (sch?.id || "") +
-                                                      "_" +
-                                                      Math.random()
-                                                        .toString(36)
-                                                        .substr(2, 9)
+                                                      "_" + String(idxSch)
                                                     }
                                                     className={`p-2.5 rounded-lg border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all flex flex-col justify-between hover:scale-[101%] hover:shadow-2xs hover:border-slate-300 text-[11px] ${
                                                       isOff
@@ -11686,14 +11776,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         if (isOff) {
                                                           return (
                                                             <div
-                                                              key={
-                                                                (sch?.id ||
-                                                                  "") +
-                                                                "_" +
-                                                                Math.random()
-                                                                  .toString(36)
-                                                                  .substr(2, 9)
-                                                              }
+                                                              key={`${sch.id || ""}_${idxSch}`}
                                                               onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setIsScheduleModalOpen(
@@ -11744,13 +11827,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                                         return (
                                                           <div
-                                                            key={
-                                                              (sch?.id || "") +
-                                                              "_" +
-                                                              Math.random()
-                                                                .toString(36)
-                                                                .substr(2, 9)
-                                                            }
+                                                            key={`${sch.id || ""}_${idxSch}`}
                                                             onClick={(e) => {
                                                               e.stopPropagation();
                                                               setIsScheduleModalOpen(
@@ -13147,13 +13224,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   </button>
                                   </div>
                               </th>
+                              <th className="py-4 px-6 align-middle text-left w-48">
+                                <span className="uppercase text-[10px] font-mono font-bold tracking-wider text-slate-400">
+                                  Rekening Transfer
+                                </span>
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
                             {filteredHostReportList.length === 0 ? (
                               <tr key="empty">
                                 <td
-                                  colSpan={7}
+                                  colSpan={8}
                                   className="text-center py-12 text-slate-400 font-mono font-medium"
                                 >
                                   Tidak ada rekam data host yang cocok untuk
@@ -13508,11 +13590,25 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         </span>
                                       </div>
                                     </td>
+
+                                    {/* Rekening Transfer */}
+                                    <td className="text-left py-4 px-6" onClick={(e) => e.stopPropagation()}>
+                                      {item.bankAccount ? (
+                                        <div className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono font-bold text-emerald-700 w-full whitespace-nowrap overflow-hidden text-ellipsis select-all shadow-3xs" title="Select All untuk Copy">
+                                          {item.bankAccount}
+                                        </div>
+                                      ) : (
+                                        <div className="bg-red-50 border border-red-100 px-2 py-1.5 rounded-lg text-[10px] font-bold text-red-600 flex items-center gap-1 w-max">
+                                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> Belum Diisi
+                                        </div>
+                                      )}
+                                    </td>
+
                                   </tr>
                                   {/* ACCORDION EXPANDED ROW */}
                                   {expandedHostSalaryId === item.id && (
                                     <tr className="bg-slate-950 border-b border-slate-800">
-                                      <td colSpan={7} className="p-0">
+                                      <td colSpan={8} className="p-0">
                                         <div className="p-6 px-6 lg:px-8 border-l-4 border-l-purple-500 text-white animate-in slide-in-from-top-2 duration-200 overflow-hidden">
                                           <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
                                             
@@ -15380,623 +15476,34 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
                 )}
 
+                
                 {/* ==================== SUBTAB: DATA BRAND ==================== */}
                 {operatorTab === "data_brand" && (
                   <div
                     className="space-y-6 animate-fadeIn"
                     id="operator_data_brand_content"
                   >
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative">
                       <div className="flex justify-between items-center mb-6">
                         <div>
                           <h3 className="text-sm font-black text-slate-800">
                             Manajemen Data Brand Klien
                           </h3>
                           <p className="text-xs text-slate-500 font-semibold mt-1">
-                            Data detail terkait kontrak, invoice, dan kredensial
-                            brand aktif.
+                            Data detail terkait kontrak, invoice, dan kredensial brand aktif.
                           </p>
                         </div>
                         <button
-                          onClick={() =>
-                            setBrandFormEditor({ sessions: [], accounts: [] })
-                          }
+                          onClick={() => {
+                            setBrandFormEditor({ sessions: [], accounts: [] });
+                            setBrandFormTab("basic");
+                          }}
                           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all border-0 cursor-pointer flex items-center gap-2 shadow-sm"
                         >
                           <Plus className="w-4 h-4" /> Klien Baru
                         </button>
                       </div>
 
-                      {brandFormEditor && (
-                        <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-5 relative">
-                          <button
-                            onClick={() => setBrandFormEditor(null)}
-                            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                          <h4 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
-                            <Briefcase className="w-4 h-4 text-indigo-500" />
-                            {brandFormEditor.id
-                              ? "Edit Data Brand"
-                              : "Tambah Brand Klien"}
-                          </h4>
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              const fd = new FormData(e.currentTarget);
-                              const nameVal = fd.get("name") as string;
-                              const defaultUsername = nameVal
-                                ? nameVal
-                                    .toLowerCase()
-                                    .replace(/[^a-z0-9]/g, "")
-                                : `brand_${Date.now()}`;
-                              const enteredUsername = (
-                                fd.get("clientUsername") as string
-                              )?.trim();
-
-                              const newBrand: ClientBrand = {
-                                id: brandFormEditor.id || `cb_${Date.now()}`,
-                                name: nameVal,
-                                contractStartDate: fd.get(
-                                  "contractStartDate",
-                                ) as string,
-                                contractEndDate: fd.get(
-                                  "contractEndDate",
-                                ) as string,
-                                invoiceDate: fd.get("invoiceDate") as string,
-                                monthlyMeetingDate: fd.get(
-                                  "monthlyMeetingDate",
-                                ) as string,
-                                picName: fd.get("picName") as string,
-                                picPhone: fd.get("picPhone") as string,
-                                sessions: brandFormEditor.sessions || [],
-                                accounts: brandFormEditor.accounts || [],
-                                clientUsername:
-                                  enteredUsername ||
-                                  brandFormEditor.clientUsername ||
-                                  defaultUsername,
-                                clientPassword:
-                                  (fd.get("clientPassword") as string) ||
-                                  "liva123",
-                              };
-
-                              if (brandFormEditor.id) {
-                                setClientBrands((prev) =>
-                                  prev.map((b) =>
-                                    b.id === newBrand.id ? newBrand : b,
-                                  ),
-                                );
-                                addNotification(
-                                  "💼 Brand Diperbarui",
-                                  `Data brand "${newBrand.name}" berhasil diperbarui oleh admin.`,
-                                  "info",
-                                  "data_brand",
-                                );
-                              } else {
-                                setClientBrands((prev) => [...prev, newBrand]);
-                                addNotification(
-                                  "🎉 Brand Klien Baru",
-                                  `Brand "${newBrand.name}" baru saja didaftarkan ke sistem Liva Agency.`,
-                                  "success",
-                                  "data_brand",
-                                );
-                              }
-                              setBrandFormEditor(null);
-                            }}
-                            className="space-y-4 text-xs"
-                          >
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Nama Brand
-                                </label>
-                                <input
-                                  required
-                                  name="name"
-                                  defaultValue={brandFormEditor.name}
-                                  type="text"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Start Kontrak
-                                </label>
-                                <input
-                                  name="contractStartDate"
-                                  defaultValue={
-                                    brandFormEditor.contractStartDate ||
-                                    new Date().toISOString().split("T")[0]
-                                  }
-                                  type="date"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  End Kontrak
-                                </label>
-                                <input
-                                  name="contractEndDate"
-                                  defaultValue={
-                                    brandFormEditor.contractEndDate ||
-                                    new Date().toISOString().split("T")[0]
-                                  }
-                                  type="date"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Tanggal Invoice (Setiap Bulan)
-                                </label>
-                                <input
-                                  name="invoiceDate"
-                                  defaultValue={brandFormEditor.invoiceDate}
-                                  type="number"
-                                  min="1"
-                                  max="31"
-                                  placeholder="Contoh: 5"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Tgl Monthly Meeting (Setiap Bulan)
-                                </label>
-                                <input
-                                  name="monthlyMeetingDate"
-                                  defaultValue={
-                                    brandFormEditor.monthlyMeetingDate
-                                  }
-                                  type="number"
-                                  min="1"
-                                  max="31"
-                                  placeholder="Contoh: 10"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Username Portal Klien
-                                </label>
-                                <input
-                                  name="clientUsername"
-                                  defaultValue={brandFormEditor.clientUsername}
-                                  type="text"
-                                  placeholder="Kosongkan utk default (huruf kecil)"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Password Portal Klien
-                                </label>
-                                <input
-                                  name="clientPassword"
-                                  defaultValue={
-                                    brandFormEditor.clientPassword || "liva123"
-                                  }
-                                  type="text"
-                                  placeholder="Default: liva123"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="bg-white p-4 rounded-xl border border-slate-200">
-                              <div className="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                                <h5 className="font-bold text-slate-800">
-                                  Detail Sesi (Platform, Shift, Studio, Host)
-                                </h5>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setBrandFormEditor((prev) =>
-                                      prev
-                                        ? {
-                                            ...prev,
-                                            sessions: [
-                                              ...(prev.sessions || []),
-                                              {
-                                                id: `s_${Date.now()}`,
-                                                platform: platforms[0] || "",
-                                                shift: shifts[0] || "",
-                                                studio: studios[0]?.name || "",
-                                                host: "",
-                                              },
-                                            ],
-                                          }
-                                        : prev,
-                                    );
-                                  }}
-                                  className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded font-bold hover:bg-indigo-100 border-0 flex items-center gap-1 cursor-pointer transition-colors"
-                                >
-                                  <Plus className="w-3 h-3" /> Tambah Sesi
-                                </button>
-                              </div>
-                              <div className="space-y-2">
-                                {(brandFormEditor.sessions || []).map(
-                                  (sess, idx) => (
-                                    <div
-                                      key={sess.id}
-                                      className="flex flex-col xl:flex-row items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100"
-                                    >
-                                      <select
-                                        value={sess.platform}
-                                        onChange={(e) =>
-                                          setBrandFormEditor((prev) =>
-                                            prev
-                                              ? {
-                                                  ...prev,
-                                                  sessions: prev.sessions?.map(
-                                                    (s, i) =>
-                                                      i === idx
-                                                        ? {
-                                                            ...s,
-                                                            platform:
-                                                              e.target.value,
-                                                          }
-                                                        : s,
-                                                  ),
-                                                }
-                                              : prev,
-                                          )
-                                        }
-                                        className="w-full xl:w-[140px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
-                                      >
-                                        {platforms.map((p, i) => (
-                                          <option key={p + "_" + i} value={p}>
-                                            {p}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <select
-                                        value={sess.shift}
-                                        onChange={(e) =>
-                                          setBrandFormEditor((prev) =>
-                                            prev
-                                              ? {
-                                                  ...prev,
-                                                  sessions: prev.sessions?.map(
-                                                    (s, i) =>
-                                                      i === idx
-                                                        ? {
-                                                            ...s,
-                                                            shift:
-                                                              e.target.value,
-                                                          }
-                                                        : s,
-                                                  ),
-                                                }
-                                              : prev,
-                                          )
-                                        }
-                                        className="w-full xl:flex-1 bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
-                                      >
-                                        {shifts.map((sh, i) => (
-                                          <option key={sh + "_" + i} value={sh}>
-                                            {sh}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <select
-                                        value={sess.studio || ""}
-                                        onChange={(e) =>
-                                          setBrandFormEditor((prev) =>
-                                            prev
-                                              ? {
-                                                  ...prev,
-                                                  sessions: prev.sessions?.map(
-                                                    (s, i) =>
-                                                      i === idx
-                                                        ? {
-                                                            ...s,
-                                                            studio:
-                                                              e.target.value,
-                                                          }
-                                                        : s,
-                                                  ),
-                                                }
-                                              : prev,
-                                          )
-                                        }
-                                        className="w-full xl:w-[180px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
-                                      >
-                                        <option value="">
-                                          Pilih Studio...
-                                        </option>
-                                        {studios.map((st, i) => (
-                                          <option
-                                            key={st.id + "_" + i}
-                                            value={st.name}
-                                          >
-                                            {st.name} - {st.location}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <SearchableHostSelect
-                                        hosts={hosts}
-                                        value={sess.host || ""}
-                                        valueType="name"
-                                        onChange={(hostName) =>
-                                          setBrandFormEditor((prev) =>
-                                            prev
-                                              ? {
-                                                  ...prev,
-                                                  sessions:
-                                                    prev.sessions?.map(
-                                                      (s, i) =>
-                                                        i === idx
-                                                          ? {
-                                                              ...s,
-                                                              host: hostName,
-                                                            }
-                                                          : s,
-                                                    ),
-                                                }
-                                              : prev,
-                                          )
-                                        }
-                                        className="w-full xl:w-[180px]"
-                                        placeholder="Host Reguler / Dedicated (Opsional)..."
-                                        triggerClassName="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px] text-left flex items-center justify-between cursor-pointer min-h-[30px]"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setBrandFormEditor((prev) =>
-                                            prev
-                                              ? {
-                                                  ...prev,
-                                                  sessions:
-                                                    prev.sessions?.filter(
-                                                      (_, i) => i !== idx,
-                                                    ),
-                                                }
-                                              : prev,
-                                          )
-                                        }
-                                        className="w-full xl:w-auto p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded border border-transparent hover:border-red-100 cursor-pointer bg-white transition-all flex justify-center items-center"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  ),
-                                )}
-                                {(!brandFormEditor.sessions ||
-                                  brandFormEditor.sessions.length === 0) && (
-                                  <div className="text-slate-400 font-medium italic text-center py-2 text-[10px]">
-                                    Belum ada sesi yang ditambahkan.
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="bg-white p-4 rounded-xl border border-slate-200">
-                              <div className="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                                <h5 className="font-bold text-slate-800">
-                                  Informasi Akun (Seller Center, dll)
-                                </h5>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setBrandFormEditor((prev) =>
-                                      prev
-                                        ? {
-                                            ...prev,
-                                            accounts: [
-                                              ...(prev.accounts || []),
-                                              {
-                                                id: `a_${Date.now()}`,
-                                                type: platforms[0] || "",
-                                                username: "",
-                                                password: "",
-                                                picOtp: "",
-                                              },
-                                            ],
-                                          }
-                                        : prev,
-                                    );
-                                  }}
-                                  className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded font-bold hover:bg-indigo-100 border-0 flex items-center gap-1 cursor-pointer transition-colors"
-                                >
-                                  <Plus className="w-3 h-3" /> Tambah Akun
-                                </button>
-                              </div>
-                              <div className="space-y-3">
-                                {(brandFormEditor.accounts || []).map(
-                                  (acc, idx) => (
-                                    <div
-                                      key={acc.id}
-                                      className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 items-start"
-                                    >
-                                      <div className="sm:col-span-3">
-                                        <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
-                                          Jenis Akun
-                                        </label>
-                                        <select
-                                          value={acc.type}
-                                          onChange={(e) =>
-                                            setBrandFormEditor((prev) =>
-                                              prev
-                                                ? {
-                                                    ...prev,
-                                                    accounts:
-                                                      prev.accounts?.map(
-                                                        (a, i) =>
-                                                          i === idx
-                                                            ? {
-                                                                ...a,
-                                                                type: e.target
-                                                                  .value,
-                                                              }
-                                                            : a,
-                                                      ),
-                                                  }
-                                                : prev,
-                                            )
-                                          }
-                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none text-slate-700"
-                                        >
-                                          <option value="">
-                                            Pilih Platform...
-                                          </option>
-                                          {platforms.map((p, i) => (
-                                            <option key={p + "_" + i} value={p}>
-                                              {p}
-                                            </option>
-                                          ))}
-                                          <option value="Lainnya">
-                                            Lainnya
-                                          </option>
-                                        </select>
-                                      </div>
-                                      <div className="sm:col-span-3">
-                                        <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
-                                          Username
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={acc.username}
-                                          onChange={(e) =>
-                                            setBrandFormEditor((prev) =>
-                                              prev
-                                                ? {
-                                                    ...prev,
-                                                    accounts:
-                                                      prev.accounts?.map(
-                                                        (a, i) =>
-                                                          i === idx
-                                                            ? {
-                                                                ...a,
-                                                                username:
-                                                                  e.target
-                                                                    .value,
-                                                              }
-                                                            : a,
-                                                      ),
-                                                  }
-                                                : prev,
-                                            )
-                                          }
-                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-mono text-[10px] focus:border-indigo-500 outline-none"
-                                        />
-                                      </div>
-                                      <div className="sm:col-span-3">
-                                        <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
-                                          Password
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={acc.password}
-                                          onChange={(e) =>
-                                            setBrandFormEditor((prev) =>
-                                              prev
-                                                ? {
-                                                    ...prev,
-                                                    accounts:
-                                                      prev.accounts?.map(
-                                                        (a, i) =>
-                                                          i === idx
-                                                            ? {
-                                                                ...a,
-                                                                password:
-                                                                  e.target
-                                                                    .value,
-                                                              }
-                                                            : a,
-                                                      ),
-                                                  }
-                                                : prev,
-                                            )
-                                          }
-                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-mono text-[10px] focus:border-indigo-500 outline-none"
-                                        />
-                                      </div>
-                                      <div className="sm:col-span-2">
-                                        <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
-                                          PIC OTP
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={acc.picOtp}
-                                          onChange={(e) =>
-                                            setBrandFormEditor((prev) =>
-                                              prev
-                                                ? {
-                                                    ...prev,
-                                                    accounts:
-                                                      prev.accounts?.map(
-                                                        (a, i) =>
-                                                          i === idx
-                                                            ? {
-                                                                ...a,
-                                                                picOtp:
-                                                                  e.target
-                                                                    .value,
-                                                              }
-                                                            : a,
-                                                      ),
-                                                  }
-                                                : prev,
-                                            )
-                                          }
-                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] focus:border-indigo-500 outline-none"
-                                          placeholder="Cth: WA Pak Budi"
-                                        />
-                                      </div>
-                                      <div className="sm:col-span-1 pt-4 flex justify-end">
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            setBrandFormEditor((prev) =>
-                                              prev
-                                                ? {
-                                                    ...prev,
-                                                    accounts:
-                                                      prev.accounts?.filter(
-                                                        (_, i) => i !== idx,
-                                                      ),
-                                                  }
-                                                : prev,
-                                            )
-                                          }
-                                          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded border border-transparent hover:border-red-100 cursor-pointer bg-white transition-all"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ),
-                                )}
-                                {(!brandFormEditor.accounts ||
-                                  brandFormEditor.accounts.length === 0) && (
-                                  <div className="text-slate-400 font-medium italic text-center py-2 text-[10px]">
-                                    Belum ada data akun.
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex justify-end pt-2">
-                              <button
-                                type="submit"
-                                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer border-0 shadow-sm disabled:opacity-50"
-                                disabled={!brandFormEditor.sessions?.length}
-                              >
-                                <Check className="w-4 h-4" /> Simpan Data Brand
-                              </button>
-                            </div>
-                          </form>
-                        </div>
-                      )}
-
-                      {/* Filter Tab & Search Bar */}
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-5">
                         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
                           <button
@@ -16032,9 +15539,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
 
                       {/* Brand Card List */}
-                      <div className="space-y-3">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
                         {filteredAndSortedBrands.length === 0 ? (
-                          <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                          <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200">
                             <Briefcase className="w-10 h-10 text-slate-200 mx-auto mb-3" />
                             <p className="text-slate-400 font-bold text-sm">
                               {brandDataSearch ? "Brand tidak ditemukan." : "Belum ada data brand klien."}
@@ -16045,12 +15552,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           filteredAndSortedBrands.map((brand, i) => {
                             const today = new Date();
                             const endDate = brand.contractEndDate ? new Date(brand.contractEndDate) : null;
-                            const startDate = brand.contractStartDate ? new Date(brand.contractStartDate) : null;
                             const isExpired = endDate ? endDate < today : false;
                             const daysLeft = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
                             const isNearExpiry = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
 
-                            const formatContractDate = (d?: string) => {
+                            const formatContractDate = (d) => {
                               if (!d) return "—";
                               const datePart = d.split("T")[0];
                               const p = datePart.split("-");
@@ -16061,178 +15567,468 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             return (
                               <div
                                 key={brand.id || i}
-                                className={`bg-white rounded-2xl border transition-all duration-200 hover:shadow-md group ${
+                                className={`flex flex-col bg-white rounded-2xl border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group ${
                                   isExpired
-                                    ? "border-l-4 border-l-rose-400 border-slate-100"
+                                    ? "border-rose-200 shadow-[0_4px_20px_-10px_rgba(244,63,94,0.3)]"
                                     : isNearExpiry
-                                    ? "border-l-4 border-l-amber-400 border-slate-100"
-                                    : "border-l-4 border-l-indigo-400 border-slate-100"
+                                    ? "border-amber-200 shadow-[0_4px_20px_-10px_rgba(251,191,36,0.3)]"
+                                    : "border-indigo-100 shadow-[0_4px_20px_-10px_rgba(79,70,229,0.1)]"
                                 }`}
                               >
-                                {/* Card Header */}
-                                <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-50">
-                                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${
-                                      isExpired ? "bg-rose-50 text-rose-500" : "bg-indigo-50 text-indigo-600"
+                                {/* Header Card */}
+                                <div className={`px-5 py-4 flex items-center justify-between rounded-t-2xl border-b ${
+                                  isExpired ? "bg-rose-50/50 border-rose-100" : isNearExpiry ? "bg-amber-50/50 border-amber-100" : "bg-slate-50/50 border-slate-100"
+                                }`}>
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-lg ${
+                                      isExpired ? "bg-rose-100 text-rose-600" : isNearExpiry ? "bg-amber-100 text-amber-600" : "bg-indigo-100 text-indigo-600"
                                     }`}>
                                       {(brand.name || "?").charAt(0).toUpperCase()}
                                     </div>
                                     <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                                        <h4 className="font-black text-slate-800 text-[15px] leading-tight truncate">{brand.name}</h4>
+                                      <h4 className="font-black text-slate-800 text-[15px] truncate">{brand.name}</h4>
+                                      <div className="flex items-center gap-1.5 mt-0.5">
                                         {isExpired ? (
-                                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span> Selesai
-                                          </span>
+                                          <span className="text-[10px] font-bold text-rose-600 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Kontrak Selesai</span>
                                         ) : isNearExpiry ? (
-                                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span> {daysLeft}h lagi
-                                          </span>
+                                          <span className="text-[10px] font-bold text-amber-600 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Sisa {daysLeft} hari</span>
                                         ) : (
-                                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span> Aktif
-                                          </span>
+                                          <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktif</span>
                                         )}
-                                        {brand.monthlyMeetingDate && (
-                                          <span className="text-[10px] text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full font-bold border border-sky-100 flex items-center gap-1">
-                                            <Calendar className="w-2.5 h-2.5" /> Meeting Tgl {brand.monthlyMeetingDate}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-semibold">
-                                        <span className="flex items-center gap-1">
-                                          <Clock className="w-3 h-3" />
-                                          {formatContractDate(brand.contractStartDate)} - {formatContractDate(brand.contractEndDate)}
-                                        </span>
-                                        {brand.invoiceDate && (
-                                          <span className="flex items-center gap-1 text-emerald-600">
-                                            <DollarSign className="w-3 h-3" /> Invoice Tgl {brand.invoiceDate}
-                                          </span>
-                                        )}
-                                        {brand.picName && (
-                                          <span className="flex items-center gap-1">
-                                            <UserCheck className="w-3 h-3" /> {brand.picName}
-                                          </span>
-                                        )}
-                                        <span className="text-indigo-400 font-mono">ID: #{brand.id.slice(-6).toUpperCase()}</span>
                                       </div>
                                     </div>
                                   </div>
-
-                                  {/* Action Buttons */}
-                                  <div className="flex items-center gap-1.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                      onClick={() => {
-                                        setOperatorTab("invoice");
-                                        setTimeout(() => {
-                                          const e = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
-                                          window.dispatchEvent(e);
-                                        }, 300);
-                                      }}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-bold transition-all border-0 cursor-pointer"
-                                      title="Buat Invoice"
-                                    >
-                                      <Receipt className="w-3.5 h-3.5" /> Invoice
-                                    </button>
-                                    <button
-                                      onClick={() => handleEditBrand(brand)}
-                                      className="w-8 h-8 flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all border-0 cursor-pointer"
-                                      title="Edit Data"
-                                    >
-                                      <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteBrand(brand.id)}
-                                      className="w-8 h-8 flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all border-0 cursor-pointer"
-                                      title="Hapus Data"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
                                 </div>
 
-                                {/* Card Body */}
-                                <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  {/* Sessions */}
-                                  <div>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Platform & Sesi</p>
+                                {/* Body Card */}
+                                <div className="p-5 flex-1 flex flex-col gap-4">
+                                  {/* Info Singkat */}
+                                  <div className="grid grid-cols-2 gap-3 text-[11px] font-semibold text-slate-600">
+                                    <div className="flex items-center gap-1.5">
+                                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                      {formatContractDate(brand.contractEndDate)}
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                                      {brand.picName || "Tanpa PIC"}
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <DollarSign className="w-3.5 h-3.5 text-slate-400" />
+                                      Invoice: Tgl {brand.invoiceDate || "-"}
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                      Meeting: Tgl {brand.monthlyMeetingDate || "-"}
+                                    </div>
+                                  </div>
+
+                                  {/* Sessions Summary */}
+                                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex-1">
+                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Platform & Sesi</p>
                                     <div className="flex flex-wrap gap-1.5">
                                       {brand.sessions && brand.sessions.length > 0 ? (
                                         brand.sessions.map((sess) => (
-                                          <div
-                                            key={sess.id}
-                                            className="bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-[10px]"
-                                          >
-                                            <span className="font-black text-indigo-600 uppercase">{sess.platform}</span>
+                                          <div key={sess.id} className="bg-white border border-slate-200 rounded-md px-2 py-1 text-[10px] shadow-sm">
+                                            <span className="font-black text-indigo-600">{sess.platform}</span>
                                             <span className="text-slate-400 mx-1">·</span>
-                                            <span className="font-semibold text-slate-600">{sess.shift}</span>
-                                            {sess.studio && (
-                                              <div className="text-slate-400 flex items-center gap-1 mt-0.5">
-                                                <MapPin className="w-2.5 h-2.5 text-rose-400" /> {sess.studio}
-                                              </div>
-                                            )}
-                                            {sess.host && (
-                                              <div className="text-slate-400 flex items-center gap-1">
-                                                <UserCheck className="w-2.5 h-2.5 text-emerald-400" /> {sess.host}
-                                              </div>
-                                            )}
+                                            <span className="font-bold text-slate-600">{sess.shift}</span>
                                           </div>
                                         ))
                                       ) : (
-                                        <div className="text-slate-300 text-[10px] italic">Belum ada sesi</div>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Portal Credentials */}
-                                  <div>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Portal Performance</p>
-                                    <div className="bg-indigo-50/70 border border-indigo-100/60 rounded-xl p-2.5 space-y-1.5">
-                                      <div className="flex items-center gap-2 text-[10px]">
-                                        <span className="text-indigo-400 font-bold w-7">UID</span>
-                                        <span className="font-mono font-black text-indigo-800 bg-white/70 px-1.5 py-0.5 rounded select-all flex-1 truncate">
-                                          {brand.clientUsername || (brand.name || "").toLowerCase().replace(/[^a-z0-9]/g, "")}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2 text-[10px]">
-                                        <span className="text-indigo-400 font-bold w-7">PWD</span>
-                                        <span className="font-mono font-black text-indigo-800 bg-white/70 px-1.5 py-0.5 rounded select-all flex-1">
-                                          {brand.clientPassword || "liva123"}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Accounts */}
-                                  <div>
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Akun Seller ({brand.accounts?.length || 0})</p>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {brand.accounts && brand.accounts.length > 0 ? (
-                                        brand.accounts.map((acc) => (
-                                          <div key={acc.id} className="bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-[10px]">
-                                            <div className="font-black text-slate-500 uppercase tracking-wider text-[8px] mb-0.5">{acc.type}</div>
-                                            <div className="font-mono text-slate-700 font-bold">{acc.username || "—"}</div>
-                                            <div className="font-mono text-slate-400">{acc.password || "—"}</div>
-                                            {acc.picOtp && (
-                                              <div className="text-slate-400 flex items-center gap-1 mt-0.5">
-                                                <Smartphone className="w-2.5 h-2.5" /> OTP: {acc.picOtp}
-                                              </div>
-                                            )}
-                                          </div>
-                                        ))
-                                      ) : (
-                                        <div className="text-slate-300 text-[10px] italic">Tidak ada akun</div>
+                                        <span className="text-[10px] text-slate-400 italic">Belum ada sesi</span>
                                       )}
                                     </div>
                                   </div>
                                 </div>
 
+                                {/* Footer Card (Action Buttons) */}
+                                <div className="p-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-b-2xl">
+                                  <div className="flex gap-1.5">
+                                    <button
+                                      onClick={() => handleEditBrand(brand)}
+                                      className="p-2 bg-white border border-slate-200 hover:border-indigo-300 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors"
+                                      title="Edit Brand"
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteBrand(brand.id)}
+                                      className="p-2 bg-white border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 rounded-lg transition-colors"
+                                      title="Hapus Brand"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setOperatorTab("invoice");
+                                      setTimeout(() => {
+                                        window.dispatchEvent(new CustomEvent('openInvoiceForBrand', { detail: brand.id }));
+                                      }, 300);
+                                    }}
+                                    className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-black text-[11px] rounded-lg transition-colors flex items-center gap-1.5 border border-emerald-200/50"
+                                  >
+                                    <Receipt className="w-3.5 h-3.5" /> Buat Invoice
+                                  </button>
+                                </div>
                               </div>
                             );
                           })
                         )}
                       </div>
                     </div>
+
+                    {/* MODAL FORM BRAND */}
+                    {brandFormEditor && (
+                      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                        <div 
+                          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+                          onClick={() => setBrandFormEditor(null)}
+                        ></div>
+                        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-scaleIn">
+                          {/* Modal Header */}
+                          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <h4 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                              <Briefcase className="w-5 h-5 text-indigo-600" />
+                              {brandFormEditor.id ? "Edit Data Brand Klien" : "Tambah Brand Klien Baru"}
+                            </h4>
+                            <button
+                              onClick={() => setBrandFormEditor(null)}
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          {/* Tabs */}
+                          <div className="flex items-center px-6 border-b border-slate-200 bg-white">
+                            <button
+                              onClick={() => setBrandFormTab("basic")}
+                              className={`px-4 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-colors ${brandFormTab === "basic" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+                            >
+                              Info Dasar
+                            </button>
+                            <button
+                              onClick={() => setBrandFormTab("sessions")}
+                              className={`px-4 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-colors ${brandFormTab === "sessions" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+                            >
+                              Jadwal Sesi
+                            </button>
+                            <button
+                              onClick={() => setBrandFormTab("accounts")}
+                              className={`px-4 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-colors ${brandFormTab === "accounts" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+                            >
+                              Kredensial Akun
+                            </button>
+                          </div>
+
+                          {/* Modal Body */}
+                          <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30">
+                            <form
+                              id="brand-form"
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const fd = new FormData(e.currentTarget);
+                                const nameVal = fd.get("name") as string;
+                                const defaultUsername = nameVal
+                                  ? nameVal.toLowerCase().replace(/[^a-z0-9]/g, "")
+                                  : `brand_${Date.now()}`;
+                                const enteredUsername = (fd.get("clientUsername") as string)?.trim();
+
+                                const newBrand = {
+                                  id: brandFormEditor.id || `cb_${Date.now()}`,
+                                  name: nameVal,
+                                  contractStartDate: fd.get("contractStartDate"),
+                                  contractEndDate: fd.get("contractEndDate"),
+                                  invoiceDate: fd.get("invoiceDate"),
+                                  monthlyMeetingDate: fd.get("monthlyMeetingDate"),
+                                  picName: fd.get("picName"),
+                                  picPhone: fd.get("picPhone"),
+                                  sessions: brandFormEditor.sessions || [],
+                                  accounts: brandFormEditor.accounts || [],
+                                  clientUsername: enteredUsername || brandFormEditor.clientUsername || defaultUsername,
+                                  clientPassword: (fd.get("clientPassword")) || "liva123",
+                                };
+
+                                if (brandFormEditor.id) {
+                                  setClientBrands((prev) => prev.map((b) => b.id === newBrand.id ? newBrand : b));
+                                  addNotification("💼 Brand Diperbarui", `Data brand "${newBrand.name}" berhasil diperbarui.`, "info", "data_brand");
+                                } else {
+                                  setClientBrands((prev) => [...prev, newBrand]);
+                                  addNotification("🎉 Brand Baru", `Brand "${newBrand.name}" baru saja didaftarkan.`, "success", "data_brand");
+                                }
+                                setBrandFormEditor(null);
+                              }}
+                              className="space-y-5"
+                            >
+                              {/* TAB 1: BASIC INFO */}
+                              <div className={brandFormTab === "basic" ? "block animate-fadeIn" : "hidden"}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                  <div className="md:col-span-2">
+                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Nama Brand *</label>
+                                    <input
+                                      required
+                                      name="name"
+                                      defaultValue={brandFormEditor.name}
+                                      type="text"
+                                      placeholder="Masukkan nama brand..."
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Mulai Kontrak</label>
+                                    <input
+                                      name="contractStartDate"
+                                      defaultValue={brandFormEditor.contractStartDate || new Date().toISOString().split("T")[0]}
+                                      type="date"
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Selesai Kontrak</label>
+                                    <input
+                                      name="contractEndDate"
+                                      defaultValue={brandFormEditor.contractEndDate || new Date().toISOString().split("T")[0]}
+                                      type="date"
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Tgl Invoice Bulanan</label>
+                                    <input
+                                      name="invoiceDate"
+                                      defaultValue={brandFormEditor.invoiceDate}
+                                      type="number" min="1" max="31"
+                                      placeholder="Contoh: 5"
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Tgl Meeting Bulanan</label>
+                                    <input
+                                      name="monthlyMeetingDate"
+                                      defaultValue={brandFormEditor.monthlyMeetingDate}
+                                      type="number" min="1" max="31"
+                                      placeholder="Contoh: 10"
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Nama PIC</label>
+                                    <input
+                                      name="picName"
+                                      defaultValue={brandFormEditor.picName}
+                                      type="text"
+                                      placeholder="Nama penanggung jawab"
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">No WhatsApp PIC</label>
+                                    <input
+                                      name="picPhone"
+                                      defaultValue={brandFormEditor.picPhone}
+                                      type="text"
+                                      placeholder="Misal: 08123456789"
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* TAB 2: SESSIONS */}
+                              <div className={brandFormTab === "sessions" ? "block animate-fadeIn" : "hidden"}>
+                                <div className="flex justify-between items-center mb-4">
+                                  <h5 className="font-bold text-slate-700 text-sm">Jadwal & Sesi Regular</h5>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setBrandFormEditor((prev) => prev ? {
+                                        ...prev,
+                                        sessions: [...(prev.sessions || []), { id: `s_${Date.now()}`, platform: platforms[0] || "", shift: shifts[0] || "", studio: studios[0]?.name || "", host: "" }]
+                                      } : prev);
+                                    }}
+                                    className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" /> Tambah Sesi
+                                  </button>
+                                </div>
+                                <div className="space-y-3">
+                                  {(brandFormEditor.sessions || []).map((sess, idx) => (
+                                    <div key={sess.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-3">
+                                      <select
+                                        value={sess.platform}
+                                        onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, platform: e.target.value } : s) } : prev)}
+                                        className="w-full md:w-[150px] bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs"
+                                      >
+                                        {platforms.map((p, i) => <option key={i} value={p}>{p}</option>)}
+                                      </select>
+                                      <select
+                                        value={sess.shift}
+                                        onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, shift: e.target.value } : s) } : prev)}
+                                        className="w-full md:flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs"
+                                      >
+                                        {shifts.map((sh, i) => <option key={i} value={sh}>{sh}</option>)}
+                                      </select>
+                                      <select
+                                        value={sess.studio || ""}
+                                        onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, studio: e.target.value } : s) } : prev)}
+                                        className="w-full md:w-[180px] bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs"
+                                      >
+                                        <option value="">Pilih Studio...</option>
+                                        {studios.map((st, i) => <option key={i} value={st.name}>{st.name} - {st.location}</option>)}
+                                      </select>
+                                      <SearchableHostSelect
+                                        hosts={hosts}
+                                        value={sess.host || ""}
+                                        valueType="name"
+                                        onChange={(hostName) => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, host: hostName } : s) } : prev)}
+                                        className="w-full md:w-[180px]"
+                                        placeholder="Dedicated Host..."
+                                        triggerClassName="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-100 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs text-left flex items-center justify-between"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.filter((_, i) => i !== idx) } : prev)}
+                                        className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                  {(!brandFormEditor.sessions || brandFormEditor.sessions.length === 0) && (
+                                    <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center">
+                                      <p className="text-slate-400 font-bold text-sm">Belum ada sesi</p>
+                                      <p className="text-slate-400 text-xs mt-1">Sesi digunakan untuk filter jadwal otomatis.</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* TAB 3: ACCOUNTS */}
+                              <div className={brandFormTab === "accounts" ? "block animate-fadeIn" : "hidden"}>
+                                <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 mb-5">
+                                  <h5 className="font-bold text-indigo-900 text-sm mb-3">Portal Brand (Client Access)</h5>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="block text-indigo-700 font-bold text-[10px] uppercase mb-1">Username Portal</label>
+                                      <input
+                                        name="clientUsername"
+                                        defaultValue={brandFormEditor.clientUsername}
+                                        type="text"
+                                        placeholder="Kosongkan utk default"
+                                        className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs font-mono text-indigo-900 focus:border-indigo-500 outline-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-indigo-700 font-bold text-[10px] uppercase mb-1">Password Portal</label>
+                                      <input
+                                        name="clientPassword"
+                                        defaultValue={brandFormEditor.clientPassword || "liva123"}
+                                        type="text"
+                                        className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs font-mono text-indigo-900 focus:border-indigo-500 outline-none"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-between items-center mb-4">
+                                  <h5 className="font-bold text-slate-700 text-sm">Kredensial Seller Center</h5>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setBrandFormEditor((prev) => prev ? {
+                                        ...prev,
+                                        accounts: [...(prev.accounts || []), { id: `a_${Date.now()}`, type: platforms[0] || "", username: "", password: "", picOtp: "" }]
+                                      } : prev);
+                                    }}
+                                    className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" /> Tambah Akun
+                                  </button>
+                                </div>
+                                <div className="space-y-3">
+                                  {(brandFormEditor.accounts || []).map((acc, idx) => (
+                                    <div key={acc.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                                      <div className="md:col-span-3">
+                                        <label className="block text-slate-500 font-bold text-[10px] mb-1">Platform</label>
+                                        <select
+                                          value={acc.type}
+                                          onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, type: e.target.value } : a) } : prev)}
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs"
+                                        >
+                                          {platforms.map((p, i) => <option key={i} value={p}>{p}</option>)}
+                                          <option value="Lainnya">Lainnya</option>
+                                        </select>
+                                      </div>
+                                      <div className="md:col-span-3">
+                                        <label className="block text-slate-500 font-bold text-[10px] mb-1">Username / Email</label>
+                                        <input
+                                          type="text"
+                                          value={acc.username}
+                                          onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, username: e.target.value } : a) } : prev)}
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono focus:border-indigo-500 outline-none"
+                                        />
+                                      </div>
+                                      <div className="md:col-span-3">
+                                        <label className="block text-slate-500 font-bold text-[10px] mb-1">Password</label>
+                                        <input
+                                          type="text"
+                                          value={acc.password}
+                                          onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, password: e.target.value } : a) } : prev)}
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono focus:border-indigo-500 outline-none"
+                                        />
+                                      </div>
+                                      <div className="md:col-span-2">
+                                        <label className="block text-slate-500 font-bold text-[10px] mb-1">PIC OTP</label>
+                                        <input
+                                          type="text"
+                                          value={acc.picOtp}
+                                          onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, picOtp: e.target.value } : a) } : prev)}
+                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:border-indigo-500 outline-none"
+                                        />
+                                      </div>
+                                      <div className="md:col-span-1 flex justify-end pb-0.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.filter((_, i) => i !== idx) } : prev)}
+                                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {(!brandFormEditor.accounts || brandFormEditor.accounts.length === 0) && (
+                                    <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center">
+                                      <p className="text-slate-400 font-bold text-sm">Belum ada akun</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </form>
+                          </div>
+
+                          {/* Modal Footer */}
+                          <div className="p-5 border-t border-slate-100 bg-white flex justify-end gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setBrandFormEditor(null)}
+                              className="px-5 py-2.5 text-slate-500 hover:text-slate-700 hover:bg-slate-50 font-bold rounded-xl transition-all"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="submit"
+                              form="brand-form"
+                              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all flex items-center gap-2 shadow-sm"
+                            >
+                              <Check className="w-4 h-4" /> Simpan Data Brand
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -26402,6 +26198,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               Lokasi Studio
                             </th>
                             <th className="px-6 py-4 font-sans">
+                              Kontak & Rekening
+                            </th>
+                            <th className="px-6 py-4 font-sans">
                               Username Login
                             </th>
                             <th className="px-6 py-4 font-sans">
@@ -26682,6 +26481,41 @@ function HostCredentialRow({
           <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/45 font-extrabold text-[9.5px] uppercase">
             {host.studio || "Studio Bandar Lampung"}
           </span>
+        )}
+      </td>
+
+      {/* 3. KONTAK & REKENING */}
+      <td className="px-6 py-4">
+        {isEditing ? (
+          <div className="space-y-1.5 w-36">
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
+              placeholder="No HP"
+            />
+            <input
+              type="text"
+              value={bankAccount}
+              onChange={(e) => setBankAccount(e.target.value)}
+              className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
+              placeholder="Rekening"
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-0.5 min-w-[120px]">
+            {host.phone && host.phone !== "-" ? (
+              <span className="text-[10px] font-bold text-purple-900 block truncate">📞 {host.phone}</span>
+            ) : (
+              <span className="text-[9px] font-medium text-slate-400 italic">Tanpa No HP</span>
+            )}
+            {host.bankAccount && host.bankAccount !== "-" ? (
+              <span className="text-[10px] font-mono font-bold text-emerald-650 block truncate">💳 {host.bankAccount}</span>
+            ) : (
+              <span className="text-[9px] font-medium text-slate-400 italic">Tanpa Rekening</span>
+            )}
+          </div>
         )}
       </td>
 
