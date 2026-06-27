@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Download, Plus, X, FileText, CheckCircle2, Clock, Building2, ArrowRight, CheckSquare, Search, Edit2, Trash2, Calendar, Settings, Image as ImageIcon, UploadCloud, Mail } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
+import { BerkasManager } from './BerkasManager';
+import { InvoiceTable } from './InvoiceTable';
+import { settingsApi } from '../api';
 
 interface InvoiceDashboardProps {
   clientBrands: ClientBrand[];
@@ -34,9 +37,6 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   const [globalPicEmail, setGlobalPicEmail] = useState<string>("admin1@liva-agency.com, admin2@liva.com");
   const [emailTestStatus, setEmailTestStatus] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [berkasSearch, setBerkasSearch] = useState("");
-  const [berkasEditor, setBerkasEditor] = useState<{ brandId: string; id: string; name: string; type: string; url: string; } | null>(null);
-  const [berkasToDelete, setBerkasToDelete] = useState<{ brandId: string; berkasId: string; } | null>(null);
   const [generatedEmail, setGeneratedEmail] = useState<{ to: string; subject: string; body: string; } | null>(null);
   
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>({
@@ -49,18 +49,16 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem("mcn_invoice_settings");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setInvoiceSettings(parsed);
-      } catch(e){}
-    }
+    settingsApi.get("mcn_invoice_settings").then(saved => {
+      if (saved && Object.keys(saved).length > 0) {
+        setInvoiceSettings(saved);
+      }
+    }).catch(console.error);
   }, []);
 
   const saveSettings = async (newSettings: InvoiceSettings) => {
     setInvoiceSettings(newSettings);
-    localStorage.setItem("mcn_invoice_settings", JSON.stringify(newSettings));
+    await settingsApi.save("mcn_invoice_settings", newSettings).catch(console.error);
   };
   
   // For creation
@@ -91,10 +89,13 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   }, [clientBrands, filterMonth]);
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem("mcn_global_pic_email");
-    if (storedEmail) {
-      setGlobalPicEmail(storedEmail);
-    }
+    settingsApi.get("mcn_global_pic_email").then(storedEmail => {
+      if (storedEmail && typeof storedEmail === "string") {
+        setGlobalPicEmail(storedEmail);
+      } else if (storedEmail && storedEmail.value) {
+        setGlobalPicEmail(storedEmail.value);
+      }
+    }).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -121,7 +122,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                 body: JSON.stringify({
                   brandName: b.name,
                   invoiceDate: inv.issueDate || todayStr,
-                  toEmails: b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com",
+                  toEmails: b.picEmail || globalPicEmail || "admin1@liva-agency.com",
                   amount: inv.totalAmount || 0,
                   invoiceNumber: inv.invoiceNumber || "AUTO"
                 })
@@ -148,7 +149,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
             body: JSON.stringify({
               brandName: b.name,
               invoiceDate: b.invoiceDate,
-              toEmails: b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com, admin2@liva.com",
+              toEmails: b.picEmail || globalPicEmail || "admin1@liva-agency.com, admin2@liva.com",
               amount: b.amount || 0,
               invoiceNumber: "AUTO-" + new Date().getTime().toString().slice(-6)
             })
@@ -158,7 +159,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
         }
       }
     });
-  }, [clientBrands]);
+  }, [clientBrands, globalPicEmail]);
 
   const upcomingBillings = useMemo(() => {
     const today = new Date();
@@ -343,8 +344,13 @@ PT. Liva Media Kreatif
     const email = invoice.email || "-";
     const phone = invoice.picPhone || brand?.picPhone || "-";
 
-    const printWindow = window.open('', '', 'width=900,height=1000');
-    if (!printWindow) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    document.body.appendChild(iframe);
+    const printDoc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (!printDoc) return;
     
     const issueParts = new Date(invoice.issueDate).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
     const dueParts = new Date(invoice.dueDate).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
@@ -357,7 +363,7 @@ PT. Liva Media Kreatif
       ? `<img src="${invoiceSettings.signatureUrl}" style="width: 120px; max-height: 80px; object-fit: contain; margin-bottom: -10px;" />`
       : `<div style="height: 60px;"></div>`;
 
-    printWindow.document.write(`
+    printDoc.write(`
       <html>
         <head>
           <title>Invoice ${invoice.invoiceNumber}</title>
@@ -507,13 +513,17 @@ PT. Liva Media Kreatif
             </div>
           </div>
           
-          <script>
-            setTimeout(() => window.print(), 500);
-          </script>
         </body>
       </html>
     `);
-    printWindow.document.close();
+    printDoc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 3000);
+    }, 500);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'logoUrl' | 'signatureUrl') => {
@@ -573,151 +583,21 @@ PT. Liva Media Kreatif
 
       {activeTab === "overview" && (
         <div className="space-y-6">
-          {upcomingBillings.length > 0 && (
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-start gap-4">
-                 <div className="bg-amber-100 text-amber-600 p-3 rounded-xl mt-1">
-                   <Calendar className="w-6 h-6" />
-                 </div>
-                 <div>
-                   <h3 className="text-lg font-black text-amber-900">Jadwal Penagihan Tiba</h3>
-                   <p className="text-sm text-amber-700 font-semibold mt-1 mb-3">Terdapat brand yang telah memasuki jadwal penagihan invoice bulan ini.</p>
-                   <div className="flex flex-wrap gap-2">
-                     {upcomingBillings.map(b => (
-                       <div key={b.id} className="bg-white border border-amber-200 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
-                         <span className="font-bold text-slate-800 text-sm">{b.name}</span>
-                         <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded">Tgl {b.invoiceDate}</span>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-slate-400"></div> Total Invoice</div>
-                <div className="text-3xl font-black text-slate-800 leading-none">{allInvoices.length}</div>
-             </div>
-             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                <div className="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-purple-500"></div> Open / Draft</div>
-                <div className="text-3xl font-black text-slate-800 leading-none">{allInvoices.filter(i => i.status === "Open Invoice" || i.status === "Draft").length}</div>
-             </div>
-             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Telah Dibayar</div>
-                <div className="text-3xl font-black text-slate-800 leading-none">{allInvoices.filter(i => i.status === "Paid").length}</div>
-             </div>
-             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
-                <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">Total Invoice Lunas</div>
-                <div className="text-xl font-black text-indigo-700 leading-tight truncate px-1">Rp {new Intl.NumberFormat('id-ID', { notation: "compact", compactDisplay: "short" }).format(allInvoices.filter(i => i.status === "Paid").reduce((acc, curr) => acc + curr.totalAmount, 0))}</div>
-             </div>
-          </div>
-
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-wrap gap-4">
-              <h3 className="font-bold text-slate-800">Semua Invoice</h3>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <input 
-                  type="month"
-                  value={filterMonth}
-                  onChange={e => setFilterMonth(e.target.value)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-indigo-400 font-black text-slate-800"
-                />
-                <div className="relative flex-1 md:flex-none">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input 
-                    type="text" 
-                    placeholder="Cari invoice/brand..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 font-medium"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {allInvoices.length === 0 ? (
-              <div className="p-16 text-center text-slate-500 flex flex-col items-center">
-                 <FileText className="w-12 h-12 text-slate-300 mb-4" />
-                 <p className="font-bold">Belum ada invoice dibuat.</p>
-                 <p className="text-sm mt-1">Klik Buat Invoice Baru untuk menagih client Anda.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-[#f8fafc] text-slate-500 text-[10px] uppercase tracking-wider font-black border-b border-slate-200">
-                    <tr>
-                      <th className="py-4 px-6">Invoice #</th>
-                      <th className="py-4 px-6">Customer / Brand</th>
-                      <th className="py-4 px-6 text-center">Status</th>
-                      <th className="py-4 px-6">Tanggal</th>
-                      <th className="py-4 px-6 text-right">Amount</th>
-                      <th className="py-4 px-6 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {allInvoices.filter(inv => inv.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) || inv.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || (inv.recipientName && inv.recipientName.toLowerCase().includes(searchQuery.toLowerCase()))).map((inv) => (
-                      <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-6">
-                          <div className="font-black text-slate-800">{inv.invoiceNumber}</div>
-                          <div className="text-[10px] font-bold text-slate-400 mt-0.5">{inv.sessionItems.length} Komponen Item</div>
-                        </td>
-                        <td className="py-4 px-6">
-                           <div className="font-bold text-indigo-700 text-sm">{inv.ptName || inv.brandName}</div>
-                           <div className="text-[11px] font-semibold text-slate-500 truncate max-w-[180px]">{inv.picName || inv.recipientName}</div>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <select 
-                             value={inv.status}
-                             onChange={(e) => updateInvoiceStatus(inv.brandId, inv.id, e.target.value as any)}
-                             className={`text-[10px] uppercase font-black tracking-widest px-3 py-1.5 rounded-lg border border-transparent outline-none cursor-pointer text-center appearance-none transition-all
-                               ${inv.status === 'Draft' ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 
-                                 inv.status === 'Open Invoice' ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' : 
-                                 inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 
-                                 'bg-red-100 text-red-700 hover:bg-red-200'
-                               }
-                             `}
-                           >
-                             <option value="Draft">DRAFT</option>
-                             <option value="Open Invoice">SENT (OPEN)</option>
-                             <option value="Paid">LUNAS</option>
-                             <option value="Overdue">OVERDUE</option>
-                           </select>
-                        </td>
-                        <td className="py-4 px-6">
-                           <div className="text-xs font-bold text-slate-700 mb-0.5">Dibuat: {formatDateUI(inv.issueDate)}</div>
-                           <div className="text-[10px] font-bold text-slate-400">Tenggat: <span className={inv.status === 'Overdue' ? 'text-red-500' : ''}>{formatDateUI(inv.dueDate)}</span></div>
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                           <div className="font-black text-slate-800 text-md">Rp{new Intl.NumberFormat('id-ID').format(inv.totalAmount)}</div>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                           <div className="flex items-center justify-center gap-1">
-                             <button onClick={() => setInvoiceEditor(inv)} className="p-2 bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 rounded-lg cursor-pointer transition-colors" title="Edit Invoice">
-                               <Edit2 className="w-4 h-4 mx-auto" />
-                             </button>
-                             <button onClick={() => setInvoiceToDelete({brandId: inv.brandId, id: inv.id})} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 rounded-lg cursor-pointer transition-colors" title="Hapus Invoice">
-                               <Trash2 className="w-4 h-4 mx-auto" />
-                             </button>
-                             <button onClick={() => handlePrint(inv, inv.brandName)} className="p-2 bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-600 rounded-lg cursor-pointer transition-colors" title="Download & Print PDF">
-                               <Download className="w-4 h-4 mx-auto" />
-                             </button>
-                             <button onClick={() => {
-                                 const brand = clientBrands.find(b => b.id === inv.brandId);
-                                 handleShowEmailCopy(inv, inv.brandName, brand?.picEmail);
-                             }} className="p-2 bg-slate-100 hover:bg-emerald-100 text-slate-500 hover:text-emerald-600 rounded-lg cursor-pointer transition-colors" title="Lihat Copy Email">
-                                <Mail className="w-4 h-4 mx-auto" />
-                             </button>
-                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <InvoiceTable 
+            allInvoices={allInvoices}
+            upcomingBillings={upcomingBillings}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            filterMonth={filterMonth}
+            setFilterMonth={setFilterMonth}
+            updateInvoiceStatus={updateInvoiceStatus}
+            setInvoiceEditor={setInvoiceEditor}
+            setInvoiceToDelete={setInvoiceToDelete}
+            handlePrint={handlePrint}
+            handleShowEmailCopy={handleShowEmailCopy}
+            clientBrands={clientBrands}
+            formatDateUI={formatDateUI}
+          />
         </div>
       )}
 
@@ -958,7 +838,7 @@ PT. Liva Media Kreatif
                          </p>
                        </div>
                        )}
-                       <p className="text-xs text-slate-500 mb-2">Penerima: <span className="font-mono font-bold">{b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com, admin2@liva.com"}</span></p>
+                       <p className="text-xs text-slate-500 mb-2">Penerima: <span className="font-mono font-bold">{b.picEmail || globalPicEmail || "admin1@liva-agency.com, admin2@liva.com"}</span></p>
                        <button
                          type="button"
                          onClick={async (e) => {
@@ -974,14 +854,14 @@ PT. Liva Media Kreatif
                                body: JSON.stringify({
                                  brandName: b.name,
                                  invoiceDate: b.invoiceDate,
-                                 toEmails: b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com, admin2@liva.com",
+                                 toEmails: b.picEmail || globalPicEmail || "admin1@liva-agency.com, admin2@liva.com",
                                  amount: b.amount || 0,
                                  invoiceNumber: "AUTO-TEST"
                                })
                              });
                              const data = await res.json();
                              if (data.success) {
-                               alert("✅ Sukses! Bukti sistem otomatis berhasil mengirimkan ke: " + (b.picEmail || localStorage.getItem("mcn_global_pic_email") || "admin1@liva-agency.com"));
+                               alert("✅ Sukses! Bukti sistem otomatis berhasil mengirimkan ke: " + (b.picEmail || globalPicEmail || "admin1@liva-agency.com"));
                              } else {
                                alert("❌ Gagal: " + (data.details || data.error));
                              }
@@ -1019,9 +899,10 @@ PT. Liva Media Kreatif
                        <div className="flex gap-2">
                          <button 
                            onClick={() => {
-                             localStorage.setItem("mcn_global_pic_email", globalPicEmail);
-                             setEmailTestStatus("Berhasil menyimpan konfigurasi daftar penerima email!");
-                             setTimeout(() => setEmailTestStatus(""), 3000);
+                             settingsApi.save("mcn_global_pic_email", { value: globalPicEmail }).then(() => {
+                               setEmailTestStatus("Berhasil menyimpan konfigurasi daftar penerima email!");
+                               setTimeout(() => setEmailTestStatus(""), 3000);
+                             }).catch(err => setEmailTestStatus("Gagal menyimpan: " + err.message));
                            }}
                            type="button" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer border-0">
                             Simpan Konfigurasi
@@ -1168,71 +1049,12 @@ PT. Liva Media Kreatif
 
       
       {activeTab === "berkas" && (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 animate-fadeIn">
-           <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-              <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><FileText className="w-6 h-6 text-indigo-600" /> Kelola Berkas Klien</h3>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setBerkasEditor({ brandId: clientBrands[0]?.id || "", id: "b_" + Date.now(), name: "", type: "Dokumen", url: "" })}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-lg transition-all cursor-pointer flex items-center gap-2 text-sm">
-                  <Plus className="w-4 h-4" /> Tambah Berkas
-                </button>
-                <button onClick={() => setActiveTab("overview")} className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer">Kembali</button>
-              </div>
-           </div>
-
-           <div className="mb-4">
-             <div className="relative max-w-sm">
-               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-               <input 
-                 type="text" 
-                 placeholder="Cari nama berkas atau brand..." 
-                 value={berkasSearch}
-                 onChange={(e) => setBerkasSearch(e.target.value)}
-                 className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 font-medium"
-               />
-             </div>
-           </div>
-
-           <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse whitespace-nowrap">
-                <thead>
-                  <tr className="bg-slate-50 border-y border-slate-200 text-[10px] uppercase font-black text-slate-500 tracking-wider">
-                    <th className="px-4 py-3">No</th>
-                    <th className="px-4 py-3">Nama Berkas</th>
-                    <th className="px-4 py-3">Brand Klien</th>
-                    <th className="px-4 py-3">Jenis Berkas</th>
-                    <th className="px-4 py-3">Link Berkas</th>
-                    <th className="px-4 py-3 text-right">Edit</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-sm">
-                  {clientBrands.flatMap(b => (b.berkas || []).map(berk => ({ ...berk, brandId: b.id, brandName: b.name }))).filter(berk => berk.name.toLowerCase().includes(berkasSearch.toLowerCase()) || berk.brandName.toLowerCase().includes(berkasSearch.toLowerCase())).map((berk, idx) => (
-                    <tr key={berk.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-slate-500 font-bold">{idx + 1}</td>
-                      <td className="px-4 py-3 font-bold text-slate-800">{berk.name}</td>
-                      <td className="px-4 py-3 text-slate-600">{berk.brandName}</td>
-                      <td className="px-4 py-3"><span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase">{berk.type}</span></td>
-                      <td className="px-4 py-3"><a href={berk.url} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline font-bold text-xs truncate max-w-[200px] inline-block">{berk.url}</a></td>
-                      <td className="px-4 py-3 text-right">
-                        <button onClick={() => setBerkasEditor(berk)} className="p-1.5 text-indigo-500 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer mr-1"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={() => setBerkasToDelete({ brandId: berk.brandId, berkasId: berk.id })} className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition-colors cursor-pointer"><Trash2 className="w-4 h-4" /></button>
-                      </td>
-                    </tr>
-                  ))}
-                  {clientBrands.flatMap(b => (b.berkas || [])).filter(berk => berk.name.toLowerCase().includes(berkasSearch.toLowerCase())).length === 0 && (
-                     <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400 font-medium italic">
-                          {berkasSearch ? "Berkas tidak ditemukan." : "Belum ada berkas yang diupload"}
-                        </td>
-                     </tr>
-                  )}
-                </tbody>
-              </table>
-           </div>
-        </div>
-      )
-}
+        <BerkasManager 
+          clientBrands={clientBrands} 
+          onUpdateBrands={onUpdateBrands} 
+          onBack={() => setActiveTab("overview")} 
+        />
+      )}
 
       {invoiceEditor && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1412,105 +1234,7 @@ PT. Liva Media Kreatif
         </div>
       )}
 
-      {berkasEditor && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col animate-fadeIn">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-lg font-black text-slate-800">Edit Berkas</h3>
-              <button onClick={() => setBerkasEditor(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Brand Klien</label>
-                <select 
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 font-bold bg-white" 
-                  value={berkasEditor.brandId} 
-                  onChange={e => setBerkasEditor({...berkasEditor, brandId: e.target.value})}
-                  disabled={!!clientBrands.flatMap(b => b.berkas || []).find(berk => berk.id === berkasEditor.id)}
-                >
-                  <option value="" disabled>Pilih Brand Klien</option>
-                  {clientBrands.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Nama Berkas</label>
-                <input type="text" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={berkasEditor.name} onChange={e => setBerkasEditor({...berkasEditor, name: e.target.value})} placeholder="Contoh: SPK bulan Maret" required />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Jenis Berkas</label>
-                <select className="w-full border border-slate-200 rounded-lg px-3 py-2 font-bold bg-white" value={berkasEditor.type} onChange={e => setBerkasEditor({...berkasEditor, type: e.target.value})}>
-                  <option value="SPK">SPK / Kontrak</option>
-                  <option value="SOP">SOP Brand</option>
-                  <option value="Script">Script Live</option>
-                  <option value="Rekap">Rekap Penjualan</option>
-                  <option value="Dokumen">Dokumen Lainnya</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Link URL (G-Drive / Docs)</label>
-                <input type="url" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={berkasEditor.url} onChange={e => setBerkasEditor({...berkasEditor, url: e.target.value})} placeholder="https://docs.google.com/..." required />
-              </div>
-            </div>
-            <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <button onClick={() => setBerkasEditor(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all">Batal</button>
-              <button 
-                onClick={() => {
-                  if (!berkasEditor.name || !berkasEditor.url || !berkasEditor.brandId) return alert("Pilih brand dan lengkapi data!");
-                  const updatedBrands = clientBrands.map((b) => {
-                    if (b.id !== berkasEditor.brandId) return b;
-                    let existingBerkas = b.berkas || [];
-                    const found = existingBerkas.some(bk => bk.id === berkasEditor.id);
-                    if (found) {
-                      existingBerkas = existingBerkas.map(bk => bk.id === berkasEditor.id ? { ...berkasEditor } : bk);
-                    } else {
-                      existingBerkas = [...existingBerkas, { ...berkasEditor }];
-                    }
-                    return { ...b, berkas: existingBerkas };
-                  });
-                  onUpdateBrands(updatedBrands);
-                  setBerkasEditor(null);
-                }}
-                className="px-5 py-2.5 rounded-xl font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 cursor-pointer transition-all active:scale-95"
-              >
-                Simpan Berkas
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {berkasToDelete && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center animate-fadeIn">
-            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-black text-slate-800 mb-2">Hapus Berkas?</h3>
-            <p className="text-sm font-semibold text-slate-500 mb-6">Berkas ini akan dihapus dari dashboard Anda dan Klien.</p>
-            <div className="flex justify-center gap-3">
-              <button onClick={() => setBerkasToDelete(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all flex-1">Batal</button>
-              <button 
-                onClick={() => {
-                  const updatedBrands = clientBrands.map((b) => {
-                    if (b.id !== berkasToDelete.brandId) return b;
-                    return {
-                      ...b,
-                      berkas: (b.berkas || []).filter(bk => bk.id !== berkasToDelete.berkasId)
-                    };
-                  });
-                  onUpdateBrands(updatedBrands);
-                  setBerkasToDelete(null);
-                }}
-                className="px-5 py-2.5 rounded-xl font-black bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/20 cursor-pointer transition-all active:scale-95 flex-1"
-              >
-                Ya, Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {generatedEmail && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
