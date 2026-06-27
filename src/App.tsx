@@ -10162,7 +10162,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
               {/* WORKSPACE AREA CONTAINER */}
               <div className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 pb-24 relative">
                 {/* Proactive Security Check: Warn on default password */}
-                {!loggedInAdminId && adminCredentials.password === "Liva123@@" && (
+                {isGlobalConfigsLoaded && !loggedInAdminId && adminCredentials.password === "Liva123@@" && (
                   <div
                     className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn"
                     id="cybersecurity_alert_banner"
@@ -10177,7 +10177,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </h4>
                         <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
                           Sistem mendeteksi Anda masih menggunakan kata sandi
-                          default ("123"). Demi keamanan data agency, segera
+                          default ("Liva123@@"). Demi keamanan data agency, segera
                           perbarui sandi Master Admin di menu Privasi.
                         </p>
                       </div>
