@@ -1047,6 +1047,7 @@ export default function App() {
   const [tempSalaryValue, setTempSalaryValue] = useState<string>("");
   const [copiedSalaryHostId, setCopiedSalaryHostId] = useState<string | null>(null);
   const [pendingDeleteLogId, setPendingDeleteLogId] = useState<string | null>(null);
+  const [hostCredentialFilter, setHostCredentialFilter] = useState<string>("Semua");
 
   const [activeReportPlatform, setActiveReportPlatform] =
     useState<string>("Tiktok");
@@ -26186,6 +26187,25 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
                     )}
 
+                    {/* FILTER TABS */}
+                    <div className="flex gap-2 mb-4 border-b border-purple-100 pb-4 overflow-x-auto scrollbar-hide">
+                      <button
+                        onClick={() => setHostCredentialFilter("Semua")}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${hostCredentialFilter === "Semua" ? "bg-purple-600 text-white shadow-sm" : "bg-purple-50 text-purple-600 hover:bg-purple-100"}`}
+                      >
+                        Semua Studio
+                      </button>
+                      {studios.map(std => (
+                        <button
+                          key={std.id}
+                          onClick={() => setHostCredentialFilter(std.name)}
+                          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${hostCredentialFilter === std.name ? "bg-purple-600 text-white shadow-sm" : "bg-purple-50 text-purple-600 hover:bg-purple-100"}`}
+                        >
+                          {std.name}
+                        </button>
+                      ))}
+                    </div>
+
                     <div className="overflow-x-auto border border-purple-100 rounded-2xl bg-white bg-white">
                       <table className="min-w-full divide-y divide-purple-100">
                         <thead className="bg-[#faf9fe]">
@@ -26212,7 +26232,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-purple-100">
-                          {hosts.map((h) => (
+                          {hosts
+                            .filter(h => hostCredentialFilter === "Semua" || h.studio === hostCredentialFilter || (!h.studio && hostCredentialFilter === "Studio Bandar Lampung"))
+                            .map((h) => (
                             <HostCredentialRow
                               key={h.id}
                               host={h}
