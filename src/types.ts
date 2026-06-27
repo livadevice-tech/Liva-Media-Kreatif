@@ -30,6 +30,7 @@ export interface HostEmployee {
   username?: string;
   password?: string;
   bankAccount?: string;
+  bankName?: string;
   studio?: string; // "Studio Bandar Lampung" | "Studio Tanggamus"
   hostType?: "Reguler" | "Backup"; // "Reguler" or "Backup"
   customWorkingDaysTarget?: number; // Custom target working days for Reguler host

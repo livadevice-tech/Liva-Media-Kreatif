@@ -1288,7 +1288,7 @@ export default function App() {
   });
 
   const [isHostProfileModalOpen, setIsHostProfileModalOpen] = useState(false);
-  const [hostProfileForm, setHostProfileForm] = useState({ phone: "", bankAccount: "" });
+  const [hostProfileForm, setHostProfileForm] = useState({ phone: "", bankAccount: "", bankName: "" });
 
   const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(() => {
     return sessionStorage.getItem("mcn_logged_in_admin_id") || null;
@@ -1794,6 +1794,7 @@ export default function App() {
   const [newHostStudio, setNewHostStudio] = useState("Studio Bandar Lampung");
   const [newHostPhone, setNewHostPhone] = useState("");
   const [newHostBank, setNewHostBank] = useState("");
+  const [newHostBankName, setNewHostBankName] = useState("");
   const [newHostUser, setNewHostUser] = useState("");
   const [newHostPass, setNewHostPass] = useState("");
   const [newHostWorkingDaysTarget, setNewHostWorkingDaysTarget] =
@@ -1852,6 +1853,7 @@ export default function App() {
     role: string;
     phone: string;
     bankAccount: string;
+    bankName?: string;
     studio?: string;
     username?: string;
     password?: string;
@@ -6466,21 +6468,35 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           className="w-full bg-[#faf9fe] border border-purple-150 rounded-xl px-3 py-2.5 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 transition-all"
                         />
                       </div>
-                      <div>
-                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1.5 font-mono">
-                          Rekening Bank:
-                        </label>
-                        <input
-                          type="text"
-                          value={hostProfileForm.bankAccount}
-                          onChange={(e) => setHostProfileForm({ ...hostProfileForm, bankAccount: e.target.value })}
-                          placeholder="Misal: BCA 12345678 a/n Amanda"
-                          className="w-full bg-[#faf9fe] border border-purple-150 rounded-xl px-3 py-2.5 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 transition-all"
-                        />
-                        <p className="text-[9px] text-purple-500 font-medium mt-1.5 leading-snug">
-                          Rekening ini akan otomatis terhubung ke sistem Payroll Admin untuk pencairan gaji dan bonus. Pastikan data akurat.
-                        </p>
+                      <div className="flex gap-3">
+                        <div className="w-1/3">
+                          <label className="block text-[10px] text-purple-950 font-black uppercase mb-1.5 font-mono">
+                            Nama Bank:
+                          </label>
+                          <input
+                            type="text"
+                            value={hostProfileForm.bankName}
+                            onChange={(e) => setHostProfileForm({ ...hostProfileForm, bankName: e.target.value })}
+                            placeholder="Misal: BCA"
+                            className="w-full bg-[#faf9fe] border border-purple-150 rounded-xl px-3 py-2.5 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 transition-all"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-[10px] text-purple-950 font-black uppercase mb-1.5 font-mono">
+                            Rekening Bank:
+                          </label>
+                          <input
+                            type="text"
+                            value={hostProfileForm.bankAccount}
+                            onChange={(e) => setHostProfileForm({ ...hostProfileForm, bankAccount: e.target.value })}
+                            placeholder="Misal: 12345678 a/n Amanda"
+                            className="w-full bg-[#faf9fe] border border-purple-150 rounded-xl px-3 py-2.5 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 transition-all"
+                          />
+                        </div>
                       </div>
+                      <p className="text-[9px] text-purple-500 font-medium mt-1.5 leading-snug">
+                        Rekening ini akan otomatis terhubung ke sistem Payroll Admin untuk pencairan gaji dan bonus. Pastikan data akurat.
+                      </p>
                     </div>
                     <div className="p-4 border-t border-purple-50 bg-white flex justify-end gap-2">
                       <button
@@ -6497,7 +6513,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             const updatedHost = {
                               ...activeHostObj,
                               phone: hostProfileForm.phone.trim(),
-                              bankAccount: hostProfileForm.bankAccount.trim()
+                              bankAccount: hostProfileForm.bankAccount.trim(),
+                              bankName: hostProfileForm.bankName.trim()
                             };
                             setHosts(prev => prev.map(h => h.id === activeHostObj.id ? updatedHost : h));
                             
@@ -25248,15 +25265,24 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                           <div>
                             <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              Rekening Bank:
+                              Nama Bank & Rekening Bank:
                             </label>
-                            <input
-                              type="text"
-                              value={newHostBank}
-                              onChange={(e) => setNewHostBank(e.target.value)}
-                              placeholder="Opsional, misal: BCA 12345"
-                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
-                            />
+                            <div className="flex gap-2">
+                               <input
+                                 type="text"
+                                 value={newHostBankName}
+                                 onChange={(e) => setNewHostBankName(e.target.value)}
+                                 placeholder="BCA"
+                                 className="w-1/3 bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                               />
+                               <input
+                                 type="text"
+                                 value={newHostBank}
+                                 onChange={(e) => setNewHostBank(e.target.value)}
+                                 placeholder="Opsional, misal: 12345 a/n Budi"
+                                 className="flex-1 bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                               />
+                            </div>
                           </div>
                         </div>
 
@@ -25496,6 +25522,7 @@ function HostCredentialRow({
   const [studio, setStudio] = useState(host.studio || "Studio Bandar Lampung");
   const [phone, setPhone] = useState(host.phone || "");
   const [bankAccount, setBankAccount] = useState(host.bankAccount || "");
+  const [bankName, setBankName] = useState(host.bankName || "");
   const [username, setUsername] = useState(host.username || "");
   const [password, setPassword] = useState(host.password || "");
   const [customWorkingDaysTarget, setCustomWorkingDaysTarget] =
@@ -25508,6 +25535,7 @@ function HostCredentialRow({
     setStudio(host.studio || "Studio Bandar Lampung");
     setPhone(host.phone || "");
     setBankAccount(host.bankAccount || "");
+    setBankName(host.bankName || "");
     setUsername(host.username || "");
     setPassword(host.password || "");
     setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
@@ -25642,13 +25670,22 @@ function HostCredentialRow({
               className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
               placeholder="No HP"
             />
-            <input
-              type="text"
-              value={bankAccount}
-              onChange={(e) => setBankAccount(e.target.value)}
-              className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
-              placeholder="Rekening"
-            />
+            <div className="flex gap-1">
+               <input
+                 type="text"
+                 value={bankName}
+                 onChange={(e) => setBankName(e.target.value)}
+                 className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-1/3"
+                 placeholder="Bank"
+               />
+               <input
+                 type="text"
+                 value={bankAccount}
+                 onChange={(e) => setBankAccount(e.target.value)}
+                 className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block flex-1"
+                 placeholder="No Rekening"
+               />
+            </div>
           </div>
         ) : (
           <div className="flex flex-col gap-0.5 min-w-[120px]">
@@ -25658,7 +25695,7 @@ function HostCredentialRow({
               <span className="text-[9px] font-medium text-slate-400 italic">Tanpa No HP</span>
             )}
             {host.bankAccount && host.bankAccount !== "-" ? (
-              <span className="text-[10px] font-mono font-bold text-emerald-650 block truncate">💳 {host.bankAccount}</span>
+              <span className="text-[10px] font-mono font-bold text-emerald-650 block truncate" title={`${host.bankName || ""} ${host.bankAccount}`}>💳 {host.bankName ? host.bankName + " " : ""}{host.bankAccount}</span>
             ) : (
               <span className="text-[9px] font-medium text-slate-400 italic">Tanpa Rekening</span>
             )}
