@@ -108,6 +108,10 @@ import {
   Settings,
   FolderOpen,
   UserCog,
+  CheckCircle,
+  Phone,
+  Mail,
+  Paperclip,
 } from "lucide-react";
 
 import {
@@ -12961,1162 +12965,258 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
                     </div>
 
-                    {/* --- SUMMARY METRICS REKAP GAJI --- */}
+                    
+                    {/* --- SUMMARY METRICS REKAP GAJI (PIPELINE) --- */}
                     {(() => {
-                      const totalGaji = filteredHostReportList.reduce(
-                        (sum, h) => sum + h.netSalary,
-                        0,
-                      );
-                      const totalHostBL = filteredHostReportList.filter(
-                        (h) => !h.studio?.includes("Tanggamus"),
-                      ).length;
-                      const totalHostTGM = filteredHostReportList.filter((h) =>
-                        h.studio?.includes("Tanggamus"),
-                      ).length;
-
-                      const activePeriodBrands = new Set<string>();
-                      filteredHostReportList.forEach((h) => {
-                        const records = logs.filter(
-                          (l) =>
-                            (l.hostId === h.id || l.hostName === h.name) &&
-                            isLogDateMatching(
-                              l.date ||
-                                (typeof (l as any).timestamp === "string"
-                                  ? (l as any).timestamp.split(" ")[0]
-                                  : ""),
-                            ),
-                        );
-                        records.forEach((r) => {
-                          if (r.brandHandled)
-                            activePeriodBrands.add(r.brandHandled);
-                        });
-                      });
-                      const totalBrandList = Array.from(activePeriodBrands);
-
+                      const totalHadirPenuh = filteredHostReportList.filter(h => h.totalHadir >= h.requiredWorkingDays && h.countTerlambat <= 3 && h.countIzin === 0 && h.countAlpa === 0).length;
+                      const totalAlpaIzin = filteredHostReportList.filter(h => h.countAlpa > 0 || h.countIzin > 0).length;
+                      const totalKasbon = filteredHostReportList.filter(h => h.kasbonDed > 0).length;
+                      const totalGaji = filteredHostReportList.reduce((sum, h) => sum + h.netSalary, 0);
+                      
                       return (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                              Total Gaji Dibayarkan
-                            </span>
-                            <span className="text-xl md:text-2xl font-black font-mono mt-2 text-slate-800">
-                              {formatIDR(totalGaji)}
-                            </span>
-                          </div>
-                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                              Host Bandar Lampung
-                            </span>
-                            <span className="text-xl md:text-2xl font-black font-mono mt-2 text-slate-800">
-                              {totalHostBL}{" "}
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                                Orang
-                              </span>
-                            </span>
-                          </div>
-                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                              Host Tanggamus
-                            </span>
-                            <span className="text-xl md:text-2xl font-black font-mono mt-2 text-slate-800">
-                              {totalHostTGM}{" "}
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                                Orang
-                              </span>
-                            </span>
-                          </div>
-                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                              Total Brand Aktif
-                            </span>
-                            <div className="flex flex-col mt-2">
-                              <span className="text-xl md:text-2xl font-black font-mono text-slate-800 leading-none">
-                                {totalBrandList.length}{" "}
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                                  Brand
-                                </span>
-                              </span>
-                              {totalBrandList.length > 0 && (
-                                <span
-                                  className="text-[9px] text-slate-400 font-semibold leading-tight line-clamp-1 mt-1 truncate"
-                                  title={totalBrandList.join(", ")}
-                                >
-                                  {totalBrandList.join(", ")}
-                                </span>
-                              )}
+                        <div className="mb-6 flex overflow-x-auto pb-2 gap-0 hide-scrollbar w-full border-b border-slate-100 bg-white rounded-xl shadow-xs border">
+                          {/* Pipeline Stepper styling */}
+                          <div className="flex items-center min-w-max w-full">
+                            <div className="px-6 py-4 border-r border-slate-100 flex-1 min-w-[200px]">
+                               <div className="flex items-center gap-2 mb-1.5">
+                                  <Users className="w-4 h-4 text-slate-500" />
+                                  <span className="text-slate-700 font-extrabold text-sm uppercase tracking-wider">Total Host</span>
+                                  <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-black">{filteredHostReportList.length}</span>
+                               </div>
+                               <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">100% Data Aktif</div>
+                            </div>
+                            
+                            <div className="px-6 py-4 border-r border-slate-100 flex-1 min-w-[200px] relative">
+                               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-slate-100 rounded-full flex items-center justify-center z-10"><ChevronRight className="w-4 h-4 text-slate-300"/></div>
+                               <div className="flex items-center gap-2 mb-1.5 pl-2">
+                                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                  <span className="text-slate-700 font-extrabold text-sm uppercase tracking-wider">Hadir Penuh</span>
+                                  <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-black">{totalHadirPenuh}</span>
+                               </div>
+                               <div className="text-[10px] text-emerald-600/70 font-semibold uppercase tracking-wider pl-2">{filteredHostReportList.length > 0 ? Math.round((totalHadirPenuh/filteredHostReportList.length)*100) : 0}% AMAN</div>
+                            </div>
+
+                            <div className="px-6 py-4 border-r border-slate-100 flex-1 min-w-[200px] relative">
+                               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-slate-100 rounded-full flex items-center justify-center z-10"><ChevronRight className="w-4 h-4 text-slate-300"/></div>
+                               <div className="flex items-center gap-2 mb-1.5 pl-2">
+                                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                  <span className="text-slate-700 font-extrabold text-sm uppercase tracking-wider">Alpa & Izin</span>
+                                  <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-black">{totalAlpaIzin}</span>
+                               </div>
+                               <div className="text-[10px] text-amber-600/70 font-semibold uppercase tracking-wider pl-2">POTONGAN AKTIF</div>
+                            </div>
+
+                            <div className="px-6 py-4 border-r border-slate-100 flex-1 min-w-[200px] relative">
+                               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-slate-100 rounded-full flex items-center justify-center z-10"><ChevronRight className="w-4 h-4 text-slate-300"/></div>
+                               <div className="flex items-center gap-2 mb-1.5 pl-2">
+                                  <CreditCard className="w-4 h-4 text-red-500" />
+                                  <span className="text-slate-700 font-extrabold text-sm uppercase tracking-wider">Kasbon</span>
+                                  <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded text-[10px] font-black">{totalKasbon}</span>
+                               </div>
+                               <div className="text-[10px] text-red-600/70 font-semibold uppercase tracking-wider pl-2">POTONGAN AKTIF</div>
+                            </div>
+
+                            <div className="px-6 py-4 ml-auto bg-slate-800 text-white flex-1 min-w-[250px] rounded-r-xl relative">
+                               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center z-10"><ChevronRight className="w-4 h-4 text-slate-400"/></div>
+                               <div className="flex flex-col pl-2">
+                                  <span className="text-slate-300 font-bold text-[10px] uppercase tracking-wider mb-1">Total Pencairan Gaji</span>
+                                  <div className="text-xl font-black font-mono text-white">{formatIDR(totalGaji)}</div>
+                               </div>
                             </div>
                           </div>
                         </div>
-                      );
+                      )
                     })()}
 
-                    {/* LOCATION TABS FOR SALARY TABLE */}
-                    <div className="flex bg-slate-100 p-1 w-full max-w-md rounded-xl shadow-sm mb-4">
-                      {["Semua Host", "Bandar Lampung", "Tanggamus"].map((tab) => (
-                        <button
-                          key={tab}
-                          className={`flex-1 text-center py-2 text-xs font-bold transition-all rounded-lg ${
-                            salaryRecapLocationTab === tab
-                              ? "bg-white text-purple-700 shadow-sm"
-                              : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
-                          }`}
-                          onClick={() => setSalaryRecapLocationTab(tab)}
-                        >
-                          {tab}
-                        </button>
-                      ))}
+                    {/* LOCATION TABS (Sub-Filters) & TABLE ACTIONS */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mr-2"><Filter className="w-3 h-3"/> FILTERS</span>
+                          {["Semua Host", "Bandar Lampung", "Tanggamus"].map((tab) => (
+                            <button
+                              key={tab}
+                              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold transition-all rounded-full border cursor-pointer ${
+                                salaryRecapLocationTab === tab
+                                  ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                                  : "bg-white text-slate-500 border-slate-200 hover:text-slate-700 hover:border-slate-300"
+                              }`}
+                              onClick={() => setSalaryRecapLocationTab(tab)}
+                            >
+                              {salaryRecapLocationTab === tab && <Check className="w-3 h-3" />}
+                              {tab}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-3">
+                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><ArrowUpDown className="w-3 h-3"/> SORTING</span>
+                           <select 
+                              className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 outline-none cursor-pointer hover:border-slate-300"
+                              value={salarySortKey}
+                              onChange={(e) => toggleSalarySort(e.target.value as any)}
+                           >
+                              <option value="name">Nama Host</option>
+                              <option value="netSalary">Gaji Bersih (Tertinggi)</option>
+                              <option value="attendance">Kehadiran (Tertinggi)</option>
+                           </select>
+                        </div>
                     </div>
 
-                    {/* SALARY RECAP TABLE CONTAINER */}
-                    <div
-                      className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden"
-                      id="salary_recap_calculator_table_wrapper"
-                    >
-                      {/* DESKTOP & TABLET VIEW: Rendered as a highly polished, responsive table */}
-                      <div className="hidden md:block overflow-x-auto">
-                        <table
-                          className="w-full text-left text-xs text-slate-900 border-collapse table-auto"
-                          id="salary_recap_table"
-                        >
-                          <thead>
-                            <tr className="bg-slate-50/75 border-b border-slate-100 text-[10px] font-mono whitespace-nowrap uppercase tracking-wider text-slate-500 font-bold select-none">
-                              {/* Nama Host & Wilayah */}
-                              <th className="py-4 px-6 align-middle">
-                                <div className="flex flex-col gap-1.5">
-                                  <button
-                                    onClick={() => toggleSalarySort("name")}
-                                    className="flex items-center gap-1.5 hover:text-purple-700 text-left uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer w-full transition-colors"
-                                  >
-                                    <span>Host & Info</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "name"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
-                                    </span>
-                                  </button>
-                                  </div>
-                              </th>
+                    {/* CARDS CONTAINER (Pengganti Tabel Gaji) */}
+                    <div className="flex flex-col gap-4 mb-8">
+                       {filteredHostReportList.length === 0 ? (
+                           <div className="text-center py-16 text-slate-400 font-mono font-medium border border-dashed border-slate-200 rounded-2xl bg-slate-50">
+                             Tidak ada rekam data host yang cocok untuk proses kalkulasi draf gaji.
+                           </div>
+                       ) : (
+                         filteredHostReportList.map((item, idx) => {
+                             const isTanggamus = item.studio && item.studio.includes("Tanggamus");
+                             const hostType = item.hostType || "Reguler";
+                             const pct = Math.min(100, Math.round((item.totalHadir / Math.max(1, item.requiredWorkingDays)) * 100));
+                             
+                             // Determine border color based on status
+                             let statusColor = "bg-blue-100";
+                             if (item.kasbonDed > 0 || item.countAlpa > 0) statusColor = "bg-red-200";
+                             else if (item.countIzin > 0 || item.countTerlambat > 3) statusColor = "bg-amber-200";
+                             else if (pct >= 100) statusColor = "bg-emerald-200";
 
-                              {/* Tipe Host */}
-                              <th className="py-4 px-4 align-middle text-center">
-                                <div className="flex flex-col gap-1.5 items-center">
-                                  <button
-                                    onClick={() => toggleSalarySort("hostType")}
-                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
-                                  >
-                                    <span>Tipe</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "hostType"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
-                                    </span>
-                                  </button>
-                                  </div>
-                              </th>
+                             const isExpanded = expandedHostSalaryId === item.id;
 
-                              {/* Hadir / Target */}
-                              <th className="py-4 px-4 align-middle text-center">
-                                <div className="flex flex-col gap-1.5 items-center">
-                                  <button
-                                    onClick={() =>
-                                      toggleSalarySort("attendance")
-                                    }
-                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
-                                  >
-                                    <span>Hadir</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "attendance"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
-                                    </span>
-                                  </button>
-                                  </div>
-                              </th>
-
-                              {/* Terlambat */}
-                              <th className="py-4 px-3 align-middle text-center text-amber-600">
-                                <div className="flex flex-col gap-1.5 items-center">
-                                  <button
-                                    onClick={() => toggleSalarySort("late")}
-                                    className="flex items-center justify-center gap-1.5 hover:text-amber-700 text-amber-600 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
-                                  >
-                                    <span>Telat</span>
-                                    <span className="text-[10px] text-amber-600 font-extrabold font-sans">
-                                      {salarySortKey === "late"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
-                                    </span>
-                                  </button>
-                                  </div>
-                              </th>
-
-                              {/* Tidak Hadir */}
-                              <th className="py-4 px-3 align-middle text-center text-red-650">
-                                <div className="flex flex-col gap-1.5 items-center">
-                                  <button
-                                    onClick={() => toggleSalarySort("excused")}
-                                    className="flex items-center justify-center gap-1.5 hover:text-red-700 text-red-650 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
-                                  >
-                                    <span>Tidak Hadir</span>
-                                    <span className="text-[10px] text-red-600 font-extrabold font-sans">
-                                      {salarySortKey === "excused"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
-                                    </span>
-                                  </button>
-                                  </div>
-                              </th>
-
-                              {/* Rumus Perhitungan Gaji */}
-                              <th className="py-4 px-4 align-middle text-left">
-                                <div className="flex flex-col gap-1.5">
-                                  <button
-                                    onClick={() => toggleSalarySort("formula")}
-                                    className="flex items-center gap-1.5 hover:text-purple-700 text-left uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
-                                  >
-                                    <span>Kalkulasi</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "formula"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
-                                    </span>
-                                  </button>
-                                  </div>
-                              </th>
-
-                              {/* Estimasi Gaji Bersih */}
-                              <th className="py-4 px-6 align-middle text-right pr-8">
-                                <div className="flex flex-col gap-1.5 items-end">
-                                  <button
-                                    onClick={() =>
-                                      toggleSalarySort("netSalary")
-                                    }
-                                    className="flex items-center justify-end gap-1.5 hover:text-purple-700 text-right uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
-                                  >
-                                    <span>Gaji Bersih</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "netSalary"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
-                                    </span>
-                                  </button>
-                                  </div>
-                              </th>
-                              <th className="py-4 px-6 align-middle text-left w-48">
-                                <span className="uppercase text-[10px] font-mono font-bold tracking-wider text-slate-400">
-                                  Rekening Transfer
-                                </span>
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filteredHostReportList.length === 0 ? (
-                              <tr key="empty">
-                                <td
-                                  colSpan={8}
-                                  className="text-center py-12 text-slate-400 font-mono font-medium"
-                                >
-                                  Tidak ada rekam data host yang cocok untuk
-                                  proses kalkulasi draf gaji.
-                                </td>
-                              </tr>
-                            ) : (
-                              filteredHostReportList.map((item, idx) => {
-                                const isTanggamus =
-                                  item.studio &&
-                                  item.studio.includes("Tanggamus");
-                                const hostType = item.hostType || "Reguler";
-                                const isAtTop = idx < 3;
-
-                                return (
-                                  <React.Fragment key={item.id || idx}>
-                                  <tr
-                                    onClick={() => setExpandedHostSalaryId(expandedHostSalaryId === item.id ? null : item.id)}
-                                    className={`border-b border-slate-100 hover:bg-slate-50/50 transition-all font-sans cursor-pointer ${expandedHostSalaryId === item.id ? "bg-purple-50/30" : ""}`}
-                                    id={`salary_row_${item.id}`}
-                                  >
-                                    <td className="py-4 px-6">
-                                      <div className="flex items-center gap-3">
-                                        <img
-                                          src={getAvatarUrl(item.name)}
-                                          alt={item.name}
-                                          referrerPolicy="no-referrer"
-                                          className="w-9 h-9 rounded-full object-cover border border-slate-200"
-                                        />
-                                        <div className="min-w-0">
-                                          <div className="font-extrabold text-slate-900 text-xs truncate">
-                                            {item.name}
-                                          </div>
-                                          <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
-                                            
-                                            <span className="truncate">
-                                              {item.studio ||
-                                                "Studio Bandar Lampung"}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </td>
-
-                                    <td className="text-center py-4 px-4 whitespace-nowrap">
-                                      {hostType === "Reguler" ? (
-                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-55 bg-blue-50 text-blue-700 font-bold text-[9px] border border-blue-105 uppercase tracking-wider">
-                                          Host Reguler
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-purple-55 bg-purple-50 text-purple-700 font-bold text-[9px] border border-purple-105 uppercase tracking-wider">
-                                          Host Backup
-                                        </span>
-                                      )}
-                                    </td>
-
-                                    <td className="text-center font-mono font-bold text-slate-900 py-4 px-4">
-                                      {hostType === "Reguler" ? (
-                                        <div className="inline-flex flex-col items-center">
-                                          <div className="flex items-center gap-1.5 justify-center bg-slate-105 bg-slate-100 hover:bg-slate-200/80 hover:border-slate-300 transition-colors px-2 py-1 rounded-lg border border-slate-200">
-                                            <span className="text-[10.5px] text-slate-700 font-bold">
-                                              {item.totalHadir} /
-                                            </span>
-                                            <input
-                                              type="number"
-                                              min={1}
-                                              max={31}
-                                              value={item.requiredWorkingDays}
-                                              onChange={(e) => {
-                                                const val = Math.max(
-                                                  1,
-                                                  Math.min(
-                                                    31,
-                                                    Number(e.target.value),
-                                                  ),
-                                                );
-                                                handleUpdateHost(item.id, {
-                                                  customWorkingDaysTarget: val,
-                                                });
+                             return (
+                               <div key={item.id} className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:border-slate-300 hover:shadow-md relative group">
+                                  {/* Left colored bar indicator */}
+                                  <div className={`absolute left-0 top-0 bottom-0 w-3 ${statusColor}`}></div>
+                                  
+                                  {/* Main Card Header (Always visible) */}
+                                  <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 pl-7 gap-4 lg:gap-6 cursor-pointer" onClick={() => setExpandedHostSalaryId(isExpanded ? null : item.id)}>
+                                     {/* Host Info */}
+                                     <div className="flex w-full lg:w-1/3 items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 font-black uppercase overflow-hidden border border-slate-200 relative">
+                                            <img
+                                              src={getAvatarUrl(item.name)}
+                                              alt={item.name}
+                                              referrerPolicy="no-referrer"
+                                              className="w-10 h-10 object-cover"
+                                              onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = "none";
                                               }}
-                                              title="Ubah Target Hari Kerja Khusus Host Ini"
-                                              className="w-10 bg-white border border-slate-300 hover:border-blue-450 focus:border-blue-600 rounded px-1 py-0.5 text-center font-mono font-extrabold text-[10.5px] text-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-100"
                                             />
-                                            <span className="text-[10px] text-slate-500 font-bold">
-                                              Hari
-                                            </span>
-                                          </div>
                                         </div>
-                                      ) : (
-                                        <div className="inline-flex flex-col items-center">
-                                          <span className="px-2 py-0.5 rounded-lg bg-emerald-55 bg-emerald-50 text-[10.5px] text-emerald-800 font-bold border border-emerald-105">
-                                            {item.totalHadir} Shift
-                                          </span>
-                                          <span className="text-[9px] text-emerald-600 font-medium mt-1">
-                                            Dibayar per Shift
-                                          </span>
-                                        </div>
-                                      )}
-                                    </td>
-
-                                    {/* Terlambat (Late) */}
-                                    <td className="text-center py-4 px-3 font-mono">
-                                      <span
-                                        className={`px-2 py-1 rounded-md text-[11px] font-bold ${
-                                          item.countTerlambat > 0
-                                            ? "text-amber-700 font-black bg-amber-50 border border-amber-100"
-                                            : "text-slate-400 font-medium bg-slate-50 border border-slate-100/50"
-                                        }`}
-                                      >
-                                        {item.countTerlambat}x
-                                      </span>
-                                    </td>
-
-                                    {/* Tidak Hadir (Izin/Sakit + Alpa) */}
-                                    <td className="text-center py-4 px-3 font-mono">
-                                      <span
-                                        className={`px-2 py-1 rounded-md text-[11px] font-bold ${
-                                          item.countIzin + item.countAlpa > 0
-                                            ? "text-red-700 font-black bg-red-50 border border-red-100"
-                                            : "text-slate-400 font-medium bg-slate-50 border border-slate-100/50"
-                                        }`}
-                                      >
-                                        {item.countIzin + item.countAlpa} Hari
-                                      </span>
-                                    </td>
-
-                                    <td className="py-4 px-4 text-left">
-                                      {editingSalaryHostId === item.id ? (
-                                        <div className="space-y-1.5 font-sans min-w-[150px]">
-                                          <div className="text-[10px] text-purple-700 font-extrabold uppercase tracking-wide">
-                                            {hostType === "Reguler"
-                                              ? "Gaji Pokok Kustom"
-                                              : "Tarif Shift Kustom"}
-                                          </div>
-                                          <div className="flex items-center gap-1">
-                                            <div className="relative flex-1">
-                                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400">
-                                                Rp
-                                              </span>
-                                              <input
-                                                type="text"
-                                                value={tempSalaryValue}
-                                                onChange={(e) => {
-                                                  const val =
-                                                    e.target.value.replace(
-                                                      /[^0-9]/g,
-                                                      "",
-                                                    );
-                                                  setTempSalaryValue(val);
-                                                }}
-                                                placeholder="Gaji kustom"
-                                                className="w-full bg-white border border-purple-300 focus:border-purple-600 focus:ring-1 focus:ring-purple-100 rounded-lg pl-7 pr-2 py-1 text-xs font-mono font-bold text-purple-950 focus:outline-none"
-                                                autoFocus
-                                                onKeyDown={(e) => {
-                                                  if (e.key === "Enter") {
-                                                    const numVal =
-                                                      Number(tempSalaryValue);
-                                                    if (
-                                                      hostType === "Reguler"
-                                                    ) {
-                                                      handleUpdateHost(
-                                                        item.id,
-                                                        {
-                                                          customBaseSalary:
-                                                            numVal || undefined,
-                                                        },
-                                                      );
-                                                    } else {
-                                                      handleUpdateHost(
-                                                        item.id,
-                                                        {
-                                                          customShiftRate:
-                                                            numVal || undefined,
-                                                        },
-                                                      );
-                                                    }
-                                                    setEditingSalaryHostId(
-                                                      null,
-                                                    );
-                                                  }
-                                                }}
-                                              />
-                                            </div>
-                                            <button
-                                              onClick={() => {
-                                                const numVal =
-                                                  Number(tempSalaryValue);
-                                                if (hostType === "Reguler") {
-                                                  handleUpdateHost(item.id, {
-                                                    customBaseSalary:
-                                                      numVal || undefined,
-                                                  });
-                                                } else {
-                                                  handleUpdateHost(item.id, {
-                                                    customShiftRate:
-                                                      numVal || undefined,
-                                                  });
-                                                }
-                                                setEditingSalaryHostId(null);
-                                              }}
-                                              title="Simpan Gaji Kustom"
-                                              className="p-1 px-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-bold transition-all cursor-pointer"
-                                            >
-                                              ✓
-                                            </button>
-                                            <button
-                                              onClick={() =>
-                                                setEditingSalaryHostId(null)
-                                              }
-                                              title="Batal"
-                                              className="p-1 px-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
-                                            >
-                                              ✕
-                                            </button>
-                                          </div>
-                                          <div className="text-[8.5px] text-slate-400 italic">
-                                            Tekan ✓ atau Enter untuk menyimpan
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="space-y-1 font-sans">
-                                          <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none">
-                                              {hostType === "Reguler"
-                                                ? "Gaji Pokok Wilayah"
-                                                : "Tarif per Shift"}
-                                            </span>
-                                            {((hostType === "Reguler" &&
-                                              typeof item.customBaseSalary ===
-                                                "number") ||
-                                              (hostType !== "Reguler" &&
-                                                typeof item.customShiftRate ===
-                                                  "number")) && (
-                                              <span className="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-800 text-[8px] font-black uppercase px-1 py-0.2 rounded border border-emerald-250">
-                                                Kustom
-                                                <button
-                                                  onClick={() => {
-                                                    if (
-                                                      hostType === "Reguler"
-                                                    ) {
-                                                      handleUpdateHost(
-                                                        item.id,
-                                                        {
-                                                          customBaseSalary:
-                                                            undefined,
-                                                        },
-                                                      );
-                                                    } else {
-                                                      handleUpdateHost(
-                                                        item.id,
-                                                        {
-                                                          customShiftRate:
-                                                            undefined,
-                                                        },
-                                                      );
-                                                    }
-                                                  }}
-                                                  title="Kembalikan ke Default Wilayah"
-                                                  className="text-emerald-950 hover:text-red-600 px-0.5 font-bold transition-all ml-0.5 text-[9px] cursor-pointer"
-                                                >
-                                                  &times;
-                                                </button>
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div className="text-xs font-extrabold text-slate-800 font-mono flex items-center gap-1 flex-wrap">
-                                            {formatIDR(item.basePayRate)}
-                                            {hostType === "Reguler" ? (
-                                              <span className="text-[9.5px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                                                {item.studio
-                                                  ? item.studio.includes(
-                                                      "Tanggamus",
-                                                    )
-                                                    ? "Tanggamus"
-                                                    : "Bandar Lampung"
-                                                  : "Bandar Lampung"}
-                                              </span>
-                                            ) : (
-                                              <span className="text-[9.5px] text-slate-500 font-medium">
-                                                / Shift
-                                              </span>
-                                            )}
-
-                                            <button
-                                              onClick={() => {
-                                                setEditingSalaryHostId(item.id);
-                                                const currentVal =
-                                                  hostType === "Reguler"
-                                                    ? (item.customBaseSalary ??
-                                                      item.basePayRate)
-                                                    : (item.customShiftRate ??
-                                                      item.basePayRate);
-                                                setTempSalaryValue(
-                                                  String(currentVal || ""),
-                                                );
-                                              }}
-                                              title="Atur Gaji Kustom Khusus Host Ini"
-                                              className="px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[9px] font-black rounded border border-purple-200/60 inline-flex items-center gap-0.5 transition-all cursor-pointer shadow-3xs"
-                                            >
-                                              ✏️ Kustom
-                                            </button>
-                                          </div>
-                                          <div
-                                            className="text-[9.5px] text-blue-600 font-medium flex items-center gap-1"
-                                            title="Klik baris ini untuk melihat rincian rumus penggajian"
-                                          >
-                                            <span className="bg-blue-50 text-blue-700 px-1 py-0.5 rounded text-[8px] font-bold uppercase border border-blue-105">
-                                              info
-                                            </span>
-                                            <span>
-                                              Klik baris untuk rincian
-                                            </span>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </td>
-
-                                    <td className="text-right py-4 px-6 pr-8 whitespace-nowrap">
-                                      <div className="inline-block z-10" onClick={(e) => e.stopPropagation()}>
-                                        <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 shadow-3xs">
-                                          {/* Klik untuk Salin nominal angka saja */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              navigator.clipboard.writeText(String(item.netSalary));
-                                              setCopiedSalaryHostId(item.id);
-                                              setTimeout(() => {
-                                                setCopiedSalaryHostId(null);
-                                              }, 1500);
-                                            }}
-                                            title="Klik untuk menyalin nominal angka saja (untuk bank transfer)"
-                                            className={`text-xs font-black font-mono px-4 py-2 transition-all duration-155 flex items-center gap-1.5 cursor-pointer select-none active:scale-95 ${
-                                              copiedSalaryHostId === item.id
-                                                ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                                                : "text-slate-900 hover:text-blue-650 hover:bg-blue-50/40"
-                                            }`}
-                                          >
-                                            {copiedSalaryHostId === item.id ? (
-                                              <>
-                                                <span>Tersalin!</span>
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-blue-600 transition-colors" />
-                                                <span>{formatIDR(item.netSalary)}</span>
-                                              </>
-                                            )}
-                                          </button>
-                                        </div>
-                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-1 pr-1">
-                                          Transfer Bank
-                                        </span>
-                                      </div>
-                                    </td>
-
-                                    {/* Rekening Transfer */}
-                                    <td className="text-left py-4 px-6" onClick={(e) => e.stopPropagation()}>
-                                      {item.bankAccount ? (
-                                        <div className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono font-bold text-emerald-700 w-full whitespace-nowrap overflow-hidden text-ellipsis select-all shadow-3xs" title="Select All untuk Copy">
-                                          {item.bankAccount}
-                                        </div>
-                                      ) : (
-                                        <div className="bg-red-50 border border-red-100 px-2 py-1.5 rounded-lg text-[10px] font-bold text-red-600 flex items-center gap-1 w-max">
-                                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> Belum Diisi
-                                        </div>
-                                      )}
-                                    </td>
-
-                                  </tr>
-                                  {/* ACCORDION EXPANDED ROW */}
-                                  {expandedHostSalaryId === item.id && (
-                                    <tr className="bg-slate-950 border-b border-slate-800">
-                                      <td colSpan={8} className="p-0">
-                                        <div className="p-6 px-6 lg:px-8 border-l-4 border-l-purple-500 text-white animate-in slide-in-from-top-2 duration-200 overflow-hidden">
-                                          <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            
-<div className="space-y-3 font-sans">
-                                            <div className="border-b border-slate-800 pb-2">
-                                              <div className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest leading-none">
-                                                Rincian Perhitungan Gaji
+                                        <div>
+                                           <div className="font-extrabold text-slate-800 text-[13px] flex items-center gap-2">
+                                              {item.name} 
+                                              <span className="text-[9px] text-slate-400 font-mono font-medium bg-slate-100 px-1.5 py-0.5 rounded">#{item.id.substring(0,6)}</span>
+                                           </div>
+                                           <div className="flex items-center gap-3 mt-1.5">
+                                              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                                                 <MapPin className="w-3 h-3 text-slate-400" /> {item.studio || "Bandar Lampung"}
                                               </div>
-                                              <div className="text-xs font-black text-blue-400 mt-1 flex items-center gap-1.5">
-                                                {item.name}
-                                                <span className="text-[8.5px] bg-blue-500/10 text-blue-300 font-extrabold border border-blue-500/25 px-1 py-0.2 rounded uppercase">
-                                                  {hostType}
-                                                </span>
+                                              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-500">
+                                                 <Phone className="w-3 h-3 text-blue-500" /> <Mail className="w-3 h-3 text-red-500 ml-0.5" />
                                               </div>
-                                            </div>
-
-                                            {hostType === "Reguler" ? (
-                                              <div className="space-y-2.5">
-                                                <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg space-y-1">
-                                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                                                    Rumus Gaji Pokok Regulasi
-                                                  </div>
-                                                  <div className="text-[10px] text-slate-200 italic font-mono leading-tight">
-                                                    (Gaji Pokok Penempatan /
-                                                    Hari Standar Kerja) &times;
-                                                    Kehadiran Host Masuk
-                                                  </div>
-                                                  <div className="pt-1.5 border-t border-slate-800/80 mt-1.5 font-mono text-[9px] text-blue-300 font-semibold leading-relaxed">
-                                                    (
-                                                    {formatIDR(
-                                                      item.basePayRate,
-                                                    )}{" "}
-                                                    / {item.requiredWorkingDays}{" "}
-                                                    Hari) &times;{" "}
-                                                    {item.totalHadir} Hari
-                                                  </div>
-                                                  <div className="text-xs font-bold font-mono text-emerald-400 flex justify-between items-center pt-1">
-                                                    <span>Gaji Pokok:</span>
-                                                    <span>
-                                                      {formatIDR(
-                                                        Math.round(
-                                                          (item.basePayRate /
-                                                            item.requiredWorkingDays) *
-                                                            item.totalHadir,
-                                                        ),
-                                                      )}
-                                                    </span>
-                                                  </div>
-                                                </div>
-
-                                                <div className="border-t border-slate-800 pt-2 space-y-1.5">
-                                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                                                    Syarat Bonus Kehadiran
-                                                  </div>
-
-                                                  <div className="space-y-1 text-[10px]">
-                                                    <div className="flex items-center gap-1.5 text-slate-200">
-                                                      <span>
-                                                        {item.totalHadir >=
-                                                        item.requiredWorkingDays
-                                                          ? "✅"
-                                                          : "❌"}
-                                                      </span>
-                                                      <span className="font-medium">
-                                                        Kehadiran{" "}
-                                                        {item.totalHadir >=
-                                                        item.requiredWorkingDays
-                                                          ? "Penuh"
-                                                          : "di Bawah Target"}{" "}
-                                                        ({item.totalHadir}/
-                                                        {
-                                                          item.requiredWorkingDays
-                                                        }{" "}
-                                                        Hari)
-                                                      </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 text-slate-200">
-                                                      <span>
-                                                        {item.countTerlambat <=
-                                                        3
-                                                          ? "✅"
-                                                          : "❌"}
-                                                      </span>
-                                                      <span className="font-medium">
-                                                        Terlambat ≤ 3x (
-                                                        {item.countTerlambat}x)
-                                                      </span>
-                                                    </div>
-                                                  </div>
-
-                                                  {item.isEligibleForBonus ? (
-                                                    <div className="bg-emerald-555 bg-emerald-500/10 border border-emerald-500/25 rounded-lg p-2 text-[10px]">
-                                                      <div className="text-emerald-400 font-extrabold flex justify-between items-center">
-                                                        <span>
-                                                          Bonus +100% Hadir:
-                                                        </span>
-                                                        <span>
-                                                          +
-                                                          {formatIDR(
-                                                            item.calculatedBonus,
-                                                          )}
-                                                        </span>
-                                                      </div>
-                                                      <p className="text-[9px] text-slate-400 mt-1">
-                                                        Status: Memenuhi
-                                                        kualifikasi & berhak
-                                                        menerima bonus
-                                                      </p>
-                                                    </div>
-                                                  ) : (
-                                                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-[9.5px] text-slate-400">
-                                                      <p className="italic leading-relaxed">
-                                                        *Syarat bonus: Kehadiran
-                                                        penuh & terlambat ≤ 3x
-                                                        untuk bonus{" "}
-                                                        {formatIDR(
-                                                          isTanggamus
-                                                            ? (salarySettings.tanggamusRegulerBonus ??
-                                                                250000)
-                                                            : (salarySettings.bandarLampungRegulerBonus ??
-                                                                300000),
-                                                        )}
-                                                      </p>
-                                                    </div>
-                                                  )}
-                                                </div>
-
-                                                {item.totalBackupShiftsAsReguler >
-                                                  0 && (
-                                                  <div className="bg-amber-900/30 border border-amber-800/50 rounded-lg p-2 text-[10px] space-y-1">
-                                                    <div className="text-amber-400 font-extrabold flex justify-between items-center">
-                                                      <span>
-                                                        Shift Backup Ekstra (
-                                                        {
-                                                          item.totalBackupShiftsAsReguler
-                                                        }
-                                                        x):
-                                                      </span>
-                                                      <span>
-                                                        +
-                                                        {formatIDR(
-                                                          item.calculatedBackupPay,
-                                                        )}
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                )}
-
-                                                {item.totalOvertimeHours >
-                                                  0 && (
-                                                  <div className="bg-indigo-900/40 border border-indigo-800/60 rounded-lg p-2 text-[10px] space-y-1">
-                                                    <div className="text-indigo-400 font-extrabold flex justify-between items-center">
-                                                      <span>
-                                                        Lembur (
-                                                        {
-                                                          item.totalOvertimeHours
-                                                        }{" "}
-                                                        Jam):
-                                                      </span>
-                                                      <span>
-                                                        +
-                                                        {formatIDR(
-                                                          item.calculatedOvertimePay,
-                                                        )}
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                )}
-
-                                                <div className="border-t border-slate-800 pt-2.5 flex justify-between items-center text-xs font-black">
-                                                  <span className="text-slate-300">
-                                                    Estimasi Gaji Bersih:
-                                                  </span>
-                                                  <span className="text-yellow-400 font-mono text-sm">
-                                                    {formatIDR(item.netSalary)}
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <div className="space-y-2.5">
-                                                <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg space-y-1">
-                                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                                                    Rumus Gaji Backup
-                                                  </div>
-                                                  <div className="text-[10px] text-slate-200 italic font-mono leading-tight">
-                                                    Siklus Kehadiran Shift
-                                                    &times; Tarif Per Shift
-                                                  </div>
-                                                  <div className="pt-1.5 border-t border-slate-800/80 mt-1.5 font-mono text-[9.5px] text-blue-300 font-semibold flex justify-between">
-                                                    <span>Detail:</span>
-                                                    <span>
-                                                      {item.totalHadir} Shift
-                                                      &times;{" "}
-                                                      {formatIDR(
-                                                        item.basePayRate,
-                                                      )}
-                                                    </span>
-                                                  </div>
-                                                </div>
-
-                                                {item.totalOvertimeHours >
-                                                  0 && (
-                                                  <div className="bg-indigo-900 border border-indigo-800 rounded-lg p-2 text-[10px] space-y-1">
-                                                    <div className="text-indigo-400 font-extrabold flex justify-between items-center">
-                                                      <span>
-                                                        Lembur (
-                                                        {
-                                                          item.totalOvertimeHours
-                                                        }{" "}
-                                                        Jam):
-                                                      </span>
-                                                      <span>
-                                                        +
-                                                        {formatIDR(
-                                                          item.calculatedOvertimePay,
-                                                        )}
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                )}
-
-                                                <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-xs font-black">
-                                                  <span className="text-slate-300">
-                                                    Estimasi Gaji Bersih:
-                                                  </span>
-                                                  <span className="text-yellow-400 font-mono text-sm">
-                                                    {formatIDR(item.netSalary)}
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-
-                                            <div className="flex flex-col justify-center border-l border-slate-800 pl-8 space-y-4">
-                                              <div className="text-slate-400 text-xs font-medium">Rekapitulasi Final</div>
-                                              <div className="text-3xl font-mono font-black text-emerald-400">{formatIDR(item.netSalary)}</div>
-                                              <div className="text-[10px] text-slate-500 max-w-xs">Gaji bersih yang akan ditransfer ke rekening host. Pastikan kehadiran dan potongan telah dikalkulasi dengan benar.</div>
-                                            </div>
-                                          </div>
+                                           </div>
                                         </div>
-                                      </td>
-                                    </tr>
+                                     </div>
+
+                                     {/* Project Info / Host Type */}
+                                     <div className="w-full lg:w-1/6 flex flex-col items-start lg:items-center">
+                                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">Tipe Host</span>
+                                        <div className="border border-slate-200 rounded-md px-2.5 py-1 flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-50 min-w-[100px]">
+                                           {hostType} <ChevronDown className="w-3 h-3 text-slate-400" />
+                                        </div>
+                                     </div>
+
+                                     {/* Est Revenue */}
+                                     <div className="w-full lg:w-1/5 flex flex-col items-start lg:items-end">
+                                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">Total Pencairan</span>
+                                        <span className="font-mono font-black text-slate-800 text-sm">{formatIDR(item.netSalary)}</span>
+                                     </div>
+
+                                     {/* Likelihood / Attendance */}
+                                     <div className="w-full lg:w-[15%] flex items-center justify-start lg:justify-end gap-3">
+                                        <div className="flex flex-col items-start lg:items-end">
+                                            <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1">Kehadiran</span>
+                                            <span className="font-extrabold text-slate-800 text-xs">{pct}%</span>
+                                        </div>
+                                        <div className="relative w-8 h-8 rounded-full border-[3px] border-slate-100 flex items-center justify-center">
+                                           <div className={`absolute top-0 left-0 w-full h-full rounded-full border-[3px] border-t-transparent border-l-transparent transform -rotate-45 ${pct >= 100 ? 'border-emerald-500' : pct >= 80 ? 'border-blue-500' : 'border-amber-500'}`}></div>
+                                        </div>
+                                     </div>
+
+                                     {/* Action / Show More */}
+                                     <div className="w-full lg:w-auto flex items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 pt-3 lg:pt-0 mt-2 lg:mt-0 border-slate-100">
+                                        <div className="text-[10px] font-bold text-blue-600 flex items-center gap-1 uppercase tracking-wider hover:text-blue-800">
+                                           {isExpanded ? 'SHOW LESS' : 'SHOW MORE'} 
+                                           <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                           <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Catat Komunikasi"><MessageSquare className="w-4 h-4"/></button>
+                                           <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Lampirkan Dokumen"><Paperclip className="w-4 h-4"/></button>
+                                        </div>
+                                     </div>
+                                  </div>
+
+                                  {/* Expanded Area */}
+                                  {isExpanded && (
+                                     <div className="border-t border-slate-100 bg-slate-50/70 p-4 pl-7 flex flex-col lg:flex-row gap-6">
+                                        {/* Notes Section */}
+                                        <div className="flex-1 flex flex-col gap-2">
+                                           <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Tambahkan Catatan Khusus (Payroll)</span>
+                                           <textarea 
+                                              placeholder="Misal: Potong kasbon 50rb karena telat bayar cicilan..." 
+                                              className="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs font-medium text-slate-700 resize-none h-24 focus:outline-none focus:border-blue-500 shadow-2xs"
+                                           ></textarea>
+                                           <div className="flex justify-between items-center mt-1">
+                                              <div className="flex gap-2">
+                                                  <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-500 cursor-pointer hover:bg-slate-100">Kasbon</span>
+                                                  <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-500 cursor-pointer hover:bg-slate-100">Cuti Sakit</span>
+                                              </div>
+                                              <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded flex items-center gap-1 uppercase tracking-wider"><Check className="w-3 h-3"/> Disimpan otomatis</span>
+                                           </div>
+                                        </div>
+
+                                        {/* Detailed Calc Section */}
+                                        <div className="flex-1 lg:max-w-md bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                                           <div className="absolute top-0 right-0 p-3 opacity-10">
+                                              <Calculator className="w-20 h-20" />
+                                           </div>
+                                           <div className="flex flex-col gap-3 relative z-10">
+                                              <div className="flex justify-between items-center text-[11px]">
+                                                 <span className="font-bold text-slate-600">Gaji Pokok (Rate Basis)</span>
+                                                 <span className="font-mono font-black text-slate-800">{formatIDR(item.basePayRate)}</span>
+                                              </div>
+                                              <div className="flex justify-between items-center text-[11px]">
+                                                 <span className="font-bold text-slate-600 flex items-center gap-1">
+                                                    Bonus Kehadiran 
+                                                    <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1 rounded">{item.totalHadir} Hari</span>
+                                                 </span>
+                                                 <span className="font-mono font-black text-emerald-600">+{formatIDR(item.bonusAttendance)}</span>
+                                              </div>
+                                              <div className="flex justify-between items-center text-[11px]">
+                                                 <span className="font-bold text-slate-600 flex items-center gap-1">
+                                                    Potongan Alpa/Telat
+                                                    <span className="text-[8px] bg-red-100 text-red-700 px-1 rounded">{item.countAlpa}x</span>
+                                                 </span>
+                                                 <span className="font-mono font-black text-red-500">-{formatIDR(item.cutAlpa)}</span>
+                                              </div>
+                                              <div className="flex justify-between items-center text-[11px] pb-3 border-b border-slate-100 border-dashed">
+                                                 <span className="font-bold text-slate-600">Potongan Kasbon Berjalan</span>
+                                                 <span className="font-mono font-black text-red-500">-{formatIDR(item.kasbonDed || 0)}</span>
+                                              </div>
+                                              <div className="flex justify-between items-center pt-1">
+                                                 <span className="font-black text-slate-800 text-[11px] uppercase tracking-wider">Total Gross Profit (Gaji)</span>
+                                                 <span className="font-mono font-black text-slate-900 text-sm bg-slate-100 px-2.5 py-1 rounded-md">{formatIDR(item.netSalary)}</span>
+                                              </div>
+                                           </div>
+                                        </div>
+                                     </div>
                                   )}
-                                  </React.Fragment>
-                                );
-                              })
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* MOBILE & SMARTPHONE VIEW: Beautifully custom styled touch cards */}
-                      <div className="md:hidden divide-y divide-slate-100">
-                        {filteredHostReportList.length === 0 ? (
-                          <div className="text-center py-12 text-slate-400 font-mono font-medium text-xs">
-                            Tidak ada rekam data host yang cocok untuk proses
-                            kalkulasi draf gaji.
-                          </div>
-                        ) : (
-                          filteredHostReportList.map((item, idx) => {
-                            const isTanggamus =
-                              item.studio && item.studio.includes("Tanggamus");
-                            const hostType = item.hostType || "Reguler";
-
-                            return (
-                              <div
-                                key={item.id + "_" + idx}
-                                className="p-4 space-y-4 font-sans bg-white"
-                                id={`salary_mobile_card_${item.id}`}
-                              >
-                                {/* Profile Header Block */}
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="flex items-center gap-3">
-                                    <img
-                                      src={getAvatarUrl(item.name)}
-                                      alt={item.name}
-                                      referrerPolicy="no-referrer"
-                                      className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-3xs"
-                                    />
-                                    <div>
-                                      <div className="font-extrabold text-slate-900 text-xs">
-                                        {item.name}
-                                      </div>
-                                      <div className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-                                        
-                                        <span>
-                                          {item.studio ||
-                                            "Studio Bandar Lampung"}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    {hostType === "Reguler" ? (
-                                      <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[8.5px] border border-blue-100 uppercase tracking-wide">
-                                        Reguler
-                                      </span>
-                                    ) : (
-                                      <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold text-[8.5px] border border-purple-100 uppercase tracking-wide">
-                                        Backup
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Attendance Mini Dashboard */}
-                                <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
-                                  {/* 1. Hadir / Target */}
-                                  <div className="flex flex-col justify-between">
-                                    <span className="text-[8px] font-black tracking-wider text-slate-400 block uppercase">
-                                      Hadir/Tgt
-                                    </span>
-                                    {hostType === "Reguler" ? (
-                                      <div className="inline-flex items-center justify-center gap-0.5 mt-1 bg-white border border-slate-200 rounded px-1 py-0.5 text-[10px] font-bold text-slate-800">
-                                        <span>{item.totalHadir}/</span>
-                                        <input
-                                          type="number"
-                                          min={1}
-                                          max={31}
-                                          value={item.requiredWorkingDays}
-                                          onChange={(e) => {
-                                            const val = Math.max(
-                                              1,
-                                              Math.min(
-                                                31,
-                                                Number(e.target.value),
-                                              ),
-                                            );
-                                            handleUpdateHost(item.id, {
-                                              customWorkingDaysTarget: val,
-                                            });
-                                          }}
-                                          className="w-5 border-none bg-transparent text-blue-700 font-bold text-center focus:outline-none p-0"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <span className="inline-block mt-1 font-mono text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100">
-                                        {item.totalHadir} Shf
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {/* 2. Terlambat */}
-                                  <div className="flex flex-col justify-between">
-                                    <span className="text-[8px] font-black tracking-wider text-amber-600 block uppercase">
-                                      Telat
-                                    </span>
-                                    <span
-                                      className={`inline-block mt-1 px-1 py-0.5 rounded text-[10.5px] font-bold font-mono self-center ${
-                                        item.countTerlambat > 0
-                                          ? "text-amber-700 bg-amber-50 border border-amber-100"
-                                          : "text-slate-400 bg-slate-100 border border-slate-200/40"
-                                      }`}
-                                    >
-                                      {item.countTerlambat}x
-                                    </span>
-                                  </div>
-
-                                  {/* 3. Tidak Hadir */}
-                                  <div className="flex flex-col justify-between">
-                                    <span className="text-[8px] font-black tracking-wider text-red-650 block uppercase">
-                                      Tidak Hadir
-                                    </span>
-                                    <span
-                                      className={`inline-block mt-1 px-1 py-0.5 rounded text-[10.5px] font-bold font-mono self-center ${
-                                        item.countIzin + item.countAlpa > 0
-                                          ? "text-red-700 bg-red-50 border border-red-100"
-                                          : "text-slate-400 bg-slate-100 border border-slate-200/40"
-                                      }`}
-                                    >
-                                      {item.countIzin + item.countAlpa} Hari
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Mobile Calculation Formula & Summary */}
-                                <div className="bg-[#fafaff] border border-purple-100/40 rounded-xl p-3 space-y-2 text-xs">
-                                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-semibold border-b border-purple-100/30 pb-1.5">
-                                    <span>
-                                      Rumus:{" "}
-                                      {hostType === "Reguler"
-                                        ? "Gaji Pokok Proporsional"
-                                        : "Tarif Shift"}
-                                    </span>
-                                    <span className="font-bold underline text-blue-650">
-                                      {item.studio
-                                        ? item.studio.includes("Tanggamus")
-                                          ? "Tanggamus"
-                                          : "Bandar Lampung"
-                                        : "Bandar Lampung"}
-                                    </span>
-                                  </div>
-
-                                  {hostType === "Reguler" ? (
-                                    <div className="space-y-1 font-mono text-[10px] text-slate-600">
-                                      <div>
-                                        Gaji Pokok:{" "}
-                                        {formatIDR(item.basePayRate)}
-                                      </div>
-                                      <div>
-                                        Proporsi: ({formatIDR(item.basePayRate)}{" "}
-                                        / {item.requiredWorkingDays} Hari)
-                                        &times; {item.totalHadir} Hadir ={" "}
-                                        <span className="text-slate-900 font-bold">
-                                          {formatIDR(
-                                            Math.round(
-                                              (item.basePayRate /
-                                                item.requiredWorkingDays) *
-                                                item.totalHadir,
-                                            ),
-                                          )}
-                                        </span>
-                                      </div>
-                                      {item.isEligibleForBonus ? (
-                                        <div className="text-emerald-700 font-sans font-bold flex items-center gap-1 pt-1">
-                                          <span>Bonus Kehadiran penuh:</span>
-                                          <span className="font-mono bg-emerald-50 border border-emerald-100 px-1 py-0.2 rounded text-[9px]">
-                                            +{formatIDR(item.calculatedBonus)}
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        <div className="text-[9.5px] font-sans font-medium text-slate-400 italic pt-1">
-                                          *Bonus{" "}
-                                          {formatIDR(
-                                            isTanggamus
-                                              ? (salarySettings.tanggamusRegulerBonus ??
-                                                  250000)
-                                              : (salarySettings.bandarLampungRegulerBonus ??
-                                                  300000),
-                                          )}{" "}
-                                          jika target penuh & telat &le; 3x.
-                                        </div>
-                                      )}
-                                      {item.totalBackupShiftsAsReguler > 0 && (
-                                        <div className="mt-1 pt-1 border-t border-amber-100/30 flex justify-between items-center text-amber-600 font-bold text-[9.5px]">
-                                          <span>
-                                            Shift Backup Ekstra (
-                                            {item.totalBackupShiftsAsReguler}x):
-                                          </span>
-                                          <span className="font-mono bg-amber-50 border border-amber-100 px-1 py-0.2 rounded text-[9px]">
-                                            +
-                                            {formatIDR(
-                                              item.calculatedBackupPay,
-                                            )}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-1 font-mono text-[10.5px] text-slate-600">
-                                      <div>
-                                        {item.totalHadir} Shift ×{" "}
-                                        {formatIDR(item.basePayRate)} / Shift
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {item.totalOvertimeHours > 0 && (
-                                    <div className="mt-1 pt-1 border-t border-indigo-100/30 flex justify-between items-center text-indigo-600 font-bold text-[9.5px]">
-                                      <span>
-                                        Lembur ({item.totalOvertimeHours} J):
-                                      </span>
-                                      <span className="font-mono bg-indigo-50 border border-indigo-100 px-1 py-0.2 rounded text-[9px]">
-                                        +{formatIDR(item.calculatedOvertimePay)}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {/* Gaji Bersih Transfer Block */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigator.clipboard.writeText(String(item.netSalary));
-                                      setCopiedSalaryHostId(item.id);
-                                      setTimeout(() => {
-                                        setCopiedSalaryHostId(null);
-                                      }, 1500);
-                                    }}
-                                    className={`w-full flex justify-between items-center p-2.5 rounded-lg border transition-all duration-150 mt-1.5 active:scale-98 cursor-pointer text-left ${
-                                      copiedSalaryHostId === item.id
-                                        ? "bg-emerald-50 border-emerald-250 text-emerald-800"
-                                        : "bg-purple-50/50 border-purple-100/30 text-slate-900 hover:bg-purple-50"
-                                    }`}
-                                  >
-                                    <div>
-                                      <span className="text-[8px] text-slate-400 uppercase font-black block">
-                                        {copiedSalaryHostId === item.id ? "Berhasil Disalin" : "Estimasi Transfer Bersih (Klik untuk Salin)"}
-                                      </span>
-                                      <strong className="text-purple-950 font-bold text-xs flex items-center gap-1.5 mt-0.5">
-                                        {copiedSalaryHostId === item.id ? (
-                                          <span className="text-emerald-700 flex items-center gap-1">
-                                            <Check className="w-3 h-3 text-emerald-600 animate-bounce" />
-                                            <span>Tersalin ke Clipboard!</span>
-                                          </span>
-                                        ) : (
-                                          <>
-                                            <span>Transfer Bank</span>
-                                            <Copy className="w-3 h-3 text-slate-400 inline" />
-                                          </>
-                                        )}
-                                      </strong>
-                                    </div>
-                                    <div className={`text-sm font-black font-mono ${copiedSalaryHostId === item.id ? "text-emerald-700 font-extrabold" : "text-blue-700"}`}>
-                                      {formatIDR(item.netSalary)}
-                                    </div>
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
+                               </div>
+                             );
+                         })
+                       )}
                     </div>
-
-                    {/* SINKRON DATA EXPORT HEADER */}
+                    
+{/* SINKRON DATA EXPORT HEADER */}
                     <div
                       className="bg-white p-6 rounded-2xl border border-purple-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 animate-fadeIn"
                       id="salary_export_panel"
