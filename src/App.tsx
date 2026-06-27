@@ -26193,15 +26193,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         onClick={() => setHostCredentialFilter("Semua")}
                         className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${hostCredentialFilter === "Semua" ? "bg-purple-600 text-white shadow-sm" : "bg-purple-50 text-purple-600 hover:bg-purple-100"}`}
                       >
-                        Semua Studio
+                        Semua Kota
                       </button>
-                      {studios.map(std => (
+                      {Array.from(new Set(studios.map(std => std.location || "Bandar Lampung"))).map(loc => (
                         <button
-                          key={std.id}
-                          onClick={() => setHostCredentialFilter(std.name)}
-                          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${hostCredentialFilter === std.name ? "bg-purple-600 text-white shadow-sm" : "bg-purple-50 text-purple-600 hover:bg-purple-100"}`}
+                          key={loc}
+                          onClick={() => setHostCredentialFilter(loc)}
+                          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${hostCredentialFilter === loc ? "bg-purple-600 text-white shadow-sm" : "bg-purple-50 text-purple-600 hover:bg-purple-100"}`}
                         >
-                          {std.name}
+                          {loc}
                         </button>
                       ))}
                     </div>
@@ -26233,7 +26233,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </thead>
                         <tbody className="divide-y divide-purple-100">
                           {hosts
-                            .filter(h => hostCredentialFilter === "Semua" || h.studio === hostCredentialFilter || (!h.studio && hostCredentialFilter === "Studio Bandar Lampung"))
+                            .filter(h => {
+                              if (hostCredentialFilter === "Semua") return true;
+                              const hostStudioObj = studios.find(s => s.name === (h.studio || "Studio Bandar Lampung"));
+                              const hostLoc = hostStudioObj ? hostStudioObj.location : (h.studio || "").includes("Tanggamus") ? "Tanggamus" : "Bandar Lampung";
+                              return hostLoc === hostCredentialFilter;
+                            })
                             .map((h) => (
                             <HostCredentialRow
                               key={h.id}
