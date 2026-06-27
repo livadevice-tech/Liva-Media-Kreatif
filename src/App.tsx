@@ -13125,10 +13125,32 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         </div>
                                      </div>
 
-                                     {/* Est Revenue */}
-                                     <div className="w-full lg:w-1/5 flex flex-col items-start lg:items-end">
-                                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">Total Pencairan</span>
-                                        <span className="font-mono font-black text-slate-800 text-sm">{formatIDR(item.netSalary)}</span>
+                                     {/* Est Revenue & Bank Account */}
+                                     <div className="w-full lg:w-1/4 flex flex-col items-start lg:items-end">
+                                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">Total Pencairan & Rekening</span>
+                                        <button 
+                                          className={`flex items-center gap-2 group/copy px-2.5 py-1 -mr-2.5 rounded-lg border transition-all cursor-pointer ${copiedSalaryHostId === item.id ? 'bg-emerald-50 border-emerald-200' : 'bg-transparent border-transparent hover:bg-slate-50 hover:border-slate-200'}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const textToCopy = `Gaji: ${formatIDR(item.netSalary)}\nRekening: ${item.bankAccount || "Belum ada rekening"}`;
+                                            navigator.clipboard.writeText(textToCopy);
+                                            setCopiedSalaryHostId(item.id);
+                                            setTimeout(() => setCopiedSalaryHostId(null), 2000);
+                                          }}
+                                          title="Salin Gaji & Rekening"
+                                        >
+                                           <div className="flex flex-col items-end">
+                                              <span className={`font-mono font-black text-sm ${copiedSalaryHostId === item.id ? 'text-emerald-700' : 'text-slate-800'}`}>{formatIDR(item.netSalary)}</span>
+                                              <span className={`text-[10px] font-mono font-bold mt-0.5 max-w-[140px] truncate ${copiedSalaryHostId === item.id ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                                 {item.bankAccount && item.bankAccount !== "-" ? `💳 ${item.bankAccount}` : "⚠️ Tanpa Rekening"}
+                                              </span>
+                                           </div>
+                                           {copiedSalaryHostId === item.id ? (
+                                              <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                           ) : (
+                                              <Copy className="w-4 h-4 text-slate-300 group-hover/copy:text-blue-500 transition-colors" />
+                                           )}
+                                        </button>
                                      </div>
 
                                      {/* Likelihood / Attendance */}
