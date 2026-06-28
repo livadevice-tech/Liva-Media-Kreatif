@@ -1523,6 +1523,9 @@ export default function App() {
 
           // Set all the states
           if (data) {
+            if (Array.isArray(data.uploadHistory)) setUploadHistory(data.uploadHistory);
+            if (Array.isArray(data.brandUploadHistory)) setBrandUploadHistory(data.brandUploadHistory);
+            if (Array.isArray(data.brandPerformanceLogs)) setBrandPerformanceLogs(data.brandPerformanceLogs);
             if (Array.isArray(data.brands)) _setBrands(data.brands);
             if (Array.isArray(data.shifts)) _setShifts(data.shifts);
             if (Array.isArray(data.studios)) _setStudios(data.studios);
@@ -1655,6 +1658,19 @@ export default function App() {
   const [brandPerformanceLogs, setBrandPerformanceLogs] = useState<any[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
   const [brandUploadHistory, setBrandUploadHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isGlobalConfigsLoaded && brandUploadHistory.length > 0) {
+      saveLocalConfig({ brandUploadHistory });
+    }
+  }, [brandUploadHistory, isGlobalConfigsLoaded]);
+
+  useEffect(() => {
+    if (isGlobalConfigsLoaded && brandPerformanceLogs.length > 0) {
+      saveLocalConfig({ brandPerformanceLogs });
+    }
+  }, [brandPerformanceLogs, isGlobalConfigsLoaded]);
+
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [clientDateFilterType, setClientDateFilterType] = useState<
     "latest" | "all" | "month" | "weekly" | "custom"
