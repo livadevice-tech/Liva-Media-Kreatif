@@ -313,7 +313,78 @@ CREATE TABLE IF NOT EXISTS client_reporting (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------
--- 17. STUDIO_ITEMS (StudioItem)
+-- 17. REPORTING_UPLOAD_BATCHES (Reporting Brand Upload History)
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS reporting_upload_batches (
+  id           VARCHAR(100)  NOT NULL,
+  brand_id     VARCHAR(100)  DEFAULT NULL,
+  brand_name   VARCHAR(255)  NOT NULL,
+  platform     VARCHAR(100)  NOT NULL,
+  source_kind  VARCHAR(50)   DEFAULT NULL,
+  report_type  VARCHAR(50)   DEFAULT NULL,
+  file_name    VARCHAR(255)  DEFAULT NULL,
+  row_count    INT           NOT NULL DEFAULT 0,
+  total_gmv    DECIMAL(18,2) NOT NULL DEFAULT 0,
+  uploaded_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  updated_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  FOREIGN KEY (brand_id) REFERENCES client_brands(id) ON DELETE SET NULL,
+  INDEX idx_reporting_brand (brand_id),
+  INDEX idx_reporting_platform (platform),
+  INDEX idx_reporting_source_kind (source_kind),
+  INDEX idx_reporting_uploaded_at (uploaded_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------
+-- 18. REPORTING_UPLOAD_ROWS (Reporting Brand Raw Rows)
+-- ----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS reporting_upload_rows (
+  id                  VARCHAR(140)  NOT NULL,
+  batch_id            VARCHAR(100)   NOT NULL,
+  brand_id            VARCHAR(100)   DEFAULT NULL,
+  brand_name          VARCHAR(255)   DEFAULT NULL,
+  platform            VARCHAR(100)   DEFAULT NULL,
+  source_kind         VARCHAR(50)    DEFAULT NULL,
+  report_type         VARCHAR(50)    DEFAULT NULL,
+  title               VARCHAR(255)   DEFAULT NULL,
+  report_date         DATE          DEFAULT NULL,
+  report_datetime     DATETIME      DEFAULT NULL,
+  shift               VARCHAR(100)  DEFAULT NULL,
+  gmv                 DECIMAL(18,2) DEFAULT 0,
+  products_sold       DECIMAL(18,2) DEFAULT 0,
+  buyers              DECIMAL(18,2) DEFAULT 0,
+  aov                 DECIMAL(18,2) DEFAULT 0,
+  views               DECIMAL(18,2) DEFAULT 0,
+  impressions         DECIMAL(18,2) DEFAULT 0,
+  penonton            DECIMAL(18,2) DEFAULT 0,
+  live_visits         DECIMAL(18,2) DEFAULT 0,
+  product_impressions  DECIMAL(18,2) DEFAULT 0,
+  clicks              DECIMAL(18,2) DEFAULT 0,
+  orders              DECIMAL(18,2) DEFAULT 0,
+  followers           DECIMAL(18,2) DEFAULT 0,
+  likes               DECIMAL(18,2) DEFAULT 0,
+  shares              DECIMAL(18,2) DEFAULT 0,
+  comments            DECIMAL(18,2) DEFAULT 0,
+  avg_view_duration   INT           DEFAULT 0,
+  peak_viewers        DECIMAL(18,2) DEFAULT 0,
+  shop_vouchers       DECIMAL(18,2) DEFAULT 0,
+  special_vouchers    DECIMAL(18,2) DEFAULT 0,
+  coins_claimed       DECIMAL(18,2) DEFAULT 0,
+  has_funnel_in_file  TINYINT(1)     DEFAULT 0,
+  raw_payload         JSON          DEFAULT NULL,
+  uploaded_at         TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  FOREIGN KEY (batch_id) REFERENCES reporting_upload_batches(id) ON DELETE CASCADE,
+  FOREIGN KEY (brand_id) REFERENCES client_brands(id) ON DELETE SET NULL,
+  INDEX idx_reporting_rows_batch (batch_id),
+  INDEX idx_reporting_rows_brand (brand_id),
+  INDEX idx_reporting_rows_platform (platform),
+  INDEX idx_reporting_rows_source_kind (source_kind),
+  INDEX idx_reporting_rows_report_date (report_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------
+-- 19. STUDIO_ITEMS (StudioItem)
 -- ----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS studio_items (
   id        VARCHAR(100)  NOT NULL,
@@ -324,6 +395,6 @@ CREATE TABLE IF NOT EXISTS studio_items (
 
 -- ----------------------------------------------------------
 -- END OF SCHEMA
--- Total: 17 tables
+-- Total: 19 tables
 -- Run: mysql -u YOUR_USER -p liva_agency_db < schema.sql
 -- ----------------------------------------------------------

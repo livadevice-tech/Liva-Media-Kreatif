@@ -786,6 +786,262 @@ app.delete("/api/client-reporting/:id", asyncHandler(async (req, res) => {
   res.json({ success: true });
 }));
 
+const mapReportingBatch = (row: any) => ({
+  id: row.id,
+  batchId: row.id,
+  brandId: row.brand_id,
+  brandName: row.brand_name,
+  platform: row.platform,
+  sourceKind: row.source_kind,
+  reportType: row.report_type,
+  fileName: row.file_name,
+  rowCount: Number(row.row_count || 0),
+  gmv: Number(row.total_gmv || 0),
+  uploadedAt: row.uploaded_at,
+  updatedAt: row.updated_at,
+});
+
+const mapReportingRow = (row: any) => ({
+  id: row.id,
+  batchId: row.batch_id,
+  brandId: row.brand_id,
+  brandName: row.brand_name,
+  platform: row.platform,
+  sourceKind: row.source_kind,
+  reportType: row.report_type,
+  title: row.title,
+  date: row.report_date,
+  dateTime: row.report_datetime,
+  shift: row.shift,
+  gmv: Number(row.gmv || 0),
+  products_sold: Number(row.products_sold || 0),
+  buyers: Number(row.buyers || 0),
+  aov: Number(row.aov || 0),
+  views: Number(row.views || 0),
+  impressions: Number(row.impressions || 0),
+  penonton: Number(row.penonton || 0),
+  liveVisits: Number(row.live_visits || 0),
+  productImpressions: Number(row.product_impressions || 0),
+  clicks: Number(row.clicks || 0),
+  orders: Number(row.orders || 0),
+  followers: Number(row.followers || 0),
+  likes: Number(row.likes || 0),
+  shares: Number(row.shares || 0),
+  comments: Number(row.comments || 0),
+  avgViewDuration: Number(row.avg_view_duration || 0),
+  peakViewers: Number(row.peak_viewers || 0),
+  shopVouchers: Number(row.shop_vouchers || 0),
+  specialVouchers: Number(row.special_vouchers || 0),
+  coinsClaimed: Number(row.coins_claimed || 0),
+  hasFunnelInFile: !!row.has_funnel_in_file,
+  rawPayload: row.raw_payload,
+  uploadedAt: row.uploaded_at,
+});
+
+app.get("/api/reporting/brand", asyncHandler(async (req, res) => {
+  const { brandId, platform, sourceKind } = req.query as Record<string, string>;
+
+  const batchParams: any[] = [];
+  let batchSql = `SELECT * FROM reporting_upload_batches WHERE 1=1`;
+  if (brandId) {
+    batchSql += ` AND brand_id = ?`;
+    batchParams.push(brandId);
+  }
+  if (platform) {
+    batchSql += ` AND platform = ?`;
+    batchParams.push(platform);
+  }
+  if (sourceKind) {
+    batchSql += ` AND source_kind = ?`;
+    batchParams.push(sourceKind);
+  }
+  batchSql += ` ORDER BY uploaded_at DESC`;
+
+  const rowParams: any[] = [];
+  let rowSql = `SELECT * FROM reporting_upload_rows WHERE 1=1`;
+  if (brandId) {
+    rowSql += ` AND brand_id = ?`;
+    rowParams.push(brandId);
+  }
+  if (platform) {
+    rowSql += ` AND platform = ?`;
+    rowParams.push(platform);
+  }
+  if (sourceKind) {
+    rowSql += ` AND source_kind = ?`;
+    rowParams.push(sourceKind);
+  }
+  rowSql += ` ORDER BY uploaded_at DESC, report_datetime DESC, report_date DESC`;
+
+  const [batchRows, rowRows] = await Promise.all([
+    queryMany(batchSql, batchParams),
+    queryMany(rowSql, rowParams),
+  ]);
+
+  res.json({
+    batches: batchRows.map(mapReportingBatch),
+    rows: rowRows.map(mapReportingRow),
+  });
+}));
+
+app.post("/api/reporting/brand/batch", asyncHandler(async (req, res) => {
+  const { batch, rows } = req.body || {};
+  if (!batch || !batch.id) {
+    return res.status(400).json({ error: "Batch reporting tidak valid." });
+  }
+
+  const db = getPool();
+  const conn = await db.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    await conn.execute(`DELETE FROM reporting_upload_rows WHERE batch_id = ?`, [batch.id]);
+    await conn.execute(`
+      INSERT INTO reporting_upload_batches (
+        id, brand_id, brand_name, platform, source_kind, report_type, file_name, row_count, total_gmv
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        brand_id = VALUES(brand_id),
+        brand_name = VALUES(brand_name),
+        platform = VALUES(platform),
+        source_kind = VALUES(source_kind),
+        report_type = VALUES(report_type),
+        file_name = VALUES(file_name),
+        row_count = VALUES(row_count),
+        total_gmv = VALUES(total_gmv)
+    `, [
+      batch.id,
+      batch.brandId || null,
+      batch.brandName || null,
+      batch.platform || null,
+      batch.sourceKind || null,
+      batch.reportType || null,
+      batch.fileName || null,
+      Number(batch.rowCount || 0),
+      Number(batch.gmv || 0),
+    ]);
+
+    const rowsArray = Array.isArray(rows) ? rows : [];
+    if (rowsArray.length > 0) {
+      const rowSql = `
+        INSERT INTO reporting_upload_rows (
+          id, batch_id, brand_id, brand_name, platform, source_kind, report_type, title, report_date, report_datetime, shift,
+          gmv, products_sold, buyers, aov, views, impressions, penonton, live_visits, product_impressions, clicks, orders,
+          followers, likes, shares, comments, avg_view_duration, peak_viewers, shop_vouchers, special_vouchers, coins_claimed,
+          has_funnel_in_file, raw_payload
+        ) VALUES ${rowsArray.map(() => "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").join(",")}
+      `;
+      const params: any[] = [];
+      for (const row of rowsArray) {
+        params.push(
+          row.id,
+          row.batchId || batch.id,
+          row.brandId || batch.brandId || null,
+          row.brandName || batch.brandName || null,
+          row.platform || batch.platform || null,
+          row.sourceKind || batch.sourceKind || null,
+          row.reportType || batch.reportType || null,
+          row.title || null,
+          row.date || null,
+          row.dateTime || null,
+          row.shift || null,
+          Number(row.gmv || 0),
+          Number(row.products_sold || 0),
+          Number(row.buyers || 0),
+          Number(row.aov || 0),
+          Number(row.views || 0),
+          Number(row.impressions || 0),
+          Number(row.penonton || 0),
+          Number(row.liveVisits || 0),
+          Number(row.productImpressions || 0),
+          Number(row.clicks || 0),
+          Number(row.orders || 0),
+          Number(row.followers || 0),
+          Number(row.likes || 0),
+          Number(row.shares || 0),
+          Number(row.comments || 0),
+          Number(row.avgViewDuration || 0),
+          Number(row.peakViewers || 0),
+          Number(row.shopVouchers || 0),
+          Number(row.specialVouchers || 0),
+          Number(row.coinsClaimed || 0),
+          row.hasFunnelInFile ? 1 : 0,
+          JSON.stringify(row),
+        );
+      }
+      await conn.execute(rowSql, params);
+    }
+
+    await conn.commit();
+    res.status(201).json({ success: true, id: batch.id, rowCount: rowsArray.length });
+  } catch (e: any) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}));
+
+app.post("/api/reporting/brand/delete-many", asyncHandler(async (req, res) => {
+  const batchIds: string[] = Array.isArray(req.body?.batchIds) ? req.body.batchIds.filter(Boolean) : [];
+  const logIds: string[] = Array.isArray(req.body?.logIds) ? req.body.logIds.filter(Boolean) : [];
+  const db = getPool();
+  const conn = await db.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    if (logIds.length > 0) {
+      const placeholders = logIds.map(() => "?").join(",");
+      const [affectedRows] = await conn.execute<any[]>(
+        `SELECT DISTINCT batch_id FROM reporting_upload_rows WHERE id IN (${placeholders})`,
+        logIds,
+      );
+      await conn.execute(
+        `DELETE FROM reporting_upload_rows WHERE id IN (${placeholders})`,
+        logIds,
+      );
+
+      const affectedBatchIds = (affectedRows as any[]).map((r: any) => r.batch_id).filter(Boolean);
+      for (const batchId of affectedBatchIds) {
+        const [summaryRows] = await conn.execute<any[]>(
+          `SELECT COUNT(*) AS rowCount, COALESCE(SUM(gmv), 0) AS totalGmv FROM reporting_upload_rows WHERE batch_id = ?`,
+          [batchId],
+        );
+        const summary = (summaryRows as any[])[0];
+        const rowCount = Number(summary?.rowCount || 0);
+        const totalGmv = Number(summary?.totalGmv || 0);
+
+        if (rowCount === 0) {
+          await conn.execute(`DELETE FROM reporting_upload_batches WHERE id = ?`, [batchId]);
+        } else {
+          await conn.execute(
+            `UPDATE reporting_upload_batches SET row_count = ?, total_gmv = ? WHERE id = ?`,
+            [rowCount, totalGmv, batchId],
+          );
+        }
+      }
+    }
+
+    if (batchIds.length > 0) {
+      const placeholders = batchIds.map(() => "?").join(",");
+      await conn.execute(
+        `DELETE FROM reporting_upload_batches WHERE id IN (${placeholders})`,
+        batchIds,
+      );
+    }
+
+    await conn.commit();
+    res.json({ success: true });
+  } catch (e: any) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}));
+
 // ==================================================================
 // AI ENDPOINTS (Gemini — tidak berubah dari versi lama)
 // ==================================================================
@@ -1001,6 +1257,85 @@ async function runMigrations() {
     } else {
       console.warn('Migration bank_name warning:', e?.message);
     }
+  }
+
+  try {
+    await execute(`
+      CREATE TABLE IF NOT EXISTS reporting_upload_batches (
+        id           VARCHAR(100)  NOT NULL,
+        brand_id     VARCHAR(100)  DEFAULT NULL,
+        brand_name   VARCHAR(255)  NOT NULL,
+        platform     VARCHAR(100)  NOT NULL,
+        source_kind  VARCHAR(50)   DEFAULT NULL,
+        report_type  VARCHAR(50)   DEFAULT NULL,
+        file_name    VARCHAR(255)  DEFAULT NULL,
+        row_count    INT           NOT NULL DEFAULT 0,
+        total_gmv    DECIMAL(18,2) NOT NULL DEFAULT 0,
+        uploaded_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+        updated_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        FOREIGN KEY (brand_id) REFERENCES client_brands(id) ON DELETE SET NULL,
+        INDEX idx_reporting_brand (brand_id),
+        INDEX idx_reporting_platform (platform),
+        INDEX idx_reporting_source_kind (source_kind),
+        INDEX idx_reporting_uploaded_at (uploaded_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `, []);
+    console.log('✅ Migration: tabel reporting_upload_batches dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration reporting_upload_batches warning:', e?.message);
+  }
+
+  try {
+    await execute(`
+      CREATE TABLE IF NOT EXISTS reporting_upload_rows (
+        id                 VARCHAR(140)  NOT NULL,
+        batch_id           VARCHAR(100)   NOT NULL,
+        brand_id           VARCHAR(100)   DEFAULT NULL,
+        brand_name         VARCHAR(255)   DEFAULT NULL,
+        platform           VARCHAR(100)   DEFAULT NULL,
+        source_kind        VARCHAR(50)    DEFAULT NULL,
+        report_type        VARCHAR(50)    DEFAULT NULL,
+        title              VARCHAR(255)   DEFAULT NULL,
+        report_date        DATE          DEFAULT NULL,
+        report_datetime    DATETIME      DEFAULT NULL,
+        shift              VARCHAR(100)  DEFAULT NULL,
+        gmv                DECIMAL(18,2) DEFAULT 0,
+        products_sold      DECIMAL(18,2) DEFAULT 0,
+        buyers             DECIMAL(18,2) DEFAULT 0,
+        aov                DECIMAL(18,2) DEFAULT 0,
+        views              DECIMAL(18,2) DEFAULT 0,
+        impressions        DECIMAL(18,2) DEFAULT 0,
+        penonton           DECIMAL(18,2) DEFAULT 0,
+        live_visits        DECIMAL(18,2) DEFAULT 0,
+        product_impressions DECIMAL(18,2) DEFAULT 0,
+        clicks             DECIMAL(18,2) DEFAULT 0,
+        orders             DECIMAL(18,2) DEFAULT 0,
+        followers          DECIMAL(18,2) DEFAULT 0,
+        likes              DECIMAL(18,2) DEFAULT 0,
+        shares             DECIMAL(18,2) DEFAULT 0,
+        comments           DECIMAL(18,2) DEFAULT 0,
+        avg_view_duration  INT           DEFAULT 0,
+        peak_viewers       DECIMAL(18,2) DEFAULT 0,
+        shop_vouchers      DECIMAL(18,2) DEFAULT 0,
+        special_vouchers   DECIMAL(18,2) DEFAULT 0,
+        coins_claimed      DECIMAL(18,2) DEFAULT 0,
+        has_funnel_in_file TINYINT(1)     DEFAULT 0,
+        raw_payload        JSON          DEFAULT NULL,
+        uploaded_at        TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        FOREIGN KEY (batch_id) REFERENCES reporting_upload_batches(id) ON DELETE CASCADE,
+        FOREIGN KEY (brand_id) REFERENCES client_brands(id) ON DELETE SET NULL,
+        INDEX idx_reporting_rows_batch (batch_id),
+        INDEX idx_reporting_rows_brand (brand_id),
+        INDEX idx_reporting_rows_platform (platform),
+        INDEX idx_reporting_rows_source_kind (source_kind),
+        INDEX idx_reporting_rows_report_date (report_date)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `, []);
+    console.log('✅ Migration: tabel reporting_upload_rows dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration reporting_upload_rows warning:', e?.message);
   }
 }
 

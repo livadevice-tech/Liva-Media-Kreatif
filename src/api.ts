@@ -220,6 +220,25 @@ export const clientReportingApi = {
 };
 
 // ==================================================================
+// BRAND REPORTING STORAGE
+// ==================================================================
+export const reportingBrandApi = {
+  /** Ambil snapshot reporting brand (batch + raw logs) */
+  getAll: (params?: { brandId?: string }) => {
+    const qs = params?.brandId ? `?brandId=${params.brandId}` : '';
+    return request<{ batches: any[]; rows: any[] }>('GET', `/reporting/brand${qs}`);
+  },
+
+  /** Simpan 1 batch upload beserta seluruh raw rows */
+  createBatch: (payload: { batch: any; rows: any[] }) =>
+    request<{ success: boolean; id: string; rowCount: number }>('POST', '/reporting/brand/batch', payload),
+
+  /** Hapus beberapa batch dan/atau row sekaligusa */
+  deleteMany: (payload: { batchIds?: string[]; logIds?: string[] }) =>
+    request<{ success: boolean }>('POST', '/reporting/brand/delete-many', payload),
+};
+
+// ==================================================================
 // SYNC HELPER — Pengganti firestoreSync.ts
 // ==================================================================
 /**

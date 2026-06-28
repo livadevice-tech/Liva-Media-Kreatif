@@ -143,6 +143,7 @@ import {
   clientLeadsApi,
   adminAccountsApi,
   settingsApi,
+  reportingBrandApi,
   testDbConnection,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
@@ -235,34 +236,35 @@ const normalizeDateYMD = (d: string) => {
 const inferShopeeReportingKind = (headers: string[], fileNameLower: string) => {
   const h = headers.map((x) => String(x || "").toLowerCase().trim());
 
+  const isLive = h.some(
+    (col) =>
+      col.includes("nama livestream") ||
+      col.includes("livestream name") ||
+      col.includes("start time") ||
+      col.includes("waktu mulai") ||
+      col.includes("durasi") ||
+      col.includes("penjualan(pesanan dibuat)") ||
+      col.includes("penjualan(pesanan siap dikirim)") ||
+      col.includes("produk terjual(pesanan dibuat)") ||
+      col.includes("produk terjual(pesanan siap dikirim)") ||
+      col.includes("pesanan(pesanan dibuat)") ||
+      col.includes("pesanan(pesanan siap dikirim)"),
+  );
+
+  if (isLive) return "live";
+
   const isEngagement = h.some(
     (col) =>
-      col.includes("periode data") ||
-      col.includes("user id") ||
       col.includes("suka") ||
       col.includes("share") ||
-      col.includes("komentar") ||
       col.includes("voucher toko diklaim") ||
       col.includes("voucher spesial live diklaim") ||
       col.includes("koin diklaim") ||
       col.includes("persentase klik") ||
-      col.includes("penonton aktif") ||
       col.includes("pengikut baru dari livestream"),
   );
 
   if (isEngagement) return "engagement";
-
-  const isLive = h.some(
-    (col) =>
-      col.includes("nama livestream") ||
-      col.includes("start time") ||
-      col.includes("durasi") ||
-      col.includes("pesanan(pesanan dibuat)") ||
-      col.includes("produk terjual(pesanan dibuat)") ||
-      col.includes("penjualan(pesanan dibuat)"),
-  );
-
-  if (isLive) return "live";
 
   if (fileNameLower.includes("engagement")) return "engagement";
   return "live";
@@ -1084,7 +1086,7 @@ export default function App() {
   const [uploadHistory, setUploadHistory] = useState<any[]>([]);
 
   useEffect(() => {
-    if (isGlobalConfigsLoaded && uploadHistory.length > 0) {
+    if (isGlobalConfigsLoaded) {
       saveLocalConfig({ uploadHistory });
     }
   }, [uploadHistory, isGlobalConfigsLoaded]);
@@ -1093,7 +1095,7 @@ export default function App() {
   const [brandReports, setBrandReports] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
-    if (isGlobalConfigsLoaded && Object.keys(brandReports).length > 0) {
+    if (isGlobalConfigsLoaded) {
       saveLocalConfig({ brandReports });
     }
   }, [brandReports, isGlobalConfigsLoaded]);
@@ -1559,6 +1561,39 @@ export default function App() {
 
   }, [loggedInHostId, loggedInAdminId, isOperatorLoggedIn, loggedInClientBrandId]);
 
+  useEffect(() => {
+    if (!isGlobalConfigsLoaded) return;
+
+    let cancelled = false;
+    const isAdminOrOperator = loggedInAdminId || isOperatorLoggedIn;
+    const isBrand = loggedInClientBrandId;
+    const brandIdFilter = !isAdminOrOperator && isBrand ? loggedInClientBrandId || undefined : undefined;
+
+    const loadReportingSnapshot = async () => {
+      try {
+        const snapshot = await reportingBrandApi.getAll(
+          brandIdFilter ? { brandId: brandIdFilter } : undefined,
+        );
+        if (cancelled || !snapshot) return;
+
+        if (Array.isArray(snapshot.batches) && snapshot.batches.length > 0) {
+          setBrandUploadHistory((prev) => mergeReportingRecords(snapshot.batches, prev));
+        }
+        if (Array.isArray(snapshot.rows) && snapshot.rows.length > 0) {
+          setBrandPerformanceLogs((prev) => mergeReportingRecords(snapshot.rows, prev));
+        }
+      } catch (err) {
+        console.error("Error loading brand reporting snapshot:", err);
+      }
+    };
+
+    loadReportingSnapshot();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isGlobalConfigsLoaded, loggedInAdminId, isOperatorLoggedIn, loggedInClientBrandId, mergeReportingRecords]);
+
   const setHosts = useCallback((action: any) => {
     _setHosts((prev) => {
       const next = typeof action === "function" ? action(prev) : action;
@@ -1659,14 +1694,38 @@ export default function App() {
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
   const [brandUploadHistory, setBrandUploadHistory] = useState<any[]>([]);
 
+  function mergeReportingRecords(primary: any[] = [], secondary: any[] = []) {
+    const merged = new Map<string, any>();
+    [...secondary, ...primary].forEach((item) => {
+      if (item?.id) {
+        merged.set(item.id, item);
+      }
+    });
+    return Array.from(merged.values());
+  }
+
+  const syncReportingDeletion = useCallback(async (payload: { batchIds?: string[]; logIds?: string[] }) => {
+    try {
+      await reportingBrandApi.deleteMany(payload);
+    } catch (err) {
+      console.error("Gagal sinkronisasi delete reporting ke backend:", err);
+      addNotification(
+        "⚠️ Sinkronisasi Delete",
+        "Perubahan di lokal sudah tersimpan, tetapi backend reporting perlu dicek ulang.",
+        "warning",
+        "reporting_brand",
+      );
+    }
+  }, []);
+
   useEffect(() => {
-    if (isGlobalConfigsLoaded && brandUploadHistory.length > 0) {
+    if (isGlobalConfigsLoaded) {
       saveLocalConfig({ brandUploadHistory });
     }
   }, [brandUploadHistory, isGlobalConfigsLoaded]);
 
   useEffect(() => {
-    if (isGlobalConfigsLoaded && brandPerformanceLogs.length > 0) {
+    if (isGlobalConfigsLoaded) {
       saveLocalConfig({ brandPerformanceLogs });
     }
   }, [brandPerformanceLogs, isGlobalConfigsLoaded]);
@@ -3858,6 +3917,10 @@ export default function App() {
             setIsSavingReport(true);
             const logIdsToDelete = new Set(logsToDelete.map((l) => l.id));
             const batchIdsToDelete = new Set(batchesToDelete.map((b) => b.id));
+            await syncReportingDeletion({
+              logIds: Array.from(logIdsToDelete),
+              batchIds: Array.from(batchIdsToDelete),
+            });
             setBrandPerformanceLogs((prev) => prev.filter((l) => !logIdsToDelete.has(l.id)));
             setBrandUploadHistory((prev) => prev.filter((b) => !batchIdsToDelete.has(b.id)));
             customAlert("Data raw berhasil dihapus.");
@@ -3892,6 +3955,11 @@ export default function App() {
           const logIds = new Set(brandLogs.map((l) => l.id));
           const batchIds = new Set(brandBatches.map((b) => b.id));
           const skuIds = new Set(brandSkuLogs.map((l) => l.id));
+
+          await syncReportingDeletion({
+            logIds: Array.from(logIds),
+            batchIds: Array.from(batchIds),
+          });
 
           setBrandPerformanceLogs((prev) => prev.filter((l) => !logIds.has(l.id)));
           setBrandUploadHistory((prev) => prev.filter((b) => !batchIds.has(b.id)));
@@ -4042,6 +4110,7 @@ export default function App() {
         try {
           setIsSavingReport(true);
           const idsToDelete = new Set(logsToDelete.map((l) => l.id));
+          await syncReportingDeletion({ logIds: Array.from(idsToDelete) });
           setBrandPerformanceLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
           customAlert(
             `Berhasil menghapus ${logsToDelete.length} data ${displayType} untuk brand "${brandName}"!`,
@@ -4076,6 +4145,8 @@ export default function App() {
           const batchLogs = brandPerformanceLogs.filter(
             (log) => log.batchId === batchId,
           );
+
+          await syncReportingDeletion({ batchIds: [batchId] });
 
           // Hapus batch receipt dari state lokal
           setUploadHistory((prev) => prev.filter((h) => h.id !== batchId));
@@ -4294,6 +4365,21 @@ export default function App() {
             String(platformToSave).toLowerCase().includes("tiktok") ? "both" : uploadTargetTab,
         };
         setUploadHistory((prev) => [...prev, uploadHistoryRecord]);
+
+        try {
+          await reportingBrandApi.createBatch({
+            batch: uploadHistoryRecord,
+            rows: allRecordsToSave,
+          });
+        } catch (apiErr) {
+          console.error("Gagal menyimpan reporting batch ke backend:", apiErr);
+          addNotification(
+            "⚠️ Sinkronisasi Backend",
+            `Data lokal berhasil disimpan, tetapi sinkronisasi reporting ke backend belum sempurna. Silakan cek koneksi server.`,
+            "warning",
+            "reporting_brand",
+          );
+        }
 
         addNotification(
           "✅ Tersimpan",
