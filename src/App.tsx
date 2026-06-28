@@ -3863,24 +3863,36 @@ export default function App() {
               ? parseIndonesianNumber(rowData[coinsClaimedIdx])
               : 0;
           const rawAvgViewDuration =
-            avgViewDurationIdx !== -1
-              ? String(rowData[avgViewDurationIdx])
-              : "";
+            avgViewDurationIdx !== -1 ? rowData[avgViewDurationIdx] : "";
           let parsedAvgViewDuration = 0;
-          if (rawAvgViewDuration.includes(":")) {
-            const parts = rawAvgViewDuration.split(":").map(Number);
-            if (parts.length === 3) {
-              parsedAvgViewDuration =
-                parts[0] * 3600 + parts[1] * 60 + parts[2];
-            } else if (parts.length === 2) {
-              parsedAvgViewDuration = parts[0] * 60 + parts[1];
+          if (typeof rawAvgViewDuration === "number") {
+            if (rawAvgViewDuration > 0 && rawAvgViewDuration < 1) {
+              // Excel time serial stored as fraction of a day
+              parsedAvgViewDuration = Math.round(rawAvgViewDuration * 86400);
+            } else {
+              parsedAvgViewDuration = Math.round(rawAvgViewDuration);
             }
           } else {
-            parsedAvgViewDuration =
-              parseFloat(rawAvgViewDuration.replace(/[^0-9.]/g, "")) || 0;
-          }
-          if (parsedAvgViewDuration > 0 && parsedAvgViewDuration < 10) {
-            parsedAvgViewDuration = Math.floor(parsedAvgViewDuration * 60);
+            const rawAvgViewDurationStr = String(rawAvgViewDuration || "").trim();
+            if (rawAvgViewDurationStr.includes(":")) {
+              const parts = rawAvgViewDurationStr.split(":").map(Number);
+              if (parts.length === 3) {
+                parsedAvgViewDuration =
+                  parts[0] * 3600 + parts[1] * 60 + parts[2];
+              } else if (parts.length === 2) {
+                parsedAvgViewDuration = parts[0] * 60 + parts[1];
+              }
+            } else {
+              const numericAvgViewDuration =
+                parseFloat(rawAvgViewDurationStr.replace(/[^0-9.]/g, "")) || 0;
+              if (numericAvgViewDuration > 0 && numericAvgViewDuration < 1) {
+                parsedAvgViewDuration = Math.round(
+                  numericAvgViewDuration * 86400,
+                );
+              } else {
+                parsedAvgViewDuration = Math.round(numericAvgViewDuration);
+              }
+            }
           }
 
           const impressions = parsedImpressions || 0;
