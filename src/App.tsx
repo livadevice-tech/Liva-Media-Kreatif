@@ -232,6 +232,61 @@ const normalizeDateYMD = (d: string) => {
   return norm;
 };
 
+const inferShopeeReportingKind = (headers: string[], fileNameLower: string) => {
+  const h = headers.map((x) => String(x || "").toLowerCase().trim());
+
+  const isEngagement = h.some(
+    (col) =>
+      col.includes("periode data") ||
+      col.includes("user id") ||
+      col.includes("suka") ||
+      col.includes("share") ||
+      col.includes("komentar") ||
+      col.includes("voucher toko diklaim") ||
+      col.includes("voucher spesial live diklaim") ||
+      col.includes("koin diklaim") ||
+      col.includes("persentase klik") ||
+      col.includes("penonton aktif") ||
+      col.includes("pengikut baru dari livestream"),
+  );
+
+  if (isEngagement) return "engagement";
+
+  const isLive = h.some(
+    (col) =>
+      col.includes("nama livestream") ||
+      col.includes("start time") ||
+      col.includes("durasi") ||
+      col.includes("pesanan(pesanan dibuat)") ||
+      col.includes("produk terjual(pesanan dibuat)") ||
+      col.includes("penjualan(pesanan dibuat)"),
+  );
+
+  if (isLive) return "live";
+
+  if (fileNameLower.includes("engagement")) return "engagement";
+  return "live";
+};
+
+const getReportingSourceKind = (platform: string, reportType: string) => {
+  const platformLower = String(platform || "").toLowerCase();
+  const reportLower = String(reportType || "").toLowerCase();
+  if (platformLower.includes("tiktok")) {
+    return reportLower === "engagement" ? "tiktok_engagement" : "tiktok_live";
+  }
+  if (platformLower.includes("shopee")) {
+    return reportLower === "engagement" ? "shopee_engagement" : "shopee_live";
+  }
+  return reportLower || "unknown";
+};
+
+const getProductSourceKind = (platform: string) => {
+  const platformLower = String(platform || "").toLowerCase();
+  if (platformLower.includes("tiktok")) return "tiktok_product";
+  if (platformLower.includes("shopee")) return "shopee_product";
+  return "product";
+};
+
 // Dynamic color generators for Brand, Shift, and Studio to boost UX readability
 const getBrandStyle = (brandName: string) => {
   if (!brandName) return "bg-slate-50 text-slate-700 border-slate-200/40";
@@ -2728,6 +2783,8 @@ export default function App() {
             productName = "",
             sold = 0,
             revenue = 0,
+            clicks = 0,
+            cartAdds = 0,
             date = "";
 
           headers.forEach((h, idx) => {
@@ -2776,6 +2833,18 @@ export default function App() {
             )
               revenue = parseNum(val);
             else if (
+              h.includes("klik produk") ||
+              h.includes("product clicks") ||
+              h.includes("clicks")
+            )
+              clicks = parseNum(val);
+            else if (
+              h.includes("tambah ke keranjang") ||
+              h.includes("add to cart") ||
+              h.includes("keranjang")
+            )
+              cartAdds = parseNum(val);
+            else if (
               h.includes("tanggal") ||
               h.includes("waktu") ||
               h.includes("date") ||
@@ -2804,6 +2873,9 @@ export default function App() {
               productName: productName || "Unnamed Product",
               sold: sold,
               revenue: revenue,
+              clicks,
+              cartAdds,
+              sourceKind: getProductSourceKind(detectedPlatform),
               date: date || globalDateFallback || new Date().toISOString().split("T")[0],
             });
           }
@@ -3032,18 +3104,48 @@ export default function App() {
           return -1;
         };
 
-        const titleIdx = findColIdx([
-          "nama livestream",
-          "livestream name",
-          "live room title",
-          "judul ruang live",
-          "judul",
-          "livestream",
-          "streaming",
-          "live",
-          "nama_brand",
-          "brand",
-        ]);
+        const shopeeSourceKind =
+          detectedPlatform === "Shopee Live"
+            ? inferShopeeReportingKind(headers, fileNameLower)
+            : "live";
+
+        if (detectedPlatform === "Shopee Live") {
+          setUploadTargetTab(shopeeSourceKind as "live" | "engagement");
+        }
+
+        const titleIdx = findColIdx(
+          detectedPlatform === "Shopee Live" && shopeeSourceKind === "engagement"
+            ? [
+                "user id",
+                "userid",
+                "periode data",
+                "periode",
+                "tanggal",
+                "date",
+                "nama livestream",
+                "livestream name",
+                "live room title",
+                "judul ruang live",
+                "judul",
+                "livestream",
+                "streaming",
+                "live",
+              ]
+            : [
+                "nama livestream",
+                "livestream name",
+                "live room title",
+                "judul ruang live",
+                "judul",
+                "livestream",
+                "streaming",
+                "live",
+                "nama_brand",
+                "brand",
+              ],
+        );
+        const userIdIdx = findColIdx(["user id", "userid", "uid"]);
+        const periodIdx = findColIdx(["periode data", "periode", "period"]);
         const startIdx = findColIdx([
           "start time",
           "waktu mulai",
@@ -3371,9 +3473,15 @@ export default function App() {
           if (!rowData || rowData.length === 0) continue;
 
           const titleRaw =
-            titleIdx !== -1
-              ? String(rowData[titleIdx] || "")
-              : String(rowData[0] || "");
+            detectedPlatform === "Shopee Live" && shopeeSourceKind === "engagement"
+              ? String(
+                  rowData[userIdIdx !== -1 ? userIdIdx : periodIdx !== -1 ? periodIdx : titleIdx] ||
+                    rowData[titleIdx] ||
+                    "",
+                )
+              : titleIdx !== -1
+                ? String(rowData[titleIdx] || "")
+                : String(rowData[0] || "");
           // Identify "Total" or summary rows which shouldn't be counted as individual streams
           if (
             titleRaw.toLowerCase() === "total" ||
@@ -3608,6 +3716,10 @@ export default function App() {
 
           rows.push({
             title,
+            sourceKind:
+              detectedPlatform === "Shopee Live"
+                ? `shopee_${shopeeSourceKind}`
+                : `tiktok_${uploadTargetTab}`,
             date: dateOnly,
             dateTime: formattedDate,
             shift,
@@ -4020,6 +4132,9 @@ export default function App() {
           const baseId = `${brandIdToSave}_${platformToSave.toLowerCase().replace(/\s/g, "_")}_${row.date}_${sanitizedTitle}_${Math.random().toString(36).substring(2, 9)}`;
           const rowGmv = Number(row.gmv || 0);
           totalBatchGmv += rowGmv;
+          const sourceKindFromRow =
+            row.sourceKind ||
+            getReportingSourceKind(platformToSave, uploadTargetTab);
 
           const isTiktok = String(platformToSave).toLowerCase().includes("tiktok");
           if (isTiktok) {
@@ -4029,6 +4144,7 @@ export default function App() {
               brandId: brandIdToSave,
               brandName: brandNameToSave,
               platform: platformToSave,
+              sourceKind: "tiktok_live",
               title: row.title,
               date: row.date,
               dateTime: row.dateTime || row.date,
@@ -4065,6 +4181,7 @@ export default function App() {
               brandId: brandIdToSave,
               brandName: brandNameToSave,
               platform: platformToSave,
+              sourceKind: "tiktok_engagement",
               title: row.title,
               date: row.date,
               dateTime: row.dateTime || row.date,
@@ -4090,6 +4207,7 @@ export default function App() {
               brandId: brandIdToSave,
               brandName: brandNameToSave,
               platform: platformToSave,
+              sourceKind: sourceKindFromRow,
               title: row.title,
               date: row.date,
               dateTime: row.dateTime || row.date,
@@ -4151,6 +4269,7 @@ export default function App() {
           brandId: brandIdToSave,
           brandName: brandNameToSave,
           platform: platformToSave,
+          sourceKind: getReportingSourceKind(platformToSave, uploadTargetTab),
           fileName: currentFileName,
           uploadedAt: new Date().toISOString(),
           rowCount: dataToSave.length,
