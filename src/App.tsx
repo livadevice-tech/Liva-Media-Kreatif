@@ -18317,11 +18317,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {operatorReportingTab === "live" && (
                             <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                               {(() => {
-                                const filteredDb = brandPerformanceLogs.filter(
-                                  (log) =>
-                                    log.brandId === activeReportBrandId &&
-                                    log.reportType !== "engagement",
-                                );
+                                const filteredLiveDb =
+                                  brandPerformanceLogs.filter(
+                                    (log) =>
+                                      log.brandId === activeReportBrandId &&
+                                      log.reportType !== "engagement",
+                                  );
+                                const filteredEngagementDb =
+                                  brandPerformanceLogs.filter(
+                                    (log) =>
+                                      log.brandId === activeReportBrandId &&
+                                      log.reportType === "engagement",
+                                  );
 
                                 let effectiveFilter = operatorDateFilterType;
                                 let targetLatestDate = "";
@@ -18332,7 +18339,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 if (effectiveFilter === "latest") {
                                   const allDates = Array.from<string>(
                                     new Set(
-                                      filteredDb
+                                      filteredLiveDb
                                         .map((l) => normalizeDateYMD(l.date))
                                         .filter(Boolean) as string[],
                                     ),
@@ -18501,17 +18508,25 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   });
                                 };
                                 const tableLogs = applyFilter(
-                                  filteredDb,
+                                  filteredLiveDb,
                                   false,
                                 );
                                 const prevTableLogs =
                                   effectiveFilter !== "all"
-                                    ? applyFilter(filteredDb, true)
+                                    ? applyFilter(filteredLiveDb, true)
+                                    : [];
+                                const engagementTableLogs = applyFilter(
+                                  filteredEngagementDb,
+                                  false,
+                                );
+                                const prevEngagementTableLogs =
+                                  effectiveFilter !== "all"
+                                    ? applyFilter(filteredEngagementDb, true)
                                     : [];
 
                                 const buildDailyChart = (startDate: string, endDate: string) => {
                                   const group: any = {};
-                                  filteredDb.forEach((log: any) => {
+                                  filteredLiveDb.forEach((log: any) => {
                                     if (!log.date) return;
                                     const d = normalizeDateYMD(log.date);
                                     if (d >= startDate && d <= endDate) {
@@ -18534,7 +18549,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     group[m] = { date: getIndonesianMonthLabel(m), labelMonth: m, gmv: 0, orders: 0, itemsSold: 0, clicks: 0, penonton: 0 };
                                   });
 
-                                  filteredDb.forEach((log: any) => {
+                                  filteredLiveDb.forEach((log: any) => {
                                     if (!log.date) return;
                                     const mLabel = log.date.substring(0, 7); // YYYY-MM
                                     if (group[mLabel]) {
@@ -18569,7 +18584,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 } else if (effectiveFilter === "month") {
                                   const selM = operatorSelectedMonth;
                                   if (selM) {
-                                    const rawMonths = Array.from(new Set(filteredDb.map(l => l.date ? l.date.substring(0, 7) : "").filter(Boolean))).sort();
+                                    const rawMonths = Array.from(
+                                      new Set(
+                                        filteredLiveDb
+                                          .map((l) =>
+                                            l.date ? l.date.substring(0, 7) : "",
+                                          )
+                                          .filter(Boolean),
+                                      ),
+                                    ).sort();
                                     const hasNext = rawMonths.some(rm => rm > selM);
                                     
                                     const getMonthOffset = (baseYYYYMM: string, offset: number) => {
@@ -18647,18 +18670,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   (sum, item) => sum + (item.clicks || 0),
                                   0,
                                 );
-                                const engagementMetricLogs =
-                                  tableLogs.filter(
-                                    (item) =>
-                                      item.reportType === "engagement",
-                                  );
                                 const avgViewDurationSourceLogs =
-                                  engagementMetricLogs.length > 0
-                                    ? engagementMetricLogs
+                                  engagementTableLogs.length > 0
+                                    ? engagementTableLogs
                                     : tableLogs;
                                 const peakViewSourceLogs =
-                                  engagementMetricLogs.length > 0
-                                    ? engagementMetricLogs
+                                  engagementTableLogs.length > 0
+                                    ? engagementTableLogs
                                     : tableLogs;
                                 const avgViewDurationValues =
                                   avgViewDurationSourceLogs
@@ -18735,18 +18753,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   (sum, item) => sum + (item.clicks || 0),
                                   0,
                                 );
-                                const prevEngagementMetricLogs =
-                                  prevTableLogs.filter(
-                                    (item) =>
-                                      item.reportType === "engagement",
-                                  );
                                 const prevAvgViewDurationSourceLogs =
-                                  prevEngagementMetricLogs.length > 0
-                                    ? prevEngagementMetricLogs
+                                  prevEngagementTableLogs.length > 0
+                                    ? prevEngagementTableLogs
                                     : prevTableLogs;
                                 const prevPeakViewSourceLogs =
-                                  prevEngagementMetricLogs.length > 0
-                                    ? prevEngagementMetricLogs
+                                  prevEngagementTableLogs.length > 0
+                                    ? prevEngagementTableLogs
                                     : prevTableLogs;
                                 const pAvgViewDurationValues =
                                   prevAvgViewDurationSourceLogs
@@ -19267,7 +19280,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         ? operatorPlatformFilter
                                             .toLowerCase()
                                             .includes("shopee")
-                                        : filteredDb?.some(
+                                        : filteredLiveDb?.some(
                                             (log) =>
                                               log.platform &&
                                               log.platform
