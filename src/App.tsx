@@ -8396,14 +8396,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         (sum, item) => sum + (item.clicks || 0),
                         0,
                       );
-                      const avgViewDurationSourceLogs =
-                        engagementTableLogs.length > 0
-                          ? engagementTableLogs
-                          : tableLogs;
-                      const peakViewSourceLogs =
-                        engagementTableLogs.length > 0
-                          ? engagementTableLogs
-                          : tableLogs;
+                      const avgViewDurationSourceLogs = tableLogs;
+                      const peakViewSourceLogs = tableLogs;
                       const avgViewDurationValues =
                         avgViewDurationSourceLogs
                           .map((item) => Number(item.avgViewDuration || 0))
@@ -8474,14 +8468,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         (sum, item) => sum + (item.clicks || 0),
                         0,
                       );
-                      const prevAvgViewDurationSourceLogs =
-                        prevEngagementTableLogs.length > 0
-                          ? prevEngagementTableLogs
-                          : prevTableLogs;
-                      const prevPeakViewSourceLogs =
-                        prevEngagementTableLogs.length > 0
-                          ? prevEngagementTableLogs
-                          : prevTableLogs;
+                      const prevAvgViewDurationSourceLogs = prevTableLogs;
+                      const prevPeakViewSourceLogs = prevTableLogs;
                       const pAvgViewDurationValues =
                         prevAvgViewDurationSourceLogs
                           .map((item) => Number(item.avgViewDuration || 0))
@@ -10006,7 +9994,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     const isLogShopee = log.platform && log.platform.toLowerCase().includes("shopee");
                                     const lViews = isLogShopee 
                                       ? (log.reportType === "engagement" || String(log.sourceKind || "").includes("engagement")
-                                          ? (log.views || log.impressions || log.penonton || 0)
+                                          ? (log.views || 0)
                                           : (log.penonton || log.impressions || log.views || 0))
                                       : (log.impressions || log.views || log.liveVisits || 0);
                                     const lCtr =
@@ -20604,7 +20592,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               const isLogShopee = log.platform && log.platform.toLowerCase().includes("shopee");
                                               const lViews = isLogShopee 
                                                 ? (log.reportType === "engagement" || String(log.sourceKind || "").includes("engagement")
-                                                    ? (log.views || log.impressions || log.penonton || 0)
+                                                    ? (log.views || 0)
                                                     : (log.penonton || log.impressions || log.views || 0))
                                                 : (log.impressions || log.views || log.liveVisits || 0);
                                               const lCtr =
@@ -22286,12 +22274,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 // Grouped or detailed? Let's just sum it up.
                                 const isShopeeEng = operatorPlatformFilter && operatorPlatformFilter.toLowerCase().includes("shopee");
                                 const totalImpressions = logs.reduce(
-                                  (sum, l) => sum + (isShopeeEng ? (l.penonton || l.impressions || l.views || 0) : (l.views || 0)),
+                                  (sum, l) =>
+                                    sum +
+                                    (isShopeeEng
+                                      ? (l.views || 0)
+                                      : (l.views || 0)),
                                   0,
                                 );
                                 const totalPenonton = logs.reduce(
-                                  (sum, l) =>
-                                    sum + (l.views || l.penonton || l.impressions || 0),
+                                  (sum, l) => sum + (l.views || 0),
                                   0,
                                 );
                                 const avgPeakViewers =
@@ -22361,9 +22352,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     };
                                   }
                                   groupedByDate[dateStr].penonton +=
-                                    log.reportType === "engagement" || String(log.sourceKind || "").includes("engagement")
-                                      ? (log.views || log.impressions || log.penonton || 0)
-                                      : (log.penonton || log.impressions || 0);
+                                    log.views || 0;
                                   groupedByDate[dateStr].likes +=
                                     log.likes || 0;
                                   groupedByDate[dateStr].shares +=
