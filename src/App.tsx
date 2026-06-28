@@ -173,6 +173,32 @@ function saveLocalConfig(partialConfig: Record<string, any>): void {
   }
 }
 
+function pruneLocalConfig(keysToRemove: string[]): void {
+  try {
+    const existing = localStorage.getItem('liva_global_configs');
+    if (!existing) return;
+    const current = JSON.parse(existing);
+    if (!current || typeof current !== "object") return;
+
+    let changed = false;
+    for (const key of keysToRemove) {
+      if (key in current) {
+        delete current[key];
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+
+    localStorage.setItem('liva_global_configs', JSON.stringify(current));
+    if (typeof settingsApi !== 'undefined') {
+      settingsApi.save('liva_global_configs', current).catch(console.error);
+    }
+  } catch (e) {
+    console.error('pruneLocalConfig error:', e);
+  }
+}
+
 const isPlatformMatch = (lp: string, fp: string) => {
   if (!fp || fp === "Semua Platform") return true;
   if (!lp) return false;
@@ -1084,12 +1110,11 @@ export default function App() {
   const [uploadPlatform, setUploadPlatform] = useState<string>("Tiktok");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadHistory, setUploadHistory] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (isGlobalConfigsLoaded) {
-      saveLocalConfig({ uploadHistory });
-    }
-  }, [uploadHistory, isGlobalConfigsLoaded]);
+  const legacyReportingConfigRef = useRef<{
+    uploadHistory?: any[];
+    brandUploadHistory?: any[];
+    brandPerformanceLogs?: any[];
+  } | null>(null);
 
 
   const [brandReports, setBrandReports] = useState<Record<string, any[]>>({});
@@ -1525,6 +1550,17 @@ export default function App() {
 
           // Set all the states
           if (data) {
+            if (
+              Array.isArray(data.uploadHistory) ||
+              Array.isArray(data.brandUploadHistory) ||
+              Array.isArray(data.brandPerformanceLogs)
+            ) {
+              legacyReportingConfigRef.current = {
+                uploadHistory: Array.isArray(data.uploadHistory) ? data.uploadHistory : undefined,
+                brandUploadHistory: Array.isArray(data.brandUploadHistory) ? data.brandUploadHistory : undefined,
+                brandPerformanceLogs: Array.isArray(data.brandPerformanceLogs) ? data.brandPerformanceLogs : undefined,
+              };
+            }
             if (Array.isArray(data.uploadHistory)) setUploadHistory(data.uploadHistory);
             if (Array.isArray(data.brandUploadHistory)) setBrandUploadHistory(data.brandUploadHistory);
             if (Array.isArray(data.brandPerformanceLogs)) setBrandPerformanceLogs(data.brandPerformanceLogs);
@@ -1560,49 +1596,6 @@ export default function App() {
     return () => {};
 
   }, [loggedInHostId, loggedInAdminId, isOperatorLoggedIn, loggedInClientBrandId]);
-
-  useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
-
-    let cancelled = false;
-    const isAdminOrOperator = loggedInAdminId || isOperatorLoggedIn;
-    const isBrand = loggedInClientBrandId;
-    const brandIdFilter = !isAdminOrOperator && isBrand ? loggedInClientBrandId || undefined : undefined;
-
-    const loadReportingSnapshot = async () => {
-      try {
-        const snapshot = await reportingBrandApi.getAll(
-          brandIdFilter ? { brandId: brandIdFilter } : undefined,
-        );
-        if (cancelled || !snapshot) return;
-
-        const snapshotBatches = Array.isArray(snapshot.batches) ? snapshot.batches : [];
-        const snapshotRows = Array.isArray(snapshot.rows) ? snapshot.rows : [];
-
-        setBrandUploadHistory((prev) => {
-          const retained = brandIdFilter
-            ? prev.filter((item) => item.brandId !== brandIdFilter)
-            : [];
-          return mergeReportingRecords(snapshotBatches, retained);
-        });
-
-        setBrandPerformanceLogs((prev) => {
-          const retained = brandIdFilter
-            ? prev.filter((item) => item.brandId !== brandIdFilter)
-            : [];
-          return mergeReportingRecords(snapshotRows, retained);
-        });
-      } catch (err) {
-        console.error("Error loading brand reporting snapshot:", err);
-      }
-    };
-
-    loadReportingSnapshot();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isGlobalConfigsLoaded, loggedInAdminId, isOperatorLoggedIn, loggedInClientBrandId, mergeReportingRecords]);
 
   const setHosts = useCallback((action: any) => {
     _setHosts((prev) => {
@@ -1703,16 +1696,48 @@ export default function App() {
   const [brandPerformanceLogs, setBrandPerformanceLogs] = useState<any[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
   const [brandUploadHistory, setBrandUploadHistory] = useState<any[]>([]);
+  const [brandReportingSummary, setBrandReportingSummary] = useState<Record<string, {
+    brandId: string;
+    brandName: string;
+    sessionCount: number;
+    batchCount: number;
+    totalGmv: number;
+  }>>({});
 
-  function mergeReportingRecords(primary: any[] = [], secondary: any[] = []) {
-    const merged = new Map<string, any>();
-    [...secondary, ...primary].forEach((item) => {
-      if (item?.id) {
-        merged.set(item.id, item);
+  const refreshReportingSummary = useCallback(async () => {
+    try {
+      const summaryRows = await reportingBrandApi.getSummary();
+      const nextSummary: Record<string, {
+        brandId: string;
+        brandName: string;
+        sessionCount: number;
+        batchCount: number;
+        totalGmv: number;
+      }> = {};
+
+      for (const row of summaryRows || []) {
+        if (!row?.brandId) continue;
+        nextSummary[row.brandId] = {
+          brandId: row.brandId,
+          brandName: row.brandName || "",
+          sessionCount: Number(row.sessionCount || 0),
+          batchCount: Number(row.batchCount || 0),
+          totalGmv: Number(row.totalGmv || 0),
+        };
       }
-    });
-    return Array.from(merged.values());
-  }
+
+      setBrandReportingSummary(nextSummary);
+
+      const hasBackendReporting = Object.values(nextSummary).some((item) => item.sessionCount > 0 || item.batchCount > 0);
+      const legacy = legacyReportingConfigRef.current;
+      if (hasBackendReporting && legacy) {
+        pruneLocalConfig(["uploadHistory", "brandUploadHistory", "brandPerformanceLogs"]);
+        legacyReportingConfigRef.current = null;
+      }
+    } catch (err) {
+      console.error("Error refreshing reporting summary:", err);
+    }
+  }, []);
 
   const syncReportingDeletion = useCallback(async (payload: { batchIds?: string[]; logIds?: string[] }) => {
     try {
@@ -1727,18 +1752,6 @@ export default function App() {
       );
     }
   }, []);
-
-  useEffect(() => {
-    if (isGlobalConfigsLoaded) {
-      saveLocalConfig({ brandUploadHistory });
-    }
-  }, [brandUploadHistory, isGlobalConfigsLoaded]);
-
-  useEffect(() => {
-    if (isGlobalConfigsLoaded) {
-      saveLocalConfig({ brandPerformanceLogs });
-    }
-  }, [brandPerformanceLogs, isGlobalConfigsLoaded]);
 
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [clientDateFilterType, setClientDateFilterType] = useState<
@@ -2347,6 +2360,47 @@ export default function App() {
   const [rawDateSortAsc, setRawDateSortAsc] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 30;
+
+  useEffect(() => {
+    if (!isGlobalConfigsLoaded) return;
+    refreshReportingSummary();
+  }, [isGlobalConfigsLoaded, refreshReportingSummary]);
+
+  useEffect(() => {
+    if (!isGlobalConfigsLoaded) return;
+
+    let cancelled = false;
+    const brandIdFilter = activeReportBrandId || loggedInClientBrandId || null;
+
+    if (!brandIdFilter) {
+      setBrandUploadHistory([]);
+      setBrandPerformanceLogs([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const loadReportingSnapshot = async () => {
+      try {
+        const snapshot = await reportingBrandApi.getAll({ brandId: brandIdFilter });
+        if (cancelled || !snapshot) return;
+
+        const snapshotBatches = Array.isArray(snapshot.batches) ? snapshot.batches : [];
+        const snapshotRows = Array.isArray(snapshot.rows) ? snapshot.rows : [];
+
+        setBrandUploadHistory(snapshotBatches);
+        setBrandPerformanceLogs(snapshotRows);
+      } catch (err) {
+        console.error("Error loading brand reporting snapshot:", err);
+      }
+    };
+
+    loadReportingSnapshot();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isGlobalConfigsLoaded, activeReportBrandId, loggedInClientBrandId, refreshReportingSummary]);
 
   const availableOperatorPlatforms = useMemo(() => {
     if (!activeReportBrandId || brandPerformanceLogs.length === 0) return platforms;
@@ -3933,6 +3987,7 @@ export default function App() {
             });
             setBrandPerformanceLogs((prev) => prev.filter((l) => !logIdsToDelete.has(l.id)));
             setBrandUploadHistory((prev) => prev.filter((b) => !batchIdsToDelete.has(b.id)));
+            await refreshReportingSummary();
             customAlert("Data raw berhasil dihapus.");
           } catch(e: any) {
             console.error(e);customAlert("Gagal menghapus data: " + e.message);
@@ -3974,6 +4029,7 @@ export default function App() {
           setBrandPerformanceLogs((prev) => prev.filter((l) => !logIds.has(l.id)));
           setBrandUploadHistory((prev) => prev.filter((b) => !batchIds.has(b.id)));
           setShopeeSkuLogs((prev) => prev.filter((l) => !skuIds.has(l.id)));
+          await refreshReportingSummary();
 
           customAlert(
             `Berhasil menghapus seluruh raw data (${brandLogs.length} sesi), ${brandSkuLogs.length} SKU logs, dan riwayat upload (${brandBatches.length} batch) untuk brand "${brandName}" dari database!`,
@@ -4122,6 +4178,7 @@ export default function App() {
           const idsToDelete = new Set(logsToDelete.map((l) => l.id));
           await syncReportingDeletion({ logIds: Array.from(idsToDelete) });
           setBrandPerformanceLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
+          await refreshReportingSummary();
           customAlert(
             `Berhasil menghapus ${logsToDelete.length} data ${displayType} untuk brand "${brandName}"!`,
           );
@@ -4164,6 +4221,7 @@ export default function App() {
           // Hapus log terkait dari state lokal
           const logIds = new Set(batchLogs.map((l) => l.id));
           setBrandPerformanceLogs((prev) => prev.filter((l) => !logIds.has(l.id)));
+          await refreshReportingSummary();
 
           customAlert(
             `Berhasil menghapus batch upload "${fileName}" beserta seluruh raw data terkait (${batchLogs.length} data) dari database!`,
@@ -4381,6 +4439,7 @@ export default function App() {
             batch: uploadHistoryRecord,
             rows: allRecordsToSave,
           });
+          await refreshReportingSummary();
         } catch (apiErr) {
           console.error("Gagal menyimpan reporting batch ke backend:", apiErr);
           addNotification(
@@ -15623,16 +15682,22 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               );
                             })
                             .map((brand) => {
-                              const numBrandLogs = brandPerformanceLogs.filter(
-                                (log) => log.brandId === brand.id,
-                              ).length;
+                              const summary = brandReportingSummary[brand.id];
+                              const numBrandLogs =
+                                summary?.sessionCount ??
+                                brandPerformanceLogs.filter(
+                                  (log) => log.brandId === brand.id,
+                                ).length;
                               const numUploadBatches =
+                                summary?.batchCount ??
                                 brandUploadHistory.filter(
                                   (batch) => batch.brandId === brand.id,
                                 ).length;
-                              const totalGmvSum = brandPerformanceLogs
-                                .filter((log) => log.brandId === brand.id)
-                                .reduce((sum, log) => sum + (log.gmv || 0), 0);
+                              const totalGmvSum =
+                                summary?.totalGmv ??
+                                brandPerformanceLogs
+                                  .filter((log) => log.brandId === brand.id)
+                                  .reduce((sum, log) => sum + (log.gmv || 0), 0);
 
                               return (
                                 <div

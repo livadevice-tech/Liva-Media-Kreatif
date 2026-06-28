@@ -786,6 +786,51 @@ app.delete("/api/client-reporting/:id", asyncHandler(async (req, res) => {
   res.json({ success: true });
 }));
 
+app.get("/api/reporting/brand/summary", asyncHandler(async (_req, res) => {
+  const [batchRows, rowRows] = await Promise.all([
+    queryMany(`
+      SELECT brand_id AS brandId, MAX(brand_name) AS brandName, COUNT(*) AS batchCount, COALESCE(SUM(total_gmv), 0) AS totalGmv
+      FROM reporting_upload_batches
+      GROUP BY brand_id
+    `, []),
+    queryMany(`
+      SELECT brand_id AS brandId, COUNT(*) AS sessionCount
+      FROM reporting_upload_rows
+      GROUP BY brand_id
+    `, []),
+  ]);
+
+  const summaryMap = new Map<string, any>();
+
+  for (const batch of batchRows as any[]) {
+    const key = batch.brandId || "";
+    if (!key) continue;
+    summaryMap.set(key, {
+      brandId: key,
+      brandName: batch.brandName || "",
+      batchCount: Number(batch.batchCount || 0),
+      sessionCount: 0,
+      totalGmv: Number(batch.totalGmv || 0),
+    });
+  }
+
+  for (const row of rowRows as any[]) {
+    const key = row.brandId || "";
+    if (!key) continue;
+    const current = summaryMap.get(key) || {
+      brandId: key,
+      brandName: "",
+      batchCount: 0,
+      sessionCount: 0,
+      totalGmv: 0,
+    };
+    current.sessionCount = Number(row.sessionCount || 0);
+    summaryMap.set(key, current);
+  }
+
+  res.json(Array.from(summaryMap.values()));
+}));
+
 const mapReportingBatch = (row: any) => ({
   id: row.id,
   batchId: row.id,

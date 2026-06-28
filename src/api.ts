@@ -223,6 +223,9 @@ export const clientReportingApi = {
 // BRAND REPORTING STORAGE
 // ==================================================================
 export const reportingBrandApi = {
+  /** Ambil ringkasan reporting brand */
+  getSummary: () => request<any[]>('GET', '/reporting/brand/summary'),
+
   /** Ambil snapshot reporting brand (batch + raw logs) */
   getAll: (params?: { brandId?: string }) => {
     const qs = params?.brandId ? `?brandId=${params.brandId}` : '';
