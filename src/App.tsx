@@ -2420,6 +2420,9 @@ export default function App() {
   const [activeReportBrandId, setActiveReportBrandId] = useState<string | null>(
     null,
   );
+  const [openBrandCardActionsId, setOpenBrandCardActionsId] = useState<
+    string | null
+  >(null);
   const [reportBrandSearchQuery, setReportBrandSearchQuery] = useState("");
   const [reportDbSearchQuery, setReportDbSearchQuery] = useState("");
   const [reportDbSortCol, setReportDbSortCol] = useState("date");
@@ -2434,6 +2437,26 @@ export default function App() {
     if (!isGlobalConfigsLoaded) return;
     refreshReportingSummary();
   }, [isGlobalConfigsLoaded, refreshReportingSummary]);
+
+  useEffect(() => {
+    if (!openBrandCardActionsId) return;
+    const handleClickOutsideBrandActions = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        !target.closest('[data-brand-card-actions="true"]')
+      ) {
+        setOpenBrandCardActionsId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutsideBrandActions);
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutsideBrandActions,
+      );
+    };
+  }, [openBrandCardActionsId]);
 
   useEffect(() => {
     if (!isGlobalConfigsLoaded) return;
@@ -9050,6 +9073,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           <ChevronRight className="w-4 h-4" />
                                         </button>
                                       </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                      <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[10px] font-black text-indigo-700">
+                                        Sumber: raw Shopee live performance
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                        Views: kolom Dilihat
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                        Avg. Duration: Rata-rata durasi ditonton
+                                      </span>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
@@ -15911,60 +15945,101 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     setActiveReportBrandId(brand.id);
                                     setSaveTargetBrandId(brand.id);
                                     setAdminReportBrandFilter(brand.id);
+                                    setOpenBrandCardActionsId(null);
                                   }}
                                   className="bg-white border border-slate-200 hover:border-indigo-400 p-6 rounded-3xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between min-h-[160px] relative overflow-hidden"
                                 >
                                   <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 group-hover:bg-indigo-600/5 rounded-full transition-colors -mr-6 -mt-6"></div>
 
                                   <div>
-                                    <div className="flex items-center justify-between gap-3 mb-4">
-                                      <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-indigo-55 text-indigo-600 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-indigo-600 group-hover:text-white transition-all uppercase whitespace-nowrap">
+                                    <div className="flex items-start justify-between gap-3 mb-4">
+                                      <div className="flex items-start gap-3 min-w-0">
+                                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-indigo-600 group-hover:text-white transition-all uppercase whitespace-nowrap shrink-0">
                                           {brand.name.substring(0, 2)}
                                         </div>
-                                        <div>
-                                          <h4 className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
+                                        <div className="min-w-0">
+                                          <h4 className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight truncate max-w-[190px]">
                                             {brand.name}
                                           </h4>
-                                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate max-w-[190px]">
                                             ID: {brand.id}
                                           </p>
+                                          <div className="flex flex-wrap gap-2 mt-2">
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[10px] font-black text-slate-600">
+                                              {numBrandLogs} Sesi
+                                            </span>
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2 py-1 text-[10px] font-black text-indigo-600">
+                                              {numUploadBatches} Batch
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
-                                      {(numBrandLogs > 0 ||
-                                        numUploadBatches > 0) && (
+
+                                      <div
+                                        className="flex items-center gap-2 shrink-0 relative"
+                                        data-brand-card-actions="true"
+                                      >
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            handleDeleteAllBrandRawData(
-                                              brand.id,
-                                              brand.name,
-                                            );
+                                            setActiveReportBrandId(brand.id);
+                                            setSaveTargetBrandId(brand.id);
+                                            setAdminReportBrandFilter(brand.id);
+                                            setOpenBrandCardActionsId(null);
                                           }}
-                                          title="Hapus Semua Raw Data & Riwayat Brand"
-                                          className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border-0 cursor-pointer transition-colors z-10 hover:shadow-xs"
+                                          className="px-3 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider hover:bg-indigo-100 transition-colors"
                                         >
-                                          <Trash2 className="w-4 h-4" />
+                                          Buka
                                         </button>
-                                      )}
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3 mb-2 pt-2 border-t border-slate-100">
-                                      <div>
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
-                                          Stored Sesi Live
-                                        </span>
-                                        <span className="text-xs font-black text-slate-700 block mt-0.5">
-                                          {numBrandLogs} Sesi
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
-                                          Total Upload
-                                        </span>
-                                        <span className="text-xs font-black text-slate-700 block mt-0.5">
-                                          {numUploadBatches} Batch
-                                        </span>
+                                        {(numBrandLogs > 0 ||
+                                          numUploadBatches > 0) && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setOpenBrandCardActionsId(
+                                                openBrandCardActionsId === brand.id
+                                                  ? null
+                                                  : brand.id,
+                                              );
+                                            }}
+                                            title="Aksi brand"
+                                            aria-label="Aksi brand"
+                                            className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl border border-slate-200 cursor-pointer transition-colors"
+                                          >
+                                            <MoreHorizontal className="w-4 h-4" />
+                                          </button>
+                                        )}
+                                        {openBrandCardActionsId === brand.id && (
+                                          <div className="absolute right-0 top-11 z-30 w-44 rounded-2xl border border-slate-200 bg-white shadow-xl p-2">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveReportBrandId(brand.id);
+                                                setSaveTargetBrandId(brand.id);
+                                                setAdminReportBrandFilter(
+                                                  brand.id,
+                                                );
+                                                setOpenBrandCardActionsId(null);
+                                              }}
+                                              className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50"
+                                            >
+                                              Masuk Dashboard
+                                            </button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteAllBrandRawData(
+                                                  brand.id,
+                                                  brand.name,
+                                                );
+                                                setOpenBrandCardActionsId(null);
+                                              }}
+                                              className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50"
+                                            >
+                                              Hapus Semua Data
+                                            </button>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -15983,7 +16058,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </span>
                                     </div>
                                     <span className="text-[10px] font-black text-indigo-600 group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
-                                      Masuk Dashboard &rarr;
+                                      Buka dashboard &rarr;
                                     </span>
                                   </div>
                                 </div>
@@ -19456,6 +19531,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     <ChevronRight className="w-4 h-4" />
                                                   </button>
                                                 </div>
+                                              </div>
+                                              <div className="flex flex-wrap gap-2 mb-4">
+                                                <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[10px] font-black text-indigo-700">
+                                                  Sumber: raw Shopee live performance
+                                                </span>
+                                                <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                                  Views: kolom Dilihat
+                                                </span>
+                                                <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                                  Avg. Duration: Rata-rata durasi ditonton
+                                                </span>
                                               </div>
                                               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                                                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
