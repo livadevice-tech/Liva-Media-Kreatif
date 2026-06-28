@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS hosts (
   username                    VARCHAR(100),
   password_hash               VARCHAR(255),
   bank_account                VARCHAR(150),
+  bank_name                   VARCHAR(100),
   studio                      VARCHAR(150),
   host_type                   ENUM('Reguler','Backup') DEFAULT 'Reguler',
   custom_working_days_target  INT             DEFAULT NULL,

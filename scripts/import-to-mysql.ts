@@ -88,9 +88,9 @@ async function importHosts(conn: mysql.Connection): Promise<number> {
         id, name, employee_id, avatar, role,
         base_monthly_target_hours, base_monthly_target_revenue,
         consistency_score, joined_date, email, phone,
-        username, password_hash, bank_account, studio,
+        username, password_hash, bank_account, bank_name, studio,
         host_type, custom_working_days_target, custom_base_salary, custom_shift_rate
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       h.id, h.name, h.employeeId, h.avatar || null, h.role || null,
       h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
@@ -98,7 +98,7 @@ async function importHosts(conn: mysql.Connection): Promise<number> {
       h.email || null, h.phone || null,
       h.username || null,
       h.password ? hashPassword(h.password) : null,
-      h.bankAccount || null, h.studio || null,
+      h.bankAccount || null, h.bankName || null, h.studio || null,
       h.hostType === 'Backup' ? 'Backup' : 'Reguler',
       h.customWorkingDaysTarget ?? null,
       h.customBaseSalary ?? null,

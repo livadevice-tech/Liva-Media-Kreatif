@@ -1804,16 +1804,29 @@ export default function App() {
     hostId: string,
     updatedFields: Partial<HostEmployee>,
   ) => {
-    setHosts((prev) =>
-      prev.map((h) => {
-        if (h.id === hostId) {
-          return { ...h, ...updatedFields };
-        }
-        return h;
-      }),
-    );
-    customAlert("Data host berhasil diperbarui di database!");
-    setTimeout(() => {}, 4000);
+    const currentHost = hosts.find((h) => h.id === hostId);
+    if (!currentHost) return;
+
+    const nextHost = { ...currentHost, ...updatedFields };
+
+    hostsApi
+      .update(hostId, nextHost)
+      .then(() => {
+        setHosts((prev) =>
+          prev.map((h) => {
+            if (h.id === hostId) {
+              return nextHost;
+            }
+            return h;
+          }),
+        );
+        customAlert("Data host berhasil diperbarui di database!");
+        setTimeout(() => {}, 4000);
+      })
+      .catch((err) => {
+        console.error("Gagal memperbarui host:", err);
+        customAlert("Gagal memperbarui data host. Coba lagi.");
+      });
   };
 
   const handleAvatarUpload = (hostId: string, file: File) => {
@@ -1884,6 +1897,7 @@ export default function App() {
       studio: newHostData.studio || "Studio Bandar Lampung",
       phone: newHostData.phone || "+62 812-0000-0000",
       bankAccount: newHostData.bankAccount || "-",
+      bankName: newHostData.bankName?.trim() || "",
       username: (
         newHostData.username ||
         newHostData.name.toLowerCase().replace(/\s+/g, "")
@@ -1899,9 +1913,17 @@ export default function App() {
       customWorkingDaysTarget: newHostData.customWorkingDaysTarget,
     };
 
-    setHosts((prev) => [...prev, newHost]);
-    customAlert(`Host "${newHost.name}" berhasil didaftarkan ke sistem!`);
-    setTimeout(() => {}, 4000);
+    hostsApi
+      .create(newHost)
+      .then(() => {
+        setHosts((prev) => [...prev, newHost]);
+        customAlert(`Host "${newHost.name}" berhasil didaftarkan ke sistem!`);
+        setTimeout(() => {}, 4000);
+      })
+      .catch((err) => {
+        console.error("Gagal menambahkan host:", err);
+        customAlert("Gagal mendaftarkan host baru. Coba lagi.");
+      });
   };
 
   const handleDeleteHost = (hostId: string) => {
@@ -1911,14 +1933,22 @@ export default function App() {
       return;
     }
     const hostToDelete = hosts.find((h) => h.id === hostId);
-    setHosts((prev) => prev.filter((h) => h.id !== hostId));
-    customAlert(`Host "${hostToDelete?.name || hostId}" berhasil dihapus.`);
-    setTimeout(() => {}, 4000);
+    hostsApi
+      .delete(hostId)
+      .then(() => {
+        setHosts((prev) => prev.filter((h) => h.id !== hostId));
+        customAlert(`Host "${hostToDelete?.name || hostId}" berhasil dihapus.`);
+        setTimeout(() => {}, 4000);
 
-    // Safety check: if host logged in, logout
-    if (loggedInHostId === hostId) {
-      setLoggedInHostId(null);
-    }
+        // Safety check: if host logged in, logout
+        if (loggedInHostId === hostId) {
+          setLoggedInHostId(null);
+        }
+      })
+      .catch((err) => {
+        console.error("Gagal menghapus host:", err);
+        customAlert("Gagal menghapus host. Coba lagi.");
+      });
   };
 
   // Current logged in host details
@@ -25273,7 +25303,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                  value={newHostBankName}
                                  onChange={(e) => setNewHostBankName(e.target.value)}
                                  placeholder="BCA"
-                                 className="w-1/3 bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                                 className="w-32 min-w-[7rem] bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
                                />
                                <input
                                  type="text"
@@ -25310,6 +25340,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 studio: newHostStudio,
                                 phone: newHostPhone.trim() || "-",
                                 bankAccount: newHostBank.trim() || "-",
+                                bankName: newHostBankName.trim() || "",
                                 username: newHostUser,
                                 password: newHostPass,
                                 customWorkingDaysTarget: undefined,
@@ -25320,6 +25351,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               setNewHostStudio("Bandar Lampung");
                               setNewHostPhone("");
                               setNewHostBank("");
+                              setNewHostBankName("");
                               setNewHostUser("");
                               setNewHostPass("");
                               setShowAddForm(false);
@@ -25511,8 +25543,8 @@ function HostCredentialRow({
   studios = [],
 }: {
   host: HostEmployee;
-  onUpdate: (id: string, fields: Partial<HostEmployee>) => void;
-  onDelete: (id: string) => void;
+  onUpdate: (id: string, fields: Partial<HostEmployee>) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
   studios?: StudioItem[];
   key?: any;
 }) {
@@ -25542,13 +25574,14 @@ function HostCredentialRow({
   }, [host, isEditing]);
 
   const handleSave = () => {
-    onUpdate(host.id, {
+    void onUpdate(host.id, {
       name,
       role,
       hostType: role.toLowerCase().includes("back up") ? "Backup" : "Reguler",
       studio,
       phone,
       bankAccount,
+      bankName,
       username,
       password,
       customWorkingDaysTarget: role.toLowerCase().includes("back up")
@@ -25564,6 +25597,7 @@ function HostCredentialRow({
     setStudio(host.studio || "Studio Bandar Lampung");
     setPhone(host.phone || "");
     setBankAccount(host.bankAccount || "");
+    setBankName(host.bankName || "");
     setUsername(host.username || "");
     setPassword(host.password || "");
     setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
@@ -25662,7 +25696,7 @@ function HostCredentialRow({
       {/* 3. KONTAK & REKENING */}
       <td className="px-6 py-4">
         {isEditing ? (
-          <div className="space-y-1.5 w-36">
+          <div className="space-y-1.5 w-[17rem] min-w-[15rem] max-w-full">
             <input
               type="text"
               value={phone}
@@ -25670,22 +25704,20 @@ function HostCredentialRow({
               className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
               placeholder="No HP"
             />
-            <div className="flex gap-1">
-               <input
-                 type="text"
-                 value={bankName}
-                 onChange={(e) => setBankName(e.target.value)}
-                 className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-1/3"
-                 placeholder="Bank"
-               />
-               <input
-                 type="text"
-                 value={bankAccount}
-                 onChange={(e) => setBankAccount(e.target.value)}
-                 className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block flex-1"
-                 placeholder="No Rekening"
-               />
-            </div>
+            <input
+              type="text"
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+              className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
+              placeholder="Nama Bank"
+            />
+            <input
+              type="text"
+              value={bankAccount}
+              onChange={(e) => setBankAccount(e.target.value)}
+              className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
+              placeholder="No Rekening"
+            />
           </div>
         ) : (
           <div className="flex flex-col gap-0.5 min-w-[120px]">
@@ -25770,7 +25802,7 @@ function HostCredentialRow({
               <button
                 type="button"
                 onClick={() => {
-                  onDelete(host.id);
+                  void onDelete(host.id);
                 }}
                 className="p-1.5 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100/60 rounded-lg border border-red-100/40 transition-all cursor-pointer"
                 title="Hapus Host"

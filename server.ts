@@ -173,6 +173,7 @@ app.get("/api/hosts", asyncHandler(async (req, res) => {
     host.consistencyScore = host.consistency_score;
     host.joinedDate = host.joined_date;
     host.bankAccount = host.bank_account;
+    host.bankName = host.bank_name;
     host.hostType = host.host_type;
     host.customWorkingDaysTarget = host.custom_working_days_target;
     host.customBaseSalary = host.custom_base_salary;
@@ -193,6 +194,7 @@ app.get("/api/hosts/:id", asyncHandler(async (req, res) => {
   host.platforms = platforms.map((p: any) => p.platform);
   host.brands = brands.map((b: any) => b.brand);
   host.password = host.password_hash;
+  host.bankName = host.bank_name;
 
   res.json(host);
 }));
@@ -207,16 +209,16 @@ app.post("/api/hosts", asyncHandler(async (req, res) => {
       id, name, employee_id, avatar, role,
       base_monthly_target_hours, base_monthly_target_revenue,
       consistency_score, joined_date, email, phone,
-      username, password_hash, bank_account, studio,
+      username, password_hash, bank_account, bank_name, studio,
       host_type, custom_working_days_target, custom_base_salary, custom_shift_rate
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     id, h.name, h.employeeId, h.avatar || null, h.role || null,
     h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
     h.consistencyScore || 0, h.joinedDate || null,
     h.email || null, h.phone || null,
     h.username || null, h.password || null,
-    h.bankAccount || null, h.studio || null,
+    h.bankAccount || null, h.bankName || null, h.studio || null,
     h.hostType || 'Reguler',
     h.customWorkingDaysTarget ?? null,
     h.customBaseSalary ?? null,
@@ -250,7 +252,7 @@ app.put("/api/hosts/:id", asyncHandler(async (req, res) => {
       name = ?, employee_id = ?, avatar = ?, role = ?,
       base_monthly_target_hours = ?, base_monthly_target_revenue = ?,
       consistency_score = ?, joined_date = ?, email = ?, phone = ?,
-      username = ?, password_hash = ?, bank_account = ?, studio = ?,
+      username = ?, password_hash = ?, bank_account = ?, bank_name = ?, studio = ?,
       host_type = ?, custom_working_days_target = ?,
       custom_base_salary = ?, custom_shift_rate = ?
     WHERE id = ?
@@ -259,7 +261,7 @@ app.put("/api/hosts/:id", asyncHandler(async (req, res) => {
     h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
     h.consistencyScore || 0, h.joinedDate || null,
     h.email || null, h.phone || null,
-    h.username || null, h.password || null, h.bankAccount || null, h.studio || null,
+    h.username || null, h.password || null, h.bankAccount || null, h.bankName || null, h.studio || null,
     h.hostType || 'Reguler',
     h.customWorkingDaysTarget ?? null,
     h.customBaseSalary ?? null,
@@ -986,6 +988,18 @@ async function runMigrations() {
       console.log('✅ Migration: kolom studio sudah ada di shift_schedules.');
     } else {
       console.warn('Migration studio column warning:', e?.message);
+    }
+  }
+
+  try {
+    // Tambah kolom bank_name ke hosts jika belum ada
+    await execute(`ALTER TABLE hosts ADD COLUMN bank_name VARCHAR(100) NULL`, []);
+    console.log('✅ Migration: kolom bank_name ditambahkan ke hosts.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom bank_name sudah ada di hosts.');
+    } else {
+      console.warn('Migration bank_name warning:', e?.message);
     }
   }
 }
