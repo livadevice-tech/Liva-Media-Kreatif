@@ -306,10 +306,33 @@ const normalizeDateYMD = (d: string) => {
 const inferShopeeReportingKind = (headers: string[], fileNameLower: string) => {
   const h = headers.map((x) => String(x || "").toLowerCase().trim());
 
+  const hasLiveSignals = h.some(
+    (col) =>
+      col.includes("nama livestream") ||
+      col.includes("livestream name") ||
+      col.includes("start time") ||
+      col.includes("waktu mulai") ||
+      col.includes("durasi") ||
+      col.includes("penjualan(pesanan dibuat)") ||
+      col.includes("penjualan(pesanan siap dikirim)") ||
+      col.includes("produk terjual(pesanan dibuat)") ||
+      col.includes("produk terjual(pesanan siap dikirim)") ||
+      col.includes("pesanan(pesanan dibuat)") ||
+      col.includes("pesanan(pesanan siap dikirim)") ||
+      col.includes("gmv") ||
+      col.includes("perolehan") ||
+      col.includes("omset") ||
+      col.includes("pendapatan"),
+  );
+
+  if (hasLiveSignals) return "live";
+
   const isEngagement = h.some(
     (col) =>
+      col.includes("dilihat") ||
       col.includes("suka") ||
       col.includes("share") ||
+      col.includes("komentar") ||
       col.includes("voucher toko diklaim") ||
       col.includes("voucher spesial live diklaim") ||
       col.includes("koin diklaim") ||
