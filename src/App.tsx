@@ -306,6 +306,19 @@ const normalizeDateYMD = (d: string) => {
 const inferShopeeReportingKind = (headers: string[], fileNameLower: string) => {
   const h = headers.map((x) => String(x || "").toLowerCase().trim());
 
+  const isEngagement = h.some(
+    (col) =>
+      col.includes("suka") ||
+      col.includes("share") ||
+      col.includes("voucher toko diklaim") ||
+      col.includes("voucher spesial live diklaim") ||
+      col.includes("koin diklaim") ||
+      col.includes("persentase klik") ||
+      col.includes("pengikut baru dari livestream"),
+  );
+
+  if (isEngagement) return "engagement";
+
   const isLive = h.some(
     (col) =>
       col.includes("nama livestream") ||
@@ -322,19 +335,6 @@ const inferShopeeReportingKind = (headers: string[], fileNameLower: string) => {
   );
 
   if (isLive) return "live";
-
-  const isEngagement = h.some(
-    (col) =>
-      col.includes("suka") ||
-      col.includes("share") ||
-      col.includes("voucher toko diklaim") ||
-      col.includes("voucher spesial live diklaim") ||
-      col.includes("koin diklaim") ||
-      col.includes("persentase klik") ||
-      col.includes("pengikut baru dari livestream"),
-  );
-
-  if (isEngagement) return "engagement";
 
   if (fileNameLower.includes("engagement")) return "engagement";
   return "live";
@@ -3681,6 +3681,8 @@ export default function App() {
         }
 
         const rows: any[] = [];
+        const isShopeeEngagement =
+          detectedPlatform === "Shopee Live" && shopeeSourceKind === "engagement";
         for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
           const rowData = jsonData[r] as any[];
           // Skip completely empty rows
@@ -3789,33 +3791,6 @@ export default function App() {
 
           const dateOnly = formattedDate.split(" ")[0] || formattedDate;
 
-          let duration = 0;
-          if (durationIdx !== -1) {
-            const rawDur = String(rowData[durationIdx] || "");
-            if (rawDur.includes(":")) {
-              const parts = rawDur.split(":").map(Number);
-              if (parts.length === 3) {
-                duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
-              } else if (parts.length === 2) {
-                duration = parts[0] * 60 + parts[1];
-              }
-            } else {
-              // Direct replace commas to dot for safe float cast
-              const safeFloat = parseFloat(rawDur.replace(/,/g, "."));
-              if (!isNaN(safeFloat)) {
-                if (safeFloat > 0 && safeFloat < 1.0) {
-                  duration = Math.round(safeFloat * 86400); // Excel fractional day
-                } else {
-                  duration = safeFloat;
-                }
-              }
-            }
-          }
-          const gmv =
-            gmvIdx !== -1 ? parseIndonesianNumber(rowData[gmvIdx]) : 0;
-          const products_sold =
-            productIdx !== -1 ? parseIndonesianNumber(rowData[productIdx]) : 0;
-
           const parsedImpressions =
             impressionsIdx !== -1
               ? parseIndonesianNumber(rowData[impressionsIdx])
@@ -3840,6 +3815,7 @@ export default function App() {
             clicksIdx !== -1 ? parseIndonesianNumber(rowData[clicksIdx]) : 0;
           const parsedOrders =
             ordersIdx !== -1 ? parseIndonesianNumber(rowData[ordersIdx]) : 0;
+          const liveGmv = gmvIdx !== -1 ? parseIndonesianNumber(rowData[gmvIdx]) : 0;
 
           let buyers =
             buyerIdx !== -1
@@ -3851,7 +3827,7 @@ export default function App() {
             aovIdx !== -1
               ? parseIndonesianNumber(rowData[aovIdx])
               : buyers > 0
-                ? gmv / buyers
+                ? liveGmv / buyers
                 : 0;
 
           const parsedFollowers =
@@ -3884,51 +3860,93 @@ export default function App() {
               ? parseIndonesianNumber(rowData[coinsClaimedIdx])
               : 0;
 
-          const rawAvgViewDuration =
-            avgViewDurationIdx !== -1
-              ? String(rowData[avgViewDurationIdx])
-              : "";
-          let parsedAvgViewDuration = 0;
-          if (rawAvgViewDuration.includes(":")) {
-            const parts = rawAvgViewDuration.split(":").map(Number);
-            if (parts.length === 3) {
-              parsedAvgViewDuration =
-                parts[0] * 3600 + parts[1] * 60 + parts[2];
-            } else if (parts.length === 2) {
-              parsedAvgViewDuration = parts[0] * 60 + parts[1];
-            }
-          } else {
-            parsedAvgViewDuration =
-              parseFloat(rawAvgViewDuration.replace(/[^0-9.]/g, "")) || 0;
-          }
-
-          let fileLevelAvgView = parsedAvgViewDuration;
-          if (fileLevelAvgView > 0 && fileLevelAvgView < 10) {
-            // If the file actually wrote it in minutes, let's normalize to seconds roughly
-            fileLevelAvgView = Math.floor(fileLevelAvgView * 60);
-          }
-
           const impressions = parsedImpressions || 0;
           const views = parsedViews || parsedImpressions || 0;
           const penonton = parsedPenonton || parsedImpressions || 0;
-          const clicks = parsedClicks || 0;
-          const liveVisits = parsedLiveVisits || 0;
-          const productImpressions = parsedProductImpressions || 0;
-          const orders = parsedOrders || 0;
           const followers = parsedFollowers || 0;
           const likes = parsedLikes || 0;
           const shares = parsedShares || 0;
           const comments = parsedComments || 0;
-          const avgViewDuration = fileLevelAvgView || 0;
           const peakViewers = parsedPeakViewers || 0;
           const shopVouchers = parsedShopVouchers || 0;
           const specialVouchers = parsedSpecialVouchers || 0;
           const coinsClaimed = parsedCoinsClaimed || 0;
 
-          const hasFunnelInFile =
-            parsedImpressions > 0 || parsedClicks > 0 || parsedOrders > 0;
+          const engagementRow = {
+            title,
+            sourceKind: "shopee_engagement",
+            date: dateOnly,
+            dateTime: formattedDate,
+            shift,
+            duration: 0,
+            gmv: 0,
+            products_sold: 0,
+            buyers: 0,
+            aov: 0,
+            views,
+            impressions,
+            penonton,
+            liveVisits: 0,
+            productImpressions: 0,
+            clicks: 0,
+            orders: 0,
+            followers,
+            likes,
+            shares,
+            comments,
+            avgViewDuration: 0,
+            peakViewers,
+            shopVouchers,
+            specialVouchers,
+            coinsClaimed,
+            hasFunnelInFile: false,
+          };
 
-          rows.push({
+          const liveDuration = (() => {
+            if (durationIdx === -1) return 0;
+            const rawDur = String(rowData[durationIdx] || "");
+            if (rawDur.includes(":")) {
+              const parts = rawDur.split(":").map(Number);
+              if (parts.length === 3) {
+                return parts[0] * 3600 + parts[1] * 60 + parts[2];
+              }
+              if (parts.length === 2) {
+                return parts[0] * 60 + parts[1];
+              }
+            } else {
+              const safeFloat = parseFloat(rawDur.replace(/,/g, "."));
+              if (!isNaN(safeFloat)) {
+                if (safeFloat > 0 && safeFloat < 1.0) {
+                  return Math.round(safeFloat * 86400);
+                }
+                return safeFloat;
+              }
+            }
+            return 0;
+          })();
+
+          const liveAvgViewDuration = (() => {
+            const rawAvgViewDuration =
+              avgViewDurationIdx !== -1
+                ? String(rowData[avgViewDurationIdx])
+                : "";
+            if (rawAvgViewDuration.includes(":")) {
+              const parts = rawAvgViewDuration.split(":").map(Number);
+              if (parts.length === 3) {
+                return parts[0] * 3600 + parts[1] * 60 + parts[2];
+              }
+              if (parts.length === 2) {
+                return parts[0] * 60 + parts[1];
+              }
+            }
+            const parsed = parseFloat(rawAvgViewDuration.replace(/[^0-9.]/g, "")) || 0;
+            if (parsed > 0 && parsed < 10) {
+              return Math.floor(parsed * 60);
+            }
+            return parsed;
+          })();
+
+          const liveRow = {
             title,
             sourceKind:
               detectedPlatform === "Shopee Live"
@@ -3937,29 +3955,38 @@ export default function App() {
             date: dateOnly,
             dateTime: formattedDate,
             shift,
-            duration,
-            gmv,
-            products_sold,
+            duration: liveDuration,
+            gmv: liveGmv,
+            products_sold:
+              productIdx !== -1 ? parseIndonesianNumber(rowData[productIdx]) : 0,
             buyers,
-            aov,
+            aov:
+              aovIdx !== -1
+                ? parseIndonesianNumber(rowData[aovIdx])
+                : buyers > 0
+                  ? liveGmv / buyers
+                  : 0,
             views,
             impressions,
             penonton,
-            liveVisits,
-            productImpressions,
-            clicks,
-            orders,
+            liveVisits: parsedLiveVisits || 0,
+            productImpressions: parsedProductImpressions || 0,
+            clicks: parsedClicks || 0,
+            orders: parsedOrders || 0,
             followers,
             likes,
             shares,
             comments,
-            avgViewDuration,
+            avgViewDuration: liveAvgViewDuration || 0,
             peakViewers,
             shopVouchers,
             specialVouchers,
             coinsClaimed,
-            hasFunnelInFile,
-          });
+            hasFunnelInFile:
+              parsedImpressions > 0 || parsedClicks > 0 || parsedOrders > 0,
+          };
+
+          rows.push(isShopeeEngagement ? engagementRow : liveRow);
         }
 
         setReportingRawData(rows);
