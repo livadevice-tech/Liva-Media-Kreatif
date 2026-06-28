@@ -3861,6 +3861,26 @@ export default function App() {
             coinsClaimedIdx !== -1
               ? parseIndonesianNumber(rowData[coinsClaimedIdx])
               : 0;
+          const rawAvgViewDuration =
+            avgViewDurationIdx !== -1
+              ? String(rowData[avgViewDurationIdx])
+              : "";
+          let parsedAvgViewDuration = 0;
+          if (rawAvgViewDuration.includes(":")) {
+            const parts = rawAvgViewDuration.split(":").map(Number);
+            if (parts.length === 3) {
+              parsedAvgViewDuration =
+                parts[0] * 3600 + parts[1] * 60 + parts[2];
+            } else if (parts.length === 2) {
+              parsedAvgViewDuration = parts[0] * 60 + parts[1];
+            }
+          } else {
+            parsedAvgViewDuration =
+              parseFloat(rawAvgViewDuration.replace(/[^0-9.]/g, "")) || 0;
+          }
+          if (parsedAvgViewDuration > 0 && parsedAvgViewDuration < 10) {
+            parsedAvgViewDuration = Math.floor(parsedAvgViewDuration * 60);
+          }
 
           const impressions = parsedImpressions || 0;
           const views = parsedViews || parsedImpressions || 0;
@@ -3896,7 +3916,7 @@ export default function App() {
             likes,
             shares,
             comments,
-            avgViewDuration: 0,
+            avgViewDuration: parsedAvgViewDuration || 0,
             peakViewers,
             shopVouchers,
             specialVouchers,
@@ -3927,26 +3947,7 @@ export default function App() {
             return 0;
           })();
 
-          const liveAvgViewDuration = (() => {
-            const rawAvgViewDuration =
-              avgViewDurationIdx !== -1
-                ? String(rowData[avgViewDurationIdx])
-                : "";
-            if (rawAvgViewDuration.includes(":")) {
-              const parts = rawAvgViewDuration.split(":").map(Number);
-              if (parts.length === 3) {
-                return parts[0] * 3600 + parts[1] * 60 + parts[2];
-              }
-              if (parts.length === 2) {
-                return parts[0] * 60 + parts[1];
-              }
-            }
-            const parsed = parseFloat(rawAvgViewDuration.replace(/[^0-9.]/g, "")) || 0;
-            if (parsed > 0 && parsed < 10) {
-              return Math.floor(parsed * 60);
-            }
-            return parsed;
-          })();
+          const liveAvgViewDuration = parsedAvgViewDuration;
 
           const liveRow = {
             title,
@@ -8367,12 +8368,38 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         (sum, item) => sum + (item.clicks || 0),
                         0,
                       );
+                      const engagementMetricLogs =
+                        tableLogs.filter(
+                          (item) => item.reportType === "engagement",
+                        );
+                      const avgViewDurationSourceLogs =
+                        engagementMetricLogs.length > 0
+                          ? engagementMetricLogs
+                          : tableLogs;
+                      const peakViewSourceLogs =
+                        engagementMetricLogs.length > 0
+                          ? engagementMetricLogs
+                          : tableLogs;
+                      const avgViewDurationValues =
+                        avgViewDurationSourceLogs
+                          .map((item) => Number(item.avgViewDuration || 0))
+                          .filter((value) => value > 0);
                       const avgViewDurationDb =
-                        tableLogs.length > 0
-                          ? tableLogs.reduce(
-                              (sum, item) => sum + (item.avgViewDuration || 0),
+                        avgViewDurationValues.length > 0
+                          ? avgViewDurationValues.reduce(
+                              (sum, value) => sum + value,
                               0,
-                            ) / tableLogs.length
+                            ) / avgViewDurationValues.length
+                          : 0;
+                      const peakViewValues = peakViewSourceLogs
+                        .map((item) => Number(item.peakViewers || 0))
+                        .filter((value) => value > 0);
+                      const peakViewersDb =
+                        peakViewValues.length > 0
+                          ? peakViewValues.reduce(
+                              (sum, value) => sum + value,
+                              0,
+                            ) / peakViewValues.length
                           : 0;
                       const pTotalGmvDb = prevTableLogs.reduce(
                         (sum, item) => sum + (item.gmv || 0),
@@ -8421,12 +8448,38 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         (sum, item) => sum + (item.clicks || 0),
                         0,
                       );
+                      const prevEngagementMetricLogs =
+                        prevTableLogs.filter(
+                          (item) => item.reportType === "engagement",
+                        );
+                      const prevAvgViewDurationSourceLogs =
+                        prevEngagementMetricLogs.length > 0
+                          ? prevEngagementMetricLogs
+                          : prevTableLogs;
+                      const prevPeakViewSourceLogs =
+                        prevEngagementMetricLogs.length > 0
+                          ? prevEngagementMetricLogs
+                          : prevTableLogs;
+                      const pAvgViewDurationValues =
+                        prevAvgViewDurationSourceLogs
+                          .map((item) => Number(item.avgViewDuration || 0))
+                          .filter((value) => value > 0);
                       const pAvgViewDurationDb =
-                        prevTableLogs.length > 0
-                          ? prevTableLogs.reduce(
-                              (sum, item) => sum + (item.avgViewDuration || 0),
+                        pAvgViewDurationValues.length > 0
+                          ? pAvgViewDurationValues.reduce(
+                              (sum, value) => sum + value,
                               0,
-                            ) / prevTableLogs.length
+                            ) / pAvgViewDurationValues.length
+                          : 0;
+                      const pPeakViewValues = prevPeakViewSourceLogs
+                        .map((item) => Number(item.peakViewers || 0))
+                        .filter((value) => value > 0);
+                      const pPeakViewersDb =
+                        pPeakViewValues.length > 0
+                          ? pPeakViewValues.reduce(
+                              (sum, value) => sum + value,
+                              0,
+                            ) / pPeakViewValues.length
                           : 0;
                       const totalDbImpressions = tableLogs.reduce(
                         (acc, curr) => {
@@ -9056,6 +9109,22 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         </div>
                                         <div className="text-xl font-black text-slate-800 mt-1">
                                           {avgViewDurationDb.toFixed(2)}s
+                                        </div>
+                                      </div>
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                        <div className="flex justify-between items-start mb-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                            Peak View
+                                          </div>
+                                          <PercentBadge
+                                            cur={peakViewersDb}
+                                            prev={pPeakViewersDb}
+                                          />
+                                        </div>
+                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                          {new Intl.NumberFormat(
+                                            "id-ID",
+                                          ).format(peakViewersDb)}
                                         </div>
                                       </div>
                                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
@@ -18578,13 +18647,41 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   (sum, item) => sum + (item.clicks || 0),
                                   0,
                                 );
+                                const engagementMetricLogs =
+                                  tableLogs.filter(
+                                    (item) =>
+                                      item.reportType === "engagement",
+                                  );
+                                const avgViewDurationSourceLogs =
+                                  engagementMetricLogs.length > 0
+                                    ? engagementMetricLogs
+                                    : tableLogs;
+                                const peakViewSourceLogs =
+                                  engagementMetricLogs.length > 0
+                                    ? engagementMetricLogs
+                                    : tableLogs;
+                                const avgViewDurationValues =
+                                  avgViewDurationSourceLogs
+                                    .map((item) =>
+                                      Number(item.avgViewDuration || 0),
+                                    )
+                                    .filter((value) => value > 0);
                                 const avgViewDurationDb =
-                                  tableLogs.length > 0
-                                    ? tableLogs.reduce(
-                                        (sum, item) =>
-                                          sum + (item.avgViewDuration || 0),
+                                  avgViewDurationValues.length > 0
+                                    ? avgViewDurationValues.reduce(
+                                        (sum, value) => sum + value,
                                         0,
-                                      ) / tableLogs.length
+                                      ) / avgViewDurationValues.length
+                                    : 0;
+                                const peakViewValues = peakViewSourceLogs
+                                  .map((item) => Number(item.peakViewers || 0))
+                                  .filter((value) => value > 0);
+                                const peakViewersDb =
+                                  peakViewValues.length > 0
+                                    ? peakViewValues.reduce(
+                                        (sum, value) => sum + value,
+                                        0,
+                                      ) / peakViewValues.length
                                     : 0;
                                 const pTotalGmvDb = prevTableLogs.reduce(
                                   (sum, item) => sum + (item.gmv || 0),
@@ -18638,13 +18735,41 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   (sum, item) => sum + (item.clicks || 0),
                                   0,
                                 );
+                                const prevEngagementMetricLogs =
+                                  prevTableLogs.filter(
+                                    (item) =>
+                                      item.reportType === "engagement",
+                                  );
+                                const prevAvgViewDurationSourceLogs =
+                                  prevEngagementMetricLogs.length > 0
+                                    ? prevEngagementMetricLogs
+                                    : prevTableLogs;
+                                const prevPeakViewSourceLogs =
+                                  prevEngagementMetricLogs.length > 0
+                                    ? prevEngagementMetricLogs
+                                    : prevTableLogs;
+                                const pAvgViewDurationValues =
+                                  prevAvgViewDurationSourceLogs
+                                    .map((item) =>
+                                      Number(item.avgViewDuration || 0),
+                                    )
+                                    .filter((value) => value > 0);
                                 const pAvgViewDurationDb =
-                                  prevTableLogs.length > 0
-                                    ? prevTableLogs.reduce(
-                                        (sum, item) =>
-                                          sum + (item.avgViewDuration || 0),
+                                  pAvgViewDurationValues.length > 0
+                                    ? pAvgViewDurationValues.reduce(
+                                        (sum, value) => sum + value,
                                         0,
-                                      ) / prevTableLogs.length
+                                      ) / pAvgViewDurationValues.length
+                                    : 0;
+                                const pPeakViewValues = prevPeakViewSourceLogs
+                                  .map((item) => Number(item.peakViewers || 0))
+                                  .filter((value) => value > 0);
+                                const pPeakViewersDb =
+                                  pPeakViewValues.length > 0
+                                    ? pPeakViewValues.reduce(
+                                        (sum, value) => sum + value,
+                                        0,
+                                      ) / pPeakViewValues.length
                                     : 0;
                                 const totalDbImpressions = tableLogs.reduce(
                                   (acc, curr) => {
@@ -19384,6 +19509,22 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       2,
                                                     )}
                                                     s
+                                                  </div>
+                                                </div>
+                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                  <div className="flex justify-between items-start mb-1">
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                                      Peak View
+                                                    </div>
+                                                    <PercentBadge
+                                                      cur={peakViewersDb}
+                                                      prev={pPeakViewersDb}
+                                                    />
+                                                  </div>
+                                                  <div className="text-xl font-black text-slate-800 mt-1">
+                                                    {new Intl.NumberFormat(
+                                                      "id-ID",
+                                                    ).format(peakViewersDb)}
                                                   </div>
                                                 </div>
                                                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
