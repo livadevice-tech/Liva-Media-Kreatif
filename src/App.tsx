@@ -1272,6 +1272,8 @@ export default function App() {
     tanggamusBackupPay: 150000, // Gaji per Shift Tanggamus
     bandarLampungRegulerBonus: 300000, // Bonus Bulanan Bandar Lampung untuk 100% Hadir & <=3x Terlambat
     tanggamusRegulerBonus: 250000, // Bonus Bulanan Tanggamus untuk 100% Hadir & <=3x Terlambat
+    timelyIncentive: 300000, // Bonus kehadiran umum
+    latePenalty: 0, // Potongan keterlambatan umum
     overtimePayPerHour: 20000, // Nominal Gaji Lembur per Jam
     useCutOff: true, // Aktifkan Cut Off (mulai tanggal 16 ke tanggal 15 bulan depannya)
     cutOffStartDay: 16,
@@ -1433,6 +1435,8 @@ export default function App() {
                   tanggamusBackupPay: 150000,
                   bandarLampungRegulerBonus: 300000,
                   tanggamusRegulerBonus: 250000,
+                  timelyIncentive: 300000,
+                  latePenalty: 0,
                   overtimePayPerHour: 20000,
                   useCutOff: true,
                   cutOffStartDay: 16,
@@ -1457,7 +1461,9 @@ export default function App() {
             if (Array.isArray(data.studios)) _setStudios(data.studios);
             if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
             if (typeof data.agencyLogoUrl === 'string') _setAgencyLogoUrl(data.agencyLogoUrl);
-            if (data.salarySettings) setSalarySettings(data.salarySettings);
+            if (data.salarySettings) {
+              setSalarySettings((prev) => ({ ...prev, ...data.salarySettings }));
+            }
             if (data.adminCredentials) setAdminCredentials(prev => prev.username === 'admin' && prev.password === 'Liva123@@' ? data.adminCredentials : prev);
             if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
           }
@@ -4793,6 +4799,9 @@ export default function App() {
         calculatedBackupPay,
         isEligibleForBonus,
         calculatedBonus,
+        bonusAttendance: calculatedBonus,
+        cutAlpa: 0,
+        kasbonDed: 0,
         totalOvertimeHours,
         calculatedOvertimePay,
         basePayRate,
@@ -13168,8 +13177,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                      {/* Project Info / Host Type */}
                                      <div className="w-full lg:w-1/6 flex flex-col items-start lg:items-center">
                                         <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">Tipe Host</span>
-                                        <div className="border border-slate-200 rounded-md px-2.5 py-1 flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-50 min-w-[100px]">
-                                           {hostType} <ChevronDown className="w-3 h-3 text-slate-400" />
+                                        <div className={`rounded-full px-3 py-1 flex items-center justify-center text-[11px] font-black min-w-[110px] border ${hostType === "Reguler" ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-violet-50 text-violet-700 border-violet-100"}`}>
+                                           {hostType === "Reguler" ? "Reguler Host" : "Backup Host"}
                                         </div>
                                      </div>
 
@@ -13272,29 +13281,99 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                            <div className="absolute top-0 right-0 p-3 opacity-10">
                                               <Calculator className="w-20 h-20" />
                                            </div>
-                                           <div className="flex flex-col gap-3 relative z-10">
-                                              <div className="flex justify-between items-center text-[11px]">
-                                                 <span className="font-bold text-slate-600">Gaji Pokok (Rate Basis)</span>
-                                                 <span className="font-mono font-black text-slate-800">{formatIDR(item.basePayRate)}</span>
+                                           <div className="flex flex-col gap-4 relative z-10">
+                                              <div className="flex flex-col gap-2.5">
+                                                 <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                       <span className="font-bold text-slate-600 text-[11px] block">Kehadiran & Target Hari Kerja</span>
+                                                       <span className="text-[10px] text-slate-400 font-semibold">
+                                                          {item.countTepatWaktu} tepat waktu, {item.countTerlambat} terlambat, {item.countAlpa} alpa, {item.countIzin} izin
+                                                       </span>
+                                                    </div>
+                                                    {hostType === "Reguler" ? (
+                                                      <div className="w-28">
+                                                         <label className="block text-[8.5px] uppercase tracking-wider text-slate-400 font-bold mb-1 text-right">
+                                                            Edit Target
+                                                         </label>
+                                                         <input
+                                                            type="number"
+                                                            min="1"
+                                                            max="31"
+                                                            defaultValue={item.customWorkingDaysTarget || salarySettings.workingDays}
+                                                            onBlur={(e) => {
+                                                              const next = Math.max(1, Math.min(31, Number(e.target.value) || salarySettings.workingDays));
+                                                              if (next !== item.requiredWorkingDays) {
+                                                                handleUpdateHost(item.id, { customWorkingDaysTarget: next });
+                                                              }
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                              if (e.key === "Enter") {
+                                                                (e.currentTarget as HTMLInputElement).blur();
+                                                              }
+                                                            }}
+                                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-slate-800 text-center focus:outline-none focus:border-blue-500"
+                                                         />
+                                                      </div>
+                                                    ) : (
+                                                      <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-100 px-2.5 py-1 rounded-full">
+                                                         Backup host dihitung per shift
+                                                      </span>
+                                                    )}
+                                                 </div>
+                                                 <div className="flex flex-wrap gap-1.5">
+                                                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-black">
+                                                       Hadir {item.totalHadir}/{item.requiredWorkingDays}
+                                                    </span>
+                                                    <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-black">
+                                                       Tepat {item.countTepatWaktu}
+                                                    </span>
+                                                    <span className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-black">
+                                                       Telat {item.countTerlambat}
+                                                    </span>
+                                                    <span className="text-[10px] bg-red-50 text-red-700 px-2 py-0.5 rounded-full font-black">
+                                                       Alpa {item.countAlpa}
+                                                    </span>
+                                                    <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-black">
+                                                       Izin {item.countIzin}
+                                                    </span>
+                                                 </div>
                                               </div>
-                                              <div className="flex justify-between items-center text-[11px]">
-                                                 <span className="font-bold text-slate-600 flex items-center gap-1">
-                                                    Bonus Kehadiran 
-                                                    <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1 rounded">{item.totalHadir} Hari</span>
-                                                 </span>
-                                                 <span className="font-mono font-black text-emerald-600">+{formatIDR(item.bonusAttendance)}</span>
+
+                                              <div className="space-y-2">
+                                                 <div className="flex justify-between items-center text-[11px]">
+                                                    <span className="font-bold text-slate-600">Gaji Pokok (Rate Basis)</span>
+                                                    <span className="font-mono font-black text-slate-800">{formatIDR(item.basePayRate)}</span>
+                                                 </div>
+                                                 <div className="flex justify-between items-center text-[11px]">
+                                                    <span className="font-bold text-slate-600 flex items-center gap-1">
+                                                       Bonus Kehadiran
+                                                       <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1 rounded">
+                                                          {item.totalHadir} Hari
+                                                       </span>
+                                                    </span>
+                                                    <span className="font-mono font-black text-emerald-600">
+                                                       +{formatIDR(item.bonusAttendance || 0)}
+                                                    </span>
+                                                 </div>
+                                                 <div className="flex justify-between items-center text-[11px]">
+                                                    <span className="font-bold text-slate-600 flex items-center gap-1">
+                                                       Potongan Alpa/Telat
+                                                       <span className="text-[8px] bg-red-100 text-red-700 px-1 rounded">
+                                                          {item.countAlpa + item.countTerlambat}x
+                                                       </span>
+                                                    </span>
+                                                    <span className="font-mono font-black text-red-500">
+                                                       -{formatIDR(item.cutAlpa || 0)}
+                                                    </span>
+                                                 </div>
+                                                 <div className="flex justify-between items-center text-[11px] pb-3 border-b border-slate-100 border-dashed">
+                                                    <span className="font-bold text-slate-600">Potongan Kasbon Berjalan</span>
+                                                    <span className="font-mono font-black text-red-500">
+                                                       -{formatIDR(item.kasbonDed || 0)}
+                                                    </span>
+                                                 </div>
                                               </div>
-                                              <div className="flex justify-between items-center text-[11px]">
-                                                 <span className="font-bold text-slate-600 flex items-center gap-1">
-                                                    Potongan Alpa/Telat
-                                                    <span className="text-[8px] bg-red-100 text-red-700 px-1 rounded">{item.countAlpa}x</span>
-                                                 </span>
-                                                 <span className="font-mono font-black text-red-500">-{formatIDR(item.cutAlpa)}</span>
-                                              </div>
-                                              <div className="flex justify-between items-center text-[11px] pb-3 border-b border-slate-100 border-dashed">
-                                                 <span className="font-bold text-slate-600">Potongan Kasbon Berjalan</span>
-                                                 <span className="font-mono font-black text-red-500">-{formatIDR(item.kasbonDed || 0)}</span>
-                                              </div>
+
                                               <div className="flex justify-between items-center pt-1">
                                                  <span className="font-black text-slate-800 text-[11px] uppercase tracking-wider">Total Gross Profit (Gaji)</span>
                                                  <span className="font-mono font-black text-slate-900 text-sm bg-slate-100 px-2.5 py-1 rounded-md">{formatIDR(item.netSalary)}</span>
