@@ -1576,12 +1576,22 @@ export default function App() {
         );
         if (cancelled || !snapshot) return;
 
-        if (Array.isArray(snapshot.batches) && snapshot.batches.length > 0) {
-          setBrandUploadHistory((prev) => mergeReportingRecords(snapshot.batches, prev));
-        }
-        if (Array.isArray(snapshot.rows) && snapshot.rows.length > 0) {
-          setBrandPerformanceLogs((prev) => mergeReportingRecords(snapshot.rows, prev));
-        }
+        const snapshotBatches = Array.isArray(snapshot.batches) ? snapshot.batches : [];
+        const snapshotRows = Array.isArray(snapshot.rows) ? snapshot.rows : [];
+
+        setBrandUploadHistory((prev) => {
+          const retained = brandIdFilter
+            ? prev.filter((item) => item.brandId !== brandIdFilter)
+            : [];
+          return mergeReportingRecords(snapshotBatches, retained);
+        });
+
+        setBrandPerformanceLogs((prev) => {
+          const retained = brandIdFilter
+            ? prev.filter((item) => item.brandId !== brandIdFilter)
+            : [];
+          return mergeReportingRecords(snapshotRows, retained);
+        });
       } catch (err) {
         console.error("Error loading brand reporting snapshot:", err);
       }
