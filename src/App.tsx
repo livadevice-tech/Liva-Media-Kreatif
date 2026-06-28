@@ -20131,9 +20131,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   liveChartSelectedMetrics.includes(
                                                     m.key,
                                                   );
-                                                return (
+                                                  return (
                                                   <button
                                                     key={m.key}
+                                                    type="button"
+                                                    aria-pressed={isSelected}
                                                     onClick={() => {
                                                       if (isSelected) {
                                                         if (
@@ -22026,12 +22028,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap mt-0">
                                 <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
+                                  <label className="sr-only" htmlFor="engagement-platform-filter">
+                                    Filter platform
+                                  </label>
                                   <select
+                                    id="engagement-platform-filter"
                                     value={operatorPlatformFilter}
                                     onChange={(e) =>
                                       setOperatorPlatformFilter(e.target.value)
                                     }
-                                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
+                                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm min-w-[140px]"
                                   >
                                     {availableOperatorPlatforms.map((p) => (
                                       <option key={p} value={p}>
@@ -22045,6 +22051,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       onClick={() =>
                                         setIsShiftFilterOpen(!isShiftFilterOpen)
                                       }
+                                      aria-label="Filter shift"
+                                      aria-haspopup="menu"
+                                      aria-expanded={isShiftFilterOpen}
                                       className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm flex items-center justify-between min-w-[130px] whitespace-nowrap"
                                     >
                                       <span className="truncate mr-2 text-left">
@@ -22129,6 +22138,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       <button
                                         key={item.id}
                                         type="button"
+                                        aria-pressed={operatorDateFilterType === item.id}
                                         onClick={() => {
                                           setOperatorDateFilterType(item.id);
                                           if (
@@ -22186,6 +22196,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         <div className="flex justify-between items-center mb-4 text-slate-800">
                                           <button
                                             type="button"
+                                            aria-label="Tahun sebelumnya"
                                             onClick={() =>
                                               setOperatorMonthPickerYear(
                                                 (y) => y - 1,
@@ -22200,6 +22211,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           </div>
                                           <button
                                             type="button"
+                                            aria-label="Tahun berikutnya"
                                             onClick={() =>
                                               setOperatorMonthPickerYear(
                                                 (y) => y + 1,
@@ -22242,6 +22254,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <button
                                                 key={m.val}
                                                 type="button"
+                                                aria-pressed={isSelected}
                                                 onClick={() => {
                                                   if (!isFuture) {
                                                     setOperatorSelectedMonth(
@@ -22296,6 +22309,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </div>
                                     )}
                                 </div>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-[11px] font-bold text-slate-600">
+                                <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-indigo-700 border border-indigo-100 shadow-sm">
+                                  Sumber: raw Shopee engagement
+                                </span>
+                                <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 border border-slate-100 shadow-sm">
+                                  Views: kolom Dilihat
+                                </span>
+                                <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 border border-slate-100 shadow-sm">
+                                  ERR % = (Interaksi ÷ Views) × 100
+                                </span>
                               </div>
                               {/* Oh wait, actually let's just make it a table based on aggregated brandPerformanceLogs */}
                               {(() => {
@@ -22862,11 +22886,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 );
                                               })}
                                             </div>
-                                            <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
-                                              <button
-                                                onClick={() =>
-                                                  setEngagementChartSelectedMetrics(
-                                                    [
+                                          <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                setEngagementChartSelectedMetrics(
+                                                  [
                                                       "errRateNumeric",
                                                       "uniqueViewers",
                                                       "likes",
@@ -22878,13 +22903,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 }
                                                 className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
                                               >
-                                                Semua
-                                              </button>
-                                              <span>|</span>
-                                              <button
-                                                onClick={() =>
-                                                  setEngagementChartSelectedMetrics(
-                                                    [
+                                              Semua
+                                            </button>
+                                            <span>|</span>
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                setEngagementChartSelectedMetrics(
+                                                  [
                                                       "errRateNumeric",
                                                       "uniqueViewers",
                                                     ],
@@ -23089,7 +23115,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <Line
                                                 yAxisId="right"
                                                 type="monotone"
-                                                name="Share"
+                                                name="Shares"
                                                 dataKey="shares"
                                                 stroke="#10b981"
                                                 strokeWidth={3}
