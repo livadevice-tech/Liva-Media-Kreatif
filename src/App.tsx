@@ -16085,7 +16085,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       <>
                         <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left">
                           {/* Header Workspace */}
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white mb-6 text-left border-b border-slate-200 px-6 sm:px-8 py-5">
+                          <div className="flex flex-col gap-4 bg-white mb-4 text-left border-b border-slate-200 px-6 sm:px-8 py-5">
+                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                             <div className="flex items-center gap-4">
                               <button
                                 onClick={() => {
@@ -16104,75 +16105,88 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               </h3>
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                onClick={() => {
-                                  setIsDeleteByDateModalOpen(true);
-                                }}
-                                className="px-4 py-2 bg-white text-orange-600 hover:text-orange-700 font-bold text-[11px] rounded-lg shadow-sm border border-slate-200 hover:bg-orange-50 flex items-center gap-2 cursor-pointer transition-all"
-                                title="Hapus Rentang Waktu"
-                              >
-                                <Calendar className="w-3.5 h-3.5" />
-                                Hapus Rentang Waktu
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  handleDeleteAllBrandRawData(
-                                    activeReportBrandId || "",
-                                    clientBrands.find(
-                                      (b) => b.id === activeReportBrandId,
-                                    )?.name || "",
-                                    operatorReportingTab
-                                  );
-                                }}
-                                className="px-4 py-2 bg-white text-red-600 hover:text-red-700 font-bold text-[11px] rounded-lg shadow-sm border border-slate-200 hover:bg-red-50 flex items-center gap-2 cursor-pointer transition-all"
-                                title="Hapus Semua Data"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                Hapus Semua Data
-                              </button>
-
-                              {operatorReportingTab === "product" && (
+                              <div className="flex flex-wrap gap-2">
                                 <button
                                   onClick={() => {
-                                    setSaveTargetBrandId(
-                                      activeReportBrandId || "",
-                                    );
-                                    setIsSkuUploadModalOpen(true);
+                                    setIsDeleteByDateModalOpen(true);
                                   }}
-                                  className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-[11px] rounded-lg shadow-sm border border-indigo-200 hover:bg-indigo-100 flex items-center gap-2 cursor-pointer transition-all"
+                                  className="px-4 py-2 bg-white text-orange-600 hover:text-orange-700 font-bold text-[11px] rounded-xl shadow-sm border border-slate-200 hover:bg-orange-50 flex items-center gap-2 cursor-pointer transition-all"
+                                  title="Hapus Rentang Waktu"
                                 >
-                                  <Download className="w-3.5 h-3.5" />
-                                  Import Data SKU
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  Hapus Rentang Waktu
                                 </button>
-                              )}
 
-                              {(operatorReportingTab === "live" ||
-                                operatorReportingTab === "engagement") && (
                                 <button
                                   onClick={() => {
-                                    setSaveTargetBrandId(
+                                    handleDeleteAllBrandRawData(
                                       activeReportBrandId || "",
+                                      clientBrands.find(
+                                        (b) => b.id === activeReportBrandId,
+                                      )?.name || "",
+                                      operatorReportingTab
                                     );
-                                    setUploadTargetTab(
-                                      operatorReportingTab === "engagement"
-                                        ? "engagement"
-                                        : "live",
-                                    );
-                                    setIsUploadModalOpen(true);
                                   }}
-                                  className="px-4 py-2 bg-slate-900 text-white font-bold text-[11px] rounded-lg shadow-sm border border-slate-800 hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition-all"
+                                  className="px-4 py-2 bg-white text-red-600 hover:text-red-700 font-bold text-[11px] rounded-xl shadow-sm border border-red-200 hover:bg-red-50 flex items-center gap-2 cursor-pointer transition-all"
+                                  title="Hapus Semua Data"
                                 >
-                                  <Download className="w-3.5 h-3.5" />
-                                  Import Raw Data
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Hapus Semua Data
                                 </button>
-                              )}
+
+                                {operatorReportingTab === "product" && (
+                                  <button
+                                    onClick={() => {
+                                      setSaveTargetBrandId(
+                                        activeReportBrandId || "",
+                                      );
+                                      setIsSkuUploadModalOpen(true);
+                                    }}
+                                    className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-[11px] rounded-xl shadow-sm border border-indigo-200 hover:bg-indigo-100 flex items-center gap-2 cursor-pointer transition-all"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                    Import Data SKU
+                                  </button>
+                                )}
+
+                                {(operatorReportingTab === "live" ||
+                                  operatorReportingTab === "engagement") && (
+                                  <button
+                                    onClick={() => {
+                                      setSaveTargetBrandId(
+                                        activeReportBrandId || "",
+                                      );
+                                      setUploadTargetTab(
+                                        operatorReportingTab === "engagement"
+                                          ? "engagement"
+                                          : "live",
+                                      );
+                                      setIsUploadModalOpen(true);
+                                    }}
+                                    className="px-4 py-2 bg-slate-900 text-white font-bold text-[11px] rounded-xl shadow-sm border border-slate-800 hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition-all"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                    Import Raw Data
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[10px] font-black text-indigo-700">
+                                Dashboard {operatorReportingTab === "live" ? "Live Performance" : operatorReportingTab === "product" ? "Product Performance" : "Engagement & Promotion"}
+                              </span>
+                              <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                Brand aktif: {clientBrands.find((b) => b.id === activeReportBrandId)?.name || "-"}
+                              </span>
+                              <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                Sumber raw data tersimpan di database brand
+                              </span>
                             </div>
                           </div>
 
                           {/* Operator Reporting Subtabs */}
-                          <div className="px-6 sm:px-8 mb-6 border-b border-slate-200 flex gap-6">
+                          <div className="px-6 sm:px-8 mb-6 border-b border-slate-200 flex gap-6 overflow-x-auto">
                             <button
                               onClick={() => setOperatorReportingTab("live")}
                               className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
