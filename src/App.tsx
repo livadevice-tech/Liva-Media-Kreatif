@@ -8176,8 +8176,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   {/* STORED DATABASE VIEWER - NEW DESIGN */}
                   <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                     {(() => {
-                      const filteredDb = brandPerformanceLogs.filter(
-                        (log) => log.brandId === loggedInClientBrandId,
+                      const filteredLiveDb = brandPerformanceLogs.filter(
+                        (log) =>
+                          log.brandId === loggedInClientBrandId &&
+                          log.reportType !== "engagement",
+                      );
+                      const filteredEngagementDb = brandPerformanceLogs.filter(
+                        (log) =>
+                          log.brandId === loggedInClientBrandId &&
+                          log.reportType === "engagement",
                       );
                       let effectiveFilter = clientDateFilterType;
                       let targetLatestDate = "";
@@ -8186,12 +8193,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       let prevStartDate = "";
                       let prevEndDate = "";
                       if (effectiveFilter === "latest") {
-                        const allDates = Array.from<string>(
-                          new Set(
-                            filteredDb
-                              .map((l) => normalizeDateYMD(l.date))
-                              .filter(Boolean) as string[],
-                          ),
+                          const allDates = Array.from<string>(
+                            new Set(
+                              filteredLiveDb
+                                .map((l) => normalizeDateYMD(l.date))
+                                .filter(Boolean) as string[],
+                            ),
                         );
                         allDates.sort();
                         if (allDates.length > 0) {
@@ -8315,10 +8322,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           return true;
                         });
                       };
-                      const tableLogs = applyFilter(filteredDb, false);
+                      const tableLogs = applyFilter(filteredLiveDb, false);
                       const prevTableLogs =
                         effectiveFilter !== "all"
-                          ? applyFilter(filteredDb, true)
+                          ? applyFilter(filteredLiveDb, true)
+                          : [];
+                      const engagementTableLogs = applyFilter(
+                        filteredEngagementDb,
+                        false,
+                      );
+                      const prevEngagementTableLogs =
+                        effectiveFilter !== "all"
+                          ? applyFilter(filteredEngagementDb, true)
                           : [];
                       const totalSessionsDb = tableLogs.length;
                       const totalGmvDb = tableLogs.reduce(
@@ -8368,17 +8383,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         (sum, item) => sum + (item.clicks || 0),
                         0,
                       );
-                      const engagementMetricLogs =
-                        tableLogs.filter(
-                          (item) => item.reportType === "engagement",
-                        );
                       const avgViewDurationSourceLogs =
-                        engagementMetricLogs.length > 0
-                          ? engagementMetricLogs
+                        engagementTableLogs.length > 0
+                          ? engagementTableLogs
                           : tableLogs;
                       const peakViewSourceLogs =
-                        engagementMetricLogs.length > 0
-                          ? engagementMetricLogs
+                        engagementTableLogs.length > 0
+                          ? engagementTableLogs
                           : tableLogs;
                       const avgViewDurationValues =
                         avgViewDurationSourceLogs
@@ -8396,10 +8407,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         .filter((value) => value > 0);
                       const peakViewersDb =
                         peakViewValues.length > 0
-                          ? peakViewValues.reduce(
-                              (sum, value) => sum + value,
-                              0,
-                            ) / peakViewValues.length
+                          ? Math.round(
+                              peakViewValues.reduce(
+                                (sum, value) => sum + value,
+                                0,
+                              ) / peakViewValues.length,
+                            )
                           : 0;
                       const pTotalGmvDb = prevTableLogs.reduce(
                         (sum, item) => sum + (item.gmv || 0),
@@ -8448,17 +8461,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         (sum, item) => sum + (item.clicks || 0),
                         0,
                       );
-                      const prevEngagementMetricLogs =
-                        prevTableLogs.filter(
-                          (item) => item.reportType === "engagement",
-                        );
                       const prevAvgViewDurationSourceLogs =
-                        prevEngagementMetricLogs.length > 0
-                          ? prevEngagementMetricLogs
+                        prevEngagementTableLogs.length > 0
+                          ? prevEngagementTableLogs
                           : prevTableLogs;
                       const prevPeakViewSourceLogs =
-                        prevEngagementMetricLogs.length > 0
-                          ? prevEngagementMetricLogs
+                        prevEngagementTableLogs.length > 0
+                          ? prevEngagementTableLogs
                           : prevTableLogs;
                       const pAvgViewDurationValues =
                         prevAvgViewDurationSourceLogs
@@ -8476,10 +8485,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         .filter((value) => value > 0);
                       const pPeakViewersDb =
                         pPeakViewValues.length > 0
-                          ? pPeakViewValues.reduce(
-                              (sum, value) => sum + value,
-                              0,
-                            ) / pPeakViewValues.length
+                          ? Math.round(
+                              pPeakViewValues.reduce(
+                                (sum, value) => sum + value,
+                                0,
+                              ) / pPeakViewValues.length,
+                            )
                           : 0;
                       const totalDbImpressions = tableLogs.reduce(
                         (acc, curr) => {
@@ -8905,7 +8916,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               ? clientPlatformFilter
                                   .toLowerCase()
                                   .includes("shopee")
-                              : filteredDb?.some(
+                              : filteredLiveDb?.some(
                                   (log) =>
                                     log.platform &&
                                     log.platform
@@ -9478,7 +9489,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               ? clientPlatformFilter
                                   .toLowerCase()
                                   .includes("shopee")
-                              : filteredDb?.some(
+                              : filteredLiveDb?.some(
                                   (log) =>
                                     log.platform &&
                                     log.platform
