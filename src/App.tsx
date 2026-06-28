@@ -3435,6 +3435,7 @@ export default function App() {
         const viewsIdx = findColIdx([
           "views",
           "view",
+          "dilihat",
         ]);
         const impressionsIdx = findColIdx([
           "dilihat",
@@ -9992,7 +9993,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   paginatedLogs.map((log, idx) => {
                                     const isLogShopee = log.platform && log.platform.toLowerCase().includes("shopee");
                                     const lViews = isLogShopee 
-                                      ? (log.penonton || log.impressions || log.views || 0)
+                                      ? (log.reportType === "engagement" || String(log.sourceKind || "").includes("engagement")
+                                          ? (log.views || log.impressions || log.penonton || 0)
+                                          : (log.penonton || log.impressions || log.views || 0))
                                       : (log.impressions || log.views || log.liveVisits || 0);
                                     const lCtr =
                                       log.productImpressions > 0
@@ -16772,7 +16775,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             ).format(
                                               reportingRawData.reduce(
                                                 (acc, curr) =>
-                                                  acc + (curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0),
+                                                  acc + (curr.views || curr.impressions || curr.liveVisits || curr.penonton || 0),
                                                 0,
                                               ),
                                             )}
@@ -17082,7 +17085,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           reportingRawData.reduce(
                                             (acc, curr) =>
                                               acc +
-                                              (curr.penonton ||
+                                              (curr.views ||
+                                                curr.penonton ||
                                                 curr.impressions ||
                                                 0),
                                             0,
@@ -18707,10 +18711,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   .filter((value) => value > 0);
                                 const peakViewersDb =
                                   peakViewValues.length > 0
-                                    ? peakViewValues.reduce(
-                                        (sum, value) => sum + value,
-                                        0,
-                                      ) / peakViewValues.length
+                                    ? Math.round(
+                                        peakViewValues.reduce(
+                                          (sum, value) => sum + value,
+                                          0,
+                                        ) / peakViewValues.length,
+                                      )
                                     : 0;
                                 const pTotalGmvDb = prevTableLogs.reduce(
                                   (sum, item) => sum + (item.gmv || 0),
@@ -18790,10 +18796,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   .filter((value) => value > 0);
                                 const pPeakViewersDb =
                                   pPeakViewValues.length > 0
-                                    ? pPeakViewValues.reduce(
-                                        (sum, value) => sum + value,
-                                        0,
-                                      ) / pPeakViewValues.length
+                                    ? Math.round(
+                                        pPeakViewValues.reduce(
+                                          (sum, value) => sum + value,
+                                          0,
+                                        ) / pPeakViewValues.length,
+                                      )
                                     : 0;
                                 const totalDbImpressions = tableLogs.reduce(
                                   (acc, curr) => {
@@ -20583,7 +20591,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               return paginatedLogs.map((log, idx) => {
                                               const isLogShopee = log.platform && log.platform.toLowerCase().includes("shopee");
                                               const lViews = isLogShopee 
-                                                ? (log.penonton || log.impressions || log.views || 0)
+                                                ? (log.reportType === "engagement" || String(log.sourceKind || "").includes("engagement")
+                                                    ? (log.views || log.impressions || log.penonton || 0)
+                                                    : (log.penonton || log.impressions || log.views || 0))
                                                 : (log.impressions || log.views || log.liveVisits || 0);
                                               const lCtr =
                                                 log.productImpressions > 0
@@ -22269,7 +22279,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 );
                                 const totalPenonton = logs.reduce(
                                   (sum, l) =>
-                                    sum + (l.penonton || l.impressions || 0),
+                                    sum + (l.views || l.penonton || l.impressions || 0),
                                   0,
                                 );
                                 const avgPeakViewers =
@@ -22339,7 +22349,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     };
                                   }
                                   groupedByDate[dateStr].penonton +=
-                                    log.penonton || log.impressions || 0;
+                                    log.reportType === "engagement" || String(log.sourceKind || "").includes("engagement")
+                                      ? (log.views || log.impressions || log.penonton || 0)
+                                      : (log.penonton || log.impressions || 0);
                                   groupedByDate[dateStr].likes +=
                                     log.likes || 0;
                                   groupedByDate[dateStr].shares +=
