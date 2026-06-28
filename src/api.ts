@@ -30,11 +30,13 @@ export const testDbConnection = async (): Promise<{ success: boolean; message: s
 async function request<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   endpoint: string,
-  body?: unknown
+  body?: unknown,
+  signal?: AbortSignal,
 ): Promise<T> {
   const options: RequestInit = {
     method,
     headers: { 'Content-Type': 'application/json' },
+    signal,
   };
   if (body !== undefined) {
     options.body = JSON.stringify(body);
@@ -227,9 +229,16 @@ export const reportingBrandApi = {
   getSummary: () => request<any[]>('GET', '/reporting/brand/summary'),
 
   /** Ambil snapshot reporting brand (batch + raw logs) */
-  getAll: (params?: { brandId?: string }) => {
-    const qs = params?.brandId ? `?brandId=${params.brandId}` : '';
-    return request<{ batches: any[]; rows: any[] }>('GET', `/reporting/brand${qs}`);
+  getAll: (params?: { brandId?: string; signal?: AbortSignal }) => {
+    const query = new URLSearchParams();
+    if (params?.brandId) query.set('brandId', params.brandId);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return request<{ batches: any[]; rows: any[] }>(
+      'GET',
+      `/reporting/brand${qs}`,
+      undefined,
+      params?.signal,
+    );
   },
 
   /** Simpan 1 batch upload beserta seluruh raw rows */

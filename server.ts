@@ -879,7 +879,6 @@ const mapReportingRow = (row: any) => ({
   specialVouchers: Number(row.special_vouchers || 0),
   coinsClaimed: Number(row.coins_claimed || 0),
   hasFunnelInFile: !!row.has_funnel_in_file,
-  rawPayload: row.raw_payload,
   uploadedAt: row.uploaded_at,
 });
 
@@ -887,7 +886,12 @@ app.get("/api/reporting/brand", asyncHandler(async (req, res) => {
   const { brandId, platform, sourceKind } = req.query as Record<string, string>;
 
   const batchParams: any[] = [];
-  let batchSql = `SELECT * FROM reporting_upload_batches WHERE 1=1`;
+  let batchSql = `
+    SELECT id, brand_id, brand_name, platform, source_kind, report_type,
+           file_name, row_count, total_gmv, uploaded_at, updated_at
+    FROM reporting_upload_batches
+    WHERE 1=1
+  `;
   if (brandId) {
     batchSql += ` AND brand_id = ?`;
     batchParams.push(brandId);
@@ -903,7 +907,18 @@ app.get("/api/reporting/brand", asyncHandler(async (req, res) => {
   batchSql += ` ORDER BY uploaded_at DESC`;
 
   const rowParams: any[] = [];
-  let rowSql = `SELECT * FROM reporting_upload_rows WHERE 1=1`;
+  // raw_payload sengaja tidak dikirim ke halaman dashboard. Kolom JSON ini hanya
+  // diperlukan sebagai arsip impor dan dapat membuat response menjadi sangat besar.
+  let rowSql = `
+    SELECT id, batch_id, brand_id, brand_name, platform, source_kind, report_type,
+           title, report_date, report_datetime, shift, gmv, products_sold, buyers,
+           aov, views, impressions, penonton, live_visits, product_impressions,
+           clicks, orders, followers, likes, shares, comments, avg_view_duration,
+           peak_viewers, shop_vouchers, special_vouchers, coins_claimed,
+           has_funnel_in_file, uploaded_at
+    FROM reporting_upload_rows
+    WHERE 1=1
+  `;
   if (brandId) {
     rowSql += ` AND brand_id = ?`;
     rowParams.push(brandId);

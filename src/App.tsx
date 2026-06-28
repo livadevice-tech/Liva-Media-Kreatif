@@ -150,6 +150,50 @@ import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
 import { QuickGridInput } from "./components/QuickGridInput";
 
+const ReportingTableStatusRow = ({
+  colSpan,
+  loading,
+  error,
+  onRetry,
+}: {
+  colSpan: number;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+}) => (
+  <tr>
+    <td
+      colSpan={colSpan}
+      className="px-5 py-16 text-center text-slate-500 font-bold w-full"
+    >
+      <div className="flex flex-col items-center justify-center gap-4">
+        {loading ? (
+          <>
+            <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+            <span>Sedang memuat data dari database...</span>
+          </>
+        ) : (
+          <>
+            <AlertTriangle className="w-10 h-10 text-amber-500" />
+            <div className="max-w-md">
+              <p className="text-slate-700">Data reporting gagal dimuat.</p>
+              <p className="mt-1 text-xs font-medium text-slate-500">{error}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Coba Lagi
+            </button>
+          </>
+        )}
+      </div>
+    </td>
+  </tr>
+);
+
 const getAvatarUrl = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Host")}&background=f3e8ff&color=7e22ce&bold=true`;
 
@@ -1694,7 +1738,9 @@ export default function App() {
   const [clientLoginUsername, setClientLoginUsername] = useState<string>("");
   const [clientLoginPass, setClientLoginPass] = useState<string>("");
   const [brandPerformanceLogs, setBrandPerformanceLogs] = useState<any[]>([]);
-  const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
+  const [isReportingDataLoading, setIsReportingDataLoading] = useState(false);
+  const [reportingDataError, setReportingDataError] = useState<string | null>(null);
+  const [reportingReloadKey, setReportingReloadKey] = useState(0);
   const [brandUploadHistory, setBrandUploadHistory] = useState<any[]>([]);
   const [brandReportingSummary, setBrandReportingSummary] = useState<Record<string, {
     brandId: string;
@@ -2375,14 +2421,29 @@ export default function App() {
     if (!brandIdFilter) {
       setBrandUploadHistory([]);
       setBrandPerformanceLogs([]);
+      setIsReportingDataLoading(false);
+      setReportingDataError(null);
       return () => {
         cancelled = true;
       };
     }
 
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 20000);
+
     const loadReportingSnapshot = async () => {
+      setIsReportingDataLoading(true);
+      setReportingDataError(null);
+
       try {
-        const snapshot = await reportingBrandApi.getAll({ brandId: brandIdFilter });
+        const snapshot = await reportingBrandApi.getAll({
+          brandId: brandIdFilter,
+          signal: controller.signal,
+        });
         if (cancelled || !snapshot) return;
 
         const snapshotBatches = Array.isArray(snapshot.batches) ? snapshot.batches : [];
@@ -2391,16 +2452,30 @@ export default function App() {
         setBrandUploadHistory(snapshotBatches);
         setBrandPerformanceLogs(snapshotRows);
       } catch (err) {
+        if (cancelled) return;
         console.error("Error loading brand reporting snapshot:", err);
+        setReportingDataError(
+          timedOut
+            ? "Permintaan melebihi batas 20 detik. Periksa koneksi atau beban database lalu coba lagi."
+            : err instanceof Error
+              ? err.message
+              : "Terjadi kesalahan saat mengambil data reporting.",
+        );
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (!cancelled) setIsReportingDataLoading(false);
       }
+
     };
 
     loadReportingSnapshot();
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
+      controller.abort();
     };
-  }, [isGlobalConfigsLoaded, activeReportBrandId, loggedInClientBrandId, refreshReportingSummary]);
+  }, [isGlobalConfigsLoaded, activeReportBrandId, loggedInClientBrandId, reportingReloadKey]);
 
   const availableOperatorPlatforms = useMemo(() => {
     if (!activeReportBrandId || brandPerformanceLogs.length === 0) return platforms;
@@ -9788,18 +9863,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
-                                {isLogsLoading ? (
-                                  <tr>
-                                    <td
-                                      colSpan={8}
-                                      className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-                                    >
-                                      <div className="flex flex-col items-center justify-center gap-4">
-                                        <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
-                                        Sedang memuat data dari database...
-                                      </div>
-                                    </td>
-                                  </tr>
+                                {isReportingDataLoading || reportingDataError ? (
+                                  <ReportingTableStatusRow
+                                    colSpan={8}
+                                    loading={isReportingDataLoading}
+                                    error={reportingDataError}
+                                    onRetry={() => setReportingReloadKey((key) => key + 1)}
+                                  />
                                 ) : sortedTableLogs.length === 0 ? (
                                   <tr>
                                     <td
@@ -20170,19 +20240,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
-                                          {isLogsLoading ? (
-                                            <tr>
-                                              <td
-                                                colSpan={8}
-                                                className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-                                              >
-                                                <div className="flex flex-col items-center justify-center gap-4">
-                                                  <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
-                                                  Sedang memuat data dari
-                                                  database...
-                                                </div>
-                                              </td>
-                                            </tr>
+                                          {isReportingDataLoading || reportingDataError ? (
+                                            <ReportingTableStatusRow
+                                              colSpan={9}
+                                              loading={isReportingDataLoading}
+                                              error={reportingDataError}
+                                              onRetry={() => setReportingReloadKey((key) => key + 1)}
+                                            />
                                           ) : sortedTableLogs.length === 0 ? (
                                             <tr>
                                               <td
@@ -20603,19 +20667,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
-                                          {isLogsLoading ? (
-                                            <tr key="loading">
-                                              <td
-                                                colSpan={6}
-                                                className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-                                              >
-                                                <div className="flex flex-col items-center justify-center gap-4">
-                                                  <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
-                                                  Sedang memuat data dari
-                                                  database...
-                                                </div>
-                                              </td>
-                                            </tr>
+                                          {isReportingDataLoading || reportingDataError ? (
+                                            <ReportingTableStatusRow
+                                              colSpan={6}
+                                              loading={isReportingDataLoading}
+                                              error={reportingDataError}
+                                              onRetry={() => setReportingReloadKey((key) => key + 1)}
+                                            />
                                           ) : completeUploadHistory.length ===
                                             0 ? (
                                             <tr key="empty-history">
@@ -22911,19 +22969,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 </tr>
                                               </thead>
                                               <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
-                                                {isLogsLoading ? (
-                                                  <tr key="loading">
-                                                    <td
-                                                      colSpan={6}
-                                                      className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-                                                    >
-                                                      <div className="flex flex-col items-center justify-center gap-4">
-                                                        <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
-                                                        Sedang memuat data dari
-                                                        database...
-                                                      </div>
-                                                    </td>
-                                                  </tr>
+                                                {isReportingDataLoading || reportingDataError ? (
+                                                  <ReportingTableStatusRow
+                                                    colSpan={6}
+                                                    loading={isReportingDataLoading}
+                                                    error={reportingDataError}
+                                                    onRetry={() => setReportingReloadKey((key) => key + 1)}
+                                                  />
                                                 ) : completeUploadHistory.length ===
                                                   0 ? (
                                                   <tr key="empty-history">
