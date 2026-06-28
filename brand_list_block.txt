@@ -1,0 +1,268 @@
+
+                      {/* Brand Card List */}
+                      <div className="space-y-3">
+                        {filteredAndSortedBrands.length === 0 ? (
+                          <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                            <Briefcase className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+                            <p className="text-slate-400 font-bold text-sm">
+                              {brandDataSearch ? "Brand tidak ditemukan." : "Belum ada data brand klien."}
+                            </p>
+                            <p className="text-slate-300 text-xs mt-1">Klik tombol "+ Klien Baru" untuk menambahkan.</p>
+                          </div>
+                        ) : (
+                          filteredAndSortedBrands.map((brand, i) => {
+                            const today = new Date();
+                            const endDate = brand.contractEndDate ? new Date(brand.contractEndDate) : null;
+                            const startDate = brand.contractStartDate ? new Date(brand.contractStartDate) : null;
+                            const isExpired = endDate ? endDate < today : false;
+                            const daysLeft = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                            const isNearExpiry = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
+
+                            const formatContractDate = (d?: string) => {
+                              if (!d) return "—";
+                              const datePart = d.split("T")[0];
+                              const p = datePart.split("-");
+                              if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
+                              return d;
+                            };
+
+                            return (
+                              <div
+                                key={brand.id || i}
+                                className={`bg-white rounded-2xl border transition-all duration-200 hover:shadow-md group ${
+                                  isExpired
+                                    ? "border-l-4 border-l-rose-400 border-slate-100"
+                                    : isNearExpiry
+                                    ? "border-l-4 border-l-amber-400 border-slate-100"
+                                    : "border-l-4 border-l-indigo-400 border-slate-100"
+                                }`}
+                              >
+                                {/* Card Header */}
+                                <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-50">
+                                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${
+                                      isExpired ? "bg-rose-50 text-rose-500" : "bg-indigo-50 text-indigo-600"
+                                    }`}>
+                                      {(brand.name || "?").charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                                        <h4 className="font-black text-slate-800 text-[15px] leading-tight truncate">{brand.name}</h4>
+                                        {isExpired ? (
+                                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span> Selesai
+                                          </span>
+                                        ) : isNearExpiry ? (
+                                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span> {daysLeft}h lagi
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span> Aktif
+                                          </span>
+                                        )}
+                                        {brand.monthlyMeetingDate && (
+                                          <span className="text-[10px] text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full font-bold border border-sky-100 flex items-center gap-1">
+                                            <Calendar className="w-2.5 h-2.5" /> Meeting Tgl {brand.monthlyMeetingDate}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-semibold">
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="w-3 h-3" />
+                                          {formatContractDate(brand.contractStartDate)} - {formatContractDate(brand.contractEndDate)}
+                                        </span>
+                                        {brand.invoiceDate && (
+                                          <span className="flex items-center gap-1 text-emerald-600">
+                                            <DollarSign className="w-3 h-3" /> Invoice Tgl {brand.invoiceDate}
+                                          </span>
+                                        )}
+                                        {brand.picName && (
+                                          <span className="flex items-center gap-1">
+                                            <UserCheck className="w-3 h-3" /> {brand.picName}
+                                          </span>
+                                        )}
+                                        <span className="text-indigo-400 font-mono">ID: #{brand.id.slice(-6).toUpperCase()}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Action Buttons */}
+                                  <div className="flex items-center gap-1.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={() => {
+                                        setOperatorTab("invoice");
+                                        setTimeout(() => {
+                                          const e = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
+                                          window.dispatchEvent(e);
+                                        }, 300);
+                                      }}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-bold transition-all border-0 cursor-pointer"
+                                      title="Buat Invoice"
+                                    >
+                                      <Receipt className="w-3.5 h-3.5" /> Invoice
+                                    </button>
+                                    <button
+                                      onClick={() => handleEditBrand(brand)}
+                                      className="w-8 h-8 flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all border-0 cursor-pointer"
+                                      title="Edit Data"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteBrand(brand.id)}
+                                      className="w-8 h-8 flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all border-0 cursor-pointer"
+                                      title="Hapus Data"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Card Body */}
+                                <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  {/* Sessions */}
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Platform & Sesi</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {brand.sessions && brand.sessions.length > 0 ? (
+                                        brand.sessions.map((sess) => (
+                                          <div
+                                            key={sess.id}
+                                            className="bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-[10px]"
+                                          >
+                                            <span className="font-black text-indigo-600 uppercase">{sess.platform}</span>
+                                            <span className="text-slate-400 mx-1">·</span>
+                                            <span className="font-semibold text-slate-600">{sess.shift}</span>
+                                            {sess.studio && (
+                                              <div className="text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <MapPin className="w-2.5 h-2.5 text-rose-400" /> {sess.studio}
+                                              </div>
+                                            )}
+                                            {sess.host && (
+                                              <div className="text-slate-400 flex items-center gap-1">
+                                                <UserCheck className="w-2.5 h-2.5 text-emerald-400" /> {sess.host}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <div className="text-slate-300 text-[10px] italic">Belum ada sesi</div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Portal Credentials */}
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Portal Performance</p>
+                                    <div className="bg-indigo-50/70 border border-indigo-100/60 rounded-xl p-2.5 space-y-1.5">
+                                      <div className="flex items-center gap-2 text-[10px]">
+                                        <span className="text-indigo-400 font-bold w-7">UID</span>
+                                        <span className="font-mono font-black text-indigo-800 bg-white/70 px-1.5 py-0.5 rounded select-all flex-1 truncate">
+                                          {brand.clientUsername || (brand.name || "").toLowerCase().replace(/[^a-z0-9]/g, "")}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-[10px]">
+                                        <span className="text-indigo-400 font-bold w-7">PWD</span>
+                                        <span className="font-mono font-black text-indigo-800 bg-white/70 px-1.5 py-0.5 rounded select-all flex-1">
+                                          {brand.clientPassword || "liva123"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Accounts */}
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Akun Seller ({brand.accounts?.length || 0})</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {brand.accounts && brand.accounts.length > 0 ? (
+                                        brand.accounts.map((acc) => (
+                                          <div key={acc.id} className="bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-[10px]">
+                                            <div className="font-black text-slate-500 uppercase tracking-wider text-[8px] mb-0.5">{acc.type}</div>
+                                            <div className="font-mono text-slate-700 font-bold">{acc.username || "—"}</div>
+                                            <div className="font-mono text-slate-400">{acc.password || "—"}</div>
+                                            {acc.picOtp && (
+                                              <div className="text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <Smartphone className="w-2.5 h-2.5" /> OTP: {acc.picOtp}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <div className="text-slate-300 text-[10px] italic">Tidak ada akun</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ==================== SUBTAB: INVOICE BRAND ==================== */}
+                {operatorTab === "invoice" && (
+                  <InvoiceDashboard
+                    clientBrands={clientBrands}
+                    onUpdateBrands={setClientBrands}
+                  />
+                )}
+
+                {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
+                {operatorTab === "reporting_brand" && (
+                  <div
+                    className="space-y-6 animate-fadeIn"
+                    id="operator_reporting_brand_content bg-[#fafafd] min-h-screen"
+                  >
+                    {activeReportBrandId === null ? (
+                      <div className="space-y-6">
+                        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 sm:p-8 rounded-3xl text-white shadow-md relative overflow-hidden text-left">
+                          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                          <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
+                          <div className="relative z-10 max-w-2xl">
+                            <span className="bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-xs inline-flex items-center gap-1.5 mb-3">
+                              <Sparkles className="w-3 h-3 text-indigo-400 animate-pulse" />{" "}
+                              Workspace Pelaporan Eksternal
+                            </span>
+                            <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-none uppercase">
+                              Pilih Brand Klien Terlebih Dahulu
+                            </h3>
+                            <p className="text-xs sm:text-sm text-slate-300 font-semibold mt-2 leading-relaxed">
+                              Silakan pilih salah satu Brand Klien untuk
+                              mengakses dashboard utama, mengimpor raw data
+                              laporan performance stream, menganalisis corong
+                              konversi, atau mengelola dan menghapus riwayat
+                              upload data mentah.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* FITUR PENCARIAN BRAND */}
+                        <div className="bg-white p-4 rounded-3xl border border-indigo-100/80 flex flex-col sm:flex-row items-center gap-3 text-left">
+                          <div className="relative flex-1 w-full">
+                            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-450" />
+                            <input
+                              type="text"
+                              placeholder="Cari brand klien berdasarkan nama atau ID..."
+                              value={reportBrandSearchQuery}
+                              onChange={(e) =>
+                                setReportBrandSearchQuery(e.target.value)
+                              }
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-700 placeholder-slate-400 outline-none focus:border-indigo-405 focus:bg-white transition-all"
+                            />
+                          </div>
+                          {reportBrandSearchQuery && (
+                            <button
+                              onClick={() => setReportBrandSearchQuery("")}
+                              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-black transition-colors cursor-pointer border-0 w-full sm:w-auto text-center"
+                            >
+                              Reset Pencarian
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
