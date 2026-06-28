@@ -1279,6 +1279,9 @@ export default function App() {
     cutOffStartDay: 16,
     cutOffEndDay: 15,
   });
+  const [payrollKasbonByHostId, setPayrollKasbonByHostId] = useState<
+    Record<string, number>
+  >({});
 
   const [loggedInClientBrandId, setLoggedInClientBrandId] = useState<
     string | null
@@ -1325,6 +1328,14 @@ export default function App() {
     }, 1000);
     return () => clearTimeout(timer);
   }, [salarySettings, isGlobalConfigsLoaded]);
+
+  useEffect(() => {
+    if (!isGlobalConfigsLoaded) return;
+    const timer = setTimeout(() => {
+      saveLocalConfig({ payrollKasbonByHostId });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [payrollKasbonByHostId, isGlobalConfigsLoaded]);
 
   // Simpan spreadsheet settings ke localStorage
   useEffect(() => {
@@ -1442,6 +1453,7 @@ export default function App() {
                   cutOffStartDay: 16,
                   cutOffEndDay: 15,
                 },
+                payrollKasbonByHostId: {},
                 adminCredentials: { username: 'admin', password: 'Liva123@@' },
                 adminShiftChecklistObj: {},
               };
@@ -1463,6 +1475,9 @@ export default function App() {
             if (typeof data.agencyLogoUrl === 'string') _setAgencyLogoUrl(data.agencyLogoUrl);
             if (data.salarySettings) {
               setSalarySettings((prev) => ({ ...prev, ...data.salarySettings }));
+            }
+            if (data.payrollKasbonByHostId && typeof data.payrollKasbonByHostId === "object") {
+              setPayrollKasbonByHostId(data.payrollKasbonByHostId);
             }
             if (data.adminCredentials) setAdminCredentials(prev => prev.username === 'admin' && prev.password === 'Liva123@@' ? data.adminCredentials : prev);
             if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
@@ -4748,6 +4763,10 @@ export default function App() {
       let isEligibleForBonus = false;
       let calculatedBonus = 0;
       let calculatedBackupPay = 0;
+      const manualKasbonDeduction = Math.max(
+        0,
+        payrollKasbonByHostId[host.id] || 0,
+      );
 
       const requiredWorkingDays =
         hostType === "Reguler"
@@ -4788,6 +4807,8 @@ export default function App() {
         netSalary += totalBackupHadir * backupShiftRate;
       }
 
+      netSalary = Math.max(0, netSalary - manualKasbonDeduction);
+
       return {
         ...host,
         countTepatWaktu,
@@ -4801,7 +4822,7 @@ export default function App() {
         calculatedBonus,
         bonusAttendance: calculatedBonus,
         cutAlpa: 0,
-        kasbonDed: 0,
+        kasbonDed: manualKasbonDeduction,
         totalOvertimeHours,
         calculatedOvertimePay,
         basePayRate,
@@ -13259,118 +13280,121 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                   {/* Expanded Area */}
                                   {isExpanded && (
-                                     <div className="border-t border-slate-100 bg-slate-50/70 p-4 pl-7 flex flex-col lg:flex-row gap-6">
-                                        {/* Notes Section */}
-                                        <div className="flex-1 flex flex-col gap-2">
-                                           <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Tambahkan Catatan Khusus (Payroll)</span>
-                                           <textarea 
-                                              placeholder="Misal: Potong kasbon 50rb karena telat bayar cicilan..." 
-                                              className="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs font-medium text-slate-700 resize-none h-24 focus:outline-none focus:border-blue-500 shadow-2xs"
-                                           ></textarea>
-                                           <div className="flex justify-between items-center mt-1">
-                                              <div className="flex gap-2">
-                                                  <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-500 cursor-pointer hover:bg-slate-100">Kasbon</span>
-                                                  <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-500 cursor-pointer hover:bg-slate-100">Cuti Sakit</span>
-                                              </div>
-                                              <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded flex items-center gap-1 uppercase tracking-wider"><Check className="w-3 h-3"/> Disimpan otomatis</span>
-                                           </div>
-                                        </div>
-
-                                        {/* Detailed Calc Section */}
-                                        <div className="flex-1 lg:max-w-md bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                                     <div className="border-t border-slate-100 bg-slate-50/70 p-4 pl-7">
+                                        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
                                            <div className="absolute top-0 right-0 p-3 opacity-10">
                                               <Calculator className="w-20 h-20" />
                                            </div>
                                            <div className="flex flex-col gap-4 relative z-10">
-                                              <div className="flex flex-col gap-2.5">
-                                                 <div className="flex items-start justify-between gap-3">
-                                                    <div>
-                                                       <span className="font-bold text-slate-600 text-[11px] block">Kehadiran & Target Hari Kerja</span>
-                                                       <span className="text-[10px] text-slate-400 font-semibold">
-                                                          {item.countTepatWaktu} tepat waktu, {item.countTerlambat} terlambat, {item.countAlpa} alpa, {item.countIzin} izin
+                                              <div className="flex items-start justify-between gap-4">
+                                                 <div className="flex-1">
+                                                    <span className="font-bold text-slate-600 text-[11px] block">Kehadiran & Target Hari Kerja</span>
+                                                    <span className="text-[10px] text-slate-400 font-semibold">
+                                                       {item.countTepatWaktu} tepat waktu, {item.countTerlambat} terlambat, {item.countAlpa} alpa, {item.countIzin} izin
+                                                    </span>
+                                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                                       <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-black">
+                                                          Hadir {item.totalHadir}/{item.requiredWorkingDays}
+                                                       </span>
+                                                       <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-black">
+                                                          Tepat {item.countTepatWaktu}
+                                                       </span>
+                                                       <span className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-black">
+                                                          Telat {item.countTerlambat}
+                                                       </span>
+                                                       <span className="text-[10px] bg-red-50 text-red-700 px-2 py-0.5 rounded-full font-black">
+                                                          Alpa {item.countAlpa}
+                                                       </span>
+                                                       <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-black">
+                                                          Izin {item.countIzin}
                                                        </span>
                                                     </div>
-                                                    {hostType === "Reguler" ? (
-                                                      <div className="w-28">
-                                                         <label className="block text-[8.5px] uppercase tracking-wider text-slate-400 font-bold mb-1 text-right">
-                                                            Edit Target
-                                                         </label>
-                                                         <input
-                                                            type="number"
-                                                            min="1"
-                                                            max="31"
-                                                            defaultValue={item.customWorkingDaysTarget || salarySettings.workingDays}
-                                                            onBlur={(e) => {
-                                                              const next = Math.max(1, Math.min(31, Number(e.target.value) || salarySettings.workingDays));
-                                                              if (next !== item.requiredWorkingDays) {
-                                                                handleUpdateHost(item.id, { customWorkingDaysTarget: next });
-                                                              }
-                                                            }}
-                                                            onKeyDown={(e) => {
-                                                              if (e.key === "Enter") {
-                                                                (e.currentTarget as HTMLInputElement).blur();
-                                                              }
-                                                            }}
-                                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-slate-800 text-center focus:outline-none focus:border-blue-500"
-                                                         />
-                                                      </div>
-                                                    ) : (
-                                                      <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-100 px-2.5 py-1 rounded-full">
-                                                         Backup host dihitung per shift
-                                                      </span>
-                                                    )}
                                                  </div>
-                                                 <div className="flex flex-wrap gap-1.5">
-                                                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-black">
-                                                       Hadir {item.totalHadir}/{item.requiredWorkingDays}
-                                                    </span>
-                                                    <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-black">
-                                                       Tepat {item.countTepatWaktu}
-                                                    </span>
-                                                    <span className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-black">
-                                                       Telat {item.countTerlambat}
-                                                    </span>
-                                                    <span className="text-[10px] bg-red-50 text-red-700 px-2 py-0.5 rounded-full font-black">
-                                                       Alpa {item.countAlpa}
-                                                    </span>
-                                                    <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-black">
-                                                       Izin {item.countIzin}
-                                                    </span>
-                                                 </div>
+                                                 {hostType === "Reguler" ? (
+                                                   <div className="w-32 flex-shrink-0">
+                                                      <label className="block text-[8.5px] uppercase tracking-wider text-slate-400 font-bold mb-1 text-right">
+                                                         Edit Target
+                                                      </label>
+                                                      <input
+                                                         type="number"
+                                                         min="1"
+                                                         max="31"
+                                                         value={item.requiredWorkingDays}
+                                                         onChange={(e) => {
+                                                           const next = Math.max(1, Math.min(31, Number(e.target.value) || salarySettings.workingDays));
+                                                           handleUpdateHost(item.id, { customWorkingDaysTarget: next });
+                                                         }}
+                                                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-slate-800 text-center focus:outline-none focus:border-blue-500"
+                                                      />
+                                                   </div>
+                                                 ) : (
+                                                   <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-100 px-2.5 py-1 rounded-full">
+                                                      Backup host dihitung per shift
+                                                   </span>
+                                                 )}
                                               </div>
 
-                                              <div className="space-y-2">
-                                                 <div className="flex justify-between items-center text-[11px]">
-                                                    <span className="font-bold text-slate-600">Gaji Pokok (Rate Basis)</span>
-                                                    <span className="font-mono font-black text-slate-800">{formatIDR(item.basePayRate)}</span>
+                                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                                 <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
+                                                    <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1">
+                                                       Potongan Kasbon Admin
+                                                    </label>
+                                                    <div className="flex items-center gap-2">
+                                                       <span className="text-[11px] font-black text-slate-500">Rp</span>
+                                                       <input
+                                                          type="number"
+                                                          min="0"
+                                                          step="1000"
+                                                          value={payrollKasbonByHostId[item.id] ?? 0}
+                                                          onChange={(e) => {
+                                                            const next = Math.max(0, Number(e.target.value) || 0);
+                                                            setPayrollKasbonByHostId((prev) => ({
+                                                              ...prev,
+                                                              [item.id]: next,
+                                                            }));
+                                                          }}
+                                                          className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-black text-slate-800 focus:outline-none focus:border-blue-500"
+                                                          placeholder="0"
+                                                       />
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 font-semibold mt-1.5 leading-tight">
+                                                       Diterapkan langsung ke total gaji host ini.
+                                                    </p>
                                                  </div>
-                                                 <div className="flex justify-between items-center text-[11px]">
-                                                    <span className="font-bold text-slate-600 flex items-center gap-1">
-                                                       Bonus Kehadiran
-                                                       <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1 rounded">
-                                                          {item.totalHadir} Hari
+
+                                                 <div className="space-y-2">
+                                                    <div className="flex justify-between items-center text-[11px]">
+                                                       <span className="font-bold text-slate-600">Gaji Pokok (Rate Basis)</span>
+                                                       <span className="font-mono font-black text-slate-800">{formatIDR(item.basePayRate)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[11px]">
+                                                       <span className="font-bold text-slate-600 flex items-center gap-1">
+                                                          Bonus Kehadiran
+                                                          <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1 rounded">
+                                                             {item.totalHadir} Hari
+                                                          </span>
                                                        </span>
-                                                    </span>
-                                                    <span className="font-mono font-black text-emerald-600">
-                                                       +{formatIDR(item.bonusAttendance || 0)}
-                                                    </span>
-                                                 </div>
-                                                 <div className="flex justify-between items-center text-[11px]">
-                                                    <span className="font-bold text-slate-600 flex items-center gap-1">
-                                                       Potongan Alpa/Telat
-                                                       <span className="text-[8px] bg-red-100 text-red-700 px-1 rounded">
-                                                          {item.countAlpa + item.countTerlambat}x
+                                                       <span className="font-mono font-black text-emerald-600">
+                                                          +{formatIDR(item.bonusAttendance || 0)}
                                                        </span>
-                                                    </span>
-                                                    <span className="font-mono font-black text-red-500">
-                                                       -{formatIDR(item.cutAlpa || 0)}
-                                                    </span>
-                                                 </div>
-                                                 <div className="flex justify-between items-center text-[11px] pb-3 border-b border-slate-100 border-dashed">
-                                                    <span className="font-bold text-slate-600">Potongan Kasbon Berjalan</span>
-                                                    <span className="font-mono font-black text-red-500">
-                                                       -{formatIDR(item.kasbonDed || 0)}
-                                                    </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[11px]">
+                                                       <span className="font-bold text-slate-600 flex items-center gap-1">
+                                                          Potongan Alpa/Telat
+                                                          <span className="text-[8px] bg-red-100 text-red-700 px-1 rounded">
+                                                             {item.countAlpa + item.countTerlambat}x
+                                                          </span>
+                                                       </span>
+                                                       <span className="font-mono font-black text-red-500">
+                                                          -{formatIDR(item.cutAlpa || 0)}
+                                                       </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[11px] pb-3 border-b border-slate-100 border-dashed">
+                                                       <span className="font-bold text-slate-600">Potongan Kasbon Berjalan</span>
+                                                       <span className="font-mono font-black text-red-500">
+                                                          -{formatIDR(item.kasbonDed || 0)}
+                                                       </span>
+                                                    </div>
                                                  </div>
                                               </div>
 
