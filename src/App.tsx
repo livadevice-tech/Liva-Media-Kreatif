@@ -3320,7 +3320,9 @@ export default function App() {
 
         const shopeeSourceKind =
           detectedPlatform === "Shopee Live"
-            ? inferShopeeReportingKind(headers, fileNameLower)
+            ? uploadTargetTab === "engagement"
+              ? "engagement"
+              : inferShopeeReportingKind(headers, fileNameLower)
             : "live";
 
         if (detectedPlatform === "Shopee Live") {
@@ -16602,7 +16604,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             Data Analytics Berhasil Diproses
                                           </h4>
                                           <p className="text-[10px] sm:text-xs font-semibold text-indigo-700">
-                                            {reportingRawData.length} Sesi Live
+                                            {reportingRawData.length}{" "}
+                                            {uploadTargetTab === "engagement"
+                                              ? "Baris Engagement"
+                                              : "Sesi Live"}{" "}
                                             Terdeteksi
                                           </p>
                                         </div>
