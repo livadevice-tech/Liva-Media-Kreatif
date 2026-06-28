@@ -3433,9 +3433,9 @@ export default function App() {
           "order value",
         ]);
         const viewsIdx = findColIdx([
+          "dilihat",
           "views",
           "view",
-          "dilihat",
         ]);
         const impressionsIdx = findColIdx([
           "dilihat",
