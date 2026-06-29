@@ -1363,6 +1363,7 @@ export default function App() {
   const [importSpreadsheetUrl, setImportSpreadsheetUrl] = useState<string>("");
 
   const [isDeleteByDateModalOpen, setIsDeleteByDateModalOpen] = useState(false);
+  const [isEditRawDataModalOpen, setIsEditRawDataModalOpen] = useState(false);
   const [deleteByDateStart, setDeleteByDateStart] = useState("");
   const [deleteByDateEnd, setDeleteByDateEnd] = useState("");
 
@@ -16557,6 +16558,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
                     ) : (
 	                      <>
+	                        <div className="mb-5 flex items-center justify-between gap-4 px-1 sm:px-2">
+	                          <div className="min-w-0">
+	                            <h2 className="text-2xl font-black tracking-tight text-indigo-700 sm:text-[32px]">
+	                              Report Live Brand
+	                            </h2>
+	                            <p className="mt-1 text-sm font-medium text-slate-500">
+	                              Kelola, cek, dan edit raw data brand aktif di satu tempat.
+	                            </p>
+	                          </div>
+	                          <div className="flex shrink-0 items-center gap-3">
+	                            <div className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm">
+	                              <Settings className="h-4 w-4" />
+	                            </div>
+	                            <div className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-sm font-black text-slate-500 shadow-sm">
+	                              {(
+	                                clientBrands.find(
+	                                  (b) => b.id === activeReportBrandId,
+	                                )?.name || "BR"
+	                              )
+	                                .slice(0, 2)
+	                                .toUpperCase()}
+	                            </div>
+	                          </div>
+	                        </div>
+
 	                        <div className="relative mt-2 w-full overflow-x-hidden rounded-[32px] border border-slate-200 bg-white pb-10 pt-0 text-left font-sans text-slate-800 shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
 	                          {/* Header Workspace */}
 	                          <div className="mb-4 flex flex-col gap-4 border-b border-slate-200 bg-white px-5 py-5 text-left sm:px-7">
@@ -16613,78 +16639,200 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </div>
                               </div>
 
-	                              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:min-w-[560px] xl:grid-cols-3">
+	                              <div className="grid w-full gap-3 xl:w-[560px]">
 	                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsDeleteByDateModalOpen(true);
-                                  }}
-                                  className="flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-4 py-2 text-[11px] font-bold text-orange-600 shadow-sm transition-colors hover:bg-orange-50 hover:text-orange-700"
-                                  title="Hapus Rentang Waktu"
-                                >
-                                  <Calendar className="w-3.5 h-3.5" />
-                                  Hapus Rentang Waktu
-                                </button>
+	                                  type="button"
+	                                  onClick={() => {
+	                                    setIsEditRawDataModalOpen(true);
+	                                  }}
+	                                  className="flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm transition-colors hover:bg-slate-50 hover:border-slate-400"
+	                                >
+	                                  <Edit3 className="w-4 h-4" />
+	                                  Edit Raw Data
+	                                </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleDeleteAllBrandRawData(
-                                      activeReportBrandId || "",
-                                      clientBrands.find(
-                                        (b) => b.id === activeReportBrandId,
-                                      )?.name || "",
-                                      operatorReportingTab
-                                    );
-                                  }}
-                                  className="flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-red-200 bg-white px-4 py-2 text-[11px] font-bold text-red-600 shadow-sm transition-colors hover:bg-red-50 hover:text-red-700"
-                                  title="Hapus Semua Data"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  Hapus Semua Data
-                                </button>
+	                                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+	                                  <div className="mb-3 flex items-center justify-between gap-3">
+	                                    <div>
+	                                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
+	                                        Upload Raw Data
+	                                      </div>
+	                                      <div className="mt-1 text-xs font-semibold text-slate-500">
+	                                        Pilih sumber raw data yang sesuai.
+	                                      </div>
+	                                    </div>
+	                                  </div>
+	                                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+	                                    <button
+	                                      type="button"
+	                                      onClick={() => {
+	                                        setSaveTargetBrandId(
+	                                          activeReportBrandId || "",
+	                                        );
+	                                        setUploadTargetTab("live");
+	                                        setIsUploadModalOpen(true);
+	                                      }}
+	                                      className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+	                                    >
+	                                      <Upload className="w-3.5 h-3.5" />
+	                                      Live Performance
+	                                    </button>
+	                                    <button
+	                                      type="button"
+	                                      onClick={() => {
+	                                        setSaveTargetBrandId(
+	                                          activeReportBrandId || "",
+	                                        );
+	                                        setIsSkuUploadModalOpen(true);
+	                                      }}
+	                                      className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+	                                    >
+	                                      <Package className="w-3.5 h-3.5" />
+	                                      Product
+	                                    </button>
+	                                    <button
+	                                      type="button"
+	                                      onClick={() => {
+	                                        setSaveTargetBrandId(
+	                                          activeReportBrandId || "",
+	                                        );
+	                                        setUploadTargetTab("engagement");
+	                                        setIsUploadModalOpen(true);
+	                                      }}
+	                                      className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+	                                    >
+	                                      <TrendingUp className="w-3.5 h-3.5" />
+	                                      Engagement
+	                                    </button>
+	                                  </div>
+	                                </div>
+	                            </div>
+	                          </div>
 
-                                {operatorReportingTab === "product" && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSaveTargetBrandId(
-                                        activeReportBrandId || "",
-                                      );
-                                      setIsSkuUploadModalOpen(true);
-                                    }}
-                                    className="flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-[11px] font-bold text-indigo-700 shadow-sm transition-colors hover:bg-indigo-100"
-                                  >
-                                    <Download className="w-3.5 h-3.5" />
-                                    Import Data SKU
-                                  </button>
-                                )}
+	                          {isEditRawDataModalOpen && (
+	                            <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[10vh] sm:pb-12 animate-fadeIn">
+	                              <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-3xl w-full overflow-hidden p-6 sm:p-8 relative animate-scaleUp my-auto sm:my-4">
+	                                <button
+	                                  onClick={() =>
+	                                    setIsEditRawDataModalOpen(false)
+	                                  }
+	                                  className="absolute top-5 right-5 text-slate-400 hover:text-slate-800 bg-transparent border-0 cursor-pointer"
+	                                >
+	                                  ✕
+	                                </button>
 
-                                {(operatorReportingTab === "live" ||
-                                  operatorReportingTab === "engagement") && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSaveTargetBrandId(
-                                        activeReportBrandId || "",
-                                      );
-                                      setUploadTargetTab(
-                                        operatorReportingTab === "engagement"
-                                          ? "engagement"
-                                          : "live",
-                                      );
-                                      setIsUploadModalOpen(true);
-                                    }}
-                                    className="flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-slate-800"
-                                  >
-                                    <Download className="w-3.5 h-3.5" />
-                                    Import Raw Data
-                                  </button>
-                                )}
-                            </div>
-                          </div>
+	                                <div className="flex items-start gap-4">
+	                                  <div className="flex size-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+	                                    <Edit3 className="w-5 h-5" />
+	                                  </div>
+	                                  <div className="min-w-0">
+	                                    <h3 className="text-2xl font-black tracking-tight text-slate-900">
+	                                      Edit Raw Data
+	                                    </h3>
+	                                    <p className="mt-1 text-sm font-medium text-slate-500">
+	                                      Akses cepat untuk hapus semua raw data atau hapus berdasarkan rentang waktu.
+	                                    </p>
+	                                  </div>
+	                                </div>
 
-                          {/* Operator Reporting Subtabs */}
+	                                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+	                                  <button
+	                                    type="button"
+	                                    onClick={() => {
+	                                      setIsEditRawDataModalOpen(false);
+	                                      handleDeleteAllBrandRawData(
+	                                        activeReportBrandId || "",
+	                                        clientBrands.find(
+	                                          (b) => b.id === activeReportBrandId,
+	                                        )?.name || "",
+	                                        operatorReportingTab,
+	                                      );
+	                                    }}
+	                                    className="flex min-h-16 items-center justify-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm font-black text-red-700 transition-colors hover:bg-red-100"
+	                                  >
+	                                    <Trash2 className="w-4 h-4" />
+	                                    Hapus Raw Data
+	                                  </button>
+
+	                                  <button
+	                                    type="button"
+	                                    onClick={() => {
+	                                      setIsEditRawDataModalOpen(false);
+	                                      setIsDeleteByDateModalOpen(true);
+	                                    }}
+	                                    className="flex min-h-16 items-center justify-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-4 text-sm font-black text-orange-700 transition-colors hover:bg-orange-100"
+	                                  >
+	                                    <Calendar className="w-4 h-4" />
+	                                    Hapus Rentang Raw Data
+	                                  </button>
+	                                </div>
+
+	                                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+	                                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+	                                    <div>
+	                                      <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+	                                        Upload Raw Data
+	                                      </div>
+	                                      <p className="mt-1 text-sm font-medium text-slate-500">
+	                                        Gunakan tombol di bawah ini untuk membuka alur upload sesuai sumber datanya.
+	                                      </p>
+	                                    </div>
+	                                    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+	                                      Live / Product / Engagement
+	                                    </span>
+	                                  </div>
+	                                  <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+	                                    <button
+	                                      type="button"
+	                                      onClick={() => {
+	                                        setIsEditRawDataModalOpen(false);
+	                                        setSaveTargetBrandId(
+	                                          activeReportBrandId || "",
+	                                        );
+	                                        setUploadTargetTab("live");
+	                                        setIsUploadModalOpen(true);
+	                                      }}
+	                                      className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+	                                    >
+	                                      <Upload className="w-3.5 h-3.5" />
+	                                      Live Performance
+	                                    </button>
+	                                    <button
+	                                      type="button"
+	                                      onClick={() => {
+	                                        setIsEditRawDataModalOpen(false);
+	                                        setSaveTargetBrandId(
+	                                          activeReportBrandId || "",
+	                                        );
+	                                        setIsSkuUploadModalOpen(true);
+	                                      }}
+	                                      className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+	                                    >
+	                                      <Package className="w-3.5 h-3.5" />
+	                                      Product
+	                                    </button>
+	                                    <button
+	                                      type="button"
+	                                      onClick={() => {
+	                                        setIsEditRawDataModalOpen(false);
+	                                        setSaveTargetBrandId(
+	                                          activeReportBrandId || "",
+	                                        );
+	                                        setUploadTargetTab("engagement");
+	                                        setIsUploadModalOpen(true);
+	                                      }}
+	                                      className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+	                                    >
+	                                      <TrendingUp className="w-3.5 h-3.5" />
+	                                      Engagement
+	                                    </button>
+	                                  </div>
+	                                </div>
+	                              </div>
+	                            </div>
+	                          )}
+
+	                          {/* Operator Reporting Subtabs */}
 	                          <div className="mb-6 flex gap-4 overflow-x-auto border-b border-slate-200 px-5 sm:px-7">
 	                            <button
 	                              onClick={() => setOperatorReportingTab("live")}
@@ -16744,22 +16892,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {isDeleteByDateModalOpen && (
                             <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[10vh] sm:pb-12 animate-fadeIn">
                               <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 relative animate-scaleUp my-auto sm:my-4">
-                                <button
-                                  onClick={() =>
-                                    setIsDeleteByDateModalOpen(false)
-                                  }
-                                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-transparent border-0 cursor-pointer"
+	                                <button
+	                                  onClick={() =>
+	                                    setIsDeleteByDateModalOpen(false)
+	                                  }
+	                                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-transparent border-0 cursor-pointer"
                                 >
                                   ✕
                                 </button>
-                                <h3 className="text-lg font-black text-slate-800 mb-2">
-                                  Hapus Berdasarkan Rentang Waktu
-                                </h3>
-                                <p className="text-xs font-semibold text-slate-500 mb-6">
-                                  Pilih rentang tanggal. Semua raw data milik
-                                  brand ini pada periode yang dipilih akan
-                                  dihapus permanen.
-                                </p>
+	                                <h3 className="text-lg font-black text-slate-800 mb-2">
+	                                  Hapus Rentang Raw Data
+	                                </h3>
+	                                <p className="text-xs font-semibold text-slate-500 mb-6">
+	                                  Pilih rentang tanggal. Semua raw data milik brand ini pada periode yang dipilih akan dihapus permanen.
+	                                </p>
 
                                 <div className="space-y-4">
                                   <div>
@@ -16841,16 +16987,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   ✕
                                 </button>
 
-                                <div className="mb-6">
-                                  <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
-                                    <Upload className="w-6 h-6 text-indigo-500" />{" "}
-                                    Upload SKU Data (Shopee / TikTok)
-                                  </h2>
-                                  <p className="text-sm text-slate-500 mt-1 font-semibold">
-                                    Extract and analyze top performing SKUs
-                                    directly from Shopee / TikTok item export.
-                                  </p>
-                                </div>
+	                                <div className="mb-6">
+	                                  <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
+	                                    <Upload className="w-6 h-6 text-indigo-500" />{" "}
+	                                    Upload Raw Data Product
+	                                  </h2>
+	                                  <p className="text-sm text-slate-500 mt-1 font-semibold">
+	                                    Upload raw data product untuk membaca penjualan SKU, revenue, dan metrik produk lain secara terpisah dari live dan engagement.
+	                                  </p>
+	                                </div>
 
                                 {!skuRawData || skuRawData.length === 0 ? (
                                   <div className="space-y-6">
@@ -17106,24 +17251,24 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   ✕
                                 </button>
 
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-100">
-                                  <div>
-                                    <h3 className="text-xl sm:text-2xl font-black text-slate-850 flex items-center gap-3">
-                                      <LineChart className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 animate-pulse" />{" "}
-                                      {uploadTargetTab === "engagement"
-                                        ? "Upload Raw Data Engagement & Promotion"
-                                        : "Upload Laporan Eksternal Marketplace"}
-                                    </h3>
-                                    <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">
-                                      Impor data performa mentah (raw data){" "}
-                                      {uploadTargetTab === "engagement"
-                                        ? "engagement"
-                                        : "penyiaran langsung"}{" "}
-                                      dari platform marketplace
-                                      (TikTok/Shopee/dll) untuk{" "}
-                                      <strong className="text-indigo-950 uppercase">
-                                        {
-                                          clientBrands.find(
+	                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+	                                  <div>
+	                                    <h3 className="text-xl sm:text-2xl font-black text-slate-850 flex items-center gap-3">
+	                                      <LineChart className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 animate-pulse" />{" "}
+	                                      {uploadTargetTab === "engagement"
+	                                        ? "Upload Raw Data Engagement & Promotion"
+	                                        : "Upload Raw Data Live Performance"}
+	                                    </h3>
+	                                    <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">
+	                                      Impor data performa mentah (raw data){" "}
+	                                      {uploadTargetTab === "engagement"
+	                                        ? "engagement"
+	                                        : "live performance"}{" "}
+	                                      dari platform marketplace
+	                                      (TikTok/Shopee/dll) untuk{" "}
+	                                      <strong className="text-indigo-950 uppercase">
+	                                        {
+	                                          clientBrands.find(
                                             (b) => b.id === activeReportBrandId,
                                           )?.name
                                         }
