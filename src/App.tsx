@@ -23814,95 +23814,105 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </div>
                                     </div>
                                     {/* INTERAKSI */}
-                                    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
-                                      <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
-                                        <Users className="w-5 h-5 text-indigo-500" />{" "}
-                                        Interaksi (Engagement)
-                                      </h4>
-                                      <div className="mb-4 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                    <div className="rounded-[28px] border border-[#e5e2e1] bg-white p-6 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                                        <div>
+                                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
+                                            Interaksi
+                                          </p>
+                                          <h4 className="mt-1 flex items-center gap-2 text-sm font-semibold tracking-tight text-[#1b1c1c]">
+                                            <Users className="h-5 w-5 text-[#5600e0]" />
+                                            Engagement
+                                          </h4>
+                                        </div>
+                                        <span className="inline-flex w-fit items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                          Live filter
+                                        </span>
+                                      </div>
+                                      <div className="mb-4 flex flex-col gap-3 rounded-[22px] border border-[#e5e2e1] bg-[#fcfbfa] px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+                                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
                                           <span>Filter Aktif</span>
-                                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                          <span className="rounded-full border border-[#e5e2e1] bg-white px-2.5 py-1 text-[#494456]">
                                             {engagementDateLabel}
                                           </span>
-                                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                          <span className="rounded-full border border-[#e5e2e1] bg-white px-2.5 py-1 text-[#494456]">
                                             {operatorPlatformFilter}
                                           </span>
-                                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                          <span className="rounded-full border border-[#e5e2e1] bg-white px-2.5 py-1 text-[#494456]">
                                             {operatorShiftFilters.length === 0
                                               ? "Semua Shift"
                                               : `${operatorShiftFilters.length} Shift`}
                                           </span>
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
-                                          <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-indigo-700">
+                                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-[#494456]">
+                                          <span className="rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-2.5 py-1 text-[#5600e0]">
                                             Views {new Intl.NumberFormat("id-ID").format(totalImpressions)}
                                           </span>
                                           <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-emerald-700">
                                             ERR {formattedErrRate}
                                           </span>
-                                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-700">
+                                          <span className="rounded-full border border-[#e5e2e1] bg-white px-2.5 py-1 text-[#494456]">
                                             {new Intl.NumberFormat("id-ID").format(totalFollowers)} followers
                                           </span>
                                         </div>
                                       </div>
 
                                       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
+                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
                                             Views
                                           </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
+                                          <div className="mt-1 text-xl font-black text-[#1b1c1c]">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalImpressions)}
                                           </div>
                                         </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
+                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
                                             Likes
                                           </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
+                                          <div className="mt-1 text-xl font-black text-[#1b1c1c]">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalLikes)}
                                           </div>
                                         </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
+                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
                                             Shares
                                           </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
+                                          <div className="mt-1 text-xl font-black text-[#1b1c1c]">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalShares)}
                                           </div>
                                         </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
+                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
                                             Comments
                                           </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
+                                          <div className="mt-1 text-xl font-black text-[#1b1c1c]">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalComments)}
                                           </div>
                                         </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
+                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
                                             New Followers
                                           </div>
-                                          <div className="text-xl text-emerald-600 font-black mt-1">
+                                          <div className="mt-1 text-xl font-black text-emerald-600">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalFollowers)}
                                           </div>
                                         </div>
-                                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">
+                                        <div className="rounded-2xl border border-[#dfd3ff] bg-[#efe8ff] p-4">
+                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5600e0]">
                                             ERR %
                                           </div>
-                                          <div className="text-xl text-indigo-600 font-extrabold mt-1">
+                                          <div className="mt-1 text-xl font-extrabold text-[#5600e0]">
                                             {formattedErrRate}
                                           </div>
                                         </div>
@@ -24340,7 +24350,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     </div>
 
                                     <div className="rounded-[24px] border border-[#e5e2e1] bg-white px-5 py-5 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                      <div className="text-xs font-medium leading-relaxed text-[#494456] text-center">
+                                      <div className="text-center text-xs font-medium leading-relaxed text-[#494456]">
                                         Menampilkan metrik agregat Engagement
                                         dan Promosi dari file Raw Data yang
                                         diunggah. Filter periode dan platform
