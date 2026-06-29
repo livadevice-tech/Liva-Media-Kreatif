@@ -31,6 +31,14 @@ npm run build
 npm start
 ```
 
+## Panduan Desain
+
+Untuk konsistensi visual saat mengubah UI, ikuti dokumentasi desain di [DESIGN.md](./DESIGN.md).
+
+- Gunakan palet warna, tipografi, spacing, dan komponen yang sudah ditetapkan.
+- Saat membuat layar baru, anggap `DESIGN.md` sebagai sumber kebenaran utama.
+- Jika ada konflik antara preferensi visual baru dan sistem yang sudah ada, pertahankan konsistensi dengan `DESIGN.md` kecuali diminta lain.
+
 ## Catatan Penting Mengenai PORT (Mengapa hanya Port 3000?)
 
 Jika Anda mencoba menggunakan argumen `-p 3003` atau melakukan perubahan port ke port lain selain `3000`, hal tersebut **tidak akan bekerja**.
