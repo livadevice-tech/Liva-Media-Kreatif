@@ -362,6 +362,15 @@ const formatChartDateSafe = (
   return new Intl.DateTimeFormat("id-ID", options).format(parsed);
 };
 
+const formatDateTimeSafe = (
+  value: unknown,
+  options: Intl.DateTimeFormatOptions = {},
+) => {
+  const parsed = parseChartDateSafe(value);
+  if (!parsed) return String(value ?? "");
+  return new Intl.DateTimeFormat("id-ID", options).format(parsed);
+};
+
 const inferShopeeReportingKind = (headers: string[], fileNameLower: string) => {
   const h = headers.map((x) => String(x || "").toLowerCase().trim());
 
@@ -9968,7 +9977,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
                                           <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
-                                            Product Clicks
+                                                  Klik Produk
                                           </div>
                                           <PercentBadge
                                             cur={totalClicksDb}
@@ -16647,7 +16656,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </span>
                                       <span className="text-[11px] font-black text-slate-700 block">
                                         {row.latestActivity
-                                          ? formatDateUI(new Date(row.latestActivity).toISOString())
+                                          ? formatDateTimeSafe(row.latestActivity, {
+                                              day: "numeric",
+                                              month: "short",
+                                              year: "numeric",
+                                            })
                                           : "-"}
                                       </span>
                                     </div>
@@ -16842,7 +16855,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               <span className="inline-flex items-center gap-2 rounded-full border border-[#cbc3d9] bg-white px-3 py-1.5">
                                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                                 {activeReportBrandSummaryCards.latestActivity
-                                  ? `Data terbaru ${formatDisplayDate(new Date(activeReportBrandSummaryCards.latestActivity).toISOString(), "Shopee Live")}`
+                                  ? `Data terbaru ${formatDateTimeSafe(activeReportBrandSummaryCards.latestActivity, {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    })}`
                                   : "Belum ada data terbaru"}
                               </span>
                             </div>
@@ -18515,7 +18532,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       raw: totalLiveVisits,
                                                     },
                                                     {
-                                                      label: "Add To Cart",
+                                                      label: "Tambah ke Keranjang",
                                                       value:
                                                         new Intl.NumberFormat(
                                                           "id-ID",
@@ -18537,6 +18554,23 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       );
                                     })()}
 
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                                      <div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
+                                          Detail Data
+                                        </p>
+                                        <h4 className="mt-1 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
+                                          Tabel sesi yang mendukung insight di atas
+                                        </h4>
+                                        <p className="mt-1 text-sm font-medium leading-relaxed text-[#494456]">
+                                          Gunakan tab di bawah untuk memilih bentuk detail yang ingin dibaca.
+                                        </p>
+                                      </div>
+                                      <span className="inline-flex w-fit items-center rounded-full border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
+                                        Detail
+                                      </span>
+                                    </div>
+
                                     {/* DATA TABLE */}
                                     {saveTargetPlatform === "Shopee Live" &&
                                       uploadTargetTab === "live" && (
@@ -18545,7 +18579,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             { id: "day", label: "Harian" },
                                             { id: "shift", label: "Shift" },
                                             { id: "dayOfWeek", label: "Hari" },
-                                            { id: "raw", label: "By Raw" },
+                                            { id: "raw", label: "Data Mentah" },
                                           ].map((tab) => (
                                             <button
                                               key={tab.id}
@@ -19301,6 +19335,36 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {/* STORED DATABASE VIEWER - NEW DESIGN */}
                           {operatorReportingTab === "live" && (
                             <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
+                              <div className="rounded-[24px] border border-[#e5e2e1] bg-white/90 px-4 py-4 shadow-[0_8px_24px_rgba(27,28,28,0.03)] sm:px-5">
+                                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                                  <div className="max-w-2xl">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
+                                      Struktur Laporan
+                                    </p>
+                                    <h4 className="mt-1 text-sm font-semibold tracking-tight text-[#1b1c1c] sm:text-base">
+                                      Ringkasan di atas, insight di tengah, detail data di bawah.
+                                    </h4>
+                                    <p className="mt-1 text-xs font-medium leading-relaxed text-[#494456]">
+                                      Tujuannya supaya halaman lebih mudah dipindai dan tiap bagian punya peran yang jelas.
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <span className="inline-flex items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                      Ringkasan
+                                    </span>
+                                    <span className="inline-flex items-center rounded-full border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
+                                      Insight
+                                    </span>
+                                    <span className="inline-flex items-center rounded-full border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
+                                      Detail Data
+                                    </span>
+                                    <span className="inline-flex items-center rounded-full border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
+                                      Riwayat Upload
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
                               {(() => {
                                 const filteredLiveDb =
                                   brandPerformanceLogs.filter(
@@ -19563,7 +19627,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     ? "Items Sold"
                                     : "Produk Terjual",
                                   clicks: isTikTokChart
-                                    ? "Product Clicks"
+                                    ? "Klik Produk"
                                     : "Tambah Keranjang",
                                   views: isTikTokChart ? "Views" : "Dilihat",
                                 };
@@ -21032,7 +21096,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                                   <div className="flex justify-between items-start mb-1">
                                                     <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
-                                                      Product Clicks
+                                                      Klik Produk
                                                     </div>
                                                     <PercentBadge
                                                       cur={totalClicksDb}
@@ -21071,6 +21135,23 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       );
                                     })()}
 
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                                      <div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
+                                          Insight Utama
+                                        </p>
+                                        <h4 className="mt-1 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
+                                          Tren, funnel, dan sinyal performa brand
+                                        </h4>
+                                        <p className="mt-1 text-sm font-medium leading-relaxed text-[#494456]">
+                                          Bagian ini diprioritaskan sebagai area baca cepat untuk memahami perubahan performa.
+                                        </p>
+                                      </div>
+                                      <span className="inline-flex w-fit items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                        Analisis
+                                      </span>
+                                    </div>
+
                                     {/* CHART TRENDS FOR LIVE PERFORMANCE */}
                                     {liveChartData.length > 0 && (
                                       <div className="mb-6 overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
@@ -21079,7 +21160,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             <div className="flex flex-wrap items-center gap-2">
                                               <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
                                                 <TrendingUp className="h-3 w-3" />
-                                                Brand Trend
+                                                Trend Brand
                                               </span>
                                               <span
                                                 className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
@@ -21976,9 +22057,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   className="hover:bg-slate-50/50 transition-colors"
                                                 >
                                                   <td className="px-5 py-3.5 text-slate-500">
-                                                    {new Date(
-                                                      history.uploadedAt,
-                                                    ).toLocaleString("id-ID", {
+                                                    {formatDateTimeSafe(history.uploadedAt, {
                                                       day: "numeric",
                                                       month: "short",
                                                       year: "numeric",
@@ -22925,18 +23004,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         1}
                                                     </td>
                                                     <td className="px-5 py-3">
-                                                      {new Date(
-                                                        batch.uploadedAt,
-                                                      ).toLocaleString(
-                                                        "id-ID",
-                                                        {
-                                                          day: "numeric",
-                                                          month: "short",
-                                                          year: "numeric",
-                                                          hour: "2-digit",
-                                                          minute: "2-digit",
-                                                        },
-                                                      )}
+                                                      {formatDateTimeSafe(batch.uploadedAt, {
+                                                        day: "numeric",
+                                                        month: "short",
+                                                        year: "numeric",
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                      })}
                                                     </td>
                                                     <td className="px-5 py-3">
                                                       <div className="bg-slate-100 text-slate-500 px-2 py-1 rounded inline-block text-[10px] font-mono tracking-tight">
@@ -24316,21 +24390,26 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         );
 
                                       return (
-                                        <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden mt-8">
-                                          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-                                            <div>
-                                              <h4 className="text-base font-black text-slate-800">
-                                                Riwayat Upload Data Engagement
-                                              </h4>
-                                              <p className="text-[11px] text-slate-500 font-medium">
-                                                History file CSV raw data
-                                                performa yang telah berhasil
-                                                dikonversi & masuk ke database
-                                                sentral.
-                                              </p>
+                                        <details className="mt-8 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+                                          <summary className="cursor-pointer list-none px-6 py-5 transition-colors hover:bg-slate-50">
+                                            <div className="flex items-center justify-between gap-4">
+                                              <div className="min-w-0">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                                                  Riwayat Upload
+                                                </p>
+                                                <h4 className="mt-1 text-base font-black text-slate-800">
+                                                  Riwayat Upload Data Engagement
+                                                </h4>
+                                                <p className="mt-1 text-[11px] font-medium text-slate-500">
+                                                  History file CSV raw data performa yang telah berhasil dikonversi & masuk ke database sentral.
+                                                </p>
+                                              </div>
+                                              <span className="inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                                                Lihat riwayat
+                                              </span>
                                             </div>
-                                          </div>
-                                          <div className="overflow-x-auto">
+                                          </summary>
+                                          <div className="overflow-x-auto border-t border-slate-100">
                                             <table className="w-full text-left whitespace-nowrap">
                                               <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
                                                 <tr>
@@ -24381,18 +24460,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         className="hover:bg-slate-50/50 transition-colors"
                                                       >
                                                         <td className="px-5 py-3.5 text-slate-500">
-                                                          {new Date(
-                                                            history.uploadedAt,
-                                                          ).toLocaleString(
-                                                            "id-ID",
-                                                            {
-                                                              day: "numeric",
-                                                              month: "short",
-                                                              year: "numeric",
-                                                              hour: "2-digit",
-                                                              minute: "2-digit",
-                                                            },
-                                                          )}
+                                                          {formatDateTimeSafe(history.uploadedAt, {
+                                                            day: "numeric",
+                                                            month: "short",
+                                                            year: "numeric",
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                          })}
                                                         </td>
                                                         <td
                                                           className="px-5 py-3.5 max-w-[200px] truncate"
@@ -24450,7 +24524,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               </tbody>
                                             </table>
                                           </div>
-                                        </div>
+                                        </details>
                                       );
                                     })()}
                                   </div>
