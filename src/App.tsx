@@ -2664,6 +2664,11 @@ export default function App() {
     };
   }, [reportBrandOverviewRows]);
 
+  const activeReportBrand = useMemo(
+    () => clientBrands.find((brand) => brand.id === activeReportBrandId) || null,
+    [clientBrands, activeReportBrandId],
+  );
+
   const filteredReportBrandRows = useMemo(() => {
     const q = reportBrandSearchQuery.trim().toLowerCase();
     return reportBrandOverviewRows
@@ -16172,42 +16177,42 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                 {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
 	                {operatorTab === "reporting_brand" && (
 	                  <div
-	                    className="mx-auto w-full max-w-[1600px] space-y-6 animate-fadeIn bg-[#fafafd] min-h-screen px-4 pb-12 sm:px-6 lg:px-8"
+	                    className="mx-auto w-full max-w-[1600px] space-y-6 animate-fadeIn bg-[#fcf9f8] min-h-screen px-4 pb-12 sm:px-6 lg:px-8"
 	                    id="operator_reporting_brand_content"
 	                  >
 	                    {activeReportBrandId === null ? (
 	                      <div className="space-y-6">
-	                        <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
+	                        <div className="overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white shadow-[0_8px_28px_rgba(27,28,28,0.04)]">
 	                          <div className="flex flex-col gap-5 p-6 sm:p-8">
                             <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
                               <div className="max-w-2xl">
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-sm">
-                                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                  <Sparkles className="w-3 h-3 text-[#5600e0]" />
                                   Reporting Brand Workspace
                                 </span>
-                                <h3 className="mt-3 text-2xl sm:text-[30px] font-black tracking-tight text-slate-900">
+                                <h3 className="mt-3 text-2xl sm:text-[30px] font-black tracking-tight text-[#1b1c1c]">
                                   Reporting Brand Overview
                                 </h3>
-                                <p className="mt-2 text-sm sm:text-[15px] text-slate-500 font-medium leading-relaxed max-w-xl">
+                                <p className="mt-2 text-sm sm:text-[15px] text-[#494456] font-medium leading-relaxed max-w-xl">
                                   Kelola semua brand, lihat sesi live, total GMV, dan akses dashboard detail dalam satu workspace yang lebih rapi.
                                 </p>
 	                        </div>
                               <div className="grid min-w-0 w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:w-auto">
-                                <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm 2xl:min-w-36">
-                                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Brand</div>
-                                  <div className="text-lg font-black text-slate-900 mt-1 tabular-nums">{reportBrandOverviewStats.totalBrands}</div>
+                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#ffffff] p-4">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Brand</div>
+                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">{reportBrandOverviewStats.totalBrands}</div>
                                 </div>
-                                <div className="min-w-0 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 shadow-sm 2xl:min-w-36">
-                                  <div className="text-[10px] font-black uppercase tracking-widest text-emerald-700/70">Aktif</div>
-                                  <div className="text-lg font-black text-emerald-700 mt-1 tabular-nums">{reportBrandOverviewStats.activeBrands}</div>
+                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] p-4">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Aktif</div>
+                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#5600e0] tabular-nums">{reportBrandOverviewStats.activeBrands}</div>
                                 </div>
-                                <div className="min-w-0 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 shadow-sm 2xl:min-w-36">
-                                  <div className="text-[10px] font-black uppercase tracking-widest text-indigo-700/70">Sesi Live</div>
-                                  <div className="text-lg font-black text-indigo-700 mt-1 tabular-nums">{new Intl.NumberFormat("id-ID").format(reportBrandOverviewStats.totalSessions)}</div>
+                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] p-4">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Sesi Live</div>
+                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">{new Intl.NumberFormat("id-ID").format(reportBrandOverviewStats.totalSessions)}</div>
                                 </div>
-                                <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm 2xl:min-w-52">
-                                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Total GMV</div>
-                                  <div className="mt-1 truncate whitespace-nowrap text-lg font-black text-slate-900 tabular-nums" title={new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}</div>
+                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#ffffff] p-4 2xl:min-w-52">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Total GMV</div>
+                                  <div className="mt-1 truncate whitespace-nowrap text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums" title={new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}</div>
                                 </div>
                               </div>
                             </div>
@@ -16215,10 +16220,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </div>
 
                         {/* FITUR PENCARIAN BRAND */}
-                        <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4">
+                        <div className="rounded-2xl border border-[#cbc3d9] bg-white p-4 sm:p-5 shadow-[0_8px_24px_rgba(27,28,28,0.03)] space-y-4">
                           <div className="flex flex-col xl:flex-row xl:items-center gap-3">
                             <div className="relative flex-1 w-full">
-                              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-450" />
+                              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7a7488]" />
                               <input
                                 type="text"
                                 placeholder="Cari brand klien berdasarkan nama atau ID..."
@@ -16226,7 +16231,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 onChange={(e) =>
                                   setReportBrandSearchQuery(e.target.value)
                                 }
-                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-10 pr-4 text-sm font-semibold text-slate-700 placeholder-slate-400 outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                className="w-full rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] py-3 pl-10 pr-4 text-sm font-medium text-[#1b1c1c] placeholder:text-[#7a7488] outline-none transition-all focus:border-[#5600e0] focus:bg-white"
                               />
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
@@ -16235,7 +16240,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 onChange={(e) =>
                                   setReportBrandPlatformFilter(e.target.value)
                                 }
-                                className="bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
                               >
                                 <option value="Semua Platform">Semua Platform</option>
                                 {availableReportBrandPlatforms.map((platform) => (
@@ -16249,7 +16254,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 onChange={(e) =>
                                   setReportBrandStatusFilter(e.target.value)
                                 }
-                                className="bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
                               >
                                 <option value="Semua Status">Semua Status</option>
                                 <option value="Aktif">Aktif</option>
@@ -16260,7 +16265,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 onChange={(e) =>
                                   setReportBrandSortKey(e.target.value)
                                 }
-                                className="bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
                               >
                                 <option value="latest_activity">Urutkan: Terbaru</option>
                                 <option value="gmv">Urutkan: GMV Tertinggi</option>
@@ -16271,7 +16276,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               {reportBrandSearchQuery && (
                                 <button
                                   onClick={() => setReportBrandSearchQuery("")}
-                                  className="px-4 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-2xl text-xs font-black transition-colors cursor-pointer border-0"
+                                  className="rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-xs font-black text-[#5600e0] transition-colors hover:bg-[#f6f3f2] cursor-pointer"
                                 >
                                   Reset
                                 </button>
@@ -16292,7 +16297,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {reportBrandSearchQuery && (
                             <button
                               onClick={() => setReportBrandSearchQuery("")}
-                              className="text-xs font-black text-indigo-600 hover:text-indigo-700"
+                              className="text-xs font-black text-[#5600e0] hover:text-[#4f00d0]"
                             >
                               Hapus kata kunci
                             </button>
@@ -16336,7 +16341,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   setReportBrandStatusFilter("Semua Status");
                                   setReportBrandSortKey("latest_activity");
                                 }}
-                                className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                className="rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0] hover:bg-white transition-colors"
                               >
                                 Reset Semua Filter
                               </button>
@@ -16558,24 +16563,29 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
                     ) : (
                       <>
-                        <div className="rounded-[32px] border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.04)]">
-                          <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-7">
-                            <h2 className="text-2xl font-black tracking-tight text-indigo-700 sm:text-[32px]">
-                              Report Live Brand
-                            </h2>
+                        <div className="overflow-hidden rounded-2xl border border-[#e5e2e1] bg-[#ffffff] shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                          <div className="flex items-center justify-between gap-4 border-b border-[#e5e2e1] px-6 py-5 sm:px-8">
+                            <div>
+                              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
+                                Reporting Brand Workspace
+                              </p>
+                              <h2 className="mt-2 text-[24px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[30px]">
+                                Report Live Brand
+                              </h2>
+                            </div>
                             <div className="flex items-center gap-3">
                               <button
                                 type="button"
-                                className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50"
+                                className="flex size-11 items-center justify-center rounded-lg border border-[#cbc3d9] bg-white text-[#494456] transition-colors hover:bg-[#f6f3f2]"
                                 aria-label="Settings"
                               >
                                 <Settings className="h-4 w-4" />
                               </button>
-                              <div className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-sm font-black text-slate-500 shadow-sm" />
+                              <div className="flex size-11 items-center justify-center rounded-full border border-[#cbc3d9] bg-[#f6f3f2] text-xs font-bold text-[#494456]" />
                             </div>
                           </div>
 
-                          <div className="px-5 py-6 sm:px-7 sm:py-7">
+                          <div className="px-6 py-6 sm:px-8 sm:py-7">
                             <div className="flex items-start gap-4">
                               <button
                                 onClick={() => {
@@ -16584,62 +16594,54 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   setAutoDetectNotice("");
                                 }}
                                 aria-label="Kembali ke daftar brand"
-                                className="mt-1 flex size-12 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                className="mt-1 flex size-12 shrink-0 items-center justify-center rounded-full border border-[#cbc3d9] bg-white text-[#494456] transition-colors hover:bg-[#f6f3f2] hover:text-[#1b1c1c] focus:outline-none focus:ring-2 focus:ring-[#5600e0]/20 focus:ring-offset-2"
                               >
                                 <ArrowLeft className="w-5 h-5" />
                               </button>
 
                               <div className="flex min-w-0 flex-1 items-start gap-4">
-                                <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-lg font-black text-white shadow-sm">
-                                  {(
-                                    clientBrands.find(
-                                      (b) => b.id === activeReportBrandId,
-                                    )?.name || "BR"
-                                  )
+                                <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#5600e0] text-lg font-black text-white shadow-sm">
+                                  {(activeReportBrand?.name || "BR")
                                     .slice(0, 2)
                                     .toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
-                                  <h3 className="truncate text-[19px] font-medium text-slate-900 sm:text-[21px]">
-                                    {clientBrands.find(
-                                      (b) => b.id === activeReportBrandId,
-                                    )?.name || "Nama Brand"}
+                                  <h3 className="truncate text-[19px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[21px]">
+                                    {activeReportBrand?.name || "Nama Brand"}
                                   </h3>
-                                  <p className="mt-1 text-[17px] font-medium text-slate-500">
-                                    ID:{" "}
-                                    {clientBrands.find(
-                                      (b) => b.id === activeReportBrandId,
-                                    )?.id || "-"}
+                                  <p className="mt-1 text-sm font-medium text-[#494456]">
+                                    ID: {activeReportBrand?.id || "-"}
                                   </p>
                                 </div>
                               </div>
-                            </div>
 
                             <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
                               <button
                                 type="button"
-                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-[17px] font-medium text-slate-900 shadow-sm lg:max-w-[392px]"
+                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[392px]"
                               >
                                 <span className="flex items-center gap-3">
-                                  <Calendar className="h-5 w-5 text-slate-700" />
+                                  <span className="flex size-6 items-center justify-center rounded-md bg-[#f6f3f2] text-[#494456]">
+                                    <Calendar className="h-4 w-4" />
+                                  </span>
                                   <span>
                                     01 Jan 2026 - 07 Jan 2026
                                   </span>
                                 </span>
-                                <ChevronDown className="h-4 w-4 text-slate-700" />
+                                <ChevronDown className="h-4 w-4 text-[#494456]" />
                               </button>
 
                               <button
                                 type="button"
-                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-[17px] font-medium text-slate-900 shadow-sm lg:max-w-[248px]"
+                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[248px]"
                               >
                                 <span className="flex items-center gap-3">
-                                  <div className="flex size-6 items-center justify-center rounded-md bg-orange-50 text-orange-500">
+                                  <span className="flex size-6 items-center justify-center rounded-md bg-[#f6f3f2] text-[#5600e0]">
                                     <Briefcase className="h-4 w-4" />
-                                  </div>
+                                  </span>
                                   <span>Shopee Live</span>
                                 </span>
-                                <ChevronDown className="h-4 w-4 text-slate-700" />
+                                <ChevronDown className="h-4 w-4 text-[#494456]" />
                               </button>
 
                               <button
@@ -16647,9 +16649,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 onClick={() => {
                                   setIsEditRawDataModalOpen(true);
                                 }}
-                                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-[17px] font-medium text-slate-900 shadow-sm lg:max-w-[220px]"
+                                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[220px]"
                               >
-                                <Edit3 className="h-5 w-5 text-slate-700" />
+                                <Edit3 className="h-5 w-5 text-[#494456]" />
                                 Edit Raw Data
                               </button>
                             </div>
@@ -24242,6 +24244,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               })()}
                             </div>
                           )}
+                          </div>
                       </>
                     )}
                   </div>
