@@ -326,6 +326,42 @@ const normalizeDateYMD = (d: string) => {
   return norm;
 };
 
+const parseChartDateSafe = (value: unknown) => {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const normalized = normalizeDateYMD(raw);
+  const candidates = [normalized, raw];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+
+    const parsed = new Date(candidate);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+
+    if (/^\d{4}-\d{2}$/.test(candidate)) {
+      const monthParsed = new Date(`${candidate}-01T00:00:00`);
+      if (!Number.isNaN(monthParsed.getTime())) {
+        return monthParsed;
+      }
+    }
+  }
+
+  return null;
+};
+
+const formatChartDateSafe = (
+  value: unknown,
+  options: Intl.DateTimeFormatOptions,
+) => {
+  const parsed = parseChartDateSafe(value);
+  if (!parsed) return String(value ?? "");
+  return new Intl.DateTimeFormat("id-ID", options).format(parsed);
+};
+
 const inferShopeeReportingKind = (headers: string[], fileNameLower: string) => {
   const h = headers.map((x) => String(x || "").toLowerCase().trim());
 
@@ -18317,10 +18353,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       <XAxis
                                                         dataKey="date"
                                                         tickFormatter={(value) =>
-                                                          new Intl.DateTimeFormat("id-ID", {
+                                                          formatChartDateSafe(value, {
                                                             day: "2-digit",
                                                             month: "short",
-                                                          }).format(new Date(value))
+                                                          })
                                                         }
                                                         tick={{
                                                           fontSize: 11,
@@ -18389,11 +18425,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                           name,
                                                         ]}
                                                         labelFormatter={(label) =>
-                                                          new Intl.DateTimeFormat("id-ID", {
+                                                          formatChartDateSafe(label, {
                                                             day: "2-digit",
                                                             month: "short",
                                                             year: "numeric",
-                                                          }).format(new Date(label))
+                                                          })
                                                         }
                                                       />
                                                       <Area
@@ -21187,10 +21223,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   <XAxis
                                                     dataKey="date"
                                                     tickFormatter={(value) =>
-                                                      new Intl.DateTimeFormat("id-ID", {
+                                                      formatChartDateSafe(value, {
                                                         day: "2-digit",
                                                         month: "short",
-                                                      }).format(new Date(value))
+                                                      })
                                                     }
                                                     tick={{
                                                       fontSize: 10,
@@ -21254,11 +21290,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       name,
                                                     ]}
                                                     labelFormatter={(label) =>
-                                                      new Intl.DateTimeFormat("id-ID", {
+                                                      formatChartDateSafe(label, {
                                                         day: "2-digit",
                                                         month: "short",
                                                         year: "numeric",
-                                                      }).format(new Date(label))
+                                                      })
                                                     }
                                                   />
                                                   <Area
