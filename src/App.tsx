@@ -20610,54 +20610,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       );
                                     })()}
 
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                                      <div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
-                                          Insight Utama
-                                        </p>
-                                        <h4 className="mt-1 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
-                                          Tren, funnel, dan sinyal performa brand
-                                        </h4>
-                                        <p className="mt-1 text-sm font-medium leading-relaxed text-[#494456]">
-                                          Bagian ini diprioritaskan sebagai area baca cepat untuk memahami perubahan performa.
-                                        </p>
-                                      </div>
-                                      <span className="inline-flex w-fit items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-                                        Analisis
-                                      </span>
-                                    </div>
-
-                                    {/* CHART TRENDS FOR LIVE PERFORMANCE */}
                                     {liveChartData.length > 0 && (
                                       <div className="mb-6 overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                        <div className="grid gap-5 border-b border-[#e5e2e1] px-6 py-6 sm:px-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
-                                          <div className="max-w-2xl">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-                                                <TrendingUp className="h-3 w-3" />
-                                                Trend Brand
-                                              </span>
-                                              <span
-                                                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
-                                                  isTikTokChart
-                                                    ? "border-[#1b1c1c] bg-[#1b1c1c] text-white"
-                                                    : "border-[#f3d9bf] bg-[#fff4e8] text-[#a85b00]"
-                                                }`}
-                                              >
-                                                Data {activeChartPlatformLabel}
-                                              </span>
-                                            </div>
-                                            <h4 className="mt-3 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
-                                              Tren Kinerja {activeChartPlatformLabel}{" "}
-                                              {chartGranularityLabel}
-                                            </h4>
-                                            <p className="mt-1 text-sm font-medium leading-relaxed text-[#494456]">
-                                              Menampilkan data {activeChartPlatformLabel}{" "}
-                                              sesuai filter tanggal, shift, dan pencarian yang aktif.
-                                            </p>
-                                          </div>
-
-                                          <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end xl:w-auto">
+                                        <div className="border-b border-[#e5e2e1] px-6 py-6 sm:px-8">
+                                          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                                             <div className="inline-flex w-full flex-wrap items-center gap-1.5 rounded-[18px] border border-[#dcd7e6] bg-[#f8f7fb] p-1.5 shadow-[0_6px_18px_rgba(27,28,28,0.04)] sm:w-fit">
                                               {[
                                                 { id: "gmv", label: "GMV" },
