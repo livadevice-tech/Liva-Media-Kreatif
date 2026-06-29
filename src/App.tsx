@@ -149,6 +149,7 @@ import {
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
 import { QuickGridInput } from "./components/QuickGridInput";
+import { TikTokLiveFunnel } from "./components/reporting/TikTokLiveFunnel";
 
 const ReportingTableStatusRow = ({
   colSpan,
@@ -3555,6 +3556,7 @@ export default function App() {
                 "nama livestream",
                 "livestream name",
                 "live room title",
+                "room title",
                 "judul ruang live",
                 "judul",
                 "livestream",
@@ -3565,6 +3567,7 @@ export default function App() {
                 "nama livestream",
                 "livestream name",
                 "live room title",
+                "room title",
                 "judul ruang live",
                 "judul",
                 "livestream",
@@ -4153,7 +4156,34 @@ export default function App() {
 
           const liveDuration = (() => {
             if (durationIdx === -1) return 0;
-            const rawDur = String(rowData[durationIdx] || "");
+            const rawDurationValue = rowData[durationIdx];
+            if (typeof rawDurationValue === "number") {
+              if (rawDurationValue > 0 && rawDurationValue < 1) {
+                return Math.round(rawDurationValue * 86400);
+              }
+              return Math.max(0, rawDurationValue);
+            }
+
+            const rawDur = String(rawDurationValue || "")
+              .trim()
+              .toLowerCase();
+            const unitDurationMatch = rawDur.match(
+              /^(?:(\d+(?:[.,]\d+)?)\s*h)?\s*(?:(\d+(?:[.,]\d+)?)\s*m)?\s*(?:(\d+(?:[.,]\d+)?)\s*s)?$/,
+            );
+            if (
+              unitDurationMatch &&
+              (unitDurationMatch[1] ||
+                unitDurationMatch[2] ||
+                unitDurationMatch[3])
+            ) {
+              const parseDurationPart = (value?: string) =>
+                Number(String(value || "0").replace(",", ".")) || 0;
+              return Math.round(
+                parseDurationPart(unitDurationMatch[1]) * 3600 +
+                  parseDurationPart(unitDurationMatch[2]) * 60 +
+                  parseDurationPart(unitDurationMatch[3]),
+              );
+            }
             if (rawDur.includes(":")) {
               const parts = rawDur.split(":").map(Number);
               if (parts.length === 3) {
@@ -17946,71 +17976,37 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           </div>
 
                                           {/* FUNNEL CARD */}
-                                          <HorizontalFunnel
-                                            title="Corong Konversi Live (Funnel)"
-                                            subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
-                                            tag={
-                                              reportingRawData?.some(
-                                                (r) => r.hasFunnelInFile,
-                                              )
-                                                ? "Parsed Excel"
-                                                : "Benchmark Estimate"
-                                            }
-                                            steps={
-                                              saveTargetPlatform ===
-                                                "TikTok Live" ||
-                                              activeReportPlatform ===
-                                                "TikTok Live"
-                                                ? [
-                                                    {
-                                                      label: "LIVE impressions",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalImpressions,
-                                                        ),
-                                                      raw: totalImpressions,
-                                                    },
-                                                    {
-                                                      label: "LIVE visits",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalLiveVisits,
-                                                        ),
-                                                      raw: totalLiveVisits,
-                                                    },
-                                                    {
-                                                      label:
-                                                        "Product impressions",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalProductImpressions,
-                                                        ),
-                                                      raw: totalProductImpressions,
-                                                    },
-                                                    {
-                                                      label: "Product clicks",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(totalClicks),
-                                                      raw: totalClicks,
-                                                    },
-                                                    {
-                                                      label: "Orders paid for",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(totalBuyers),
-                                                      raw: totalBuyers,
-                                                    },
-                                                  ]
-                                                : [
+                                          {saveTargetPlatform === "TikTok Live" ||
+                                          activeReportPlatform === "TikTok Live" ? (
+                                            <TikTokLiveFunnel
+                                              impressions={reportingRawData.reduce(
+                                                (acc, curr) =>
+                                                  acc + (curr.impressions || 0),
+                                                0,
+                                              )}
+                                              views={reportingRawData.reduce(
+                                                (acc, curr) =>
+                                                  acc + (curr.views || 0),
+                                                0,
+                                              )}
+                                              productImpressions={
+                                                totalProductImpressions
+                                              }
+                                              productClicks={totalClicks}
+                                              skuOrders={totalOrders}
+                                            />
+                                          ) : (
+                                            <HorizontalFunnel
+                                              title="Corong Konversi Live (Funnel)"
+                                              subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
+                                              tag={
+                                                reportingRawData?.some(
+                                                  (r) => r.hasFunnelInFile,
+                                                )
+                                                  ? "Parsed Excel"
+                                                  : "Benchmark Estimate"
+                                              }
+                                              steps={[
                                                     {
                                                       label: "Total Viewers",
                                                       value:
@@ -18047,9 +18043,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         ).format(totalOrders),
                                                       raw: totalOrders,
                                                     },
-                                                  ]
-                                            }
-                                          />
+                                                  ]}
+                                            />
+                                          )}
                                         </div>
                                       );
                                     })()}
@@ -19006,9 +19002,68 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     ? applyFilter(filteredEngagementDb, true)
                                     : [];
 
+                                const chartSourceLogs = filteredLiveDb.filter(
+                                  (log) => {
+                                    if (reportDbSearchQuery.trim()) {
+                                      const query =
+                                        reportDbSearchQuery.toLowerCase();
+                                      const matchesSearch = [
+                                        log.title,
+                                        log.date,
+                                        log.platform,
+                                      ].some((value) =>
+                                        String(value || "")
+                                          .toLowerCase()
+                                          .includes(query),
+                                      );
+                                      if (!matchesSearch) return false;
+                                    }
+                                    if (
+                                      operatorPlatformFilter &&
+                                      !isPlatformMatch(
+                                        log.platform,
+                                        operatorPlatformFilter,
+                                      )
+                                    ) {
+                                      return false;
+                                    }
+                                    if (
+                                      operatorShiftFilters.length > 0 &&
+                                      !operatorShiftFilters.includes(
+                                        log.shift || "",
+                                      )
+                                    ) {
+                                      return false;
+                                    }
+                                    return true;
+                                  },
+                                );
+                                const activeChartPlatformLabel =
+                                  operatorPlatformFilter || "Semua Platform";
+                                const isTikTokChart = activeChartPlatformLabel
+                                  .toLowerCase()
+                                  .includes("tiktok");
+                                const chartGranularityLabel =
+                                  effectiveFilter === "all" ||
+                                  effectiveFilter === "month"
+                                    ? "Bulanan"
+                                    : "Harian";
+                                const chartMetricLabels = {
+                                  orders: isTikTokChart
+                                    ? "SKU Orders"
+                                    : "Pesanan",
+                                  itemsSold: isTikTokChart
+                                    ? "Items Sold"
+                                    : "Produk Terjual",
+                                  clicks: isTikTokChart
+                                    ? "Product Clicks"
+                                    : "Tambah Keranjang",
+                                  views: isTikTokChart ? "Views" : "Dilihat",
+                                };
+
                                 const buildDailyChart = (startDate: string, endDate: string) => {
                                   const group: any = {};
-                                  filteredLiveDb.forEach((log: any) => {
+                                  chartSourceLogs.forEach((log: any) => {
                                     if (!log.date) return;
                                     const d = normalizeDateYMD(log.date);
                                     if (d >= startDate && d <= endDate) {
@@ -19019,7 +19074,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       group[d].orders += log.orders || 0;
                                       group[d].itemsSold += log.products_sold || 0;
                                       group[d].clicks += log.clicks || 0;
-                                      group[d].penonton += log.penonton || log.impressions || 0;
+                                      group[d].penonton +=
+                                        log.views ||
+                                        log.penonton ||
+                                        log.impressions ||
+                                        0;
                                     }
                                   });
                                   return Object.values(group).sort((a:any, b:any) => a.date.localeCompare(b.date));
@@ -19031,7 +19090,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     group[m] = { date: getIndonesianMonthLabel(m), labelMonth: m, gmv: 0, orders: 0, itemsSold: 0, clicks: 0, penonton: 0 };
                                   });
 
-                                  filteredLiveDb.forEach((log: any) => {
+                                  chartSourceLogs.forEach((log: any) => {
                                     if (!log.date) return;
                                     const mLabel = log.date.substring(0, 7); // YYYY-MM
                                     if (group[mLabel]) {
@@ -19039,7 +19098,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       group[mLabel].orders += log.orders || 0;
                                       group[mLabel].itemsSold += log.products_sold || 0;
                                       group[mLabel].clicks += log.clicks || 0;
-                                      group[mLabel].penonton += log.penonton || log.impressions || 0;
+                                      group[mLabel].penonton +=
+                                        log.views ||
+                                        log.penonton ||
+                                        log.impressions ||
+                                        0;
                                     }
                                   });
                                   return Object.values(group).sort((a:any, b:any) => a.labelMonth.localeCompare(b.labelMonth));
@@ -19068,7 +19131,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   if (selM) {
                                     const rawMonths = Array.from(
                                       new Set(
-                                        filteredLiveDb
+                                        chartSourceLogs
                                           .map((l) =>
                                             l.date ? l.date.substring(0, 7) : "",
                                           )
@@ -20367,6 +20430,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               </div>
                                             </div>
 
+                                            <TikTokLiveFunnel
+                                              impressions={totalDbImpressions}
+                                              views={tableLogs.reduce(
+                                                (acc, curr) =>
+                                                  acc + (curr.views || 0),
+                                                0,
+                                              )}
+                                              productImpressions={
+                                                totalDbProductImpressions
+                                              }
+                                              productClicks={totalDbClicks}
+                                              skuOrders={totalDbOrdersFunnel}
+                                            />
+
                                             <div>
                                               <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">
                                                 Engagement Metrics
@@ -20467,14 +20544,26 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm mb-6">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
                                           <div>
-                                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-                                              <TrendingUp className="w-5 h-5 text-emerald-500" />{" "}
-                                              Tren Kinerja Penjualan Live Harian
-                                            </h4>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                              <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
+                                                <TrendingUp className="w-5 h-5 text-emerald-500" />{" "}
+                                                Tren Kinerja {activeChartPlatformLabel}{" "}
+                                                {chartGranularityLabel}
+                                              </h4>
+                                              <span
+                                                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
+                                                  isTikTokChart
+                                                    ? "border-slate-800 bg-slate-900 text-white"
+                                                    : "border-orange-200 bg-orange-50 text-orange-700"
+                                                }`}
+                                              >
+                                                Data {activeChartPlatformLabel}
+                                              </span>
+                                            </div>
                                             <p className="text-[11px] text-slate-400 font-bold mt-1">
-                                              Visualisasi harian data penyiaran
-                                              langsung (Live Streaming) dinamis
-                                              harian.
+                                              Menampilkan data {activeChartPlatformLabel}{" "}
+                                              sesuai filter tanggal, shift, dan
+                                              pencarian yang aktif.
                                             </p>
                                           </div>
                                           <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
@@ -20494,25 +20583,29 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 },
                                                 {
                                                   key: "orders",
-                                                  label: "Pesanan",
+                                                  label:
+                                                    chartMetricLabels.orders,
                                                   color:
                                                     "bg-indigo-50 text-indigo-700 border-indigo-200",
                                                 },
                                                 {
                                                   key: "itemsSold",
-                                                  label: "Produk",
+                                                  label:
+                                                    chartMetricLabels.itemsSold,
                                                   color:
                                                     "bg-amber-50 text-amber-700 border-amber-200",
                                                 },
                                                 {
                                                   key: "clicks",
-                                                  label: "Klik",
+                                                  label:
+                                                    chartMetricLabels.clicks,
                                                   color:
                                                     "bg-pink-50 text-pink-700 border-pink-200",
                                                 },
                                                 {
                                                   key: "penonton",
-                                                  label: "Penonton",
+                                                  label:
+                                                    chartMetricLabels.views,
                                                   color:
                                                     "bg-cyan-50 text-cyan-750 border-cyan-200",
                                                 },
@@ -20725,7 +20818,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <Line
                                                 yAxisId="right"
                                                 type="monotone"
-                                                name="Pesanan (Orders)"
+                                                name={chartMetricLabels.orders}
                                                 dataKey="orders"
                                                 stroke="#4f46e5"
                                                 strokeWidth={3}
@@ -20744,7 +20837,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <Line
                                                 yAxisId="right"
                                                 type="monotone"
-                                                name="Produk Terjual"
+                                                name={chartMetricLabels.itemsSold}
                                                 dataKey="itemsSold"
                                                 stroke="#f59e0b"
                                                 strokeWidth={3}
@@ -20763,7 +20856,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <Line
                                                 yAxisId="right"
                                                 type="monotone"
-                                                name="Klik Produk"
+                                                name={chartMetricLabels.clicks}
                                                 dataKey="clicks"
                                                 stroke="#ec4899"
                                                 strokeWidth={3}
@@ -20782,7 +20875,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <Line
                                                 yAxisId="right"
                                                 type="monotone"
-                                                name="Penonton (Views)"
+                                                name={chartMetricLabels.views}
                                                 dataKey="penonton"
                                                 stroke="#0ea5e9"
                                                 strokeWidth={3}
