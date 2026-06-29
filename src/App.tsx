@@ -2669,6 +2669,76 @@ export default function App() {
     [clientBrands, activeReportBrandId],
   );
 
+  const activeReportBrandLogs = useMemo(() => {
+    if (!activeReportBrandId) return [];
+    return brandPerformanceLogs.filter((log) => log.brandId === activeReportBrandId);
+  }, [activeReportBrandId, brandPerformanceLogs]);
+
+  const activeReportBrandBatches = useMemo(() => {
+    if (!activeReportBrandId) return [];
+    return brandUploadHistory.filter((batch) => batch.brandId === activeReportBrandId);
+  }, [activeReportBrandId, brandUploadHistory]);
+
+  const activeReportBrandPlatforms = useMemo(() => {
+    const platformSet = new Set<string>();
+    [...activeReportBrandLogs, ...activeReportBrandBatches].forEach((item) => {
+      const platform = String(item.platform || item.platformName || "").trim();
+      if (platform) platformSet.add(platform);
+    });
+    return Array.from(platformSet).sort((a, b) => a.localeCompare(b));
+  }, [activeReportBrandLogs, activeReportBrandBatches]);
+
+  const activeReportBrandDateRange = useMemo(() => {
+    const timestamps = [...activeReportBrandLogs, ...activeReportBrandBatches]
+      .map((item) => {
+        const rawDate = item.date || item.createdAt || item.uploadedAt || item.timestamp || "";
+        const normalized = normalizeDateYMD(String(rawDate));
+        const ts = new Date(normalized || rawDate).getTime();
+        return Number.isFinite(ts) ? ts : 0;
+      })
+      .filter((ts) => ts > 0)
+      .sort((a, b) => a - b);
+
+    if (timestamps.length === 0) return "Belum ada rentang data";
+
+    const formatter = new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+    const start = formatter.format(new Date(timestamps[0]));
+    const end = formatter.format(new Date(timestamps[timestamps.length - 1]));
+    return start === end ? start : `${start} - ${end}`;
+  }, [activeReportBrandLogs, activeReportBrandBatches]);
+
+  const activeReportBrandSummaryCards = useMemo(() => {
+    const totalGmv =
+      brandReportingSummary?.[activeReportBrandId || ""]?.totalGmv ??
+      activeReportBrandLogs.reduce((sum, log) => sum + (Number(log.gmv) || 0), 0);
+    const sessionCount =
+      brandReportingSummary?.[activeReportBrandId || ""]?.sessionCount ??
+      activeReportBrandLogs.length;
+    const uploadCount =
+      brandReportingSummary?.[activeReportBrandId || ""]?.batchCount ??
+      activeReportBrandBatches.length;
+    const latestActivity = [...activeReportBrandLogs, ...activeReportBrandBatches]
+      .map((item) => {
+        const rawDate = item.date || item.createdAt || item.uploadedAt || item.timestamp || "";
+        const ts = new Date(rawDate).getTime();
+        return Number.isFinite(ts) ? ts : 0;
+      })
+      .filter((ts) => ts > 0)
+      .sort((a, b) => b - a)[0];
+
+    return {
+      totalGmv,
+      sessionCount,
+      uploadCount,
+      latestActivity: latestActivity || 0,
+    };
+  }, [activeReportBrandId, activeReportBrandLogs, activeReportBrandBatches, brandReportingSummary]);
+
   const filteredReportBrandRows = useMemo(() => {
     const q = reportBrandSearchQuery.trim().toLowerCase();
     return reportBrandOverviewRows
@@ -9370,13 +9440,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </div>
                                     </div>
                                     <div className="flex flex-wrap gap-2 mb-4">
-                                      <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[10px] font-black text-indigo-700">
+                                      <span className="inline-flex items-center rounded-full bg-[#efe8ff] border border-[#dfd3ff] px-3 py-1 text-[10px] font-black text-[#5600e0]">
                                         Sumber: raw Shopee live performance
                                       </span>
-                                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                      <span className="inline-flex items-center rounded-full bg-[#fbfaf8] border border-[#e5e2e1] px-3 py-1 text-[10px] font-black text-[#494456]">
                                         Views: kolom Dilihat
                                       </span>
-                                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                      <span className="inline-flex items-center rounded-full bg-[#fbfaf8] border border-[#e5e2e1] px-3 py-1 text-[10px] font-black text-[#494456]">
                                         Avg. Duration: Rata-rata durasi ditonton
                                       </span>
                                     </div>
@@ -9403,9 +9473,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       })}
                                     />
                                     <div className="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             GMV
                                           </div>
                                           <PercentBadge
@@ -9413,16 +9483,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalGmvDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
                                           }).format(totalGmvDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Item Solds
                                           </div>
                                           <PercentBadge
@@ -9430,15 +9500,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalItemsSoldDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalItemsSoldDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             GMV/Hours
                                           </div>
                                           <PercentBadge
@@ -9446,16 +9516,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pGmvPerHour}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
                                           }).format(gmvPerHour)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Conversion Rate %
                                           </div>
                                           <PercentBadge
@@ -9463,13 +9533,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pConversionRateShopee}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {conversionRateShopee.toFixed(2)}%
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Orders
                                           </div>
                                           <PercentBadge
@@ -9477,15 +9547,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalOrdersDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalOrdersDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Avg. Viewer Duration
                                           </div>
                                           <PercentBadge
@@ -9493,13 +9563,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pAvgViewDurationDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {avgViewDurationDb.toFixed(2)}s
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Peak View
                                           </div>
                                           <PercentBadge
@@ -9507,15 +9577,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pPeakViewersDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(peakViewersDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             AOV
                                           </div>
                                           <PercentBadge
@@ -9523,7 +9593,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pAvgAovDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
@@ -9580,10 +9650,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 <div className="space-y-6 mb-6">
                                   <div>
                                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-                                      <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">
+                                      <h4 className="text-sm md:text-base font-black text-[#1b1c1c] uppercase tracking-widest">
                                         Sale Metrics
                                       </h4>
-                                      <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
+                                      <div className="flex items-center gap-3 bg-white/90 border border-[#e5e2e1] px-2 py-1.5 rounded-[18px] shadow-[0_10px_24px_rgba(27,28,28,0.04)]">
                                         <button
                                           onClick={() => {
                                             let pd = new Date();
@@ -9608,11 +9678,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             setClientCustomStartDate(newD);
                                             setClientCustomEndDate(newD);
                                           }}
-                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#fcfbfa] text-[#494456] transition-colors"
                                         >
                                           <ChevronLeft className="w-4 h-4" />
                                         </button>
-                                        <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
+                                        <span className="text-xs sm:text-sm font-black text-[#1b1c1c] min-w-[160px] text-center">
                                           {(() => {
                                             if (
                                               clientDateFilterType ===
@@ -9673,16 +9743,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             setClientCustomStartDate(newD);
                                             setClientCustomEndDate(newD);
                                           }}
-                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#fcfbfa] text-[#494456] transition-colors"
                                         >
                                           <ChevronRight className="w-4 h-4" />
                                         </button>
                                       </div>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             GMV
                                           </div>
                                           <PercentBadge
@@ -9690,16 +9760,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalGmvDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
                                           }).format(totalGmvDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Item Sold
                                           </div>
                                           <PercentBadge
@@ -9707,15 +9777,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalItemsSoldDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalItemsSoldDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Customers
                                           </div>
                                           <PercentBadge
@@ -9723,15 +9793,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalBuyersDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalBuyersDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             SKU Orders
                                           </div>
                                           <PercentBadge
@@ -9739,15 +9809,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalOrdersDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalOrdersDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             AOV
                                           </div>
                                           <PercentBadge
@@ -9755,7 +9825,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pAvgAovDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
@@ -9766,13 +9836,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   </div>
 
                                   <div>
-                                    <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">
+                                    <h4 className="text-sm md:text-base font-black text-[#1b1c1c] mb-4 uppercase tracking-widest mt-8">
                                       Engagement Metrics
                                     </h4>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Like
                                           </div>
                                           <PercentBadge
@@ -9780,15 +9850,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalLikesDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalLikesDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Comment
                                           </div>
                                           <PercentBadge
@@ -9796,15 +9866,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalCommentsDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalCommentsDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Share
                                           </div>
                                           <PercentBadge
@@ -9812,15 +9882,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalSharesDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalSharesDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             Product Clicks
                                           </div>
                                           <PercentBadge
@@ -9828,15 +9898,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalClicksDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalClicksDb)}
                                         </div>
                                       </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                             AVG TIME/VIEWER
                                           </div>
                                           <PercentBadge
@@ -9844,9 +9914,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pAvgViewDurationDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
+                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                           {Math.round(avgViewDurationDb)}{" "}
-                                          <span className="text-[10px] text-slate-400 font-bold">
+                                          <span className="text-[10px] text-[#7a7488] font-bold">
                                             detik
                                           </span>
                                         </div>
@@ -9940,22 +10010,22 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             ).sort((a, b) => b.sold - a.sold);
 
                             return (
-                              <div className="bg-white border border-slate-100 p-5 lg:p-7 rounded-3xl shadow-sm mb-6">
+                              <div className="rounded-[28px] border border-[#e5e2e1] bg-white/90 p-5 lg:p-7 shadow-[0_12px_32px_rgba(27,28,28,0.05)] mb-6">
                                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
                                   <div>
-                                    <h4 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-                                      <Package className="w-5 h-5 text-indigo-500" />{" "}
+                                    <h4 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-[#1b1c1c] flex items-center gap-2">
+                                      <Package className="w-5 h-5 text-[#5600e0]" />{" "}
                                       Top Performing SKUs
                                     </h4>
-                                    <p className="text-xs text-slate-500 font-semibold mt-1">
+                                    <p className="text-xs text-[#7a7488] font-semibold mt-1">
                                       Berdasarkan data Item Export Shopee
                                     </p>
                                   </div>
                                 </div>
 
-                                <div className="overflow-x-auto rounded-xl border border-slate-100">
+                                <div className="overflow-x-auto rounded-[24px] border border-[#e5e2e1]">
                                   <table className="w-full text-left whitespace-nowrap min-w-[700px]">
-                                    <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none">
+                                    <thead className="bg-[#fbfaf8] text-xs font-black text-[#7a7488] uppercase tracking-widest leading-none">
                                       <tr>
                                         <th className="px-5 py-4 w-12 text-center">
                                           No
@@ -9972,29 +10042,29 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         </th>
                                       </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
+                                    <tbody className="divide-y divide-[#ece8e6] text-sm font-semibold text-[#494456]">
                                       {aggregatedSkus.map((sku, idx) => (
                                         <tr
                                           key={idx}
-                                          className="hover:bg-slate-50/70 transition-colors"
+                                          className="hover:bg-[#fcfbfa] transition-colors"
                                         >
-                                          <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">
+                                          <td className="px-5 py-3 text-center text-[#7a7488] font-bold text-xs">
                                             {idx + 1}
                                           </td>
                                           <td className="px-5 py-3 whitespace-normal min-w-[250px]">
-                                            <div className="line-clamp-2 text-slate-800 leading-snug">
+                                            <div className="line-clamp-2 text-[#1b1c1c] leading-snug">
                                               {sku.productName}
                                             </div>
                                           </td>
-                                          <td className="px-5 py-3 text-xs tracking-wider text-slate-500">
+                                          <td className="px-5 py-3 text-xs tracking-wider text-[#7a7488]">
                                             {sku.sku}
                                           </td>
-                                          <td className="px-5 py-3 text-right text-emerald-600 font-black">
+                                          <td className="px-5 py-3 text-right text-[#1f9d6b] font-black">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(sku.sold)}
                                           </td>
-                                          <td className="px-5 py-3 text-right text-slate-800 font-black">
+                                          <td className="px-5 py-3 text-right text-[#1b1c1c] font-black">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(sku.revenue)}
@@ -10011,13 +10081,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {/* Time & Day Analytics */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                             {/* Revenue Based on Time (Shift) */}
-                            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm flex flex-col">
-                              <h4 className="text-[14px] font-bold text-slate-800 mb-4 px-1">
+                            <div className="rounded-[24px] border border-[#e5e2e1] bg-white/90 p-5 shadow-[0_10px_28px_rgba(27,28,28,0.05)] flex flex-col">
+                              <h4 className="text-[14px] font-bold text-[#1b1c1c] mb-4 px-1">
                                 Revenue Based on Time
                               </h4>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-left whitespace-nowrap">
-                                  <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
+                                  <thead className="bg-[#fbfaf8] text-[12px] font-bold text-[#1b1c1c]">
                                     <tr>
                                       <th className="px-5 py-3 rounded-l-lg w-16 text-center">
                                         No
@@ -10028,7 +10098,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
+                                  <tbody className="divide-y divide-[#ece8e6] text-xs font-semibold text-[#494456]">
                                     {(() => {
                                       const shiftData: Record<string, number> =
                                         {};
@@ -10079,15 +10149,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       return shiftsArray.map((sh, idx) => (
                                         <tr
                                           key={sh.name || idx}
-                                          className="hover:bg-slate-50"
+                                          className="hover:bg-[#fcfbfa]"
                                         >
-                                          <td className="px-5 py-3.5 text-center text-slate-500">
+                                          <td className="px-5 py-3.5 text-center text-[#7a7488]">
                                             {idx + 1}.
                                           </td>
-                                          <td className="px-5 py-3.5 text-slate-700 font-mono text-[11px]">
+                                          <td className="px-5 py-3.5 text-[#494456] font-mono text-[11px]">
                                             {sh.name}
                                           </td>
-                                          <td className="px-5 py-3.5 text-slate-700">
+                                          <td className="px-5 py-3.5 text-[#494456]">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(sh.gmv)}
@@ -10101,19 +10171,19 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             </div>
 
                             {/* Revenue Based on Day */}
-                            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm flex flex-col">
-                              <h4 className="text-[14px] font-bold text-slate-800 mb-4 px-1">
+                            <div className="rounded-[24px] border border-[#e5e2e1] bg-white/90 p-5 shadow-[0_10px_28px_rgba(27,28,28,0.05)] flex flex-col">
+                              <h4 className="text-[14px] font-bold text-[#1b1c1c] mb-4 px-1">
                                 Revenue Based on Day
                               </h4>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-left whitespace-nowrap">
-                                  <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
+                                  <thead className="bg-[#fbfaf8] text-[12px] font-bold text-[#1b1c1c]">
                                     <tr>
                                       <th className="px-5 py-3 rounded-l-lg w-16 text-center">
                                         No
                                       </th>
                                       <th
-                                        className="px-5 py-3 cursor-pointer hover:bg-slate-200/50 transition-colors"
+                                        className="px-5 py-3 cursor-pointer hover:bg-[#fcfbfa] transition-colors"
                                         onClick={() => {
                                           setDayAnalyticsSortCol("name");
                                           setDayAnalyticsSortAsc((prev) =>
@@ -10131,7 +10201,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           : ""}
                                       </th>
                                       <th
-                                        className="px-5 py-3 cursor-pointer hover:bg-slate-200/50 transition-colors"
+                                        className="px-5 py-3 cursor-pointer hover:bg-[#fcfbfa] transition-colors"
                                         onClick={() => {
                                           setDayAnalyticsSortCol("views");
                                           setDayAnalyticsSortAsc((prev) =>
@@ -10149,7 +10219,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           : ""}
                                       </th>
                                       <th
-                                        className="px-5 py-3 rounded-r-lg cursor-pointer hover:bg-slate-200/50 transition-colors"
+                                        className="px-5 py-3 rounded-r-lg cursor-pointer hover:bg-[#fcfbfa] transition-colors"
                                         onClick={() => {
                                           setDayAnalyticsSortCol("gmv");
                                           setDayAnalyticsSortAsc((prev) =>
@@ -10168,7 +10238,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
+                                  <tbody className="divide-y divide-[#ece8e6] text-xs font-semibold text-[#494456]">
                                     {(() => {
                                       const dayNamesId = [
                                         "Minggu",
@@ -10249,20 +10319,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       return daysArray.map((dy, idx) => (
                                         <tr
                                           key={dy.name || idx}
-                                          className="hover:bg-slate-50"
+                                          className="hover:bg-[#fcfbfa]"
                                         >
-                                          <td className="px-5 py-3.5 text-center text-slate-500">
+                                          <td className="px-5 py-3.5 text-center text-[#7a7488]">
                                             {idx + 1}.
                                           </td>
-                                          <td className="px-5 py-3.5 text-slate-700">
+                                          <td className="px-5 py-3.5 text-[#494456]">
                                             {dy.name}
                                           </td>
-                                          <td className="px-5 py-3.5 text-slate-700">
+                                          <td className="px-5 py-3.5 text-[#494456]">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(dy.views)}
                                           </td>
-                                          <td className="px-5 py-3.5 text-slate-700">
+                                          <td className="px-5 py-3.5 text-[#494456]">
                                             Rp{" "}
                                             {new Intl.NumberFormat(
                                               "id-ID",
@@ -10278,13 +10348,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           </div>
 
                           {/* Table */}
-                          <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
+                          <div className="bg-white/90 border border-[#e5e2e1] rounded-[24px] overflow-x-auto shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
                             <table className="w-full text-left whitespace-nowrap">
-                              <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
+                              <thead className="bg-[#fbfaf8] border-b border-[#e9e4df] uppercase text-[9px] font-bold text-[#7a7488] tracking-wider">
                                 <tr>
                                   <th className="px-5 py-3.5">No</th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
                                     onClick={() => handleSort("date")}
                                   >
                                     Tanggal{" "}
@@ -10298,7 +10368,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     Jam Start Live
                                   </th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
                                     onClick={() => handleSort("views")}
                                   >
                                     Viewers{" "}
@@ -10309,7 +10379,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       : ""}
                                   </th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
                                     onClick={() => handleSort("gmv")}
                                   >
                                     GMV{" "}
@@ -10320,7 +10390,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       : ""}
                                   </th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
                                     onClick={() => handleSort("products_sold")}
                                   >
                                     Produk Terjual{" "}
@@ -10331,7 +10401,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       : ""}
                                   </th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
                                     onClick={() => handleSort("customers")}
                                   >
                                     Customer{" "}
@@ -10346,7 +10416,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   </th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
+                              <tbody className="divide-y divide-[#ece8e6] text-xs font-semibold text-[#494456] bg-white">
                                 {isReportingDataLoading || reportingDataError ? (
                                   <ReportingTableStatusRow
                                     colSpan={8}
@@ -10385,14 +10455,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     return (
                                       <tr
                                         key={log.id || idx}
-                                        className="hover:bg-slate-50/50 transition-colors"
-                                      >
-                                        <td className="px-5 py-3.5 text-slate-400">
+                                      className="hover:bg-[#fcfbfa] transition-colors"
+                                    >
+                                        <td className="px-5 py-3.5 text-[#7a7488]">
                                           {(currentPage - 1) * ITEMS_PER_PAGE +
                                             idx +
                                             1}
                                         </td>
-                                        <td className="px-5 py-3.5 text-slate-500">
+                                        <td className="px-5 py-3.5 text-[#494456]">
                                           <div className="flex flex-col">
                                             <span>
                                               {formatDisplayDate(
@@ -10400,12 +10470,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 log.platform,
                                               )}
                                             </span>
-                                            <span className="text-[9px] text-indigo-500">
+                                            <span className="text-[9px] text-[#5600e0]">
                                               {log.platform}
                                             </span>
                                           </div>
                                         </td>
-                                        <td className="px-5 py-3.5 font-mono text-xs">
+                                        <td className="px-5 py-3.5 font-mono text-xs text-[#494456]">
                                           {log.dateTime
                                             ? log.dateTime.includes(" ")
                                               ? log.dateTime.split(" ")[1]
@@ -10458,7 +10528,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           </div>
 
                           {totalPages > 1 && (
-                            <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+                            <div className="p-4 border-t border-[#ece8e6] flex items-center justify-between text-xs font-semibold text-[#7a7488]">
                               <div>
                                 Menampilkan{" "}
                                 {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
@@ -10476,7 +10546,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     )
                                   }
                                   disabled={currentPage === 1}
-                                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                  className="px-3 py-1.5 bg-white hover:bg-[#fcfbfa] border border-[#e5e2e1] rounded-xl cursor-pointer disabled:opacity-50"
                                 >
                                   Sebelumnya
                                 </button>
@@ -10490,7 +10560,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     )
                                   }
                                   disabled={currentPage === totalPages}
-                                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                  className="px-3 py-1.5 bg-white hover:bg-[#fcfbfa] border border-[#e5e2e1] rounded-xl cursor-pointer disabled:opacity-50"
                                 >
                                   Selanjutnya
                                 </button>
@@ -16563,83 +16633,118 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
                     ) : (
                       <>
-                        <div className="overflow-hidden rounded-2xl border border-[#e5e2e1] bg-[#ffffff] shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
-                          <div className="flex items-center justify-between gap-4 border-b border-[#e5e2e1] px-6 py-5 sm:px-8">
-                            <div>
-                              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
+                        <div className="overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-gradient-to-b from-white to-[#fbf8f6] shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                          <div className="flex flex-col gap-6 border-b border-[#e5e2e1] px-6 py-6 sm:px-8 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="max-w-2xl space-y-5">
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                <Sparkles className="h-3 w-3 text-[#5600e0]" />
                                 Reporting Brand Workspace
-                              </p>
-                              <h2 className="mt-2 text-[24px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[30px]">
-                                Report Live Brand
-                              </h2>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <button
-                                type="button"
-                                className="flex size-11 items-center justify-center rounded-lg border border-[#cbc3d9] bg-white text-[#494456] transition-colors hover:bg-[#f6f3f2]"
-                                aria-label="Settings"
-                              >
-                                <Settings className="h-4 w-4" />
-                              </button>
-                              <div className="flex size-11 items-center justify-center rounded-full border border-[#cbc3d9] bg-[#f6f3f2] text-xs font-bold text-[#494456]" />
-                            </div>
-                          </div>
+                              </span>
 
-                          <div className="px-6 py-6 sm:px-8 sm:py-7">
-                            <div className="flex items-start gap-4">
-                              <button
-                                onClick={() => {
-                                  setActiveReportBrandId(null);
-                                  setReportingRawData([]);
-                                  setAutoDetectNotice("");
-                                }}
-                                aria-label="Kembali ke daftar brand"
-                                className="mt-1 flex size-12 shrink-0 items-center justify-center rounded-full border border-[#cbc3d9] bg-white text-[#494456] transition-colors hover:bg-[#f6f3f2] hover:text-[#1b1c1c] focus:outline-none focus:ring-2 focus:ring-[#5600e0]/20 focus:ring-offset-2"
-                              >
-                                <ArrowLeft className="w-5 h-5" />
-                              </button>
+                              <div className="flex items-start gap-4">
+                                <button
+                                  onClick={() => {
+                                    setActiveReportBrandId(null);
+                                    setReportingRawData([]);
+                                    setAutoDetectNotice("");
+                                  }}
+                                  aria-label="Kembali ke daftar brand"
+                                  className="mt-1 flex size-12 shrink-0 items-center justify-center rounded-full border border-[#cbc3d9] bg-white text-[#494456] transition-colors hover:bg-[#f6f3f2] hover:text-[#1b1c1c] focus:outline-none focus:ring-2 focus:ring-[#5600e0]/20 focus:ring-offset-2"
+                                >
+                                  <ArrowLeft className="w-5 h-5" />
+                                </button>
 
-                              <div className="flex min-w-0 flex-1 items-start gap-4">
-                                <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#5600e0] text-lg font-black text-white shadow-sm">
-                                  {(activeReportBrand?.name || "BR")
-                                    .slice(0, 2)
-                                    .toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <h3 className="truncate text-[19px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[21px]">
-                                    {activeReportBrand?.name || "Nama Brand"}
-                                  </h3>
-                                  <p className="mt-1 text-sm font-medium text-[#494456]">
-                                    ID: {activeReportBrand?.id || "-"}
-                                  </p>
+                                <div className="flex min-w-0 items-center gap-4">
+                                  <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#5600e0] text-lg font-black text-white shadow-sm">
+                                    {(activeReportBrand?.name || "BR")
+                                      .slice(0, 2)
+                                      .toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h3 className="truncate text-[24px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[30px]">
+                                      {activeReportBrand?.name || "Nama Brand"}
+                                    </h3>
+                                    <p className="mt-1 text-sm font-medium text-[#494456]">
+                                      ID: {activeReportBrand?.id || "-"}
+                                    </p>
+                                    <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-[#494456]">
+                                      Pusat laporan live, product, dan engagement untuk brand yang sudah dipilih.
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
 
-                            <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+                              <div className="flex flex-wrap gap-2">
+                                <span className="inline-flex items-center gap-2 rounded-full border border-[#cbc3d9] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#494456]">
+                                  <Calendar className="h-3.5 w-3.5 text-[#5600e0]" />
+                                  {activeReportBrandDateRange}
+                                </span>
+                                <span className="inline-flex items-center gap-2 rounded-full border border-[#cbc3d9] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#494456]">
+                                  <Briefcase className="h-3.5 w-3.5 text-[#5600e0]" />
+                                  {activeReportBrandPlatforms[0] || "Shopee Live"}
+                                  {activeReportBrandPlatforms.length > 1 ? ` +${activeReportBrandPlatforms.length - 1}` : ""}
+                                </span>
+                                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  {activeReportBrandSummaryCards.sessionCount > 0
+                                    ? `${activeReportBrandSummaryCards.sessionCount} sesi live`
+                                    : "Belum ada sesi"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-4 lg:max-w-[780px]">
+                              <div className="min-w-0 rounded-xl border border-[#cbc3d9] bg-white p-4">
+                                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Sesi Live</div>
+                                <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">
+                                  {new Intl.NumberFormat("id-ID").format(activeReportBrandSummaryCards.sessionCount)}
+                                </div>
+                              </div>
+                              <div className="min-w-0 rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] p-4">
+                                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Upload</div>
+                                <div className="mt-1 text-[22px] font-black tracking-tight text-[#5600e0] tabular-nums">
+                                  {new Intl.NumberFormat("id-ID").format(activeReportBrandSummaryCards.uploadCount)}
+                                </div>
+                              </div>
+                              <div className="min-w-0 rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] p-4">
+                                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Total GMV</div>
+                                <div className="mt-1 truncate whitespace-nowrap text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums" title={new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(activeReportBrandSummaryCards.totalGmv)}>
+                                  {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(activeReportBrandSummaryCards.totalGmv)}
+                                </div>
+                              </div>
+                              <div className="min-w-0 rounded-xl border border-[#cbc3d9] bg-white p-4">
+                                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Platform</div>
+                                <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">
+                                  {activeReportBrandPlatforms.length || 0}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-3 px-6 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex flex-wrap items-center gap-3">
                               <button
                                 type="button"
-                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[392px]"
+                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[392px]"
                               >
                                 <span className="flex items-center gap-3">
                                   <span className="flex size-6 items-center justify-center rounded-md bg-[#f6f3f2] text-[#494456]">
                                     <Calendar className="h-4 w-4" />
                                   </span>
-                                  <span>
-                                    01 Jan 2026 - 07 Jan 2026
-                                  </span>
+                                  <span>{activeReportBrandDateRange}</span>
                                 </span>
                                 <ChevronDown className="h-4 w-4 text-[#494456]" />
                               </button>
 
                               <button
                                 type="button"
-                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[248px]"
+                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[248px]"
                               >
                                 <span className="flex items-center gap-3">
                                   <span className="flex size-6 items-center justify-center rounded-md bg-[#f6f3f2] text-[#5600e0]">
                                     <Briefcase className="h-4 w-4" />
                                   </span>
-                                  <span>Shopee Live</span>
+                                  <span>{activeReportBrandPlatforms[0] || "Shopee Live"}</span>
                                 </span>
                                 <ChevronDown className="h-4 w-4 text-[#494456]" />
                               </button>
@@ -16649,11 +16754,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 onClick={() => {
                                   setIsEditRawDataModalOpen(true);
                                 }}
-                                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[220px]"
+                                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[220px]"
                               >
                                 <Edit3 className="h-5 w-5 text-[#494456]" />
                                 Edit Raw Data
                               </button>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-start text-xs font-medium text-[#494456] lg:self-center">
+                              <span className="inline-flex items-center gap-2 rounded-full border border-[#cbc3d9] bg-white px-3 py-1.5">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                {activeReportBrandSummaryCards.latestActivity
+                                  ? `Data terbaru ${formatDisplayDate(new Date(activeReportBrandSummaryCards.latestActivity).toISOString(), "Shopee Live")}`
+                                  : "Belum ada data terbaru"}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -16782,37 +16896,37 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 	                          )}
 
 	                          {/* Operator Reporting Subtabs */}
-	                          <div className="mb-6 flex gap-4 overflow-x-auto border-b border-slate-200 px-5 sm:px-7">
+	                          <div className="mb-6 flex gap-6 overflow-x-auto border-b border-[#e5e2e1] px-5 sm:px-7">
 	                            <button
 	                              onClick={() => setOperatorReportingTab("live")}
-	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-bold transition-all ${
+	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-semibold transition-all ${
 	                                operatorReportingTab === "live"
-	                                  ? "text-indigo-600"
-	                                  : "text-slate-500 hover:text-slate-800"
+	                                  ? "text-[#5600e0]"
+	                                  : "text-[#7a7488] hover:text-[#1b1c1c]"
 	                              }`}
 	                            >
 	                              Live Performance
 	                              <span
 	                                className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-opacity ${
 	                                  operatorReportingTab === "live"
-	                                    ? "bg-indigo-600 opacity-100"
+	                                    ? "bg-[#5600e0] opacity-100"
 	                                    : "bg-transparent opacity-0"
 	                                }`}
 	                              />
 	                            </button>
 	                            <button
 	                              onClick={() => setOperatorReportingTab("product")}
-	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-bold transition-all ${
+	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-semibold transition-all ${
 	                                operatorReportingTab === "product"
-	                                  ? "text-indigo-600"
-	                                  : "text-slate-500 hover:text-slate-800"
+	                                  ? "text-[#5600e0]"
+	                                  : "text-[#7a7488] hover:text-[#1b1c1c]"
 	                              }`}
 	                            >
 	                              Product Performance
 	                              <span
 	                                className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-opacity ${
 	                                  operatorReportingTab === "product"
-	                                    ? "bg-indigo-600 opacity-100"
+	                                    ? "bg-[#5600e0] opacity-100"
 	                                    : "bg-transparent opacity-0"
 	                                }`}
 	                              />
@@ -16821,17 +16935,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 	                              onClick={() =>
 	                                setOperatorReportingTab("engagement")
 	                              }
-	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-bold transition-all ${
+	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-semibold transition-all ${
 	                                operatorReportingTab === "engagement"
-	                                  ? "text-indigo-600"
-	                                  : "text-slate-500 hover:text-slate-800"
+	                                  ? "text-[#5600e0]"
+	                                  : "text-[#7a7488] hover:text-[#1b1c1c]"
 	                              }`}
 	                            >
 	                              Engagement & Promotion
 	                              <span
 	                                className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-opacity ${
 	                                  operatorReportingTab === "engagement"
-	                                    ? "bg-indigo-600 opacity-100"
+	                                    ? "bg-[#5600e0] opacity-100"
 	                                    : "bg-transparent opacity-0"
 	                                }`}
 	                              />
@@ -18066,140 +18180,205 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           : 15;
 
                                       return (
-                                        <div className="grid grid-cols-1 gap-6">
+                                        <div className="grid grid-cols-1 gap-6 xl:gap-7">
                                           {/* CHART */}
-                                          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm min-h-[350px] flex flex-col justify-between">
-                                            <div>
-                                              <h4 className="text-sm font-black text-slate-800 mb-6 text-left">
-                                                Tren GMV & Transaksi Harian
-                                              </h4>
-                                              <div className="h-64 w-full">
-                                                <ResponsiveContainer
-                                                  width="100%"
-                                                  height="100%"
-                                                >
-                                                  <RechartsLineChart
-                                                    data={[
-                                                      ...reportingRawData,
-                                                    ].sort(
-                                                      (a, b) =>
-                                                        new Date(
-                                                          a.date,
-                                                        ).getTime() -
-                                                        new Date(
-                                                          b.date,
-                                                        ).getTime(),
-                                                    )}
-                                                    margin={{
-                                                      top: 5,
-                                                      right: 30,
-                                                      left: 20,
-                                                      bottom: 5,
-                                                    }}
+                                          <div className="overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                            <div className="border-b border-[#e5e2e1] px-6 py-5 sm:px-8">
+                                              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                                                <div className="max-w-2xl">
+                                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                                    <TrendingUp className="h-3 w-3" />
+                                                    Brand Trend
+                                                  </span>
+                                                  <h4 className="mt-3 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
+                                                    Tren GMV & Transaksi Harian
+                                                  </h4>
+                                                  <p className="mt-1 text-sm font-medium leading-relaxed text-[#494456]">
+                                                    Ringkasan harian untuk melihat momentum penjualan dan pergerakan transaksi brand.
+                                                  </p>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                                  <div className="rounded-xl border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2.5">
+                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">GMV</div>
+                                                    <div className="mt-1 text-sm font-black text-[#1b1c1c] tabular-nums">
+                                                      {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(activeReportBrandSummaryCards.totalGmv)}
+                                                    </div>
+                                                  </div>
+                                                  <div className="rounded-xl border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2.5">
+                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">Orders</div>
+                                                    <div className="mt-1 text-sm font-black text-[#1b1c1c] tabular-nums">
+                                                      {new Intl.NumberFormat("id-ID").format(totalOrders)}
+                                                    </div>
+                                                  </div>
+                                                  <div className="rounded-xl border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2.5">
+                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">CTR</div>
+                                                    <div className="mt-1 text-sm font-black text-[#1b1c1c] tabular-nums">
+                                                      {ctrRate.toFixed(2)}%
+                                                    </div>
+                                                  </div>
+                                                  <div className="rounded-xl border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2.5">
+                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">AOV</div>
+                                                    <div className="mt-1 text-sm font-black text-[#1b1c1c] tabular-nums">
+                                                      Rp{Math.round((reportingRawData.reduce((acc, curr) => acc + (curr.aov || 0), 0) / (reportingRawData.length || 1)) || 0).toLocaleString("id-ID")}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            <div className="px-5 pb-6 pt-5 sm:px-8">
+                                              <div className="rounded-[24px] border border-[#ebe6e3] bg-gradient-to-b from-[#fcfbfa] to-white p-4 sm:p-5">
+                                                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                                                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ebe6e3] bg-white px-3 py-1.5 text-[#1b1c1c]">
+                                                      <span className="h-2 w-2 rounded-full bg-[#5600e0]" />
+                                                      GMV
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ebe6e3] bg-white px-3 py-1.5 text-[#1b1c1c]">
+                                                      <span className="h-2 w-2 rounded-full bg-[#ec4899]" />
+                                                      Produk Terjual
+                                                    </span>
+                                                  </div>
+                                                  <span className="rounded-full border border-[#ebe6e3] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">
+                                                    {activeReportBrandDateRange}
+                                                  </span>
+                                                </div>
+
+                                                <div className="h-64 w-full">
+                                                  <ResponsiveContainer
+                                                    width="100%"
+                                                    height="100%"
                                                   >
-                                                    <CartesianGrid
-                                                      strokeDasharray="3 3"
-                                                      vertical={false}
-                                                      stroke="#e2e8f0"
-                                                    />
-                                                    <XAxis
-                                                      dataKey="date"
-                                                      tick={{
-                                                        fontSize: 10,
-                                                        fill: "#64748b",
-                                                        fontWeight: "bold",
+                                                    <RechartsLineChart
+                                                      data={[
+                                                        ...reportingRawData,
+                                                      ].sort(
+                                                        (a, b) =>
+                                                          new Date(
+                                                            a.date,
+                                                          ).getTime() -
+                                                          new Date(
+                                                            b.date,
+                                                          ).getTime(),
+                                                      )}
+                                                      margin={{
+                                                        top: 8,
+                                                        right: 18,
+                                                        left: 6,
+                                                        bottom: 0,
                                                       }}
-                                                      axisLine={false}
-                                                      tickLine={false}
-                                                    />
-                                                    <YAxis
-                                                      yAxisId="left"
-                                                      tick={{
-                                                        fontSize: 10,
-                                                        fill: "#64748b",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                      axisLine={false}
-                                                      tickLine={false}
-                                                      tickFormatter={(val) =>
-                                                        `Rp${(val / 1000000).toFixed(1)}M`
-                                                      }
-                                                    />
-                                                    <YAxis
-                                                      yAxisId="right"
-                                                      orientation="right"
-                                                      tick={{
-                                                        fontSize: 10,
-                                                        fill: "#64748b",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                      axisLine={false}
-                                                      tickLine={false}
-                                                    />
-                                                    <Tooltip
-                                                      contentStyle={{
-                                                        borderRadius: "12px",
-                                                        border: "none",
-                                                        boxShadow:
-                                                          "0 4px 20px rgba(0,0,0,0.1)",
-                                                        fontWeight: "bold",
-                                                        fontSize: "12px",
-                                                      }}
-                                                      formatter={(
-                                                        value: any,
-                                                        name: string,
-                                                      ) => [
-                                                        name === "GMV"
-                                                          ? new Intl.NumberFormat(
-                                                              "id-ID",
-                                                              {
-                                                                style:
-                                                                  "currency",
-                                                                currency: "IDR",
-                                                                minimumFractionDigits: 0,
-                                                              },
-                                                            ).format(value)
-                                                          : value,
-                                                        name,
-                                                      ]}
-                                                    />
-                                                    <Legend
-                                                      wrapperStyle={{
-                                                        fontSize: "11px",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                    />
-                                                    <Line
-                                                      yAxisId="left"
-                                                      type="monotone"
-                                                      name="GMV"
-                                                      dataKey="gmv"
-                                                      stroke="#4f46e5"
-                                                      strokeWidth={3}
-                                                      dot={{
-                                                        r: 4,
-                                                        fill: "#4f46e5",
-                                                        strokeWidth: 2,
-                                                        stroke: "#fff",
-                                                      }}
-                                                      activeDot={{ r: 6 }}
-                                                    />
-                                                    <Line
-                                                      yAxisId="right"
-                                                      type="monotone"
-                                                      name="Produk Terjual"
-                                                      dataKey="products_sold"
-                                                      stroke="#ec4899"
-                                                      strokeWidth={3}
-                                                      dot={{
-                                                        r: 4,
-                                                        fill: "#ec4899",
-                                                        strokeWidth: 2,
-                                                        stroke: "#fff",
-                                                      }}
-                                                    />
-                                                  </RechartsLineChart>
-                                                </ResponsiveContainer>
+                                                    >
+                                                      <CartesianGrid
+                                                        strokeDasharray="4 8"
+                                                        vertical={false}
+                                                        stroke="#ece8e6"
+                                                      />
+                                                      <XAxis
+                                                        dataKey="date"
+                                                        tick={{
+                                                          fontSize: 11,
+                                                          fill: "#7a7488",
+                                                          fontWeight: 600,
+                                                        }}
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tickMargin={12}
+                                                      />
+                                                      <YAxis
+                                                        yAxisId="left"
+                                                        tick={{
+                                                          fontSize: 11,
+                                                          fill: "#7a7488",
+                                                          fontWeight: 600,
+                                                        }}
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tickFormatter={(val) =>
+                                                          `Rp${(val / 1000000).toFixed(1)}M`
+                                                        }
+                                                      />
+                                                      <YAxis
+                                                        yAxisId="right"
+                                                        orientation="right"
+                                                        tick={{
+                                                          fontSize: 11,
+                                                          fill: "#7a7488",
+                                                          fontWeight: 600,
+                                                        }}
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                      />
+                                                      <Tooltip
+                                                        cursor={{
+                                                          stroke: "#cbc3d9",
+                                                          strokeWidth: 1,
+                                                        }}
+                                                        contentStyle={{
+                                                          borderRadius: "16px",
+                                                          border: "1px solid #e5e2e1",
+                                                          boxShadow:
+                                                            "0 16px 40px rgba(27,28,28,0.08)",
+                                                          fontWeight: "600",
+                                                          fontSize: "12px",
+                                                        }}
+                                                        formatter={(
+                                                          value: any,
+                                                          name: string,
+                                                        ) => [
+                                                          name === "GMV"
+                                                            ? new Intl.NumberFormat(
+                                                                "id-ID",
+                                                                {
+                                                                  style:
+                                                                    "currency",
+                                                                  currency:
+                                                                    "IDR",
+                                                                  minimumFractionDigits: 0,
+                                                                },
+                                                              ).format(value)
+                                                            : value,
+                                                          name,
+                                                        ]}
+                                                      />
+                                                      <Legend
+                                                        wrapperStyle={{
+                                                          fontSize: "11px",
+                                                          fontWeight: 600,
+                                                          color: "#494456",
+                                                        }}
+                                                      />
+                                                      <Line
+                                                        yAxisId="left"
+                                                        type="monotone"
+                                                        name="GMV"
+                                                        dataKey="gmv"
+                                                        stroke="#5600e0"
+                                                        strokeWidth={3}
+                                                        dot={{
+                                                          r: 4,
+                                                          fill: "#5600e0",
+                                                          strokeWidth: 2,
+                                                          stroke: "#fff",
+                                                        }}
+                                                        activeDot={{ r: 6 }}
+                                                      />
+                                                      <Line
+                                                        yAxisId="right"
+                                                        type="monotone"
+                                                        name="Produk Terjual"
+                                                        dataKey="products_sold"
+                                                        stroke="#ec4899"
+                                                        strokeWidth={3}
+                                                        dot={{
+                                                          r: 4,
+                                                          fill: "#ec4899",
+                                                          strokeWidth: 2,
+                                                          stroke: "#fff",
+                                                        }}
+                                                      />
+                                                    </RechartsLineChart>
+                                                  </ResponsiveContainer>
+                                                </div>
                                               </div>
                                             </div>
                                           </div>
@@ -18301,15 +18480,35 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           ))}
                                         </div>
                                       )}
-                                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                                    <div className="overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                      <div className="border-b border-[#e5e2e1] px-6 py-5 sm:px-8">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                                          <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
+                                              Detail Data
+                                            </p>
+                                            <h4 className="mt-2 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
+                                              Tabel {uploadTargetTab === "engagement" ? "Engagement" : "Live"} Brand
+                                            </h4>
+                                          </div>
+                                          <div className="flex flex-wrap gap-2">
+                                            <span className="inline-flex items-center gap-2 rounded-full border border-[#ebe6e3] bg-[#fcfbfa] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">
+                                              {saveTargetPlatform}
+                                            </span>
+                                            <span className="inline-flex items-center gap-2 rounded-full border border-[#ebe6e3] bg-[#fcfbfa] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">
+                                              {reportingRawData.length} baris
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
                                       <div className="overflow-x-auto">
                                         <table className="w-full text-left">
                                           <thead>
                                             {uploadTargetTab ===
                                             "engagement" ? (
-                                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                              <tr className="bg-[#fcfbfa] border-b border-[#e5e2e1] text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
                                                 <th 
-                                                  className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                                    className="px-5 py-4 cursor-pointer hover:bg-[#f6f3f2] transition-colors"
                                                   onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
                                                 >
                                                   <div className="flex items-center gap-1">
@@ -18345,11 +18544,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               </tr>
                                             ) : saveTargetPlatform ===
                                               "Shopee Live" ? (
-                                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                              <tr className="bg-[#fcfbfa] border-b border-[#e5e2e1] text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
                                                 {shopeeRawTab !== "raw" ? (
                                                   <>
                                                     <th 
-                                                      className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                                      className="px-5 py-4 cursor-pointer hover:bg-[#f6f3f2] transition-colors"
                                                       onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
                                                     >
                                                       <div className="flex items-center gap-1">
@@ -18372,7 +18571,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 ) : (
                                                   <>
                                                     <th 
-                                                      className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                                      className="px-5 py-4 cursor-pointer hover:bg-[#f6f3f2] transition-colors"
                                                       onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
                                                     >
                                                       <div className="flex items-center gap-1">
@@ -18406,9 +18605,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 </th>
                                               </tr>
                                             ) : (
-                                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                              <tr className="bg-[#fcfbfa] border-b border-[#e5e2e1] text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
                                                 <th 
-                                                  className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                                  className="px-5 py-4 cursor-pointer hover:bg-[#f6f3f2] transition-colors"
                                                   onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
                                                 >
                                                   <div className="flex items-center gap-1">
@@ -18441,7 +18640,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               </tr>
                                             )}
                                           </thead>
-                                          <tbody className="divide-y divide-slate-100">
+                                          <tbody className="divide-y divide-[#ece8e6]">
                                             {(() => {
                                               if (
                                                 saveTargetPlatform ===
@@ -18583,14 +18782,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 .map((g: any, idx) => (
                                                   <tr
                                                     key={idx}
-                                                    className="hover:bg-slate-50/50 transition-colors"
+                                                    className="transition-colors hover:bg-[#fcfbfa]"
                                                   >
                                                     <td
-                                                      className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800"
+                                                      className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-[#1b1c1c]"
                                                     >
                                                       {g.label}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-[#494456]">
                                                       {(() => {
                                                         const secs = g.duration || 0;
                                                         if (!secs) return "-";
@@ -18599,20 +18798,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         return `${h > 0 ? h + "j " : ""}${m}m`;
                                                       })()}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#1b1c1c]">
                                                       {idFmt2.format(g.penonton)}
                                                     </td>
                                                     <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-emerald-600">
                                                       Rp
                                                       {idFmt2.format(g.gmv)}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#1b1c1c]">
                                                       {idFmt2.format(g.products_sold)}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-indigo-600">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#5600e0]">
                                                       {idFmt2.format(g.orders)}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#5600e0]">
                                                       {g.penonton > 0
                                                         ? (
                                                             (g.orders /
@@ -18646,14 +18845,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         100
                                                       : 0;
                                                   return (
-                                                    <tr
-                                                      key={idx}
-                                                      className="hover:bg-slate-50/50 transition-colors"
-                                                    >
+                                                  <tr
+                                                    key={idx}
+                                                    className="transition-colors hover:bg-[#fcfbfa]"
+                                                  >
                                                       {saveTargetPlatform ===
                                                       "Shopee Live" ? (
                                                         <>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-[#1b1c1c]">
                                                             {(() => {
                                                               const rawStr =
                                                                 String(
@@ -18678,7 +18877,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                               return dPart;
                                                             })()}
                                                           </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-[#1b1c1c]">
                                                             {(() => {
                                                               const rawStr =
                                                                 String(
@@ -18712,7 +18911,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                               return "-";
                                                             })()}
                                                           </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#1b1c1c]">
                                                             {new Intl.NumberFormat(
                                                               "id-ID",
                                                             ).format(
@@ -18727,7 +18926,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                               row.gmv || 0,
                                                             )}
                                                           </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#1b1c1c]">
                                                             {new Intl.NumberFormat(
                                                               "id-ID",
                                                             ).format(
@@ -18735,7 +18934,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 0,
                                                             )}
                                                           </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#5600e0]">
                                                             {row.penonton > 0
                                                               ? (
                                                                   (row.orders /
@@ -18748,13 +18947,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         </>
                                                       ) : (
                                                         <>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-[#1b1c1c]">
                                                             {formatDisplayDate(
                                                               row.dateTime ||
                                                                 row.date,
                                                               saveTargetPlatform,
                                                             )}
-                                                            <span className="block text-[9px] font-semibold text-slate-400 mt-1 font-mono">
+                                                            <span className="block text-[9px] font-semibold text-[#7a7488] mt-1 font-mono">
                                                               Platform:{" "}
                                                               {
                                                                 saveTargetPlatform
@@ -18762,12 +18961,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                             </span>
                                                           </td>
                                                           <td className="px-5 py-3.5 text-xs text-left">
-                                                            <div className="font-extrabold text-indigo-950 leading-tight">
+                                                            <div className="font-semibold text-[#1b1c1c] leading-tight">
                                                               {row.title}
                                                             </div>
                                                             {saveTargetPlatform ===
                                                               "TikTok Live" && (
-                                                              <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
+                                                              <div className="flex gap-2 text-[9px] font-semibold text-[#7a7488] mt-1">
                                                                 <span>
                                                                   ❤️{" "}
                                                                   {new Intl.NumberFormat(
@@ -18793,7 +18992,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                             )}
                                                             {saveTargetPlatform ===
                                                               "Shopee Live" && (
-                                                              <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
+                                                              <div className="flex gap-2 text-[9px] font-semibold text-[#7a7488] mt-1">
                                                                 <span>
                                                                   ❤️{" "}
                                                                   {new Intl.NumberFormat(
@@ -18821,7 +19020,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                           {uploadTargetTab ===
                                                           "engagement" ? (
                                                             <>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-slate-700 font-mono">
+                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#1b1c1c] font-mono">
                                                                 {new Intl.NumberFormat(
                                                                   "id-ID",
                                                                 ).format(
@@ -18829,7 +19028,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                     0,
                                                                 )}
                                                               </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-slate-700 font-mono">
+                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#1b1c1c] font-mono">
                                                                 {new Intl.NumberFormat(
                                                                   "id-ID",
                                                                 ).format(
@@ -18838,7 +19037,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 )}
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-mono">
-                                                                <div className="font-semibold text-slate-700">
+                                                                <div className="font-semibold text-[#1b1c1c]">
                                                                   💬{" "}
                                                                   {new Intl.NumberFormat(
                                                                     "id-ID",
@@ -18847,7 +19046,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                       0,
                                                                   )}
                                                                 </div>
-                                                                <div className="text-[9px] font-bold text-slate-400 mt-1">
+                                                                <div className="text-[9px] font-semibold text-[#7a7488] mt-1">
                                                                   🔗{" "}
                                                                   {new Intl.NumberFormat(
                                                                     "id-ID",
@@ -18869,7 +19068,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 Fans
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-mono">
-                                                                <div className="font-semibold text-slate-700">
+                                                                <div className="font-semibold text-[#1b1c1c]">
                                                                   🎫{" "}
                                                                   {new Intl.NumberFormat(
                                                                     "id-ID",
@@ -18881,7 +19080,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                   )}{" "}
                                                                   Vcr
                                                                 </div>
-                                                                <div className="text-[9px] text-amber-600 font-bold mt-1">
+                                                                <div className="text-[9px] text-amber-600 font-semibold mt-1">
                                                                   🪙{" "}
                                                                   {new Intl.NumberFormat(
                                                                     "id-ID",
@@ -18892,7 +19091,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                   Koin
                                                                 </div>
                                                               </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600 font-mono">
+                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#5600e0] font-mono">
                                                                 {(() => {
                                                                   const rowUniqueViewers =
                                                                     row.penonton ||
@@ -18918,7 +19117,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                           ) : (
                                                             <>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-semibold text-slate-600">
+                                                                <div className="text-xs font-semibold text-[#1b1c1c]">
                                                                   {Math.round(
                                                                     row.duration /
                                                                       60,
@@ -18928,7 +19127,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 </div>
                                                                 {saveTargetPlatform ===
                                                                   "TikTok Live" && (
-                                                                  <div className="text-[9px] font-black text-green-600 mt-1 animate-pulse">
+                                                                  <div className="text-[9px] font-black text-emerald-600 mt-1">
                                                                     +
                                                                     {
                                                                       row.followers
@@ -18952,7 +19151,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                     row.gmv,
                                                                   )}
                                                                 </div>
-                                                                <div className="text-[9px] font-extrabold text-slate-400 mt-0.5">
+                                                                <div className="text-[9px] font-semibold text-[#7a7488] mt-0.5">
                                                                   AOV: Rp
                                                                   {Math.round(
                                                                     row.aov ||
@@ -18963,31 +19162,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 </div>
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-bold text-slate-700">
+                                                                <div className="text-xs font-bold text-[#1b1c1c]">
                                                                   {
                                                                     row.products_sold
                                                                   }{" "}
                                                                   Pcs
                                                                 </div>
-                                                                <div className="text-[9px] text-slate-400 font-bold mt-1">
+                                                                <div className="text-[9px] text-[#7a7488] font-semibold mt-1">
                                                                   🛍️{" "}
                                                                   {row.clicks}{" "}
                                                                   Klik Keranjang
                                                                 </div>
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-bold text-slate-700">
+                                                                <div className="text-xs font-bold text-[#1b1c1c]">
                                                                   {row.buyers}{" "}
                                                                   Users
                                                                 </div>
-                                                                <div className="text-[9px] text-pink-600 font-bold mt-1">
+                                                                <div className="text-[9px] text-pink-600 font-semibold mt-1">
                                                                   🛒{" "}
                                                                   {row.orders}{" "}
                                                                   Checkout
                                                                 </div>
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-black text-indigo-600">
+                                                                <div className="text-xs font-black text-[#5600e0]">
                                                                   CTR:{" "}
                                                                   {actualCtr.toFixed(
                                                                     1,
@@ -20193,17 +20392,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   </button>
                                                 </div>
                                               </div>
-                                              <div className="flex flex-wrap gap-2 mb-4">
-                                                <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[10px] font-black text-indigo-700">
-                                                  Sumber: raw Shopee live performance
-                                                </span>
-                                                <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
-                                                  Views: kolom Dilihat
-                                                </span>
-                                                <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
-                                                  Avg. Duration: Rata-rata durasi ditonton
-                                                </span>
-                                              </div>
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                      <span className="inline-flex items-center rounded-full bg-[#efe8ff] border border-[#dfd3ff] px-3 py-1 text-[10px] font-black text-[#5600e0]">
+                                        Sumber: raw Shopee live performance
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full bg-[#fbfaf8] border border-[#e5e2e1] px-3 py-1 text-[10px] font-black text-[#494456]">
+                                        Views: kolom Dilihat
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full bg-[#fbfaf8] border border-[#e5e2e1] px-3 py-1 text-[10px] font-black text-[#494456]">
+                                        Avg. Duration: Rata-rata durasi ditonton
+                                      </span>
+                                    </div>
                                               <div className="mb-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
                                                   <span>Filter Aktif</span>
@@ -20699,13 +20898,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             />
 
                                             <div>
-                                              <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">
+                                              <h4 className="text-sm md:text-base font-black text-[#1b1c1c] mb-4 uppercase tracking-widest mt-8">
                                                 Engagement Metrics
                                               </h4>
                                               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                                       Like
                                                     </div>
                                                     <PercentBadge
@@ -20713,15 +20912,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       prev={pTotalLikesDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
+                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                                     {new Intl.NumberFormat(
                                                       "id-ID",
                                                     ).format(totalLikesDb)}
                                                   </div>
                                                 </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                                       Comment
                                                     </div>
                                                     <PercentBadge
@@ -20729,15 +20928,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       prev={pTotalCommentsDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
+                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                                     {new Intl.NumberFormat(
                                                       "id-ID",
                                                     ).format(totalCommentsDb)}
                                                   </div>
                                                 </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                                       Share
                                                     </div>
                                                     <PercentBadge
@@ -20745,15 +20944,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       prev={pTotalSharesDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
+                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                                     {new Intl.NumberFormat(
                                                       "id-ID",
                                                     ).format(totalSharesDb)}
                                                   </div>
                                                 </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                                       Product Clicks
                                                     </div>
                                                     <PercentBadge
@@ -20761,15 +20960,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       prev={pTotalClicksDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
+                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                                     {new Intl.NumberFormat(
                                                       "id-ID",
                                                     ).format(totalClicksDb)}
                                                   </div>
                                                 </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
                                                       AVG TIME/VIEWER
                                                     </div>
                                                     <PercentBadge
@@ -20777,11 +20976,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       prev={pAvgViewDurationDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
+                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                                     {Math.round(
                                                       avgViewDurationDb,
                                                     )}{" "}
-                                                    <span className="text-[10px] text-slate-400 font-bold">
+                                                    <span className="text-[10px] text-[#7a7488] font-bold">
                                                       detik
                                                     </span>
                                                   </div>
@@ -20795,35 +20994,35 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                     {/* CHART TRENDS FOR LIVE PERFORMANCE */}
                                     {liveChartData.length > 0 && (
-                                      <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm mb-6">
+                                      <div className="rounded-[28px] border border-[#e5e2e1] bg-white/90 p-5 sm:p-6 shadow-[0_12px_32px_rgba(27,28,28,0.05)] mb-6">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
                                           <div>
                                             <div className="flex flex-wrap items-center gap-2">
-                                              <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-                                                <TrendingUp className="w-5 h-5 text-emerald-500" />{" "}
+                                              <h4 className="text-sm font-black uppercase tracking-widest text-[#1b1c1c] flex items-center gap-2">
+                                                <TrendingUp className="w-5 h-5 text-[#5600e0]" />{" "}
                                                 Tren Kinerja {activeChartPlatformLabel}{" "}
                                                 {chartGranularityLabel}
                                               </h4>
                                               <span
                                                 className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
                                                   isTikTokChart
-                                                    ? "border-slate-800 bg-slate-900 text-white"
-                                                    : "border-orange-200 bg-orange-50 text-orange-700"
+                                                    ? "border-[#1b1c1c] bg-[#1b1c1c] text-white"
+                                                    : "border-[#f3d9bf] bg-[#fff4e8] text-[#a85b00]"
                                                 }`}
                                               >
                                                 Data {activeChartPlatformLabel}
                                               </span>
                                             </div>
-                                            <p className="text-[11px] text-slate-400 font-bold mt-1">
+                                            <p className="text-[11px] text-[#7a7488] font-bold mt-1">
                                               Menampilkan data {activeChartPlatformLabel}{" "}
                                               sesuai filter tanggal, shift, dan
                                               pencarian yang aktif.
                                             </p>
                                           </div>
-                                          <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
+                                          <div className="flex flex-wrap items-center gap-3 bg-[#fbfaf8] p-3.5 rounded-[22px] border border-[#e9e4df] shadow-[0_10px_24px_rgba(27,28,28,0.04)] max-w-full">
                                             <div className="flex items-center gap-1 mr-1 select-none">
-                                              <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
-                                              <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">
+                                              <Sliders className="w-3.5 h-3.5 text-[#5600e0]/80" />
+                                              <span className="text-[10px] font-black uppercase text-[#7a7488] tracking-wider">
                                                 Metrik:
                                               </span>
                                             </div>
@@ -20833,35 +21032,35 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   key: "gmv",
                                                   label: "GMV",
                                                   color:
-                                                    "bg-emerald-50 text-emerald-700 border-emerald-200",
+                                                    "bg-[#e8f7f0] text-[#1f9d6b] border-[#cce9da]",
                                                 },
                                                 {
                                                   key: "orders",
                                                   label:
                                                     chartMetricLabels.orders,
                                                   color:
-                                                    "bg-indigo-50 text-indigo-700 border-indigo-200",
+                                                    "bg-[#efe8ff] text-[#5600e0] border-[#dfd3ff]",
                                                 },
                                                 {
                                                   key: "itemsSold",
                                                   label:
                                                     chartMetricLabels.itemsSold,
                                                   color:
-                                                    "bg-amber-50 text-amber-700 border-amber-200",
+                                                    "bg-[#fff2db] text-[#c77d00] border-[#f7ddb2]",
                                                 },
                                                 {
                                                   key: "clicks",
                                                   label:
                                                     chartMetricLabels.clicks,
                                                   color:
-                                                    "bg-pink-50 text-pink-700 border-pink-200",
+                                                    "bg-[#ffe8f0] text-[#d9467a] border-[#f7c4d7]",
                                                 },
                                                 {
                                                   key: "penonton",
                                                   label:
                                                     chartMetricLabels.views,
                                                   color:
-                                                    "bg-cyan-50 text-cyan-750 border-cyan-200",
+                                                    "bg-[#e7f6fb] text-[#0f9acb] border-[#ccecf8]",
                                                 },
                                               ].map((m) => {
                                                 const isSelected =
@@ -20898,7 +21097,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
                                                       isSelected
                                                         ? `${m.color} scale-[1.02] shadow-xs font-extrabold`
-                                                        : "bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50"
+                                                        : "bg-white text-[#7a7488] border-[#e5e2e1] hover:text-[#494456] hover:bg-[#fcfbfa]"
                                                     }`}
                                                   >
                                                     <span
@@ -20921,7 +21120,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 );
                                               })}
                                             </div>
-                                            <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
+                                            <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-[#e5e2e1] sm:pl-2.5 ml-auto font-bold text-[#7a7488]">
                                               <button
                                                 onClick={() =>
                                                   setLiveChartSelectedMetrics([
@@ -20932,7 +21131,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     "penonton",
                                                   ])
                                                 }
-                                                className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+                                                className="text-[#5600e0] uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
                                               >
                                                 Semua
                                               </button>
@@ -20944,7 +21143,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     "orders",
                                                   ])
                                                 }
-                                                className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+                                                className="text-[#7a7488] uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
                                               >
                                                 Reset
                                               </button>
@@ -20981,13 +21180,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <CartesianGrid
                                                 strokeDasharray="3 3"
                                                 vertical={false}
-                                                stroke="#e2e8f0"
+                                                stroke="#e9e4df"
                                               />
                                               <XAxis
                                                 dataKey="date"
                                                 tick={{
                                                   fontSize: 10,
-                                                  fill: "#64748b",
+                                                  fill: "#7a7488",
                                                   fontWeight: "bold",
                                                 }}
                                                 axisLine={false}
@@ -20997,7 +21196,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 yAxisId="left"
                                                 tick={{
                                                   fontSize: 10,
-                                                  fill: "#10b981",
+                                                  fill: "#1f9d6b",
                                                   fontWeight: "bold",
                                                 }}
                                                 axisLine={false}
@@ -21016,7 +21215,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 orientation="right"
                                                 tick={{
                                                   fontSize: 10,
-                                                  fill: "#4f46e5",
+                                                  fill: "#5600e0",
                                                   fontWeight: "bold",
                                                 }}
                                                 axisLine={false}
@@ -21030,10 +21229,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               />
                                               <Tooltip
                                                 contentStyle={{
-                                                  borderRadius: "16px",
-                                                  border: "none",
+                                                  borderRadius: "18px",
+                                                  border: "1px solid #e5e2e1",
                                                   boxShadow:
-                                                    "0 4px 24px rgba(0,0,0,0.08)",
+                                                    "0 14px 30px rgba(27,28,28,0.08)",
                                                   fontWeight: "bold",
                                                   fontSize: "11px",
                                                 }}
@@ -21054,11 +21253,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="GMV (Pendapatan)"
                                                 dataKey="gmv"
-                                                stroke="#10b981"
+                                                stroke="#1f9d6b"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#10b981",
+                                                  fill: "#1f9d6b",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -21074,11 +21273,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name={chartMetricLabels.orders}
                                                 dataKey="orders"
-                                                stroke="#4f46e5"
+                                                stroke="#5600e0"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#4f46e5",
+                                                  fill: "#5600e0",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -21093,11 +21292,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name={chartMetricLabels.itemsSold}
                                                 dataKey="itemsSold"
-                                                stroke="#f59e0b"
+                                                stroke="#c77d00"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#f59e0b",
+                                                  fill: "#c77d00",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -21112,11 +21311,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name={chartMetricLabels.clicks}
                                                 dataKey="clicks"
-                                                stroke="#ec4899"
+                                                stroke="#d9467a"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#ec4899",
+                                                  fill: "#d9467a",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -21131,11 +21330,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name={chartMetricLabels.views}
                                                 dataKey="penonton"
-                                                stroke="#0ea5e9"
+                                                stroke="#0f9acb"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#0ea5e9",
+                                                  fill: "#0f9acb",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23581,23 +23780,23 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                     {/* CHART TRENDS */}
                                     {chartData.length > 0 && (
-                                      <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
+                                      <div className="rounded-[28px] border border-[#e5e2e1] bg-white/90 p-5 sm:p-6 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
                                           <div>
-                                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-                                              <TrendingUp className="w-5 h-5 text-indigo-500" />{" "}
+                                            <h4 className="text-sm font-black uppercase tracking-widest text-[#1b1c1c] flex items-center gap-2">
+                                              <TrendingUp className="w-5 h-5 text-[#5600e0]" />{" "}
                                               Tren Kinerja Interaksi Harian
                                             </h4>
-                                            <p className="text-[11px] text-slate-400 font-bold mt-1">
+                                            <p className="text-[11px] text-[#7a7488] font-bold mt-1">
                                               Visualisasi harian metrik
                                               interaksi terpilih dari data
                                               historis siaran langsung.
                                             </p>
                                           </div>
-                                          <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
+                                          <div className="flex flex-wrap items-center gap-3 bg-[#fbfaf8] p-3.5 rounded-[22px] border border-[#e9e4df] shadow-[0_10px_24px_rgba(27,28,28,0.04)] max-w-full">
                                             <div className="flex items-center gap-1 mr-1 select-none">
-                                              <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
-                                              <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">
+                                              <Sliders className="w-3.5 h-3.5 text-[#5600e0]/80" />
+                                              <span className="text-[10px] font-black uppercase text-[#7a7488] tracking-wider">
                                                 Metrik:
                                               </span>
                                             </div>
@@ -23607,37 +23806,37 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   key: "errRateNumeric",
                                                   label: "ERR %",
                                                   color:
-                                                    "bg-indigo-50 text-indigo-700 border-indigo-200",
+                                                    "bg-[#efe8ff] text-[#5600e0] border-[#dfd3ff]",
                                                 },
                                                 {
                                                   key: "uniqueViewers",
                                                   label: "Unique Viewers",
                                                   color:
-                                                    "bg-cyan-50 text-cyan-750 border-cyan-200",
+                                                    "bg-[#e7f6fb] text-[#0f9acb] border-[#ccecf8]",
                                                 },
                                                 {
                                                   key: "likes",
                                                   label: "Likes",
                                                   color:
-                                                    "bg-amber-50 text-amber-700 border-amber-200",
+                                                    "bg-[#fff2db] text-[#c77d00] border-[#f7ddb2]",
                                                 },
                                                 {
                                                   key: "comments",
                                                   label: "Comments",
                                                   color:
-                                                    "bg-pink-50 text-pink-700 border-pink-200",
+                                                    "bg-[#ffe8f0] text-[#d9467a] border-[#f7c4d7]",
                                                 },
                                                 {
                                                   key: "shares",
                                                   label: "Shares",
                                                   color:
-                                                    "bg-emerald-50 text-emerald-700 border-emerald-200",
+                                                    "bg-[#e8f7f0] text-[#1f9d6b] border-[#cce9da]",
                                                 },
                                                 {
                                                   key: "followers",
                                                   label: "New Followers",
                                                   color:
-                                                    "bg-orange-50 text-orange-700 border-orange-200",
+                                                    "bg-[#fff0e4] text-[#a85b00] border-[#f3d9bf]",
                                                 },
                                               ].map((m) => {
                                                 const isSelected =
@@ -23672,7 +23871,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
                                                       isSelected
                                                         ? `${m.color} scale-[1.02] shadow-xs font-extrabold`
-                                                        : "bg-white text-slate-400 border-slate-200 hover:text-slate-650 hover:bg-slate-50"
+                                                        : "bg-white text-[#7a7488] border-[#e5e2e1] hover:text-[#494456] hover:bg-[#fcfbfa]"
                                                     }`}
                                                   >
                                                     <span
@@ -23699,7 +23898,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 );
                                               })}
                                             </div>
-                                          <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
+                                          <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-[#e5e2e1] sm:pl-2.5 ml-auto font-bold text-[#7a7488]">
                                             <button
                                               type="button"
                                               onClick={() =>
@@ -23714,7 +23913,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     ],
                                                   )
                                                 }
-                                                className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+                                                className="text-[#5600e0] uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
                                               >
                                               Semua
                                             </button>
@@ -23729,7 +23928,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     ],
                                                   )
                                                 }
-                                                className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+                                                className="text-[#7a7488] uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
                                               >
                                                 Reset
                                               </button>
@@ -23766,13 +23965,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <CartesianGrid
                                                 strokeDasharray="3 3"
                                                 vertical={false}
-                                                stroke="#e2e8f0"
+                                                stroke="#e9e4df"
                                               />
                                               <XAxis
                                                 dataKey="date"
                                                 tick={{
                                                   fontSize: 10,
-                                                  fill: "#64748b",
+                                                  fill: "#7a7488",
                                                   fontWeight: "bold",
                                                 }}
                                                 axisLine={false}
@@ -23782,7 +23981,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 yAxisId="left"
                                                 tick={{
                                                   fontSize: 10,
-                                                  fill: "#4f46e5",
+                                                  fill: "#5600e0",
                                                   fontWeight: "bold",
                                                 }}
                                                 axisLine={false}
@@ -23801,7 +24000,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 orientation="right"
                                                 tick={{
                                                   fontSize: 10,
-                                                  fill: "#64748b",
+                                                  fill: "#7a7488",
                                                   fontWeight: "bold",
                                                 }}
                                                 hide={
@@ -23828,10 +24027,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               />
                                               <Tooltip
                                                 contentStyle={{
-                                                  borderRadius: "16px",
-                                                  border: "none",
+                                                  borderRadius: "18px",
+                                                  border: "1px solid #e5e2e1",
                                                   boxShadow:
-                                                    "0 4px 24px rgba(0,0,0,0.08)",
+                                                    "0 14px 30px rgba(27,28,28,0.08)",
                                                   fontWeight: "bold",
                                                   fontSize: "11px",
                                                 }}
@@ -23853,11 +24052,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Tingkat Interaksi (ERR)"
                                                 dataKey="errRateNumeric"
-                                                stroke="#4f46e5"
+                                                stroke="#5600e0"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#4f46e5",
+                                                  fill: "#5600e0",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23873,11 +24072,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Unique Viewers (Penonton)"
                                                 dataKey="uniqueViewers"
-                                                stroke="#0ea5e9"
+                                                stroke="#0f9acb"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#0ea5e9",
+                                                  fill: "#0f9acb",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23892,11 +24091,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Likes"
                                                 dataKey="likes"
-                                                stroke="#f59e0b"
+                                                stroke="#c77d00"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#f59e0b",
+                                                  fill: "#c77d00",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23911,11 +24110,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Comments"
                                                 dataKey="comments"
-                                                stroke="#ec4899"
+                                                stroke="#d9467a"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#ec4899",
+                                                  fill: "#d9467a",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23930,11 +24129,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Shares"
                                                 dataKey="shares"
-                                                stroke="#10b981"
+                                                stroke="#1f9d6b"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#10b981",
+                                                  fill: "#1f9d6b",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23949,11 +24148,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Followers"
                                                 dataKey="followers"
-                                                stroke="#f97316"
+                                                stroke="#a85b00"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#f97316",
+                                                  fill: "#a85b00",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23970,37 +24169,37 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     )}
 
                                     {/* PROMOSI */}
-                                    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
-                                      <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
-                                        <Gift className="w-5 h-5 text-indigo-500" />{" "}
+                                    <div className="rounded-[28px] border border-[#e5e2e1] bg-white/90 p-5 sm:p-6 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                      <h4 className="text-sm font-black uppercase tracking-widest text-[#1b1c1c] mb-4 flex items-center gap-2">
+                                        <Gift className="w-5 h-5 text-[#5600e0]" />{" "}
                                         Promosi (Vouchers & Koin)
                                       </h4>
                                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                        <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider mb-1">
                                             Voucher Toko Diklaim
                                           </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
+                                          <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalShopVouchers)}
                                           </div>
                                         </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                        <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider mb-1">
                                             Voucher Spesial Live Diklaim
                                           </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
+                                          <div className="text-xl font-black text-[#1b1c1c] mt-1">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalSpecialVouchers)}
                                           </div>
                                         </div>
-                                        <div className="bg-slate-50 border border-amber-100 rounded-xl p-4 bg-amber-50/30">
-                                          <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">
+                                        <div className="rounded-2xl border border-[#f3d9bf] bg-[#fff4e8] p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                          <div className="text-[10px] font-bold text-[#a85b00] uppercase tracking-wider mb-1">
                                             Koin Diklaim
                                           </div>
-                                          <div className="text-lg font-black text-amber-700">
+                                          <div className="text-lg font-black text-[#a85b00]">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalCoinsClaimed)}
@@ -24244,7 +24443,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               })()}
                             </div>
                           )}
-                          </div>
                       </>
                     )}
                   </div>
