@@ -21449,50 +21449,91 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     {/* Removed duplicated SKU Analytics here */}
 
                                     {/* Table */}
-                                    <div className="flex bg-slate-100 p-1 mb-4 rounded-xl w-fit">
-                                      {[
-                                        { id: "day", label: "Harian" },
-                                        { id: "shift", label: "Shift" },
-                                        { id: "dayOfWeek", label: "Hari" },
-                                        { id: "raw", label: "Data Mentah" },
-                                      ].map(tab => (
-                                        <button
-                                          key={tab.id}
-                                          onClick={() => setReportingShopeeRawTab(tab.id as any)}
-                                          className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${reportingShopeeRawTab === tab.id ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                                        >
-                                          {tab.label}
-                                        </button>
-                                      ))}
+                                    <div className="mb-3 flex flex-col gap-1">
+                                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
+                                        Detail Data
+                                      </p>
+                                      <h4 className="text-sm font-semibold tracking-tight text-[#1b1c1c] sm:text-base">
+                                        Tabulasi sesi, filter shift, dan data mentah.
+                                      </h4>
+                                    </div>
+                                    <div className="mb-4 w-full overflow-hidden rounded-[18px] border border-[#e5e2e1] bg-[#fcfbfa] p-1.5 shadow-[0_6px_18px_rgba(27,28,28,0.04)] sm:w-fit">
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {[
+                                          { id: "day", label: "Harian" },
+                                          { id: "shift", label: "Shift" },
+                                          { id: "dayOfWeek", label: "Hari" },
+                                          { id: "raw", label: "Data Mentah" },
+                                        ].map((tab) => (
+                                          <button
+                                            key={tab.id}
+                                            onClick={() =>
+                                              setReportingShopeeRawTab(tab.id as any)
+                                            }
+                                            className={`rounded-[12px] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition-all ${
+                                              reportingShopeeRawTab === tab.id
+                                                ? "bg-white text-[#5600e0] shadow-[0_2px_8px_rgba(27,28,28,0.08)]"
+                                                : "text-[#7a7488] hover:bg-white hover:text-[#494456]"
+                                            }`}
+                                          >
+                                            {tab.label}
+                                          </button>
+                                        ))}
+                                      </div>
                                     </div>
                                     {reportingShopeeRawTab === "shift" && (
-                                       <div className="mb-4 flex flex-wrap gap-2 items-center p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
-                                         <span className="text-xs font-bold text-indigo-600 mr-2">Filter & Grouping Shift:</span>
-                                         {shifts.map((sh, idx) => (
-                                           <label key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                                             <input
-                                               type="checkbox"
-                                               className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                               checked={adminShiftChecklist.includes(sh)}
-                                               onChange={(e) => {
-                                                 if (e.target.checked) setAdminShiftChecklist([...adminShiftChecklist, sh]);
-                                                 else setAdminShiftChecklist(adminShiftChecklist.filter(x => x !== sh));
-                                               }}
-                                             />
-                                             <span className="text-xs font-semibold text-slate-700">{sh}</span>
-                                           </label>
-                                         ))}
-                                       </div>
+                                      <div className="mb-4 rounded-[18px] border border-[#e5e2e1] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(27,28,28,0.03)]">
+                                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                                          <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
+                                            Filter Shift
+                                          </span>
+                                          <span className="inline-flex items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5600e0]">
+                                            Grouping
+                                          </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                          {shifts.map((sh, idx) => (
+                                            <label
+                                              key={idx}
+                                              className="inline-flex cursor-pointer items-center gap-2 rounded-[12px] border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2 text-xs font-semibold text-[#494456] transition-colors hover:border-[#dfd3ff] hover:bg-[#f8f5ff]"
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                className="rounded border-[#cbc3d9] text-[#5600e0] focus:ring-[#5600e0]"
+                                                checked={adminShiftChecklist.includes(
+                                                  sh,
+                                                )}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setAdminShiftChecklist([
+                                                      ...adminShiftChecklist,
+                                                      sh,
+                                                    ]);
+                                                  } else {
+                                                    setAdminShiftChecklist(
+                                                      adminShiftChecklist.filter(
+                                                        (x) => x !== sh,
+                                                      ),
+                                                    );
+                                                  }
+                                                }}
+                                              />
+                                              <span>{sh}</span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      </div>
                                     )}
-                                    <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
+                                    <div className="overflow-hidden rounded-[24px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                      <div className="overflow-x-auto">
                                       <table className="w-full text-left whitespace-nowrap">
-                                        <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
+                                        <thead className="bg-[#fcfbfa] border-b border-[#ece8e6] uppercase text-[9px] font-black text-[#7a7488] tracking-[0.18em]">
                                           <tr>
                                             <th className="px-5 py-3.5">No</th>
                                            {reportingShopeeRawTab !== "raw" ? (
                                              <>
                                                <th 
-                                                 className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" 
+                                                 className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]" 
                                                  onClick={() => handleSort("date")}
                                                >
                                                  {reportingShopeeRawTab === "day" ? "Tanggal" : reportingShopeeRawTab === "shift" ? "Shift" : "Hari"}
@@ -21504,7 +21545,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     : ""}
                                                </th>
                                                <th 
-                                                 className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                                 className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
                                                  onClick={() => handleSort("duration")}
                                                >
                                                  Durasi
@@ -21519,7 +21560,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                            ) : (
                                              <>
                                                <th
-                                                 className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                                 className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
                                                  onClick={() => handleSort("date")}
                                                >
                                                  Tanggal{" "}
@@ -21532,7 +21573,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                <th className="px-5 py-3.5">
                                                  Jam Start Live
                                                </th>
-                                               <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort("duration")}>
+                                               <th className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]" onClick={() => handleSort("duration")}>
                                                  Durasi
                                                  {reportDbSortCol === "duration"
                                                    ? reportDbSortAsc
@@ -21543,12 +21584,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                              </>
                                            )}
                                             <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                              className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
                                               onClick={() =>
                                                 handleSort("views")
                                               }
                                             >
-                                              Viewers{" "}
+                                              Penonton{" "}
                                               {reportDbSortCol === "views"
                                                 ? reportDbSortAsc
                                                   ? "↑"
@@ -21556,7 +21597,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 : ""}
                                             </th>
                                             <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                              className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
                                               onClick={() => handleSort("gmv")}
                                             >
                                               GMV{" "}
@@ -21567,7 +21608,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 : ""}
                                             </th>
                                             <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                                              className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
                                               onClick={() =>
                                                 handleSort("products_sold")
                                               }
@@ -21586,7 +21627,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 handleSort("customers")
                                               }
                                             >
-                                              Customer{" "}
+                                              Pembeli{" "}
                                               {reportDbSortCol === "customers"
                                                 ? reportDbSortAsc
                                                   ? "↑"
@@ -21594,14 +21635,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 : ""}
                                             </th>
                                             <th className="px-5 py-3.5">
-                                              Convertion Rate
+                                              Conversion Rate
                                             </th>
                                             <th className="px-5 py-3.5 text-right">
                                               Aksi
                                             </th>
                                           </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
+                                        <tbody className="divide-y divide-[#f4f1ef] text-xs font-semibold text-[#494456] bg-white">
                                           {isReportingDataLoading || reportingDataError ? (
                                             <ReportingTableStatusRow
                                               colSpan={9}
@@ -21613,7 +21654,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             <tr>
                                               <td
                                                 colSpan={9}
-                                                className="px-5 py-10 text-center text-slate-400"
+                                                className="px-5 py-10 text-center text-[#7a7488]"
                                               >
                                                 Tidak ada sesi ditemukan.
                                               </td>
@@ -21873,6 +21914,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           )}
                                         </tbody>
                                       </table>
+                                      </div>
                                     </div>
 
                                     {totalPages > 1 && reportingShopeeRawTab === "raw" && (
@@ -24390,28 +24432,28 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         );
 
                                       return (
-                                        <details className="mt-8 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
-                                          <summary className="cursor-pointer list-none px-6 py-5 transition-colors hover:bg-slate-50">
+                                        <details className="mt-8 overflow-hidden rounded-[24px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                          <summary className="cursor-pointer list-none px-6 py-5 transition-colors hover:bg-[#fcfbfa]">
                                             <div className="flex items-center justify-between gap-4">
                                               <div className="min-w-0">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
                                                   Riwayat Upload
                                                 </p>
-                                                <h4 className="mt-1 text-base font-black text-slate-800">
+                                                <h4 className="mt-1 text-base font-black text-[#1b1c1c]">
                                                   Riwayat Upload Data Engagement
                                                 </h4>
-                                                <p className="mt-1 text-[11px] font-medium text-slate-500">
-                                                  History file CSV raw data performa yang telah berhasil dikonversi & masuk ke database sentral.
+                                                <p className="mt-1 text-[11px] font-medium leading-relaxed text-[#494456]">
+                                                  Riwayat file CSV raw data performa yang telah berhasil dikonversi dan masuk ke database sentral.
                                                 </p>
                                               </div>
-                                              <span className="inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                                              <span className="inline-flex shrink-0 items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#5600e0]">
                                                 Lihat riwayat
                                               </span>
                                             </div>
                                           </summary>
-                                          <div className="overflow-x-auto border-t border-slate-100">
+                                          <div className="overflow-x-auto border-t border-[#ece8e6]">
                                             <table className="w-full text-left whitespace-nowrap">
-                                              <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
+                                              <thead className="bg-[#fcfbfa] border-b border-[#ece8e6] uppercase text-[9px] font-black text-[#7a7488] tracking-[0.18em]">
                                                 <tr>
                                                   <th className="px-5 py-3.5">
                                                     Waktu Upload
@@ -24433,7 +24475,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   </th>
                                                 </tr>
                                               </thead>
-                                              <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
+                                              <tbody className="divide-y divide-[#f4f1ef] text-xs font-semibold text-[#494456] bg-white">
                                                 {isReportingDataLoading || reportingDataError ? (
                                                   <ReportingTableStatusRow
                                                     colSpan={6}
@@ -24446,7 +24488,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   <tr key="empty-history">
                                                     <td
                                                       colSpan={6}
-                                                      className="px-5 py-10 text-center text-slate-400"
+                                                      className="px-5 py-10 text-center text-[#7a7488]"
                                                     >
                                                       Belum ada riwayat upload
                                                       untuk brand ini.
@@ -24457,9 +24499,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     (history, idx) => (
                                                       <tr
                                                         key={history.id || idx}
-                                                        className="hover:bg-slate-50/50 transition-colors"
+                                                        className="hover:bg-[#fcfbfa] transition-colors"
                                                       >
-                                                        <td className="px-5 py-3.5 text-slate-500">
+                                                        <td className="px-5 py-3.5 text-[#7a7488]">
                                                           {formatDateTimeSafe(history.uploadedAt, {
                                                             day: "numeric",
                                                             month: "short",
@@ -24477,7 +24519,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                           {history.fileName}
                                                         </td>
                                                         <td className="px-5 py-3.5">
-                                                          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded uppercase font-bold">
+                                                            <span className="text-[10px] bg-[#f4f1ef] text-[#494456] px-2 py-0.5 rounded uppercase font-bold">
                                                             {history.platform ||
                                                               "UNKNOWN"}
                                                           </span>
@@ -24511,7 +24553,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                   0,
                                                               )
                                                             }
-                                                            className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-slate-50 hover:bg-red-50 p-1.5 rounded-lg border border-slate-200 hover:border-red-200 text-[10px] font-bold inline-flex items-center gap-1"
+                                                            className="inline-flex items-center gap-1 rounded-lg border border-[#e5e2e1] bg-[#fcfbfa] p-1.5 text-[10px] font-bold text-[#7a7488] transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500 focus:outline-none cursor-pointer"
                                                             title="Hapus Batch & Semua Data Raw"
                                                           >
                                                             Hapus Batch
