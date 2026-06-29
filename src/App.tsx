@@ -16713,13 +16713,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     ) : (
                       <>
                         <div className="overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-gradient-to-b from-white to-[#fbf8f6] shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                          <div className="flex flex-col gap-6 border-b border-[#e5e2e1] px-6 py-6 sm:px-8 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="border-b border-[#e5e2e1] px-6 py-6 sm:px-8">
                             <div className="max-w-2xl space-y-5">
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-                                <Sparkles className="h-3 w-3 text-[#5600e0]" />
-                                Reporting Brand Workspace
-                              </span>
-
                               <div className="flex items-start gap-4">
                                 <button
                                   onClick={() => {
@@ -16753,29 +16748,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </div>
                               </div>
 
-                              <div className="flex flex-wrap gap-2">
-                                <span className="inline-flex items-center gap-2 rounded-full border border-[#cbc3d9] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#494456]">
-                                  <Calendar className="h-3.5 w-3.5 text-[#5600e0]" />
-                                  {activeReportBrandDateRange}
-                                </span>
-                                <span className="inline-flex items-center gap-2 rounded-full border border-[#cbc3d9] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#494456]">
-                                  <Briefcase className="h-3.5 w-3.5 text-[#5600e0]" />
-                                  {activeReportBrandPlatforms[0] || "Shopee Live"}
-                                  {activeReportBrandPlatforms.length > 1 ? ` +${activeReportBrandPlatforms.length - 1}` : ""}
-                                </span>
-                                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-700">
-                                  <CheckCircle2 className="h-3.5 w-3.5" />
-                                  {activeReportBrandSummaryCards.sessionCount > 0
-                                    ? `${activeReportBrandSummaryCards.sessionCount} sesi live`
-                                    : "Belum ada sesi"}
-                                </span>
-                              </div>
                             </div>
-
-                          </div>
-
-                          <div className="flex flex-col gap-3 px-6 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="flex flex-wrap items-center gap-3">
+                            <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                              <div className="flex flex-wrap items-center gap-3">
                               <button
                                 type="button"
                                 className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[392px]"
@@ -16808,23 +16783,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   setIsEditRawDataModalOpen(true);
                                 }}
                                 className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[220px]"
-                              >
-                                <Edit3 className="h-5 w-5 text-[#494456]" />
-                                Edit Raw Data
-                              </button>
-                            </div>
-
-                            <div className="flex items-center gap-2 self-start text-xs font-medium text-[#494456] lg:self-center">
-                              <span className="inline-flex items-center gap-2 rounded-full border border-[#cbc3d9] bg-white px-3 py-1.5">
-                                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                                {activeReportBrandSummaryCards.latestActivity
-                                  ? `Data terbaru ${formatDateTimeSafe(activeReportBrandSummaryCards.latestActivity, {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric",
-                                    })}`
-                                  : "Belum ada data terbaru"}
-                              </span>
+                                >
+                                  <Edit3 className="h-5 w-5 text-[#494456]" />
+                                  Edit Raw Data
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -19298,36 +19261,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {/* STORED DATABASE VIEWER - NEW DESIGN */}
                           {operatorReportingTab === "live" && (
                             <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-                              <div className="rounded-[24px] border border-[#e5e2e1] bg-white/90 px-4 py-4 shadow-[0_8px_24px_rgba(27,28,28,0.03)] sm:px-5">
-                                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                                  <div className="max-w-2xl">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
-                                      Struktur Laporan
-                                    </p>
-                                    <h4 className="mt-1 text-sm font-semibold tracking-tight text-[#1b1c1c] sm:text-base">
-                                      Ringkasan di atas, insight di tengah, detail data di bawah.
-                                    </h4>
-                                    <p className="mt-1 text-xs font-medium leading-relaxed text-[#494456]">
-                                      Tujuannya supaya halaman lebih mudah dipindai dan tiap bagian punya peran yang jelas.
-                                    </p>
-                                  </div>
-                                  <div className="flex flex-wrap gap-2">
-                                    <span className="inline-flex items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-                                      Ringkasan
-                                    </span>
-                                    <span className="inline-flex items-center rounded-full border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                                      Insight
-                                    </span>
-                                    <span className="inline-flex items-center rounded-full border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                                      Detail Data
-                                    </span>
-                                    <span className="inline-flex items-center rounded-full border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                                      Riwayat Upload
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
                               {(() => {
                                 const filteredLiveDb =
                                   brandPerformanceLogs.filter(
