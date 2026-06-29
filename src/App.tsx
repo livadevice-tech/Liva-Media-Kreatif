@@ -18282,7 +18282,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 <div className="max-w-2xl">
                                                   <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
                                                     <TrendingUp className="h-3 w-3" />
-                                                    Brand Trend
+                                                    Trend Brand
                                                   </span>
                                                   <h4 className="mt-3 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
                                                     Tren GMV & Orders
@@ -21454,7 +21454,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         { id: "day", label: "Harian" },
                                         { id: "shift", label: "Shift" },
                                         { id: "dayOfWeek", label: "Hari" },
-                                        { id: "raw", label: "By Raw" },
+                                        { id: "raw", label: "Data Mentah" },
                                       ].map(tab => (
                                         <button
                                           key={tab.id}
