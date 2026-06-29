@@ -24349,13 +24349,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </div>
                                     </div>
 
-                                    <div className="rounded-[24px] border border-[#e5e2e1] bg-white px-5 py-5 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                      <div className="text-center text-xs font-medium leading-relaxed text-[#494456]">
-                                        Menampilkan metrik agregat Engagement
-                                        dan Promosi dari file Raw Data yang
-                                        diunggah. Filter periode dan platform
-                                        yang sama seperti di tab Live/Product
-                                        berlaku di data ini.
+                                    <div className="rounded-[24px] border border-[#e5e2e1] bg-[#fcfbfa] px-5 py-5 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                      <div className="mx-auto flex max-w-2xl flex-col items-center gap-2 text-center">
+                                        <span className="inline-flex items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                          Ringkasan Raw Data
+                                        </span>
+                                        <div className="text-xs font-medium leading-relaxed text-[#494456]">
+                                          Menampilkan metrik agregat Engagement
+                                          dan Promosi dari file Raw Data yang
+                                          diunggah. Filter periode dan platform
+                                          yang sama seperti di tab Live/Product
+                                          berlaku di data ini.
+                                        </div>
                                       </div>
                                     </div>
 
@@ -24444,7 +24449,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       return (
                                         <details className="mt-8 overflow-hidden rounded-[24px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
                                           <summary className="cursor-pointer list-none px-6 py-5 transition-colors hover:bg-[#fcfbfa]">
-                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                               <div className="min-w-0">
                                                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
                                                   Riwayat Upload
@@ -24528,8 +24533,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         >
                                                           {history.fileName}
                                                         </td>
-                                                      <td className="px-5 py-3.5">
-                                                        <span className="text-[10px] bg-[#f4f1ef] text-[#494456] px-2 py-0.5 rounded uppercase font-bold">
+                                                        <td className="px-5 py-3.5">
+                                                          <span className="text-[10px] bg-[#f4f1ef] text-[#494456] px-2 py-0.5 rounded uppercase font-bold">
                                                             {history.platform ||
                                                               "UNKNOWN"}
                                                           </span>
