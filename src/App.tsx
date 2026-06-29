@@ -21182,8 +21182,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             </p>
                                           </div>
 
-                                          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-                                            <div className="inline-flex flex-wrap items-center gap-1.5 rounded-[18px] border border-[#dcd7e6] bg-[#f8f7fb] p-1.5 shadow-[0_6px_18px_rgba(27,28,28,0.04)]">
+                                          <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end xl:w-auto">
+                                            <div className="inline-flex w-full flex-wrap items-center gap-1.5 rounded-[18px] border border-[#dcd7e6] bg-[#f8f7fb] p-1.5 shadow-[0_6px_18px_rgba(27,28,28,0.04)] sm:w-fit">
                                               {[
                                                 { id: "gmv", label: "GMV" },
                                                 { id: "orders", label: chartMetricLabels.orders },
@@ -21236,7 +21236,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               })}
                                             </div>
 
-                                            <div className="flex items-center gap-2 self-end text-[10px] font-bold text-[#7a7488] sm:self-auto">
+                                            <div className="flex items-center gap-2 self-start text-[10px] font-bold text-[#7a7488] sm:self-auto sm:justify-end">
                                               <button
                                                 type="button"
                                                 onClick={() =>
@@ -21918,7 +21918,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     </div>
 
                                     {totalPages > 1 && reportingShopeeRawTab === "raw" && (
-                                      <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+                                      <div className="flex flex-col gap-3 border-t border-[#ece8e6] p-4 text-xs font-semibold text-[#7a7488] sm:flex-row sm:items-center sm:justify-between">
                                         <div>
                                           Menampilkan{" "}
                                           {(currentPage - 1) * ITEMS_PER_PAGE +
@@ -21930,7 +21930,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           )}{" "}
                                           dari {sortedTableLogs.length} data
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-wrap gap-2">
                                           <button
                                             onClick={() =>
                                               setCurrentPage((prev) =>
@@ -21938,11 +21938,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               )
                                             }
                                             disabled={currentPage === 1}
-                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                            className="cursor-pointer rounded-lg border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1.5 transition-colors hover:bg-white disabled:opacity-50"
                                           >
                                             Sebelumnya
                                           </button>
-                                          <span className="px-3 py-1.5">
+                                          <span className="px-3 py-1.5 text-[#494456]">
                                             Halaman {currentPage} / {totalPages}
                                           </span>
                                           <button
@@ -21954,7 +21954,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             disabled={
                                               currentPage === totalPages
                                             }
-                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                            className="cursor-pointer rounded-lg border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1.5 transition-colors hover:bg-white disabled:opacity-50"
                                           >
                                             Selanjutnya
                                           </button>
@@ -24339,8 +24339,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </div>
                                     </div>
 
-                                    <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                                      <div className="text-xs text-slate-400 font-semibold italic text-center">
+                                    <div className="rounded-[24px] border border-[#e5e2e1] bg-white px-5 py-5 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                      <div className="text-xs font-medium leading-relaxed text-[#494456] text-center">
                                         Menampilkan metrik agregat Engagement
                                         dan Promosi dari file Raw Data yang
                                         diunggah. Filter periode dan platform
@@ -24434,7 +24434,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       return (
                                         <details className="mt-8 overflow-hidden rounded-[24px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
                                           <summary className="cursor-pointer list-none px-6 py-5 transition-colors hover:bg-[#fcfbfa]">
-                                            <div className="flex items-center justify-between gap-4">
+                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                               <div className="min-w-0">
                                                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
                                                   Riwayat Upload
@@ -24518,12 +24518,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         >
                                                           {history.fileName}
                                                         </td>
-                                                        <td className="px-5 py-3.5">
-                                                            <span className="text-[10px] bg-[#f4f1ef] text-[#494456] px-2 py-0.5 rounded uppercase font-bold">
+                                                      <td className="px-5 py-3.5">
+                                                        <span className="text-[10px] bg-[#f4f1ef] text-[#494456] px-2 py-0.5 rounded uppercase font-bold">
                                                             {history.platform ||
                                                               "UNKNOWN"}
                                                           </span>
-                                                        </td>
+                                                      </td>
                                                         <td className="px-5 py-3.5">
                                                           {new Intl.NumberFormat(
                                                             "id-ID",
