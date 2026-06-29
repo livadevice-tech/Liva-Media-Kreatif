@@ -16772,32 +16772,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               </div>
                             </div>
 
-                            <div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-4 lg:max-w-[780px]">
-                              <div className="min-w-0 rounded-xl border border-[#cbc3d9] bg-white p-4">
-                                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Sesi Live</div>
-                                <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">
-                                  {new Intl.NumberFormat("id-ID").format(activeReportBrandSummaryCards.sessionCount)}
-                                </div>
-                              </div>
-                              <div className="min-w-0 rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] p-4">
-                                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Upload</div>
-                                <div className="mt-1 text-[22px] font-black tracking-tight text-[#5600e0] tabular-nums">
-                                  {new Intl.NumberFormat("id-ID").format(activeReportBrandSummaryCards.uploadCount)}
-                                </div>
-                              </div>
-                              <div className="min-w-0 rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] p-4">
-                                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Total GMV</div>
-                                <div className="mt-1 truncate whitespace-nowrap text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums" title={new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(activeReportBrandSummaryCards.totalGmv)}>
-                                  {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(activeReportBrandSummaryCards.totalGmv)}
-                                </div>
-                              </div>
-                              <div className="min-w-0 rounded-xl border border-[#cbc3d9] bg-white p-4">
-                                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Platform</div>
-                                <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">
-                                  {activeReportBrandPlatforms.length || 0}
-                                </div>
-                              </div>
-                            </div>
                           </div>
 
                           <div className="flex flex-col gap-3 px-6 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
