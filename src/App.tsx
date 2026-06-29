@@ -18,13 +18,11 @@ import * as XLSX from "xlsx";
 import {
   LineChart as RechartsLineChart,
   Line,
-  AreaChart,
   Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   Pie,
   Cell,
@@ -3029,6 +3027,9 @@ export default function App() {
   };
 
   const [reportingRawData, setReportingRawData] = useState<any[]>([]);
+  const [reportingBrandChartRange, setReportingBrandChartRange] = useState<
+    "7d" | "30d" | "90d"
+  >("7d");
   const [skuRawData, setSkuRawData] = useState<any[]>([]);
   const [shopeeSkuLogs, setShopeeSkuLogs] = useState<any[]>([]);
   const [isDragOverReporting, setIsDragOverReporting] = useState(false);
@@ -3040,6 +3041,7 @@ export default function App() {
   const [reportingShopeeRawTab, setReportingShopeeRawTab] = useState<
     "day" | "shift" | "dayOfWeek" | "raw"
   >("day");
+  const reportingBrandChartGranularity = "Harian";
   const [adminReportBrandFilter, setAdminReportBrandFilter] = useState("");
   const [adminShiftChecklistObj, setAdminShiftChecklistObj] = useState<Record<string, string[]>>({});
   const adminShiftChecklist = adminShiftChecklistObj[adminReportBrandFilter || "default_brand"] || [];
@@ -3058,6 +3060,45 @@ export default function App() {
   }, [adminShiftChecklistObj, isGlobalConfigsLoaded]);
   const [autoDetectNotice, setAutoDetectNotice] = useState("");
   const [isSavingReport, setIsSavingReport] = useState(false);
+
+  const activeReportBrandTrendData = useMemo(() => {
+    const grouped = new Map<
+      string,
+      { date: string; gmv: number; orders: number }
+    >();
+
+    reportingRawData.forEach((row) => {
+      const normalized = normalizeDateYMD(
+        String(
+          row.date ||
+            row.createdAt ||
+            row.uploadedAt ||
+            row.timestamp ||
+            "",
+        ),
+      );
+      if (!normalized) return;
+      const current = grouped.get(normalized) || {
+        date: normalized,
+        gmv: 0,
+        orders: 0,
+      };
+      current.gmv += Number(row.gmv) || 0;
+      current.orders += Number(row.orders || row.buyers || 0) || 0;
+      grouped.set(normalized, current);
+    });
+
+    const sorted = Array.from(grouped.values()).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
+    const limit =
+      reportingBrandChartRange === "7d"
+        ? 7
+        : reportingBrandChartRange === "30d"
+          ? 30
+          : 90;
+    return sorted.slice(Math.max(sorted.length - limit, 0));
+  }, [reportingRawData, reportingBrandChartRange]);
 
   useEffect(() => {
     // --- ONE-TIME AUTO CLEANUP FOR BUGGED 2026-12-01 DATES ---
@@ -18184,64 +18225,62 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           {/* CHART */}
                                           <div className="overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
                                             <div className="border-b border-[#e5e2e1] px-6 py-5 sm:px-8">
-                                              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                                              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                                 <div className="max-w-2xl">
-                                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
                                                     <TrendingUp className="h-3 w-3" />
                                                     Brand Trend
                                                   </span>
                                                   <h4 className="mt-3 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
-                                                    Tren GMV & Transaksi Harian
+                                                    Tren GMV & Orders
                                                   </h4>
                                                   <p className="mt-1 text-sm font-medium leading-relaxed text-[#494456]">
-                                                    Ringkasan harian untuk melihat momentum penjualan dan pergerakan transaksi brand.
+                                                    Ringkasan harian untuk melihat pergerakan GMV dan transaksi brand.
                                                   </p>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                                                  <div className="rounded-xl border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2.5">
-                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">GMV</div>
-                                                    <div className="mt-1 text-sm font-black text-[#1b1c1c] tabular-nums">
-                                                      {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(activeReportBrandSummaryCards.totalGmv)}
-                                                    </div>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                  <div className="flex items-center rounded-[16px] border border-[#dcd7e6] bg-[#f8f7fb] p-1 shadow-[0_6px_18px_rgba(27,28,28,0.04)]">
+                                                    {[
+                                                      { id: "7d", label: "7 Hari" },
+                                                      { id: "30d", label: "30 Hari" },
+                                                      { id: "90d", label: "90 Hari" },
+                                                    ].map((item) => (
+                                                      <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        onClick={() =>
+                                                          setReportingBrandChartRange(
+                                                            item.id as "7d" | "30d" | "90d",
+                                                          )
+                                                        }
+                                                        className={`px-3 py-1 text-sm font-bold rounded-[12px] transition-all ${reportingBrandChartRange === item.id ? "bg-white text-[#5600e0] shadow-[0_2px_8px_rgba(27,28,28,0.08)]" : "text-[#494456] hover:text-[#1b1c1c]"}`}
+                                                      >
+                                                        {item.label}
+                                                      </button>
+                                                    ))}
                                                   </div>
-                                                  <div className="rounded-xl border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2.5">
-                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">Orders</div>
-                                                    <div className="mt-1 text-sm font-black text-[#1b1c1c] tabular-nums">
-                                                      {new Intl.NumberFormat("id-ID").format(totalOrders)}
-                                                    </div>
-                                                  </div>
-                                                  <div className="rounded-xl border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2.5">
-                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">CTR</div>
-                                                    <div className="mt-1 text-sm font-black text-[#1b1c1c] tabular-nums">
-                                                      {ctrRate.toFixed(2)}%
-                                                    </div>
-                                                  </div>
-                                                  <div className="rounded-xl border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2.5">
-                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">AOV</div>
-                                                    <div className="mt-1 text-sm font-black text-[#1b1c1c] tabular-nums">
-                                                      Rp{Math.round((reportingRawData.reduce((acc, curr) => acc + (curr.aov || 0), 0) / (reportingRawData.length || 1)) || 0).toLocaleString("id-ID")}
-                                                    </div>
-                                                  </div>
+                                                  <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-2 rounded-[14px] border border-[#dcd7e6] bg-white px-3.5 py-2 text-sm font-medium text-[#494456] shadow-[0_6px_18px_rgba(27,28,28,0.04)]"
+                                                  >
+                                                    {reportingBrandChartGranularity}
+                                                    <ChevronDown className="h-4 w-4 text-[#7a7488]" />
+                                                  </button>
                                                 </div>
                                               </div>
                                             </div>
 
                                             <div className="px-5 pb-6 pt-5 sm:px-8">
                                               <div className="rounded-[24px] border border-[#ebe6e3] bg-gradient-to-b from-[#fcfbfa] to-white p-4 sm:p-5">
-                                                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                                                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ebe6e3] bg-white px-3 py-1.5 text-[#1b1c1c]">
-                                                      <span className="h-2 w-2 rounded-full bg-[#5600e0]" />
-                                                      GMV
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ebe6e3] bg-white px-3 py-1.5 text-[#1b1c1c]">
-                                                      <span className="h-2 w-2 rounded-full bg-[#ec4899]" />
-                                                      Produk Terjual
-                                                    </span>
+                                                <div className="mb-4 flex items-center justify-end gap-6 text-sm font-medium text-[#494456]">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="h-3 w-3 rounded-full bg-[#6f32ff]" />
+                                                    <span>GMV (Rp)</span>
                                                   </div>
-                                                  <span className="rounded-full border border-[#ebe6e3] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">
-                                                    {activeReportBrandDateRange}
-                                                  </span>
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="h-3 w-3 rounded-full border-2 border-white bg-[#60a5fa] outline outline-1 outline-[#60a5fa]" />
+                                                    <span>Orders</span>
+                                                  </div>
                                                 </div>
 
                                                 <div className="h-64 w-full">
@@ -18250,17 +18289,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     height="100%"
                                                   >
                                                     <RechartsLineChart
-                                                      data={[
-                                                        ...reportingRawData,
-                                                      ].sort(
-                                                        (a, b) =>
-                                                          new Date(
-                                                            a.date,
-                                                          ).getTime() -
-                                                          new Date(
-                                                            b.date,
-                                                          ).getTime(),
-                                                      )}
+                                                      data={activeReportBrandTrendData}
                                                       margin={{
                                                         top: 8,
                                                         right: 18,
@@ -18268,6 +18297,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         bottom: 0,
                                                       }}
                                                     >
+                                                      <defs>
+                                                        <linearGradient
+                                                          id="brand-gmv-gradient"
+                                                          x1="0"
+                                                          x2="0"
+                                                          y1="0"
+                                                          y2="1"
+                                                        >
+                                                          <stop offset="0%" stopColor="#6f32ff" stopOpacity={0.18} />
+                                                          <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                                                        </linearGradient>
+                                                      </defs>
                                                       <CartesianGrid
                                                         strokeDasharray="4 8"
                                                         vertical={false}
@@ -18275,9 +18316,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       />
                                                       <XAxis
                                                         dataKey="date"
+                                                        tickFormatter={(value) =>
+                                                          new Intl.DateTimeFormat("id-ID", {
+                                                            day: "2-digit",
+                                                            month: "short",
+                                                          }).format(new Date(value))
+                                                        }
                                                         tick={{
                                                           fontSize: 11,
-                                                          fill: "#7a7488",
+                                                          fill: "#494456",
                                                           fontWeight: 600,
                                                         }}
                                                         axisLine={false}
@@ -18288,25 +18335,32 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         yAxisId="left"
                                                         tick={{
                                                           fontSize: 11,
-                                                          fill: "#7a7488",
+                                                          fill: "#494456",
                                                           fontWeight: 600,
                                                         }}
                                                         axisLine={false}
                                                         tickLine={false}
                                                         tickFormatter={(val) =>
-                                                          `Rp${(val / 1000000).toFixed(1)}M`
+                                                          val >= 1000000
+                                                            ? `${Math.round(val / 1000000)}M`
+                                                            : `${val}`
                                                         }
+                                                        width={40}
                                                       />
                                                       <YAxis
                                                         yAxisId="right"
                                                         orientation="right"
                                                         tick={{
                                                           fontSize: 11,
-                                                          fill: "#7a7488",
+                                                          fill: "#494456",
                                                           fontWeight: 600,
                                                         }}
                                                         axisLine={false}
                                                         tickLine={false}
+                                                        tickFormatter={(val) =>
+                                                          new Intl.NumberFormat("id-ID").format(val)
+                                                        }
+                                                        width={36}
                                                       />
                                                       <Tooltip
                                                         cursor={{
@@ -18325,56 +18379,45 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                           value: any,
                                                           name: string,
                                                         ) => [
-                                                          name === "GMV"
-                                                            ? new Intl.NumberFormat(
-                                                                "id-ID",
-                                                                {
-                                                                  style:
-                                                                    "currency",
-                                                                  currency:
-                                                                    "IDR",
-                                                                  minimumFractionDigits: 0,
-                                                                },
-                                                              ).format(value)
-                                                            : value,
+                                                          name === "GMV (Rp)"
+                                                            ? new Intl.NumberFormat("id-ID", {
+                                                                style: "currency",
+                                                                currency: "IDR",
+                                                                maximumFractionDigits: 0,
+                                                              }).format(value)
+                                                            : new Intl.NumberFormat("id-ID").format(value),
                                                           name,
                                                         ]}
+                                                        labelFormatter={(label) =>
+                                                          new Intl.DateTimeFormat("id-ID", {
+                                                            day: "2-digit",
+                                                            month: "short",
+                                                            year: "numeric",
+                                                          }).format(new Date(label))
+                                                        }
                                                       />
-                                                      <Legend
-                                                        wrapperStyle={{
-                                                          fontSize: "11px",
-                                                          fontWeight: 600,
-                                                          color: "#494456",
-                                                        }}
-                                                      />
-                                                      <Line
+                                                      <Area
                                                         yAxisId="left"
                                                         type="monotone"
-                                                        name="GMV"
+                                                        name="GMV (Rp)"
                                                         dataKey="gmv"
-                                                        stroke="#5600e0"
+                                                        stroke="#6f32ff"
                                                         strokeWidth={3}
-                                                        dot={{
-                                                          r: 4,
-                                                          fill: "#5600e0",
-                                                          strokeWidth: 2,
-                                                          stroke: "#fff",
-                                                        }}
-                                                        activeDot={{ r: 6 }}
+                                                        fill="url(#brand-gmv-gradient)"
+                                                        fillOpacity={1}
+                                                        dot={false}
+                                                        activeDot={{ r: 5, fill: "#6f32ff" }}
                                                       />
                                                       <Line
                                                         yAxisId="right"
                                                         type="monotone"
-                                                        name="Produk Terjual"
-                                                        dataKey="products_sold"
-                                                        stroke="#ec4899"
-                                                        strokeWidth={3}
-                                                        dot={{
-                                                          r: 4,
-                                                          fill: "#ec4899",
-                                                          strokeWidth: 2,
-                                                          stroke: "#fff",
-                                                        }}
+                                                        name="Orders"
+                                                        dataKey="orders"
+                                                        stroke="#6ea8fa"
+                                                        strokeWidth={2.5}
+                                                        strokeDasharray="4 4"
+                                                        dot={false}
+                                                        activeDot={{ r: 5, fill: "#6ea8fa" }}
                                                       />
                                                     </RechartsLineChart>
                                                   </ResponsiveContainer>
