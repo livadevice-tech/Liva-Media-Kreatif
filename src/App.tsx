@@ -161,37 +161,59 @@ const ReportingTableStatusRow = ({
   error: string | null;
   onRetry: () => void;
 }) => (
-  <tr>
-    <td
-      colSpan={colSpan}
-      className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-    >
-      <div className="flex flex-col items-center justify-center gap-4">
-        {loading ? (
-          <>
-            <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-            <span>Sedang memuat data dari database...</span>
-          </>
-        ) : (
-          <>
-            <AlertTriangle className="w-10 h-10 text-amber-500" />
-            <div className="max-w-md">
-              <p className="text-slate-700">Data reporting gagal dimuat.</p>
-              <p className="mt-1 text-xs font-medium text-slate-500">{error}</p>
+  loading ? (
+    <>
+      {Array.from({ length: 4 }).map((_, idx) => (
+        <tr key={`reporting-skeleton-${idx}`} className="border-b border-slate-50">
+          <td colSpan={colSpan} className="px-5 py-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="grid gap-3 sm:grid-cols-4">
+                <div className="space-y-2">
+                  <div className="h-3 w-20 rounded-full bg-slate-200" />
+                  <div className="h-4 w-24 rounded-full bg-slate-300" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 w-24 rounded-full bg-slate-200" />
+                  <div className="h-4 w-32 rounded-full bg-slate-300" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 w-20 rounded-full bg-slate-200" />
+                  <div className="h-4 w-16 rounded-full bg-slate-300" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 w-24 rounded-full bg-slate-200" />
+                  <div className="h-4 w-28 rounded-full bg-slate-300" />
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onRetry}
-              className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Coba Lagi
-            </button>
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
+          </td>
+        </tr>
+      ))}
+    </>
+  ) : (
+    <tr>
+      <td
+        colSpan={colSpan}
+        className="px-5 py-16 text-center text-slate-500 font-bold w-full"
+      >
+        <div className="flex flex-col items-center justify-center gap-4">
+          <AlertTriangle className="w-10 h-10 text-amber-500" />
+          <div className="max-w-md">
+            <p className="text-slate-700">Data reporting gagal dimuat.</p>
+            <p className="mt-1 text-xs font-medium text-slate-500">{error}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Coba Lagi
+          </button>
+        </div>
+      </td>
+    </tr>
+  )
 );
 
 const getAvatarUrl = (name: string) =>
@@ -2424,6 +2446,15 @@ export default function App() {
     string | null
   >(null);
   const [reportBrandSearchQuery, setReportBrandSearchQuery] = useState("");
+  const [reportBrandPlatformFilter, setReportBrandPlatformFilter] =
+    useState("Semua Platform");
+  const [reportBrandStatusFilter, setReportBrandStatusFilter] = useState(
+    "Semua Status",
+  );
+  const [reportBrandSortKey, setReportBrandSortKey] = useState(
+    "latest_activity",
+  );
+  const [reportBrandPage, setReportBrandPage] = useState(1);
   const [reportDbSearchQuery, setReportDbSearchQuery] = useState("");
   const [reportDbSortCol, setReportDbSortCol] = useState("date");
   const [reportDbSortAsc, setReportDbSortAsc] = useState(false);
@@ -2457,6 +2488,143 @@ export default function App() {
       );
     };
   }, [openBrandCardActionsId]);
+
+  useEffect(() => {
+    setReportBrandPage(1);
+  }, [
+    reportBrandSearchQuery,
+    reportBrandPlatformFilter,
+    reportBrandStatusFilter,
+    reportBrandSortKey,
+  ]);
+
+  const reportBrandOverviewRows = useMemo(() => {
+    return clientBrands.map((brand) => {
+      const summary = brandReportingSummary[brand.id];
+      const logs = brandPerformanceLogs.filter(
+        (log) => log.brandId === brand.id,
+      );
+      const batches = brandUploadHistory.filter(
+        (batch) => batch.brandId === brand.id,
+      );
+      const platforms = Array.from(
+        new Set(
+          [...logs, ...batches]
+            .map(
+              (item) =>
+                String(item.platform || item.platformName || "").trim(),
+            )
+            .filter(Boolean),
+        ),
+      ).sort((a, b) => a.localeCompare(b));
+      const totalGmv =
+        summary?.totalGmv ??
+        logs.reduce((sum, log) => sum + (Number(log.gmv) || 0), 0);
+      const sessionCount = summary?.sessionCount ?? logs.length;
+      const batchCount = summary?.batchCount ?? batches.length;
+      const hasData = sessionCount > 0 || batchCount > 0 || totalGmv > 0;
+      const latestActivity = [...logs, ...batches]
+        .map((item) => {
+          const rawDate = item.date || item.createdAt || item.uploadedAt || item.timestamp || "";
+          const ts = new Date(rawDate).getTime();
+          return Number.isFinite(ts) ? ts : 0;
+        })
+        .filter((ts) => ts > 0)
+        .sort((a, b) => b - a)[0] || 0;
+
+      return {
+        brand,
+        summary,
+        platforms,
+        totalGmv,
+        sessionCount,
+        batchCount,
+        hasData,
+        latestActivity,
+      };
+    });
+  }, [clientBrands, brandReportingSummary, brandPerformanceLogs, brandUploadHistory]);
+
+  const availableReportBrandPlatforms = useMemo(() => {
+    const base = Array.from(
+      new Set(reportBrandOverviewRows.flatMap((row) => row.platforms)),
+    ).filter(Boolean);
+    return base.length > 0 ? base : ["Shopee Live", "Tiktok Live"];
+  }, [reportBrandOverviewRows]);
+
+  const reportBrandOverviewStats = useMemo(() => {
+    const totalBrands = reportBrandOverviewRows.length;
+    const activeBrands = reportBrandOverviewRows.filter((row) => row.hasData).length;
+    const totalSessions = reportBrandOverviewRows.reduce(
+      (sum, row) => sum + row.sessionCount,
+      0,
+    );
+    const totalGmv = reportBrandOverviewRows.reduce(
+      (sum, row) => sum + row.totalGmv,
+      0,
+    );
+    return {
+      totalBrands,
+      activeBrands,
+      totalSessions,
+      totalGmv,
+    };
+  }, [reportBrandOverviewRows]);
+
+  const filteredReportBrandRows = useMemo(() => {
+    const q = reportBrandSearchQuery.trim().toLowerCase();
+    return reportBrandOverviewRows
+      .filter((row) => {
+        if (!q) return true;
+        return (
+          row.brand.name.toLowerCase().includes(q) ||
+          row.brand.id.toLowerCase().includes(q)
+        );
+      })
+      .filter((row) => {
+        if (reportBrandPlatformFilter === "Semua Platform") return true;
+        return row.platforms.includes(reportBrandPlatformFilter);
+      })
+      .filter((row) => {
+        if (reportBrandStatusFilter === "Semua Status") return true;
+        if (reportBrandStatusFilter === "Aktif") return row.hasData;
+        return !row.hasData;
+      })
+      .sort((a, b) => {
+        switch (reportBrandSortKey) {
+          case "gmv":
+            return b.totalGmv - a.totalGmv || a.brand.name.localeCompare(b.brand.name);
+          case "sessions":
+            return b.sessionCount - a.sessionCount || a.brand.name.localeCompare(b.brand.name);
+          case "uploads":
+            return b.batchCount - a.batchCount || a.brand.name.localeCompare(b.brand.name);
+          case "name":
+            return a.brand.name.localeCompare(b.brand.name);
+          case "latest_activity":
+          default:
+            return b.latestActivity - a.latestActivity || a.brand.name.localeCompare(b.brand.name);
+        }
+      });
+  }, [
+    reportBrandOverviewRows,
+    reportBrandSearchQuery,
+    reportBrandPlatformFilter,
+    reportBrandStatusFilter,
+    reportBrandSortKey,
+  ]);
+
+  const REPORT_BRANDS_PER_PAGE = 6;
+  const totalReportBrandPages = Math.max(
+    1,
+    Math.ceil(filteredReportBrandRows.length / REPORT_BRANDS_PER_PAGE),
+  );
+  useEffect(() => {
+    setReportBrandPage((page) => Math.min(page, totalReportBrandPages));
+  }, [totalReportBrandPages]);
+  const visibleReportBrandRows = filteredReportBrandRows.slice(
+    (reportBrandPage - 1) * REPORT_BRANDS_PER_PAGE,
+    reportBrandPage * REPORT_BRANDS_PER_PAGE,
+  );
 
   useEffect(() => {
     if (!isGlobalConfigsLoaded) return;
@@ -6936,7 +7104,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             </div>
                           </div>
                         </>
-                      )}
+                    )}
                     </div>
 
                     <button
@@ -15860,83 +16028,186 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                 {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
                 {operatorTab === "reporting_brand" && (
                   <div
-                    className="space-y-6 animate-fadeIn"
-                    id="operator_reporting_brand_content bg-[#fafafd] min-h-screen"
+                    className="space-y-6 animate-fadeIn bg-[#fafafd] min-h-screen"
+                    id="operator_reporting_brand_content"
                   >
                     {activeReportBrandId === null ? (
                       <div className="space-y-6">
-                        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 sm:p-8 rounded-3xl text-white shadow-md relative overflow-hidden text-left">
-                          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl"></div>
-                          <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
-                          <div className="relative z-10 max-w-2xl">
-                            <span className="bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-xs inline-flex items-center gap-1.5 mb-3">
-                              <Sparkles className="w-3 h-3 text-indigo-400 animate-pulse" />{" "}
-                              Workspace Pelaporan Eksternal
-                            </span>
-                            <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-none uppercase">
-                              Pilih Brand Klien Terlebih Dahulu
-                            </h3>
-                            <p className="text-xs sm:text-sm text-slate-300 font-semibold mt-2 leading-relaxed">
-                              Silakan pilih salah satu Brand Klien untuk
-                              mengakses dashboard utama, mengimpor raw data
-                              laporan performance stream, menganalisis corong
-                              konversi, atau mengelola dan menghapus riwayat
-                              upload data mentah.
-                            </p>
+                        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                          <div className="flex flex-col gap-5 p-6 sm:p-8 bg-gradient-to-br from-white via-white to-slate-50/70">
+                            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+                              <div className="max-w-2xl">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                                  Reporting Brand Workspace
+                                </span>
+                                <h3 className="mt-3 text-2xl sm:text-[30px] font-black tracking-tight text-slate-900">
+                                  Reporting Brand Overview
+                                </h3>
+                                <p className="mt-2 text-sm sm:text-[15px] text-slate-500 font-medium leading-relaxed max-w-xl">
+                                  Kelola semua brand, lihat sesi live, total GMV, dan akses dashboard detail dalam satu workspace yang lebih rapi.
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+                                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm min-w-[120px]">
+                                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Brand</div>
+                                  <div className="text-lg font-black text-slate-900 mt-1 tabular-nums">{reportBrandOverviewStats.totalBrands}</div>
+                                </div>
+                                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 shadow-sm min-w-[120px]">
+                                  <div className="text-[10px] font-black uppercase tracking-widest text-emerald-700/70">Aktif</div>
+                                  <div className="text-lg font-black text-emerald-700 mt-1 tabular-nums">{reportBrandOverviewStats.activeBrands}</div>
+                                </div>
+                                <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 shadow-sm min-w-[120px]">
+                                  <div className="text-[10px] font-black uppercase tracking-widest text-indigo-700/70">Sesi Live</div>
+                                  <div className="text-lg font-black text-indigo-700 mt-1 tabular-nums">{new Intl.NumberFormat("id-ID").format(reportBrandOverviewStats.totalSessions)}</div>
+                                </div>
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm min-w-[120px]">
+                                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Total GMV</div>
+                                  <div className="text-lg font-black text-slate-900 mt-1 tabular-nums">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}</div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
                         {/* FITUR PENCARIAN BRAND */}
-                        <div className="bg-white p-4 rounded-3xl border border-indigo-100/80 flex flex-col sm:flex-row items-center gap-3 text-left">
-                          <div className="relative flex-1 w-full">
-                            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-450" />
-                            <input
-                              type="text"
-                              placeholder="Cari brand klien berdasarkan nama atau ID..."
-                              value={reportBrandSearchQuery}
-                              onChange={(e) =>
-                                setReportBrandSearchQuery(e.target.value)
-                              }
-                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-700 placeholder-slate-400 outline-none focus:border-indigo-405 focus:bg-white transition-all"
-                            />
+                        <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4">
+                          <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+                            <div className="relative flex-1 w-full">
+                              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-450" />
+                              <input
+                                type="text"
+                                placeholder="Cari brand klien berdasarkan nama atau ID..."
+                                value={reportBrandSearchQuery}
+                                onChange={(e) =>
+                                  setReportBrandSearchQuery(e.target.value)
+                                }
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-10 pr-4 text-sm font-semibold text-slate-700 placeholder-slate-400 outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                              />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <select
+                                value={reportBrandPlatformFilter}
+                                onChange={(e) =>
+                                  setReportBrandPlatformFilter(e.target.value)
+                                }
+                                className="bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                              >
+                                <option value="Semua Platform">Semua Platform</option>
+                                {availableReportBrandPlatforms.map((platform) => (
+                                  <option key={platform} value={platform}>
+                                    {platform}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                value={reportBrandStatusFilter}
+                                onChange={(e) =>
+                                  setReportBrandStatusFilter(e.target.value)
+                                }
+                                className="bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                              >
+                                <option value="Semua Status">Semua Status</option>
+                                <option value="Aktif">Aktif</option>
+                                <option value="Belum Ada Data">Belum Ada Data</option>
+                              </select>
+                              <select
+                                value={reportBrandSortKey}
+                                onChange={(e) =>
+                                  setReportBrandSortKey(e.target.value)
+                                }
+                                className="bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-xs font-bold text-slate-700 outline-none focus:border-indigo-500"
+                              >
+                                <option value="latest_activity">Urutkan: Terbaru</option>
+                                <option value="gmv">Urutkan: GMV Tertinggi</option>
+                                <option value="sessions">Urutkan: Sesi Terbanyak</option>
+                                <option value="uploads">Urutkan: Upload Terbanyak</option>
+                                <option value="name">Urutkan: Nama A-Z</option>
+                              </select>
+                              {reportBrandSearchQuery && (
+                                <button
+                                  onClick={() => setReportBrandSearchQuery("")}
+                                  className="px-4 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-2xl text-xs font-black transition-colors cursor-pointer border-0"
+                                >
+                                  Reset
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3 text-left">
+                          <div>
+                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800">
+                              Brand Tersimpan
+                            </h4>
+                            <p className="text-[11px] text-slate-400 font-semibold mt-1">
+                              {filteredReportBrandRows.length} brand terdeteksi sesuai filter aktif.
+                            </p>
                           </div>
                           {reportBrandSearchQuery && (
                             <button
                               onClick={() => setReportBrandSearchQuery("")}
-                              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-black transition-colors cursor-pointer border-0 w-full sm:w-auto text-center"
+                              className="text-xs font-black text-indigo-600 hover:text-indigo-700"
                             >
-                              Reset Pencarian
+                              Hapus kata kunci
                             </button>
                           )}
                         </div>
 
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            <span>Filter Aktif</span>
+                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                              {reportBrandPlatformFilter}
+                            </span>
+                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                              {reportBrandStatusFilter}
+                            </span>
+                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                              {reportBrandSortKey === "latest_activity"
+                                ? "Terbaru"
+                                : reportBrandSortKey === "gmv"
+                                  ? "GMV Tertinggi"
+                                  : reportBrandSortKey === "sessions"
+                                    ? "Sesi Terbanyak"
+                                    : reportBrandSortKey === "uploads"
+                                      ? "Upload Terbanyak"
+                                      : "Nama A-Z"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-slate-500">
+                              Menampilkan {filteredReportBrandRows.length} brand
+                            </span>
+                            {(reportBrandSearchQuery ||
+                              reportBrandPlatformFilter !== "Semua Platform" ||
+                              reportBrandStatusFilter !== "Semua Status" ||
+                              reportBrandSortKey !== "latest_activity") && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReportBrandSearchQuery("");
+                                  setReportBrandPlatformFilter("Semua Platform");
+                                  setReportBrandStatusFilter("Semua Status");
+                                  setReportBrandSortKey("latest_activity");
+                                }}
+                                className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-700 hover:bg-indigo-100 transition-colors"
+                              >
+                                Reset Semua Filter
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
-                          {clientBrands
-                            .filter((brand) => {
-                              if (!reportBrandSearchQuery.trim()) return true;
-                              const q = reportBrandSearchQuery.toLowerCase();
-                              return (
-                                (brand.name || "").toLowerCase().includes(q) ||
-                                brand.id.toLowerCase().includes(q)
-                              );
-                            })
-                            .map((brand) => {
-                              const summary = brandReportingSummary[brand.id];
-                              const numBrandLogs =
-                                summary?.sessionCount ??
-                                brandPerformanceLogs.filter(
-                                  (log) => log.brandId === brand.id,
-                                ).length;
-                              const numUploadBatches =
-                                summary?.batchCount ??
-                                brandUploadHistory.filter(
-                                  (batch) => batch.brandId === brand.id,
-                                ).length;
-                              const totalGmvSum =
-                                summary?.totalGmv ??
-                                brandPerformanceLogs
-                                  .filter((log) => log.brandId === brand.id)
-                                  .reduce((sum, log) => sum + (log.gmv || 0), 0);
+                          {visibleReportBrandRows.map((row) => {
+                              const brand = row.brand;
+                              const numBrandLogs = row.sessionCount;
+                              const numUploadBatches = row.batchCount;
+                              const totalGmvSum = row.totalGmv;
+                              const brandPlatforms = row.platforms;
+                              const isBrandActive = row.hasData;
 
                               return (
                                 <div
@@ -15947,7 +16218,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     setAdminReportBrandFilter(brand.id);
                                     setOpenBrandCardActionsId(null);
                                   }}
-                                  className="bg-white border border-slate-200 hover:border-indigo-400 p-6 rounded-3xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between min-h-[160px] relative overflow-hidden"
+                                  className="bg-white border border-slate-200 hover:border-indigo-400 p-6 rounded-3xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between min-h-[210px] relative overflow-hidden"
                                 >
                                   <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 group-hover:bg-indigo-600/5 rounded-full transition-colors -mr-6 -mt-6"></div>
 
@@ -15964,12 +16235,42 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate max-w-[190px]">
                                             ID: {brand.id}
                                           </p>
+                                          <div className="mt-2 flex flex-wrap gap-1.5">
+                                            {brandPlatforms.length > 0 ? (
+                                              brandPlatforms.slice(0, 2).map((platform) => (
+                                                <span
+                                                  key={platform}
+                                                  className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600"
+                                                >
+                                                  {platform}
+                                                </span>
+                                              ))
+                                            ) : (
+                                              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-500">
+                                                Belum ada platform
+                                              </span>
+                                            )}
+                                            {brandPlatforms.length > 2 && (
+                                              <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-600">
+                                                +{brandPlatforms.length - 2}
+                                              </span>
+                                            )}
+                                          </div>
                                           <div className="flex flex-wrap gap-2 mt-2">
                                             <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[10px] font-black text-slate-600">
                                               {numBrandLogs} Sesi
                                             </span>
                                             <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2 py-1 text-[10px] font-black text-indigo-600">
                                               {numUploadBatches} Batch
+                                            </span>
+                                            <span
+                                              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black border ${
+                                                isBrandActive
+                                                  ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                                                  : "bg-slate-50 border-slate-200 text-slate-500"
+                                              }`}
+                                            >
+                                              {isBrandActive ? "Aktif" : "Belum Ada Data"}
                                             </span>
                                           </div>
                                         </div>
@@ -15980,6 +16281,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         data-brand-card-actions="true"
                                       >
                                         <button
+                                          type="button"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setActiveReportBrandId(brand.id);
@@ -15987,9 +16289,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             setAdminReportBrandFilter(brand.id);
                                             setOpenBrandCardActionsId(null);
                                           }}
-                                          className="px-3 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider hover:bg-indigo-100 transition-colors"
+                                          className="px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider hover:bg-indigo-700 transition-colors shadow-sm"
                                         >
-                                          Buka
+                                          Masuk Dashboard →
                                         </button>
                                         {(numBrandLogs > 0 ||
                                           numUploadBatches > 0) && (
@@ -16044,12 +16346,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
-                                    <div>
+                                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
                                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
                                         Total GMV
                                       </span>
-                                      <span className="text-[11px] font-black text-indigo-600 block">
+                                      <span className="text-[11px] font-black text-indigo-600 block truncate">
                                         {new Intl.NumberFormat("id-ID", {
                                           style: "currency",
                                           currency: "IDR",
@@ -16057,29 +16359,58 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         }).format(totalGmvSum)}
                                       </span>
                                     </div>
-                                    <span className="text-[10px] font-black text-indigo-600 group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
-                                      Buka dashboard &rarr;
-                                    </span>
+                                    <div className="text-right">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
+                                        Terakhir update
+                                      </span>
+                                      <span className="text-[11px] font-black text-slate-700 block">
+                                        {row.latestActivity
+                                          ? formatDateUI(new Date(row.latestActivity).toISOString())
+                                          : "-"}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                               );
                             })}
 
-                          {clientBrands.filter((brand) => {
-                            if (!reportBrandSearchQuery.trim()) return true;
-                            const q = reportBrandSearchQuery.toLowerCase();
-                            return (
-                              (brand.name || "").toLowerCase().includes(q) ||
-                              brand.id.toLowerCase().includes(q)
-                            );
-                          }).length === 0 && (
+                          {filteredReportBrandRows.length === 0 && (
                             <div className="col-span-full bg-slate-50 border border-slate-200 border-dashed p-10 rounded-3xl text-center text-slate-400 text-xs font-semibold">
-                              {reportBrandSearchQuery
-                                ? "Tidak ada brand klien yang cocok dengan kata kunci pencarian Anda."
+                              {reportBrandSearchQuery ||
+                              reportBrandPlatformFilter !== "Semua Platform" ||
+                              reportBrandStatusFilter !== "Semua Status"
+                                ? "Tidak ada brand yang cocok dengan filter aktif. Coba ubah kata kunci, platform, atau status."
                                 : 'Belum ada Brand Klien terdaftar. Silakan tambahkan brand pada sub-menu "Data Brand" terlebih dahulu.'}
                             </div>
                           )}
                         </div>
+                        {totalReportBrandPages > 1 && (
+                          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
+                            <button
+                              type="button"
+                              disabled={reportBrandPage === 1}
+                              onClick={() => setReportBrandPage((p) => Math.max(1, p - 1))}
+                              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                            >
+                              ← Sebelumnya
+                            </button>
+                            <div className="text-[11px] font-black text-slate-600">
+                              Halaman {reportBrandPage} / {totalReportBrandPages}
+                            </div>
+                            <button
+                              type="button"
+                              disabled={reportBrandPage === totalReportBrandPages}
+                              onClick={() =>
+                                setReportBrandPage((p) =>
+                                  Math.min(totalReportBrandPages, p + 1),
+                                )
+                              }
+                              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                            >
+                              Berikutnya →
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -16087,26 +16418,60 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {/* Header Workspace */}
                           <div className="flex flex-col gap-4 bg-white mb-4 text-left border-b border-slate-200 px-6 sm:px-8 py-5">
                             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                              <button
-                                onClick={() => {
-                                  setActiveReportBrandId(null);
-                                  setReportingRawData([]);
-                                  setAutoDetectNotice("");
-                                }}
-                                className="bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow-sm focus:outline-none"
-                              >
-                                <ArrowLeft className="w-4 h-4" />
-                              </button>
-                              <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                                {clientBrands.find(
-                                  (b) => b.id === activeReportBrandId,
-                                )?.name || "Nama Brand"}
-                              </h3>
-                            </div>
-
-                              <div className="flex flex-wrap gap-2">
+                              <div className="flex items-start gap-4 min-w-0">
                                 <button
+                                  onClick={() => {
+                                    setActiveReportBrandId(null);
+                                    setReportingRawData([]);
+                                    setAutoDetectNotice("");
+                                  }}
+                                  className="bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow-sm focus:outline-none shrink-0 mt-1"
+                                >
+                                  <ArrowLeft className="w-4 h-4" />
+                                </button>
+                                <div className="flex items-start gap-3 min-w-0">
+                                  <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm shrink-0">
+                                    {(
+                                      clientBrands.find(
+                                        (b) => b.id === activeReportBrandId,
+                                      )?.name || "BR"
+                                    )
+                                      .slice(0, 2)
+                                      .toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-[10px] font-black text-indigo-700 uppercase tracking-widest">
+                                      Reporting Brand Workspace
+                                    </span>
+                                    <h3 className="mt-2 text-xl sm:text-2xl font-black tracking-tight text-slate-900 truncate">
+                                      {clientBrands.find(
+                                        (b) => b.id === activeReportBrandId,
+                                      )?.name || "Nama Brand"}
+                                    </h3>
+                                    <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider truncate">
+                                      ID:{" "}
+                                      {clientBrands.find(
+                                        (b) => b.id === activeReportBrandId,
+                                      )?.id || "-"}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                      <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[10px] font-black text-indigo-700">
+                                        Dashboard {operatorReportingTab === "live" ? "Live Performance" : operatorReportingTab === "product" ? "Product Performance" : "Engagement & Promotion"}
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                        Brand aktif: {clientBrands.find((b) => b.id === activeReportBrandId)?.name || "-"}
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
+                                        Sumber raw data tersimpan di database brand
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2 lg:justify-end">
+                                <button
+                                  type="button"
                                   onClick={() => {
                                     setIsDeleteByDateModalOpen(true);
                                   }}
@@ -16118,6 +16483,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </button>
 
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     handleDeleteAllBrandRawData(
                                       activeReportBrandId || "",
@@ -16136,6 +16502,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                 {operatorReportingTab === "product" && (
                                   <button
+                                    type="button"
                                     onClick={() => {
                                       setSaveTargetBrandId(
                                         activeReportBrandId || "",
@@ -16152,6 +16519,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 {(operatorReportingTab === "live" ||
                                   operatorReportingTab === "engagement") && (
                                   <button
+                                    type="button"
                                     onClick={() => {
                                       setSaveTargetBrandId(
                                         activeReportBrandId || "",
@@ -16169,19 +16537,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     Import Raw Data
                                   </button>
                                 )}
-                              </div>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[10px] font-black text-indigo-700">
-                                Dashboard {operatorReportingTab === "live" ? "Live Performance" : operatorReportingTab === "product" ? "Product Performance" : "Engagement & Promotion"}
-                              </span>
-                              <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
-                                Brand aktif: {clientBrands.find((b) => b.id === activeReportBrandId)?.name || "-"}
-                              </span>
-                              <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
-                                Sumber raw data tersimpan di database brand
-                              </span>
                             </div>
                           </div>
 
@@ -21517,6 +21872,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       : b.revenue - a.revenue;
                                   return 0;
                                 });
+                                const totalSkuRows = aggregatedSkus.length;
+                                const totalSkuSold = aggregatedSkus.reduce(
+                                  (sum, item) => sum + (item.sold || 0),
+                                  0,
+                                );
+                                const totalSkuRevenue = aggregatedSkus.reduce(
+                                  (sum, item) => sum + (item.revenue || 0),
+                                  0,
+                                );
 
                                 let productDateLabel = "Semua Waktu";
                                 if (
@@ -21726,6 +22090,47 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           )}
                                         </div>
                                       </div>
+                                    </div>
+                                    <div className="mb-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                                      <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                        <span>Filter Aktif</span>
+                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                          {productDateLabel}
+                                        </span>
+                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                          {operatorPlatformFilter}
+                                        </span>
+                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                          {operatorShiftFilters.length === 0
+                                            ? "Semua Shift"
+                                            : `${operatorShiftFilters.length} Shift`}
+                                        </span>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
+                                        <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-indigo-700">
+                                          {totalSkuRows} SKU
+                                        </span>
+                                        <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-emerald-700">
+                                          {new Intl.NumberFormat("id-ID").format(
+                                            totalSkuSold,
+                                          )}{" "}
+                                          sold
+                                        </span>
+                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-700">
+                                          Rp{" "}
+                                          {new Intl.NumberFormat("id-ID", {
+                                            maximumFractionDigits: 0,
+                                          }).format(totalSkuRevenue)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-[11px] font-bold text-slate-600">
+                                      <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-indigo-700 border border-indigo-100 shadow-sm">
+                                        Sumber: raw Shopee product performance
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 border border-slate-100 shadow-sm">
+                                        Fokus tampilan: nama produk saja
+                                      </span>
                                     </div>
 
                                     <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-[500px] overflow-y-auto custom-scrollbar">
@@ -22321,7 +22726,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   ERR % = (Interaksi ÷ Views) × 100
                                 </span>
                               </div>
-                              {/* Oh wait, actually let's just make it a table based on aggregated brandPerformanceLogs */}
                               {(() => {
                                 let engagementDateLabel = "Semua Waktu";
                                 if (
@@ -23431,6 +23835,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               })()}
                             </div>
                           )}
+                        </div>
                         </div>
                       </>
                     )}
@@ -26251,15 +26656,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               const hostLoc = hostStudioObj ? hostStudioObj.location : (h.studio || "").includes("Tanggamus") ? "Tanggamus" : "Bandar Lampung";
                               return hostLoc === hostCredentialFilter;
                             })
-                            .map((h) => (
-                            <HostCredentialRow
-                              key={h.id}
-                              host={h}
-                              onUpdate={handleUpdateHost}
-                              onDelete={handleDeleteHost}
-                              studios={studios}
-                            />
-                          ))}
+                            .map((h) => {
+                              return (
+                                <HostCredentialRow
+                                  key={h.id}
+                                  host={h}
+                                  onUpdate={handleUpdateHost}
+                                  onDelete={handleDeleteHost}
+                                  studios={studios}
+                                />
+                              );
+                            })}
                         </tbody>
                       </table>
                     </div>
