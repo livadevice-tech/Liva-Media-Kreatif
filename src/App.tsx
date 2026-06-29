@@ -150,6 +150,8 @@ import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
 import { QuickGridInput } from "./components/QuickGridInput";
 import { TikTokLiveFunnel } from "./components/reporting/TikTokLiveFunnel";
+import { ShopeeLiveMetricsGrid } from "./components/reporting/ShopeeLiveMetricsGrid";
+import type { ShopeeLiveMetric } from "./components/reporting/ShopeeLiveMetricsGrid";
 
 const ReportingTableStatusRow = ({
   colSpan,
@@ -554,6 +556,95 @@ const PercentBadge = ({ cur, prev }: { cur: number; prev: number }) => {
     </div>
   );
 };
+
+const buildShopeeLiveMetrics = ({
+  periodLabel,
+  gmv,
+  prevGmv,
+  orders,
+  prevOrders,
+  avgViewDuration,
+  prevAvgViewDuration,
+  peakViewers,
+  prevPeakViewers,
+  aov,
+  prevAov,
+  conversionRate,
+  prevConversionRate,
+}: {
+  periodLabel: string;
+  gmv: number;
+  prevGmv: number;
+  orders: number;
+  prevOrders: number;
+  avgViewDuration: number;
+  prevAvgViewDuration: number;
+  peakViewers: number;
+  prevPeakViewers: number;
+  aov: number;
+  prevAov: number;
+  conversionRate: number;
+  prevConversionRate: number;
+}): ShopeeLiveMetric[] => [
+  {
+    title: "GMV",
+    value: `Rp ${new Intl.NumberFormat("id-ID", {
+      maximumFractionDigits: 0,
+    }).format(gmv)}`,
+    current: gmv,
+    previous: prevGmv,
+    periodLabel,
+    icon: <DollarSign className="h-5 w-5" />,
+    tone: "violet",
+  },
+  {
+    title: "Orders",
+    value: new Intl.NumberFormat("id-ID").format(orders),
+    current: orders,
+    previous: prevOrders,
+    periodLabel,
+    icon: <Package className="h-5 w-5" />,
+    tone: "blue",
+  },
+  {
+    title: "Avg. Viewer Duration",
+    value: `${avgViewDuration.toFixed(2)}s`,
+    current: avgViewDuration,
+    previous: prevAvgViewDuration,
+    periodLabel,
+    icon: <Clock className="h-5 w-5" />,
+    tone: "amber",
+  },
+  {
+    title: "Peak View",
+    value: new Intl.NumberFormat("id-ID").format(Math.round(peakViewers)),
+    current: peakViewers,
+    previous: prevPeakViewers,
+    periodLabel,
+    icon: <TrendingUp className="h-5 w-5" />,
+    tone: "emerald",
+  },
+  {
+    title: "AOV",
+    value: `Rp ${new Intl.NumberFormat("id-ID", {
+      maximumFractionDigits: 0,
+    }).format(aov)}`,
+    current: aov,
+    previous: prevAov,
+    periodLabel,
+    icon: <Calculator className="h-5 w-5" />,
+    tone: "indigo",
+  },
+  {
+    title: "Conversion Rate %",
+    value: `${conversionRate.toFixed(2)}%`,
+    current: conversionRate,
+    previous: prevConversionRate,
+    periodLabel,
+    icon: <Percent className="h-5 w-5" />,
+    tone: "green",
+  },
+];
 
 export function LivaLogo({
   className = "h-11",
@@ -9283,7 +9374,29 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         Avg. Duration: Rata-rata durasi ditonton
                                       </span>
                                     </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
+                                    <ShopeeLiveMetricsGrid
+                                      className="mb-5"
+                                      metrics={buildShopeeLiveMetrics({
+                                        periodLabel:
+                                          latestDateLabel ||
+                                          "periode sebelumnya",
+                                        gmv: totalGmvDb,
+                                        prevGmv: pTotalGmvDb,
+                                        orders: totalOrdersDb,
+                                        prevOrders: pTotalOrdersDb,
+                                        avgViewDuration: avgViewDurationDb,
+                                        prevAvgViewDuration:
+                                          pAvgViewDurationDb,
+                                        peakViewers: peakViewersDb,
+                                        prevPeakViewers: pPeakViewersDb,
+                                        aov: avgAovDb,
+                                        prevAov: pAvgAovDb,
+                                        conversionRate: conversionRateShopee,
+                                        prevConversionRate:
+                                          pConversionRateShopee,
+                                      })}
+                                    />
+                                    <div className="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                                       <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
                                           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
@@ -9415,7 +9528,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   </div>
 
                                   {totalDbImpressions > 0 && (
-                                    <div className="mb-6">
+                                    <div className="hidden mb-6">
                                       <HorizontalFunnel
                                         title=""
                                         subtitle=""
@@ -20010,7 +20123,32 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   </span>
                                                 </div>
                                               </div>
-                                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
+                                              <ShopeeLiveMetricsGrid
+                                                className="mb-5"
+                                                metrics={buildShopeeLiveMetrics({
+                                                  periodLabel:
+                                                    latestDateLabel ||
+                                                    "periode sebelumnya",
+                                                  gmv: totalGmvDb,
+                                                  prevGmv: pTotalGmvDb,
+                                                  orders: totalOrdersDb,
+                                                  prevOrders: pTotalOrdersDb,
+                                                  avgViewDuration:
+                                                    avgViewDurationDb,
+                                                  prevAvgViewDuration:
+                                                    pAvgViewDurationDb,
+                                                  peakViewers: peakViewersDb,
+                                                  prevPeakViewers:
+                                                    pPeakViewersDb,
+                                                  aov: avgAovDb,
+                                                  prevAov: pAvgAovDb,
+                                                  conversionRate:
+                                                    conversionRateShopee,
+                                                  prevConversionRate:
+                                                    pConversionRateShopee,
+                                                })}
+                                              />
+                                              <div className="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                                                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                                   <div className="flex justify-between items-start mb-1">
                                                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
@@ -20159,7 +20297,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             </div>
 
                                             {totalDbImpressions > 0 && (
-                                              <div className="mb-6">
+                                              <div className="hidden mb-6">
                                                 <HorizontalFunnel
                                                   title=""
                                                   subtitle=""
