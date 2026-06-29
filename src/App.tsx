@@ -9525,17 +9525,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         </button>
                                       </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                      <span className="inline-flex items-center rounded-full bg-[#efe8ff] border border-[#dfd3ff] px-3 py-1 text-[10px] font-black text-[#5600e0]">
-                                        Sumber: raw Shopee live performance
-                                      </span>
-                                      <span className="inline-flex items-center rounded-full bg-[#fbfaf8] border border-[#e5e2e1] px-3 py-1 text-[10px] font-black text-[#494456]">
-                                        Views: kolom Dilihat
-                                      </span>
-                                      <span className="inline-flex items-center rounded-full bg-[#fbfaf8] border border-[#e5e2e1] px-3 py-1 text-[10px] font-black text-[#494456]">
-                                        Avg. Duration: Rata-rata durasi ditonton
-                                      </span>
-                                    </div>
                                     <ShopeeLiveMetricsGrid
                                       className="mb-5"
                                       metrics={buildShopeeLiveMetrics({
@@ -20535,17 +20524,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   </button>
                                                 </div>
                                               </div>
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                      <span className="inline-flex items-center rounded-full bg-[#efe8ff] border border-[#dfd3ff] px-3 py-1 text-[10px] font-black text-[#5600e0]">
-                                        Sumber: raw Shopee live performance
-                                      </span>
-                                      <span className="inline-flex items-center rounded-full bg-[#fbfaf8] border border-[#e5e2e1] px-3 py-1 text-[10px] font-black text-[#494456]">
-                                        Views: kolom Dilihat
-                                      </span>
-                                      <span className="inline-flex items-center rounded-full bg-[#fbfaf8] border border-[#e5e2e1] px-3 py-1 text-[10px] font-black text-[#494456]">
-                                        Avg. Duration: Rata-rata durasi ditonton
-                                      </span>
-                                    </div>
                                               <div className="mb-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
                                                   <span>Filter Aktif</span>
