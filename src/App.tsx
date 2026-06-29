@@ -16169,15 +16169,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                 )}
 
                 {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
-                {operatorTab === "reporting_brand" && (
-                  <div
-                    className="space-y-6 animate-fadeIn bg-[#fafafd] min-h-screen"
-                    id="operator_reporting_brand_content"
-                  >
-                    {activeReportBrandId === null ? (
-                      <div className="space-y-6">
-                        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                          <div className="flex flex-col gap-5 bg-white p-6 sm:p-8">
+	                {operatorTab === "reporting_brand" && (
+	                  <div
+	                    className="mx-auto w-full max-w-[1600px] space-y-6 animate-fadeIn bg-[#fafafd] min-h-screen px-4 pb-12 sm:px-6 lg:px-8"
+	                    id="operator_reporting_brand_content"
+	                  >
+	                    {activeReportBrandId === null ? (
+	                      <div className="space-y-6">
+	                        <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
+	                          <div className="flex flex-col gap-5 p-6 sm:p-8">
                             <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
                               <div className="max-w-2xl">
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-sm">
@@ -16190,7 +16190,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 <p className="mt-2 text-sm sm:text-[15px] text-slate-500 font-medium leading-relaxed max-w-xl">
                                   Kelola semua brand, lihat sesi live, total GMV, dan akses dashboard detail dalam satu workspace yang lebih rapi.
                                 </p>
-                              </div>
+	                        </div>
                               <div className="grid min-w-0 w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:w-auto">
                                 <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm 2xl:min-w-36">
                                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Brand</div>
@@ -16556,12 +16556,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         )}
                       </div>
                     ) : (
-                      <>
-                        <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left">
-                          {/* Header Workspace */}
-                          <div className="flex flex-col gap-4 bg-white mb-4 text-left border-b border-slate-200 px-6 sm:px-8 py-5">
-                            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                              <div className="flex items-start gap-4 min-w-0">
+	                      <>
+	                        <div className="relative mt-2 w-full overflow-x-hidden rounded-[32px] border border-slate-200 bg-white pb-10 pt-0 text-left font-sans text-slate-800 shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
+	                          {/* Header Workspace */}
+	                          <div className="mb-4 flex flex-col gap-4 border-b border-slate-200 bg-white px-5 py-5 text-left sm:px-7">
+	                            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+	                              <div className="flex min-w-0 items-start gap-4">
                                 <button
                                   onClick={() => {
                                     setActiveReportBrandId(null);
@@ -16573,8 +16573,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 >
                                   <ArrowLeft className="w-4 h-4" />
                                 </button>
-                                <div className="flex items-start gap-3 min-w-0">
-                                  <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm shrink-0">
+	                                <div className="flex min-w-0 items-start gap-3">
+	                                  <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm shrink-0">
                                     {(
                                       clientBrands.find(
                                         (b) => b.id === activeReportBrandId,
@@ -16613,8 +16613,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </div>
                               </div>
 
-                              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[560px]">
-                                <button
+	                              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:min-w-[560px] xl:grid-cols-3">
+	                                <button
                                   type="button"
                                   onClick={() => {
                                     setIsDeleteByDateModalOpen(true);
@@ -16685,40 +16685,61 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           </div>
 
                           {/* Operator Reporting Subtabs */}
-                          <div className="px-6 sm:px-8 mb-6 border-b border-slate-200 flex gap-6 overflow-x-auto">
-                            <button
-                              onClick={() => setOperatorReportingTab("live")}
-                              className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
-                                operatorReportingTab === "live"
-                                  ? "text-indigo-600 border-indigo-600"
-                                  : "text-slate-500 border-transparent hover:text-slate-800"
-                              }`}
-                            >
-                              Live Performance
-                            </button>
-                            <button
-                              onClick={() => setOperatorReportingTab("product")}
-                              className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
-                                operatorReportingTab === "product"
-                                  ? "text-indigo-600 border-indigo-600"
-                                  : "text-slate-500 border-transparent hover:text-slate-800"
-                              }`}
-                            >
-                              Product Performance
-                            </button>
-                            <button
-                              onClick={() =>
-                                setOperatorReportingTab("engagement")
-                              }
-                              className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
-                                operatorReportingTab === "engagement"
-                                  ? "text-indigo-600 border-indigo-600"
-                                  : "text-slate-500 border-transparent hover:text-slate-800"
-                              }`}
-                            >
-                              Engagement & Promotion
-                            </button>
-                          </div>
+	                          <div className="mb-6 flex gap-4 overflow-x-auto border-b border-slate-200 px-5 sm:px-7">
+	                            <button
+	                              onClick={() => setOperatorReportingTab("live")}
+	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-bold transition-all ${
+	                                operatorReportingTab === "live"
+	                                  ? "text-indigo-600"
+	                                  : "text-slate-500 hover:text-slate-800"
+	                              }`}
+	                            >
+	                              Live Performance
+	                              <span
+	                                className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-opacity ${
+	                                  operatorReportingTab === "live"
+	                                    ? "bg-indigo-600 opacity-100"
+	                                    : "bg-transparent opacity-0"
+	                                }`}
+	                              />
+	                            </button>
+	                            <button
+	                              onClick={() => setOperatorReportingTab("product")}
+	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-bold transition-all ${
+	                                operatorReportingTab === "product"
+	                                  ? "text-indigo-600"
+	                                  : "text-slate-500 hover:text-slate-800"
+	                              }`}
+	                            >
+	                              Product Performance
+	                              <span
+	                                className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-opacity ${
+	                                  operatorReportingTab === "product"
+	                                    ? "bg-indigo-600 opacity-100"
+	                                    : "bg-transparent opacity-0"
+	                                }`}
+	                              />
+	                            </button>
+	                            <button
+	                              onClick={() =>
+	                                setOperatorReportingTab("engagement")
+	                              }
+	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-bold transition-all ${
+	                                operatorReportingTab === "engagement"
+	                                  ? "text-indigo-600"
+	                                  : "text-slate-500 hover:text-slate-800"
+	                              }`}
+	                            >
+	                              Engagement & Promotion
+	                              <span
+	                                className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-opacity ${
+	                                  operatorReportingTab === "engagement"
+	                                    ? "bg-indigo-600 opacity-100"
+	                                    : "bg-transparent opacity-0"
+	                                }`}
+	                              />
+	                            </button>
+	                          </div>
 
                           {isDeleteByDateModalOpen && (
                             <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[10vh] sm:pb-12 animate-fadeIn">

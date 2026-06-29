@@ -75,43 +75,43 @@ function renderMetricCard(metric: ShopeeLiveMetric) {
   const tone = toneStyles[metric.tone ?? "violet"];
   const comparison = buildComparison(metric.current, metric.previous);
 
-  return (
-    <article className="flex min-h-40 min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:min-h-44 sm:p-5">
-      <div className="flex min-w-0 items-center gap-3">
-        <div
-          className={`flex size-11 shrink-0 items-center justify-center rounded-xl ring-1 sm:size-12 ${tone.iconWrap}`}
-          aria-hidden="true"
-        >
-          {metric.icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-pretty text-xs font-bold uppercase leading-5 text-slate-500">
-            {metric.title}
-          </div>
-        </div>
-      </div>
+	return (
+	    <article className="flex min-h-44 min-w-0 flex-col rounded-[28px] border border-slate-200 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:min-h-48 sm:p-5">
+	      <div className="flex min-w-0 items-center gap-3">
+	        <div
+	          className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ring-1 sm:size-12 ${tone.iconWrap}`}
+	          aria-hidden="true"
+	        >
+	          {metric.icon}
+	        </div>
+	        <div className="min-w-0 flex-1">
+	          <div className="text-pretty text-[10px] font-black uppercase leading-4 tracking-[0.18em] text-slate-500 sm:text-[11px]">
+	            {metric.title}
+	          </div>
+	        </div>
+	      </div>
 
-      <div className="mt-4 whitespace-nowrap text-[clamp(1.35rem,1.7vw,1.875rem)] font-black leading-tight text-slate-950 tabular-nums">
-        {metric.value}
-      </div>
+	      <div className="mt-4 whitespace-nowrap text-[clamp(1.5rem,1.9vw,2.15rem)] font-black leading-tight text-slate-950 tabular-nums">
+	        {metric.value}
+	      </div>
 
-      <div className="mt-auto flex min-w-0 flex-wrap items-center gap-2 pt-4">
-        <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tabular-nums ${
-            comparison.tone === "up"
-              ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-              : comparison.tone === "down"
-                ? "border-rose-100 bg-rose-50 text-rose-700"
+	      <div className="mt-auto flex min-w-0 flex-wrap items-center gap-2 pt-4">
+	        <span
+	          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tracking-tight tabular-nums ${
+	            comparison.tone === "up"
+	              ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+	              : comparison.tone === "down"
+	                ? "border-rose-100 bg-rose-50 text-rose-700"
                 : "border-slate-200 bg-slate-50 text-slate-500"
           }`}
-        >
-          {comparison.label}
-        </span>
-        <span className="min-w-0 truncate text-[11px] font-semibold text-slate-500">
-          vs {metric.periodLabel}
-        </span>
-      </div>
-    </article>
+	        >
+	          {comparison.label}
+	        </span>
+	        <span className="min-w-0 truncate text-[11px] font-semibold text-slate-500 sm:text-[12px]">
+	          vs {metric.periodLabel}
+	        </span>
+	      </div>
+	    </article>
   );
 }
 
