@@ -21037,15 +21037,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                     {/* CHART TRENDS FOR LIVE PERFORMANCE */}
                                     {liveChartData.length > 0 && (
-                                      <div className="rounded-[28px] border border-[#e5e2e1] bg-white/90 p-5 sm:p-6 shadow-[0_12px_32px_rgba(27,28,28,0.05)] mb-6">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
-                                          <div>
+                                      <div className="mb-6 overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                        <div className="grid gap-5 border-b border-[#e5e2e1] px-6 py-6 sm:px-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+                                          <div className="max-w-2xl">
                                             <div className="flex flex-wrap items-center gap-2">
-                                              <h4 className="text-sm font-black uppercase tracking-widest text-[#1b1c1c] flex items-center gap-2">
-                                                <TrendingUp className="w-5 h-5 text-[#5600e0]" />{" "}
-                                                Tren Kinerja {activeChartPlatformLabel}{" "}
-                                                {chartGranularityLabel}
-                                              </h4>
+                                              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                                <TrendingUp className="h-3 w-3" />
+                                                Brand Trend
+                                              </span>
                                               <span
                                                 className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
                                                   isTikTokChart
@@ -21056,115 +21055,73 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 Data {activeChartPlatformLabel}
                                               </span>
                                             </div>
-                                            <p className="text-[11px] text-[#7a7488] font-bold mt-1">
+                                            <h4 className="mt-3 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
+                                              Tren Kinerja {activeChartPlatformLabel}{" "}
+                                              {chartGranularityLabel}
+                                            </h4>
+                                            <p className="mt-1 text-sm font-medium leading-relaxed text-[#494456]">
                                               Menampilkan data {activeChartPlatformLabel}{" "}
-                                              sesuai filter tanggal, shift, dan
-                                              pencarian yang aktif.
+                                              sesuai filter tanggal, shift, dan pencarian yang aktif.
                                             </p>
                                           </div>
-                                          <div className="flex flex-wrap items-center gap-3 bg-[#fbfaf8] p-3.5 rounded-[22px] border border-[#e9e4df] shadow-[0_10px_24px_rgba(27,28,28,0.04)] max-w-full">
-                                            <div className="flex items-center gap-1 mr-1 select-none">
-                                              <Sliders className="w-3.5 h-3.5 text-[#5600e0]/80" />
-                                              <span className="text-[10px] font-black uppercase text-[#7a7488] tracking-wider">
-                                                Metrik:
-                                              </span>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-1.5">
+
+                                          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                                            <div className="inline-flex flex-wrap items-center gap-1.5 rounded-[18px] border border-[#dcd7e6] bg-[#f8f7fb] p-1.5 shadow-[0_6px_18px_rgba(27,28,28,0.04)]">
                                               {[
-                                                {
-                                                  key: "gmv",
-                                                  label: "GMV",
-                                                  color:
-                                                    "bg-[#e8f7f0] text-[#1f9d6b] border-[#cce9da]",
-                                                },
-                                                {
-                                                  key: "orders",
-                                                  label:
-                                                    chartMetricLabels.orders,
-                                                  color:
-                                                    "bg-[#efe8ff] text-[#5600e0] border-[#dfd3ff]",
-                                                },
-                                                {
-                                                  key: "itemsSold",
-                                                  label:
-                                                    chartMetricLabels.itemsSold,
-                                                  color:
-                                                    "bg-[#fff2db] text-[#c77d00] border-[#f7ddb2]",
-                                                },
-                                                {
-                                                  key: "clicks",
-                                                  label:
-                                                    chartMetricLabels.clicks,
-                                                  color:
-                                                    "bg-[#ffe8f0] text-[#d9467a] border-[#f7c4d7]",
-                                                },
-                                                {
-                                                  key: "penonton",
-                                                  label:
-                                                    chartMetricLabels.views,
-                                                  color:
-                                                    "bg-[#e7f6fb] text-[#0f9acb] border-[#ccecf8]",
-                                                },
+                                                { id: "gmv", label: "GMV" },
+                                                { id: "orders", label: chartMetricLabels.orders },
+                                                { id: "itemsSold", label: chartMetricLabels.itemsSold },
+                                                { id: "clicks", label: chartMetricLabels.clicks },
+                                                { id: "penonton", label: chartMetricLabels.views },
                                               ].map((m) => {
-                                                const isSelected =
-                                                  liveChartSelectedMetrics.includes(
-                                                    m.key,
-                                                  );
-                                                  return (
+                                                const isSelected = liveChartSelectedMetrics.includes(m.id);
+                                                return (
                                                   <button
-                                                    key={m.key}
+                                                    key={m.id}
                                                     type="button"
                                                     aria-pressed={isSelected}
                                                     onClick={() => {
                                                       if (isSelected) {
-                                                        if (
-                                                          liveChartSelectedMetrics.length >
-                                                          1
-                                                        ) {
+                                                        if (liveChartSelectedMetrics.length > 1) {
                                                           setLiveChartSelectedMetrics(
-                                                            liveChartSelectedMetrics.filter(
-                                                              (x) =>
-                                                                x !== m.key,
-                                                            ),
+                                                            liveChartSelectedMetrics.filter((x) => x !== m.id),
                                                           );
                                                         }
                                                       } else {
-                                                        setLiveChartSelectedMetrics(
-                                                          [
-                                                            ...liveChartSelectedMetrics,
-                                                            m.key,
-                                                          ],
-                                                        );
+                                                        setLiveChartSelectedMetrics([
+                                                          ...liveChartSelectedMetrics,
+                                                          m.id,
+                                                        ]);
                                                       }
                                                     }}
-                                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
+                                                    className={`inline-flex items-center gap-1.5 rounded-[12px] border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition-all ${
                                                       isSelected
-                                                        ? `${m.color} scale-[1.02] shadow-xs font-extrabold`
-                                                        : "bg-white text-[#7a7488] border-[#e5e2e1] hover:text-[#494456] hover:bg-[#fcfbfa]"
+                                                        ? "bg-white text-[#1b1c1c] border-[#dfd3ff] shadow-[0_2px_8px_rgba(27,28,28,0.08)]"
+                                                        : "border-transparent bg-transparent text-[#7a7488] hover:bg-white hover:text-[#494456]"
                                                     }`}
                                                   >
                                                     <span
-                                                      className={`w-1.5 h-1.5 rounded-full ${
-                                                        m.key === "gmv"
+                                                      className={`h-2 w-2 rounded-full ${
+                                                        m.id === "gmv"
                                                           ? "bg-emerald-500"
-                                                          : m.key === "orders"
+                                                          : m.id === "orders"
                                                             ? "bg-indigo-600"
-                                                            : m.key ===
-                                                                "itemsSold"
+                                                            : m.id === "itemsSold"
                                                               ? "bg-amber-500"
-                                                              : m.key ===
-                                                                  "clicks"
+                                                              : m.id === "clicks"
                                                                 ? "bg-pink-500"
                                                                 : "bg-cyan-500"
                                                       }`}
-                                                    ></span>
+                                                    />
                                                     {m.label}
                                                   </button>
                                                 );
                                               })}
                                             </div>
-                                            <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-[#e5e2e1] sm:pl-2.5 ml-auto font-bold text-[#7a7488]">
+
+                                            <div className="flex items-center gap-2 self-end text-[10px] font-bold text-[#7a7488] sm:self-auto">
                                               <button
+                                                type="button"
                                                 onClick={() =>
                                                   setLiveChartSelectedMetrics([
                                                     "gmv",
@@ -21174,221 +21131,200 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     "penonton",
                                                   ])
                                                 }
-                                                className="text-[#5600e0] uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+                                                className="rounded-full border border-[#dfd3ff] bg-white px-3 py-1.5 uppercase tracking-[0.22em] text-[#5600e0] transition-colors hover:bg-[#f6f3ff]"
                                               >
                                                 Semua
                                               </button>
-                                              <span>|</span>
                                               <button
+                                                type="button"
                                                 onClick={() =>
-                                                  setLiveChartSelectedMetrics([
-                                                    "gmv",
-                                                    "orders",
-                                                  ])
+                                                  setLiveChartSelectedMetrics(["gmv", "orders"])
                                                 }
-                                                className="text-[#7a7488] uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+                                                className="rounded-full border border-[#e5e2e1] bg-white px-3 py-1.5 uppercase tracking-[0.22em] text-[#7a7488] transition-colors hover:bg-[#fcfbfa]"
                                               >
                                                 Reset
                                               </button>
                                             </div>
                                           </div>
-                                          <div className="hidden">
-                                            <p></p>
-                                          </div>
-                                          <div className="hidden">
-                                            <div className="flex items-center gap-1.5">
-                                              <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-                                              <span>GMV</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                              <span className="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
-                                              <span>Pesanan (Orders)</span>
-                                            </div>
-                                          </div>
                                         </div>
-                                        <div className="h-72 w-full mt-4">
-                                          <ResponsiveContainer
-                                            width="100%"
-                                            height="100%"
-                                          >
-                                            <RechartsLineChart
-                                              data={liveChartData}
-                                              margin={{
-                                                top: 10,
-                                                right: 35,
-                                                left: 15,
-                                                bottom: 5,
-                                              }}
-                                            >
-                                              <CartesianGrid
-                                                strokeDasharray="3 3"
-                                                vertical={false}
-                                                stroke="#e9e4df"
-                                              />
-                                              <XAxis
-                                                dataKey="date"
-                                                tick={{
-                                                  fontSize: 10,
-                                                  fill: "#7a7488",
-                                                  fontWeight: "bold",
-                                                }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                              />
-                                              <YAxis
-                                                yAxisId="left"
-                                                tick={{
-                                                  fontSize: 10,
-                                                  fill: "#1f9d6b",
-                                                  fontWeight: "bold",
-                                                }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tickFormatter={(val) =>
-                                                  `Rp${new Intl.NumberFormat("id-ID", { notation: "compact" }).format(val)}`
-                                                }
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "gmv",
-                                                  )
-                                                }
-                                              />
-                                              <YAxis
-                                                yAxisId="right"
-                                                orientation="right"
-                                                tick={{
-                                                  fontSize: 10,
-                                                  fill: "#5600e0",
-                                                  fontWeight: "bold",
-                                                }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tickFormatter={(val) =>
-                                                  new Intl.NumberFormat(
-                                                    "id-ID",
-                                                    { notation: "compact" },
-                                                  ).format(val)
-                                                }
-                                              />
-                                              <Tooltip
-                                                contentStyle={{
-                                                  borderRadius: "18px",
-                                                  border: "1px solid #e5e2e1",
-                                                  boxShadow:
-                                                    "0 14px 30px rgba(27,28,28,0.08)",
-                                                  fontWeight: "bold",
-                                                  fontSize: "11px",
-                                                }}
-                                                formatter={(
-                                                  value: any,
-                                                  name: string,
-                                                ) => [
-                                                  name === "GMV (Pendapatan)"
-                                                    ? `Rp${new Intl.NumberFormat("id-ID").format(value)}`
-                                                    : new Intl.NumberFormat(
-                                                        "id-ID",
-                                                      ).format(value),
-                                                  name,
-                                                ]}
-                                              />
-                                              <Line
-                                                yAxisId="left"
-                                                type="monotone"
-                                                name="GMV (Pendapatan)"
-                                                dataKey="gmv"
-                                                stroke="#1f9d6b"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#1f9d6b",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                activeDot={{ r: 6 }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "gmv",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name={chartMetricLabels.orders}
-                                                dataKey="orders"
-                                                stroke="#5600e0"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#5600e0",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "orders",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name={chartMetricLabels.itemsSold}
-                                                dataKey="itemsSold"
-                                                stroke="#c77d00"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#c77d00",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "itemsSold",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name={chartMetricLabels.clicks}
-                                                dataKey="clicks"
-                                                stroke="#d9467a"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#d9467a",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "clicks",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name={chartMetricLabels.views}
-                                                dataKey="penonton"
-                                                stroke="#0f9acb"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#0f9acb",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "penonton",
-                                                  )
-                                                }
-                                              />
-                                            </RechartsLineChart>
-                                          </ResponsiveContainer>
+
+                                        <div className="px-5 pb-6 pt-5 sm:px-8">
+                                          <div className="rounded-[24px] border border-[#ebe6e3] bg-gradient-to-b from-[#fcfbfa] to-white p-4 sm:p-5">
+                                            <div className="mb-4 flex items-center justify-end gap-6 text-sm font-medium text-[#494456]">
+                                              <div className="flex items-center gap-2">
+                                                <span className="h-3 w-3 rounded-full bg-[#1f9d6b]" />
+                                                <span>GMV (Rp)</span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="h-3 w-3 rounded-full border-2 border-white bg-[#5600e0] outline outline-1 outline-[#5600e0]" />
+                                                <span>{chartMetricLabels.orders}</span>
+                                              </div>
+                                            </div>
+
+                                            <div className="h-[340px] w-full min-w-0">
+                                              <ResponsiveContainer width="100%" height="100%">
+                                                <RechartsLineChart
+                                                  data={liveChartData}
+                                                  margin={{ top: 10, right: 18, left: 6, bottom: 0 }}
+                                                >
+                                                  <defs>
+                                                    <linearGradient
+                                                      id="brand-live-gradient"
+                                                      x1="0"
+                                                      x2="0"
+                                                      y1="0"
+                                                      y2="1"
+                                                    >
+                                                      <stop offset="0%" stopColor="#1f9d6b" stopOpacity={0.18} />
+                                                      <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                                                    </linearGradient>
+                                                  </defs>
+                                                  <CartesianGrid
+                                                    strokeDasharray="3 6"
+                                                    vertical={false}
+                                                    stroke="#ece8e6"
+                                                  />
+                                                  <XAxis
+                                                    dataKey="date"
+                                                    tickFormatter={(value) =>
+                                                      new Intl.DateTimeFormat("id-ID", {
+                                                        day: "2-digit",
+                                                        month: "short",
+                                                      }).format(new Date(value))
+                                                    }
+                                                    tick={{
+                                                      fontSize: 10,
+                                                      fill: "#494456",
+                                                      fontWeight: 600,
+                                                    }}
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tickMargin={10}
+                                                  />
+                                                  <YAxis
+                                                    yAxisId="left"
+                                                    tick={{
+                                                      fontSize: 10,
+                                                      fill: "#1f9d6b",
+                                                      fontWeight: 600,
+                                                    }}
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tickFormatter={(val) =>
+                                                      `Rp${new Intl.NumberFormat("id-ID", { notation: "compact" }).format(val)}`
+                                                    }
+                                                    width={44}
+                                                    hide={!liveChartSelectedMetrics.includes("gmv")}
+                                                  />
+                                                  <YAxis
+                                                    yAxisId="right"
+                                                    orientation="right"
+                                                    tick={{
+                                                      fontSize: 10,
+                                                      fill: "#5600e0",
+                                                      fontWeight: 600,
+                                                    }}
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tickFormatter={(val) =>
+                                                      new Intl.NumberFormat("id-ID", { notation: "compact" }).format(val)
+                                                    }
+                                                    width={38}
+                                                  />
+                                                  <Tooltip
+                                                    cursor={{
+                                                      stroke: "#cbc3d9",
+                                                      strokeWidth: 1,
+                                                    }}
+                                                    contentStyle={{
+                                                      borderRadius: "16px",
+                                                      border: "1px solid #e5e2e1",
+                                                      boxShadow: "0 16px 40px rgba(27,28,28,0.08)",
+                                                      fontWeight: "600",
+                                                      fontSize: "12px",
+                                                    }}
+                                                    formatter={(value: any, name: string) => [
+                                                      name === "GMV (Rp)"
+                                                        ? new Intl.NumberFormat("id-ID", {
+                                                            style: "currency",
+                                                            currency: "IDR",
+                                                            maximumFractionDigits: 0,
+                                                          }).format(value)
+                                                        : new Intl.NumberFormat("id-ID").format(value),
+                                                      name,
+                                                    ]}
+                                                    labelFormatter={(label) =>
+                                                      new Intl.DateTimeFormat("id-ID", {
+                                                        day: "2-digit",
+                                                        month: "short",
+                                                        year: "numeric",
+                                                      }).format(new Date(label))
+                                                    }
+                                                  />
+                                                  <Area
+                                                    yAxisId="left"
+                                                    type="monotone"
+                                                    name="GMV (Rp)"
+                                                    dataKey="gmv"
+                                                    stroke="#1f9d6b"
+                                                    strokeWidth={3}
+                                                    fill="url(#brand-live-gradient)"
+                                                    fillOpacity={1}
+                                                    dot={false}
+                                                    activeDot={{ r: 5, fill: "#1f9d6b" }}
+                                                    hide={!liveChartSelectedMetrics.includes("gmv")}
+                                                  />
+                                                  <Line
+                                                    yAxisId="right"
+                                                    type="monotone"
+                                                    name={chartMetricLabels.orders}
+                                                    dataKey="orders"
+                                                    stroke="#5600e0"
+                                                    strokeWidth={2.5}
+                                                    dot={false}
+                                                    activeDot={{ r: 5, fill: "#5600e0" }}
+                                                    hide={!liveChartSelectedMetrics.includes("orders")}
+                                                  />
+                                                  <Line
+                                                    yAxisId="right"
+                                                    type="monotone"
+                                                    name={chartMetricLabels.itemsSold}
+                                                    dataKey="itemsSold"
+                                                    stroke="#c77d00"
+                                                    strokeWidth={2.5}
+                                                    strokeDasharray="4 4"
+                                                    dot={false}
+                                                    activeDot={{ r: 5, fill: "#c77d00" }}
+                                                    hide={!liveChartSelectedMetrics.includes("itemsSold")}
+                                                  />
+                                                  <Line
+                                                    yAxisId="right"
+                                                    type="monotone"
+                                                    name={chartMetricLabels.clicks}
+                                                    dataKey="clicks"
+                                                    stroke="#d9467a"
+                                                    strokeWidth={2.5}
+                                                    strokeDasharray="4 4"
+                                                    dot={false}
+                                                    activeDot={{ r: 5, fill: "#d9467a" }}
+                                                    hide={!liveChartSelectedMetrics.includes("clicks")}
+                                                  />
+                                                  <Line
+                                                    yAxisId="right"
+                                                    type="monotone"
+                                                    name={chartMetricLabels.views}
+                                                    dataKey="penonton"
+                                                    stroke="#0f9acb"
+                                                    strokeWidth={2.5}
+                                                    strokeDasharray="4 4"
+                                                    dot={false}
+                                                    activeDot={{ r: 5, fill: "#0f9acb" }}
+                                                    hide={!liveChartSelectedMetrics.includes("penonton")}
+                                                  />
+                                                </RechartsLineChart>
+                                              </ResponsiveContainer>
+                                            </div>
+                                          </div>
                                         </div>
                                       </div>
                                     )}
