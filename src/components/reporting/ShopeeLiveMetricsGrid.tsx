@@ -17,43 +17,35 @@ const toneStyles: Record<
   {
     iconWrap: string;
     badge: string;
-    accent: string;
   }
 > = {
   violet: {
     iconWrap: "bg-violet-50 text-violet-600 ring-violet-100",
     badge: "border-violet-100 bg-violet-50 text-violet-700",
-    accent: "from-violet-500/20 via-violet-500/10 to-transparent",
   },
   blue: {
     iconWrap: "bg-sky-50 text-sky-600 ring-sky-100",
     badge: "border-sky-100 bg-sky-50 text-sky-700",
-    accent: "from-sky-500/20 via-sky-500/10 to-transparent",
   },
   amber: {
     iconWrap: "bg-amber-50 text-amber-600 ring-amber-100",
     badge: "border-amber-100 bg-amber-50 text-amber-700",
-    accent: "from-amber-500/20 via-amber-500/10 to-transparent",
   },
   emerald: {
     iconWrap: "bg-emerald-50 text-emerald-600 ring-emerald-100",
     badge: "border-emerald-100 bg-emerald-50 text-emerald-700",
-    accent: "from-emerald-500/20 via-emerald-500/10 to-transparent",
   },
   indigo: {
     iconWrap: "bg-indigo-50 text-indigo-600 ring-indigo-100",
     badge: "border-indigo-100 bg-indigo-50 text-indigo-700",
-    accent: "from-indigo-500/20 via-indigo-500/10 to-transparent",
   },
   green: {
     iconWrap: "bg-green-50 text-green-600 ring-green-100",
     badge: "border-green-100 bg-green-50 text-green-700",
-    accent: "from-green-500/20 via-green-500/10 to-transparent",
   },
   rose: {
     iconWrap: "bg-rose-50 text-rose-600 ring-rose-100",
     badge: "border-rose-100 bg-rose-50 text-rose-700",
-    accent: "from-rose-500/20 via-rose-500/10 to-transparent",
   },
 };
 
@@ -84,28 +76,26 @@ function renderMetricCard(metric: ShopeeLiveMetric) {
   const comparison = buildComparison(metric.current, metric.previous);
 
   return (
-    <div className="group relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.04)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(15,23,42,0.06)]">
-      <div
-        className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${tone.accent}`}
-      />
-      <div className="flex items-start gap-3">
+    <article className="flex min-h-40 min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:min-h-44 sm:p-5">
+      <div className="flex min-w-0 items-center gap-3">
         <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ring-1 ${tone.iconWrap}`}
+          className={`flex size-11 shrink-0 items-center justify-center rounded-xl ring-1 sm:size-12 ${tone.iconWrap}`}
           aria-hidden="true"
         >
           {metric.icon}
         </div>
-        <div className="min-w-0 flex-1 pt-0.5">
-          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
+        <div className="min-w-0 flex-1">
+          <div className="text-pretty text-xs font-bold uppercase leading-5 text-slate-500">
             {metric.title}
-          </div>
-          <div className="mt-5 text-[26px] sm:text-[30px] font-black tracking-tight text-slate-950 tabular-nums">
-            {metric.value}
           </div>
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2">
+      <div className="mt-4 whitespace-nowrap text-[clamp(1.35rem,1.7vw,1.875rem)] font-black leading-tight text-slate-950 tabular-nums">
+        {metric.value}
+      </div>
+
+      <div className="mt-auto flex min-w-0 flex-wrap items-center gap-2 pt-4">
         <span
           className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black tabular-nums ${
             comparison.tone === "up"
@@ -117,11 +107,11 @@ function renderMetricCard(metric: ShopeeLiveMetric) {
         >
           {comparison.label}
         </span>
-        <span className="text-[11px] font-semibold text-slate-500">
+        <span className="min-w-0 truncate text-[11px] font-semibold text-slate-500">
           vs {metric.periodLabel}
         </span>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -137,14 +127,14 @@ export function ShopeeLiveMetricsGrid({
 
   return (
     <div className={`space-y-4 ${className}`.trim()}>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4">
         {topRow.map((metric) => (
           <div key={metric.title}>{renderMetricCard(metric)}</div>
         ))}
       </div>
 
       {bottomRow.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:gap-4">
           {bottomRow.map((metric) => (
             <div key={metric.title}>{renderMetricCard(metric)}</div>
           ))}

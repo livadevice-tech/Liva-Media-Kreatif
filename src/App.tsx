@@ -16177,8 +16177,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     {activeReportBrandId === null ? (
                       <div className="space-y-6">
                         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                          <div className="flex flex-col gap-5 p-6 sm:p-8 bg-gradient-to-br from-white via-white to-slate-50/70">
-                            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+                          <div className="flex flex-col gap-5 bg-white p-6 sm:p-8">
+                            <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
                               <div className="max-w-2xl">
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-sm">
                                   <Sparkles className="w-3 h-3 text-indigo-500" />
@@ -16191,22 +16191,22 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   Kelola semua brand, lihat sesi live, total GMV, dan akses dashboard detail dalam satu workspace yang lebih rapi.
                                 </p>
                               </div>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
-                                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm min-w-[120px]">
+                              <div className="grid min-w-0 w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:w-auto">
+                                <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm 2xl:min-w-36">
                                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Brand</div>
                                   <div className="text-lg font-black text-slate-900 mt-1 tabular-nums">{reportBrandOverviewStats.totalBrands}</div>
                                 </div>
-                                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 shadow-sm min-w-[120px]">
+                                <div className="min-w-0 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 shadow-sm 2xl:min-w-36">
                                   <div className="text-[10px] font-black uppercase tracking-widest text-emerald-700/70">Aktif</div>
                                   <div className="text-lg font-black text-emerald-700 mt-1 tabular-nums">{reportBrandOverviewStats.activeBrands}</div>
                                 </div>
-                                <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 shadow-sm min-w-[120px]">
+                                <div className="min-w-0 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 shadow-sm 2xl:min-w-36">
                                   <div className="text-[10px] font-black uppercase tracking-widest text-indigo-700/70">Sesi Live</div>
                                   <div className="text-lg font-black text-indigo-700 mt-1 tabular-nums">{new Intl.NumberFormat("id-ID").format(reportBrandOverviewStats.totalSessions)}</div>
                                 </div>
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm min-w-[120px]">
+                                <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm 2xl:min-w-52">
                                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Total GMV</div>
-                                  <div className="text-lg font-black text-slate-900 mt-1 tabular-nums">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}</div>
+                                  <div className="mt-1 truncate whitespace-nowrap text-lg font-black text-slate-900 tabular-nums" title={new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}</div>
                                 </div>
                               </div>
                             </div>
@@ -16343,7 +16343,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
+                        <div className="grid grid-cols-1 gap-4 text-left md:grid-cols-2 2xl:grid-cols-3">
                           {visibleReportBrandRows.map((row) => {
                               const brand = row.brand;
                               const numBrandLogs = row.sessionCount;
@@ -16361,21 +16361,19 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     setAdminReportBrandFilter(brand.id);
                                     setOpenBrandCardActionsId(null);
                                   }}
-                                  className="bg-white border border-slate-200 hover:border-indigo-400 p-6 rounded-3xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between min-h-[210px] relative overflow-hidden"
+                                  className="group relative flex min-h-64 min-w-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-indigo-300 focus-within:border-indigo-400"
                                 >
-                                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 group-hover:bg-indigo-600/5 rounded-full transition-colors -mr-6 -mt-6"></div>
-
                                   <div>
-                                    <div className="flex items-start justify-between gap-3 mb-4">
+                                    <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
                                       <div className="flex items-start gap-3 min-w-0">
                                         <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-indigo-600 group-hover:text-white transition-all uppercase whitespace-nowrap shrink-0">
                                           {brand.name.substring(0, 2)}
                                         </div>
                                         <div className="min-w-0">
-                                          <h4 className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight truncate max-w-[190px]">
+                                          <h4 className="truncate text-sm font-black uppercase text-slate-900 transition-colors group-hover:text-indigo-600">
                                             {brand.name}
                                           </h4>
-                                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate max-w-[190px]">
+                                          <p className="truncate text-[10px] font-bold uppercase text-slate-400">
                                             ID: {brand.id}
                                           </p>
                                           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -16423,19 +16421,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         className="flex items-center gap-2 shrink-0 relative"
                                         data-brand-card-actions="true"
                                       >
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActiveReportBrandId(brand.id);
-                                            setSaveTargetBrandId(brand.id);
-                                            setAdminReportBrandFilter(brand.id);
-                                            setOpenBrandCardActionsId(null);
-                                          }}
-                                          className="px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider hover:bg-indigo-700 transition-colors shadow-sm"
-                                        >
-                                          Masuk Dashboard →
-                                        </button>
                                         {(numBrandLogs > 0 ||
                                           numUploadBatches > 0) && (
                                           <button
@@ -16489,7 +16474,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     </div>
                                   </div>
 
-                                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                                  <div className="mt-4 border-t border-slate-100 pt-3">
+                                    <div className="flex min-w-0 items-center justify-between gap-3">
                                     <div className="min-w-0">
                                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
                                         Total GMV
@@ -16512,6 +16498,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           : "-"}
                                       </span>
                                     </div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveReportBrandId(brand.id);
+                                        setSaveTargetBrandId(brand.id);
+                                        setAdminReportBrandFilter(brand.id);
+                                        setOpenBrandCardActionsId(null);
+                                      }}
+                                      className="mt-3 flex min-h-10 w-full items-center justify-center rounded-xl bg-indigo-600 px-4 text-[11px] font-black text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                    >
+                                      Masuk Dashboard <ArrowRight className="ml-1 size-3.5" aria-hidden="true" />
+                                    </button>
                                   </div>
                                 </div>
                               );
@@ -16560,7 +16560,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left">
                           {/* Header Workspace */}
                           <div className="flex flex-col gap-4 bg-white mb-4 text-left border-b border-slate-200 px-6 sm:px-8 py-5">
-                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                               <div className="flex items-start gap-4 min-w-0">
                                 <button
                                   onClick={() => {
@@ -16568,7 +16568,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     setReportingRawData([]);
                                     setAutoDetectNotice("");
                                   }}
-                                  className="bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow-sm focus:outline-none shrink-0 mt-1"
+                                  aria-label="Kembali ke daftar brand"
+                                  className="mt-1 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                                 >
                                   <ArrowLeft className="w-4 h-4" />
                                 </button>
@@ -16612,13 +16613,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </div>
                               </div>
 
-                              <div className="flex flex-wrap gap-2 lg:justify-end">
+                              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[560px]">
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setIsDeleteByDateModalOpen(true);
                                   }}
-                                  className="px-4 py-2 bg-white text-orange-600 hover:text-orange-700 font-bold text-[11px] rounded-xl shadow-sm border border-slate-200 hover:bg-orange-50 flex items-center gap-2 cursor-pointer transition-all"
+                                  className="flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-4 py-2 text-[11px] font-bold text-orange-600 shadow-sm transition-colors hover:bg-orange-50 hover:text-orange-700"
                                   title="Hapus Rentang Waktu"
                                 >
                                   <Calendar className="w-3.5 h-3.5" />
@@ -16636,7 +16637,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       operatorReportingTab
                                     );
                                   }}
-                                  className="px-4 py-2 bg-white text-red-600 hover:text-red-700 font-bold text-[11px] rounded-xl shadow-sm border border-red-200 hover:bg-red-50 flex items-center gap-2 cursor-pointer transition-all"
+                                  className="flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-red-200 bg-white px-4 py-2 text-[11px] font-bold text-red-600 shadow-sm transition-colors hover:bg-red-50 hover:text-red-700"
                                   title="Hapus Semua Data"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -16652,7 +16653,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       );
                                       setIsSkuUploadModalOpen(true);
                                     }}
-                                    className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-[11px] rounded-xl shadow-sm border border-indigo-200 hover:bg-indigo-100 flex items-center gap-2 cursor-pointer transition-all"
+                                    className="flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-[11px] font-bold text-indigo-700 shadow-sm transition-colors hover:bg-indigo-100"
                                   >
                                     <Download className="w-3.5 h-3.5" />
                                     Import Data SKU
@@ -16674,7 +16675,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       );
                                       setIsUploadModalOpen(true);
                                     }}
-                                    className="px-4 py-2 bg-slate-900 text-white font-bold text-[11px] rounded-xl shadow-sm border border-slate-800 hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition-all"
+                                    className="flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-slate-800"
                                   >
                                     <Download className="w-3.5 h-3.5" />
                                     Import Raw Data
