@@ -19912,6 +19912,41 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   Avg. Duration: Rata-rata durasi ditonton
                                                 </span>
                                               </div>
+                                              <div className="mb-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                                                <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                  <span>Filter Aktif</span>
+                                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                                    {latestDateLabel}
+                                                  </span>
+                                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                                    {operatorPlatformFilter}
+                                                  </span>
+                                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                                    {operatorShiftFilters.length === 0
+                                                      ? "Semua Shift"
+                                                      : `${operatorShiftFilters.length} Shift`}
+                                                  </span>
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
+                                                  <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-indigo-700">
+                                                    {new Intl.NumberFormat("id-ID").format(
+                                                      tableLogs.length,
+                                                    )}{" "}
+                                                    sesi
+                                                  </span>
+                                                  <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-emerald-700">
+                                                    Rp{" "}
+                                                    {new Intl.NumberFormat("id-ID", {
+                                                      maximumFractionDigits: 0,
+                                                    }).format(totalGmvDb)}
+                                                  </span>
+                                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-700">
+                                                    Views {new Intl.NumberFormat("id-ID").format(
+                                                      totalDbImpressions,
+                                                    )}
+                                                  </span>
+                                                </div>
+                                              </div>
                                               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                                                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                                   <div className="flex justify-between items-start mb-1">
@@ -23107,6 +23142,33 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         <Users className="w-5 h-5 text-indigo-500" />{" "}
                                         Interaksi (Engagement)
                                       </h4>
+                                      <div className="mb-4 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                          <span>Filter Aktif</span>
+                                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                            {engagementDateLabel}
+                                          </span>
+                                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                            {operatorPlatformFilter}
+                                          </span>
+                                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                                            {operatorShiftFilters.length === 0
+                                              ? "Semua Shift"
+                                              : `${operatorShiftFilters.length} Shift`}
+                                          </span>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
+                                          <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-indigo-700">
+                                            Views {new Intl.NumberFormat("id-ID").format(totalImpressions)}
+                                          </span>
+                                          <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-emerald-700">
+                                            ERR {formattedErrRate}
+                                          </span>
+                                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-700">
+                                            {new Intl.NumberFormat("id-ID").format(totalFollowers)} followers
+                                          </span>
+                                        </div>
+                                      </div>
 
                                       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                                         <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
