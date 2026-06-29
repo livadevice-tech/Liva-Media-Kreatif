@@ -7223,10 +7223,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     </div>
                                   ))
                               )}
-                            </div>
-                          </div>
-                        </>
-                    )}
+	                      </>
+	                    )}
                     </div>
 
                     <button
@@ -8331,10 +8329,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           );
                         });
                       })()}
-                    </div>
-                  </div>
-                </>
-              )}
+	                      </>
+	                    )}
 
               {/* BIG HOST LOGOUT BUTTON */}
               <div className="mt-8 px-4 flex-shrink-0 mb-4 h-auto">
@@ -16557,159 +16553,106 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         )}
                       </div>
                     ) : (
-	                      <>
-	                        <div className="mb-5 flex items-center justify-between gap-4 px-1 sm:px-2">
-	                          <div className="min-w-0">
-	                            <h2 className="text-2xl font-black tracking-tight text-indigo-700 sm:text-[32px]">
-	                              Report Live Brand
-	                            </h2>
-	                            <p className="mt-1 text-sm font-medium text-slate-500">
-	                              Kelola, cek, dan edit raw data brand aktif di satu tempat.
-	                            </p>
-	                          </div>
-	                          <div className="flex shrink-0 items-center gap-3">
-	                            <div className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm">
-	                              <Settings className="h-4 w-4" />
-	                            </div>
-	                            <div className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-sm font-black text-slate-500 shadow-sm">
-	                              {(
-	                                clientBrands.find(
-	                                  (b) => b.id === activeReportBrandId,
-	                                )?.name || "BR"
-	                              )
-	                                .slice(0, 2)
-	                                .toUpperCase()}
-	                            </div>
-	                          </div>
-	                        </div>
+                      <>
+                        <div className="rounded-[32px] border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.04)]">
+                          <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-7">
+                            <h2 className="text-2xl font-black tracking-tight text-indigo-700 sm:text-[32px]">
+                              Report Live Brand
+                            </h2>
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50"
+                                aria-label="Settings"
+                              >
+                                <Settings className="h-4 w-4" />
+                              </button>
+                              <div className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-sm font-black text-slate-500 shadow-sm" />
+                            </div>
+                          </div>
 
-	                        <div className="relative mt-2 w-full overflow-x-hidden rounded-[32px] border border-slate-200 bg-white pb-10 pt-0 text-left font-sans text-slate-800 shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
-	                          {/* Header Workspace */}
-	                          <div className="mb-4 flex flex-col gap-4 border-b border-slate-200 bg-white px-5 py-5 text-left sm:px-7">
-	                            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-	                              <div className="flex min-w-0 items-start gap-4">
-                                <button
-                                  onClick={() => {
-                                    setActiveReportBrandId(null);
-                                    setReportingRawData([]);
-                                    setAutoDetectNotice("");
-                                  }}
-                                  aria-label="Kembali ke daftar brand"
-                                  className="mt-1 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                >
-                                  <ArrowLeft className="w-4 h-4" />
-                                </button>
-	                                <div className="flex min-w-0 items-start gap-3">
-	                                  <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm shrink-0">
-                                    {(
-                                      clientBrands.find(
-                                        (b) => b.id === activeReportBrandId,
-                                      )?.name || "BR"
-                                    )
-                                      .slice(0, 2)
-                                      .toUpperCase()}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-[10px] font-black text-indigo-700 uppercase tracking-widest">
-                                      Reporting Brand Workspace
-                                    </span>
-                                    <h3 className="mt-2 text-xl sm:text-2xl font-black tracking-tight text-slate-900 truncate">
-                                      {clientBrands.find(
-                                        (b) => b.id === activeReportBrandId,
-                                      )?.name || "Nama Brand"}
-                                    </h3>
-                                    <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider truncate">
-                                      ID:{" "}
-                                      {clientBrands.find(
-                                        (b) => b.id === activeReportBrandId,
-                                      )?.id || "-"}
-                                    </p>
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                      <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[10px] font-black text-indigo-700">
-                                        Dashboard {operatorReportingTab === "live" ? "Live Performance" : operatorReportingTab === "product" ? "Product Performance" : "Engagement & Promotion"}
-                                      </span>
-                                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
-                                        Brand aktif: {clientBrands.find((b) => b.id === activeReportBrandId)?.name || "-"}
-                                      </span>
-                                      <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-600">
-                                        Sumber raw data tersimpan di database brand
-                                      </span>
-                                    </div>
-                                  </div>
+                          <div className="px-5 py-6 sm:px-7 sm:py-7">
+                            <div className="flex items-start gap-4">
+                              <button
+                                onClick={() => {
+                                  setActiveReportBrandId(null);
+                                  setReportingRawData([]);
+                                  setAutoDetectNotice("");
+                                }}
+                                aria-label="Kembali ke daftar brand"
+                                className="mt-1 flex size-12 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                              >
+                                <ArrowLeft className="w-5 h-5" />
+                              </button>
+
+                              <div className="flex min-w-0 flex-1 items-start gap-4">
+                                <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-lg font-black text-white shadow-sm">
+                                  {(
+                                    clientBrands.find(
+                                      (b) => b.id === activeReportBrandId,
+                                    )?.name || "BR"
+                                  )
+                                    .slice(0, 2)
+                                    .toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <h3 className="truncate text-[19px] font-medium text-slate-900 sm:text-[21px]">
+                                    {clientBrands.find(
+                                      (b) => b.id === activeReportBrandId,
+                                    )?.name || "Nama Brand"}
+                                  </h3>
+                                  <p className="mt-1 text-[17px] font-medium text-slate-500">
+                                    ID:{" "}
+                                    {clientBrands.find(
+                                      (b) => b.id === activeReportBrandId,
+                                    )?.id || "-"}
+                                  </p>
                                 </div>
                               </div>
+                            </div>
 
-	                              <div className="grid w-full gap-3 xl:w-[560px]">
-	                                <button
-	                                  type="button"
-	                                  onClick={() => {
-	                                    setIsEditRawDataModalOpen(true);
-	                                  }}
-	                                  className="flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm transition-colors hover:bg-slate-50 hover:border-slate-400"
-	                                >
-	                                  <Edit3 className="w-4 h-4" />
-	                                  Edit Raw Data
-	                                </button>
+                            <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+                              <button
+                                type="button"
+                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-[17px] font-medium text-slate-900 shadow-sm lg:max-w-[392px]"
+                              >
+                                <span className="flex items-center gap-3">
+                                  <Calendar className="h-5 w-5 text-slate-700" />
+                                  <span>
+                                    01 Jan 2026 - 07 Jan 2026
+                                  </span>
+                                </span>
+                                <ChevronDown className="h-4 w-4 text-slate-700" />
+                              </button>
 
-	                                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
-	                                  <div className="mb-3 flex items-center justify-between gap-3">
-	                                    <div>
-	                                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
-	                                        Upload Raw Data
-	                                      </div>
-	                                      <div className="mt-1 text-xs font-semibold text-slate-500">
-	                                        Pilih sumber raw data yang sesuai.
-	                                      </div>
-	                                    </div>
-	                                  </div>
-	                                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-	                                    <button
-	                                      type="button"
-	                                      onClick={() => {
-	                                        setSaveTargetBrandId(
-	                                          activeReportBrandId || "",
-	                                        );
-	                                        setUploadTargetTab("live");
-	                                        setIsUploadModalOpen(true);
-	                                      }}
-	                                      className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
-	                                    >
-	                                      <Upload className="w-3.5 h-3.5" />
-	                                      Live Performance
-	                                    </button>
-	                                    <button
-	                                      type="button"
-	                                      onClick={() => {
-	                                        setSaveTargetBrandId(
-	                                          activeReportBrandId || "",
-	                                        );
-	                                        setIsSkuUploadModalOpen(true);
-	                                      }}
-	                                      className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
-	                                    >
-	                                      <Package className="w-3.5 h-3.5" />
-	                                      Product
-	                                    </button>
-	                                    <button
-	                                      type="button"
-	                                      onClick={() => {
-	                                        setSaveTargetBrandId(
-	                                          activeReportBrandId || "",
-	                                        );
-	                                        setUploadTargetTab("engagement");
-	                                        setIsUploadModalOpen(true);
-	                                      }}
-	                                      className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
-	                                    >
-	                                      <TrendingUp className="w-3.5 h-3.5" />
-	                                      Engagement
-	                                    </button>
-	                                  </div>
-	                                </div>
-	                            </div>
-	                          </div>
+                              <button
+                                type="button"
+                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-[17px] font-medium text-slate-900 shadow-sm lg:max-w-[248px]"
+                              >
+                                <span className="flex items-center gap-3">
+                                  <div className="flex size-6 items-center justify-center rounded-md bg-orange-50 text-orange-500">
+                                    <Briefcase className="h-4 w-4" />
+                                  </div>
+                                  <span>Shopee Live</span>
+                                </span>
+                                <ChevronDown className="h-4 w-4 text-slate-700" />
+                              </button>
 
-	                          {isEditRawDataModalOpen && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsEditRawDataModalOpen(true);
+                                }}
+                                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-[17px] font-medium text-slate-900 shadow-sm lg:max-w-[220px]"
+                              >
+                                <Edit3 className="h-5 w-5 text-slate-700" />
+                                Edit Raw Data
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                          {isEditRawDataModalOpen && (
 	                            <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[10vh] sm:pb-12 animate-fadeIn">
 	                              <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-3xl w-full overflow-hidden p-6 sm:p-8 relative animate-scaleUp my-auto sm:my-4">
 	                                <button
@@ -24294,11 +24237,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 );
                               })()}
                             </div>
-                          )}
-                        </div>
-                        </div>
-                      </>
-                    )}
+	                          )}
+	                        </div>
+	                      </>
+	                    )}
                   </div>
                 )}
                 {/* ==================== SUBTAB: LEADS / CALON KLIEN ==================== */}
