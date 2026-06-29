@@ -7223,8 +7223,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     </div>
                                   ))
                               )}
-	                      </>
-	                    )}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <button
@@ -8329,8 +8331,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           );
                         });
                       })()}
-	                      </>
-	                    )}
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* BIG HOST LOGOUT BUTTON */}
               <div className="mt-8 px-4 flex-shrink-0 mb-4 h-auto">
@@ -24237,10 +24241,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 );
                               })()}
                             </div>
-	                          )}
-	                        </div>
-	                      </>
-	                    )}
+                          )}
+                      </>
+                    )}
                   </div>
                 )}
                 {/* ==================== SUBTAB: LEADS / CALON KLIEN ==================== */}
