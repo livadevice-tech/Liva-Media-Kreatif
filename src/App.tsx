@@ -16746,43 +16746,43 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               </div>
 
                             </div>
-                            <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                              <div className="flex flex-wrap items-center gap-3">
-                              <button
-                                type="button"
-                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[392px]"
-                              >
-                                <span className="flex items-center gap-3">
-                                  <span className="flex size-6 items-center justify-center rounded-md bg-[#f6f3f2] text-[#494456]">
-                                    <Calendar className="h-4 w-4" />
-                                  </span>
-                                  <span>{activeReportBrandDateRange}</span>
-                                </span>
-                                <ChevronDown className="h-4 w-4 text-[#494456]" />
-                              </button>
-
-                              <button
-                                type="button"
-                                className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[248px]"
-                              >
-                                <span className="flex items-center gap-3">
-                                  <span className="flex size-6 items-center justify-center rounded-md bg-[#f6f3f2] text-[#5600e0]">
-                                    <Briefcase className="h-4 w-4" />
-                                  </span>
-                                  <span>{activeReportBrandPlatforms[0] || "Shopee Live"}</span>
-                                </span>
-                                <ChevronDown className="h-4 w-4 text-[#494456]" />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsEditRawDataModalOpen(true);
-                                }}
-                                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c] lg:max-w-[220px]"
+                            <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+                              <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-stretch">
+                                <button
+                                  type="button"
+                                  className="flex min-h-12 w-full flex-1 items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
                                 >
-                                  <Edit3 className="h-5 w-5 text-[#494456]" />
-                                  Edit Raw Data
+                                  <span className="flex min-w-0 items-center gap-3">
+                                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f6f3f2] text-[#494456]">
+                                      <Calendar className="h-4 w-4" />
+                                    </span>
+                                    <span className="truncate">{activeReportBrandDateRange}</span>
+                                  </span>
+                                  <ChevronDown className="h-4 w-4 shrink-0 text-[#494456]" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="flex min-h-12 w-full flex-1 items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
+                                >
+                                  <span className="flex min-w-0 items-center gap-3">
+                                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f6f3f2] text-[#5600e0]">
+                                      <Briefcase className="h-4 w-4" />
+                                    </span>
+                                    <span className="truncate">{activeReportBrandPlatforms[0] || "Shopee Live"}</span>
+                                  </span>
+                                  <ChevronDown className="h-4 w-4 shrink-0 text-[#494456]" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsEditRawDataModalOpen(true);
+                                  }}
+                                  className="flex min-h-12 w-full flex-1 items-center justify-center gap-2 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
+                                >
+                                  <Edit3 className="h-5 w-5 shrink-0 text-[#494456]" />
+                                  <span>Edit Raw Data</span>
                                 </button>
                               </div>
                             </div>
