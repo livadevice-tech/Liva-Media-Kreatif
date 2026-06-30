@@ -896,6 +896,22 @@ export default function App() {
     }
   };
 
+  const formatDateTimeSafe = (
+    value?: string,
+    options?: Intl.DateTimeFormatOptions,
+  ) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat("id-ID", options || {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
+
   const getDaysInMonthGrid = (year: number, month: number) => {
     const firstDay = new Date(year, month - 1, 1);
     let firstDayOfWeek = firstDay.getDay();
@@ -2145,6 +2161,17 @@ export default function App() {
     null,
   );
   const [reportBrandSearchQuery, setReportBrandSearchQuery] = useState("");
+  const [reportBrandPlatformFilter, setReportBrandPlatformFilter] =
+    useState("Semua Platform");
+  const [reportBrandStatusFilter, setReportBrandStatusFilter] =
+    useState("Semua Status");
+  const [reportBrandSortKey, setReportBrandSortKey] = useState<
+    "latest_activity" | "gmv" | "sessions" | "uploads" | "name"
+  >("latest_activity");
+  const [reportBrandPage, setReportBrandPage] = useState(1);
+  const [openBrandCardActionsId, setOpenBrandCardActionsId] = useState<
+    string | null
+  >(null);
   const [reportDbSearchQuery, setReportDbSearchQuery] = useState("");
   const [reportDbSortCol, setReportDbSortCol] = useState("date");
   const [reportDbSortAsc, setReportDbSortAsc] = useState(false);
@@ -2222,6 +2249,153 @@ export default function App() {
     operatorCustomStartDate,
     operatorCustomEndDate,
     activeReportBrandId,
+  ]);
+
+  const availableReportBrandPlatforms = useMemo(() => {
+    const defaults = ["Shopee Live", "TikTok Live"];
+    const platformsFromLogs = Array.from(
+      new Set(
+        brandPerformanceLogs
+          .map((log) => log.platform)
+          .filter((platform): platform is string => Boolean(platform)),
+      ),
+    );
+    const preferred = defaults.filter((platform) =>
+      platformsFromLogs.includes(platform),
+    );
+    return preferred.length > 0
+      ? preferred
+      : platformsFromLogs.length > 0
+        ? platformsFromLogs
+        : defaults;
+  }, [brandPerformanceLogs]);
+
+  const reportBrandOverviewStats = useMemo(() => {
+    const totalSessions = brandPerformanceLogs.length;
+    const totalGmv = brandPerformanceLogs.reduce(
+      (sum, log) => sum + (log.gmv || 0),
+      0,
+    );
+    const activeBrandIds = new Set<string>();
+    brandPerformanceLogs.forEach((log) => activeBrandIds.add(log.brandId));
+    brandUploadHistory.forEach((batch) => activeBrandIds.add(batch.brandId));
+    return {
+      totalBrands: clientBrands.length,
+      activeBrands: activeBrandIds.size,
+      totalSessions,
+      totalGmv,
+    };
+  }, [brandPerformanceLogs, brandUploadHistory, clientBrands]);
+
+  const filteredReportBrandRows = useMemo(() => {
+    const query = reportBrandSearchQuery.trim().toLowerCase();
+    const rows = clientBrands
+      .map((brand) => {
+        const sessionLogs = brandPerformanceLogs.filter(
+          (log) => log.brandId === brand.id,
+        );
+        const batchLogs = brandUploadHistory.filter(
+          (batch) => batch.brandId === brand.id,
+        );
+        const platforms = Array.from(
+          new Set(
+            sessionLogs
+              .map((log) => log.platform)
+              .filter((platform): platform is string => Boolean(platform)),
+          ),
+        );
+        const totalGmv = sessionLogs.reduce(
+          (sum, log) => sum + (log.gmv || 0),
+          0,
+        );
+        const latestActivity =
+          (() => {
+            const timestamps = [...sessionLogs, ...batchLogs]
+              .map((item) => item.createdAt || item.uploadedAt || item.date || "")
+              .filter(Boolean)
+              .sort();
+            return timestamps[timestamps.length - 1] || "";
+          })();
+        return {
+          brand,
+          sessionCount: sessionLogs.length,
+          batchCount: batchLogs.length,
+          totalGmv,
+          platforms,
+          latestActivity,
+          hasData: sessionLogs.length > 0 || batchLogs.length > 0,
+        };
+      })
+      .filter((row) => {
+        if (query) {
+          const matches =
+            (row.brand.name || "").toLowerCase().includes(query) ||
+            row.brand.id.toLowerCase().includes(query);
+          if (!matches) return false;
+        }
+        if (
+          reportBrandPlatformFilter !== "Semua Platform" &&
+          !row.platforms.includes(reportBrandPlatformFilter)
+        ) {
+          return false;
+        }
+        if (
+          reportBrandStatusFilter === "Aktif" &&
+          !row.hasData
+        ) {
+          return false;
+        }
+        if (
+          reportBrandStatusFilter === "Belum Ada Data" &&
+          row.hasData
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (reportBrandSortKey === "name") {
+          return a.brand.name.localeCompare(b.brand.name);
+        }
+        if (reportBrandSortKey === "gmv") {
+          return b.totalGmv - a.totalGmv;
+        }
+        if (reportBrandSortKey === "sessions") {
+          return b.sessionCount - a.sessionCount;
+        }
+        if (reportBrandSortKey === "uploads") {
+          return b.batchCount - a.batchCount;
+        }
+        return (b.latestActivity || "").localeCompare(a.latestActivity || "");
+      });
+
+    return rows;
+  }, [
+    brandPerformanceLogs,
+    brandUploadHistory,
+    clientBrands,
+    reportBrandPlatformFilter,
+    reportBrandSearchQuery,
+    reportBrandSortKey,
+    reportBrandStatusFilter,
+  ]);
+
+  const totalReportBrandPages = Math.max(
+    1,
+    Math.ceil(filteredReportBrandRows.length / 9),
+  );
+  const visibleReportBrandRows = filteredReportBrandRows.slice(
+    (reportBrandPage - 1) * 9,
+    reportBrandPage * 9,
+  );
+
+  useEffect(() => {
+    setReportBrandPage(1);
+  }, [
+    reportBrandSearchQuery,
+    reportBrandPlatformFilter,
+    reportBrandStatusFilter,
+    reportBrandSortKey,
   ]);
 
   const [dayAnalyticsSortCol, setDayAnalyticsSortCol] = useState<
@@ -16248,149 +16422,370 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                 {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
                 {operatorTab === "reporting_brand" && (
                   <div
-                    className="space-y-6 animate-fadeIn"
-                    id="operator_reporting_brand_content bg-[#fafafd] min-h-screen"
+                    className="mx-auto w-full max-w-[1600px] space-y-6 animate-fadeIn bg-[#fcf9f8] min-h-screen px-4 pb-12 sm:px-6 lg:px-8"
+                    id="operator_reporting_brand_content"
                   >
                     {activeReportBrandId === null ? (
                       <div className="space-y-6">
-                        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 sm:p-8 rounded-3xl text-white shadow-md relative overflow-hidden text-left">
-                          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl"></div>
-                          <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
-                          <div className="relative z-10 max-w-2xl">
-                            <span className="bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-xs inline-flex items-center gap-1.5 mb-3">
-                              <Sparkles className="w-3 h-3 text-indigo-400 animate-pulse" />{" "}
-                              Workspace Pelaporan Eksternal
-                            </span>
-                            <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-none uppercase">
-                              Pilih Brand Klien Terlebih Dahulu
-                            </h3>
-                            <p className="text-xs sm:text-sm text-slate-300 font-semibold mt-2 leading-relaxed">
-                              Silakan pilih salah satu Brand Klien untuk
-                              mengakses dashboard utama, mengimpor raw data
-                              laporan performance stream, menganalisis corong
-                              konversi, atau mengelola dan menghapus riwayat
-                              upload data mentah.
-                            </p>
+                        <div className="overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white shadow-[0_8px_28px_rgba(27,28,28,0.04)]">
+                          <div className="flex flex-col gap-5 p-6 sm:p-8">
+                            <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
+                              <div className="max-w-2xl">
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
+                                  <Sparkles className="w-3 h-3 text-[#5600e0]" />
+                                  Reporting Brand Workspace
+                                </span>
+                                <h3 className="mt-3 text-2xl sm:text-[30px] font-black tracking-tight text-[#1b1c1c]">
+                                  Reporting Brand Overview
+                                </h3>
+                                <p className="mt-2 text-sm sm:text-[15px] text-[#494456] font-medium leading-relaxed max-w-xl">
+                                  Kelola semua brand, lihat sesi live, total GMV,
+                                  dan akses dashboard detail dalam satu workspace
+                                  yang lebih rapi.
+                                </p>
+                              </div>
+                              <div className="grid min-w-0 w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:w-auto">
+                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#ffffff] p-4">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
+                                    Brand
+                                  </div>
+                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">
+                                    {reportBrandOverviewStats.totalBrands}
+                                  </div>
+                                </div>
+                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] p-4">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
+                                    Aktif
+                                  </div>
+                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#5600e0] tabular-nums">
+                                    {reportBrandOverviewStats.activeBrands}
+                                  </div>
+                                </div>
+                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] p-4">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
+                                    Sesi Live
+                                  </div>
+                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">
+                                    {new Intl.NumberFormat("id-ID").format(
+                                      reportBrandOverviewStats.totalSessions,
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#ffffff] p-4 2xl:min-w-52">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
+                                    Total GMV
+                                  </div>
+                                  <div
+                                    className="mt-1 truncate whitespace-nowrap text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums"
+                                    title={new Intl.NumberFormat("id-ID", {
+                                      style: "currency",
+                                      currency: "IDR",
+                                      maximumFractionDigits: 0,
+                                    }).format(reportBrandOverviewStats.totalGmv)}
+                                  >
+                                    {new Intl.NumberFormat("id-ID", {
+                                      style: "currency",
+                                      currency: "IDR",
+                                      maximumFractionDigits: 0,
+                                    }).format(reportBrandOverviewStats.totalGmv)}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
                         {/* FITUR PENCARIAN BRAND */}
-                        <div className="bg-white p-4 rounded-3xl border border-indigo-100/80 flex flex-col sm:flex-row items-center gap-3 text-left">
-                          <div className="relative flex-1 w-full">
-                            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-450" />
-                            <input
-                              type="text"
-                              placeholder="Cari brand klien berdasarkan nama atau ID..."
-                              value={reportBrandSearchQuery}
-                              onChange={(e) =>
-                                setReportBrandSearchQuery(e.target.value)
-                              }
-                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-700 placeholder-slate-400 outline-none focus:border-indigo-405 focus:bg-white transition-all"
-                            />
+                        <div className="rounded-2xl border border-[#cbc3d9] bg-white p-4 sm:p-5 shadow-[0_8px_24px_rgba(27,28,28,0.03)] space-y-4">
+                          <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+                            <div className="relative flex-1 w-full">
+                              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7a7488]" />
+                              <input
+                                type="text"
+                                placeholder="Cari brand klien berdasarkan nama atau ID..."
+                                value={reportBrandSearchQuery}
+                                onChange={(e) =>
+                                  setReportBrandSearchQuery(e.target.value)
+                                }
+                                className="w-full rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] py-3 pl-10 pr-4 text-sm font-medium text-[#1b1c1c] placeholder:text-[#7a7488] outline-none transition-all focus:border-[#5600e0] focus:bg-white"
+                              />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <select
+                                value={reportBrandPlatformFilter}
+                                onChange={(e) =>
+                                  setReportBrandPlatformFilter(e.target.value)
+                                }
+                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
+                              >
+                                <option value="Semua Platform">
+                                  Semua Platform
+                                </option>
+                                {availableReportBrandPlatforms.map(
+                                  (platform) => (
+                                    <option key={platform} value={platform}>
+                                      {platform}
+                                    </option>
+                                  ),
+                                )}
+                              </select>
+                              <select
+                                value={reportBrandStatusFilter}
+                                onChange={(e) =>
+                                  setReportBrandStatusFilter(e.target.value)
+                                }
+                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
+                              >
+                                <option value="Semua Status">
+                                  Semua Status
+                                </option>
+                                <option value="Aktif">Aktif</option>
+                                <option value="Belum Ada Data">
+                                  Belum Ada Data
+                                </option>
+                              </select>
+                              <select
+                                value={reportBrandSortKey}
+                                onChange={(e) =>
+                                  setReportBrandSortKey(e.target.value)
+                                }
+                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
+                              >
+                                <option value="latest_activity">
+                                  Urutkan: Terbaru
+                                </option>
+                                <option value="gmv">
+                                  Urutkan: GMV Tertinggi
+                                </option>
+                                <option value="sessions">
+                                  Urutkan: Sesi Terbanyak
+                                </option>
+                                <option value="uploads">
+                                  Urutkan: Upload Terbanyak
+                                </option>
+                                <option value="name">Urutkan: Nama A-Z</option>
+                              </select>
+                              {reportBrandSearchQuery && (
+                                <button
+                                  onClick={() => setReportBrandSearchQuery("")}
+                                  className="rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-xs font-black text-[#5600e0] transition-colors hover:bg-[#f6f3f2] cursor-pointer"
+                                >
+                                  Reset
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3 text-left">
+                          <div>
+                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800">
+                              Brand Tersimpan
+                            </h4>
+                            <p className="text-[11px] text-slate-400 font-semibold mt-1">
+                              {filteredReportBrandRows.length} brand terdeteksi
+                              sesuai filter aktif.
+                            </p>
                           </div>
                           {reportBrandSearchQuery && (
                             <button
                               onClick={() => setReportBrandSearchQuery("")}
-                              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-black transition-colors cursor-pointer border-0 w-full sm:w-auto text-center"
+                              className="text-xs font-black text-[#5600e0] hover:text-[#4f00d0]"
                             >
-                              Reset Pencarian
+                              Hapus kata kunci
                             </button>
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
-                          {clientBrands
-                            .filter((brand) => {
-                              if (!reportBrandSearchQuery.trim()) return true;
-                              const q = reportBrandSearchQuery.toLowerCase();
-                              return (
-                                (brand.name || "").toLowerCase().includes(q) ||
-                                brand.id.toLowerCase().includes(q)
-                              );
-                            })
-                            .map((brand) => {
-                              const numBrandLogs = brandPerformanceLogs.filter(
-                                (log) => log.brandId === brand.id,
-                              ).length;
-                              const numUploadBatches =
-                                brandUploadHistory.filter(
-                                  (batch) => batch.brandId === brand.id,
-                                ).length;
-                              const totalGmvSum = brandPerformanceLogs
-                                .filter((log) => log.brandId === brand.id)
-                                .reduce((sum, log) => sum + (log.gmv || 0), 0);
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            <span>Filter Aktif</span>
+                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                              {reportBrandPlatformFilter}
+                            </span>
+                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                              {reportBrandStatusFilter}
+                            </span>
+                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
+                              {reportBrandSortKey === "latest_activity"
+                                ? "Terbaru"
+                                : reportBrandSortKey === "gmv"
+                                  ? "GMV Tertinggi"
+                                  : reportBrandSortKey === "sessions"
+                                    ? "Sesi Terbanyak"
+                                    : reportBrandSortKey === "uploads"
+                                      ? "Upload Terbanyak"
+                                      : "Nama A-Z"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-slate-500">
+                              Menampilkan {filteredReportBrandRows.length} brand
+                            </span>
+                            {(reportBrandSearchQuery ||
+                              reportBrandPlatformFilter !== "Semua Platform" ||
+                              reportBrandStatusFilter !== "Semua Status" ||
+                              reportBrandSortKey !== "latest_activity") && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReportBrandSearchQuery("");
+                                  setReportBrandPlatformFilter(
+                                    "Semua Platform",
+                                  );
+                                  setReportBrandStatusFilter("Semua Status");
+                                  setReportBrandSortKey("latest_activity");
+                                }}
+                                className="rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0] hover:bg-white transition-colors"
+                              >
+                                Reset Semua Filter
+                              </button>
+                            )}
+                          </div>
+                        </div>
 
-                              return (
-                                <div
-                                  key={brand.id}
-                                  onClick={() => {
-                                    setActiveReportBrandId(brand.id);
-                                    setSaveTargetBrandId(brand.id);
-                                    setAdminReportBrandFilter(brand.id);
-                                  }}
-                                  className="bg-white border border-slate-200 hover:border-indigo-400 p-6 rounded-3xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between min-h-[160px] relative overflow-hidden"
-                                >
-                                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 group-hover:bg-indigo-600/5 rounded-full transition-colors -mr-6 -mt-6"></div>
+                        <div className="grid grid-cols-1 gap-4 text-left md:grid-cols-2 2xl:grid-cols-3">
+                          {visibleReportBrandRows.map((row) => {
+                            const brand = row.brand;
+                            const numBrandLogs = row.sessionCount;
+                            const numUploadBatches = row.batchCount;
+                            const totalGmvSum = row.totalGmv;
+                            const brandPlatforms = row.platforms;
+                            const isBrandActive = row.hasData;
 
-                                  <div>
-                                    <div className="flex items-center justify-between gap-3 mb-4">
-                                      <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-indigo-55 text-indigo-600 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-indigo-600 group-hover:text-white transition-all uppercase whitespace-nowrap">
-                                          {brand.name.substring(0, 2)}
+                            return (
+                              <div
+                                key={brand.id}
+                                onClick={() => {
+                                  setActiveReportBrandId(brand.id);
+                                  setSaveTargetBrandId(brand.id);
+                                  setAdminReportBrandFilter(brand.id);
+                                  setOpenBrandCardActionsId(null);
+                                }}
+                                className="group relative flex min-h-64 min-w-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-indigo-300 focus-within:border-indigo-400"
+                              >
+                                <div>
+                                  <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
+                                    <div className="flex items-start gap-3 min-w-0">
+                                      <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-indigo-600 group-hover:text-white transition-all uppercase whitespace-nowrap shrink-0">
+                                        {brand.name.substring(0, 2)}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <h4 className="truncate text-sm font-black uppercase text-slate-900 transition-colors group-hover:text-indigo-600">
+                                          {brand.name}
+                                        </h4>
+                                        <p className="truncate text-[10px] font-bold uppercase text-slate-400">
+                                          ID: {brand.id}
+                                        </p>
+                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                          {brandPlatforms.length > 0 ? (
+                                            brandPlatforms
+                                              .slice(0, 2)
+                                              .map((platform) => (
+                                                <span
+                                                  key={platform}
+                                                  className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600"
+                                                >
+                                                  {platform}
+                                                </span>
+                                              ))
+                                          ) : (
+                                            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-500">
+                                              Belum ada platform
+                                            </span>
+                                          )}
+                                          {brandPlatforms.length > 2 && (
+                                            <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-600">
+                                              +{brandPlatforms.length - 2}
+                                            </span>
+                                          )}
                                         </div>
-                                        <div>
-                                          <h4 className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
-                                            {brand.name}
-                                          </h4>
-                                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                            ID: {brand.id}
-                                          </p>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[10px] font-black text-slate-600">
+                                            {numBrandLogs} Sesi
+                                          </span>
+                                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2 py-1 text-[10px] font-black text-indigo-600">
+                                            {numUploadBatches} Batch
+                                          </span>
+                                          <span
+                                            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black border ${
+                                              isBrandActive
+                                                ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                                                : "bg-slate-50 border-slate-200 text-slate-500"
+                                            }`}
+                                          >
+                                            {isBrandActive
+                                              ? "Aktif"
+                                              : "Belum Ada Data"}
+                                          </span>
                                         </div>
                                       </div>
+                                    </div>
+
+                                    <div
+                                      className="flex items-center gap-2 shrink-0 relative"
+                                      data-brand-card-actions="true"
+                                    >
                                       {(numBrandLogs > 0 ||
                                         numUploadBatches > 0) && (
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            handleDeleteAllBrandRawData(
-                                              brand.id,
-                                              brand.name,
+                                            setOpenBrandCardActionsId(
+                                              openBrandCardActionsId === brand.id
+                                                ? null
+                                                : brand.id,
                                             );
                                           }}
-                                          title="Hapus Semua Raw Data & Riwayat Brand"
-                                          className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border-0 cursor-pointer transition-colors z-10 hover:shadow-xs"
+                                          title="Aksi brand"
+                                          aria-label="Aksi brand"
+                                          className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl border border-slate-200 cursor-pointer transition-colors"
                                         >
-                                          <Trash2 className="w-4 h-4" />
+                                          <MoreHorizontal className="w-4 h-4" />
                                         </button>
                                       )}
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3 mb-2 pt-2 border-t border-slate-100">
-                                      <div>
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
-                                          Stored Sesi Live
-                                        </span>
-                                        <span className="text-xs font-black text-slate-700 block mt-0.5">
-                                          {numBrandLogs} Sesi
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
-                                          Total Upload
-                                        </span>
-                                        <span className="text-xs font-black text-slate-700 block mt-0.5">
-                                          {numUploadBatches} Batch
-                                        </span>
-                                      </div>
+                                      {openBrandCardActionsId === brand.id && (
+                                        <div className="absolute right-0 top-11 z-30 w-44 rounded-2xl border border-slate-200 bg-white shadow-xl p-2">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveReportBrandId(brand.id);
+                                              setSaveTargetBrandId(brand.id);
+                                              setAdminReportBrandFilter(
+                                                brand.id,
+                                              );
+                                              setOpenBrandCardActionsId(null);
+                                            }}
+                                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50"
+                                          >
+                                            Masuk Dashboard
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteAllBrandRawData(
+                                                brand.id,
+                                                brand.name,
+                                              );
+                                              setOpenBrandCardActionsId(null);
+                                            }}
+                                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50"
+                                          >
+                                            Hapus Semua Data
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
+                                </div>
 
-                                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
-                                    <div>
+                                <div className="mt-4 border-t border-slate-100 pt-3">
+                                  <div className="flex min-w-0 items-center justify-between gap-3">
+                                    <div className="min-w-0">
                                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
                                         Total GMV
                                       </span>
-                                      <span className="text-[11px] font-black text-indigo-600 block">
+                                      <span className="text-[11px] font-black text-indigo-600 block truncate">
                                         {new Intl.NumberFormat("id-ID", {
                                           style: "currency",
                                           currency: "IDR",
@@ -16398,29 +16793,82 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         }).format(totalGmvSum)}
                                       </span>
                                     </div>
-                                    <span className="text-[10px] font-black text-indigo-600 group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
-                                      Masuk Dashboard &rarr;
-                                    </span>
+                                    <div className="text-right">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
+                                        Terakhir update
+                                      </span>
+                                      <span className="text-[11px] font-black text-slate-700 block">
+                                        {row.latestActivity
+                                          ? formatDateTimeSafe(row.latestActivity, {
+                                              day: "numeric",
+                                              month: "short",
+                                              year: "numeric",
+                                            })
+                                          : "-"}
+                                      </span>
+                                    </div>
                                   </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveReportBrandId(brand.id);
+                                      setSaveTargetBrandId(brand.id);
+                                      setAdminReportBrandFilter(brand.id);
+                                      setOpenBrandCardActionsId(null);
+                                    }}
+                                    className="mt-3 flex min-h-10 w-full items-center justify-center rounded-xl bg-indigo-600 px-4 text-[11px] font-black text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                  >
+                                    Masuk Dashboard{" "}
+                                    <ArrowRight
+                                      className="ml-1 size-3.5"
+                                      aria-hidden="true"
+                                    />
+                                  </button>
                                 </div>
-                              );
-                            })}
-
-                          {clientBrands.filter((brand) => {
-                            if (!reportBrandSearchQuery.trim()) return true;
-                            const q = reportBrandSearchQuery.toLowerCase();
-                            return (
-                              (brand.name || "").toLowerCase().includes(q) ||
-                              brand.id.toLowerCase().includes(q)
+                              </div>
                             );
-                          }).length === 0 && (
+                          })}
+
+                          {filteredReportBrandRows.length === 0 && (
                             <div className="col-span-full bg-slate-50 border border-slate-200 border-dashed p-10 rounded-3xl text-center text-slate-400 text-xs font-semibold">
-                              {reportBrandSearchQuery
-                                ? "Tidak ada brand klien yang cocok dengan kata kunci pencarian Anda."
+                              {reportBrandSearchQuery ||
+                              reportBrandPlatformFilter !== "Semua Platform" ||
+                              reportBrandStatusFilter !== "Semua Status"
+                                ? "Tidak ada brand yang cocok dengan filter aktif. Coba ubah kata kunci, platform, atau status."
                                 : 'Belum ada Brand Klien terdaftar. Silakan tambahkan brand pada sub-menu "Data Brand" terlebih dahulu.'}
                             </div>
                           )}
                         </div>
+                        {totalReportBrandPages > 1 && (
+                          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
+                            <button
+                              type="button"
+                              disabled={reportBrandPage === 1}
+                              onClick={() =>
+                                setReportBrandPage((p) => Math.max(1, p - 1))
+                              }
+                              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                            >
+                              ← Sebelumnya
+                            </button>
+                            <div className="text-[11px] font-black text-slate-600">
+                              Halaman {reportBrandPage} / {totalReportBrandPages}
+                            </div>
+                            <button
+                              type="button"
+                              disabled={reportBrandPage === totalReportBrandPages}
+                              onClick={() =>
+                                setReportBrandPage((p) =>
+                                  Math.min(totalReportBrandPages, p + 1),
+                                )
+                              }
+                              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                            >
+                              Berikutnya →
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <>
