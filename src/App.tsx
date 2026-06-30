@@ -1342,6 +1342,7 @@ export default function App() {
 
   useEffect(() => {
     let unsubs: any[] = [];
+    let cancelled = false;
 
     const isAdminOrOperator = loggedInAdminId || isOperatorLoggedIn;
     const isHost = loggedInHostId;
@@ -1351,138 +1352,241 @@ export default function App() {
     // MySQL REST API: load semua data sesuai role
     // (tidak ada real-time listener, data di-fetch saat mount)
     const loadAll = async () => {
+      setIsLogsLoading(true);
       try {
+        const loadTasks: Promise<any>[] = [];
+
         // 1. admin_accounts
         if (isGuest || isAdminOrOperator) {
-          adminAccountsApi.getAll().then(_setAdminAccounts).catch((err) => handleQuotaError(err, 'admin_accounts'));
+          loadTasks.push(
+            adminAccountsApi
+              .getAll()
+              .then(_setAdminAccounts)
+              .catch((err) => handleQuotaError(err, "admin_accounts")),
+          );
         }
 
         // 2. hosts
         if (isGuest || isAdminOrOperator || isHost) {
-          hostsApi.getAll().then(_setHosts).catch((err) => handleQuotaError(err, 'hosts'));
+          loadTasks.push(
+            hostsApi
+              .getAll()
+              .then(_setHosts)
+              .catch((err) => handleQuotaError(err, "hosts")),
+          );
         }
 
         // 3. logs
         if (isAdminOrOperator || isHost) {
-          logsApi.getAll().then(_setLogs).catch((err) => handleQuotaError(err, 'logs'));
+          loadTasks.push(
+            logsApi
+              .getAll()
+              .then(_setLogs)
+              .catch((err) => handleQuotaError(err, "logs")),
+          );
         }
 
         // 4. client_brands
         if (isGuest || isAdminOrOperator || isBrand) {
-          clientBrandsApi.getAll().then(_setClientBrands).catch((err) => handleQuotaError(err, 'client_brands'));
+          loadTasks.push(
+            clientBrandsApi
+              .getAll()
+              .then(_setClientBrands)
+              .catch((err) => handleQuotaError(err, "client_brands")),
+          );
         }
 
         // 5. client_leads
         if (isAdminOrOperator) {
-          clientLeadsApi.getAll().then(_setClientLeads).catch((err) => handleQuotaError(err, 'client_leads'));
+          loadTasks.push(
+            clientLeadsApi
+              .getAll()
+              .then(_setClientLeads)
+              .catch((err) => handleQuotaError(err, "client_leads")),
+          );
         }
 
         // 6. schedules
         if (isAdminOrOperator || isHost || isBrand) {
-          schedulesApi.getAll().then(_setSchedules).catch((err) => handleQuotaError(err, 'schedules'));
+          loadTasks.push(
+            schedulesApi
+              .getAll()
+              .then(_setSchedules)
+              .catch((err) => handleQuotaError(err, "schedules")),
+          );
         }
 
         // 7. alerts
         if (isAdminOrOperator) {
-          alertsApi.getAll().then((data) => {
-            // alerts state akan di-set jika ada state untuk itu
-            // jika tidak ada, ignore saja
-          }).catch(console.error);
+          loadTasks.push(
+            alertsApi
+              .getAll()
+              .then((data) => {
+                // alerts state akan di-set jika ada state untuk itu
+                // jika tidak ada, ignore saja
+                return data;
+              })
+              .catch(console.error),
+          );
         }
 
         // Fetch adminCredentials from backend
-        settingsApi.get('adminCredentials').then(data => {
-          if (data && data.username && data.password) {
-            setAdminCredentials(data);
-          }
-        }).catch(err => console.error("Error fetching adminCredentials from API:", err));
+        loadTasks.push(
+          settingsApi
+            .get("adminCredentials")
+            .then((data) => {
+              if (data && data.username && data.password) {
+                setAdminCredentials(data);
+              }
+            })
+            .catch((err) =>
+              console.error("Error fetching adminCredentials from API:", err),
+            ),
+        );
 
         // Global configs — load dari MySQL (dengan fallback ke localStorage)
-        settingsApi.get('liva_global_configs').then(mysqlData => {
-          let data = mysqlData;
-          if (typeof data === 'string') {
-            try { data = JSON.parse(data); } catch (e) {}
-          }
-          if (typeof data === 'string') {
-            try { data = JSON.parse(data); } catch (e) {} // double parse just in case
-          }
+        loadTasks.push(
+          settingsApi
+            .get("liva_global_configs")
+            .then((mysqlData) => {
+              let data = mysqlData;
+              if (typeof data === "string") {
+                try {
+                  data = JSON.parse(data);
+                } catch (e) {}
+              }
+              if (typeof data === "string") {
+                try {
+                  data = JSON.parse(data);
+                } catch (e) {} // double parse just in case
+              }
 
-          if (!data || Object.keys(data).length === 0 || typeof data !== 'object') {
-            // fallback to localStorage jika MySQL kosong
-            const storedConfig = localStorage.getItem('liva_global_configs');
-            if (storedConfig) {
-              try {
-                data = JSON.parse(storedConfig);
-                if (typeof data === 'string') data = JSON.parse(data); // fix corrupted localStorage
+              if (
+                !data ||
+                Object.keys(data).length === 0 ||
+                typeof data !== "object"
+              ) {
+                // fallback to localStorage jika MySQL kosong
+                const storedConfig = localStorage.getItem(
+                  "liva_global_configs",
+                );
+                if (storedConfig) {
+                  try {
+                    data = JSON.parse(storedConfig);
+                    if (typeof data === "string")
+                      data = JSON.parse(data); // fix corrupted localStorage
 
-                // Migrasikan ke MySQL agar sinkron
-                settingsApi.save('liva_global_configs', data).catch(console.error);
-              } catch { /* ignore parse error */ }
-            } else {
-              // Seed default global configs
-              const defaults = {
-                platforms: PLATFORMS,
-                brands: BRANDS,
-                shifts: SHIFTS,
-                studios: [
-                  { id: 'std_1', name: 'Studio Bandar Lampung', location: 'Bandar Lampung' },
-                  { id: 'std_2', name: 'Studio Tanggamus', location: 'Tanggamus' },
-                  { id: 'std_3', name: 'Studio 01', location: 'Bandar Lampung' },
-                  { id: 'std_4', name: 'Studio 02', location: 'Tanggamus' },
-                ],
-                agencyLogoUrl: '',
-                salarySettings: {
-                  workingDays: 26,
-                  bandarLampungRegulerBase: 4000000,
-                  tanggamusRegulerBase: 3500000,
-                  bandarLampungBackupPay: 175000,
-                  tanggamusBackupPay: 150000,
-                  bandarLampungRegulerBonus: 300000,
-                  tanggamusRegulerBonus: 250000,
-                  overtimePayPerHour: 20000,
-                  useCutOff: true,
-                  cutOffStartDay: 16,
-                  cutOffEndDay: 15,
-                },
-                adminCredentials: { username: 'admin', password: 'Liva123@@' },
-                adminShiftChecklistObj: {},
-              };
-              data = defaults;
-              localStorage.setItem('liva_global_configs', JSON.stringify(defaults));
-              settingsApi.save('liva_global_configs', defaults).catch(console.error);
-            }
-          } else {
-             // MySQL has data, save to localStorage for offline cache
-             localStorage.setItem('liva_global_configs', JSON.stringify(data));
-          }
+                    // Migrasikan ke MySQL agar sinkron
+                    settingsApi
+                      .save("liva_global_configs", data)
+                      .catch(console.error);
+                  } catch {
+                    /* ignore parse error */
+                  }
+                } else {
+                  // Seed default global configs
+                  const defaults = {
+                    platforms: PLATFORMS,
+                    brands: BRANDS,
+                    shifts: SHIFTS,
+                    studios: [
+                      {
+                        id: "std_1",
+                        name: "Studio Bandar Lampung",
+                        location: "Bandar Lampung",
+                      },
+                      {
+                        id: "std_2",
+                        name: "Studio Tanggamus",
+                        location: "Tanggamus",
+                      },
+                      {
+                        id: "std_3",
+                        name: "Studio 01",
+                        location: "Bandar Lampung",
+                      },
+                      {
+                        id: "std_4",
+                        name: "Studio 02",
+                        location: "Tanggamus",
+                      },
+                    ],
+                    agencyLogoUrl: "",
+                    salarySettings: {
+                      workingDays: 26,
+                      bandarLampungRegulerBase: 4000000,
+                      tanggamusRegulerBase: 3500000,
+                      bandarLampungBackupPay: 175000,
+                      tanggamusBackupPay: 150000,
+                      bandarLampungRegulerBonus: 300000,
+                      tanggamusRegulerBonus: 250000,
+                      overtimePayPerHour: 20000,
+                      useCutOff: true,
+                      cutOffStartDay: 16,
+                      cutOffEndDay: 15,
+                    },
+                    adminCredentials: {
+                      username: "admin",
+                      password: "Liva123@@",
+                    },
+                    adminShiftChecklistObj: {},
+                  };
+                  data = defaults;
+                  localStorage.setItem(
+                    "liva_global_configs",
+                    JSON.stringify(defaults),
+                  );
+                  settingsApi
+                    .save("liva_global_configs", defaults)
+                    .catch(console.error);
+                }
+              } else {
+                // MySQL has data, save to localStorage for offline cache
+                localStorage.setItem("liva_global_configs", JSON.stringify(data));
+              }
 
-          // Set all the states
-          if (data) {
-            if (Array.isArray(data.brands)) _setBrands(data.brands);
-            if (Array.isArray(data.shifts)) _setShifts(data.shifts);
-            if (Array.isArray(data.studios)) _setStudios(data.studios);
-            if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
-            if (typeof data.agencyLogoUrl === 'string') _setAgencyLogoUrl(data.agencyLogoUrl);
-            if (data.salarySettings) setSalarySettings(data.salarySettings);
-            if (data.adminCredentials) setAdminCredentials(prev => prev.username === 'admin' && prev.password === 'Liva123@@' ? data.adminCredentials : prev);
-            if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
-          }
-        }).catch(err => {
-          console.error("Error loading global configs:", err);
-        }).finally(() => {
-          setIsGlobalConfigsLoaded(true);
-        });
+              // Set all the states
+              if (data) {
+                if (Array.isArray(data.brands)) _setBrands(data.brands);
+                if (Array.isArray(data.shifts)) _setShifts(data.shifts);
+                if (Array.isArray(data.studios)) _setStudios(data.studios);
+                if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
+                if (typeof data.agencyLogoUrl === "string")
+                  _setAgencyLogoUrl(data.agencyLogoUrl);
+                if (data.salarySettings) setSalarySettings(data.salarySettings);
+                if (data.adminCredentials)
+                  setAdminCredentials((prev) =>
+                    prev.username === "admin" && prev.password === "Liva123@@"
+                      ? data.adminCredentials
+                      : prev,
+                  );
+                if (data.adminShiftChecklistObj)
+                  setAdminShiftChecklistObj(data.adminShiftChecklistObj);
+              }
+            })
+            .catch((err) => {
+              console.error("Error loading global configs:", err);
+            }),
+        );
+
+        await Promise.allSettled(loadTasks);
 
       } catch (err) {
         console.error('Error loading initial data:', err);
-        setIsGlobalConfigsLoaded(true);
+      } finally {
+        if (!cancelled) {
+          setIsGlobalConfigsLoaded(true);
+          setIsLogsLoading(false);
+        }
       }
     };
 
     loadAll();
 
     // Tidak ada unsubscribe karena tidak ada listener real-time
-    return () => {};
+    return () => {
+      cancelled = true;
+    };
 
   }, [loggedInHostId, loggedInAdminId, isOperatorLoggedIn, loggedInClientBrandId]);
 
@@ -2388,6 +2492,70 @@ export default function App() {
     (reportBrandPage - 1) * 9,
     reportBrandPage * 9,
   );
+
+  const activeReportBrandUploadHistory = useMemo(() => {
+    if (!activeReportBrandId) return [];
+
+    const brandLogsForHistory = brandPerformanceLogs.filter(
+      (log) =>
+        log.brandId === activeReportBrandId &&
+        log.reportType !== "engagement",
+    );
+
+    const batchesMap = new Map<string, any>();
+    brandLogsForHistory.forEach((log) => {
+      const batchId = log.batchId;
+      if (!batchId) return;
+      if (!batchesMap.has(batchId)) {
+        batchesMap.set(batchId, {
+          id: batchId,
+          brandId: log.brandId,
+          brandName: log.brandName || "Unknown",
+          platform: log.platform || "Unknown",
+          fileName: "Manual Upload / Legacy Import",
+          uploadedAt: log.uploadedAt || new Date(2023, 0, 1).toISOString(),
+          rowCount: 0,
+          gmv: 0,
+        });
+      }
+      const batch = batchesMap.get(batchId);
+      batch.rowCount += 1;
+      batch.gmv += Number(log.gmv) || 0;
+    });
+
+    const existingBatchIds = new Set(
+      brandUploadHistory.map((history) => history.id),
+    );
+    const missingBatches = Array.from(batchesMap.values()).filter(
+      (batch) => !existingBatchIds.has(batch.id),
+    );
+
+    const localHistories = uploadHistory.filter(
+      (history) =>
+        history.brandId === activeReportBrandId &&
+        history.reportType !== "engagement" &&
+        !existingBatchIds.has(history.id),
+    );
+
+    return [
+      ...brandUploadHistory.filter(
+        (history) =>
+          history.brandId === activeReportBrandId &&
+          history.reportType !== "engagement",
+      ),
+      ...missingBatches,
+      ...localHistories,
+    ]
+      .reduce((acc: any[], current: any) => {
+        if (acc.some((item) => item.id === current.id)) return acc;
+        acc.push(current);
+        return acc;
+      }, [])
+      .sort(
+        (a, b) =>
+          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+      );
+  }, [activeReportBrandId, brandPerformanceLogs, brandUploadHistory, uploadHistory]);
 
   useEffect(() => {
     setReportBrandPage(1);
@@ -21566,72 +21734,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                               {/* BATCH UPLOAD HISTORY VIEWER */}
                               {(() => {
-                                const brandLogsForHistory =
-                                  brandPerformanceLogs.filter(
-                                    (log) =>
-                                      log.brandId === activeReportBrandId &&
-                                      log.reportType !== "engagement",
-                                  );
-                                const batchesMap = {} as Record<string, any>;
-                                brandLogsForHistory.forEach((log) => {
-                                  const bId = log.batchId;
-                                  if (!bId) return; // skip if no batchId
-                                  if (!batchesMap[bId]) {
-                                    batchesMap[bId] = {
-                                      id: bId,
-                                      brandId: log.brandId,
-                                      brandName: log.brandName || "Unknown",
-                                      platform: log.platform || "Unknown",
-                                      fileName: `Manual Upload / Legacy Import`,
-                                      uploadedAt:
-                                        log.uploadedAt ||
-                                        new Date(2023, 0, 1).toISOString(),
-                                      rowCount: 0,
-                                      gmv: 0,
-                                    };
-                                  }
-                                  batchesMap[bId].rowCount += 1;
-                                  batchesMap[bId].gmv += Number(log.gmv) || 0;
-                                });
-
-                                const existingBatchIds = new Set(
-                                  brandUploadHistory.map((h) => h.id),
-                                );
-                                const missingBatches = Object.values(
-                                  batchesMap,
-                                ).filter((b) => !existingBatchIds.has(b.id)); // from raw logs
-
-                                // merge local uploadHistory as well
-                                const localHistories = uploadHistory.filter(
-                                  (h) =>
-                                    h.brandId === activeReportBrandId &&
-                                    h.reportType !== "engagement" &&
-                                    !existingBatchIds.has(h.id),
-                                );
-                                const completeUploadHistory = [
-                                  ...brandUploadHistory.filter(
-                                    (h) =>
-                                      h.brandId === activeReportBrandId &&
-                                      h.reportType !== "engagement",
-                                  ),
-                                  ...missingBatches,
-                                  ...localHistories,
-                                ]
-                                  .reduce((acc, current) => {
-                                    const x = acc.find(
-                                      (item: any) => item.id === current.id,
-                                    );
-                                    if (!x) {
-                                      return acc.concat([current]);
-                                    } else {
-                                      return acc;
-                                    }
-                                  }, [])
-                                  .sort(
-                                    (a, b) =>
-                                      new Date(b.uploadedAt).getTime() -
-                                      new Date(a.uploadedAt).getTime(),
-                                  );
+                                const completeUploadHistory =
+                                  activeReportBrandUploadHistory;
 
                                 return (
                                   <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden mt-8">
