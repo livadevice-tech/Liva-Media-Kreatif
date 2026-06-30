@@ -278,6 +278,14 @@ const isPlatformMatch = (lp: string, fp: string) => {
   return val1 === val2 || val1.includes(val2) || val2.includes(val1);
 };
 
+const canonicalPlatformLabel = (value: string) => {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return "";
+  if (normalized.includes("tiktok")) return "TikTok Live";
+  if (normalized.includes("shopee")) return "Shopee Live";
+  return String(value || "").trim();
+};
+
 const formatDisplayDate = (dString: string, platform?: string) => {
   if (!dString) return "";
   const dStr = String(dString);
@@ -2761,10 +2769,14 @@ export default function App() {
   const activeReportBrandPlatforms = useMemo(() => {
     const platformSet = new Set<string>();
     [...activeReportBrandLogs, ...activeReportBrandBatches].forEach((item) => {
-      const platform = String(item.platform || item.platformName || "").trim();
+      const platform = canonicalPlatformLabel(
+        String(item.platform || item.platformName || "").trim(),
+      );
       if (platform) platformSet.add(platform);
     });
-    return Array.from(platformSet).sort((a, b) => a.localeCompare(b));
+    return ["TikTok Live", "Shopee Live"].filter((platform) =>
+      platformSet.has(platform),
+    );
   }, [activeReportBrandLogs, activeReportBrandBatches]);
 
   const activeReportBrandDateRange = useMemo(() => {
@@ -2973,13 +2985,20 @@ export default function App() {
   }, [isGlobalConfigsLoaded, activeReportBrandId, loggedInClientBrandId, reportingReloadKey]);
 
   const availableOperatorPlatforms = useMemo(() => {
-    if (!activeReportBrandId || brandPerformanceLogs.length === 0) return platforms;
+    const basePlatforms = ["TikTok Live", "Shopee Live"];
+    if (!activeReportBrandId || brandPerformanceLogs.length === 0)
+      return basePlatforms;
     const logs = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId);
-    if (logs.length === 0) return platforms;
+    if (logs.length === 0) return basePlatforms;
     const pfData = new Set<string>();
-    logs.forEach(l => { if (l.platform) pfData.add(l.platform); });
-    const res = Array.from(pfData);
-    return res.length > 0 ? res : platforms;
+    logs.forEach(l => {
+      const platform = canonicalPlatformLabel(l.platform || "");
+      if (platform) pfData.add(platform);
+    });
+    const ordered = ["TikTok Live", "Shopee Live"].filter((platform) =>
+      pfData.has(platform),
+    );
+    return ordered.length > 0 ? ordered : basePlatforms;
   }, [activeReportBrandId, brandPerformanceLogs]);
 
   const availableClientPlatforms = useMemo(() => {
@@ -2999,7 +3018,8 @@ export default function App() {
       if (logs.length > 0) {
         const counts: Record<string, number> = {};
         logs.forEach((l) => {
-          if (l.platform) counts[l.platform] = (counts[l.platform] || 0) + 1;
+          const platform = canonicalPlatformLabel(l.platform || "");
+          if (platform) counts[platform] = (counts[platform] || 0) + 1;
         });
         let topPf = "TikTok Live";
         let max = -1;
@@ -3019,7 +3039,8 @@ export default function App() {
       if (logs.length > 0) {
         const counts: Record<string, number> = {};
         logs.forEach((l) => {
-          if (l.platform) counts[l.platform] = (counts[l.platform] || 0) + 1;
+          const platform = canonicalPlatformLabel(l.platform || "");
+          if (platform) counts[platform] = (counts[platform] || 0) + 1;
         });
         let topPf = "TikTok Live";
         let max = -1;
@@ -16945,7 +16966,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   {isReportBrandPlatformMenuOpen && (
                                     <div className="absolute left-0 top-full z-40 mt-2 w-full overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white p-2 shadow-[0_20px_50px_rgba(27,28,28,0.12)]">
                                       <div className="space-y-1">
-                                        {["Semua Platform", ...availableOperatorPlatforms].map((platform) => (
+                                        {availableOperatorPlatforms.map((platform) => (
                                           <button
                                             key={platform}
                                             type="button"
