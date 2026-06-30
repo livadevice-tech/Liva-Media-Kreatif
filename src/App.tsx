@@ -18,11 +18,13 @@ import * as XLSX from "xlsx";
 import {
   LineChart as RechartsLineChart,
   Line,
+  AreaChart,
   Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   Pie,
   Cell,
@@ -105,11 +107,6 @@ import {
   FileText,
   Settings,
   FolderOpen,
-  UserCog,
-  CheckCircle,
-  Phone,
-  Mail,
-  Paperclip,
 } from "lucide-react";
 
 import {
@@ -141,81 +138,11 @@ import {
   clientLeadsApi,
   adminAccountsApi,
   settingsApi,
-  reportingBrandApi,
   testDbConnection,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
 import { QuickGridInput } from "./components/QuickGridInput";
-import { TikTokLiveFunnel } from "./components/reporting/TikTokLiveFunnel";
-import { ShopeeLiveMetricsGrid } from "./components/reporting/ShopeeLiveMetricsGrid";
-import type { ShopeeLiveMetric } from "./components/reporting/ShopeeLiveMetricsGrid";
-
-const ReportingTableStatusRow = ({
-  colSpan,
-  loading,
-  error,
-  onRetry,
-}: {
-  colSpan: number;
-  loading: boolean;
-  error: string | null;
-  onRetry: () => void;
-}) => (
-  loading ? (
-    <>
-      {Array.from({ length: 4 }).map((_, idx) => (
-        <tr key={`reporting-skeleton-${idx}`} className="border-b border-slate-50">
-          <td colSpan={colSpan} className="px-5 py-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="grid gap-3 sm:grid-cols-4">
-                <div className="space-y-2">
-                  <div className="h-3 w-20 rounded-full bg-slate-200" />
-                  <div className="h-4 w-24 rounded-full bg-slate-300" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-3 w-24 rounded-full bg-slate-200" />
-                  <div className="h-4 w-32 rounded-full bg-slate-300" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-3 w-20 rounded-full bg-slate-200" />
-                  <div className="h-4 w-16 rounded-full bg-slate-300" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-3 w-24 rounded-full bg-slate-200" />
-                  <div className="h-4 w-28 rounded-full bg-slate-300" />
-                </div>
-              </div>
-            </div>
-          </td>
-        </tr>
-      ))}
-    </>
-  ) : (
-    <tr>
-      <td
-        colSpan={colSpan}
-        className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-      >
-        <div className="flex flex-col items-center justify-center gap-4">
-          <AlertTriangle className="w-10 h-10 text-amber-500" />
-          <div className="max-w-md">
-            <p className="text-slate-700">Data reporting gagal dimuat.</p>
-            <p className="mt-1 text-xs font-medium text-slate-500">{error}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Coba Lagi
-          </button>
-        </div>
-      </td>
-    </tr>
-  )
-);
 
 const getAvatarUrl = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Host")}&background=f3e8ff&color=7e22ce&bold=true`;
@@ -240,32 +167,6 @@ function saveLocalConfig(partialConfig: Record<string, any>): void {
   }
 }
 
-function pruneLocalConfig(keysToRemove: string[]): void {
-  try {
-    const existing = localStorage.getItem('liva_global_configs');
-    if (!existing) return;
-    const current = JSON.parse(existing);
-    if (!current || typeof current !== "object") return;
-
-    let changed = false;
-    for (const key of keysToRemove) {
-      if (key in current) {
-        delete current[key];
-        changed = true;
-      }
-    }
-
-    if (!changed) return;
-
-    localStorage.setItem('liva_global_configs', JSON.stringify(current));
-    if (typeof settingsApi !== 'undefined') {
-      settingsApi.save('liva_global_configs', current).catch(console.error);
-    }
-  } catch (e) {
-    console.error('pruneLocalConfig error:', e);
-  }
-}
-
 const isPlatformMatch = (lp: string, fp: string) => {
   if (!fp || fp === "Semua Platform") return true;
   if (!lp) return false;
@@ -276,14 +177,6 @@ const isPlatformMatch = (lp: string, fp: string) => {
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
   return val1 === val2 || val1.includes(val2) || val2.includes(val1);
-};
-
-const canonicalPlatformLabel = (value: string) => {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (!normalized) return "";
-  if (normalized.includes("tiktok")) return "TikTok Live";
-  if (normalized.includes("shopee")) return "Shopee Live";
-  return String(value || "").trim();
 };
 
 const formatDisplayDate = (dString: string, platform?: string) => {
@@ -332,130 +225,6 @@ const normalizeDateYMD = (d: string) => {
     }
   }
   return norm;
-};
-
-const parseChartDateSafe = (value: unknown) => {
-  if (value === null || value === undefined) return null;
-  const raw = String(value).trim();
-  if (!raw) return null;
-
-  const normalized = normalizeDateYMD(raw);
-  const candidates = [normalized, raw];
-
-  for (const candidate of candidates) {
-    if (!candidate) continue;
-
-    const parsed = new Date(candidate);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed;
-    }
-
-    if (/^\d{4}-\d{2}$/.test(candidate)) {
-      const monthParsed = new Date(`${candidate}-01T00:00:00`);
-      if (!Number.isNaN(monthParsed.getTime())) {
-        return monthParsed;
-      }
-    }
-  }
-
-  return null;
-};
-
-const formatChartDateSafe = (
-  value: unknown,
-  options: Intl.DateTimeFormatOptions,
-) => {
-  const parsed = parseChartDateSafe(value);
-  if (!parsed) return String(value ?? "");
-  return new Intl.DateTimeFormat("id-ID", options).format(parsed);
-};
-
-const formatDateTimeSafe = (
-  value: unknown,
-  options: Intl.DateTimeFormatOptions = {},
-) => {
-  const parsed = parseChartDateSafe(value);
-  if (!parsed) return String(value ?? "");
-  return new Intl.DateTimeFormat("id-ID", options).format(parsed);
-};
-
-const inferShopeeReportingKind = (headers: string[], fileNameLower: string) => {
-  const h = headers.map((x) => String(x || "").toLowerCase().trim());
-
-  const hasLiveSignals = h.some(
-    (col) =>
-      col.includes("nama livestream") ||
-      col.includes("livestream name") ||
-      col.includes("start time") ||
-      col.includes("waktu mulai") ||
-      col.includes("durasi") ||
-      col.includes("penjualan(pesanan dibuat)") ||
-      col.includes("penjualan(pesanan siap dikirim)") ||
-      col.includes("produk terjual(pesanan dibuat)") ||
-      col.includes("produk terjual(pesanan siap dikirim)") ||
-      col.includes("pesanan(pesanan dibuat)") ||
-      col.includes("pesanan(pesanan siap dikirim)") ||
-      col.includes("gmv") ||
-      col.includes("perolehan") ||
-      col.includes("omset") ||
-      col.includes("pendapatan"),
-  );
-
-  if (hasLiveSignals) return "live";
-
-  const isEngagement = h.some(
-    (col) =>
-      col.includes("dilihat") ||
-      col.includes("suka") ||
-      col.includes("share") ||
-      col.includes("komentar") ||
-      col.includes("voucher toko diklaim") ||
-      col.includes("voucher spesial live diklaim") ||
-      col.includes("koin diklaim") ||
-      col.includes("persentase klik") ||
-      col.includes("pengikut baru dari livestream"),
-  );
-
-  if (isEngagement) return "engagement";
-
-  const isLive = h.some(
-    (col) =>
-      col.includes("nama livestream") ||
-      col.includes("livestream name") ||
-      col.includes("start time") ||
-      col.includes("waktu mulai") ||
-      col.includes("durasi") ||
-      col.includes("penjualan(pesanan dibuat)") ||
-      col.includes("penjualan(pesanan siap dikirim)") ||
-      col.includes("produk terjual(pesanan dibuat)") ||
-      col.includes("produk terjual(pesanan siap dikirim)") ||
-      col.includes("pesanan(pesanan dibuat)") ||
-      col.includes("pesanan(pesanan siap dikirim)"),
-  );
-
-  if (isLive) return "live";
-
-  if (fileNameLower.includes("engagement")) return "engagement";
-  return "live";
-};
-
-const getReportingSourceKind = (platform: string, reportType: string) => {
-  const platformLower = String(platform || "").toLowerCase();
-  const reportLower = String(reportType || "").toLowerCase();
-  if (platformLower.includes("tiktok")) {
-    return reportLower === "engagement" ? "tiktok_engagement" : "tiktok_live";
-  }
-  if (platformLower.includes("shopee")) {
-    return reportLower === "engagement" ? "shopee_engagement" : "shopee_live";
-  }
-  return reportLower || "unknown";
-};
-
-const getProductSourceKind = (platform: string) => {
-  const platformLower = String(platform || "").toLowerCase();
-  if (platformLower.includes("tiktok")) return "tiktok_product";
-  if (platformLower.includes("shopee")) return "shopee_product";
-  return "product";
 };
 
 // Dynamic color generators for Brand, Shift, and Studio to boost UX readability
@@ -607,95 +376,6 @@ const PercentBadge = ({ cur, prev }: { cur: number; prev: number }) => {
     </div>
   );
 };
-
-const buildShopeeLiveMetrics = ({
-  periodLabel,
-  gmv,
-  prevGmv,
-  orders,
-  prevOrders,
-  avgViewDuration,
-  prevAvgViewDuration,
-  peakViewers,
-  prevPeakViewers,
-  aov,
-  prevAov,
-  conversionRate,
-  prevConversionRate,
-}: {
-  periodLabel: string;
-  gmv: number;
-  prevGmv: number;
-  orders: number;
-  prevOrders: number;
-  avgViewDuration: number;
-  prevAvgViewDuration: number;
-  peakViewers: number;
-  prevPeakViewers: number;
-  aov: number;
-  prevAov: number;
-  conversionRate: number;
-  prevConversionRate: number;
-}): ShopeeLiveMetric[] => [
-  {
-    title: "GMV",
-    value: `Rp ${new Intl.NumberFormat("id-ID", {
-      maximumFractionDigits: 0,
-    }).format(gmv)}`,
-    current: gmv,
-    previous: prevGmv,
-    periodLabel,
-    icon: <DollarSign className="h-5 w-5" />,
-    tone: "violet",
-  },
-  {
-    title: "Orders",
-    value: new Intl.NumberFormat("id-ID").format(orders),
-    current: orders,
-    previous: prevOrders,
-    periodLabel,
-    icon: <Package className="h-5 w-5" />,
-    tone: "blue",
-  },
-  {
-    title: "Avg. Viewer Duration",
-    value: `${avgViewDuration.toFixed(2)}s`,
-    current: avgViewDuration,
-    previous: prevAvgViewDuration,
-    periodLabel,
-    icon: <Clock className="h-5 w-5" />,
-    tone: "amber",
-  },
-  {
-    title: "Peak View",
-    value: new Intl.NumberFormat("id-ID").format(Math.round(peakViewers)),
-    current: peakViewers,
-    previous: prevPeakViewers,
-    periodLabel,
-    icon: <TrendingUp className="h-5 w-5" />,
-    tone: "emerald",
-  },
-  {
-    title: "AOV",
-    value: `Rp ${new Intl.NumberFormat("id-ID", {
-      maximumFractionDigits: 0,
-    }).format(aov)}`,
-    current: aov,
-    previous: prevAov,
-    periodLabel,
-    icon: <Calculator className="h-5 w-5" />,
-    tone: "indigo",
-  },
-  {
-    title: "Conversion Rate %",
-    value: `${conversionRate.toFixed(2)}%`,
-    current: conversionRate,
-    previous: prevConversionRate,
-    periodLabel,
-    icon: <Percent className="h-5 w-5" />,
-    tone: "green",
-  },
-];
 
 export function LivaLogo({
   className = "h-11",
@@ -1342,17 +1022,18 @@ export default function App() {
   const [uploadPlatform, setUploadPlatform] = useState<string>("Tiktok");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadHistory, setUploadHistory] = useState<any[]>([]);
-  const legacyReportingConfigRef = useRef<{
-    uploadHistory?: any[];
-    brandUploadHistory?: any[];
-    brandPerformanceLogs?: any[];
-  } | null>(null);
+
+  useEffect(() => {
+    if (isGlobalConfigsLoaded && uploadHistory.length > 0) {
+      saveLocalConfig({ uploadHistory });
+    }
+  }, [uploadHistory, isGlobalConfigsLoaded]);
 
 
   const [brandReports, setBrandReports] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
-    if (isGlobalConfigsLoaded) {
+    if (isGlobalConfigsLoaded && Object.keys(brandReports).length > 0) {
       saveLocalConfig({ brandReports });
     }
   }, [brandReports, isGlobalConfigsLoaded]);
@@ -1364,9 +1045,7 @@ export default function App() {
   );
   const [tempSalaryValue, setTempSalaryValue] = useState<string>("");
   const [copiedSalaryHostId, setCopiedSalaryHostId] = useState<string | null>(null);
-  const [copiedBankHostId, setCopiedBankHostId] = useState<string | null>(null);
   const [pendingDeleteLogId, setPendingDeleteLogId] = useState<string | null>(null);
-  const [hostCredentialFilter, setHostCredentialFilter] = useState<string>("Semua");
 
   const [activeReportPlatform, setActiveReportPlatform] =
     useState<string>("Tiktok");
@@ -1414,7 +1093,6 @@ export default function App() {
   const [importSpreadsheetUrl, setImportSpreadsheetUrl] = useState<string>("");
 
   const [isDeleteByDateModalOpen, setIsDeleteByDateModalOpen] = useState(false);
-  const [isEditRawDataModalOpen, setIsEditRawDataModalOpen] = useState(false);
   const [deleteByDateStart, setDeleteByDateStart] = useState("");
   const [deleteByDateEnd, setDeleteByDateEnd] = useState("");
 
@@ -1587,16 +1265,11 @@ export default function App() {
     tanggamusBackupPay: 150000, // Gaji per Shift Tanggamus
     bandarLampungRegulerBonus: 300000, // Bonus Bulanan Bandar Lampung untuk 100% Hadir & <=3x Terlambat
     tanggamusRegulerBonus: 250000, // Bonus Bulanan Tanggamus untuk 100% Hadir & <=3x Terlambat
-    timelyIncentive: 300000, // Bonus kehadiran umum
-    latePenalty: 0, // Potongan keterlambatan umum
     overtimePayPerHour: 20000, // Nominal Gaji Lembur per Jam
     useCutOff: true, // Aktifkan Cut Off (mulai tanggal 16 ke tanggal 15 bulan depannya)
     cutOffStartDay: 16,
     cutOffEndDay: 15,
   });
-  const [payrollKasbonByHostId, setPayrollKasbonByHostId] = useState<
-    Record<string, number>
-  >({});
 
   const [loggedInClientBrandId, setLoggedInClientBrandId] = useState<
     string | null
@@ -1607,9 +1280,6 @@ export default function App() {
   const [loggedInHostId, setLoggedInHostId] = useState<string | null>(() => {
     return sessionStorage.getItem("mcn_logged_in_host_id") || null;
   });
-
-  const [isHostProfileModalOpen, setIsHostProfileModalOpen] = useState(false);
-  const [hostProfileForm, setHostProfileForm] = useState({ phone: "", bankAccount: "", bankName: "" });
 
   const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(() => {
     return sessionStorage.getItem("mcn_logged_in_admin_id") || null;
@@ -1643,14 +1313,6 @@ export default function App() {
     }, 1000);
     return () => clearTimeout(timer);
   }, [salarySettings, isGlobalConfigsLoaded]);
-
-  useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
-    const timer = setTimeout(() => {
-      saveLocalConfig({ payrollKasbonByHostId });
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [payrollKasbonByHostId, isGlobalConfigsLoaded]);
 
   // Simpan spreadsheet settings ke localStorage
   useEffect(() => {
@@ -1761,14 +1423,11 @@ export default function App() {
                   tanggamusBackupPay: 150000,
                   bandarLampungRegulerBonus: 300000,
                   tanggamusRegulerBonus: 250000,
-                  timelyIncentive: 300000,
-                  latePenalty: 0,
                   overtimePayPerHour: 20000,
                   useCutOff: true,
                   cutOffStartDay: 16,
                   cutOffEndDay: 15,
                 },
-                payrollKasbonByHostId: {},
                 adminCredentials: { username: 'admin', password: 'Liva123@@' },
                 adminShiftChecklistObj: {},
               };
@@ -1783,31 +1442,12 @@ export default function App() {
 
           // Set all the states
           if (data) {
-            if (
-              Array.isArray(data.uploadHistory) ||
-              Array.isArray(data.brandUploadHistory) ||
-              Array.isArray(data.brandPerformanceLogs)
-            ) {
-              legacyReportingConfigRef.current = {
-                uploadHistory: Array.isArray(data.uploadHistory) ? data.uploadHistory : undefined,
-                brandUploadHistory: Array.isArray(data.brandUploadHistory) ? data.brandUploadHistory : undefined,
-                brandPerformanceLogs: Array.isArray(data.brandPerformanceLogs) ? data.brandPerformanceLogs : undefined,
-              };
-            }
-            if (Array.isArray(data.uploadHistory)) setUploadHistory(data.uploadHistory);
-            if (Array.isArray(data.brandUploadHistory)) setBrandUploadHistory(data.brandUploadHistory);
-            if (Array.isArray(data.brandPerformanceLogs)) setBrandPerformanceLogs(data.brandPerformanceLogs);
             if (Array.isArray(data.brands)) _setBrands(data.brands);
             if (Array.isArray(data.shifts)) _setShifts(data.shifts);
             if (Array.isArray(data.studios)) _setStudios(data.studios);
             if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
             if (typeof data.agencyLogoUrl === 'string') _setAgencyLogoUrl(data.agencyLogoUrl);
-            if (data.salarySettings) {
-              setSalarySettings((prev) => ({ ...prev, ...data.salarySettings }));
-            }
-            if (data.payrollKasbonByHostId && typeof data.payrollKasbonByHostId === "object") {
-              setPayrollKasbonByHostId(data.payrollKasbonByHostId);
-            }
+            if (data.salarySettings) setSalarySettings(data.salarySettings);
             if (data.adminCredentials) setAdminCredentials(prev => prev.username === 'admin' && prev.password === 'Liva123@@' ? data.adminCredentials : prev);
             if (data.adminShiftChecklistObj) setAdminShiftChecklistObj(data.adminShiftChecklistObj);
           }
@@ -1927,67 +1567,8 @@ export default function App() {
   const [clientLoginUsername, setClientLoginUsername] = useState<string>("");
   const [clientLoginPass, setClientLoginPass] = useState<string>("");
   const [brandPerformanceLogs, setBrandPerformanceLogs] = useState<any[]>([]);
-  const [isReportingDataLoading, setIsReportingDataLoading] = useState(false);
-  const [reportingDataError, setReportingDataError] = useState<string | null>(null);
-  const [reportingReloadKey, setReportingReloadKey] = useState(0);
+  const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
   const [brandUploadHistory, setBrandUploadHistory] = useState<any[]>([]);
-  const [brandReportingSummary, setBrandReportingSummary] = useState<Record<string, {
-    brandId: string;
-    brandName: string;
-    sessionCount: number;
-    batchCount: number;
-    totalGmv: number;
-  }>>({});
-
-  const refreshReportingSummary = useCallback(async () => {
-    try {
-      const summaryRows = await reportingBrandApi.getSummary();
-      const nextSummary: Record<string, {
-        brandId: string;
-        brandName: string;
-        sessionCount: number;
-        batchCount: number;
-        totalGmv: number;
-      }> = {};
-
-      for (const row of summaryRows || []) {
-        if (!row?.brandId) continue;
-        nextSummary[row.brandId] = {
-          brandId: row.brandId,
-          brandName: row.brandName || "",
-          sessionCount: Number(row.sessionCount || 0),
-          batchCount: Number(row.batchCount || 0),
-          totalGmv: Number(row.totalGmv || 0),
-        };
-      }
-
-      setBrandReportingSummary(nextSummary);
-
-      const hasBackendReporting = Object.values(nextSummary).some((item) => item.sessionCount > 0 || item.batchCount > 0);
-      const legacy = legacyReportingConfigRef.current;
-      if (hasBackendReporting && legacy) {
-        pruneLocalConfig(["uploadHistory", "brandUploadHistory", "brandPerformanceLogs"]);
-        legacyReportingConfigRef.current = null;
-      }
-    } catch (err) {
-      console.error("Error refreshing reporting summary:", err);
-    }
-  }, []);
-
-  const syncReportingDeletion = useCallback(async (payload: { batchIds?: string[]; logIds?: string[] }) => {
-    try {
-      await reportingBrandApi.deleteMany(payload);
-    } catch (err) {
-      console.error("Gagal sinkronisasi delete reporting ke backend:", err);
-      addNotification(
-        "⚠️ Sinkronisasi Delete",
-        "Perubahan di lokal sudah tersimpan, tetapi backend reporting perlu dicek ulang.",
-        "warning",
-        "reporting_brand",
-      );
-    }
-  }, []);
-
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [clientDateFilterType, setClientDateFilterType] = useState<
     "latest" | "all" | "month" | "weekly" | "custom"
@@ -2140,6 +1721,15 @@ export default function App() {
   // Admin credentials & login session
   const [adminCredentials, setAdminCredentials] = useState<{ username: string; password: string }>({ username: "admin", password: "Liva123@@" });
 
+  useEffect(() => {
+    if (!isGlobalConfigsLoaded) return;
+    const timer = setTimeout(() => {
+      saveLocalConfig({ adminCredentials });
+      settingsApi.save('adminCredentials', adminCredentials).catch(console.error);
+    }, 1000); // 1-second debounce
+    return () => clearTimeout(timer);
+  }, [adminCredentials, isGlobalConfigsLoaded]);
+
   const [adminAccounts, _setAdminAccounts] = useState<AdminAccount[]>([]);
   const setAdminAccounts = useCallback((action: any) => {
     _setAdminAccounts((prev) => {
@@ -2204,7 +1794,6 @@ export default function App() {
   const [newHostStudio, setNewHostStudio] = useState("Studio Bandar Lampung");
   const [newHostPhone, setNewHostPhone] = useState("");
   const [newHostBank, setNewHostBank] = useState("");
-  const [newHostBankName, setNewHostBankName] = useState("");
   const [newHostUser, setNewHostUser] = useState("");
   const [newHostPass, setNewHostPass] = useState("");
   const [newHostWorkingDaysTarget, setNewHostWorkingDaysTarget] =
@@ -2214,29 +1803,16 @@ export default function App() {
     hostId: string,
     updatedFields: Partial<HostEmployee>,
   ) => {
-    const currentHost = hosts.find((h) => h.id === hostId);
-    if (!currentHost) return;
-
-    const nextHost = { ...currentHost, ...updatedFields };
-
-    hostsApi
-      .update(hostId, nextHost)
-      .then(() => {
-        setHosts((prev) =>
-          prev.map((h) => {
-            if (h.id === hostId) {
-              return nextHost;
-            }
-            return h;
-          }),
-        );
-        customAlert("Data host berhasil diperbarui di database!");
-        setTimeout(() => {}, 4000);
-      })
-      .catch((err) => {
-        console.error("Gagal memperbarui host:", err);
-        customAlert("Gagal memperbarui data host. Coba lagi.");
-      });
+    setHosts((prev) =>
+      prev.map((h) => {
+        if (h.id === hostId) {
+          return { ...h, ...updatedFields };
+        }
+        return h;
+      }),
+    );
+    customAlert("Data host berhasil diperbarui di database!");
+    setTimeout(() => {}, 4000);
   };
 
   const handleAvatarUpload = (hostId: string, file: File) => {
@@ -2276,7 +1852,6 @@ export default function App() {
     role: string;
     phone: string;
     bankAccount: string;
-    bankName?: string;
     studio?: string;
     username?: string;
     password?: string;
@@ -2307,7 +1882,6 @@ export default function App() {
       studio: newHostData.studio || "Studio Bandar Lampung",
       phone: newHostData.phone || "+62 812-0000-0000",
       bankAccount: newHostData.bankAccount || "-",
-      bankName: newHostData.bankName?.trim() || "",
       username: (
         newHostData.username ||
         newHostData.name.toLowerCase().replace(/\s+/g, "")
@@ -2323,17 +1897,9 @@ export default function App() {
       customWorkingDaysTarget: newHostData.customWorkingDaysTarget,
     };
 
-    hostsApi
-      .create(newHost)
-      .then(() => {
-        setHosts((prev) => [...prev, newHost]);
-        customAlert(`Host "${newHost.name}" berhasil didaftarkan ke sistem!`);
-        setTimeout(() => {}, 4000);
-      })
-      .catch((err) => {
-        console.error("Gagal menambahkan host:", err);
-        customAlert("Gagal mendaftarkan host baru. Coba lagi.");
-      });
+    setHosts((prev) => [...prev, newHost]);
+    customAlert(`Host "${newHost.name}" berhasil didaftarkan ke sistem!`);
+    setTimeout(() => {}, 4000);
   };
 
   const handleDeleteHost = (hostId: string) => {
@@ -2343,22 +1909,14 @@ export default function App() {
       return;
     }
     const hostToDelete = hosts.find((h) => h.id === hostId);
-    hostsApi
-      .delete(hostId)
-      .then(() => {
-        setHosts((prev) => prev.filter((h) => h.id !== hostId));
-        customAlert(`Host "${hostToDelete?.name || hostId}" berhasil dihapus.`);
-        setTimeout(() => {}, 4000);
+    setHosts((prev) => prev.filter((h) => h.id !== hostId));
+    customAlert(`Host "${hostToDelete?.name || hostId}" berhasil dihapus.`);
+    setTimeout(() => {}, 4000);
 
-        // Safety check: if host logged in, logout
-        if (loggedInHostId === hostId) {
-          setLoggedInHostId(null);
-        }
-      })
-      .catch((err) => {
-        console.error("Gagal menghapus host:", err);
-        customAlert("Gagal menghapus host. Coba lagi.");
-      });
+    // Safety check: if host logged in, logout
+    if (loggedInHostId === hostId) {
+      setLoggedInHostId(null);
+    }
   };
 
   // Current logged in host details
@@ -2586,25 +2144,7 @@ export default function App() {
   const [activeReportBrandId, setActiveReportBrandId] = useState<string | null>(
     null,
   );
-  const [isReportBrandDateMenuOpen, setIsReportBrandDateMenuOpen] = useState(false);
-  const [isReportBrandDateCustomOpen, setIsReportBrandDateCustomOpen] = useState(false);
-  const [isReportBrandPlatformMenuOpen, setIsReportBrandPlatformMenuOpen] =
-    useState(false);
-  const reportBrandDateMenuRef = useRef<HTMLDivElement>(null);
-  const reportBrandPlatformMenuRef = useRef<HTMLDivElement>(null);
-  const [openBrandCardActionsId, setOpenBrandCardActionsId] = useState<
-    string | null
-  >(null);
   const [reportBrandSearchQuery, setReportBrandSearchQuery] = useState("");
-  const [reportBrandPlatformFilter, setReportBrandPlatformFilter] =
-    useState("Semua Platform");
-  const [reportBrandStatusFilter, setReportBrandStatusFilter] = useState(
-    "Semua Status",
-  );
-  const [reportBrandSortKey, setReportBrandSortKey] = useState(
-    "latest_activity",
-  );
-  const [reportBrandPage, setReportBrandPage] = useState(1);
   const [reportDbSearchQuery, setReportDbSearchQuery] = useState("");
   const [reportDbSortCol, setReportDbSortCol] = useState("date");
   const [reportDbSortAsc, setReportDbSortAsc] = useState(false);
@@ -2614,391 +2154,14 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 30;
 
-  useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
-    refreshReportingSummary();
-  }, [isGlobalConfigsLoaded, refreshReportingSummary]);
-
-  useEffect(() => {
-    if (!openBrandCardActionsId) return;
-    const handleClickOutsideBrandActions = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        !target.closest('[data-brand-card-actions="true"]')
-      ) {
-        setOpenBrandCardActionsId(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutsideBrandActions);
-    return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutsideBrandActions,
-      );
-    };
-  }, [openBrandCardActionsId]);
-
-  useEffect(() => {
-    if (!isReportBrandDateMenuOpen && !isReportBrandPlatformMenuOpen) return;
-    const handleClickOutsideReportBrandMenus = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        isReportBrandDateMenuOpen &&
-        reportBrandDateMenuRef.current &&
-        !reportBrandDateMenuRef.current.contains(target)
-      ) {
-        setIsReportBrandDateMenuOpen(false);
-        setIsReportBrandDateCustomOpen(false);
-      }
-      if (
-        isReportBrandPlatformMenuOpen &&
-        reportBrandPlatformMenuRef.current &&
-        !reportBrandPlatformMenuRef.current.contains(target)
-      ) {
-        setIsReportBrandPlatformMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutsideReportBrandMenus);
-    return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutsideReportBrandMenus,
-      );
-    };
-  }, [isReportBrandDateMenuOpen, isReportBrandPlatformMenuOpen]);
-
-  useEffect(() => {
-    setReportBrandPage(1);
-  }, [
-    reportBrandSearchQuery,
-    reportBrandPlatformFilter,
-    reportBrandStatusFilter,
-    reportBrandSortKey,
-  ]);
-
-  const reportBrandOverviewRows = useMemo(() => {
-    return clientBrands.map((brand) => {
-      const summary = brandReportingSummary[brand.id];
-      const logs = brandPerformanceLogs.filter(
-        (log) => log.brandId === brand.id,
-      );
-      const batches = brandUploadHistory.filter(
-        (batch) => batch.brandId === brand.id,
-      );
-      const platforms = Array.from(
-        new Set(
-          [...logs, ...batches]
-            .map(
-              (item) =>
-                String(item.platform || item.platformName || "").trim(),
-            )
-            .filter(Boolean),
-        ),
-      ).sort((a, b) => a.localeCompare(b));
-      const totalGmv =
-        summary?.totalGmv ??
-        logs.reduce((sum, log) => sum + (Number(log.gmv) || 0), 0);
-      const sessionCount = summary?.sessionCount ?? logs.length;
-      const batchCount = summary?.batchCount ?? batches.length;
-      const hasData = sessionCount > 0 || batchCount > 0 || totalGmv > 0;
-      const latestActivity = [...logs, ...batches]
-        .map((item) => {
-          const rawDate = item.date || item.createdAt || item.uploadedAt || item.timestamp || "";
-          const ts = new Date(rawDate).getTime();
-          return Number.isFinite(ts) ? ts : 0;
-        })
-        .filter((ts) => ts > 0)
-        .sort((a, b) => b - a)[0] || 0;
-
-      return {
-        brand,
-        summary,
-        platforms,
-        totalGmv,
-        sessionCount,
-        batchCount,
-        hasData,
-        latestActivity,
-      };
-    });
-  }, [clientBrands, brandReportingSummary, brandPerformanceLogs, brandUploadHistory]);
-
-  const availableReportBrandPlatforms = useMemo(() => {
-    const base = Array.from(
-      new Set(reportBrandOverviewRows.flatMap((row) => row.platforms)),
-    ).filter(Boolean);
-    return base.length > 0 ? base : ["Shopee Live", "Tiktok Live"];
-  }, [reportBrandOverviewRows]);
-
-  const reportBrandOverviewStats = useMemo(() => {
-    const totalBrands = reportBrandOverviewRows.length;
-    const activeBrands = reportBrandOverviewRows.filter((row) => row.hasData).length;
-    const totalSessions = reportBrandOverviewRows.reduce(
-      (sum, row) => sum + row.sessionCount,
-      0,
-    );
-    const totalGmv = reportBrandOverviewRows.reduce(
-      (sum, row) => sum + row.totalGmv,
-      0,
-    );
-    return {
-      totalBrands,
-      activeBrands,
-      totalSessions,
-      totalGmv,
-    };
-  }, [reportBrandOverviewRows]);
-
-  const activeReportBrand = useMemo(
-    () => clientBrands.find((brand) => brand.id === activeReportBrandId) || null,
-    [clientBrands, activeReportBrandId],
-  );
-
-  const activeReportBrandLogs = useMemo(() => {
-    if (!activeReportBrandId) return [];
-    return brandPerformanceLogs.filter((log) => log.brandId === activeReportBrandId);
-  }, [activeReportBrandId, brandPerformanceLogs]);
-
-  const activeReportBrandBatches = useMemo(() => {
-    if (!activeReportBrandId) return [];
-    return brandUploadHistory.filter((batch) => batch.brandId === activeReportBrandId);
-  }, [activeReportBrandId, brandUploadHistory]);
-
-  const activeReportBrandPlatforms = useMemo(() => {
-    const platformSet = new Set<string>();
-    [...activeReportBrandLogs, ...activeReportBrandBatches].forEach((item) => {
-      const platform = canonicalPlatformLabel(
-        String(item.platform || item.platformName || "").trim(),
-      );
-      if (platform) platformSet.add(platform);
-    });
-    return ["TikTok Live", "Shopee Live"].filter((platform) =>
-      platformSet.has(platform),
-    );
-  }, [activeReportBrandLogs, activeReportBrandBatches]);
-
-  const activeReportBrandDateRange = useMemo(() => {
-    const timestamps = [...activeReportBrandLogs, ...activeReportBrandBatches]
-      .map((item) => {
-        const rawDate = item.date || item.createdAt || item.uploadedAt || item.timestamp || "";
-        const normalized = normalizeDateYMD(String(rawDate));
-        const ts = new Date(normalized || rawDate).getTime();
-        return Number.isFinite(ts) ? ts : 0;
-      })
-      .filter((ts) => ts > 0)
-      .sort((a, b) => a - b);
-
-    if (timestamps.length === 0) return "Belum ada rentang data";
-
-    const formatter = new Intl.DateTimeFormat("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-
-    const start = formatter.format(new Date(timestamps[0]));
-    const end = formatter.format(new Date(timestamps[timestamps.length - 1]));
-    return start === end ? start : `${start} - ${end}`;
-  }, [activeReportBrandLogs, activeReportBrandBatches]);
-
-  const activeReportBrandDateLabel = useMemo(() => {
-    const formatShortDate = (dateStr: string) => {
-      if (!dateStr) return "";
-      const parsed = new Date(dateStr);
-      if (Number.isNaN(parsed.getTime())) return dateStr;
-      return new Intl.DateTimeFormat("id-ID", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }).format(parsed);
-    };
-
-    if (operatorDateFilterType === "latest") {
-      return "Terbaru";
-    }
-    if (operatorDateFilterType === "month") {
-      return `${getIndonesianMonthLabel(operatorSelectedMonth)} ${operatorSelectedMonth.split("-")[0]}`;
-    }
-    if (
-      operatorDateFilterType === "custom" &&
-      operatorCustomStartDate &&
-      operatorCustomEndDate
-    ) {
-      return `${formatShortDate(operatorCustomStartDate)} - ${formatShortDate(operatorCustomEndDate)}`;
-    }
-    return activeReportBrandDateRange;
-  }, [
-    activeReportBrandDateRange,
-    operatorCustomEndDate,
-    operatorCustomStartDate,
-    operatorDateFilterType,
-    operatorSelectedMonth,
-  ]);
-
-  const activeReportBrandSummaryCards = useMemo(() => {
-    const totalGmv =
-      brandReportingSummary?.[activeReportBrandId || ""]?.totalGmv ??
-      activeReportBrandLogs.reduce((sum, log) => sum + (Number(log.gmv) || 0), 0);
-    const sessionCount =
-      brandReportingSummary?.[activeReportBrandId || ""]?.sessionCount ??
-      activeReportBrandLogs.length;
-    const uploadCount =
-      brandReportingSummary?.[activeReportBrandId || ""]?.batchCount ??
-      activeReportBrandBatches.length;
-    const latestActivity = [...activeReportBrandLogs, ...activeReportBrandBatches]
-      .map((item) => {
-        const rawDate = item.date || item.createdAt || item.uploadedAt || item.timestamp || "";
-        const ts = new Date(rawDate).getTime();
-        return Number.isFinite(ts) ? ts : 0;
-      })
-      .filter((ts) => ts > 0)
-      .sort((a, b) => b - a)[0];
-
-    return {
-      totalGmv,
-      sessionCount,
-      uploadCount,
-      latestActivity: latestActivity || 0,
-    };
-  }, [activeReportBrandId, activeReportBrandLogs, activeReportBrandBatches, brandReportingSummary]);
-
-  const filteredReportBrandRows = useMemo(() => {
-    const q = reportBrandSearchQuery.trim().toLowerCase();
-    return reportBrandOverviewRows
-      .filter((row) => {
-        if (!q) return true;
-        return (
-          row.brand.name.toLowerCase().includes(q) ||
-          row.brand.id.toLowerCase().includes(q)
-        );
-      })
-      .filter((row) => {
-        if (reportBrandPlatformFilter === "Semua Platform") return true;
-        return row.platforms.includes(reportBrandPlatformFilter);
-      })
-      .filter((row) => {
-        if (reportBrandStatusFilter === "Semua Status") return true;
-        if (reportBrandStatusFilter === "Aktif") return row.hasData;
-        return !row.hasData;
-      })
-      .sort((a, b) => {
-        switch (reportBrandSortKey) {
-          case "gmv":
-            return b.totalGmv - a.totalGmv || a.brand.name.localeCompare(b.brand.name);
-          case "sessions":
-            return b.sessionCount - a.sessionCount || a.brand.name.localeCompare(b.brand.name);
-          case "uploads":
-            return b.batchCount - a.batchCount || a.brand.name.localeCompare(b.brand.name);
-          case "name":
-            return a.brand.name.localeCompare(b.brand.name);
-          case "latest_activity":
-          default:
-            return b.latestActivity - a.latestActivity || a.brand.name.localeCompare(b.brand.name);
-        }
-      });
-  }, [
-    reportBrandOverviewRows,
-    reportBrandSearchQuery,
-    reportBrandPlatformFilter,
-    reportBrandStatusFilter,
-    reportBrandSortKey,
-  ]);
-
-  const REPORT_BRANDS_PER_PAGE = 6;
-  const totalReportBrandPages = Math.max(
-    1,
-    Math.ceil(filteredReportBrandRows.length / REPORT_BRANDS_PER_PAGE),
-  );
-  useEffect(() => {
-    setReportBrandPage((page) => Math.min(page, totalReportBrandPages));
-  }, [totalReportBrandPages]);
-  const visibleReportBrandRows = filteredReportBrandRows.slice(
-    (reportBrandPage - 1) * REPORT_BRANDS_PER_PAGE,
-    reportBrandPage * REPORT_BRANDS_PER_PAGE,
-  );
-
-  useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
-
-    let cancelled = false;
-    const brandIdFilter = activeReportBrandId || loggedInClientBrandId || null;
-
-    if (!brandIdFilter) {
-      setBrandUploadHistory([]);
-      setBrandPerformanceLogs([]);
-      setIsReportingDataLoading(false);
-      setReportingDataError(null);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const controller = new AbortController();
-    let timedOut = false;
-    const timeoutId = window.setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, 20000);
-
-    const loadReportingSnapshot = async () => {
-      setIsReportingDataLoading(true);
-      setReportingDataError(null);
-
-      try {
-        const snapshot = await reportingBrandApi.getAll({
-          brandId: brandIdFilter,
-          signal: controller.signal,
-        });
-        if (cancelled || !snapshot) return;
-
-        const snapshotBatches = Array.isArray(snapshot.batches) ? snapshot.batches : [];
-        const snapshotRows = Array.isArray(snapshot.rows) ? snapshot.rows : [];
-
-        setBrandUploadHistory(snapshotBatches);
-        setBrandPerformanceLogs(snapshotRows);
-      } catch (err) {
-        if (cancelled) return;
-        console.error("Error loading brand reporting snapshot:", err);
-        setReportingDataError(
-          timedOut
-            ? "Permintaan melebihi batas 20 detik. Periksa koneksi atau beban database lalu coba lagi."
-            : err instanceof Error
-              ? err.message
-              : "Terjadi kesalahan saat mengambil data reporting.",
-        );
-      } finally {
-        window.clearTimeout(timeoutId);
-        if (!cancelled) setIsReportingDataLoading(false);
-      }
-
-    };
-
-    loadReportingSnapshot();
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, [isGlobalConfigsLoaded, activeReportBrandId, loggedInClientBrandId, reportingReloadKey]);
-
   const availableOperatorPlatforms = useMemo(() => {
-    const basePlatforms = ["TikTok Live", "Shopee Live"];
-    if (!activeReportBrandId || brandPerformanceLogs.length === 0)
-      return basePlatforms;
+    if (!activeReportBrandId || brandPerformanceLogs.length === 0) return platforms;
     const logs = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId);
-    if (logs.length === 0) return basePlatforms;
+    if (logs.length === 0) return platforms;
     const pfData = new Set<string>();
-    logs.forEach(l => {
-      const platform = canonicalPlatformLabel(l.platform || "");
-      if (platform) pfData.add(platform);
-    });
-    const ordered = ["TikTok Live", "Shopee Live"].filter((platform) =>
-      pfData.has(platform),
-    );
-    return ordered.length > 0 ? ordered : basePlatforms;
+    logs.forEach(l => { if (l.platform) pfData.add(l.platform); });
+    const res = Array.from(pfData);
+    return res.length > 0 ? res : platforms;
   }, [activeReportBrandId, brandPerformanceLogs]);
 
   const availableClientPlatforms = useMemo(() => {
@@ -3018,8 +2181,7 @@ export default function App() {
       if (logs.length > 0) {
         const counts: Record<string, number> = {};
         logs.forEach((l) => {
-          const platform = canonicalPlatformLabel(l.platform || "");
-          if (platform) counts[platform] = (counts[platform] || 0) + 1;
+          if (l.platform) counts[l.platform] = (counts[l.platform] || 0) + 1;
         });
         let topPf = "TikTok Live";
         let max = -1;
@@ -3039,8 +2201,7 @@ export default function App() {
       if (logs.length > 0) {
         const counts: Record<string, number> = {};
         logs.forEach((l) => {
-          const platform = canonicalPlatformLabel(l.platform || "");
-          if (platform) counts[platform] = (counts[platform] || 0) + 1;
+          if (l.platform) counts[l.platform] = (counts[l.platform] || 0) + 1;
         });
         let topPf = "TikTok Live";
         let max = -1;
@@ -3163,9 +2324,6 @@ export default function App() {
   };
 
   const [reportingRawData, setReportingRawData] = useState<any[]>([]);
-  const [reportingBrandChartRange, setReportingBrandChartRange] = useState<
-    "7d" | "30d" | "90d"
-  >("7d");
   const [skuRawData, setSkuRawData] = useState<any[]>([]);
   const [shopeeSkuLogs, setShopeeSkuLogs] = useState<any[]>([]);
   const [isDragOverReporting, setIsDragOverReporting] = useState(false);
@@ -3177,7 +2335,6 @@ export default function App() {
   const [reportingShopeeRawTab, setReportingShopeeRawTab] = useState<
     "day" | "shift" | "dayOfWeek" | "raw"
   >("day");
-  const reportingBrandChartGranularity = "Harian";
   const [adminReportBrandFilter, setAdminReportBrandFilter] = useState("");
   const [adminShiftChecklistObj, setAdminShiftChecklistObj] = useState<Record<string, string[]>>({});
   const adminShiftChecklist = adminShiftChecklistObj[adminReportBrandFilter || "default_brand"] || [];
@@ -3196,45 +2353,6 @@ export default function App() {
   }, [adminShiftChecklistObj, isGlobalConfigsLoaded]);
   const [autoDetectNotice, setAutoDetectNotice] = useState("");
   const [isSavingReport, setIsSavingReport] = useState(false);
-
-  const activeReportBrandTrendData = useMemo(() => {
-    const grouped = new Map<
-      string,
-      { date: string; gmv: number; orders: number }
-    >();
-
-    reportingRawData.forEach((row) => {
-      const normalized = normalizeDateYMD(
-        String(
-          row.date ||
-            row.createdAt ||
-            row.uploadedAt ||
-            row.timestamp ||
-            "",
-        ),
-      );
-      if (!normalized) return;
-      const current = grouped.get(normalized) || {
-        date: normalized,
-        gmv: 0,
-        orders: 0,
-      };
-      current.gmv += Number(row.gmv) || 0;
-      current.orders += Number(row.orders || row.buyers || 0) || 0;
-      grouped.set(normalized, current);
-    });
-
-    const sorted = Array.from(grouped.values()).sort((a, b) =>
-      a.date.localeCompare(b.date),
-    );
-    const limit =
-      reportingBrandChartRange === "7d"
-        ? 7
-        : reportingBrandChartRange === "30d"
-          ? 30
-          : 90;
-    return sorted.slice(Math.max(sorted.length - limit, 0));
-  }, [reportingRawData, reportingBrandChartRange]);
 
   useEffect(() => {
     // --- ONE-TIME AUTO CLEANUP FOR BUGGED 2026-12-01 DATES ---
@@ -3556,8 +2674,6 @@ export default function App() {
             productName = "",
             sold = 0,
             revenue = 0,
-            clicks = 0,
-            cartAdds = 0,
             date = "";
 
           headers.forEach((h, idx) => {
@@ -3606,18 +2722,6 @@ export default function App() {
             )
               revenue = parseNum(val);
             else if (
-              h.includes("klik produk") ||
-              h.includes("product clicks") ||
-              h.includes("clicks")
-            )
-              clicks = parseNum(val);
-            else if (
-              h.includes("tambah ke keranjang") ||
-              h.includes("add to cart") ||
-              h.includes("keranjang")
-            )
-              cartAdds = parseNum(val);
-            else if (
               h.includes("tanggal") ||
               h.includes("waktu") ||
               h.includes("date") ||
@@ -3646,9 +2750,6 @@ export default function App() {
               productName: productName || "Unnamed Product",
               sold: sold,
               revenue: revenue,
-              clicks,
-              cartAdds,
-              sourceKind: getProductSourceKind(detectedPlatform),
               date: date || globalDateFallback || new Date().toISOString().split("T")[0],
             });
           }
@@ -3877,52 +2978,18 @@ export default function App() {
           return -1;
         };
 
-        const shopeeSourceKind =
-          detectedPlatform === "Shopee Live"
-            ? uploadTargetTab === "engagement"
-              ? "engagement"
-              : inferShopeeReportingKind(headers, fileNameLower)
-            : "live";
-
-        if (detectedPlatform === "Shopee Live") {
-          setUploadTargetTab(shopeeSourceKind as "live" | "engagement");
-        }
-
-        const titleIdx = findColIdx(
-          detectedPlatform === "Shopee Live" && shopeeSourceKind === "engagement"
-            ? [
-                "user id",
-                "userid",
-                "periode data",
-                "periode",
-                "tanggal",
-                "date",
-                "nama livestream",
-                "livestream name",
-                "live room title",
-                "room title",
-                "judul ruang live",
-                "judul",
-                "livestream",
-                "streaming",
-                "live",
-              ]
-            : [
-                "nama livestream",
-                "livestream name",
-                "live room title",
-                "room title",
-                "judul ruang live",
-                "judul",
-                "livestream",
-                "streaming",
-                "live",
-                "nama_brand",
-                "brand",
-              ],
-        );
-        const userIdIdx = findColIdx(["user id", "userid", "uid"]);
-        const periodIdx = findColIdx(["periode data", "periode", "period"]);
+        const titleIdx = findColIdx([
+          "nama livestream",
+          "livestream name",
+          "live room title",
+          "judul ruang live",
+          "judul",
+          "livestream",
+          "streaming",
+          "live",
+          "nama_brand",
+          "brand",
+        ]);
         const startIdx = findColIdx([
           "start time",
           "waktu mulai",
@@ -3994,7 +3061,6 @@ export default function App() {
           "order value",
         ]);
         const viewsIdx = findColIdx([
-          "dilihat",
           "views",
           "view",
         ]);
@@ -4245,23 +3311,15 @@ export default function App() {
         }
 
         const rows: any[] = [];
-        const isShopeeEngagement =
-          detectedPlatform === "Shopee Live" && shopeeSourceKind === "engagement";
         for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
           const rowData = jsonData[r] as any[];
           // Skip completely empty rows
           if (!rowData || rowData.length === 0) continue;
 
           const titleRaw =
-            detectedPlatform === "Shopee Live" && shopeeSourceKind === "engagement"
-              ? String(
-                  rowData[userIdIdx !== -1 ? userIdIdx : periodIdx !== -1 ? periodIdx : titleIdx] ||
-                    rowData[titleIdx] ||
-                    "",
-                )
-              : titleIdx !== -1
-                ? String(rowData[titleIdx] || "")
-                : String(rowData[0] || "");
+            titleIdx !== -1
+              ? String(rowData[titleIdx] || "")
+              : String(rowData[0] || "");
           // Identify "Total" or summary rows which shouldn't be counted as individual streams
           if (
             titleRaw.toLowerCase() === "total" ||
@@ -4355,6 +3413,33 @@ export default function App() {
 
           const dateOnly = formattedDate.split(" ")[0] || formattedDate;
 
+          let duration = 0;
+          if (durationIdx !== -1) {
+            const rawDur = String(rowData[durationIdx] || "");
+            if (rawDur.includes(":")) {
+              const parts = rawDur.split(":").map(Number);
+              if (parts.length === 3) {
+                duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+              } else if (parts.length === 2) {
+                duration = parts[0] * 60 + parts[1];
+              }
+            } else {
+              // Direct replace commas to dot for safe float cast
+              const safeFloat = parseFloat(rawDur.replace(/,/g, "."));
+              if (!isNaN(safeFloat)) {
+                if (safeFloat > 0 && safeFloat < 1.0) {
+                  duration = Math.round(safeFloat * 86400); // Excel fractional day
+                } else {
+                  duration = safeFloat;
+                }
+              }
+            }
+          }
+          const gmv =
+            gmvIdx !== -1 ? parseIndonesianNumber(rowData[gmvIdx]) : 0;
+          const products_sold =
+            productIdx !== -1 ? parseIndonesianNumber(rowData[productIdx]) : 0;
+
           const parsedImpressions =
             impressionsIdx !== -1
               ? parseIndonesianNumber(rowData[impressionsIdx])
@@ -4379,7 +3464,6 @@ export default function App() {
             clicksIdx !== -1 ? parseIndonesianNumber(rowData[clicksIdx]) : 0;
           const parsedOrders =
             ordersIdx !== -1 ? parseIndonesianNumber(rowData[ordersIdx]) : 0;
-          const liveGmv = gmvIdx !== -1 ? parseIndonesianNumber(rowData[gmvIdx]) : 0;
 
           let buyers =
             buyerIdx !== -1
@@ -4391,7 +3475,7 @@ export default function App() {
             aovIdx !== -1
               ? parseIndonesianNumber(rowData[aovIdx])
               : buyers > 0
-                ? liveGmv / buyers
+                ? gmv / buyers
                 : 0;
 
           const parsedFollowers =
@@ -4423,174 +3507,79 @@ export default function App() {
             coinsClaimedIdx !== -1
               ? parseIndonesianNumber(rowData[coinsClaimedIdx])
               : 0;
+
           const rawAvgViewDuration =
-            avgViewDurationIdx !== -1 ? rowData[avgViewDurationIdx] : "";
+            avgViewDurationIdx !== -1
+              ? String(rowData[avgViewDurationIdx])
+              : "";
           let parsedAvgViewDuration = 0;
-          if (typeof rawAvgViewDuration === "number") {
-            if (rawAvgViewDuration > 0 && rawAvgViewDuration < 1) {
-              // Excel time serial stored as fraction of a day
-              parsedAvgViewDuration = Math.round(rawAvgViewDuration * 86400);
-            } else {
-              parsedAvgViewDuration = Math.round(rawAvgViewDuration);
+          if (rawAvgViewDuration.includes(":")) {
+            const parts = rawAvgViewDuration.split(":").map(Number);
+            if (parts.length === 3) {
+              parsedAvgViewDuration =
+                parts[0] * 3600 + parts[1] * 60 + parts[2];
+            } else if (parts.length === 2) {
+              parsedAvgViewDuration = parts[0] * 60 + parts[1];
             }
           } else {
-            const rawAvgViewDurationStr = String(rawAvgViewDuration || "").trim();
-            if (rawAvgViewDurationStr.includes(":")) {
-              const parts = rawAvgViewDurationStr.split(":").map(Number);
-              if (parts.length === 3) {
-                parsedAvgViewDuration =
-                  parts[0] * 3600 + parts[1] * 60 + parts[2];
-              } else if (parts.length === 2) {
-                parsedAvgViewDuration = parts[0] * 60 + parts[1];
-              }
-            } else {
-              const numericAvgViewDuration =
-                parseFloat(rawAvgViewDurationStr.replace(/[^0-9.]/g, "")) || 0;
-              if (numericAvgViewDuration > 0 && numericAvgViewDuration < 1) {
-                parsedAvgViewDuration = Math.round(
-                  numericAvgViewDuration * 86400,
-                );
-              } else {
-                parsedAvgViewDuration = Math.round(numericAvgViewDuration);
-              }
-            }
+            parsedAvgViewDuration =
+              parseFloat(rawAvgViewDuration.replace(/[^0-9.]/g, "")) || 0;
+          }
+
+          let fileLevelAvgView = parsedAvgViewDuration;
+          if (fileLevelAvgView > 0 && fileLevelAvgView < 10) {
+            // If the file actually wrote it in minutes, let's normalize to seconds roughly
+            fileLevelAvgView = Math.floor(fileLevelAvgView * 60);
           }
 
           const impressions = parsedImpressions || 0;
           const views = parsedViews || parsedImpressions || 0;
           const penonton = parsedPenonton || parsedImpressions || 0;
+          const clicks = parsedClicks || 0;
+          const liveVisits = parsedLiveVisits || 0;
+          const productImpressions = parsedProductImpressions || 0;
+          const orders = parsedOrders || 0;
           const followers = parsedFollowers || 0;
           const likes = parsedLikes || 0;
           const shares = parsedShares || 0;
           const comments = parsedComments || 0;
+          const avgViewDuration = fileLevelAvgView || 0;
           const peakViewers = parsedPeakViewers || 0;
           const shopVouchers = parsedShopVouchers || 0;
           const specialVouchers = parsedSpecialVouchers || 0;
           const coinsClaimed = parsedCoinsClaimed || 0;
 
-          const engagementRow = {
+          const hasFunnelInFile =
+            parsedImpressions > 0 || parsedClicks > 0 || parsedOrders > 0;
+
+          rows.push({
             title,
-            sourceKind: "shopee_engagement",
             date: dateOnly,
             dateTime: formattedDate,
             shift,
-            duration: 0,
-            gmv: 0,
-            products_sold: 0,
-            buyers: 0,
-            aov: 0,
-            views,
-            impressions,
-            penonton,
-            liveVisits: 0,
-            productImpressions: 0,
-            clicks: 0,
-            orders: 0,
-            followers,
-            likes,
-            shares,
-            comments,
-            avgViewDuration: parsedAvgViewDuration || 0,
-            peakViewers,
-            shopVouchers,
-            specialVouchers,
-            coinsClaimed,
-            hasFunnelInFile: false,
-          };
-
-          const liveDuration = (() => {
-            if (durationIdx === -1) return 0;
-            const rawDurationValue = rowData[durationIdx];
-            if (typeof rawDurationValue === "number") {
-              if (rawDurationValue > 0 && rawDurationValue < 1) {
-                return Math.round(rawDurationValue * 86400);
-              }
-              return Math.max(0, rawDurationValue);
-            }
-
-            const rawDur = String(rawDurationValue || "")
-              .trim()
-              .toLowerCase();
-            const unitDurationMatch = rawDur.match(
-              /^(?:(\d+(?:[.,]\d+)?)\s*h)?\s*(?:(\d+(?:[.,]\d+)?)\s*m)?\s*(?:(\d+(?:[.,]\d+)?)\s*s)?$/,
-            );
-            if (
-              unitDurationMatch &&
-              (unitDurationMatch[1] ||
-                unitDurationMatch[2] ||
-                unitDurationMatch[3])
-            ) {
-              const parseDurationPart = (value?: string) =>
-                Number(String(value || "0").replace(",", ".")) || 0;
-              return Math.round(
-                parseDurationPart(unitDurationMatch[1]) * 3600 +
-                  parseDurationPart(unitDurationMatch[2]) * 60 +
-                  parseDurationPart(unitDurationMatch[3]),
-              );
-            }
-            if (rawDur.includes(":")) {
-              const parts = rawDur.split(":").map(Number);
-              if (parts.length === 3) {
-                return parts[0] * 3600 + parts[1] * 60 + parts[2];
-              }
-              if (parts.length === 2) {
-                return parts[0] * 60 + parts[1];
-              }
-            } else {
-              const safeFloat = parseFloat(rawDur.replace(/,/g, "."));
-              if (!isNaN(safeFloat)) {
-                if (safeFloat > 0 && safeFloat < 1.0) {
-                  return Math.round(safeFloat * 86400);
-                }
-                return safeFloat;
-              }
-            }
-            return 0;
-          })();
-
-          const liveAvgViewDuration = parsedAvgViewDuration;
-
-          const liveRow = {
-            title,
-            sourceKind:
-              detectedPlatform === "Shopee Live"
-                ? `shopee_${shopeeSourceKind}`
-                : `tiktok_${uploadTargetTab}`,
-            date: dateOnly,
-            dateTime: formattedDate,
-            shift,
-            duration: liveDuration,
-            gmv: liveGmv,
-            products_sold:
-              productIdx !== -1 ? parseIndonesianNumber(rowData[productIdx]) : 0,
+            duration,
+            gmv,
+            products_sold,
             buyers,
-            aov:
-              aovIdx !== -1
-                ? parseIndonesianNumber(rowData[aovIdx])
-                : buyers > 0
-                  ? liveGmv / buyers
-                  : 0,
+            aov,
             views,
             impressions,
             penonton,
-            liveVisits: parsedLiveVisits || 0,
-            productImpressions: parsedProductImpressions || 0,
-            clicks: parsedClicks || 0,
-            orders: parsedOrders || 0,
+            liveVisits,
+            productImpressions,
+            clicks,
+            orders,
             followers,
             likes,
             shares,
             comments,
-            avgViewDuration: liveAvgViewDuration || 0,
+            avgViewDuration,
             peakViewers,
             shopVouchers,
             specialVouchers,
             coinsClaimed,
-            hasFunnelInFile:
-              parsedImpressions > 0 || parsedClicks > 0 || parsedOrders > 0,
-          };
-
-          rows.push(isShopeeEngagement ? engagementRow : liveRow);
+            hasFunnelInFile,
+          });
         }
 
         setReportingRawData(rows);
@@ -4687,13 +3676,8 @@ export default function App() {
             setIsSavingReport(true);
             const logIdsToDelete = new Set(logsToDelete.map((l) => l.id));
             const batchIdsToDelete = new Set(batchesToDelete.map((b) => b.id));
-            await syncReportingDeletion({
-              logIds: Array.from(logIdsToDelete),
-              batchIds: Array.from(batchIdsToDelete),
-            });
             setBrandPerformanceLogs((prev) => prev.filter((l) => !logIdsToDelete.has(l.id)));
             setBrandUploadHistory((prev) => prev.filter((b) => !batchIdsToDelete.has(b.id)));
-            await refreshReportingSummary();
             customAlert("Data raw berhasil dihapus.");
           } catch(e: any) {
             console.error(e);customAlert("Gagal menghapus data: " + e.message);
@@ -4727,15 +3711,9 @@ export default function App() {
           const batchIds = new Set(brandBatches.map((b) => b.id));
           const skuIds = new Set(brandSkuLogs.map((l) => l.id));
 
-          await syncReportingDeletion({
-            logIds: Array.from(logIds),
-            batchIds: Array.from(batchIds),
-          });
-
           setBrandPerformanceLogs((prev) => prev.filter((l) => !logIds.has(l.id)));
           setBrandUploadHistory((prev) => prev.filter((b) => !batchIds.has(b.id)));
           setShopeeSkuLogs((prev) => prev.filter((l) => !skuIds.has(l.id)));
-          await refreshReportingSummary();
 
           customAlert(
             `Berhasil menghapus seluruh raw data (${brandLogs.length} sesi), ${brandSkuLogs.length} SKU logs, dan riwayat upload (${brandBatches.length} batch) untuk brand "${brandName}" dari database!`,
@@ -4882,9 +3860,7 @@ export default function App() {
         try {
           setIsSavingReport(true);
           const idsToDelete = new Set(logsToDelete.map((l) => l.id));
-          await syncReportingDeletion({ logIds: Array.from(idsToDelete) });
           setBrandPerformanceLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
-          await refreshReportingSummary();
           customAlert(
             `Berhasil menghapus ${logsToDelete.length} data ${displayType} untuk brand "${brandName}"!`,
           );
@@ -4919,15 +3895,12 @@ export default function App() {
             (log) => log.batchId === batchId,
           );
 
-          await syncReportingDeletion({ batchIds: [batchId] });
-
           // Hapus batch receipt dari state lokal
           setUploadHistory((prev) => prev.filter((h) => h.id !== batchId));
 
           // Hapus log terkait dari state lokal
           const logIds = new Set(batchLogs.map((l) => l.id));
           setBrandPerformanceLogs((prev) => prev.filter((l) => !logIds.has(l.id)));
-          await refreshReportingSummary();
 
           customAlert(
             `Berhasil menghapus batch upload "${fileName}" beserta seluruh raw data terkait (${batchLogs.length} data) dari database!`,
@@ -4993,9 +3966,6 @@ export default function App() {
           const baseId = `${brandIdToSave}_${platformToSave.toLowerCase().replace(/\s/g, "_")}_${row.date}_${sanitizedTitle}_${Math.random().toString(36).substring(2, 9)}`;
           const rowGmv = Number(row.gmv || 0);
           totalBatchGmv += rowGmv;
-          const sourceKindFromRow =
-            row.sourceKind ||
-            getReportingSourceKind(platformToSave, uploadTargetTab);
 
           const isTiktok = String(platformToSave).toLowerCase().includes("tiktok");
           if (isTiktok) {
@@ -5005,7 +3975,6 @@ export default function App() {
               brandId: brandIdToSave,
               brandName: brandNameToSave,
               platform: platformToSave,
-              sourceKind: "tiktok_live",
               title: row.title,
               date: row.date,
               dateTime: row.dateTime || row.date,
@@ -5042,7 +4011,6 @@ export default function App() {
               brandId: brandIdToSave,
               brandName: brandNameToSave,
               platform: platformToSave,
-              sourceKind: "tiktok_engagement",
               title: row.title,
               date: row.date,
               dateTime: row.dateTime || row.date,
@@ -5068,7 +4036,6 @@ export default function App() {
               brandId: brandIdToSave,
               brandName: brandNameToSave,
               platform: platformToSave,
-              sourceKind: sourceKindFromRow,
               title: row.title,
               date: row.date,
               dateTime: row.dateTime || row.date,
@@ -5130,7 +4097,6 @@ export default function App() {
           brandId: brandIdToSave,
           brandName: brandNameToSave,
           platform: platformToSave,
-          sourceKind: getReportingSourceKind(platformToSave, uploadTargetTab),
           fileName: currentFileName,
           uploadedAt: new Date().toISOString(),
           rowCount: dataToSave.length,
@@ -5139,22 +4105,6 @@ export default function App() {
             String(platformToSave).toLowerCase().includes("tiktok") ? "both" : uploadTargetTab,
         };
         setUploadHistory((prev) => [...prev, uploadHistoryRecord]);
-
-        try {
-          await reportingBrandApi.createBatch({
-            batch: uploadHistoryRecord,
-            rows: allRecordsToSave,
-          });
-          await refreshReportingSummary();
-        } catch (apiErr) {
-          console.error("Gagal menyimpan reporting batch ke backend:", apiErr);
-          addNotification(
-            "⚠️ Sinkronisasi Backend",
-            `Data lokal berhasil disimpan, tetapi sinkronisasi reporting ke backend belum sempurna. Silakan cek koneksi server.`,
-            "warning",
-            "reporting_brand",
-          );
-        }
 
         addNotification(
           "✅ Tersimpan",
@@ -5759,10 +4709,6 @@ export default function App() {
       let isEligibleForBonus = false;
       let calculatedBonus = 0;
       let calculatedBackupPay = 0;
-      const manualKasbonDeduction = Math.max(
-        0,
-        payrollKasbonByHostId[host.id] || 0,
-      );
 
       const requiredWorkingDays =
         hostType === "Reguler"
@@ -5803,8 +4749,6 @@ export default function App() {
         netSalary += totalBackupHadir * backupShiftRate;
       }
 
-      netSalary = Math.max(0, netSalary - manualKasbonDeduction);
-
       return {
         ...host,
         countTepatWaktu,
@@ -5816,9 +4760,6 @@ export default function App() {
         calculatedBackupPay,
         isEligibleForBonus,
         calculatedBonus,
-        bonusAttendance: calculatedBonus,
-        cutAlpa: 0,
-        kasbonDed: manualKasbonDeduction,
         totalOvertimeHours,
         calculatedOvertimePay,
         basePayRate,
@@ -7377,20 +6318,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
 
                   <div className="flex items-center gap-2 relative">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHostProfileForm({
-                          phone: activeHostObj?.phone || "",
-                          bankAccount: activeHostObj?.bankAccount || ""
-                        });
-                        setIsHostProfileModalOpen(true);
-                      }}
-                      className="relative p-2 rounded-xl hover:bg-purple-50 text-purple-700 transition-all cursor-pointer border border-transparent hover:border-purple-100 flex items-center justify-center bg-transparent active:scale-95"
-                      title="Profil Saya"
-                    >
-                      <UserCog className="w-5 h-5 text-purple-600" />
-                    </button>
                     {/* Notifications Dropdown */}
                     <div className="relative">
                       <button
@@ -7492,101 +6419,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
                 </div>
               </div>
-
-              {/* MODAL PROFIL HOST SELF-SERVICE */}
-              {isHostProfileModalOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                  <div 
-                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
-                    onClick={() => setIsHostProfileModalOpen(false)}
-                  ></div>
-                  <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-scaleIn border border-purple-100">
-                    <div className="px-5 py-4 border-b border-purple-50 flex items-center justify-between bg-purple-50/30">
-                      <h4 className="text-sm font-black text-purple-950 flex items-center gap-2">
-                        <UserCog className="w-4 h-4 text-purple-600" /> Profil & Rekening Saya
-                      </h4>
-                      <button
-                        onClick={() => setIsHostProfileModalOpen(false)}
-                        className="w-7 h-7 flex items-center justify-center rounded-full bg-purple-100 hover:bg-purple-200 text-purple-700 transition-colors cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="p-5 overflow-y-auto space-y-4">
-                      <div>
-                        <label className="block text-[10px] text-purple-950 font-black uppercase mb-1.5 font-mono">
-                          Nomor WhatsApp:
-                        </label>
-                        <input
-                          type="text"
-                          value={hostProfileForm.phone}
-                          onChange={(e) => setHostProfileForm({ ...hostProfileForm, phone: e.target.value })}
-                          placeholder="Misal: 0812345678"
-                          className="w-full bg-[#faf9fe] border border-purple-150 rounded-xl px-3 py-2.5 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 transition-all"
-                        />
-                      </div>
-                      <div className="flex gap-3">
-                        <div className="w-1/3">
-                          <label className="block text-[10px] text-purple-950 font-black uppercase mb-1.5 font-mono">
-                            Nama Bank:
-                          </label>
-                          <input
-                            type="text"
-                            value={hostProfileForm.bankName}
-                            onChange={(e) => setHostProfileForm({ ...hostProfileForm, bankName: e.target.value })}
-                            placeholder="Misal: BCA"
-                            className="w-full bg-[#faf9fe] border border-purple-150 rounded-xl px-3 py-2.5 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 transition-all"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-[10px] text-purple-950 font-black uppercase mb-1.5 font-mono">
-                            Rekening Bank:
-                          </label>
-                          <input
-                            type="text"
-                            value={hostProfileForm.bankAccount}
-                            onChange={(e) => setHostProfileForm({ ...hostProfileForm, bankAccount: e.target.value })}
-                            placeholder="Misal: 12345678 a/n Amanda"
-                            className="w-full bg-[#faf9fe] border border-purple-150 rounded-xl px-3 py-2.5 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 transition-all"
-                          />
-                        </div>
-                      </div>
-                      <p className="text-[9px] text-purple-500 font-medium mt-1.5 leading-snug">
-                        Rekening ini akan otomatis terhubung ke sistem Payroll Admin untuk pencairan gaji dan bonus. Pastikan data akurat.
-                      </p>
-                    </div>
-                    <div className="p-4 border-t border-purple-50 bg-white flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsHostProfileModalOpen(false)}
-                        className="px-4 py-2 text-slate-500 hover:text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
-                      >
-                        Batal
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (activeHostObj) {
-                            const updatedHost = {
-                              ...activeHostObj,
-                              phone: hostProfileForm.phone.trim(),
-                              bankAccount: hostProfileForm.bankAccount.trim(),
-                              bankName: hostProfileForm.bankName.trim()
-                            };
-                            setHosts(prev => prev.map(h => h.id === activeHostObj.id ? updatedHost : h));
-                            
-                            addNotification("✅ Profil Diperbarui", "Nomor kontak & rekening Anda berhasil disimpan.", "success", "absensi");
-                            setIsHostProfileModalOpen(false);
-                          }
-                        }}
-                        className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <Check className="w-3.5 h-3.5" /> Simpan Profil
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Live Automatically Recorded Clock Widget Removed */}
 
@@ -8463,7 +7295,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           a.date.localeCompare(b.date),
                         );
 
-                        return sortedScheds.map((sch, idx) => {
+                        return sortedScheds.map((sch) => {
                           const isPrimaryOff =
                             sch.isOffDay && sch.hostId === selectedHostId;
                           const isReplacement =
@@ -8474,7 +7306,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             <div
                               key={
                                 (sch.id || "") +
-                                "_" + String(idx)
+                                "_" +
+                                Math.random().toString(36).substr(2, 9)
                               }
                               id={`host-shift-${(sch.date || "").split("T")[0]}`}
                               className={`p-3 rounded-xl border transition-all ${
@@ -8777,15 +7610,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   {/* STORED DATABASE VIEWER - NEW DESIGN */}
                   <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                     {(() => {
-                      const filteredLiveDb = brandPerformanceLogs.filter(
-                        (log) =>
-                          log.brandId === loggedInClientBrandId &&
-                          log.reportType !== "engagement",
-                      );
-                      const filteredEngagementDb = brandPerformanceLogs.filter(
-                        (log) =>
-                          log.brandId === loggedInClientBrandId &&
-                          log.reportType === "engagement",
+                      const filteredDb = brandPerformanceLogs.filter(
+                        (log) => log.brandId === loggedInClientBrandId,
                       );
                       let effectiveFilter = clientDateFilterType;
                       let targetLatestDate = "";
@@ -8794,12 +7620,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       let prevStartDate = "";
                       let prevEndDate = "";
                       if (effectiveFilter === "latest") {
-                          const allDates = Array.from<string>(
-                            new Set(
-                              filteredLiveDb
-                                .map((l) => normalizeDateYMD(l.date))
-                                .filter(Boolean) as string[],
-                            ),
+                        const allDates = Array.from<string>(
+                          new Set(
+                            filteredDb
+                              .map((l) => normalizeDateYMD(l.date))
+                              .filter(Boolean) as string[],
+                          ),
                         );
                         allDates.sort();
                         if (allDates.length > 0) {
@@ -8923,18 +7749,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           return true;
                         });
                       };
-                      const tableLogs = applyFilter(filteredLiveDb, false);
+                      const tableLogs = applyFilter(filteredDb, false);
                       const prevTableLogs =
                         effectiveFilter !== "all"
-                          ? applyFilter(filteredLiveDb, true)
-                          : [];
-                      const engagementTableLogs = applyFilter(
-                        filteredEngagementDb,
-                        false,
-                      );
-                      const prevEngagementTableLogs =
-                        effectiveFilter !== "all"
-                          ? applyFilter(filteredEngagementDb, true)
+                          ? applyFilter(filteredDb, true)
                           : [];
                       const totalSessionsDb = tableLogs.length;
                       const totalGmvDb = tableLogs.reduce(
@@ -8984,30 +7802,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         (sum, item) => sum + (item.clicks || 0),
                         0,
                       );
-                      const avgViewDurationSourceLogs = tableLogs;
-                      const peakViewSourceLogs = tableLogs;
-                      const avgViewDurationValues =
-                        avgViewDurationSourceLogs
-                          .map((item) => Number(item.avgViewDuration || 0))
-                          .filter((value) => value > 0);
                       const avgViewDurationDb =
-                        avgViewDurationValues.length > 0
-                          ? avgViewDurationValues.reduce(
-                              (sum, value) => sum + value,
+                        tableLogs.length > 0
+                          ? tableLogs.reduce(
+                              (sum, item) => sum + (item.avgViewDuration || 0),
                               0,
-                            ) / avgViewDurationValues.length
-                          : 0;
-                      const peakViewValues = peakViewSourceLogs
-                        .map((item) => Number(item.peakViewers || 0))
-                        .filter((value) => value > 0);
-                      const peakViewersDb =
-                        peakViewValues.length > 0
-                          ? Math.round(
-                              peakViewValues.reduce(
-                                (sum, value) => sum + value,
-                                0,
-                              ) / peakViewValues.length,
-                            )
+                            ) / tableLogs.length
                           : 0;
                       const pTotalGmvDb = prevTableLogs.reduce(
                         (sum, item) => sum + (item.gmv || 0),
@@ -9056,30 +7856,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         (sum, item) => sum + (item.clicks || 0),
                         0,
                       );
-                      const prevAvgViewDurationSourceLogs = prevTableLogs;
-                      const prevPeakViewSourceLogs = prevTableLogs;
-                      const pAvgViewDurationValues =
-                        prevAvgViewDurationSourceLogs
-                          .map((item) => Number(item.avgViewDuration || 0))
-                          .filter((value) => value > 0);
                       const pAvgViewDurationDb =
-                        pAvgViewDurationValues.length > 0
-                          ? pAvgViewDurationValues.reduce(
-                              (sum, value) => sum + value,
+                        prevTableLogs.length > 0
+                          ? prevTableLogs.reduce(
+                              (sum, item) => sum + (item.avgViewDuration || 0),
                               0,
-                            ) / pAvgViewDurationValues.length
-                          : 0;
-                      const pPeakViewValues = prevPeakViewSourceLogs
-                        .map((item) => Number(item.peakViewers || 0))
-                        .filter((value) => value > 0);
-                      const pPeakViewersDb =
-                        pPeakViewValues.length > 0
-                          ? Math.round(
-                              pPeakViewValues.reduce(
-                                (sum, value) => sum + value,
-                                0,
-                              ) / pPeakViewValues.length,
-                            )
+                            ) / prevTableLogs.length
                           : 0;
                       const totalDbImpressions = tableLogs.reduce(
                         (acc, curr) => {
@@ -9505,7 +8287,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               ? clientPlatformFilter
                                   .toLowerCase()
                                   .includes("shopee")
-                              : filteredLiveDb?.some(
+                              : filteredDb?.some(
                                   (log) =>
                                     log.platform &&
                                     log.platform
@@ -9616,32 +8398,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         </button>
                                       </div>
                                     </div>
-                                    <ShopeeLiveMetricsGrid
-                                      className="mb-5"
-                                      metrics={buildShopeeLiveMetrics({
-                                        periodLabel:
-                                          latestDateLabel ||
-                                          "periode sebelumnya",
-                                        gmv: totalGmvDb,
-                                        prevGmv: pTotalGmvDb,
-                                        orders: totalOrdersDb,
-                                        prevOrders: pTotalOrdersDb,
-                                        avgViewDuration: avgViewDurationDb,
-                                        prevAvgViewDuration:
-                                          pAvgViewDurationDb,
-                                        peakViewers: peakViewersDb,
-                                        prevPeakViewers: pPeakViewersDb,
-                                        aov: avgAovDb,
-                                        prevAov: pAvgAovDb,
-                                        conversionRate: conversionRateShopee,
-                                        prevConversionRate:
-                                          pConversionRateShopee,
-                                      })}
-                                    />
-                                    <div className="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             GMV
                                           </div>
                                           <PercentBadge
@@ -9649,16 +8409,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalGmvDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
                                           }).format(totalGmvDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             Item Solds
                                           </div>
                                           <PercentBadge
@@ -9666,15 +8426,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalItemsSoldDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalItemsSoldDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             GMV/Hours
                                           </div>
                                           <PercentBadge
@@ -9682,16 +8442,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pGmvPerHour}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
                                           }).format(gmvPerHour)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             Conversion Rate %
                                           </div>
                                           <PercentBadge
@@ -9699,13 +8459,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pConversionRateShopee}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {conversionRateShopee.toFixed(2)}%
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             Orders
                                           </div>
                                           <PercentBadge
@@ -9713,15 +8473,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalOrdersDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalOrdersDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             Avg. Viewer Duration
                                           </div>
                                           <PercentBadge
@@ -9729,29 +8489,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pAvgViewDurationDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {avgViewDurationDb.toFixed(2)}s
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
-                                            Peak View
-                                          </div>
-                                          <PercentBadge
-                                            cur={peakViewersDb}
-                                            prev={pPeakViewersDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(peakViewersDb)}
-                                        </div>
-                                      </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             AOV
                                           </div>
                                           <PercentBadge
@@ -9759,7 +8503,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pAvgAovDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
@@ -9770,7 +8514,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   </div>
 
                                   {totalDbImpressions > 0 && (
-                                    <div className="hidden mb-6">
+                                    <div className="mb-6">
                                       <HorizontalFunnel
                                         title=""
                                         subtitle=""
@@ -9816,10 +8560,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 <div className="space-y-6 mb-6">
                                   <div>
                                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-                                      <h4 className="text-sm md:text-base font-black text-[#1b1c1c] uppercase tracking-widest">
+                                      <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">
                                         Sale Metrics
                                       </h4>
-                                      <div className="flex items-center gap-3 bg-white/90 border border-[#e5e2e1] px-2 py-1.5 rounded-[18px] shadow-[0_10px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
                                         <button
                                           onClick={() => {
                                             let pd = new Date();
@@ -9844,11 +8588,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             setClientCustomStartDate(newD);
                                             setClientCustomEndDate(newD);
                                           }}
-                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#fcfbfa] text-[#494456] transition-colors"
+                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
                                         >
                                           <ChevronLeft className="w-4 h-4" />
                                         </button>
-                                        <span className="text-xs sm:text-sm font-black text-[#1b1c1c] min-w-[160px] text-center">
+                                        <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
                                           {(() => {
                                             if (
                                               clientDateFilterType ===
@@ -9909,16 +8653,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             setClientCustomStartDate(newD);
                                             setClientCustomEndDate(newD);
                                           }}
-                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#fcfbfa] text-[#494456] transition-colors"
+                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
                                         >
                                           <ChevronRight className="w-4 h-4" />
                                         </button>
                                       </div>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             GMV
                                           </div>
                                           <PercentBadge
@@ -9926,16 +8670,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalGmvDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
                                           }).format(totalGmvDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             Item Sold
                                           </div>
                                           <PercentBadge
@@ -9943,15 +8687,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalItemsSoldDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalItemsSoldDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             Customers
                                           </div>
                                           <PercentBadge
@@ -9959,15 +8703,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalBuyersDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalBuyersDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             SKU Orders
                                           </div>
                                           <PercentBadge
@@ -9975,15 +8719,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalOrdersDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalOrdersDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             AOV
                                           </div>
                                           <PercentBadge
@@ -9991,7 +8735,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pAvgAovDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           Rp
                                           {new Intl.NumberFormat("id-ID", {
                                             maximumFractionDigits: 0,
@@ -10002,13 +8746,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   </div>
 
                                   <div>
-                                    <h4 className="text-sm md:text-base font-black text-[#1b1c1c] mb-4 uppercase tracking-widest mt-8">
+                                    <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">
                                       Engagement Metrics
                                     </h4>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             Like
                                           </div>
                                           <PercentBadge
@@ -10016,15 +8760,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalLikesDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalLikesDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             Comment
                                           </div>
                                           <PercentBadge
@@ -10032,15 +8776,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalCommentsDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalCommentsDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             Share
                                           </div>
                                           <PercentBadge
@@ -10048,31 +8792,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pTotalSharesDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalSharesDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
-                                                  Klik Produk
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                            Product Clicks
                                           </div>
                                           <PercentBadge
                                             cur={totalClicksDb}
                                             prev={pTotalClicksDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {new Intl.NumberFormat(
                                             "id-ID",
                                           ).format(totalClicksDb)}
                                         </div>
                                       </div>
-                                      <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                         <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                             AVG TIME/VIEWER
                                           </div>
                                           <PercentBadge
@@ -10080,9 +8824,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             prev={pAvgViewDurationDb}
                                           />
                                         </div>
-                                        <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                        <div className="text-xl font-black text-slate-800 mt-1">
                                           {Math.round(avgViewDurationDb)}{" "}
-                                          <span className="text-[10px] text-[#7a7488] font-bold">
+                                          <span className="text-[10px] text-slate-400 font-bold">
                                             detik
                                           </span>
                                         </div>
@@ -10100,7 +8844,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               ? clientPlatformFilter
                                   .toLowerCase()
                                   .includes("shopee")
-                              : filteredLiveDb?.some(
+                              : filteredDb?.some(
                                   (log) =>
                                     log.platform &&
                                     log.platform
@@ -10176,22 +8920,22 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             ).sort((a, b) => b.sold - a.sold);
 
                             return (
-                              <div className="rounded-[28px] border border-[#e5e2e1] bg-white/90 p-5 lg:p-7 shadow-[0_12px_32px_rgba(27,28,28,0.05)] mb-6">
+                              <div className="bg-white border border-slate-100 p-5 lg:p-7 rounded-3xl shadow-sm mb-6">
                                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
                                   <div>
-                                    <h4 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-[#1b1c1c] flex items-center gap-2">
-                                      <Package className="w-5 h-5 text-[#5600e0]" />{" "}
+                                    <h4 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+                                      <Package className="w-5 h-5 text-indigo-500" />{" "}
                                       Top Performing SKUs
                                     </h4>
-                                    <p className="text-xs text-[#7a7488] font-semibold mt-1">
+                                    <p className="text-xs text-slate-500 font-semibold mt-1">
                                       Berdasarkan data Item Export Shopee
                                     </p>
                                   </div>
                                 </div>
 
-                                <div className="overflow-x-auto rounded-[24px] border border-[#e5e2e1]">
+                                <div className="overflow-x-auto rounded-xl border border-slate-100">
                                   <table className="w-full text-left whitespace-nowrap min-w-[700px]">
-                                    <thead className="bg-[#fbfaf8] text-xs font-black text-[#7a7488] uppercase tracking-widest leading-none">
+                                    <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none">
                                       <tr>
                                         <th className="px-5 py-4 w-12 text-center">
                                           No
@@ -10208,29 +8952,29 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         </th>
                                       </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#ece8e6] text-sm font-semibold text-[#494456]">
+                                    <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
                                       {aggregatedSkus.map((sku, idx) => (
                                         <tr
                                           key={idx}
-                                          className="hover:bg-[#fcfbfa] transition-colors"
+                                          className="hover:bg-slate-50/70 transition-colors"
                                         >
-                                          <td className="px-5 py-3 text-center text-[#7a7488] font-bold text-xs">
+                                          <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">
                                             {idx + 1}
                                           </td>
                                           <td className="px-5 py-3 whitespace-normal min-w-[250px]">
-                                            <div className="line-clamp-2 text-[#1b1c1c] leading-snug">
+                                            <div className="line-clamp-2 text-slate-800 leading-snug">
                                               {sku.productName}
                                             </div>
                                           </td>
-                                          <td className="px-5 py-3 text-xs tracking-wider text-[#7a7488]">
+                                          <td className="px-5 py-3 text-xs tracking-wider text-slate-500">
                                             {sku.sku}
                                           </td>
-                                          <td className="px-5 py-3 text-right text-[#1f9d6b] font-black">
+                                          <td className="px-5 py-3 text-right text-emerald-600 font-black">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(sku.sold)}
                                           </td>
-                                          <td className="px-5 py-3 text-right text-[#1b1c1c] font-black">
+                                          <td className="px-5 py-3 text-right text-slate-800 font-black">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(sku.revenue)}
@@ -10247,13 +8991,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {/* Time & Day Analytics */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                             {/* Revenue Based on Time (Shift) */}
-                            <div className="rounded-[24px] border border-[#e5e2e1] bg-white/90 p-5 shadow-[0_10px_28px_rgba(27,28,28,0.05)] flex flex-col">
-                              <h4 className="text-[14px] font-bold text-[#1b1c1c] mb-4 px-1">
+                            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm flex flex-col">
+                              <h4 className="text-[14px] font-bold text-slate-800 mb-4 px-1">
                                 Revenue Based on Time
                               </h4>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-left whitespace-nowrap">
-                                  <thead className="bg-[#fbfaf8] text-[12px] font-bold text-[#1b1c1c]">
+                                  <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
                                     <tr>
                                       <th className="px-5 py-3 rounded-l-lg w-16 text-center">
                                         No
@@ -10264,7 +9008,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-[#ece8e6] text-xs font-semibold text-[#494456]">
+                                  <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
                                     {(() => {
                                       const shiftData: Record<string, number> =
                                         {};
@@ -10315,15 +9059,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       return shiftsArray.map((sh, idx) => (
                                         <tr
                                           key={sh.name || idx}
-                                          className="hover:bg-[#fcfbfa]"
+                                          className="hover:bg-slate-50"
                                         >
-                                          <td className="px-5 py-3.5 text-center text-[#7a7488]">
+                                          <td className="px-5 py-3.5 text-center text-slate-500">
                                             {idx + 1}.
                                           </td>
-                                          <td className="px-5 py-3.5 text-[#494456] font-mono text-[11px]">
+                                          <td className="px-5 py-3.5 text-slate-700 font-mono text-[11px]">
                                             {sh.name}
                                           </td>
-                                          <td className="px-5 py-3.5 text-[#494456]">
+                                          <td className="px-5 py-3.5 text-slate-700">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(sh.gmv)}
@@ -10337,19 +9081,19 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             </div>
 
                             {/* Revenue Based on Day */}
-                            <div className="rounded-[24px] border border-[#e5e2e1] bg-white/90 p-5 shadow-[0_10px_28px_rgba(27,28,28,0.05)] flex flex-col">
-                              <h4 className="text-[14px] font-bold text-[#1b1c1c] mb-4 px-1">
+                            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm flex flex-col">
+                              <h4 className="text-[14px] font-bold text-slate-800 mb-4 px-1">
                                 Revenue Based on Day
                               </h4>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-left whitespace-nowrap">
-                                  <thead className="bg-[#fbfaf8] text-[12px] font-bold text-[#1b1c1c]">
+                                  <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
                                     <tr>
                                       <th className="px-5 py-3 rounded-l-lg w-16 text-center">
                                         No
                                       </th>
                                       <th
-                                        className="px-5 py-3 cursor-pointer hover:bg-[#fcfbfa] transition-colors"
+                                        className="px-5 py-3 cursor-pointer hover:bg-slate-200/50 transition-colors"
                                         onClick={() => {
                                           setDayAnalyticsSortCol("name");
                                           setDayAnalyticsSortAsc((prev) =>
@@ -10367,7 +9111,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           : ""}
                                       </th>
                                       <th
-                                        className="px-5 py-3 cursor-pointer hover:bg-[#fcfbfa] transition-colors"
+                                        className="px-5 py-3 cursor-pointer hover:bg-slate-200/50 transition-colors"
                                         onClick={() => {
                                           setDayAnalyticsSortCol("views");
                                           setDayAnalyticsSortAsc((prev) =>
@@ -10385,7 +9129,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           : ""}
                                       </th>
                                       <th
-                                        className="px-5 py-3 rounded-r-lg cursor-pointer hover:bg-[#fcfbfa] transition-colors"
+                                        className="px-5 py-3 rounded-r-lg cursor-pointer hover:bg-slate-200/50 transition-colors"
                                         onClick={() => {
                                           setDayAnalyticsSortCol("gmv");
                                           setDayAnalyticsSortAsc((prev) =>
@@ -10404,7 +9148,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-[#ece8e6] text-xs font-semibold text-[#494456]">
+                                  <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
                                     {(() => {
                                       const dayNamesId = [
                                         "Minggu",
@@ -10485,20 +9229,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       return daysArray.map((dy, idx) => (
                                         <tr
                                           key={dy.name || idx}
-                                          className="hover:bg-[#fcfbfa]"
+                                          className="hover:bg-slate-50"
                                         >
-                                          <td className="px-5 py-3.5 text-center text-[#7a7488]">
+                                          <td className="px-5 py-3.5 text-center text-slate-500">
                                             {idx + 1}.
                                           </td>
-                                          <td className="px-5 py-3.5 text-[#494456]">
+                                          <td className="px-5 py-3.5 text-slate-700">
                                             {dy.name}
                                           </td>
-                                          <td className="px-5 py-3.5 text-[#494456]">
+                                          <td className="px-5 py-3.5 text-slate-700">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(dy.views)}
                                           </td>
-                                          <td className="px-5 py-3.5 text-[#494456]">
+                                          <td className="px-5 py-3.5 text-slate-700">
                                             Rp{" "}
                                             {new Intl.NumberFormat(
                                               "id-ID",
@@ -10514,13 +9258,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           </div>
 
                           {/* Table */}
-                          <div className="bg-white/90 border border-[#e5e2e1] rounded-[24px] overflow-x-auto shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                          <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
                             <table className="w-full text-left whitespace-nowrap">
-                              <thead className="bg-[#fbfaf8] border-b border-[#e9e4df] uppercase text-[9px] font-bold text-[#7a7488] tracking-wider">
+                              <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
                                 <tr>
                                   <th className="px-5 py-3.5">No</th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                     onClick={() => handleSort("date")}
                                   >
                                     Tanggal{" "}
@@ -10534,7 +9278,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     Jam Start Live
                                   </th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                     onClick={() => handleSort("views")}
                                   >
                                     Viewers{" "}
@@ -10545,7 +9289,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       : ""}
                                   </th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                     onClick={() => handleSort("gmv")}
                                   >
                                     GMV{" "}
@@ -10556,7 +9300,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       : ""}
                                   </th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                     onClick={() => handleSort("products_sold")}
                                   >
                                     Produk Terjual{" "}
@@ -10567,7 +9311,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       : ""}
                                   </th>
                                   <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-[#fcfbfa]"
+                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                     onClick={() => handleSort("customers")}
                                   >
                                     Customer{" "}
@@ -10582,14 +9326,19 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   </th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-[#ece8e6] text-xs font-semibold text-[#494456] bg-white">
-                                {isReportingDataLoading || reportingDataError ? (
-                                  <ReportingTableStatusRow
-                                    colSpan={8}
-                                    loading={isReportingDataLoading}
-                                    error={reportingDataError}
-                                    onRetry={() => setReportingReloadKey((key) => key + 1)}
-                                  />
+                              <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
+                                {isLogsLoading ? (
+                                  <tr>
+                                    <td
+                                      colSpan={8}
+                                      className="px-5 py-16 text-center text-slate-500 font-bold w-full"
+                                    >
+                                      <div className="flex flex-col items-center justify-center gap-4">
+                                        <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
+                                        Sedang memuat data dari database...
+                                      </div>
+                                    </td>
+                                  </tr>
                                 ) : sortedTableLogs.length === 0 ? (
                                   <tr>
                                     <td
@@ -10603,9 +9352,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   paginatedLogs.map((log, idx) => {
                                     const isLogShopee = log.platform && log.platform.toLowerCase().includes("shopee");
                                     const lViews = isLogShopee 
-                                      ? (log.reportType === "engagement" || String(log.sourceKind || "").includes("engagement")
-                                          ? (log.views || 0)
-                                          : (log.penonton || log.impressions || log.views || 0))
+                                      ? (log.penonton || log.impressions || log.views || 0)
                                       : (log.impressions || log.views || log.liveVisits || 0);
                                     const lCtr =
                                       log.productImpressions > 0
@@ -10621,14 +9368,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     return (
                                       <tr
                                         key={log.id || idx}
-                                      className="hover:bg-[#fcfbfa] transition-colors"
-                                    >
-                                        <td className="px-5 py-3.5 text-[#7a7488]">
+                                        className="hover:bg-slate-50/50 transition-colors"
+                                      >
+                                        <td className="px-5 py-3.5 text-slate-400">
                                           {(currentPage - 1) * ITEMS_PER_PAGE +
                                             idx +
                                             1}
                                         </td>
-                                        <td className="px-5 py-3.5 text-[#494456]">
+                                        <td className="px-5 py-3.5 text-slate-500">
                                           <div className="flex flex-col">
                                             <span>
                                               {formatDisplayDate(
@@ -10636,12 +9383,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 log.platform,
                                               )}
                                             </span>
-                                            <span className="text-[9px] text-[#5600e0]">
+                                            <span className="text-[9px] text-indigo-500">
                                               {log.platform}
                                             </span>
                                           </div>
                                         </td>
-                                        <td className="px-5 py-3.5 font-mono text-xs text-[#494456]">
+                                        <td className="px-5 py-3.5 font-mono text-xs">
                                           {log.dateTime
                                             ? log.dateTime.includes(" ")
                                               ? log.dateTime.split(" ")[1]
@@ -10694,7 +9441,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           </div>
 
                           {totalPages > 1 && (
-                            <div className="p-4 border-t border-[#ece8e6] flex items-center justify-between text-xs font-semibold text-[#7a7488]">
+                            <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
                               <div>
                                 Menampilkan{" "}
                                 {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
@@ -10712,7 +9459,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     )
                                   }
                                   disabled={currentPage === 1}
-                                  className="px-3 py-1.5 bg-white hover:bg-[#fcfbfa] border border-[#e5e2e1] rounded-xl cursor-pointer disabled:opacity-50"
+                                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
                                 >
                                   Sebelumnya
                                 </button>
@@ -10726,7 +9473,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     )
                                   }
                                   disabled={currentPage === totalPages}
-                                  className="px-3 py-1.5 bg-white hover:bg-[#fcfbfa] border border-[#e5e2e1] rounded-xl cursor-pointer disabled:opacity-50"
+                                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
                                 >
                                   Selanjutnya
                                 </button>
@@ -11326,7 +10073,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
               {/* WORKSPACE AREA CONTAINER */}
               <div className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 pb-24 relative">
                 {/* Proactive Security Check: Warn on default password */}
-                {isGlobalConfigsLoaded && !loggedInAdminId && adminCredentials.password === "Liva123@@" && (
+                {!loggedInAdminId && adminCredentials.password === "Liva123@@" && (
                   <div
                     className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn"
                     id="cybersecurity_alert_banner"
@@ -11341,7 +10088,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </h4>
                         <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
                           Sistem mendeteksi Anda masih menggunakan kata sandi
-                          default ("Liva123@@"). Demi keamanan data agency, segera
+                          default ("123"). Demi keamanan data agency, segera
                           perbarui sandi Master Admin di menu Privasi.
                         </p>
                       </div>
@@ -11768,7 +10515,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   key={h.id}
                                   className="w-8 h-8 rounded-full border-[3px] border-white flex items-center justify-center text-[10px] font-bold z-30 shadow-sm"
                                   style={{
-                                    backgroundColor: `hsl(${(h.name.charCodeAt(0) * 15 + h.name.length * 10) % 360}, 80%, 90%)`,
+                                    backgroundColor:
+                                      "#" +
+                                      Math.floor(Math.random() * 16777215)
+                                        .toString(16)
+                                        .padEnd(6, "0") +
+                                      "40",
                                     color: "#1e293b",
                                   }}
                                 >
@@ -12521,7 +11273,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   <div
                                                     key={
                                                       (sch?.id || "") +
-                                                      "_" + String(idxSch)
+                                                      "_" +
+                                                      Math.random()
+                                                        .toString(36)
+                                                        .substr(2, 9)
                                                     }
                                                     className={`p-2.5 rounded-lg border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all flex flex-col justify-between hover:scale-[101%] hover:shadow-2xs hover:border-slate-300 text-[11px] ${
                                                       isOff
@@ -12932,7 +11687,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         if (isOff) {
                                                           return (
                                                             <div
-                                                              key={`${sch.id || ""}_${idxSch}`}
+                                                              key={
+                                                                (sch?.id ||
+                                                                  "") +
+                                                                "_" +
+                                                                Math.random()
+                                                                  .toString(36)
+                                                                  .substr(2, 9)
+                                                              }
                                                               onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setIsScheduleModalOpen(
@@ -12983,7 +11745,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                                         return (
                                                           <div
-                                                            key={`${sch.id || ""}_${idxSch}`}
+                                                            key={
+                                                              (sch?.id || "") +
+                                                              "_" +
+                                                              Math.random()
+                                                                .toString(36)
+                                                                .substr(2, 9)
+                                                            }
                                                             onClick={(e) => {
                                                               e.stopPropagation();
                                                               setIsScheduleModalOpen(
@@ -14125,376 +12893,1143 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
                     </div>
 
-                    
-                    {/* --- SUMMARY METRICS REKAP GAJI (PIPELINE) --- */}
+                    {/* --- SUMMARY METRICS REKAP GAJI --- */}
                     {(() => {
-                      const totalHadirPenuh = filteredHostReportList.filter(h => h.totalHadir >= h.requiredWorkingDays && h.countTerlambat <= 3 && h.countIzin === 0 && h.countAlpa === 0).length;
-                      const totalAlpaIzin = filteredHostReportList.filter(h => h.countAlpa > 0 || h.countIzin > 0).length;
-                      const totalKasbon = filteredHostReportList.filter(h => h.kasbonDed > 0).length;
-                      const totalGaji = filteredHostReportList.reduce((sum, h) => sum + h.netSalary, 0);
-                      
+                      const totalGaji = filteredHostReportList.reduce(
+                        (sum, h) => sum + h.netSalary,
+                        0,
+                      );
+                      const totalHostBL = filteredHostReportList.filter(
+                        (h) => !h.studio?.includes("Tanggamus"),
+                      ).length;
+                      const totalHostTGM = filteredHostReportList.filter((h) =>
+                        h.studio?.includes("Tanggamus"),
+                      ).length;
+
+                      const activePeriodBrands = new Set<string>();
+                      filteredHostReportList.forEach((h) => {
+                        const records = logs.filter(
+                          (l) =>
+                            (l.hostId === h.id || l.hostName === h.name) &&
+                            isLogDateMatching(
+                              l.date ||
+                                (typeof (l as any).timestamp === "string"
+                                  ? (l as any).timestamp.split(" ")[0]
+                                  : ""),
+                            ),
+                        );
+                        records.forEach((r) => {
+                          if (r.brandHandled)
+                            activePeriodBrands.add(r.brandHandled);
+                        });
+                      });
+                      const totalBrandList = Array.from(activePeriodBrands);
+
                       return (
-                        <div className="mb-6 flex overflow-x-auto pb-2 gap-0 hide-scrollbar w-full border-b border-slate-100 bg-white rounded-xl shadow-xs border">
-                          {/* Pipeline Stepper styling */}
-                          <div className="flex items-center min-w-max w-full">
-                            <div className="px-6 py-4 border-r border-slate-100 flex-1 min-w-[200px]">
-                               <div className="flex items-center gap-2 mb-1.5">
-                                  <Users className="w-4 h-4 text-slate-500" />
-                                  <span className="text-slate-700 font-extrabold text-sm uppercase tracking-wider">Total Host</span>
-                                  <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-black">{filteredHostReportList.length}</span>
-                               </div>
-                               <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">100% Data Aktif</div>
-                            </div>
-                            
-                            <div className="px-6 py-4 border-r border-slate-100 flex-1 min-w-[200px] relative">
-                               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-slate-100 rounded-full flex items-center justify-center z-10"><ChevronRight className="w-4 h-4 text-slate-300"/></div>
-                               <div className="flex items-center gap-2 mb-1.5 pl-2">
-                                  <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                  <span className="text-slate-700 font-extrabold text-sm uppercase tracking-wider">Hadir Penuh</span>
-                                  <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-black">{totalHadirPenuh}</span>
-                               </div>
-                               <div className="text-[10px] text-emerald-600/70 font-semibold uppercase tracking-wider pl-2">{filteredHostReportList.length > 0 ? Math.round((totalHadirPenuh/filteredHostReportList.length)*100) : 0}% AMAN</div>
-                            </div>
-
-                            <div className="px-6 py-4 border-r border-slate-100 flex-1 min-w-[200px] relative">
-                               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-slate-100 rounded-full flex items-center justify-center z-10"><ChevronRight className="w-4 h-4 text-slate-300"/></div>
-                               <div className="flex items-center gap-2 mb-1.5 pl-2">
-                                  <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                  <span className="text-slate-700 font-extrabold text-sm uppercase tracking-wider">Alpa & Izin</span>
-                                  <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-black">{totalAlpaIzin}</span>
-                               </div>
-                               <div className="text-[10px] text-amber-600/70 font-semibold uppercase tracking-wider pl-2">POTONGAN AKTIF</div>
-                            </div>
-
-                            <div className="px-6 py-4 border-r border-slate-100 flex-1 min-w-[200px] relative">
-                               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-slate-100 rounded-full flex items-center justify-center z-10"><ChevronRight className="w-4 h-4 text-slate-300"/></div>
-                               <div className="flex items-center gap-2 mb-1.5 pl-2">
-                                  <CreditCard className="w-4 h-4 text-red-500" />
-                                  <span className="text-slate-700 font-extrabold text-sm uppercase tracking-wider">Kasbon</span>
-                                  <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded text-[10px] font-black">{totalKasbon}</span>
-                               </div>
-                               <div className="text-[10px] text-red-600/70 font-semibold uppercase tracking-wider pl-2">POTONGAN AKTIF</div>
-                            </div>
-
-                            <div className="px-6 py-4 ml-auto bg-slate-800 text-white flex-1 min-w-[250px] rounded-r-xl relative">
-                               <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center z-10"><ChevronRight className="w-4 h-4 text-slate-400"/></div>
-                               <div className="flex flex-col pl-2">
-                                  <span className="text-slate-300 font-bold text-[10px] uppercase tracking-wider mb-1">Total Pencairan Gaji</span>
-                                  <div className="text-xl font-black font-mono text-white">{formatIDR(totalGaji)}</div>
-                               </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                              Total Gaji Dibayarkan
+                            </span>
+                            <span className="text-xl md:text-2xl font-black font-mono mt-2 text-slate-800">
+                              {formatIDR(totalGaji)}
+                            </span>
+                          </div>
+                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                              Host Bandar Lampung
+                            </span>
+                            <span className="text-xl md:text-2xl font-black font-mono mt-2 text-slate-800">
+                              {totalHostBL}{" "}
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                                Orang
+                              </span>
+                            </span>
+                          </div>
+                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                              Host Tanggamus
+                            </span>
+                            <span className="text-xl md:text-2xl font-black font-mono mt-2 text-slate-800">
+                              {totalHostTGM}{" "}
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                                Orang
+                              </span>
+                            </span>
+                          </div>
+                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                              Total Brand Aktif
+                            </span>
+                            <div className="flex flex-col mt-2">
+                              <span className="text-xl md:text-2xl font-black font-mono text-slate-800 leading-none">
+                                {totalBrandList.length}{" "}
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                                  Brand
+                                </span>
+                              </span>
+                              {totalBrandList.length > 0 && (
+                                <span
+                                  className="text-[9px] text-slate-400 font-semibold leading-tight line-clamp-1 mt-1 truncate"
+                                  title={totalBrandList.join(", ")}
+                                >
+                                  {totalBrandList.join(", ")}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
-                      )
+                      );
                     })()}
 
-                    {/* LOCATION TABS (Sub-Filters) & TABLE ACTIONS */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mr-2"><Filter className="w-3 h-3"/> FILTERS</span>
-                          {["Semua Host", "Bandar Lampung", "Tanggamus"].map((tab) => (
-                            <button
-                              key={tab}
-                              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold transition-all rounded-full border cursor-pointer ${
-                                salaryRecapLocationTab === tab
-                                  ? "bg-slate-800 text-white border-slate-800 shadow-sm"
-                                  : "bg-white text-slate-500 border-slate-200 hover:text-slate-700 hover:border-slate-300"
-                              }`}
-                              onClick={() => setSalaryRecapLocationTab(tab)}
-                            >
-                              {salaryRecapLocationTab === tab && <Check className="w-3 h-3" />}
-                              {tab}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-3">
-                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><ArrowUpDown className="w-3 h-3"/> SORTING</span>
-                           <select 
-                              className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 outline-none cursor-pointer hover:border-slate-300"
-                              value={salarySortKey}
-                              onChange={(e) => toggleSalarySort(e.target.value as any)}
-                           >
-                              <option value="name">Nama Host</option>
-                              <option value="netSalary">Gaji Bersih (Tertinggi)</option>
-                              <option value="attendance">Kehadiran (Tertinggi)</option>
-                           </select>
-                        </div>
+                    {/* LOCATION TABS FOR SALARY TABLE */}
+                    <div className="flex bg-slate-100 p-1 w-full max-w-md rounded-xl shadow-sm mb-4">
+                      {["Semua Host", "Bandar Lampung", "Tanggamus"].map((tab) => (
+                        <button
+                          key={tab}
+                          className={`flex-1 text-center py-2 text-xs font-bold transition-all rounded-lg ${
+                            salaryRecapLocationTab === tab
+                              ? "bg-white text-purple-700 shadow-sm"
+                              : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                          }`}
+                          onClick={() => setSalaryRecapLocationTab(tab)}
+                        >
+                          {tab}
+                        </button>
+                      ))}
                     </div>
 
-                    {/* CARDS CONTAINER (Pengganti Tabel Gaji) */}
-                    <div className="flex flex-col gap-4 mb-8">
-                       {filteredHostReportList.length === 0 ? (
-                           <div className="text-center py-16 text-slate-400 font-mono font-medium border border-dashed border-slate-200 rounded-2xl bg-slate-50">
-                             Tidak ada rekam data host yang cocok untuk proses kalkulasi draf gaji.
-                           </div>
-                       ) : (
-                         filteredHostReportList.map((item, idx) => {
-                             const isTanggamus = item.studio && item.studio.includes("Tanggamus");
-                             const hostType = item.hostType || "Reguler";
-                             const pct = Math.min(100, Math.round((item.totalHadir / Math.max(1, item.requiredWorkingDays)) * 100));
-                             
-                             // Determine border color based on status
-                             let statusColor = "bg-blue-100";
-                             if (item.kasbonDed > 0 || item.countAlpa > 0) statusColor = "bg-red-200";
-                             else if (item.countIzin > 0 || item.countTerlambat > 3) statusColor = "bg-amber-200";
-                             else if (pct >= 100) statusColor = "bg-emerald-200";
+                    {/* SALARY RECAP TABLE CONTAINER */}
+                    <div
+                      className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden"
+                      id="salary_recap_calculator_table_wrapper"
+                    >
+                      {/* DESKTOP & TABLET VIEW: Rendered as a highly polished, responsive table */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table
+                          className="w-full text-left text-xs text-slate-900 border-collapse table-auto"
+                          id="salary_recap_table"
+                        >
+                          <thead>
+                            <tr className="bg-slate-50/75 border-b border-slate-100 text-[10px] font-mono whitespace-nowrap uppercase tracking-wider text-slate-500 font-bold select-none">
+                              {/* Nama Host & Wilayah */}
+                              <th className="py-4 px-6 align-middle">
+                                <div className="flex flex-col gap-1.5">
+                                  <button
+                                    onClick={() => toggleSalarySort("name")}
+                                    className="flex items-center gap-1.5 hover:text-purple-700 text-left uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer w-full transition-colors"
+                                  >
+                                    <span>Host & Info</span>
+                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
+                                      {salarySortKey === "name"
+                                        ? salarySortDir === "asc"
+                                          ? " ▲"
+                                          : " ▼"
+                                        : " ↕️"}
+                                    </span>
+                                  </button>
+                                  </div>
+                              </th>
 
-                             const isExpanded = expandedHostSalaryId === item.id;
+                              {/* Tipe Host */}
+                              <th className="py-4 px-4 align-middle text-center">
+                                <div className="flex flex-col gap-1.5 items-center">
+                                  <button
+                                    onClick={() => toggleSalarySort("hostType")}
+                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                  >
+                                    <span>Tipe</span>
+                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
+                                      {salarySortKey === "hostType"
+                                        ? salarySortDir === "asc"
+                                          ? " ▲"
+                                          : " ▼"
+                                        : " ↕️"}
+                                    </span>
+                                  </button>
+                                  </div>
+                              </th>
 
-                             return (
-                               <div key={item.id} className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col overflow-hidden transition-all duration-300 hover:border-slate-300 hover:shadow-md relative group">
-                                  {/* Left colored bar indicator */}
-                                  <div className={`absolute left-0 top-0 bottom-0 w-3 ${statusColor}`}></div>
-                                  
-                                  {/* Main Card Header (Always visible) */}
-                                  <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 pl-7 gap-4 lg:gap-6 cursor-pointer" onClick={() => setExpandedHostSalaryId(isExpanded ? null : item.id)}>
-                                     {/* Host Info */}
-                                     <div className="flex w-full lg:w-1/3 items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 font-black uppercase overflow-hidden border border-slate-200 relative">
-                                            <img
-                                              src={getAvatarUrl(item.name)}
-                                              alt={item.name}
-                                              referrerPolicy="no-referrer"
-                                              className="w-10 h-10 object-cover"
-                                              onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = "none";
+                              {/* Hadir / Target */}
+                              <th className="py-4 px-4 align-middle text-center">
+                                <div className="flex flex-col gap-1.5 items-center">
+                                  <button
+                                    onClick={() =>
+                                      toggleSalarySort("attendance")
+                                    }
+                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                  >
+                                    <span>Hadir</span>
+                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
+                                      {salarySortKey === "attendance"
+                                        ? salarySortDir === "asc"
+                                          ? " ▲"
+                                          : " ▼"
+                                        : " ↕️"}
+                                    </span>
+                                  </button>
+                                  </div>
+                              </th>
+
+                              {/* Terlambat */}
+                              <th className="py-4 px-3 align-middle text-center text-amber-600">
+                                <div className="flex flex-col gap-1.5 items-center">
+                                  <button
+                                    onClick={() => toggleSalarySort("late")}
+                                    className="flex items-center justify-center gap-1.5 hover:text-amber-700 text-amber-600 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                  >
+                                    <span>Telat</span>
+                                    <span className="text-[10px] text-amber-600 font-extrabold font-sans">
+                                      {salarySortKey === "late"
+                                        ? salarySortDir === "asc"
+                                          ? " ▲"
+                                          : " ▼"
+                                        : " ↕️"}
+                                    </span>
+                                  </button>
+                                  </div>
+                              </th>
+
+                              {/* Tidak Hadir */}
+                              <th className="py-4 px-3 align-middle text-center text-red-650">
+                                <div className="flex flex-col gap-1.5 items-center">
+                                  <button
+                                    onClick={() => toggleSalarySort("excused")}
+                                    className="flex items-center justify-center gap-1.5 hover:text-red-700 text-red-650 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                  >
+                                    <span>Tidak Hadir</span>
+                                    <span className="text-[10px] text-red-600 font-extrabold font-sans">
+                                      {salarySortKey === "excused"
+                                        ? salarySortDir === "asc"
+                                          ? " ▲"
+                                          : " ▼"
+                                        : " ↕️"}
+                                    </span>
+                                  </button>
+                                  </div>
+                              </th>
+
+                              {/* Rumus Perhitungan Gaji */}
+                              <th className="py-4 px-4 align-middle text-left">
+                                <div className="flex flex-col gap-1.5">
+                                  <button
+                                    onClick={() => toggleSalarySort("formula")}
+                                    className="flex items-center gap-1.5 hover:text-purple-700 text-left uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                  >
+                                    <span>Kalkulasi</span>
+                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
+                                      {salarySortKey === "formula"
+                                        ? salarySortDir === "asc"
+                                          ? " ▲"
+                                          : " ▼"
+                                        : " ↕️"}
+                                    </span>
+                                  </button>
+                                  </div>
+                              </th>
+
+                              {/* Estimasi Gaji Bersih */}
+                              <th className="py-4 px-6 align-middle text-right pr-8">
+                                <div className="flex flex-col gap-1.5 items-end">
+                                  <button
+                                    onClick={() =>
+                                      toggleSalarySort("netSalary")
+                                    }
+                                    className="flex items-center justify-end gap-1.5 hover:text-purple-700 text-right uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                  >
+                                    <span>Gaji Bersih</span>
+                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
+                                      {salarySortKey === "netSalary"
+                                        ? salarySortDir === "asc"
+                                          ? " ▲"
+                                          : " ▼"
+                                        : " ↕️"}
+                                    </span>
+                                  </button>
+                                  </div>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredHostReportList.length === 0 ? (
+                              <tr key="empty">
+                                <td
+                                  colSpan={7}
+                                  className="text-center py-12 text-slate-400 font-mono font-medium"
+                                >
+                                  Tidak ada rekam data host yang cocok untuk
+                                  proses kalkulasi draf gaji.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredHostReportList.map((item, idx) => {
+                                const isTanggamus =
+                                  item.studio &&
+                                  item.studio.includes("Tanggamus");
+                                const hostType = item.hostType || "Reguler";
+                                const isAtTop = idx < 3;
+
+                                return (
+                                  <React.Fragment key={item.id || idx}>
+                                  <tr
+                                    onClick={() => setExpandedHostSalaryId(expandedHostSalaryId === item.id ? null : item.id)}
+                                    className={`border-b border-slate-100 hover:bg-slate-50/50 transition-all font-sans cursor-pointer ${expandedHostSalaryId === item.id ? "bg-purple-50/30" : ""}`}
+                                    id={`salary_row_${item.id}`}
+                                  >
+                                    <td className="py-4 px-6">
+                                      <div className="flex items-center gap-3">
+                                        <img
+                                          src={getAvatarUrl(item.name)}
+                                          alt={item.name}
+                                          referrerPolicy="no-referrer"
+                                          className="w-9 h-9 rounded-full object-cover border border-slate-200"
+                                        />
+                                        <div className="min-w-0">
+                                          <div className="font-extrabold text-slate-900 text-xs truncate">
+                                            {item.name}
+                                          </div>
+                                          <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
+                                            
+                                            <span className="truncate">
+                                              {item.studio ||
+                                                "Studio Bandar Lampung"}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </td>
+
+                                    <td className="text-center py-4 px-4 whitespace-nowrap">
+                                      {hostType === "Reguler" ? (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-55 bg-blue-50 text-blue-700 font-bold text-[9px] border border-blue-105 uppercase tracking-wider">
+                                          Host Reguler
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-purple-55 bg-purple-50 text-purple-700 font-bold text-[9px] border border-purple-105 uppercase tracking-wider">
+                                          Host Backup
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    <td className="text-center font-mono font-bold text-slate-900 py-4 px-4">
+                                      {hostType === "Reguler" ? (
+                                        <div className="inline-flex flex-col items-center">
+                                          <div className="flex items-center gap-1.5 justify-center bg-slate-105 bg-slate-100 hover:bg-slate-200/80 hover:border-slate-300 transition-colors px-2 py-1 rounded-lg border border-slate-200">
+                                            <span className="text-[10.5px] text-slate-700 font-bold">
+                                              {item.totalHadir} /
+                                            </span>
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              max={31}
+                                              value={item.requiredWorkingDays}
+                                              onChange={(e) => {
+                                                const val = Math.max(
+                                                  1,
+                                                  Math.min(
+                                                    31,
+                                                    Number(e.target.value),
+                                                  ),
+                                                );
+                                                handleUpdateHost(item.id, {
+                                                  customWorkingDaysTarget: val,
+                                                });
                                               }}
+                                              title="Ubah Target Hari Kerja Khusus Host Ini"
+                                              className="w-10 bg-white border border-slate-300 hover:border-blue-450 focus:border-blue-600 rounded px-1 py-0.5 text-center font-mono font-extrabold text-[10.5px] text-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-100"
                                             />
+                                            <span className="text-[10px] text-slate-500 font-bold">
+                                              Hari
+                                            </span>
+                                          </div>
                                         </div>
-                                        <div>
-                                           <div className="font-extrabold text-slate-800 text-[13px] flex items-center gap-2">
-                                              {item.name} 
-                                              <span className="text-[9px] text-slate-400 font-mono font-medium bg-slate-100 px-1.5 py-0.5 rounded">#{item.id.substring(0,6)}</span>
-                                           </div>
-                                           <div className="flex items-center gap-3 mt-1.5">
-                                              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                                                 <MapPin className="w-3 h-3 text-slate-400" /> {item.studio || "Bandar Lampung"}
-                                              </div>
-                                              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-500">
-                                                 <Phone className="w-3 h-3 text-blue-500" /> <Mail className="w-3 h-3 text-red-500 ml-0.5" />
-                                              </div>
-                                           </div>
+                                      ) : (
+                                        <div className="inline-flex flex-col items-center">
+                                          <span className="px-2 py-0.5 rounded-lg bg-emerald-55 bg-emerald-50 text-[10.5px] text-emerald-800 font-bold border border-emerald-105">
+                                            {item.totalHadir} Shift
+                                          </span>
+                                          <span className="text-[9px] text-emerald-600 font-medium mt-1">
+                                            Dibayar per Shift
+                                          </span>
                                         </div>
-                                     </div>
+                                      )}
+                                    </td>
 
-                                     {/* Project Info / Host Type */}
-                                     <div className="w-full lg:w-1/6 flex flex-col items-start lg:items-center">
-                                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">Tipe Host</span>
-                                        <div className={`rounded-full px-3 py-1 flex items-center justify-center text-[11px] font-black min-w-[110px] border ${hostType === "Reguler" ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-violet-50 text-violet-700 border-violet-100"}`}>
-                                           {hostType === "Reguler" ? "Reguler Host" : "Backup Host"}
-                                        </div>
-                                     </div>
+                                    {/* Terlambat (Late) */}
+                                    <td className="text-center py-4 px-3 font-mono">
+                                      <span
+                                        className={`px-2 py-1 rounded-md text-[11px] font-bold ${
+                                          item.countTerlambat > 0
+                                            ? "text-amber-700 font-black bg-amber-50 border border-amber-100"
+                                            : "text-slate-400 font-medium bg-slate-50 border border-slate-100/50"
+                                        }`}
+                                      >
+                                        {item.countTerlambat}x
+                                      </span>
+                                    </td>
 
-                                     {/* Est Revenue & Bank Account */}
-                                     <div className="w-full lg:w-1/4 flex flex-col items-start lg:items-end">
-                                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1.5">Total Pencairan & Rekening</span>
-                                        <div className="flex flex-col items-end gap-1.5">
-                                           <div className="flex items-center gap-2">
-                                              <span className="font-mono font-black text-sm text-slate-800">{formatIDR(item.netSalary)}</span>
-                                              <button
-                                                type="button"
-                                                className={`group/copy flex items-center justify-center w-7 h-7 rounded-md border transition-all cursor-pointer ${copiedSalaryHostId === item.id ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  navigator.clipboard.writeText(formatIDR(item.netSalary));
-                                                  setCopiedSalaryHostId(item.id);
-                                                  setTimeout(() => setCopiedSalaryHostId(null), 2000);
-                                                }}
-                                                title="Salin gaji"
-                                              >
-                                                 {copiedSalaryHostId === item.id ? (
-                                                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                                 ) : (
-                                                    <Copy className="w-4 h-4 text-slate-300 group-hover/copy:text-blue-500 transition-colors" />
-                                                 )}
-                                              </button>
-                                           </div>
-                                           <div className="flex items-center gap-2">
-                                              <span className={`text-[10px] font-mono font-bold max-w-[140px] truncate ${copiedBankHostId === item.id ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                                 {item.bankName ? `${item.bankName} ` : ""}
-                                                 {item.bankAccount && item.bankAccount !== "-" ? item.bankAccount : "Tanpa Rekening"}
+                                    {/* Tidak Hadir (Izin/Sakit + Alpa) */}
+                                    <td className="text-center py-4 px-3 font-mono">
+                                      <span
+                                        className={`px-2 py-1 rounded-md text-[11px] font-bold ${
+                                          item.countIzin + item.countAlpa > 0
+                                            ? "text-red-700 font-black bg-red-50 border border-red-100"
+                                            : "text-slate-400 font-medium bg-slate-50 border border-slate-100/50"
+                                        }`}
+                                      >
+                                        {item.countIzin + item.countAlpa} Hari
+                                      </span>
+                                    </td>
+
+                                    <td className="py-4 px-4 text-left">
+                                      {editingSalaryHostId === item.id ? (
+                                        <div className="space-y-1.5 font-sans min-w-[150px]">
+                                          <div className="text-[10px] text-purple-700 font-extrabold uppercase tracking-wide">
+                                            {hostType === "Reguler"
+                                              ? "Gaji Pokok Kustom"
+                                              : "Tarif Shift Kustom"}
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            <div className="relative flex-1">
+                                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400">
+                                                Rp
                                               </span>
-                                              <button
-                                                type="button"
-                                                className={`group/copy flex items-center justify-center w-7 h-7 rounded-md border transition-all cursor-pointer ${copiedBankHostId === item.id ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  const textToCopy = `${item.bankName ? item.bankName + " " : ""}${item.bankAccount || "Belum ada rekening"}`;
-                                                  navigator.clipboard.writeText(textToCopy);
-                                                  setCopiedBankHostId(item.id);
-                                                  setTimeout(() => setCopiedBankHostId(null), 2000);
+                                              <input
+                                                type="text"
+                                                value={tempSalaryValue}
+                                                onChange={(e) => {
+                                                  const val =
+                                                    e.target.value.replace(
+                                                      /[^0-9]/g,
+                                                      "",
+                                                    );
+                                                  setTempSalaryValue(val);
                                                 }}
-                                                title="Salin rekening"
-                                              >
-                                                 {copiedBankHostId === item.id ? (
-                                                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                                 ) : (
-                                                    <Copy className="w-4 h-4 text-slate-300 group-hover/copy:text-blue-500 transition-colors" />
-                                                 )}
-                                              </button>
-                                           </div>
+                                                placeholder="Gaji kustom"
+                                                className="w-full bg-white border border-purple-300 focus:border-purple-600 focus:ring-1 focus:ring-purple-100 rounded-lg pl-7 pr-2 py-1 text-xs font-mono font-bold text-purple-950 focus:outline-none"
+                                                autoFocus
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter") {
+                                                    const numVal =
+                                                      Number(tempSalaryValue);
+                                                    if (
+                                                      hostType === "Reguler"
+                                                    ) {
+                                                      handleUpdateHost(
+                                                        item.id,
+                                                        {
+                                                          customBaseSalary:
+                                                            numVal || undefined,
+                                                        },
+                                                      );
+                                                    } else {
+                                                      handleUpdateHost(
+                                                        item.id,
+                                                        {
+                                                          customShiftRate:
+                                                            numVal || undefined,
+                                                        },
+                                                      );
+                                                    }
+                                                    setEditingSalaryHostId(
+                                                      null,
+                                                    );
+                                                  }
+                                                }}
+                                              />
+                                            </div>
+                                            <button
+                                              onClick={() => {
+                                                const numVal =
+                                                  Number(tempSalaryValue);
+                                                if (hostType === "Reguler") {
+                                                  handleUpdateHost(item.id, {
+                                                    customBaseSalary:
+                                                      numVal || undefined,
+                                                  });
+                                                } else {
+                                                  handleUpdateHost(item.id, {
+                                                    customShiftRate:
+                                                      numVal || undefined,
+                                                  });
+                                                }
+                                                setEditingSalaryHostId(null);
+                                              }}
+                                              title="Simpan Gaji Kustom"
+                                              className="p-1 px-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                                            >
+                                              ✓
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                setEditingSalaryHostId(null)
+                                              }
+                                              title="Batal"
+                                              className="p-1 px-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                          <div className="text-[8.5px] text-slate-400 italic">
+                                            Tekan ✓ atau Enter untuk menyimpan
+                                          </div>
                                         </div>
-                                     </div>
+                                      ) : (
+                                        <div className="space-y-1 font-sans">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none">
+                                              {hostType === "Reguler"
+                                                ? "Gaji Pokok Wilayah"
+                                                : "Tarif per Shift"}
+                                            </span>
+                                            {((hostType === "Reguler" &&
+                                              typeof item.customBaseSalary ===
+                                                "number") ||
+                                              (hostType !== "Reguler" &&
+                                                typeof item.customShiftRate ===
+                                                  "number")) && (
+                                              <span className="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-800 text-[8px] font-black uppercase px-1 py-0.2 rounded border border-emerald-250">
+                                                Kustom
+                                                <button
+                                                  onClick={() => {
+                                                    if (
+                                                      hostType === "Reguler"
+                                                    ) {
+                                                      handleUpdateHost(
+                                                        item.id,
+                                                        {
+                                                          customBaseSalary:
+                                                            undefined,
+                                                        },
+                                                      );
+                                                    } else {
+                                                      handleUpdateHost(
+                                                        item.id,
+                                                        {
+                                                          customShiftRate:
+                                                            undefined,
+                                                        },
+                                                      );
+                                                    }
+                                                  }}
+                                                  title="Kembalikan ke Default Wilayah"
+                                                  className="text-emerald-950 hover:text-red-600 px-0.5 font-bold transition-all ml-0.5 text-[9px] cursor-pointer"
+                                                >
+                                                  &times;
+                                                </button>
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="text-xs font-extrabold text-slate-800 font-mono flex items-center gap-1 flex-wrap">
+                                            {formatIDR(item.basePayRate)}
+                                            {hostType === "Reguler" ? (
+                                              <span className="text-[9.5px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                                {item.studio
+                                                  ? item.studio.includes(
+                                                      "Tanggamus",
+                                                    )
+                                                    ? "Tanggamus"
+                                                    : "Bandar Lampung"
+                                                  : "Bandar Lampung"}
+                                              </span>
+                                            ) : (
+                                              <span className="text-[9.5px] text-slate-500 font-medium">
+                                                / Shift
+                                              </span>
+                                            )}
 
-                                     {/* Likelihood / Attendance */}
-                                     <div className="w-full lg:w-[15%] flex items-center justify-start lg:justify-end gap-3">
-                                        <div className="flex flex-col items-start lg:items-end">
-                                            <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1">Kehadiran</span>
-                                            <span className="font-extrabold text-slate-800 text-xs">{pct}%</span>
+                                            <button
+                                              onClick={() => {
+                                                setEditingSalaryHostId(item.id);
+                                                const currentVal =
+                                                  hostType === "Reguler"
+                                                    ? (item.customBaseSalary ??
+                                                      item.basePayRate)
+                                                    : (item.customShiftRate ??
+                                                      item.basePayRate);
+                                                setTempSalaryValue(
+                                                  String(currentVal || ""),
+                                                );
+                                              }}
+                                              title="Atur Gaji Kustom Khusus Host Ini"
+                                              className="px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[9px] font-black rounded border border-purple-200/60 inline-flex items-center gap-0.5 transition-all cursor-pointer shadow-3xs"
+                                            >
+                                              ✏️ Kustom
+                                            </button>
+                                          </div>
+                                          <div
+                                            className="text-[9.5px] text-blue-600 font-medium flex items-center gap-1"
+                                            title="Klik baris ini untuk melihat rincian rumus penggajian"
+                                          >
+                                            <span className="bg-blue-50 text-blue-700 px-1 py-0.5 rounded text-[8px] font-bold uppercase border border-blue-105">
+                                              info
+                                            </span>
+                                            <span>
+                                              Klik baris untuk rincian
+                                            </span>
+                                          </div>
                                         </div>
-                                        <div className="relative w-8 h-8 rounded-full border-[3px] border-slate-100 flex items-center justify-center">
-                                           <div className={`absolute top-0 left-0 w-full h-full rounded-full border-[3px] border-t-transparent border-l-transparent transform -rotate-45 ${pct >= 100 ? 'border-emerald-500' : pct >= 80 ? 'border-blue-500' : 'border-amber-500'}`}></div>
-                                        </div>
-                                     </div>
+                                      )}
+                                    </td>
 
-                                     {/* Action / Show More */}
-                                     <div className="w-full lg:w-auto flex items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 pt-3 lg:pt-0 mt-2 lg:mt-0 border-slate-100">
-                                        <div className="text-[10px] font-bold text-blue-600 flex items-center gap-1 uppercase tracking-wider hover:text-blue-800">
-                                           {isExpanded ? 'SHOW LESS' : 'SHOW MORE'} 
-                                           <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                    <td className="text-right py-4 px-6 pr-8 whitespace-nowrap">
+                                      <div className="inline-block z-10" onClick={(e) => e.stopPropagation()}>
+                                        <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 shadow-3xs">
+                                          {/* Klik untuk Salin nominal angka saja */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              navigator.clipboard.writeText(String(item.netSalary));
+                                              setCopiedSalaryHostId(item.id);
+                                              setTimeout(() => {
+                                                setCopiedSalaryHostId(null);
+                                              }, 1500);
+                                            }}
+                                            title="Klik untuk menyalin nominal angka saja (untuk bank transfer)"
+                                            className={`text-xs font-black font-mono px-4 py-2 transition-all duration-155 flex items-center gap-1.5 cursor-pointer select-none active:scale-95 ${
+                                              copiedSalaryHostId === item.id
+                                                ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                                                : "text-slate-900 hover:text-blue-650 hover:bg-blue-50/40"
+                                            }`}
+                                          >
+                                            {copiedSalaryHostId === item.id ? (
+                                              <>
+                                                <span>Tersalin!</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-blue-600 transition-colors" />
+                                                <span>{formatIDR(item.netSalary)}</span>
+                                              </>
+                                            )}
+                                          </button>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                           <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Catat Komunikasi"><MessageSquare className="w-4 h-4"/></button>
-                                           <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Lampirkan Dokumen"><Paperclip className="w-4 h-4"/></button>
+                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-1 pr-1">
+                                          Transfer Bank
+                                        </span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                  {/* ACCORDION EXPANDED ROW */}
+                                  {expandedHostSalaryId === item.id && (
+                                    <tr className="bg-slate-950 border-b border-slate-800">
+                                      <td colSpan={7} className="p-0">
+                                        <div className="p-6 px-6 lg:px-8 border-l-4 border-l-purple-500 text-white animate-in slide-in-from-top-2 duration-200 overflow-hidden">
+                                          <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            
+<div className="space-y-3 font-sans">
+                                            <div className="border-b border-slate-800 pb-2">
+                                              <div className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest leading-none">
+                                                Rincian Perhitungan Gaji
+                                              </div>
+                                              <div className="text-xs font-black text-blue-400 mt-1 flex items-center gap-1.5">
+                                                {item.name}
+                                                <span className="text-[8.5px] bg-blue-500/10 text-blue-300 font-extrabold border border-blue-500/25 px-1 py-0.2 rounded uppercase">
+                                                  {hostType}
+                                                </span>
+                                              </div>
+                                            </div>
+
+                                            {hostType === "Reguler" ? (
+                                              <div className="space-y-2.5">
+                                                <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg space-y-1">
+                                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                                                    Rumus Gaji Pokok Regulasi
+                                                  </div>
+                                                  <div className="text-[10px] text-slate-200 italic font-mono leading-tight">
+                                                    (Gaji Pokok Penempatan /
+                                                    Hari Standar Kerja) &times;
+                                                    Kehadiran Host Masuk
+                                                  </div>
+                                                  <div className="pt-1.5 border-t border-slate-800/80 mt-1.5 font-mono text-[9px] text-blue-300 font-semibold leading-relaxed">
+                                                    (
+                                                    {formatIDR(
+                                                      item.basePayRate,
+                                                    )}{" "}
+                                                    / {item.requiredWorkingDays}{" "}
+                                                    Hari) &times;{" "}
+                                                    {item.totalHadir} Hari
+                                                  </div>
+                                                  <div className="text-xs font-bold font-mono text-emerald-400 flex justify-between items-center pt-1">
+                                                    <span>Gaji Pokok:</span>
+                                                    <span>
+                                                      {formatIDR(
+                                                        Math.round(
+                                                          (item.basePayRate /
+                                                            item.requiredWorkingDays) *
+                                                            item.totalHadir,
+                                                        ),
+                                                      )}
+                                                    </span>
+                                                  </div>
+                                                </div>
+
+                                                <div className="border-t border-slate-800 pt-2 space-y-1.5">
+                                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                                                    Syarat Bonus Kehadiran
+                                                  </div>
+
+                                                  <div className="space-y-1 text-[10px]">
+                                                    <div className="flex items-center gap-1.5 text-slate-200">
+                                                      <span>
+                                                        {item.totalHadir >=
+                                                        item.requiredWorkingDays
+                                                          ? "✅"
+                                                          : "❌"}
+                                                      </span>
+                                                      <span className="font-medium">
+                                                        Kehadiran{" "}
+                                                        {item.totalHadir >=
+                                                        item.requiredWorkingDays
+                                                          ? "Penuh"
+                                                          : "di Bawah Target"}{" "}
+                                                        ({item.totalHadir}/
+                                                        {
+                                                          item.requiredWorkingDays
+                                                        }{" "}
+                                                        Hari)
+                                                      </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 text-slate-200">
+                                                      <span>
+                                                        {item.countTerlambat <=
+                                                        3
+                                                          ? "✅"
+                                                          : "❌"}
+                                                      </span>
+                                                      <span className="font-medium">
+                                                        Terlambat ≤ 3x (
+                                                        {item.countTerlambat}x)
+                                                      </span>
+                                                    </div>
+                                                  </div>
+
+                                                  {item.isEligibleForBonus ? (
+                                                    <div className="bg-emerald-555 bg-emerald-500/10 border border-emerald-500/25 rounded-lg p-2 text-[10px]">
+                                                      <div className="text-emerald-400 font-extrabold flex justify-between items-center">
+                                                        <span>
+                                                          Bonus +100% Hadir:
+                                                        </span>
+                                                        <span>
+                                                          +
+                                                          {formatIDR(
+                                                            item.calculatedBonus,
+                                                          )}
+                                                        </span>
+                                                      </div>
+                                                      <p className="text-[9px] text-slate-400 mt-1">
+                                                        Status: Memenuhi
+                                                        kualifikasi & berhak
+                                                        menerima bonus
+                                                      </p>
+                                                    </div>
+                                                  ) : (
+                                                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-[9.5px] text-slate-400">
+                                                      <p className="italic leading-relaxed">
+                                                        *Syarat bonus: Kehadiran
+                                                        penuh & terlambat ≤ 3x
+                                                        untuk bonus{" "}
+                                                        {formatIDR(
+                                                          isTanggamus
+                                                            ? (salarySettings.tanggamusRegulerBonus ??
+                                                                250000)
+                                                            : (salarySettings.bandarLampungRegulerBonus ??
+                                                                300000),
+                                                        )}
+                                                      </p>
+                                                    </div>
+                                                  )}
+                                                </div>
+
+                                                {item.totalBackupShiftsAsReguler >
+                                                  0 && (
+                                                  <div className="bg-amber-900/30 border border-amber-800/50 rounded-lg p-2 text-[10px] space-y-1">
+                                                    <div className="text-amber-400 font-extrabold flex justify-between items-center">
+                                                      <span>
+                                                        Shift Backup Ekstra (
+                                                        {
+                                                          item.totalBackupShiftsAsReguler
+                                                        }
+                                                        x):
+                                                      </span>
+                                                      <span>
+                                                        +
+                                                        {formatIDR(
+                                                          item.calculatedBackupPay,
+                                                        )}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                {item.totalOvertimeHours >
+                                                  0 && (
+                                                  <div className="bg-indigo-900/40 border border-indigo-800/60 rounded-lg p-2 text-[10px] space-y-1">
+                                                    <div className="text-indigo-400 font-extrabold flex justify-between items-center">
+                                                      <span>
+                                                        Lembur (
+                                                        {
+                                                          item.totalOvertimeHours
+                                                        }{" "}
+                                                        Jam):
+                                                      </span>
+                                                      <span>
+                                                        +
+                                                        {formatIDR(
+                                                          item.calculatedOvertimePay,
+                                                        )}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                <div className="border-t border-slate-800 pt-2.5 flex justify-between items-center text-xs font-black">
+                                                  <span className="text-slate-300">
+                                                    Estimasi Gaji Bersih:
+                                                  </span>
+                                                  <span className="text-yellow-400 font-mono text-sm">
+                                                    {formatIDR(item.netSalary)}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <div className="space-y-2.5">
+                                                <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg space-y-1">
+                                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                                                    Rumus Gaji Backup
+                                                  </div>
+                                                  <div className="text-[10px] text-slate-200 italic font-mono leading-tight">
+                                                    Siklus Kehadiran Shift
+                                                    &times; Tarif Per Shift
+                                                  </div>
+                                                  <div className="pt-1.5 border-t border-slate-800/80 mt-1.5 font-mono text-[9.5px] text-blue-300 font-semibold flex justify-between">
+                                                    <span>Detail:</span>
+                                                    <span>
+                                                      {item.totalHadir} Shift
+                                                      &times;{" "}
+                                                      {formatIDR(
+                                                        item.basePayRate,
+                                                      )}
+                                                    </span>
+                                                  </div>
+                                                </div>
+
+                                                {item.totalOvertimeHours >
+                                                  0 && (
+                                                  <div className="bg-indigo-900 border border-indigo-800 rounded-lg p-2 text-[10px] space-y-1">
+                                                    <div className="text-indigo-400 font-extrabold flex justify-between items-center">
+                                                      <span>
+                                                        Lembur (
+                                                        {
+                                                          item.totalOvertimeHours
+                                                        }{" "}
+                                                        Jam):
+                                                      </span>
+                                                      <span>
+                                                        +
+                                                        {formatIDR(
+                                                          item.calculatedOvertimePay,
+                                                        )}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-xs font-black">
+                                                  <span className="text-slate-300">
+                                                    Estimasi Gaji Bersih:
+                                                  </span>
+                                                  <span className="text-yellow-400 font-mono text-sm">
+                                                    {formatIDR(item.netSalary)}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+
+                                            <div className="flex flex-col justify-center border-l border-slate-800 pl-8 space-y-4">
+                                              <div className="text-slate-400 text-xs font-medium">Rekapitulasi Final</div>
+                                              <div className="text-3xl font-mono font-black text-emerald-400">{formatIDR(item.netSalary)}</div>
+                                              <div className="text-[10px] text-slate-500 max-w-xs">Gaji bersih yang akan ditransfer ke rekening host. Pastikan kehadiran dan potongan telah dikalkulasi dengan benar.</div>
+                                            </div>
+                                          </div>
                                         </div>
-                                     </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                  </React.Fragment>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* MOBILE & SMARTPHONE VIEW: Beautifully custom styled touch cards */}
+                      <div className="md:hidden divide-y divide-slate-100">
+                        {filteredHostReportList.length === 0 ? (
+                          <div className="text-center py-12 text-slate-400 font-mono font-medium text-xs">
+                            Tidak ada rekam data host yang cocok untuk proses
+                            kalkulasi draf gaji.
+                          </div>
+                        ) : (
+                          filteredHostReportList.map((item, idx) => {
+                            const isTanggamus =
+                              item.studio && item.studio.includes("Tanggamus");
+                            const hostType = item.hostType || "Reguler";
+
+                            return (
+                              <div
+                                key={item.id + "_" + idx}
+                                className="p-4 space-y-4 font-sans bg-white"
+                                id={`salary_mobile_card_${item.id}`}
+                              >
+                                {/* Profile Header Block */}
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={getAvatarUrl(item.name)}
+                                      alt={item.name}
+                                      referrerPolicy="no-referrer"
+                                      className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-3xs"
+                                    />
+                                    <div>
+                                      <div className="font-extrabold text-slate-900 text-xs">
+                                        {item.name}
+                                      </div>
+                                      <div className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                                        
+                                        <span>
+                                          {item.studio ||
+                                            "Studio Bandar Lampung"}
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
 
-                                  {/* Expanded Area */}
-                                  {isExpanded && (
-                                     <div className="border-t border-slate-100 bg-slate-50/70 p-4 pl-7">
-                                        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
-                                           <div className="absolute top-0 right-0 p-3 opacity-10">
-                                              <Calculator className="w-20 h-20" />
-                                           </div>
-                                           <div className="flex flex-col gap-4 relative z-10">
-                                              <div className="flex items-start justify-between gap-4">
-                                                 <div className="flex-1">
-                                                    <span className="font-bold text-slate-600 text-[11px] block">Kehadiran & Target Hari Kerja</span>
-                                                    <span className="text-[10px] text-slate-400 font-semibold">
-                                                       {item.countTepatWaktu} tepat waktu, {item.countTerlambat} terlambat, {item.countAlpa} alpa, {item.countIzin} izin
-                                                    </span>
-                                                    <div className="flex flex-wrap gap-1.5 mt-2">
-                                                       <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-black">
-                                                          Hadir {item.totalHadir}/{item.requiredWorkingDays}
-                                                       </span>
-                                                       <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-black">
-                                                          Tepat {item.countTepatWaktu}
-                                                       </span>
-                                                       <span className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-black">
-                                                          Telat {item.countTerlambat}
-                                                       </span>
-                                                       <span className="text-[10px] bg-red-50 text-red-700 px-2 py-0.5 rounded-full font-black">
-                                                          Alpa {item.countAlpa}
-                                                       </span>
-                                                       <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-black">
-                                                          Izin {item.countIzin}
-                                                       </span>
-                                                    </div>
-                                                 </div>
-                                                 {hostType === "Reguler" ? (
-                                                   <div className="w-32 flex-shrink-0">
-                                                      <label className="block text-[8.5px] uppercase tracking-wider text-slate-400 font-bold mb-1 text-right">
-                                                         Edit Target
-                                                      </label>
-                                                      <input
-                                                         type="number"
-                                                         min="1"
-                                                         max="31"
-                                                         value={item.requiredWorkingDays}
-                                                         onChange={(e) => {
-                                                           const next = Math.max(1, Math.min(31, Number(e.target.value) || salarySettings.workingDays));
-                                                           handleUpdateHost(item.id, { customWorkingDaysTarget: next });
-                                                         }}
-                                                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-slate-800 text-center focus:outline-none focus:border-blue-500"
-                                                      />
-                                                   </div>
-                                                 ) : (
-                                                   <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-100 px-2.5 py-1 rounded-full">
-                                                      Backup host dihitung per shift
-                                                   </span>
-                                                 )}
-                                              </div>
+                                  <div>
+                                    {hostType === "Reguler" ? (
+                                      <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[8.5px] border border-blue-100 uppercase tracking-wide">
+                                        Reguler
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold text-[8.5px] border border-purple-100 uppercase tracking-wide">
+                                        Backup
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
 
-                                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                                                 <div className="rounded-xl bg-slate-50 border border-slate-100 p-3">
-                                                    <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1">
-                                                       Potongan Kasbon Admin
-                                                    </label>
-                                                    <div className="flex items-center gap-2">
-                                                       <span className="text-[11px] font-black text-slate-500">Rp</span>
-                                                       <input
-                                                          type="number"
-                                                          min="0"
-                                                          step="1000"
-                                                          value={payrollKasbonByHostId[item.id] ?? 0}
-                                                          onChange={(e) => {
-                                                            const next = Math.max(0, Number(e.target.value) || 0);
-                                                            setPayrollKasbonByHostId((prev) => ({
-                                                              ...prev,
-                                                              [item.id]: next,
-                                                            }));
-                                                          }}
-                                                          className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-black text-slate-800 focus:outline-none focus:border-blue-500"
-                                                          placeholder="0"
-                                                       />
-                                                    </div>
-                                                    <p className="text-[10px] text-slate-400 font-semibold mt-1.5 leading-tight">
-                                                       Diterapkan langsung ke total gaji host ini.
-                                                    </p>
-                                                 </div>
+                                {/* Attendance Mini Dashboard */}
+                                <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                                  {/* 1. Hadir / Target */}
+                                  <div className="flex flex-col justify-between">
+                                    <span className="text-[8px] font-black tracking-wider text-slate-400 block uppercase">
+                                      Hadir/Tgt
+                                    </span>
+                                    {hostType === "Reguler" ? (
+                                      <div className="inline-flex items-center justify-center gap-0.5 mt-1 bg-white border border-slate-200 rounded px-1 py-0.5 text-[10px] font-bold text-slate-800">
+                                        <span>{item.totalHadir}/</span>
+                                        <input
+                                          type="number"
+                                          min={1}
+                                          max={31}
+                                          value={item.requiredWorkingDays}
+                                          onChange={(e) => {
+                                            const val = Math.max(
+                                              1,
+                                              Math.min(
+                                                31,
+                                                Number(e.target.value),
+                                              ),
+                                            );
+                                            handleUpdateHost(item.id, {
+                                              customWorkingDaysTarget: val,
+                                            });
+                                          }}
+                                          className="w-5 border-none bg-transparent text-blue-700 font-bold text-center focus:outline-none p-0"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <span className="inline-block mt-1 font-mono text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100">
+                                        {item.totalHadir} Shf
+                                      </span>
+                                    )}
+                                  </div>
 
-                                                 <div className="space-y-2">
-                                                    <div className="flex justify-between items-center text-[11px]">
-                                                       <span className="font-bold text-slate-600">Gaji Pokok (Rate Basis)</span>
-                                                       <span className="font-mono font-black text-slate-800">{formatIDR(item.basePayRate)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-[11px]">
-                                                       <span className="font-bold text-slate-600 flex items-center gap-1">
-                                                          Bonus Kehadiran
-                                                          <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1 rounded">
-                                                             {item.totalHadir} Hari
-                                                          </span>
-                                                       </span>
-                                                       <span className="font-mono font-black text-emerald-600">
-                                                          +{formatIDR(item.bonusAttendance || 0)}
-                                                       </span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-[11px]">
-                                                       <span className="font-bold text-slate-600 flex items-center gap-1">
-                                                          Potongan Alpa/Telat
-                                                          <span className="text-[8px] bg-red-100 text-red-700 px-1 rounded">
-                                                             {item.countAlpa + item.countTerlambat}x
-                                                          </span>
-                                                       </span>
-                                                       <span className="font-mono font-black text-red-500">
-                                                          -{formatIDR(item.cutAlpa || 0)}
-                                                       </span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-[11px] pb-3 border-b border-slate-100 border-dashed">
-                                                       <span className="font-bold text-slate-600">Potongan Kasbon Berjalan</span>
-                                                       <span className="font-mono font-black text-red-500">
-                                                          -{formatIDR(item.kasbonDed || 0)}
-                                                       </span>
-                                                    </div>
-                                                 </div>
-                                              </div>
+                                  {/* 2. Terlambat */}
+                                  <div className="flex flex-col justify-between">
+                                    <span className="text-[8px] font-black tracking-wider text-amber-600 block uppercase">
+                                      Telat
+                                    </span>
+                                    <span
+                                      className={`inline-block mt-1 px-1 py-0.5 rounded text-[10.5px] font-bold font-mono self-center ${
+                                        item.countTerlambat > 0
+                                          ? "text-amber-700 bg-amber-50 border border-amber-100"
+                                          : "text-slate-400 bg-slate-100 border border-slate-200/40"
+                                      }`}
+                                    >
+                                      {item.countTerlambat}x
+                                    </span>
+                                  </div>
 
-                                              <div className="flex justify-between items-center pt-1">
-                                                 <span className="font-black text-slate-800 text-[11px] uppercase tracking-wider">Total Gross Profit (Gaji)</span>
-                                                 <span className="font-mono font-black text-slate-900 text-sm bg-slate-100 px-2.5 py-1 rounded-md">{formatIDR(item.netSalary)}</span>
-                                              </div>
-                                           </div>
+                                  {/* 3. Tidak Hadir */}
+                                  <div className="flex flex-col justify-between">
+                                    <span className="text-[8px] font-black tracking-wider text-red-650 block uppercase">
+                                      Tidak Hadir
+                                    </span>
+                                    <span
+                                      className={`inline-block mt-1 px-1 py-0.5 rounded text-[10.5px] font-bold font-mono self-center ${
+                                        item.countIzin + item.countAlpa > 0
+                                          ? "text-red-700 bg-red-50 border border-red-100"
+                                          : "text-slate-400 bg-slate-100 border border-slate-200/40"
+                                      }`}
+                                    >
+                                      {item.countIzin + item.countAlpa} Hari
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Mobile Calculation Formula & Summary */}
+                                <div className="bg-[#fafaff] border border-purple-100/40 rounded-xl p-3 space-y-2 text-xs">
+                                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-semibold border-b border-purple-100/30 pb-1.5">
+                                    <span>
+                                      Rumus:{" "}
+                                      {hostType === "Reguler"
+                                        ? "Gaji Pokok Proporsional"
+                                        : "Tarif Shift"}
+                                    </span>
+                                    <span className="font-bold underline text-blue-650">
+                                      {item.studio
+                                        ? item.studio.includes("Tanggamus")
+                                          ? "Tanggamus"
+                                          : "Bandar Lampung"
+                                        : "Bandar Lampung"}
+                                    </span>
+                                  </div>
+
+                                  {hostType === "Reguler" ? (
+                                    <div className="space-y-1 font-mono text-[10px] text-slate-600">
+                                      <div>
+                                        Gaji Pokok:{" "}
+                                        {formatIDR(item.basePayRate)}
+                                      </div>
+                                      <div>
+                                        Proporsi: ({formatIDR(item.basePayRate)}{" "}
+                                        / {item.requiredWorkingDays} Hari)
+                                        &times; {item.totalHadir} Hadir ={" "}
+                                        <span className="text-slate-900 font-bold">
+                                          {formatIDR(
+                                            Math.round(
+                                              (item.basePayRate /
+                                                item.requiredWorkingDays) *
+                                                item.totalHadir,
+                                            ),
+                                          )}
+                                        </span>
+                                      </div>
+                                      {item.isEligibleForBonus ? (
+                                        <div className="text-emerald-700 font-sans font-bold flex items-center gap-1 pt-1">
+                                          <span>Bonus Kehadiran penuh:</span>
+                                          <span className="font-mono bg-emerald-50 border border-emerald-100 px-1 py-0.2 rounded text-[9px]">
+                                            +{formatIDR(item.calculatedBonus)}
+                                          </span>
                                         </div>
-                                     </div>
+                                      ) : (
+                                        <div className="text-[9.5px] font-sans font-medium text-slate-400 italic pt-1">
+                                          *Bonus{" "}
+                                          {formatIDR(
+                                            isTanggamus
+                                              ? (salarySettings.tanggamusRegulerBonus ??
+                                                  250000)
+                                              : (salarySettings.bandarLampungRegulerBonus ??
+                                                  300000),
+                                          )}{" "}
+                                          jika target penuh & telat &le; 3x.
+                                        </div>
+                                      )}
+                                      {item.totalBackupShiftsAsReguler > 0 && (
+                                        <div className="mt-1 pt-1 border-t border-amber-100/30 flex justify-between items-center text-amber-600 font-bold text-[9.5px]">
+                                          <span>
+                                            Shift Backup Ekstra (
+                                            {item.totalBackupShiftsAsReguler}x):
+                                          </span>
+                                          <span className="font-mono bg-amber-50 border border-amber-100 px-1 py-0.2 rounded text-[9px]">
+                                            +
+                                            {formatIDR(
+                                              item.calculatedBackupPay,
+                                            )}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-1 font-mono text-[10.5px] text-slate-600">
+                                      <div>
+                                        {item.totalHadir} Shift ×{" "}
+                                        {formatIDR(item.basePayRate)} / Shift
+                                      </div>
+                                    </div>
                                   )}
-                               </div>
-                             );
-                         })
-                       )}
+
+                                  {item.totalOvertimeHours > 0 && (
+                                    <div className="mt-1 pt-1 border-t border-indigo-100/30 flex justify-between items-center text-indigo-600 font-bold text-[9.5px]">
+                                      <span>
+                                        Lembur ({item.totalOvertimeHours} J):
+                                      </span>
+                                      <span className="font-mono bg-indigo-50 border border-indigo-100 px-1 py-0.2 rounded text-[9px]">
+                                        +{formatIDR(item.calculatedOvertimePay)}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Gaji Bersih Transfer Block */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(String(item.netSalary));
+                                      setCopiedSalaryHostId(item.id);
+                                      setTimeout(() => {
+                                        setCopiedSalaryHostId(null);
+                                      }, 1500);
+                                    }}
+                                    className={`w-full flex justify-between items-center p-2.5 rounded-lg border transition-all duration-150 mt-1.5 active:scale-98 cursor-pointer text-left ${
+                                      copiedSalaryHostId === item.id
+                                        ? "bg-emerald-50 border-emerald-250 text-emerald-800"
+                                        : "bg-purple-50/50 border-purple-100/30 text-slate-900 hover:bg-purple-50"
+                                    }`}
+                                  >
+                                    <div>
+                                      <span className="text-[8px] text-slate-400 uppercase font-black block">
+                                        {copiedSalaryHostId === item.id ? "Berhasil Disalin" : "Estimasi Transfer Bersih (Klik untuk Salin)"}
+                                      </span>
+                                      <strong className="text-purple-950 font-bold text-xs flex items-center gap-1.5 mt-0.5">
+                                        {copiedSalaryHostId === item.id ? (
+                                          <span className="text-emerald-700 flex items-center gap-1">
+                                            <Check className="w-3 h-3 text-emerald-600 animate-bounce" />
+                                            <span>Tersalin ke Clipboard!</span>
+                                          </span>
+                                        ) : (
+                                          <>
+                                            <span>Transfer Bank</span>
+                                            <Copy className="w-3 h-3 text-slate-400 inline" />
+                                          </>
+                                        )}
+                                      </strong>
+                                    </div>
+                                    <div className={`text-sm font-black font-mono ${copiedSalaryHostId === item.id ? "text-emerald-700 font-extrabold" : "text-blue-700"}`}>
+                                      {formatIDR(item.netSalary)}
+                                    </div>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
-                    
-{/* SINKRON DATA EXPORT HEADER */}
+
+                    {/* SINKRON DATA EXPORT HEADER */}
                     <div
                       className="bg-white p-6 rounded-2xl border border-purple-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 animate-fadeIn"
                       id="salary_export_panel"
@@ -15846,34 +15381,623 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
                 )}
 
-                
                 {/* ==================== SUBTAB: DATA BRAND ==================== */}
                 {operatorTab === "data_brand" && (
                   <div
                     className="space-y-6 animate-fadeIn"
                     id="operator_data_brand_content"
                   >
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
                       <div className="flex justify-between items-center mb-6">
                         <div>
                           <h3 className="text-sm font-black text-slate-800">
                             Manajemen Data Brand Klien
                           </h3>
                           <p className="text-xs text-slate-500 font-semibold mt-1">
-                            Data detail terkait kontrak, invoice, dan kredensial brand aktif.
+                            Data detail terkait kontrak, invoice, dan kredensial
+                            brand aktif.
                           </p>
                         </div>
                         <button
-                          onClick={() => {
-                            setBrandFormEditor({ sessions: [], accounts: [] });
-                            setBrandFormTab("basic");
-                          }}
+                          onClick={() =>
+                            setBrandFormEditor({ sessions: [], accounts: [] })
+                          }
                           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all border-0 cursor-pointer flex items-center gap-2 shadow-sm"
                         >
                           <Plus className="w-4 h-4" /> Klien Baru
                         </button>
                       </div>
 
+                      {brandFormEditor && (
+                        <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-5 relative">
+                          <button
+                            onClick={() => setBrandFormEditor(null)}
+                            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                          <h4 className="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
+                            <Briefcase className="w-4 h-4 text-indigo-500" />
+                            {brandFormEditor.id
+                              ? "Edit Data Brand"
+                              : "Tambah Brand Klien"}
+                          </h4>
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const fd = new FormData(e.currentTarget);
+                              const nameVal = fd.get("name") as string;
+                              const defaultUsername = nameVal
+                                ? nameVal
+                                    .toLowerCase()
+                                    .replace(/[^a-z0-9]/g, "")
+                                : `brand_${Date.now()}`;
+                              const enteredUsername = (
+                                fd.get("clientUsername") as string
+                              )?.trim();
+
+                              const newBrand: ClientBrand = {
+                                id: brandFormEditor.id || `cb_${Date.now()}`,
+                                name: nameVal,
+                                contractStartDate: fd.get(
+                                  "contractStartDate",
+                                ) as string,
+                                contractEndDate: fd.get(
+                                  "contractEndDate",
+                                ) as string,
+                                invoiceDate: fd.get("invoiceDate") as string,
+                                monthlyMeetingDate: fd.get(
+                                  "monthlyMeetingDate",
+                                ) as string,
+                                picName: fd.get("picName") as string,
+                                picPhone: fd.get("picPhone") as string,
+                                sessions: brandFormEditor.sessions || [],
+                                accounts: brandFormEditor.accounts || [],
+                                clientUsername:
+                                  enteredUsername ||
+                                  brandFormEditor.clientUsername ||
+                                  defaultUsername,
+                                clientPassword:
+                                  (fd.get("clientPassword") as string) ||
+                                  "liva123",
+                              };
+
+                              if (brandFormEditor.id) {
+                                setClientBrands((prev) =>
+                                  prev.map((b) =>
+                                    b.id === newBrand.id ? newBrand : b,
+                                  ),
+                                );
+                                addNotification(
+                                  "💼 Brand Diperbarui",
+                                  `Data brand "${newBrand.name}" berhasil diperbarui oleh admin.`,
+                                  "info",
+                                  "data_brand",
+                                );
+                              } else {
+                                setClientBrands((prev) => [...prev, newBrand]);
+                                addNotification(
+                                  "🎉 Brand Klien Baru",
+                                  `Brand "${newBrand.name}" baru saja didaftarkan ke sistem Liva Agency.`,
+                                  "success",
+                                  "data_brand",
+                                );
+                              }
+                              setBrandFormEditor(null);
+                            }}
+                            className="space-y-4 text-xs"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                  Nama Brand
+                                </label>
+                                <input
+                                  required
+                                  name="name"
+                                  defaultValue={brandFormEditor.name}
+                                  type="text"
+                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                  Start Kontrak
+                                </label>
+                                <input
+                                  name="contractStartDate"
+                                  defaultValue={
+                                    brandFormEditor.contractStartDate ||
+                                    new Date().toISOString().split("T")[0]
+                                  }
+                                  type="date"
+                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                  End Kontrak
+                                </label>
+                                <input
+                                  name="contractEndDate"
+                                  defaultValue={
+                                    brandFormEditor.contractEndDate ||
+                                    new Date().toISOString().split("T")[0]
+                                  }
+                                  type="date"
+                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <div>
+                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                  Tanggal Invoice (Setiap Bulan)
+                                </label>
+                                <input
+                                  name="invoiceDate"
+                                  defaultValue={brandFormEditor.invoiceDate}
+                                  type="number"
+                                  min="1"
+                                  max="31"
+                                  placeholder="Contoh: 5"
+                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                  Tgl Monthly Meeting (Setiap Bulan)
+                                </label>
+                                <input
+                                  name="monthlyMeetingDate"
+                                  defaultValue={
+                                    brandFormEditor.monthlyMeetingDate
+                                  }
+                                  type="number"
+                                  min="1"
+                                  max="31"
+                                  placeholder="Contoh: 10"
+                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                  Username Portal Klien
+                                </label>
+                                <input
+                                  name="clientUsername"
+                                  defaultValue={brandFormEditor.clientUsername}
+                                  type="text"
+                                  placeholder="Kosongkan utk default (huruf kecil)"
+                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                  Password Portal Klien
+                                </label>
+                                <input
+                                  name="clientPassword"
+                                  defaultValue={
+                                    brandFormEditor.clientPassword || "liva123"
+                                  }
+                                  type="text"
+                                  placeholder="Default: liva123"
+                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-xl border border-slate-200">
+                              <div className="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
+                                <h5 className="font-bold text-slate-800">
+                                  Detail Sesi (Platform, Shift, Studio, Host)
+                                </h5>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBrandFormEditor((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            sessions: [
+                                              ...(prev.sessions || []),
+                                              {
+                                                id: `s_${Date.now()}`,
+                                                platform: platforms[0] || "",
+                                                shift: shifts[0] || "",
+                                                studio: studios[0]?.name || "",
+                                                host: "",
+                                              },
+                                            ],
+                                          }
+                                        : prev,
+                                    );
+                                  }}
+                                  className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded font-bold hover:bg-indigo-100 border-0 flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  <Plus className="w-3 h-3" /> Tambah Sesi
+                                </button>
+                              </div>
+                              <div className="space-y-2">
+                                {(brandFormEditor.sessions || []).map(
+                                  (sess, idx) => (
+                                    <div
+                                      key={sess.id}
+                                      className="flex flex-col xl:flex-row items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100"
+                                    >
+                                      <select
+                                        value={sess.platform}
+                                        onChange={(e) =>
+                                          setBrandFormEditor((prev) =>
+                                            prev
+                                              ? {
+                                                  ...prev,
+                                                  sessions: prev.sessions?.map(
+                                                    (s, i) =>
+                                                      i === idx
+                                                        ? {
+                                                            ...s,
+                                                            platform:
+                                                              e.target.value,
+                                                          }
+                                                        : s,
+                                                  ),
+                                                }
+                                              : prev,
+                                          )
+                                        }
+                                        className="w-full xl:w-[140px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
+                                      >
+                                        {platforms.map((p, i) => (
+                                          <option key={p + "_" + i} value={p}>
+                                            {p}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <select
+                                        value={sess.shift}
+                                        onChange={(e) =>
+                                          setBrandFormEditor((prev) =>
+                                            prev
+                                              ? {
+                                                  ...prev,
+                                                  sessions: prev.sessions?.map(
+                                                    (s, i) =>
+                                                      i === idx
+                                                        ? {
+                                                            ...s,
+                                                            shift:
+                                                              e.target.value,
+                                                          }
+                                                        : s,
+                                                  ),
+                                                }
+                                              : prev,
+                                          )
+                                        }
+                                        className="w-full xl:flex-1 bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
+                                      >
+                                        {shifts.map((sh, i) => (
+                                          <option key={sh + "_" + i} value={sh}>
+                                            {sh}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <select
+                                        value={sess.studio || ""}
+                                        onChange={(e) =>
+                                          setBrandFormEditor((prev) =>
+                                            prev
+                                              ? {
+                                                  ...prev,
+                                                  sessions: prev.sessions?.map(
+                                                    (s, i) =>
+                                                      i === idx
+                                                        ? {
+                                                            ...s,
+                                                            studio:
+                                                              e.target.value,
+                                                          }
+                                                        : s,
+                                                  ),
+                                                }
+                                              : prev,
+                                          )
+                                        }
+                                        className="w-full xl:w-[180px] bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px]"
+                                      >
+                                        <option value="">
+                                          Pilih Studio...
+                                        </option>
+                                        {studios.map((st, i) => (
+                                          <option
+                                            key={st.id + "_" + i}
+                                            value={st.name}
+                                          >
+                                            {st.name} - {st.location}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <SearchableHostSelect
+                                        hosts={hosts}
+                                        value={sess.host || ""}
+                                        valueType="name"
+                                        onChange={(hostName) =>
+                                          setBrandFormEditor((prev) =>
+                                            prev
+                                              ? {
+                                                  ...prev,
+                                                  sessions:
+                                                    prev.sessions?.map(
+                                                      (s, i) =>
+                                                        i === idx
+                                                          ? {
+                                                              ...s,
+                                                              host: hostName,
+                                                            }
+                                                          : s,
+                                                    ),
+                                                }
+                                              : prev,
+                                          )
+                                        }
+                                        className="w-full xl:w-[180px]"
+                                        placeholder="Host Reguler / Dedicated (Opsional)..."
+                                        triggerClassName="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 focus:border-indigo-500 outline-none font-semibold text-slate-700 text-[10px] text-left flex items-center justify-between cursor-pointer min-h-[30px]"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setBrandFormEditor((prev) =>
+                                            prev
+                                              ? {
+                                                  ...prev,
+                                                  sessions:
+                                                    prev.sessions?.filter(
+                                                      (_, i) => i !== idx,
+                                                    ),
+                                                }
+                                              : prev,
+                                          )
+                                        }
+                                        className="w-full xl:w-auto p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded border border-transparent hover:border-red-100 cursor-pointer bg-white transition-all flex justify-center items-center"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  ),
+                                )}
+                                {(!brandFormEditor.sessions ||
+                                  brandFormEditor.sessions.length === 0) && (
+                                  <div className="text-slate-400 font-medium italic text-center py-2 text-[10px]">
+                                    Belum ada sesi yang ditambahkan.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-xl border border-slate-200">
+                              <div className="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
+                                <h5 className="font-bold text-slate-800">
+                                  Informasi Akun (Seller Center, dll)
+                                </h5>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBrandFormEditor((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            accounts: [
+                                              ...(prev.accounts || []),
+                                              {
+                                                id: `a_${Date.now()}`,
+                                                type: platforms[0] || "",
+                                                username: "",
+                                                password: "",
+                                                picOtp: "",
+                                              },
+                                            ],
+                                          }
+                                        : prev,
+                                    );
+                                  }}
+                                  className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded font-bold hover:bg-indigo-100 border-0 flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  <Plus className="w-3 h-3" /> Tambah Akun
+                                </button>
+                              </div>
+                              <div className="space-y-3">
+                                {(brandFormEditor.accounts || []).map(
+                                  (acc, idx) => (
+                                    <div
+                                      key={acc.id}
+                                      className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 items-start"
+                                    >
+                                      <div className="sm:col-span-3">
+                                        <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
+                                          Jenis Akun
+                                        </label>
+                                        <select
+                                          value={acc.type}
+                                          onChange={(e) =>
+                                            setBrandFormEditor((prev) =>
+                                              prev
+                                                ? {
+                                                    ...prev,
+                                                    accounts:
+                                                      prev.accounts?.map(
+                                                        (a, i) =>
+                                                          i === idx
+                                                            ? {
+                                                                ...a,
+                                                                type: e.target
+                                                                  .value,
+                                                              }
+                                                            : a,
+                                                      ),
+                                                  }
+                                                : prev,
+                                            )
+                                          }
+                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:border-indigo-500 outline-none text-slate-700"
+                                        >
+                                          <option value="">
+                                            Pilih Platform...
+                                          </option>
+                                          {platforms.map((p, i) => (
+                                            <option key={p + "_" + i} value={p}>
+                                              {p}
+                                            </option>
+                                          ))}
+                                          <option value="Lainnya">
+                                            Lainnya
+                                          </option>
+                                        </select>
+                                      </div>
+                                      <div className="sm:col-span-3">
+                                        <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
+                                          Username
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={acc.username}
+                                          onChange={(e) =>
+                                            setBrandFormEditor((prev) =>
+                                              prev
+                                                ? {
+                                                    ...prev,
+                                                    accounts:
+                                                      prev.accounts?.map(
+                                                        (a, i) =>
+                                                          i === idx
+                                                            ? {
+                                                                ...a,
+                                                                username:
+                                                                  e.target
+                                                                    .value,
+                                                              }
+                                                            : a,
+                                                      ),
+                                                  }
+                                                : prev,
+                                            )
+                                          }
+                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-mono text-[10px] focus:border-indigo-500 outline-none"
+                                        />
+                                      </div>
+                                      <div className="sm:col-span-3">
+                                        <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
+                                          Password
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={acc.password}
+                                          onChange={(e) =>
+                                            setBrandFormEditor((prev) =>
+                                              prev
+                                                ? {
+                                                    ...prev,
+                                                    accounts:
+                                                      prev.accounts?.map(
+                                                        (a, i) =>
+                                                          i === idx
+                                                            ? {
+                                                                ...a,
+                                                                password:
+                                                                  e.target
+                                                                    .value,
+                                                              }
+                                                            : a,
+                                                      ),
+                                                  }
+                                                : prev,
+                                            )
+                                          }
+                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-mono text-[10px] focus:border-indigo-500 outline-none"
+                                        />
+                                      </div>
+                                      <div className="sm:col-span-2">
+                                        <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
+                                          PIC OTP
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={acc.picOtp}
+                                          onChange={(e) =>
+                                            setBrandFormEditor((prev) =>
+                                              prev
+                                                ? {
+                                                    ...prev,
+                                                    accounts:
+                                                      prev.accounts?.map(
+                                                        (a, i) =>
+                                                          i === idx
+                                                            ? {
+                                                                ...a,
+                                                                picOtp:
+                                                                  e.target
+                                                                    .value,
+                                                              }
+                                                            : a,
+                                                      ),
+                                                  }
+                                                : prev,
+                                            )
+                                          }
+                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] focus:border-indigo-500 outline-none"
+                                          placeholder="Cth: WA Pak Budi"
+                                        />
+                                      </div>
+                                      <div className="sm:col-span-1 pt-4 flex justify-end">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setBrandFormEditor((prev) =>
+                                              prev
+                                                ? {
+                                                    ...prev,
+                                                    accounts:
+                                                      prev.accounts?.filter(
+                                                        (_, i) => i !== idx,
+                                                      ),
+                                                  }
+                                                : prev,
+                                            )
+                                          }
+                                          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded border border-transparent hover:border-red-100 cursor-pointer bg-white transition-all"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ),
+                                )}
+                                {(!brandFormEditor.accounts ||
+                                  brandFormEditor.accounts.length === 0) && (
+                                  <div className="text-slate-400 font-medium italic text-center py-2 text-[10px]">
+                                    Belum ada data akun.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end pt-2">
+                              <button
+                                type="submit"
+                                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer border-0 shadow-sm disabled:opacity-50"
+                                disabled={!brandFormEditor.sessions?.length}
+                              >
+                                <Check className="w-4 h-4" /> Simpan Data Brand
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      )}
+
+                      {/* Filter Tab & Search Bar */}
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-5">
                         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
                           <button
@@ -15909,9 +16033,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
 
                       {/* Brand Card List */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+                      <div className="space-y-3">
                         {filteredAndSortedBrands.length === 0 ? (
-                          <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                          <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200">
                             <Briefcase className="w-10 h-10 text-slate-200 mx-auto mb-3" />
                             <p className="text-slate-400 font-bold text-sm">
                               {brandDataSearch ? "Brand tidak ditemukan." : "Belum ada data brand klien."}
@@ -15922,11 +16046,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           filteredAndSortedBrands.map((brand, i) => {
                             const today = new Date();
                             const endDate = brand.contractEndDate ? new Date(brand.contractEndDate) : null;
+                            const startDate = brand.contractStartDate ? new Date(brand.contractStartDate) : null;
                             const isExpired = endDate ? endDate < today : false;
                             const daysLeft = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
                             const isNearExpiry = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
 
-                            const formatContractDate = (d) => {
+                            const formatContractDate = (d?: string) => {
                               if (!d) return "—";
                               const datePart = d.split("T")[0];
                               const p = datePart.split("-");
@@ -15937,468 +16062,178 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             return (
                               <div
                                 key={brand.id || i}
-                                className={`flex flex-col bg-white rounded-2xl border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group ${
+                                className={`bg-white rounded-2xl border transition-all duration-200 hover:shadow-md group ${
                                   isExpired
-                                    ? "border-rose-200 shadow-[0_4px_20px_-10px_rgba(244,63,94,0.3)]"
+                                    ? "border-l-4 border-l-rose-400 border-slate-100"
                                     : isNearExpiry
-                                    ? "border-amber-200 shadow-[0_4px_20px_-10px_rgba(251,191,36,0.3)]"
-                                    : "border-indigo-100 shadow-[0_4px_20px_-10px_rgba(79,70,229,0.1)]"
+                                    ? "border-l-4 border-l-amber-400 border-slate-100"
+                                    : "border-l-4 border-l-indigo-400 border-slate-100"
                                 }`}
                               >
-                                {/* Header Card */}
-                                <div className={`px-5 py-4 flex items-center justify-between rounded-t-2xl border-b ${
-                                  isExpired ? "bg-rose-50/50 border-rose-100" : isNearExpiry ? "bg-amber-50/50 border-amber-100" : "bg-slate-50/50 border-slate-100"
-                                }`}>
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-lg ${
-                                      isExpired ? "bg-rose-100 text-rose-600" : isNearExpiry ? "bg-amber-100 text-amber-600" : "bg-indigo-100 text-indigo-600"
+                                {/* Card Header */}
+                                <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-50">
+                                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${
+                                      isExpired ? "bg-rose-50 text-rose-500" : "bg-indigo-50 text-indigo-600"
                                     }`}>
                                       {(brand.name || "?").charAt(0).toUpperCase()}
                                     </div>
                                     <div className="min-w-0">
-                                      <h4 className="font-black text-slate-800 text-[15px] truncate">{brand.name}</h4>
-                                      <div className="flex items-center gap-1.5 mt-0.5">
+                                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                                        <h4 className="font-black text-slate-800 text-[15px] leading-tight truncate">{brand.name}</h4>
                                         {isExpired ? (
-                                          <span className="text-[10px] font-bold text-rose-600 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Kontrak Selesai</span>
+                                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span> Selesai
+                                          </span>
                                         ) : isNearExpiry ? (
-                                          <span className="text-[10px] font-bold text-amber-600 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Sisa {daysLeft} hari</span>
+                                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span> {daysLeft}h lagi
+                                          </span>
                                         ) : (
-                                          <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktif</span>
+                                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span> Aktif
+                                          </span>
                                         )}
+                                        {brand.monthlyMeetingDate && (
+                                          <span className="text-[10px] text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full font-bold border border-sky-100 flex items-center gap-1">
+                                            <Calendar className="w-2.5 h-2.5" /> Meeting Tgl {brand.monthlyMeetingDate}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-semibold">
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="w-3 h-3" />
+                                          {formatContractDate(brand.contractStartDate)} - {formatContractDate(brand.contractEndDate)}
+                                        </span>
+                                        {brand.invoiceDate && (
+                                          <span className="flex items-center gap-1 text-emerald-600">
+                                            <DollarSign className="w-3 h-3" /> Invoice Tgl {brand.invoiceDate}
+                                          </span>
+                                        )}
+                                        {brand.picName && (
+                                          <span className="flex items-center gap-1">
+                                            <UserCheck className="w-3 h-3" /> {brand.picName}
+                                          </span>
+                                        )}
+                                        <span className="text-indigo-400 font-mono">ID: #{brand.id.slice(-6).toUpperCase()}</span>
                                       </div>
                                     </div>
                                   </div>
+
+                                  {/* Action Buttons */}
+                                  <div className="flex items-center gap-1.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={() => {
+                                        setOperatorTab("invoice");
+                                        setTimeout(() => {
+                                          const e = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
+                                          window.dispatchEvent(e);
+                                        }, 300);
+                                      }}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-bold transition-all border-0 cursor-pointer"
+                                      title="Buat Invoice"
+                                    >
+                                      <Receipt className="w-3.5 h-3.5" /> Invoice
+                                    </button>
+                                    <button
+                                      onClick={() => handleEditBrand(brand)}
+                                      className="w-8 h-8 flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all border-0 cursor-pointer"
+                                      title="Edit Data"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteBrand(brand.id)}
+                                      className="w-8 h-8 flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all border-0 cursor-pointer"
+                                      title="Hapus Data"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
                                 </div>
 
-                                {/* Body Card */}
-                                <div className="p-5 flex-1 flex flex-col gap-4">
-                                  {/* Info Singkat */}
-                                  <div className="grid grid-cols-2 gap-3 text-[11px] font-semibold text-slate-600">
-                                    <div className="flex items-center gap-1.5">
-                                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                                      {formatContractDate(brand.contractEndDate)}
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                      <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                                      {brand.picName || "Tanpa PIC"}
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                      <DollarSign className="w-3.5 h-3.5 text-slate-400" />
-                                      Invoice: Tgl {brand.invoiceDate || "-"}
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                      Meeting: Tgl {brand.monthlyMeetingDate || "-"}
-                                    </div>
-                                  </div>
-
-                                  {/* Sessions Summary */}
-                                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex-1">
-                                    <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Platform & Sesi</p>
+                                {/* Card Body */}
+                                <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  {/* Sessions */}
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Platform & Sesi</p>
                                     <div className="flex flex-wrap gap-1.5">
                                       {brand.sessions && brand.sessions.length > 0 ? (
                                         brand.sessions.map((sess) => (
-                                          <div key={sess.id} className="bg-white border border-slate-200 rounded-md px-2 py-1 text-[10px] shadow-sm">
-                                            <span className="font-black text-indigo-600">{sess.platform}</span>
+                                          <div
+                                            key={sess.id}
+                                            className="bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-[10px]"
+                                          >
+                                            <span className="font-black text-indigo-600 uppercase">{sess.platform}</span>
                                             <span className="text-slate-400 mx-1">·</span>
-                                            <span className="font-bold text-slate-600">{sess.shift}</span>
+                                            <span className="font-semibold text-slate-600">{sess.shift}</span>
+                                            {sess.studio && (
+                                              <div className="text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <MapPin className="w-2.5 h-2.5 text-rose-400" /> {sess.studio}
+                                              </div>
+                                            )}
+                                            {sess.host && (
+                                              <div className="text-slate-400 flex items-center gap-1">
+                                                <UserCheck className="w-2.5 h-2.5 text-emerald-400" /> {sess.host}
+                                              </div>
+                                            )}
                                           </div>
                                         ))
                                       ) : (
-                                        <span className="text-[10px] text-slate-400 italic">Belum ada sesi</span>
+                                        <div className="text-slate-300 text-[10px] italic">Belum ada sesi</div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Portal Credentials */}
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Portal Performance</p>
+                                    <div className="bg-indigo-50/70 border border-indigo-100/60 rounded-xl p-2.5 space-y-1.5">
+                                      <div className="flex items-center gap-2 text-[10px]">
+                                        <span className="text-indigo-400 font-bold w-7">UID</span>
+                                        <span className="font-mono font-black text-indigo-800 bg-white/70 px-1.5 py-0.5 rounded select-all flex-1 truncate">
+                                          {brand.clientUsername || (brand.name || "").toLowerCase().replace(/[^a-z0-9]/g, "")}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-[10px]">
+                                        <span className="text-indigo-400 font-bold w-7">PWD</span>
+                                        <span className="font-mono font-black text-indigo-800 bg-white/70 px-1.5 py-0.5 rounded select-all flex-1">
+                                          {brand.clientPassword || "liva123"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Accounts */}
+                                  <div>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Akun Seller ({brand.accounts?.length || 0})</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {brand.accounts && brand.accounts.length > 0 ? (
+                                        brand.accounts.map((acc) => (
+                                          <div key={acc.id} className="bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 text-[10px]">
+                                            <div className="font-black text-slate-500 uppercase tracking-wider text-[8px] mb-0.5">{acc.type}</div>
+                                            <div className="font-mono text-slate-700 font-bold">{acc.username || "—"}</div>
+                                            <div className="font-mono text-slate-400">{acc.password || "—"}</div>
+                                            {acc.picOtp && (
+                                              <div className="text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <Smartphone className="w-2.5 h-2.5" /> OTP: {acc.picOtp}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <div className="text-slate-300 text-[10px] italic">Tidak ada akun</div>
                                       )}
                                     </div>
                                   </div>
                                 </div>
 
-                                {/* Footer Card (Action Buttons) */}
-                                <div className="p-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-b-2xl">
-                                  <div className="flex gap-1.5">
-                                    <button
-                                      onClick={() => handleEditBrand(brand)}
-                                      className="p-2 bg-white border border-slate-200 hover:border-indigo-300 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors"
-                                      title="Edit Brand"
-                                    >
-                                      <Edit3 className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteBrand(brand.id)}
-                                      className="p-2 bg-white border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 rounded-lg transition-colors"
-                                      title="Hapus Brand"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      setOperatorTab("invoice");
-                                      setTimeout(() => {
-                                        window.dispatchEvent(new CustomEvent('openInvoiceForBrand', { detail: brand.id }));
-                                      }, 300);
-                                    }}
-                                    className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-black text-[11px] rounded-lg transition-colors flex items-center gap-1.5 border border-emerald-200/50"
-                                  >
-                                    <Receipt className="w-3.5 h-3.5" /> Buat Invoice
-                                  </button>
-                                </div>
                               </div>
                             );
                           })
                         )}
                       </div>
                     </div>
-
-                    {/* MODAL FORM BRAND */}
-                    {brandFormEditor && (
-                      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                        <div 
-                          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
-                          onClick={() => setBrandFormEditor(null)}
-                        ></div>
-                        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-scaleIn">
-                          {/* Modal Header */}
-                          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                            <h4 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                              <Briefcase className="w-5 h-5 text-indigo-600" />
-                              {brandFormEditor.id ? "Edit Data Brand Klien" : "Tambah Brand Klien Baru"}
-                            </h4>
-                            <button
-                              onClick={() => setBrandFormEditor(null)}
-                              className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                          
-                          {/* Tabs */}
-                          <div className="flex items-center px-6 border-b border-slate-200 bg-white">
-                            <button
-                              onClick={() => setBrandFormTab("basic")}
-                              className={`px-4 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-colors ${brandFormTab === "basic" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
-                            >
-                              Info Dasar
-                            </button>
-                            <button
-                              onClick={() => setBrandFormTab("sessions")}
-                              className={`px-4 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-colors ${brandFormTab === "sessions" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
-                            >
-                              Jadwal Sesi
-                            </button>
-                            <button
-                              onClick={() => setBrandFormTab("accounts")}
-                              className={`px-4 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-colors ${brandFormTab === "accounts" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
-                            >
-                              Kredensial Akun
-                            </button>
-                          </div>
-
-                          {/* Modal Body */}
-                          <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30">
-                            <form
-                              id="brand-form"
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                const fd = new FormData(e.currentTarget);
-                                const nameVal = fd.get("name") as string;
-                                const defaultUsername = nameVal
-                                  ? nameVal.toLowerCase().replace(/[^a-z0-9]/g, "")
-                                  : `brand_${Date.now()}`;
-                                const enteredUsername = (fd.get("clientUsername") as string)?.trim();
-
-                                const newBrand = {
-                                  id: brandFormEditor.id || `cb_${Date.now()}`,
-                                  name: nameVal,
-                                  contractStartDate: fd.get("contractStartDate"),
-                                  contractEndDate: fd.get("contractEndDate"),
-                                  invoiceDate: fd.get("invoiceDate"),
-                                  monthlyMeetingDate: fd.get("monthlyMeetingDate"),
-                                  picName: fd.get("picName"),
-                                  picPhone: fd.get("picPhone"),
-                                  sessions: brandFormEditor.sessions || [],
-                                  accounts: brandFormEditor.accounts || [],
-                                  clientUsername: enteredUsername || brandFormEditor.clientUsername || defaultUsername,
-                                  clientPassword: (fd.get("clientPassword")) || "liva123",
-                                };
-
-                                if (brandFormEditor.id) {
-                                  setClientBrands((prev) => prev.map((b) => b.id === newBrand.id ? newBrand : b));
-                                  addNotification("💼 Brand Diperbarui", `Data brand "${newBrand.name}" berhasil diperbarui.`, "info", "data_brand");
-                                } else {
-                                  setClientBrands((prev) => [...prev, newBrand]);
-                                  addNotification("🎉 Brand Baru", `Brand "${newBrand.name}" baru saja didaftarkan.`, "success", "data_brand");
-                                }
-                                setBrandFormEditor(null);
-                              }}
-                              className="space-y-5"
-                            >
-                              {/* TAB 1: BASIC INFO */}
-                              <div className={brandFormTab === "basic" ? "block animate-fadeIn" : "hidden"}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                  <div className="md:col-span-2">
-                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Nama Brand *</label>
-                                    <input
-                                      required
-                                      name="name"
-                                      defaultValue={brandFormEditor.name}
-                                      type="text"
-                                      placeholder="Masukkan nama brand..."
-                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Mulai Kontrak</label>
-                                    <input
-                                      name="contractStartDate"
-                                      defaultValue={brandFormEditor.contractStartDate || new Date().toISOString().split("T")[0]}
-                                      type="date"
-                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Selesai Kontrak</label>
-                                    <input
-                                      name="contractEndDate"
-                                      defaultValue={brandFormEditor.contractEndDate || new Date().toISOString().split("T")[0]}
-                                      type="date"
-                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Tgl Invoice Bulanan</label>
-                                    <input
-                                      name="invoiceDate"
-                                      defaultValue={brandFormEditor.invoiceDate}
-                                      type="number" min="1" max="31"
-                                      placeholder="Contoh: 5"
-                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Tgl Meeting Bulanan</label>
-                                    <input
-                                      name="monthlyMeetingDate"
-                                      defaultValue={brandFormEditor.monthlyMeetingDate}
-                                      type="number" min="1" max="31"
-                                      placeholder="Contoh: 10"
-                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">Nama PIC</label>
-                                    <input
-                                      name="picName"
-                                      defaultValue={brandFormEditor.picName}
-                                      type="text"
-                                      placeholder="Nama penanggung jawab"
-                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-slate-700 font-bold text-xs mb-1.5">No WhatsApp PIC</label>
-                                    <input
-                                      name="picPhone"
-                                      defaultValue={brandFormEditor.picPhone}
-                                      type="text"
-                                      placeholder="Misal: 08123456789"
-                                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* TAB 2: SESSIONS */}
-                              <div className={brandFormTab === "sessions" ? "block animate-fadeIn" : "hidden"}>
-                                <div className="flex justify-between items-center mb-4">
-                                  <h5 className="font-bold text-slate-700 text-sm">Jadwal & Sesi Regular</h5>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setBrandFormEditor((prev) => prev ? {
-                                        ...prev,
-                                        sessions: [...(prev.sessions || []), { id: `s_${Date.now()}`, platform: platforms[0] || "", shift: shifts[0] || "", studio: studios[0]?.name || "", host: "" }]
-                                      } : prev);
-                                    }}
-                                    className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" /> Tambah Sesi
-                                  </button>
-                                </div>
-                                <div className="space-y-3">
-                                  {(brandFormEditor.sessions || []).map((sess, idx) => (
-                                    <div key={sess.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-3">
-                                      <select
-                                        value={sess.platform}
-                                        onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, platform: e.target.value } : s) } : prev)}
-                                        className="w-full md:w-[150px] bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs"
-                                      >
-                                        {platforms.map((p, i) => <option key={i} value={p}>{p}</option>)}
-                                      </select>
-                                      <select
-                                        value={sess.shift}
-                                        onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, shift: e.target.value } : s) } : prev)}
-                                        className="w-full md:flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs"
-                                      >
-                                        {shifts.map((sh, i) => <option key={i} value={sh}>{sh}</option>)}
-                                      </select>
-                                      <select
-                                        value={sess.studio || ""}
-                                        onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, studio: e.target.value } : s) } : prev)}
-                                        className="w-full md:w-[180px] bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs"
-                                      >
-                                        <option value="">Pilih Studio...</option>
-                                        {studios.map((st, i) => <option key={i} value={st.name}>{st.name} - {st.location}</option>)}
-                                      </select>
-                                      <SearchableHostSelect
-                                        hosts={hosts}
-                                        value={sess.host || ""}
-                                        valueType="name"
-                                        onChange={(hostName) => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.map((s, i) => i === idx ? { ...s, host: hostName } : s) } : prev)}
-                                        className="w-full md:w-[180px]"
-                                        placeholder="Dedicated Host..."
-                                        triggerClassName="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-100 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs text-left flex items-center justify-between"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => setBrandFormEditor(prev => prev ? { ...prev, sessions: prev.sessions?.filter((_, i) => i !== idx) } : prev)}
-                                        className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  ))}
-                                  {(!brandFormEditor.sessions || brandFormEditor.sessions.length === 0) && (
-                                    <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center">
-                                      <p className="text-slate-400 font-bold text-sm">Belum ada sesi</p>
-                                      <p className="text-slate-400 text-xs mt-1">Sesi digunakan untuk filter jadwal otomatis.</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* TAB 3: ACCOUNTS */}
-                              <div className={brandFormTab === "accounts" ? "block animate-fadeIn" : "hidden"}>
-                                <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 mb-5">
-                                  <h5 className="font-bold text-indigo-900 text-sm mb-3">Portal Brand (Client Access)</h5>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-indigo-700 font-bold text-[10px] uppercase mb-1">Username Portal</label>
-                                      <input
-                                        name="clientUsername"
-                                        defaultValue={brandFormEditor.clientUsername}
-                                        type="text"
-                                        placeholder="Kosongkan utk default"
-                                        className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs font-mono text-indigo-900 focus:border-indigo-500 outline-none"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-indigo-700 font-bold text-[10px] uppercase mb-1">Password Portal</label>
-                                      <input
-                                        name="clientPassword"
-                                        defaultValue={brandFormEditor.clientPassword || "liva123"}
-                                        type="text"
-                                        className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs font-mono text-indigo-900 focus:border-indigo-500 outline-none"
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="flex justify-between items-center mb-4">
-                                  <h5 className="font-bold text-slate-700 text-sm">Kredensial Seller Center</h5>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setBrandFormEditor((prev) => prev ? {
-                                        ...prev,
-                                        accounts: [...(prev.accounts || []), { id: `a_${Date.now()}`, type: platforms[0] || "", username: "", password: "", picOtp: "" }]
-                                      } : prev);
-                                    }}
-                                    className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" /> Tambah Akun
-                                  </button>
-                                </div>
-                                <div className="space-y-3">
-                                  {(brandFormEditor.accounts || []).map((acc, idx) => (
-                                    <div key={acc.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                                      <div className="md:col-span-3">
-                                        <label className="block text-slate-500 font-bold text-[10px] mb-1">Platform</label>
-                                        <select
-                                          value={acc.type}
-                                          onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, type: e.target.value } : a) } : prev)}
-                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 focus:border-indigo-500 outline-none font-bold text-slate-700 text-xs"
-                                        >
-                                          {platforms.map((p, i) => <option key={i} value={p}>{p}</option>)}
-                                          <option value="Lainnya">Lainnya</option>
-                                        </select>
-                                      </div>
-                                      <div className="md:col-span-3">
-                                        <label className="block text-slate-500 font-bold text-[10px] mb-1">Username / Email</label>
-                                        <input
-                                          type="text"
-                                          value={acc.username}
-                                          onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, username: e.target.value } : a) } : prev)}
-                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono focus:border-indigo-500 outline-none"
-                                        />
-                                      </div>
-                                      <div className="md:col-span-3">
-                                        <label className="block text-slate-500 font-bold text-[10px] mb-1">Password</label>
-                                        <input
-                                          type="text"
-                                          value={acc.password}
-                                          onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, password: e.target.value } : a) } : prev)}
-                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono focus:border-indigo-500 outline-none"
-                                        />
-                                      </div>
-                                      <div className="md:col-span-2">
-                                        <label className="block text-slate-500 font-bold text-[10px] mb-1">PIC OTP</label>
-                                        <input
-                                          type="text"
-                                          value={acc.picOtp}
-                                          onChange={(e) => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.map((a, i) => i === idx ? { ...a, picOtp: e.target.value } : a) } : prev)}
-                                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs focus:border-indigo-500 outline-none"
-                                        />
-                                      </div>
-                                      <div className="md:col-span-1 flex justify-end pb-0.5">
-                                        <button
-                                          type="button"
-                                          onClick={() => setBrandFormEditor(prev => prev ? { ...prev, accounts: prev.accounts?.filter((_, i) => i !== idx) } : prev)}
-                                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                  {(!brandFormEditor.accounts || brandFormEditor.accounts.length === 0) && (
-                                    <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center">
-                                      <p className="text-slate-400 font-bold text-sm">Belum ada akun</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </form>
-                          </div>
-
-                          {/* Modal Footer */}
-                          <div className="p-5 border-t border-slate-100 bg-white flex justify-end gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setBrandFormEditor(null)}
-                              className="px-5 py-2.5 text-slate-500 hover:text-slate-700 hover:bg-slate-50 font-bold rounded-xl transition-all"
-                            >
-                              Batal
-                            </button>
-                            <button
-                              type="submit"
-                              form="brand-form"
-                              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all flex items-center gap-2 shadow-sm"
-                            >
-                              <Check className="w-4 h-4" /> Simpan Data Brand
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -16411,188 +16246,79 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                 )}
 
                 {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
-	                {operatorTab === "reporting_brand" && (
-	                  <div
-	                    className="mx-auto w-full max-w-[1600px] space-y-6 animate-fadeIn bg-[#fcf9f8] min-h-screen px-4 pb-12 sm:px-6 lg:px-8"
-	                    id="operator_reporting_brand_content"
-	                  >
-	                    {activeReportBrandId === null ? (
-	                      <div className="space-y-6">
-	                        <div className="overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white shadow-[0_8px_28px_rgba(27,28,28,0.04)]">
-	                          <div className="flex flex-col gap-5 p-6 sm:p-8">
-                            <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
-                              <div className="max-w-2xl">
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-                                  <Sparkles className="w-3 h-3 text-[#5600e0]" />
-                                  Reporting Brand Workspace
-                                </span>
-                                <h3 className="mt-3 text-2xl sm:text-[30px] font-black tracking-tight text-[#1b1c1c]">
-                                  Reporting Brand Overview
-                                </h3>
-                                <p className="mt-2 text-sm sm:text-[15px] text-[#494456] font-medium leading-relaxed max-w-xl">
-                                  Kelola semua brand, lihat sesi live, total GMV, dan akses dashboard detail dalam satu workspace yang lebih rapi.
-                                </p>
-	                        </div>
-                              <div className="grid min-w-0 w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:w-auto">
-                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#ffffff] p-4">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Brand</div>
-                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">{reportBrandOverviewStats.totalBrands}</div>
-                                </div>
-                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] p-4">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Aktif</div>
-                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#5600e0] tabular-nums">{reportBrandOverviewStats.activeBrands}</div>
-                                </div>
-                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] p-4">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Sesi Live</div>
-                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">{new Intl.NumberFormat("id-ID").format(reportBrandOverviewStats.totalSessions)}</div>
-                                </div>
-                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#ffffff] p-4 2xl:min-w-52">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">Total GMV</div>
-                                  <div className="mt-1 truncate whitespace-nowrap text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums" title={new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(reportBrandOverviewStats.totalGmv)}</div>
-                                </div>
-                              </div>
-                            </div>
+                {operatorTab === "reporting_brand" && (
+                  <div
+                    className="space-y-6 animate-fadeIn"
+                    id="operator_reporting_brand_content bg-[#fafafd] min-h-screen"
+                  >
+                    {activeReportBrandId === null ? (
+                      <div className="space-y-6">
+                        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 sm:p-8 rounded-3xl text-white shadow-md relative overflow-hidden text-left">
+                          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                          <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
+                          <div className="relative z-10 max-w-2xl">
+                            <span className="bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-xs inline-flex items-center gap-1.5 mb-3">
+                              <Sparkles className="w-3 h-3 text-indigo-400 animate-pulse" />{" "}
+                              Workspace Pelaporan Eksternal
+                            </span>
+                            <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-none uppercase">
+                              Pilih Brand Klien Terlebih Dahulu
+                            </h3>
+                            <p className="text-xs sm:text-sm text-slate-300 font-semibold mt-2 leading-relaxed">
+                              Silakan pilih salah satu Brand Klien untuk
+                              mengakses dashboard utama, mengimpor raw data
+                              laporan performance stream, menganalisis corong
+                              konversi, atau mengelola dan menghapus riwayat
+                              upload data mentah.
+                            </p>
                           </div>
                         </div>
 
                         {/* FITUR PENCARIAN BRAND */}
-                        <div className="rounded-2xl border border-[#cbc3d9] bg-white p-4 sm:p-5 shadow-[0_8px_24px_rgba(27,28,28,0.03)] space-y-4">
-                          <div className="flex flex-col xl:flex-row xl:items-center gap-3">
-                            <div className="relative flex-1 w-full">
-                              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7a7488]" />
-                              <input
-                                type="text"
-                                placeholder="Cari brand klien berdasarkan nama atau ID..."
-                                value={reportBrandSearchQuery}
-                                onChange={(e) =>
-                                  setReportBrandSearchQuery(e.target.value)
-                                }
-                                className="w-full rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] py-3 pl-10 pr-4 text-sm font-medium text-[#1b1c1c] placeholder:text-[#7a7488] outline-none transition-all focus:border-[#5600e0] focus:bg-white"
-                              />
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <select
-                                value={reportBrandPlatformFilter}
-                                onChange={(e) =>
-                                  setReportBrandPlatformFilter(e.target.value)
-                                }
-                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
-                              >
-                                <option value="Semua Platform">Semua Platform</option>
-                                {availableReportBrandPlatforms.map((platform) => (
-                                  <option key={platform} value={platform}>
-                                    {platform}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                value={reportBrandStatusFilter}
-                                onChange={(e) =>
-                                  setReportBrandStatusFilter(e.target.value)
-                                }
-                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
-                              >
-                                <option value="Semua Status">Semua Status</option>
-                                <option value="Aktif">Aktif</option>
-                                <option value="Belum Ada Data">Belum Ada Data</option>
-                              </select>
-                              <select
-                                value={reportBrandSortKey}
-                                onChange={(e) =>
-                                  setReportBrandSortKey(e.target.value)
-                                }
-                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
-                              >
-                                <option value="latest_activity">Urutkan: Terbaru</option>
-                                <option value="gmv">Urutkan: GMV Tertinggi</option>
-                                <option value="sessions">Urutkan: Sesi Terbanyak</option>
-                                <option value="uploads">Urutkan: Upload Terbanyak</option>
-                                <option value="name">Urutkan: Nama A-Z</option>
-                              </select>
-                              {reportBrandSearchQuery && (
-                                <button
-                                  onClick={() => setReportBrandSearchQuery("")}
-                                  className="rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-xs font-black text-[#5600e0] transition-colors hover:bg-[#f6f3f2] cursor-pointer"
-                                >
-                                  Reset
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-3 text-left">
-                          <div>
-                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800">
-                              Brand Tersimpan
-                            </h4>
-                            <p className="text-[11px] text-slate-400 font-semibold mt-1">
-                              {filteredReportBrandRows.length} brand terdeteksi sesuai filter aktif.
-                            </p>
+                        <div className="bg-white p-4 rounded-3xl border border-indigo-100/80 flex flex-col sm:flex-row items-center gap-3 text-left">
+                          <div className="relative flex-1 w-full">
+                            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-450" />
+                            <input
+                              type="text"
+                              placeholder="Cari brand klien berdasarkan nama atau ID..."
+                              value={reportBrandSearchQuery}
+                              onChange={(e) =>
+                                setReportBrandSearchQuery(e.target.value)
+                              }
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-700 placeholder-slate-400 outline-none focus:border-indigo-405 focus:bg-white transition-all"
+                            />
                           </div>
                           {reportBrandSearchQuery && (
                             <button
                               onClick={() => setReportBrandSearchQuery("")}
-                              className="text-xs font-black text-[#5600e0] hover:text-[#4f00d0]"
+                              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-black transition-colors cursor-pointer border-0 w-full sm:w-auto text-center"
                             >
-                              Hapus kata kunci
+                              Reset Pencarian
                             </button>
                           )}
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                          <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            <span>Filter Aktif</span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                              {reportBrandPlatformFilter}
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                              {reportBrandStatusFilter}
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                              {reportBrandSortKey === "latest_activity"
-                                ? "Terbaru"
-                                : reportBrandSortKey === "gmv"
-                                  ? "GMV Tertinggi"
-                                  : reportBrandSortKey === "sessions"
-                                    ? "Sesi Terbanyak"
-                                    : reportBrandSortKey === "uploads"
-                                      ? "Upload Terbanyak"
-                                      : "Nama A-Z"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-slate-500">
-                              Menampilkan {filteredReportBrandRows.length} brand
-                            </span>
-                            {(reportBrandSearchQuery ||
-                              reportBrandPlatformFilter !== "Semua Platform" ||
-                              reportBrandStatusFilter !== "Semua Status" ||
-                              reportBrandSortKey !== "latest_activity") && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setReportBrandSearchQuery("");
-                                  setReportBrandPlatformFilter("Semua Platform");
-                                  setReportBrandStatusFilter("Semua Status");
-                                  setReportBrandSortKey("latest_activity");
-                                }}
-                                className="rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0] hover:bg-white transition-colors"
-                              >
-                                Reset Semua Filter
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 text-left md:grid-cols-2 2xl:grid-cols-3">
-                          {visibleReportBrandRows.map((row) => {
-                              const brand = row.brand;
-                              const numBrandLogs = row.sessionCount;
-                              const numUploadBatches = row.batchCount;
-                              const totalGmvSum = row.totalGmv;
-                              const brandPlatforms = row.platforms;
-                              const isBrandActive = row.hasData;
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
+                          {clientBrands
+                            .filter((brand) => {
+                              if (!reportBrandSearchQuery.trim()) return true;
+                              const q = reportBrandSearchQuery.toLowerCase();
+                              return (
+                                (brand.name || "").toLowerCase().includes(q) ||
+                                brand.id.toLowerCase().includes(q)
+                              );
+                            })
+                            .map((brand) => {
+                              const numBrandLogs = brandPerformanceLogs.filter(
+                                (log) => log.brandId === brand.id,
+                              ).length;
+                              const numUploadBatches =
+                                brandUploadHistory.filter(
+                                  (batch) => batch.brandId === brand.id,
+                                ).length;
+                              const totalGmvSum = brandPerformanceLogs
+                                .filter((log) => log.brandId === brand.id)
+                                .reduce((sum, log) => sum + (log.gmv || 0), 0);
 
                               return (
                                 <div
@@ -16601,128 +16327,70 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     setActiveReportBrandId(brand.id);
                                     setSaveTargetBrandId(brand.id);
                                     setAdminReportBrandFilter(brand.id);
-                                    setOpenBrandCardActionsId(null);
                                   }}
-                                  className="group relative flex min-h-64 min-w-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-indigo-300 focus-within:border-indigo-400"
+                                  className="bg-white border border-slate-200 hover:border-indigo-400 p-6 rounded-3xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between min-h-[160px] relative overflow-hidden"
                                 >
+                                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 group-hover:bg-indigo-600/5 rounded-full transition-colors -mr-6 -mt-6"></div>
+
                                   <div>
-                                    <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
-                                      <div className="flex items-start gap-3 min-w-0">
-                                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-indigo-600 group-hover:text-white transition-all uppercase whitespace-nowrap shrink-0">
+                                    <div className="flex items-center justify-between gap-3 mb-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-indigo-55 text-indigo-600 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-indigo-600 group-hover:text-white transition-all uppercase whitespace-nowrap">
                                           {brand.name.substring(0, 2)}
                                         </div>
-                                        <div className="min-w-0">
-                                          <h4 className="truncate text-sm font-black uppercase text-slate-900 transition-colors group-hover:text-indigo-600">
+                                        <div>
+                                          <h4 className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
                                             {brand.name}
                                           </h4>
-                                          <p className="truncate text-[10px] font-bold uppercase text-slate-400">
+                                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                                             ID: {brand.id}
                                           </p>
-                                          <div className="mt-2 flex flex-wrap gap-1.5">
-                                            {brandPlatforms.length > 0 ? (
-                                              brandPlatforms.slice(0, 2).map((platform) => (
-                                                <span
-                                                  key={platform}
-                                                  className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600"
-                                                >
-                                                  {platform}
-                                                </span>
-                                              ))
-                                            ) : (
-                                              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-500">
-                                                Belum ada platform
-                                              </span>
-                                            )}
-                                            {brandPlatforms.length > 2 && (
-                                              <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-600">
-                                                +{brandPlatforms.length - 2}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div className="flex flex-wrap gap-2 mt-2">
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[10px] font-black text-slate-600">
-                                              {numBrandLogs} Sesi
-                                            </span>
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2 py-1 text-[10px] font-black text-indigo-600">
-                                              {numUploadBatches} Batch
-                                            </span>
-                                            <span
-                                              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black border ${
-                                                isBrandActive
-                                                  ? "bg-emerald-50 border-emerald-100 text-emerald-700"
-                                                  : "bg-slate-50 border-slate-200 text-slate-500"
-                                              }`}
-                                            >
-                                              {isBrandActive ? "Aktif" : "Belum Ada Data"}
-                                            </span>
-                                          </div>
                                         </div>
                                       </div>
+                                      {(numBrandLogs > 0 ||
+                                        numUploadBatches > 0) && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteAllBrandRawData(
+                                              brand.id,
+                                              brand.name,
+                                            );
+                                          }}
+                                          title="Hapus Semua Raw Data & Riwayat Brand"
+                                          className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border-0 cursor-pointer transition-colors z-10 hover:shadow-xs"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      )}
+                                    </div>
 
-                                      <div
-                                        className="flex items-center gap-2 shrink-0 relative"
-                                        data-brand-card-actions="true"
-                                      >
-                                        {(numBrandLogs > 0 ||
-                                          numUploadBatches > 0) && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setOpenBrandCardActionsId(
-                                                openBrandCardActionsId === brand.id
-                                                  ? null
-                                                  : brand.id,
-                                              );
-                                            }}
-                                            title="Aksi brand"
-                                            aria-label="Aksi brand"
-                                            className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl border border-slate-200 cursor-pointer transition-colors"
-                                          >
-                                            <MoreHorizontal className="w-4 h-4" />
-                                          </button>
-                                        )}
-                                        {openBrandCardActionsId === brand.id && (
-                                          <div className="absolute right-0 top-11 z-30 w-44 rounded-2xl border border-slate-200 bg-white shadow-xl p-2">
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveReportBrandId(brand.id);
-                                                setSaveTargetBrandId(brand.id);
-                                                setAdminReportBrandFilter(
-                                                  brand.id,
-                                                );
-                                                setOpenBrandCardActionsId(null);
-                                              }}
-                                              className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50"
-                                            >
-                                              Masuk Dashboard
-                                            </button>
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteAllBrandRawData(
-                                                  brand.id,
-                                                  brand.name,
-                                                );
-                                                setOpenBrandCardActionsId(null);
-                                              }}
-                                              className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50"
-                                            >
-                                              Hapus Semua Data
-                                            </button>
-                                          </div>
-                                        )}
+                                    <div className="grid grid-cols-2 gap-3 mb-2 pt-2 border-t border-slate-100">
+                                      <div>
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
+                                          Stored Sesi Live
+                                        </span>
+                                        <span className="text-xs font-black text-slate-700 block mt-0.5">
+                                          {numBrandLogs} Sesi
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
+                                          Total Upload
+                                        </span>
+                                        <span className="text-xs font-black text-slate-700 block mt-0.5">
+                                          {numUploadBatches} Batch
+                                        </span>
                                       </div>
                                     </div>
                                   </div>
 
-                                  <div className="mt-4 border-t border-slate-100 pt-3">
-                                    <div className="flex min-w-0 items-center justify-between gap-3">
-                                    <div className="min-w-0">
+                                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
+                                    <div>
                                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
                                         Total GMV
                                       </span>
-                                      <span className="text-[11px] font-black text-indigo-600 block truncate">
+                                      <span className="text-[11px] font-black text-indigo-600 block">
                                         {new Intl.NumberFormat("id-ID", {
                                           style: "currency",
                                           currency: "IDR",
@@ -16730,479 +16398,175 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         }).format(totalGmvSum)}
                                       </span>
                                     </div>
-                                    <div className="text-right">
-                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
-                                        Terakhir update
-                                      </span>
-                                      <span className="text-[11px] font-black text-slate-700 block">
-                                        {row.latestActivity
-                                          ? formatDateTimeSafe(row.latestActivity, {
-                                              day: "numeric",
-                                              month: "short",
-                                              year: "numeric",
-                                            })
-                                          : "-"}
-                                      </span>
-                                    </div>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveReportBrandId(brand.id);
-                                        setSaveTargetBrandId(brand.id);
-                                        setAdminReportBrandFilter(brand.id);
-                                        setOpenBrandCardActionsId(null);
-                                      }}
-                                      className="mt-3 flex min-h-10 w-full items-center justify-center rounded-xl bg-indigo-600 px-4 text-[11px] font-black text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                    >
-                                      Masuk Dashboard <ArrowRight className="ml-1 size-3.5" aria-hidden="true" />
-                                    </button>
+                                    <span className="text-[10px] font-black text-indigo-600 group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
+                                      Masuk Dashboard &rarr;
+                                    </span>
                                   </div>
                                 </div>
                               );
                             })}
 
-                          {filteredReportBrandRows.length === 0 && (
+                          {clientBrands.filter((brand) => {
+                            if (!reportBrandSearchQuery.trim()) return true;
+                            const q = reportBrandSearchQuery.toLowerCase();
+                            return (
+                              (brand.name || "").toLowerCase().includes(q) ||
+                              brand.id.toLowerCase().includes(q)
+                            );
+                          }).length === 0 && (
                             <div className="col-span-full bg-slate-50 border border-slate-200 border-dashed p-10 rounded-3xl text-center text-slate-400 text-xs font-semibold">
-                              {reportBrandSearchQuery ||
-                              reportBrandPlatformFilter !== "Semua Platform" ||
-                              reportBrandStatusFilter !== "Semua Status"
-                                ? "Tidak ada brand yang cocok dengan filter aktif. Coba ubah kata kunci, platform, atau status."
+                              {reportBrandSearchQuery
+                                ? "Tidak ada brand klien yang cocok dengan kata kunci pencarian Anda."
                                 : 'Belum ada Brand Klien terdaftar. Silakan tambahkan brand pada sub-menu "Data Brand" terlebih dahulu.'}
                             </div>
                           )}
                         </div>
-                        {totalReportBrandPages > 1 && (
-                          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
-                            <button
-                              type="button"
-                              disabled={reportBrandPage === 1}
-                              onClick={() => setReportBrandPage((p) => Math.max(1, p - 1))}
-                              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
-                            >
-                              ← Sebelumnya
-                            </button>
-                            <div className="text-[11px] font-black text-slate-600">
-                              Halaman {reportBrandPage} / {totalReportBrandPages}
-                            </div>
-                            <button
-                              type="button"
-                              disabled={reportBrandPage === totalReportBrandPages}
-                              onClick={() =>
-                                setReportBrandPage((p) =>
-                                  Math.min(totalReportBrandPages, p + 1),
-                                )
-                              }
-                              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
-                            >
-                              Berikutnya →
-                            </button>
-                          </div>
-                        )}
                       </div>
                     ) : (
                       <>
-                        <div className="overflow-visible rounded-[28px] border border-[#e5e2e1] bg-gradient-to-b from-white to-[#fbf8f6] shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                          <div className="border-b border-[#e5e2e1] px-6 py-6 sm:px-8">
-                            <div className="max-w-2xl space-y-5">
-                              <div className="flex items-start gap-4">
-                                <button
-                                  onClick={() => {
-                                    setActiveReportBrandId(null);
-                                    setReportingRawData([]);
-                                    setAutoDetectNotice("");
-                                  }}
-                                  aria-label="Kembali ke daftar brand"
-                                  className="mt-1 flex size-12 shrink-0 items-center justify-center rounded-full border border-[#cbc3d9] bg-white text-[#494456] transition-colors hover:bg-[#f6f3f2] hover:text-[#1b1c1c] focus:outline-none focus:ring-2 focus:ring-[#5600e0]/20 focus:ring-offset-2"
-                                >
-                                  <ArrowLeft className="w-5 h-5" />
-                                </button>
-
-                                <div className="flex min-w-0 items-center gap-4">
-                                  <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#5600e0] text-lg font-black text-white shadow-sm">
-                                    {(activeReportBrand?.name || "BR")
-                                      .slice(0, 2)
-                                      .toUpperCase()}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <h3 className="truncate text-[24px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[30px]">
-                                      {activeReportBrand?.name || "Nama Brand"}
-                                    </h3>
-                                    <p className="mt-1 text-sm font-medium text-[#494456]">
-                                      ID: {activeReportBrand?.id || "-"}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-
+                        <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left">
+                          {/* Header Workspace */}
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white mb-6 text-left border-b border-slate-200 px-6 sm:px-8 py-5">
+                            <div className="flex items-center gap-4">
+                              <button
+                                onClick={() => {
+                                  setActiveReportBrandId(null);
+                                  setReportingRawData([]);
+                                  setAutoDetectNotice("");
+                                }}
+                                className="bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow-sm focus:outline-none"
+                              >
+                                <ArrowLeft className="w-4 h-4" />
+                              </button>
+                              <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                                {clientBrands.find(
+                                  (b) => b.id === activeReportBrandId,
+                                )?.name || "Nama Brand"}
+                              </h3>
                             </div>
-                            <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
-                              <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-stretch">
-                                <div className="relative w-full flex-1" ref={reportBrandDateMenuRef}>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setIsReportBrandPlatformMenuOpen(false);
-                                      setIsReportBrandDateMenuOpen((open) => !open);
-                                    }}
-                                    className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
-                                  >
-                                    <span className="flex min-w-0 items-center gap-3">
-                                      <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f6f3f2] text-[#494456]">
-                                        <Calendar className="h-4 w-4" />
-                                      </span>
-                                      <span className="truncate">{activeReportBrandDateLabel}</span>
-                                    </span>
-                                    <ChevronDown className="h-4 w-4 shrink-0 text-[#494456]" />
-                                  </button>
 
-                                  {isReportBrandDateMenuOpen && (
-                                    <div className="absolute left-0 top-full z-40 mt-2 w-full overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white p-3 shadow-[0_20px_50px_rgba(27,28,28,0.12)]">
-                                      <div className="grid grid-cols-2 gap-2">
-                                        {[
-                                          { label: "Semua Waktu", value: "all" },
-                                          { label: "Terbaru", value: "latest" },
-                                          { label: "Bulan Ini", value: "month" },
-                                          { label: "Kustom", value: "custom" },
-                                        ].map((item) => (
-                                          <button
-                                            key={item.value}
-                                            type="button"
-                                            onClick={() => {
-                                              if (item.value === "custom") {
-                                                const today = formatDateYYYYMMDD(new Date());
-                                                setOperatorTempStartDate(
-                                                  operatorCustomStartDate || today,
-                                                );
-                                                setOperatorTempEndDate(
-                                                  operatorCustomEndDate || today,
-                                                );
-                                                setIsReportBrandDateCustomOpen(true);
-                                                return;
-                                              }
-                                              setIsReportBrandDateCustomOpen(false);
-                                              setOperatorDateFilterType(
-                                                item.value as "latest" | "all" | "month",
-                                              );
-                                              if (item.value === "month") {
-                                                const now = new Date();
-                                                setOperatorSelectedMonth(
-                                                  `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
-                                                );
-                                              }
-                                              setIsReportBrandDateMenuOpen(false);
-                                            }}
-                                            className={`rounded-xl border px-3 py-2 text-left text-xs font-black uppercase tracking-[0.18em] transition-colors ${
-                                              operatorDateFilterType === item.value
-                                                ? "border-[#dfd3ff] bg-[#efe8ff] text-[#5600e0]"
-                                                : "border-[#e5e2e1] bg-white text-[#494456] hover:bg-[#fcfbfa]"
-                                            }`}
-                                          >
-                                            {item.label}
-                                          </button>
-                                        ))}
-                                      </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() => {
+                                  setIsDeleteByDateModalOpen(true);
+                                }}
+                                className="px-4 py-2 bg-white text-orange-600 hover:text-orange-700 font-bold text-[11px] rounded-lg shadow-sm border border-slate-200 hover:bg-orange-50 flex items-center gap-2 cursor-pointer transition-all"
+                                title="Hapus Rentang Waktu"
+                              >
+                                <Calendar className="w-3.5 h-3.5" />
+                                Hapus Rentang Waktu
+                              </button>
 
-                                      {isReportBrandDateCustomOpen && (
-                                        <div className="mt-3">
-                                          <DoubleDatePicker
-                                            startDate={
-                                              operatorTempStartDate ||
-                                              operatorCustomStartDate ||
-                                              formatDateYYYYMMDD(new Date())
-                                            }
-                                            endDate={
-                                              operatorTempEndDate ||
-                                              operatorCustomEndDate ||
-                                              formatDateYYYYMMDD(new Date())
-                                            }
-                                            onChange={(start, end) => {
-                                              setOperatorTempStartDate(start);
-                                              setOperatorTempEndDate(end);
-                                            }}
-                                            onApply={() => {
-                                              setOperatorCustomStartDate(
-                                                operatorTempStartDate,
-                                              );
-                                              setOperatorCustomEndDate(
-                                                operatorTempEndDate,
-                                              );
-                                              setOperatorDateFilterType("custom");
-                                              setIsReportBrandDateCustomOpen(false);
-                                              setIsReportBrandDateMenuOpen(false);
-                                            }}
-                                            onCancel={() => {
-                                              setIsReportBrandDateCustomOpen(false);
-                                            }}
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
+                              <button
+                                onClick={() => {
+                                  handleDeleteAllBrandRawData(
+                                    activeReportBrandId || "",
+                                    clientBrands.find(
+                                      (b) => b.id === activeReportBrandId,
+                                    )?.name || "",
+                                    operatorReportingTab
+                                  );
+                                }}
+                                className="px-4 py-2 bg-white text-red-600 hover:text-red-700 font-bold text-[11px] rounded-lg shadow-sm border border-slate-200 hover:bg-red-50 flex items-center gap-2 cursor-pointer transition-all"
+                                title="Hapus Semua Data"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Hapus Semua Data
+                              </button>
 
-                                <div className="relative w-full flex-1" ref={reportBrandPlatformMenuRef}>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setIsReportBrandDateMenuOpen(false);
-                                      setIsReportBrandDateCustomOpen(false);
-                                      setIsReportBrandPlatformMenuOpen((open) => !open);
-                                    }}
-                                    className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
-                                  >
-                                    <span className="flex min-w-0 items-center gap-3">
-                                      <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f6f3f2] text-[#5600e0]">
-                                        <Briefcase className="h-4 w-4" />
-                                      </span>
-                                      <span className="truncate">
-                                        {operatorPlatformFilter}
-                                      </span>
-                                    </span>
-                                    <ChevronDown className="h-4 w-4 shrink-0 text-[#494456]" />
-                                  </button>
-
-                                  {isReportBrandPlatformMenuOpen && (
-                                    <div className="absolute left-0 top-full z-40 mt-2 w-full overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white p-2 shadow-[0_20px_50px_rgba(27,28,28,0.12)]">
-                                      <div className="space-y-1">
-                                        {availableOperatorPlatforms.map((platform) => (
-                                          <button
-                                            key={platform}
-                                            type="button"
-                                            onClick={() => {
-                                              setOperatorPlatformFilter(platform);
-                                              setIsReportBrandPlatformMenuOpen(false);
-                                            }}
-                                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors ${
-                                              operatorPlatformFilter === platform
-                                                ? "bg-[#efe8ff] text-[#5600e0]"
-                                                : "text-[#1b1c1c] hover:bg-[#fcfbfa]"
-                                            }`}
-                                          >
-                                            <span>{platform}</span>
-                                            {operatorPlatformFilter === platform && (
-                                              <span className="text-[10px] font-black uppercase tracking-[0.22em]">Aktif</span>
-                                            )}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-
+                              {operatorReportingTab === "product" && (
                                 <button
-                                  type="button"
                                   onClick={() => {
-                                    setIsEditRawDataModalOpen(true);
+                                    setSaveTargetBrandId(
+                                      activeReportBrandId || "",
+                                    );
+                                    setIsSkuUploadModalOpen(true);
                                   }}
-                                  className="flex min-h-12 w-full flex-1 items-center justify-center gap-2 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
+                                  className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-[11px] rounded-lg shadow-sm border border-indigo-200 hover:bg-indigo-100 flex items-center gap-2 cursor-pointer transition-all"
                                 >
-                                  <Edit3 className="h-5 w-5 shrink-0 text-[#494456]" />
-                                  <span>Edit Raw Data</span>
+                                  <Download className="w-3.5 h-3.5" />
+                                  Import Data SKU
                                 </button>
-                              </div>
+                              )}
+
+                              {(operatorReportingTab === "live" ||
+                                operatorReportingTab === "engagement") && (
+                                <button
+                                  onClick={() => {
+                                    setSaveTargetBrandId(
+                                      activeReportBrandId || "",
+                                    );
+                                    setUploadTargetTab(
+                                      operatorReportingTab === "engagement"
+                                        ? "engagement"
+                                        : "live",
+                                    );
+                                    setIsUploadModalOpen(true);
+                                  }}
+                                  className="px-4 py-2 bg-slate-900 text-white font-bold text-[11px] rounded-lg shadow-sm border border-slate-800 hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition-all"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  Import Raw Data
+                                </button>
+                              )}
                             </div>
                           </div>
-                        </div>
 
-                          {isEditRawDataModalOpen && (
-	                            <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[10vh] sm:pb-12 animate-fadeIn">
-	                              <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-3xl w-full overflow-hidden p-6 sm:p-8 relative animate-scaleUp my-auto sm:my-4">
-	                                <button
-	                                  onClick={() =>
-	                                    setIsEditRawDataModalOpen(false)
-	                                  }
-	                                  className="absolute top-5 right-5 text-slate-400 hover:text-slate-800 bg-transparent border-0 cursor-pointer"
-	                                >
-	                                  ✕
-	                                </button>
-
-	                                <div className="flex items-start gap-4">
-	                                  <div className="flex size-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-	                                    <Edit3 className="w-5 h-5" />
-	                                  </div>
-	                                  <div className="min-w-0">
-	                                    <h3 className="text-2xl font-black tracking-tight text-slate-900">
-	                                      Edit Raw Data
-	                                    </h3>
-	                                    <p className="mt-1 text-sm font-medium text-slate-500">
-	                                      Akses cepat untuk hapus semua raw data atau hapus berdasarkan rentang waktu.
-	                                    </p>
-	                                  </div>
-	                                </div>
-
-	                                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-	                                  <button
-	                                    type="button"
-	                                    onClick={() => {
-	                                      setIsEditRawDataModalOpen(false);
-	                                      handleDeleteAllBrandRawData(
-	                                        activeReportBrandId || "",
-	                                        clientBrands.find(
-	                                          (b) => b.id === activeReportBrandId,
-	                                        )?.name || "",
-	                                        operatorReportingTab,
-	                                      );
-	                                    }}
-	                                    className="flex min-h-16 items-center justify-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm font-black text-red-700 transition-colors hover:bg-red-100"
-	                                  >
-	                                    <Trash2 className="w-4 h-4" />
-	                                    Hapus Raw Data
-	                                  </button>
-
-	                                  <button
-	                                    type="button"
-	                                    onClick={() => {
-	                                      setIsEditRawDataModalOpen(false);
-	                                      setIsDeleteByDateModalOpen(true);
-	                                    }}
-	                                    className="flex min-h-16 items-center justify-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-4 text-sm font-black text-orange-700 transition-colors hover:bg-orange-100"
-	                                  >
-	                                    <Calendar className="w-4 h-4" />
-	                                    Hapus Rentang Raw Data
-	                                  </button>
-	                                </div>
-
-	                                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-	                                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-	                                    <div>
-	                                      <div className="text-xs font-black uppercase tracking-[0.24em] text-slate-500">
-	                                        Upload Raw Data
-	                                      </div>
-	                                      <p className="mt-1 text-sm font-medium text-slate-500">
-	                                        Gunakan tombol di bawah ini untuk membuka alur upload sesuai sumber datanya.
-	                                      </p>
-	                                    </div>
-	                                    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-	                                      Live / Product / Engagement
-	                                    </span>
-	                                  </div>
-	                                  <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-	                                    <button
-	                                      type="button"
-	                                      onClick={() => {
-	                                        setIsEditRawDataModalOpen(false);
-	                                        setSaveTargetBrandId(
-	                                          activeReportBrandId || "",
-	                                        );
-	                                        setUploadTargetTab("live");
-	                                        setIsUploadModalOpen(true);
-	                                      }}
-	                                      className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
-	                                    >
-	                                      <Upload className="w-3.5 h-3.5" />
-	                                      Live Performance
-	                                    </button>
-	                                    <button
-	                                      type="button"
-	                                      onClick={() => {
-	                                        setIsEditRawDataModalOpen(false);
-	                                        setSaveTargetBrandId(
-	                                          activeReportBrandId || "",
-	                                        );
-	                                        setIsSkuUploadModalOpen(true);
-	                                      }}
-	                                      className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
-	                                    >
-	                                      <Package className="w-3.5 h-3.5" />
-	                                      Product
-	                                    </button>
-	                                    <button
-	                                      type="button"
-	                                      onClick={() => {
-	                                        setIsEditRawDataModalOpen(false);
-	                                        setSaveTargetBrandId(
-	                                          activeReportBrandId || "",
-	                                        );
-	                                        setUploadTargetTab("engagement");
-	                                        setIsUploadModalOpen(true);
-	                                      }}
-	                                      className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-[11px] font-black text-slate-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
-	                                    >
-	                                      <TrendingUp className="w-3.5 h-3.5" />
-	                                      Engagement
-	                                    </button>
-	                                  </div>
-	                                </div>
-	                              </div>
-	                            </div>
-	                          )}
-
-	                          {/* Operator Reporting Subtabs */}
-	                          <div className="mb-6 flex gap-6 overflow-x-auto border-b border-[#e5e2e1] px-5 sm:px-7">
-	                            <button
-	                              onClick={() => setOperatorReportingTab("live")}
-	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-semibold transition-all ${
-	                                operatorReportingTab === "live"
-	                                  ? "text-[#5600e0]"
-	                                  : "text-[#7a7488] hover:text-[#1b1c1c]"
-	                              }`}
-	                            >
-	                              Live Performance
-	                              <span
-	                                className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-opacity ${
-	                                  operatorReportingTab === "live"
-	                                    ? "bg-[#5600e0] opacity-100"
-	                                    : "bg-transparent opacity-0"
-	                                }`}
-	                              />
-	                            </button>
-	                            <button
-	                              onClick={() => setOperatorReportingTab("product")}
-	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-semibold transition-all ${
-	                                operatorReportingTab === "product"
-	                                  ? "text-[#5600e0]"
-	                                  : "text-[#7a7488] hover:text-[#1b1c1c]"
-	                              }`}
-	                            >
-	                              Product Performance
-	                              <span
-	                                className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-opacity ${
-	                                  operatorReportingTab === "product"
-	                                    ? "bg-[#5600e0] opacity-100"
-	                                    : "bg-transparent opacity-0"
-	                                }`}
-	                              />
-	                            </button>
-	                            <button
-	                              onClick={() =>
-	                                setOperatorReportingTab("engagement")
-	                              }
-	                              className={`relative cursor-pointer border-0 bg-transparent pb-4 text-sm font-semibold transition-all ${
-	                                operatorReportingTab === "engagement"
-	                                  ? "text-[#5600e0]"
-	                                  : "text-[#7a7488] hover:text-[#1b1c1c]"
-	                              }`}
-	                            >
-	                              Engagement & Promotion
-	                              <span
-	                                className={`absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-opacity ${
-	                                  operatorReportingTab === "engagement"
-	                                    ? "bg-[#5600e0] opacity-100"
-	                                    : "bg-transparent opacity-0"
-	                                }`}
-	                              />
-	                            </button>
-	                          </div>
+                          {/* Operator Reporting Subtabs */}
+                          <div className="px-6 sm:px-8 mb-6 border-b border-slate-200 flex gap-6">
+                            <button
+                              onClick={() => setOperatorReportingTab("live")}
+                              className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
+                                operatorReportingTab === "live"
+                                  ? "text-indigo-600 border-indigo-600"
+                                  : "text-slate-500 border-transparent hover:text-slate-800"
+                              }`}
+                            >
+                              Live Performance
+                            </button>
+                            <button
+                              onClick={() => setOperatorReportingTab("product")}
+                              className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
+                                operatorReportingTab === "product"
+                                  ? "text-indigo-600 border-indigo-600"
+                                  : "text-slate-500 border-transparent hover:text-slate-800"
+                              }`}
+                            >
+                              Product Performance
+                            </button>
+                            <button
+                              onClick={() =>
+                                setOperatorReportingTab("engagement")
+                              }
+                              className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
+                                operatorReportingTab === "engagement"
+                                  ? "text-indigo-600 border-indigo-600"
+                                  : "text-slate-500 border-transparent hover:text-slate-800"
+                              }`}
+                            >
+                              Engagement & Promotion
+                            </button>
+                          </div>
 
                           {isDeleteByDateModalOpen && (
                             <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[10vh] sm:pb-12 animate-fadeIn">
                               <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 relative animate-scaleUp my-auto sm:my-4">
-	                                <button
-	                                  onClick={() =>
-	                                    setIsDeleteByDateModalOpen(false)
-	                                  }
-	                                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-transparent border-0 cursor-pointer"
+                                <button
+                                  onClick={() =>
+                                    setIsDeleteByDateModalOpen(false)
+                                  }
+                                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-transparent border-0 cursor-pointer"
                                 >
                                   ✕
                                 </button>
-	                                <h3 className="text-lg font-black text-slate-800 mb-2">
-	                                  Hapus Rentang Raw Data
-	                                </h3>
-	                                <p className="text-xs font-semibold text-slate-500 mb-6">
-	                                  Pilih rentang tanggal. Semua raw data milik brand ini pada periode yang dipilih akan dihapus permanen.
-	                                </p>
+                                <h3 className="text-lg font-black text-slate-800 mb-2">
+                                  Hapus Berdasarkan Rentang Waktu
+                                </h3>
+                                <p className="text-xs font-semibold text-slate-500 mb-6">
+                                  Pilih rentang tanggal. Semua raw data milik
+                                  brand ini pada periode yang dipilih akan
+                                  dihapus permanen.
+                                </p>
 
                                 <div className="space-y-4">
                                   <div>
@@ -17284,15 +16648,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   ✕
                                 </button>
 
-	                                <div className="mb-6">
-	                                  <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
-	                                    <Upload className="w-6 h-6 text-indigo-500" />{" "}
-	                                    Upload Raw Data Product
-	                                  </h2>
-	                                  <p className="text-sm text-slate-500 mt-1 font-semibold">
-	                                    Upload raw data product untuk membaca penjualan SKU, revenue, dan metrik produk lain secara terpisah dari live dan engagement.
-	                                  </p>
-	                                </div>
+                                <div className="mb-6">
+                                  <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
+                                    <Upload className="w-6 h-6 text-indigo-500" />{" "}
+                                    Upload SKU Data (Shopee / TikTok)
+                                  </h2>
+                                  <p className="text-sm text-slate-500 mt-1 font-semibold">
+                                    Extract and analyze top performing SKUs
+                                    directly from Shopee / TikTok item export.
+                                  </p>
+                                </div>
 
                                 {!skuRawData || skuRawData.length === 0 ? (
                                   <div className="space-y-6">
@@ -17548,24 +16913,24 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   ✕
                                 </button>
 
-	                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-100">
-	                                  <div>
-	                                    <h3 className="text-xl sm:text-2xl font-black text-slate-850 flex items-center gap-3">
-	                                      <LineChart className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 animate-pulse" />{" "}
-	                                      {uploadTargetTab === "engagement"
-	                                        ? "Upload Raw Data Engagement & Promotion"
-	                                        : "Upload Raw Data Live Performance"}
-	                                    </h3>
-	                                    <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">
-	                                      Impor data performa mentah (raw data){" "}
-	                                      {uploadTargetTab === "engagement"
-	                                        ? "engagement"
-	                                        : "live performance"}{" "}
-	                                      dari platform marketplace
-	                                      (TikTok/Shopee/dll) untuk{" "}
-	                                      <strong className="text-indigo-950 uppercase">
-	                                        {
-	                                          clientBrands.find(
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                                  <div>
+                                    <h3 className="text-xl sm:text-2xl font-black text-slate-850 flex items-center gap-3">
+                                      <LineChart className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 animate-pulse" />{" "}
+                                      {uploadTargetTab === "engagement"
+                                        ? "Upload Raw Data Engagement & Promotion"
+                                        : "Upload Laporan Eksternal Marketplace"}
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">
+                                      Impor data performa mentah (raw data){" "}
+                                      {uploadTargetTab === "engagement"
+                                        ? "engagement"
+                                        : "penyiaran langsung"}{" "}
+                                      dari platform marketplace
+                                      (TikTok/Shopee/dll) untuk{" "}
+                                      <strong className="text-indigo-950 uppercase">
+                                        {
+                                          clientBrands.find(
                                             (b) => b.id === activeReportBrandId,
                                           )?.name
                                         }
@@ -17761,10 +17126,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             Data Analytics Berhasil Diproses
                                           </h4>
                                           <p className="text-[10px] sm:text-xs font-semibold text-indigo-700">
-                                            {reportingRawData.length}{" "}
-                                            {uploadTargetTab === "engagement"
-                                              ? "Baris Engagement"
-                                              : "Sesi Live"}{" "}
+                                            {reportingRawData.length} Sesi Live
                                             Terdeteksi
                                           </p>
                                         </div>
@@ -17849,7 +17211,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             ).format(
                                               reportingRawData.reduce(
                                                 (acc, curr) =>
-                                                  acc + (curr.views || curr.impressions || curr.liveVisits || curr.penonton || 0),
+                                                  acc + (curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0),
                                                 0,
                                               ),
                                             )}
@@ -18159,8 +17521,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           reportingRawData.reduce(
                                             (acc, curr) =>
                                               acc +
-                                              (curr.views ||
-                                                curr.penonton ||
+                                              (curr.penonton ||
                                                 curr.impressions ||
                                                 0),
                                             0,
@@ -18414,243 +17775,210 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           : 15;
 
                                       return (
-                                        <div className="grid grid-cols-1 gap-6 xl:gap-7">
+                                        <div className="grid grid-cols-1 gap-6">
                                           {/* CHART */}
-                                          <div className="overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                            <div className="border-b border-[#e5e2e1] px-6 py-5 sm:px-8">
-                                              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                                <div className="max-w-2xl">
-                                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-                                                    <TrendingUp className="h-3 w-3" />
-                                                    Trend Brand
-                                                  </span>
-                                                  <h4 className="mt-3 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
-                                                    Tren GMV & Orders
-                                                  </h4>
-                                                  <p className="mt-1 text-sm font-medium leading-relaxed text-[#494456]">
-                                                    Ringkasan harian untuk melihat pergerakan GMV dan transaksi brand.
-                                                  </p>
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                  <div className="flex items-center rounded-[16px] border border-[#dcd7e6] bg-[#f8f7fb] p-1 shadow-[0_6px_18px_rgba(27,28,28,0.04)]">
-                                                    {[
-                                                      { id: "7d", label: "7 Hari" },
-                                                      { id: "30d", label: "30 Hari" },
-                                                      { id: "90d", label: "90 Hari" },
-                                                    ].map((item) => (
-                                                      <button
-                                                        key={item.id}
-                                                        type="button"
-                                                        onClick={() =>
-                                                          setReportingBrandChartRange(
-                                                            item.id as "7d" | "30d" | "90d",
-                                                          )
-                                                        }
-                                                        className={`px-3 py-1 text-sm font-bold rounded-[12px] transition-all ${reportingBrandChartRange === item.id ? "bg-white text-[#5600e0] shadow-[0_2px_8px_rgba(27,28,28,0.08)]" : "text-[#494456] hover:text-[#1b1c1c]"}`}
-                                                      >
-                                                        {item.label}
-                                                      </button>
-                                                    ))}
-                                                  </div>
-                                                  <button
-                                                    type="button"
-                                                    className="inline-flex items-center gap-2 rounded-[14px] border border-[#dcd7e6] bg-white px-3.5 py-2 text-sm font-medium text-[#494456] shadow-[0_6px_18px_rgba(27,28,28,0.04)]"
+                                          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm min-h-[350px] flex flex-col justify-between">
+                                            <div>
+                                              <h4 className="text-sm font-black text-slate-800 mb-6 text-left">
+                                                Tren GMV & Transaksi Harian
+                                              </h4>
+                                              <div className="h-64 w-full">
+                                                <ResponsiveContainer
+                                                  width="100%"
+                                                  height="100%"
+                                                >
+                                                  <RechartsLineChart
+                                                    data={[
+                                                      ...reportingRawData,
+                                                    ].sort(
+                                                      (a, b) =>
+                                                        new Date(
+                                                          a.date,
+                                                        ).getTime() -
+                                                        new Date(
+                                                          b.date,
+                                                        ).getTime(),
+                                                    )}
+                                                    margin={{
+                                                      top: 5,
+                                                      right: 30,
+                                                      left: 20,
+                                                      bottom: 5,
+                                                    }}
                                                   >
-                                                    {reportingBrandChartGranularity}
-                                                    <ChevronDown className="h-4 w-4 text-[#7a7488]" />
-                                                  </button>
-                                                </div>
-                                              </div>
-                                            </div>
-
-                                            <div className="px-5 pb-6 pt-5 sm:px-8">
-                                              <div className="rounded-[24px] border border-[#ebe6e3] bg-gradient-to-b from-[#fcfbfa] to-white p-4 sm:p-5">
-                                                <div className="mb-4 flex items-center justify-end gap-6 text-sm font-medium text-[#494456]">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="h-3 w-3 rounded-full bg-[#6f32ff]" />
-                                                    <span>GMV (Rp)</span>
-                                                  </div>
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="h-3 w-3 rounded-full border-2 border-white bg-[#60a5fa] outline outline-1 outline-[#60a5fa]" />
-                                                    <span>Orders</span>
-                                                  </div>
-                                                </div>
-
-                                                <div className="h-64 w-full">
-                                                  <ResponsiveContainer
-                                                    width="100%"
-                                                    height="100%"
-                                                  >
-                                                    <RechartsLineChart
-                                                      data={activeReportBrandTrendData}
-                                                      margin={{
-                                                        top: 8,
-                                                        right: 18,
-                                                        left: 6,
-                                                        bottom: 0,
+                                                    <CartesianGrid
+                                                      strokeDasharray="3 3"
+                                                      vertical={false}
+                                                      stroke="#e2e8f0"
+                                                    />
+                                                    <XAxis
+                                                      dataKey="date"
+                                                      tick={{
+                                                        fontSize: 10,
+                                                        fill: "#64748b",
+                                                        fontWeight: "bold",
                                                       }}
-                                                    >
-                                                      <defs>
-                                                        <linearGradient
-                                                          id="brand-gmv-gradient"
-                                                          x1="0"
-                                                          x2="0"
-                                                          y1="0"
-                                                          y2="1"
-                                                        >
-                                                          <stop offset="0%" stopColor="#6f32ff" stopOpacity={0.18} />
-                                                          <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
-                                                        </linearGradient>
-                                                      </defs>
-                                                      <CartesianGrid
-                                                        strokeDasharray="4 8"
-                                                        vertical={false}
-                                                        stroke="#ece8e6"
-                                                      />
-                                                      <XAxis
-                                                        dataKey="date"
-                                                        tickFormatter={(value) =>
-                                                          formatChartDateSafe(value, {
-                                                            day: "2-digit",
-                                                            month: "short",
-                                                          })
-                                                        }
-                                                        tick={{
-                                                          fontSize: 11,
-                                                          fill: "#494456",
-                                                          fontWeight: 600,
-                                                        }}
-                                                        axisLine={false}
-                                                        tickLine={false}
-                                                        tickMargin={12}
-                                                      />
-                                                      <YAxis
-                                                        yAxisId="left"
-                                                        tick={{
-                                                          fontSize: 11,
-                                                          fill: "#494456",
-                                                          fontWeight: 600,
-                                                        }}
-                                                        axisLine={false}
-                                                        tickLine={false}
-                                                        tickFormatter={(val) =>
-                                                          val >= 1000000
-                                                            ? `${Math.round(val / 1000000)}M`
-                                                            : `${val}`
-                                                        }
-                                                        width={40}
-                                                      />
-                                                      <YAxis
-                                                        yAxisId="right"
-                                                        orientation="right"
-                                                        tick={{
-                                                          fontSize: 11,
-                                                          fill: "#494456",
-                                                          fontWeight: 600,
-                                                        }}
-                                                        axisLine={false}
-                                                        tickLine={false}
-                                                        tickFormatter={(val) =>
-                                                          new Intl.NumberFormat("id-ID").format(val)
-                                                        }
-                                                        width={36}
-                                                      />
-                                                      <Tooltip
-                                                        cursor={{
-                                                          stroke: "#cbc3d9",
-                                                          strokeWidth: 1,
-                                                        }}
-                                                        contentStyle={{
-                                                          borderRadius: "16px",
-                                                          border: "1px solid #e5e2e1",
-                                                          boxShadow:
-                                                            "0 16px 40px rgba(27,28,28,0.08)",
-                                                          fontWeight: "600",
-                                                          fontSize: "12px",
-                                                        }}
-                                                        formatter={(
-                                                          value: any,
-                                                          name: string,
-                                                        ) => [
-                                                          name === "GMV (Rp)"
-                                                            ? new Intl.NumberFormat("id-ID", {
-                                                                style: "currency",
+                                                      axisLine={false}
+                                                      tickLine={false}
+                                                    />
+                                                    <YAxis
+                                                      yAxisId="left"
+                                                      tick={{
+                                                        fontSize: 10,
+                                                        fill: "#64748b",
+                                                        fontWeight: "bold",
+                                                      }}
+                                                      axisLine={false}
+                                                      tickLine={false}
+                                                      tickFormatter={(val) =>
+                                                        `Rp${(val / 1000000).toFixed(1)}M`
+                                                      }
+                                                    />
+                                                    <YAxis
+                                                      yAxisId="right"
+                                                      orientation="right"
+                                                      tick={{
+                                                        fontSize: 10,
+                                                        fill: "#64748b",
+                                                        fontWeight: "bold",
+                                                      }}
+                                                      axisLine={false}
+                                                      tickLine={false}
+                                                    />
+                                                    <Tooltip
+                                                      contentStyle={{
+                                                        borderRadius: "12px",
+                                                        border: "none",
+                                                        boxShadow:
+                                                          "0 4px 20px rgba(0,0,0,0.1)",
+                                                        fontWeight: "bold",
+                                                        fontSize: "12px",
+                                                      }}
+                                                      formatter={(
+                                                        value: any,
+                                                        name: string,
+                                                      ) => [
+                                                        name === "GMV"
+                                                          ? new Intl.NumberFormat(
+                                                              "id-ID",
+                                                              {
+                                                                style:
+                                                                  "currency",
                                                                 currency: "IDR",
-                                                                maximumFractionDigits: 0,
-                                                              }).format(value)
-                                                            : new Intl.NumberFormat("id-ID").format(value),
-                                                          name,
-                                                        ]}
-                                                        labelFormatter={(label) =>
-                                                          formatChartDateSafe(label, {
-                                                            day: "2-digit",
-                                                            month: "short",
-                                                            year: "numeric",
-                                                          })
-                                                        }
-                                                      />
-                                                      <Area
-                                                        yAxisId="left"
-                                                        type="monotone"
-                                                        name="GMV (Rp)"
-                                                        dataKey="gmv"
-                                                        stroke="#6f32ff"
-                                                        strokeWidth={3}
-                                                        fill="url(#brand-gmv-gradient)"
-                                                        fillOpacity={1}
-                                                        dot={false}
-                                                        activeDot={{ r: 5, fill: "#6f32ff" }}
-                                                      />
-                                                      <Line
-                                                        yAxisId="right"
-                                                        type="monotone"
-                                                        name="Orders"
-                                                        dataKey="orders"
-                                                        stroke="#6ea8fa"
-                                                        strokeWidth={2.5}
-                                                        strokeDasharray="4 4"
-                                                        dot={false}
-                                                        activeDot={{ r: 5, fill: "#6ea8fa" }}
-                                                      />
-                                                    </RechartsLineChart>
-                                                  </ResponsiveContainer>
-                                                </div>
+                                                                minimumFractionDigits: 0,
+                                                              },
+                                                            ).format(value)
+                                                          : value,
+                                                        name,
+                                                      ]}
+                                                    />
+                                                    <Legend
+                                                      wrapperStyle={{
+                                                        fontSize: "11px",
+                                                        fontWeight: "bold",
+                                                      }}
+                                                    />
+                                                    <Line
+                                                      yAxisId="left"
+                                                      type="monotone"
+                                                      name="GMV"
+                                                      dataKey="gmv"
+                                                      stroke="#4f46e5"
+                                                      strokeWidth={3}
+                                                      dot={{
+                                                        r: 4,
+                                                        fill: "#4f46e5",
+                                                        strokeWidth: 2,
+                                                        stroke: "#fff",
+                                                      }}
+                                                      activeDot={{ r: 6 }}
+                                                    />
+                                                    <Line
+                                                      yAxisId="right"
+                                                      type="monotone"
+                                                      name="Produk Terjual"
+                                                      dataKey="products_sold"
+                                                      stroke="#ec4899"
+                                                      strokeWidth={3}
+                                                      dot={{
+                                                        r: 4,
+                                                        fill: "#ec4899",
+                                                        strokeWidth: 2,
+                                                        stroke: "#fff",
+                                                      }}
+                                                    />
+                                                  </RechartsLineChart>
+                                                </ResponsiveContainer>
                                               </div>
                                             </div>
                                           </div>
 
                                           {/* FUNNEL CARD */}
-                                          {saveTargetPlatform === "TikTok Live" ||
-                                          activeReportPlatform === "TikTok Live" ? (
-                                            <TikTokLiveFunnel
-                                              impressions={reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.impressions || 0),
-                                                0,
-                                              )}
-                                              views={reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.views || 0),
-                                                0,
-                                              )}
-                                              productImpressions={
-                                                totalProductImpressions
-                                              }
-                                              productClicks={totalClicks}
-                                              skuOrders={totalOrders}
-                                            />
-                                          ) : (
-                                            <HorizontalFunnel
-                                              title="Corong Konversi Live (Funnel)"
-                                              subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
-                                              tag={
-                                                reportingRawData?.some(
-                                                  (r) => r.hasFunnelInFile,
-                                                )
-                                                  ? "Parsed Excel"
-                                                  : "Benchmark Estimate"
-                                              }
-                                              steps={[
+                                          <HorizontalFunnel
+                                            title="Corong Konversi Live (Funnel)"
+                                            subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
+                                            tag={
+                                              reportingRawData?.some(
+                                                (r) => r.hasFunnelInFile,
+                                              )
+                                                ? "Parsed Excel"
+                                                : "Benchmark Estimate"
+                                            }
+                                            steps={
+                                              saveTargetPlatform ===
+                                                "TikTok Live" ||
+                                              activeReportPlatform ===
+                                                "TikTok Live"
+                                                ? [
+                                                    {
+                                                      label: "LIVE impressions",
+                                                      value:
+                                                        new Intl.NumberFormat(
+                                                          "id-ID",
+                                                        ).format(
+                                                          totalImpressions,
+                                                        ),
+                                                      raw: totalImpressions,
+                                                    },
+                                                    {
+                                                      label: "LIVE visits",
+                                                      value:
+                                                        new Intl.NumberFormat(
+                                                          "id-ID",
+                                                        ).format(
+                                                          totalLiveVisits,
+                                                        ),
+                                                      raw: totalLiveVisits,
+                                                    },
+                                                    {
+                                                      label:
+                                                        "Product impressions",
+                                                      value:
+                                                        new Intl.NumberFormat(
+                                                          "id-ID",
+                                                        ).format(
+                                                          totalProductImpressions,
+                                                        ),
+                                                      raw: totalProductImpressions,
+                                                    },
+                                                    {
+                                                      label: "Product clicks",
+                                                      value:
+                                                        new Intl.NumberFormat(
+                                                          "id-ID",
+                                                        ).format(totalClicks),
+                                                      raw: totalClicks,
+                                                    },
+                                                    {
+                                                      label: "Orders paid for",
+                                                      value:
+                                                        new Intl.NumberFormat(
+                                                          "id-ID",
+                                                        ).format(totalBuyers),
+                                                      raw: totalBuyers,
+                                                    },
+                                                  ]
+                                                : [
                                                     {
                                                       label: "Total Viewers",
                                                       value:
@@ -18672,7 +18000,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       raw: totalLiveVisits,
                                                     },
                                                     {
-                                                      label: "Tambah ke Keranjang",
+                                                      label: "Add To Cart",
                                                       value:
                                                         new Intl.NumberFormat(
                                                           "id-ID",
@@ -18687,29 +18015,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         ).format(totalOrders),
                                                       raw: totalOrders,
                                                     },
-                                                  ]}
-                                            />
-                                          )}
+                                                  ]
+                                            }
+                                          />
                                         </div>
                                       );
                                     })()}
-
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                                      <div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
-                                          Detail Data
-                                        </p>
-                                        <h4 className="mt-1 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
-                                          Tabel sesi yang mendukung insight di atas
-                                        </h4>
-                                        <p className="mt-1 text-sm font-medium leading-relaxed text-[#494456]">
-                                          Gunakan tab di bawah untuk memilih bentuk detail yang ingin dibaca.
-                                        </p>
-                                      </div>
-                                      <span className="inline-flex w-fit items-center rounded-full border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                                        Detail
-                                      </span>
-                                    </div>
 
                                     {/* DATA TABLE */}
                                     {saveTargetPlatform === "Shopee Live" &&
@@ -18719,7 +18030,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             { id: "day", label: "Harian" },
                                             { id: "shift", label: "Shift" },
                                             { id: "dayOfWeek", label: "Hari" },
-                                            { id: "raw", label: "Data Mentah" },
+                                            { id: "raw", label: "By Raw" },
                                           ].map((tab) => (
                                             <button
                                               key={tab.id}
@@ -18733,35 +18044,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           ))}
                                         </div>
                                       )}
-                                    <div className="overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                      <div className="border-b border-[#e5e2e1] px-6 py-5 sm:px-8">
-                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                                          <div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
-                                              Detail Data
-                                            </p>
-                                            <h4 className="mt-2 text-[18px] font-semibold tracking-tight text-[#1b1c1c] sm:text-[22px]">
-                                              Tabel {uploadTargetTab === "engagement" ? "Engagement" : "Live"} Brand
-                                            </h4>
-                                          </div>
-                                          <div className="flex flex-wrap gap-2">
-                                            <span className="inline-flex items-center gap-2 rounded-full border border-[#ebe6e3] bg-[#fcfbfa] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">
-                                              {saveTargetPlatform}
-                                            </span>
-                                            <span className="inline-flex items-center gap-2 rounded-full border border-[#ebe6e3] bg-[#fcfbfa] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#7a7488]">
-                                              {reportingRawData.length} baris
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
+                                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                                       <div className="overflow-x-auto">
                                         <table className="w-full text-left">
                                           <thead>
                                             {uploadTargetTab ===
                                             "engagement" ? (
-                                              <tr className="bg-[#fcfbfa] border-b border-[#e5e2e1] text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
+                                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
                                                 <th 
-                                                    className="px-5 py-4 cursor-pointer hover:bg-[#f6f3f2] transition-colors"
+                                                  className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
                                                   onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
                                                 >
                                                   <div className="flex items-center gap-1">
@@ -18797,11 +18088,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               </tr>
                                             ) : saveTargetPlatform ===
                                               "Shopee Live" ? (
-                                              <tr className="bg-[#fcfbfa] border-b border-[#e5e2e1] text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
+                                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
                                                 {shopeeRawTab !== "raw" ? (
                                                   <>
                                                     <th 
-                                                      className="px-5 py-4 cursor-pointer hover:bg-[#f6f3f2] transition-colors"
+                                                      className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
                                                       onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
                                                     >
                                                       <div className="flex items-center gap-1">
@@ -18824,7 +18115,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 ) : (
                                                   <>
                                                     <th 
-                                                      className="px-5 py-4 cursor-pointer hover:bg-[#f6f3f2] transition-colors"
+                                                      className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
                                                       onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
                                                     >
                                                       <div className="flex items-center gap-1">
@@ -18858,9 +18149,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 </th>
                                               </tr>
                                             ) : (
-                                              <tr className="bg-[#fcfbfa] border-b border-[#e5e2e1] text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
+                                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
                                                 <th 
-                                                  className="px-5 py-4 cursor-pointer hover:bg-[#f6f3f2] transition-colors"
+                                                  className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
                                                   onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
                                                 >
                                                   <div className="flex items-center gap-1">
@@ -18893,7 +18184,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               </tr>
                                             )}
                                           </thead>
-                                          <tbody className="divide-y divide-[#ece8e6]">
+                                          <tbody className="divide-y divide-slate-100">
                                             {(() => {
                                               if (
                                                 saveTargetPlatform ===
@@ -19035,14 +18326,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 .map((g: any, idx) => (
                                                   <tr
                                                     key={idx}
-                                                    className="transition-colors hover:bg-[#fcfbfa]"
+                                                    className="hover:bg-slate-50/50 transition-colors"
                                                   >
                                                     <td
-                                                      className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-[#1b1c1c]"
+                                                      className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800"
                                                     >
                                                       {g.label}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-[#494456]">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
                                                       {(() => {
                                                         const secs = g.duration || 0;
                                                         if (!secs) return "-";
@@ -19051,20 +18342,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         return `${h > 0 ? h + "j " : ""}${m}m`;
                                                       })()}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#1b1c1c]">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
                                                       {idFmt2.format(g.penonton)}
                                                     </td>
                                                     <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-emerald-600">
                                                       Rp
                                                       {idFmt2.format(g.gmv)}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#1b1c1c]">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
                                                       {idFmt2.format(g.products_sold)}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#5600e0]">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-indigo-600">
                                                       {idFmt2.format(g.orders)}
                                                     </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#5600e0]">
+                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600">
                                                       {g.penonton > 0
                                                         ? (
                                                             (g.orders /
@@ -19098,14 +18389,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         100
                                                       : 0;
                                                   return (
-                                                  <tr
-                                                    key={idx}
-                                                    className="transition-colors hover:bg-[#fcfbfa]"
-                                                  >
+                                                    <tr
+                                                      key={idx}
+                                                      className="hover:bg-slate-50/50 transition-colors"
+                                                    >
                                                       {saveTargetPlatform ===
                                                       "Shopee Live" ? (
                                                         <>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-[#1b1c1c]">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
                                                             {(() => {
                                                               const rawStr =
                                                                 String(
@@ -19130,7 +18421,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                               return dPart;
                                                             })()}
                                                           </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-[#1b1c1c]">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
                                                             {(() => {
                                                               const rawStr =
                                                                 String(
@@ -19164,7 +18455,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                               return "-";
                                                             })()}
                                                           </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#1b1c1c]">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
                                                             {new Intl.NumberFormat(
                                                               "id-ID",
                                                             ).format(
@@ -19179,7 +18470,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                               row.gmv || 0,
                                                             )}
                                                           </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-[#1b1c1c]">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
                                                             {new Intl.NumberFormat(
                                                               "id-ID",
                                                             ).format(
@@ -19187,7 +18478,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 0,
                                                             )}
                                                           </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#5600e0]">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600">
                                                             {row.penonton > 0
                                                               ? (
                                                                   (row.orders /
@@ -19200,13 +18491,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         </>
                                                       ) : (
                                                         <>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-[#1b1c1c]">
+                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
                                                             {formatDisplayDate(
                                                               row.dateTime ||
                                                                 row.date,
                                                               saveTargetPlatform,
                                                             )}
-                                                            <span className="block text-[9px] font-semibold text-[#7a7488] mt-1 font-mono">
+                                                            <span className="block text-[9px] font-semibold text-slate-400 mt-1 font-mono">
                                                               Platform:{" "}
                                                               {
                                                                 saveTargetPlatform
@@ -19214,12 +18505,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                             </span>
                                                           </td>
                                                           <td className="px-5 py-3.5 text-xs text-left">
-                                                            <div className="font-semibold text-[#1b1c1c] leading-tight">
+                                                            <div className="font-extrabold text-indigo-950 leading-tight">
                                                               {row.title}
                                                             </div>
                                                             {saveTargetPlatform ===
                                                               "TikTok Live" && (
-                                                              <div className="flex gap-2 text-[9px] font-semibold text-[#7a7488] mt-1">
+                                                              <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
                                                                 <span>
                                                                   ❤️{" "}
                                                                   {new Intl.NumberFormat(
@@ -19245,7 +18536,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                             )}
                                                             {saveTargetPlatform ===
                                                               "Shopee Live" && (
-                                                              <div className="flex gap-2 text-[9px] font-semibold text-[#7a7488] mt-1">
+                                                              <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
                                                                 <span>
                                                                   ❤️{" "}
                                                                   {new Intl.NumberFormat(
@@ -19273,7 +18564,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                           {uploadTargetTab ===
                                                           "engagement" ? (
                                                             <>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#1b1c1c] font-mono">
+                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-slate-700 font-mono">
                                                                 {new Intl.NumberFormat(
                                                                   "id-ID",
                                                                 ).format(
@@ -19281,7 +18572,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                     0,
                                                                 )}
                                                               </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#1b1c1c] font-mono">
+                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-slate-700 font-mono">
                                                                 {new Intl.NumberFormat(
                                                                   "id-ID",
                                                                 ).format(
@@ -19290,7 +18581,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 )}
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-mono">
-                                                                <div className="font-semibold text-[#1b1c1c]">
+                                                                <div className="font-semibold text-slate-700">
                                                                   💬{" "}
                                                                   {new Intl.NumberFormat(
                                                                     "id-ID",
@@ -19299,7 +18590,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                       0,
                                                                   )}
                                                                 </div>
-                                                                <div className="text-[9px] font-semibold text-[#7a7488] mt-1">
+                                                                <div className="text-[9px] font-bold text-slate-400 mt-1">
                                                                   🔗{" "}
                                                                   {new Intl.NumberFormat(
                                                                     "id-ID",
@@ -19321,7 +18612,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 Fans
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-mono">
-                                                                <div className="font-semibold text-[#1b1c1c]">
+                                                                <div className="font-semibold text-slate-700">
                                                                   🎫{" "}
                                                                   {new Intl.NumberFormat(
                                                                     "id-ID",
@@ -19333,7 +18624,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                   )}{" "}
                                                                   Vcr
                                                                 </div>
-                                                                <div className="text-[9px] text-amber-600 font-semibold mt-1">
+                                                                <div className="text-[9px] text-amber-600 font-bold mt-1">
                                                                   🪙{" "}
                                                                   {new Intl.NumberFormat(
                                                                     "id-ID",
@@ -19344,7 +18635,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                   Koin
                                                                 </div>
                                                               </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-[#5600e0] font-mono">
+                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600 font-mono">
                                                                 {(() => {
                                                                   const rowUniqueViewers =
                                                                     row.penonton ||
@@ -19370,7 +18661,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                           ) : (
                                                             <>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-semibold text-[#1b1c1c]">
+                                                                <div className="text-xs font-semibold text-slate-600">
                                                                   {Math.round(
                                                                     row.duration /
                                                                       60,
@@ -19380,7 +18671,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 </div>
                                                                 {saveTargetPlatform ===
                                                                   "TikTok Live" && (
-                                                                  <div className="text-[9px] font-black text-emerald-600 mt-1">
+                                                                  <div className="text-[9px] font-black text-green-600 mt-1 animate-pulse">
                                                                     +
                                                                     {
                                                                       row.followers
@@ -19404,7 +18695,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                     row.gmv,
                                                                   )}
                                                                 </div>
-                                                                <div className="text-[9px] font-semibold text-[#7a7488] mt-0.5">
+                                                                <div className="text-[9px] font-extrabold text-slate-400 mt-0.5">
                                                                   AOV: Rp
                                                                   {Math.round(
                                                                     row.aov ||
@@ -19415,31 +18706,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 </div>
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-bold text-[#1b1c1c]">
+                                                                <div className="text-xs font-bold text-slate-700">
                                                                   {
                                                                     row.products_sold
                                                                   }{" "}
                                                                   Pcs
                                                                 </div>
-                                                                <div className="text-[9px] text-[#7a7488] font-semibold mt-1">
+                                                                <div className="text-[9px] text-slate-400 font-bold mt-1">
                                                                   🛍️{" "}
                                                                   {row.clicks}{" "}
                                                                   Klik Keranjang
                                                                 </div>
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-bold text-[#1b1c1c]">
+                                                                <div className="text-xs font-bold text-slate-700">
                                                                   {row.buyers}{" "}
                                                                   Users
                                                                 </div>
-                                                                <div className="text-[9px] text-pink-600 font-semibold mt-1">
+                                                                <div className="text-[9px] text-pink-600 font-bold mt-1">
                                                                   🛒{" "}
                                                                   {row.orders}{" "}
                                                                   Checkout
                                                                 </div>
                                                               </td>
                                                               <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-black text-[#5600e0]">
+                                                                <div className="text-xs font-black text-indigo-600">
                                                                   CTR:{" "}
                                                                   {actualCtr.toFixed(
                                                                     1,
@@ -19476,18 +18767,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {operatorReportingTab === "live" && (
                             <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                               {(() => {
-                                const filteredLiveDb =
-                                  brandPerformanceLogs.filter(
-                                    (log) =>
-                                      log.brandId === activeReportBrandId &&
-                                      log.reportType !== "engagement",
-                                  );
-                                const filteredEngagementDb =
-                                  brandPerformanceLogs.filter(
-                                    (log) =>
-                                      log.brandId === activeReportBrandId &&
-                                      log.reportType === "engagement",
-                                  );
+                                const filteredDb = brandPerformanceLogs.filter(
+                                  (log) =>
+                                    log.brandId === activeReportBrandId &&
+                                    log.reportType !== "engagement",
+                                );
 
                                 let effectiveFilter = operatorDateFilterType;
                                 let targetLatestDate = "";
@@ -19498,7 +18782,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 if (effectiveFilter === "latest") {
                                   const allDates = Array.from<string>(
                                     new Set(
-                                      filteredLiveDb
+                                      filteredDb
                                         .map((l) => normalizeDateYMD(l.date))
                                         .filter(Boolean) as string[],
                                     ),
@@ -19667,84 +18951,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   });
                                 };
                                 const tableLogs = applyFilter(
-                                  filteredLiveDb,
+                                  filteredDb,
                                   false,
                                 );
                                 const prevTableLogs =
                                   effectiveFilter !== "all"
-                                    ? applyFilter(filteredLiveDb, true)
+                                    ? applyFilter(filteredDb, true)
                                     : [];
-                                const engagementTableLogs = applyFilter(
-                                  filteredEngagementDb,
-                                  false,
-                                );
-                                const prevEngagementTableLogs =
-                                  effectiveFilter !== "all"
-                                    ? applyFilter(filteredEngagementDb, true)
-                                    : [];
-
-                                const chartSourceLogs = filteredLiveDb.filter(
-                                  (log) => {
-                                    if (reportDbSearchQuery.trim()) {
-                                      const query =
-                                        reportDbSearchQuery.toLowerCase();
-                                      const matchesSearch = [
-                                        log.title,
-                                        log.date,
-                                        log.platform,
-                                      ].some((value) =>
-                                        String(value || "")
-                                          .toLowerCase()
-                                          .includes(query),
-                                      );
-                                      if (!matchesSearch) return false;
-                                    }
-                                    if (
-                                      operatorPlatformFilter &&
-                                      !isPlatformMatch(
-                                        log.platform,
-                                        operatorPlatformFilter,
-                                      )
-                                    ) {
-                                      return false;
-                                    }
-                                    if (
-                                      operatorShiftFilters.length > 0 &&
-                                      !operatorShiftFilters.includes(
-                                        log.shift || "",
-                                      )
-                                    ) {
-                                      return false;
-                                    }
-                                    return true;
-                                  },
-                                );
-                                const activeChartPlatformLabel =
-                                  operatorPlatformFilter || "Semua Platform";
-                                const isTikTokChart = activeChartPlatformLabel
-                                  .toLowerCase()
-                                  .includes("tiktok");
-                                const chartGranularityLabel =
-                                  effectiveFilter === "all" ||
-                                  effectiveFilter === "month"
-                                    ? "Bulanan"
-                                    : "Harian";
-                                const chartMetricLabels = {
-                                  orders: isTikTokChart
-                                    ? "SKU Orders"
-                                    : "Pesanan",
-                                  itemsSold: isTikTokChart
-                                    ? "Items Sold"
-                                    : "Produk Terjual",
-                                  clicks: isTikTokChart
-                                    ? "Klik Produk"
-                                    : "Tambah Keranjang",
-                                  views: isTikTokChart ? "Views" : "Dilihat",
-                                };
 
                                 const buildDailyChart = (startDate: string, endDate: string) => {
                                   const group: any = {};
-                                  chartSourceLogs.forEach((log: any) => {
+                                  filteredDb.forEach((log: any) => {
                                     if (!log.date) return;
                                     const d = normalizeDateYMD(log.date);
                                     if (d >= startDate && d <= endDate) {
@@ -19755,11 +18972,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       group[d].orders += log.orders || 0;
                                       group[d].itemsSold += log.products_sold || 0;
                                       group[d].clicks += log.clicks || 0;
-                                      group[d].penonton +=
-                                        log.views ||
-                                        log.penonton ||
-                                        log.impressions ||
-                                        0;
+                                      group[d].penonton += log.penonton || log.impressions || 0;
                                     }
                                   });
                                   return Object.values(group).sort((a:any, b:any) => a.date.localeCompare(b.date));
@@ -19771,7 +18984,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     group[m] = { date: getIndonesianMonthLabel(m), labelMonth: m, gmv: 0, orders: 0, itemsSold: 0, clicks: 0, penonton: 0 };
                                   });
 
-                                  chartSourceLogs.forEach((log: any) => {
+                                  filteredDb.forEach((log: any) => {
                                     if (!log.date) return;
                                     const mLabel = log.date.substring(0, 7); // YYYY-MM
                                     if (group[mLabel]) {
@@ -19779,11 +18992,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       group[mLabel].orders += log.orders || 0;
                                       group[mLabel].itemsSold += log.products_sold || 0;
                                       group[mLabel].clicks += log.clicks || 0;
-                                      group[mLabel].penonton +=
-                                        log.views ||
-                                        log.penonton ||
-                                        log.impressions ||
-                                        0;
+                                      group[mLabel].penonton += log.penonton || log.impressions || 0;
                                     }
                                   });
                                   return Object.values(group).sort((a:any, b:any) => a.labelMonth.localeCompare(b.labelMonth));
@@ -19810,15 +19019,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 } else if (effectiveFilter === "month") {
                                   const selM = operatorSelectedMonth;
                                   if (selM) {
-                                    const rawMonths = Array.from(
-                                      new Set(
-                                        chartSourceLogs
-                                          .map((l) =>
-                                            l.date ? l.date.substring(0, 7) : "",
-                                          )
-                                          .filter(Boolean),
-                                      ),
-                                    ).sort();
+                                    const rawMonths = Array.from(new Set(filteredDb.map(l => l.date ? l.date.substring(0, 7) : "").filter(Boolean))).sort();
                                     const hasNext = rawMonths.some(rm => rm > selM);
                                     
                                     const getMonthOffset = (baseYYYYMM: string, offset: number) => {
@@ -19896,38 +19097,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   (sum, item) => sum + (item.clicks || 0),
                                   0,
                                 );
-                                const avgViewDurationSourceLogs =
-                                  engagementTableLogs.length > 0
-                                    ? engagementTableLogs
-                                    : tableLogs;
-                                const peakViewSourceLogs =
-                                  engagementTableLogs.length > 0
-                                    ? engagementTableLogs
-                                    : tableLogs;
-                                const avgViewDurationValues =
-                                  avgViewDurationSourceLogs
-                                    .map((item) =>
-                                      Number(item.avgViewDuration || 0),
-                                    )
-                                    .filter((value) => value > 0);
                                 const avgViewDurationDb =
-                                  avgViewDurationValues.length > 0
-                                    ? avgViewDurationValues.reduce(
-                                        (sum, value) => sum + value,
+                                  tableLogs.length > 0
+                                    ? tableLogs.reduce(
+                                        (sum, item) =>
+                                          sum + (item.avgViewDuration || 0),
                                         0,
-                                      ) / avgViewDurationValues.length
-                                    : 0;
-                                const peakViewValues = peakViewSourceLogs
-                                  .map((item) => Number(item.peakViewers || 0))
-                                  .filter((value) => value > 0);
-                                const peakViewersDb =
-                                  peakViewValues.length > 0
-                                    ? Math.round(
-                                        peakViewValues.reduce(
-                                          (sum, value) => sum + value,
-                                          0,
-                                        ) / peakViewValues.length,
-                                      )
+                                      ) / tableLogs.length
                                     : 0;
                                 const pTotalGmvDb = prevTableLogs.reduce(
                                   (sum, item) => sum + (item.gmv || 0),
@@ -19981,38 +19157,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                   (sum, item) => sum + (item.clicks || 0),
                                   0,
                                 );
-                                const prevAvgViewDurationSourceLogs =
-                                  prevEngagementTableLogs.length > 0
-                                    ? prevEngagementTableLogs
-                                    : prevTableLogs;
-                                const prevPeakViewSourceLogs =
-                                  prevEngagementTableLogs.length > 0
-                                    ? prevEngagementTableLogs
-                                    : prevTableLogs;
-                                const pAvgViewDurationValues =
-                                  prevAvgViewDurationSourceLogs
-                                    .map((item) =>
-                                      Number(item.avgViewDuration || 0),
-                                    )
-                                    .filter((value) => value > 0);
                                 const pAvgViewDurationDb =
-                                  pAvgViewDurationValues.length > 0
-                                    ? pAvgViewDurationValues.reduce(
-                                        (sum, value) => sum + value,
+                                  prevTableLogs.length > 0
+                                    ? prevTableLogs.reduce(
+                                        (sum, item) =>
+                                          sum + (item.avgViewDuration || 0),
                                         0,
-                                      ) / pAvgViewDurationValues.length
-                                    : 0;
-                                const pPeakViewValues = prevPeakViewSourceLogs
-                                  .map((item) => Number(item.peakViewers || 0))
-                                  .filter((value) => value > 0);
-                                const pPeakViewersDb =
-                                  pPeakViewValues.length > 0
-                                    ? Math.round(
-                                        pPeakViewValues.reduce(
-                                          (sum, value) => sum + value,
-                                          0,
-                                        ) / pPeakViewValues.length,
-                                      )
+                                      ) / prevTableLogs.length
                                     : 0;
                                 const totalDbImpressions = tableLogs.reduce(
                                   (acc, curr) => {
@@ -20256,12 +19407,261 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                 return (
                                   <>
+                                    {/* Table Filters */}
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap">
+                                      <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
+                                        <div className="relative w-full sm:w-72">
+                                          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                          <input
+                                            type="text"
+                                            placeholder="Search sessions..."
+                                            value={reportDbSearchQuery}
+                                            onChange={(e) =>
+                                              setReportDbSearchQuery(
+                                                e.target.value,
+                                              )
+                                            }
+                                            className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 transition-colors shadow-sm"
+                                          />
+                                        </div>
+                                        <select
+                                          value={operatorPlatformFilter}
+                                          onChange={(e) =>
+                                            setOperatorPlatformFilter(
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
+                                        >
+                                          {availableOperatorPlatforms.map((p) => (
+                                            <option key={p} value={p}>
+                                              {p}
+                                            </option>
+                                          ))}
+                                        </select>
+
+                                      </div>
+                                      <div className="relative flex gap-2 w-full sm:w-auto h-9">
+                                        <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                                          {[
+                                            { id: "latest", label: "Terbaru" },
+                                            { id: "all", label: "Semua" },
+                                            { id: "month", label: "Bulan" },
+                                            { id: "custom", label: "Custom" },
+                                          ].map((item) => (
+                                            <button
+                                              key={item.id}
+                                              type="button"
+                                              onClick={() => {
+                                                setOperatorDateFilterType(
+                                                  item.id,
+                                                );
+                                                if (
+                                                  item.id === "all" ||
+                                                  item.id === "latest"
+                                                ) {
+                                                  setIsOperatorCalendarOpen(
+                                                    false,
+                                                  );
+                                                  setIsOperatorMonthOpen(false);
+                                                } else if (
+                                                  item.id === "month"
+                                                ) {
+                                                  setIsOperatorMonthOpen(true);
+                                                  setIsOperatorCalendarOpen(
+                                                    false,
+                                                  );
+                                                } else if (
+                                                  item.id === "custom"
+                                                ) {
+                                                  setIsOperatorCalendarOpen(
+                                                    true,
+                                                  );
+                                                  setIsOperatorMonthOpen(false);
+                                                  setOperatorTempStartDate(
+                                                    operatorCustomStartDate ||
+                                                      formatDateYYYYMMDD(
+                                                        new Date(),
+                                                      ),
+                                                  );
+                                                  setOperatorTempEndDate(
+                                                    operatorCustomEndDate ||
+                                                      formatDateYYYYMMDD(
+                                                        new Date(),
+                                                      ),
+                                                  );
+                                                }
+                                              }}
+                                              className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
+                                                operatorDateFilterType ===
+                                                item.id
+                                                  ? "bg-white text-indigo-700 shadow-sm border border-slate-100"
+                                                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
+                                              }`}
+                                            >
+                                              {item.label}
+                                            </button>
+                                          ))}
+                                        </div>
+
+                                        {((operatorDateFilterType ===
+                                          "custom" &&
+                                          operatorCustomStartDate) ||
+                                          operatorDateFilterType ===
+                                            "month") && (
+                                          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                            <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                                            <span className="text-[10px] font-bold text-slate-700">
+                                              {operatorDateFilterType ===
+                                              "month"
+                                                ? getIndonesianMonthLabel(
+                                                    operatorSelectedMonth,
+                                                  )
+                                                : `${operatorCustomStartDate} to ${operatorCustomEndDate}`}
+                                            </span>
+                                          </div>
+                                        )}
+
+                                        {/* Custom Date Overlay UI (Month) */}
+                                        {isOperatorMonthOpen &&
+                                          operatorDateFilterType ===
+                                            "month" && (
+                                            <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
+                                              <div className="flex justify-between items-center mb-4 text-slate-800">
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setOperatorMonthPickerYear(
+                                                      (y) => y - 1,
+                                                    )
+                                                  }
+                                                  className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                                >
+                                                  &laquo;
+                                                </button>
+                                                <div className="text-sm font-bold tracking-widest">
+                                                  {operatorMonthPickerYear}
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setOperatorMonthPickerYear(
+                                                      (y) => y + 1,
+                                                    )
+                                                  }
+                                                  className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
+                                                >
+                                                  &raquo;
+                                                </button>
+                                              </div>
+                                              <div className="grid grid-cols-3 gap-y-2 pb-1 border-t border-slate-100 pt-3 relative">
+                                                {[
+                                                  { val: "01", label: "Jan" },
+                                                  { val: "02", label: "Feb" },
+                                                  { val: "03", label: "Mar" },
+                                                  { val: "04", label: "Apr" },
+                                                  { val: "05", label: "May" },
+                                                  { val: "06", label: "Jun" },
+                                                  { val: "07", label: "Jul" },
+                                                  { val: "08", label: "Aug" },
+                                                  { val: "09", label: "Sept" },
+                                                  { val: "10", label: "Oct" },
+                                                  { val: "11", label: "Nov" },
+                                                  { val: "12", label: "Dec" },
+                                                ].map((m, idx) => {
+                                                  const mVal = `${operatorMonthPickerYear}-${m.val}`;
+                                                  const isSelected =
+                                                    operatorSelectedMonth ===
+                                                    mVal;
+
+                                                  const currentDate =
+                                                    new Date();
+                                                  const isFuture =
+                                                    operatorMonthPickerYear >
+                                                      currentDate.getFullYear() ||
+                                                    (operatorMonthPickerYear ===
+                                                      currentDate.getFullYear() &&
+                                                      parseInt(m.val) >
+                                                        currentDate.getMonth() +
+                                                          1);
+
+                                                  return (
+                                                    <button
+                                                      key={m.val}
+                                                      type="button"
+                                                      onClick={() => {
+                                                        if (!isFuture) {
+                                                          setOperatorSelectedMonth(
+                                                            mVal,
+                                                          );
+                                                          setIsOperatorMonthOpen(
+                                                            false,
+                                                          );
+                                                        }
+                                                      }}
+                                                      className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
+                                                        isFuture
+                                                          ? "bg-slate-50 text-slate-400 cursor-not-allowed"
+                                                          : "bg-white text-slate-800 hover:bg-slate-50 cursor-pointer"
+                                                      } ${isSelected ? "bg-slate-50 shadow-sm relative" : ""}`}
+                                                    >
+                                                      {m.label}
+                                                      {isSelected &&
+                                                        !isFuture && (
+                                                          <div className="w-1.5 h-1.5 rounded-full bg-slate-300 absolute bottom-1"></div>
+                                                        )}
+                                                    </button>
+                                                  );
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                        {/* Custom Date Overlay UI (Custom) */}
+                                        {isOperatorCalendarOpen &&
+                                          operatorDateFilterType ===
+                                            "custom" && (
+                                            <div className="absolute right-0 top-full mt-2 z-50 animate-fadeIn">
+                                              <DoubleDatePicker
+                                                startDate={
+                                                  operatorTempStartDate
+                                                }
+                                                endDate={operatorTempEndDate}
+                                                onChange={(start, end) => {
+                                                  setOperatorTempStartDate(
+                                                    start,
+                                                  );
+                                                  setOperatorTempEndDate(end);
+                                                }}
+                                                onApply={() => {
+                                                  setOperatorCustomStartDate(
+                                                    operatorTempStartDate,
+                                                  );
+                                                  setOperatorCustomEndDate(
+                                                    operatorTempEndDate,
+                                                  );
+                                                  setIsOperatorCalendarOpen(
+                                                    false,
+                                                  );
+                                                }}
+                                                onCancel={() =>
+                                                  setIsOperatorCalendarOpen(
+                                                    false,
+                                                  )
+                                                }
+                                              />
+                                            </div>
+                                          )}
+                                      </div>
+                                    </div>
+
+                                    {/* Summary Cards */}
                                     {(() => {
                                       const isShopee = operatorPlatformFilter
                                         ? operatorPlatformFilter
                                             .toLowerCase()
                                             .includes("shopee")
-                                        : filteredLiveDb?.some(
+                                        : filteredDb?.some(
                                             (log) =>
                                               log.platform &&
                                               log.platform
@@ -20271,35 +19671,132 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       if (isShopee) {
                                         return (
                                           <div className="space-y-6 mb-6">
-                                            <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">
-                                              Performance live
-                                            </h4>
-                                              <ShopeeLiveMetricsGrid
-                                                className="mb-5"
-                                                metrics={buildShopeeLiveMetrics({
-                                                  periodLabel:
-                                                    latestDateLabel ||
-                                                    "periode sebelumnya",
-                                                  gmv: totalGmvDb,
-                                                  prevGmv: pTotalGmvDb,
-                                                  orders: totalOrdersDb,
-                                                  prevOrders: pTotalOrdersDb,
-                                                  avgViewDuration:
-                                                    avgViewDurationDb,
-                                                  prevAvgViewDuration:
-                                                    pAvgViewDurationDb,
-                                                  peakViewers: peakViewersDb,
-                                                  prevPeakViewers:
-                                                    pPeakViewersDb,
-                                                  aov: avgAovDb,
-                                                  prevAov: pAvgAovDb,
-                                                  conversionRate:
-                                                    conversionRateShopee,
-                                                  prevConversionRate:
-                                                    pConversionRateShopee,
-                                                })}
-                                              />
-                                              <div className="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
+                                            <div>
+                                              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+                                                <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">
+                                                  Performance live
+                                                </h4>
+                                                <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
+                                                  <button
+                                                    onClick={() => {
+                                                      let pd = new Date();
+                                                      if (
+                                                        operatorDateFilterType ===
+                                                          "latest" &&
+                                                        targetLatestDate
+                                                      ) {
+                                                        pd = new Date(
+                                                          targetLatestDate,
+                                                        );
+                                                      } else if (
+                                                        operatorDateFilterType ===
+                                                          "custom" &&
+                                                        operatorCustomStartDate
+                                                      ) {
+                                                        pd = new Date(
+                                                          operatorCustomStartDate,
+                                                        );
+                                                      }
+                                                      pd.setDate(
+                                                        pd.getDate() - 1,
+                                                      );
+                                                      const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
+                                                      setOperatorDateFilterType(
+                                                        "custom",
+                                                      );
+                                                      setOperatorCustomStartDate(
+                                                        newD,
+                                                      );
+                                                      setOperatorCustomEndDate(
+                                                        newD,
+                                                      );
+                                                    }}
+                                                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                                  >
+                                                    <ChevronLeft className="w-4 h-4" />
+                                                  </button>
+                                                  <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
+                                                    {(() => {
+                                                      if (
+                                                        operatorDateFilterType ===
+                                                          "month" ||
+                                                        operatorDateFilterType ===
+                                                          "all"
+                                                      )
+                                                        return (
+                                                          latestDateLabel ||
+                                                          "Semua Waktu"
+                                                        );
+                                                      let curD = new Date();
+                                                      if (
+                                                        operatorDateFilterType ===
+                                                          "latest" &&
+                                                        targetLatestDate
+                                                      ) {
+                                                        curD = new Date(
+                                                          targetLatestDate,
+                                                        );
+                                                      } else if (
+                                                        operatorDateFilterType ===
+                                                          "custom" &&
+                                                        operatorCustomStartDate
+                                                      ) {
+                                                        curD = new Date(
+                                                          operatorCustomStartDate,
+                                                        );
+                                                      }
+                                                      return curD.toLocaleDateString(
+                                                        "id-ID",
+                                                        {
+                                                          weekday: "long",
+                                                          day: "numeric",
+                                                          month: "long",
+                                                          year: "numeric",
+                                                        },
+                                                      );
+                                                    })()}
+                                                  </span>
+                                                  <button
+                                                    onClick={() => {
+                                                      let pd = new Date();
+                                                      if (
+                                                        operatorDateFilterType ===
+                                                          "latest" &&
+                                                        targetLatestDate
+                                                      ) {
+                                                        pd = new Date(
+                                                          targetLatestDate,
+                                                        );
+                                                      } else if (
+                                                        operatorDateFilterType ===
+                                                          "custom" &&
+                                                        operatorCustomStartDate
+                                                      ) {
+                                                        pd = new Date(
+                                                          operatorCustomStartDate,
+                                                        );
+                                                      }
+                                                      pd.setDate(
+                                                        pd.getDate() + 1,
+                                                      );
+                                                      const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
+                                                      setOperatorDateFilterType(
+                                                        "custom",
+                                                      );
+                                                      setOperatorCustomStartDate(
+                                                        newD,
+                                                      );
+                                                      setOperatorCustomEndDate(
+                                                        newD,
+                                                      );
+                                                    }}
+                                                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                                  >
+                                                    <ChevronRight className="w-4 h-4" />
+                                                  </button>
+                                                </div>
+                                              </div>
+                                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                                                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                                   <div className="flex justify-between items-start mb-1">
                                                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
@@ -20411,22 +19908,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                                   <div className="flex justify-between items-start mb-1">
                                                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Peak View
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={peakViewersDb}
-                                                      prev={pPeakViewersDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(peakViewersDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                                       AOV
                                                     </div>
                                                     <PercentBadge
@@ -20445,9 +19926,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   </div>
                                                 </div>
                                               </div>
+                                            </div>
 
                                             {totalDbImpressions > 0 && (
-                                              <div className="hidden mb-6">
+                                              <div className="mb-6">
                                                 <HorizontalFunnel
                                                   title=""
                                                   subtitle=""
@@ -20718,28 +20200,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               </div>
                                             </div>
 
-                                            <TikTokLiveFunnel
-                                              impressions={totalDbImpressions}
-                                              views={tableLogs.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.views || 0),
-                                                0,
-                                              )}
-                                              productImpressions={
-                                                totalDbProductImpressions
-                                              }
-                                              productClicks={totalDbClicks}
-                                              skuOrders={totalDbOrdersFunnel}
-                                            />
-
                                             <div>
-                                              <h4 className="text-sm md:text-base font-black text-[#1b1c1c] mb-4 uppercase tracking-widest mt-8">
+                                              <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">
                                                 Engagement Metrics
                                               </h4>
                                               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                                       Like
                                                     </div>
                                                     <PercentBadge
@@ -20747,15 +20215,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       prev={pTotalLikesDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                                  <div className="text-xl font-black text-slate-800 mt-1">
                                                     {new Intl.NumberFormat(
                                                       "id-ID",
                                                     ).format(totalLikesDb)}
                                                   </div>
                                                 </div>
-                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                                       Comment
                                                     </div>
                                                     <PercentBadge
@@ -20763,15 +20231,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       prev={pTotalCommentsDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                                  <div className="text-xl font-black text-slate-800 mt-1">
                                                     {new Intl.NumberFormat(
                                                       "id-ID",
                                                     ).format(totalCommentsDb)}
                                                   </div>
                                                 </div>
-                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                                       Share
                                                     </div>
                                                     <PercentBadge
@@ -20779,31 +20247,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       prev={pTotalSharesDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                                  <div className="text-xl font-black text-slate-800 mt-1">
                                                     {new Intl.NumberFormat(
                                                       "id-ID",
                                                     ).format(totalSharesDb)}
                                                   </div>
                                                 </div>
-                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
-                                                      Klik Produk
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+                                                      Product Clicks
                                                     </div>
                                                     <PercentBadge
                                                       cur={totalClicksDb}
                                                       prev={pTotalClicksDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                                  <div className="text-xl font-black text-slate-800 mt-1">
                                                     {new Intl.NumberFormat(
                                                       "id-ID",
                                                     ).format(totalClicksDb)}
                                                   </div>
                                                 </div>
-                                                <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
+                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
                                                   <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider flex-1">
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
                                                       AVG TIME/VIEWER
                                                     </div>
                                                     <PercentBadge
@@ -20811,11 +20279,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                       prev={pAvgViewDurationDb}
                                                     />
                                                   </div>
-                                                  <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                                  <div className="text-xl font-black text-slate-800 mt-1">
                                                     {Math.round(
                                                       avgViewDurationDb,
                                                     )}{" "}
-                                                    <span className="text-[10px] text-[#7a7488] font-bold">
+                                                    <span className="text-[10px] text-slate-400 font-bold">
                                                       detik
                                                     </span>
                                                   </div>
@@ -20827,66 +20295,118 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       );
                                     })()}
 
+                                    {/* CHART TRENDS FOR LIVE PERFORMANCE */}
                                     {liveChartData.length > 0 && (
-                                      <div className="mb-6 overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                        <div className="border-b border-[#e5e2e1] px-6 py-6 sm:px-8">
-                                          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-                                            <div className="inline-flex w-full flex-wrap items-center gap-1.5 rounded-[18px] border border-[#dcd7e6] bg-[#f8f7fb] p-1.5 shadow-[0_6px_18px_rgba(27,28,28,0.04)] sm:w-fit">
+                                      <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm mb-6">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                                          <div>
+                                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
+                                              <TrendingUp className="w-5 h-5 text-emerald-500" />{" "}
+                                              Tren Kinerja Penjualan Live Harian
+                                            </h4>
+                                            <p className="text-[11px] text-slate-400 font-bold mt-1">
+                                              Visualisasi harian data penyiaran
+                                              langsung (Live Streaming) dinamis
+                                              harian.
+                                            </p>
+                                          </div>
+                                          <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
+                                            <div className="flex items-center gap-1 mr-1 select-none">
+                                              <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
+                                              <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">
+                                                Metrik:
+                                              </span>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-1.5">
                                               {[
-                                                { id: "gmv", label: "GMV" },
-                                                { id: "orders", label: chartMetricLabels.orders },
-                                                { id: "itemsSold", label: chartMetricLabels.itemsSold },
-                                                { id: "clicks", label: chartMetricLabels.clicks },
-                                                { id: "penonton", label: chartMetricLabels.views },
+                                                {
+                                                  key: "gmv",
+                                                  label: "GMV",
+                                                  color:
+                                                    "bg-emerald-50 text-emerald-700 border-emerald-200",
+                                                },
+                                                {
+                                                  key: "orders",
+                                                  label: "Pesanan",
+                                                  color:
+                                                    "bg-indigo-50 text-indigo-700 border-indigo-200",
+                                                },
+                                                {
+                                                  key: "itemsSold",
+                                                  label: "Produk",
+                                                  color:
+                                                    "bg-amber-50 text-amber-700 border-amber-200",
+                                                },
+                                                {
+                                                  key: "clicks",
+                                                  label: "Klik",
+                                                  color:
+                                                    "bg-pink-50 text-pink-700 border-pink-200",
+                                                },
+                                                {
+                                                  key: "penonton",
+                                                  label: "Penonton",
+                                                  color:
+                                                    "bg-cyan-50 text-cyan-750 border-cyan-200",
+                                                },
                                               ].map((m) => {
-                                                const isSelected = liveChartSelectedMetrics.includes(m.id);
+                                                const isSelected =
+                                                  liveChartSelectedMetrics.includes(
+                                                    m.key,
+                                                  );
                                                 return (
                                                   <button
-                                                    key={m.id}
-                                                    type="button"
-                                                    aria-pressed={isSelected}
+                                                    key={m.key}
                                                     onClick={() => {
                                                       if (isSelected) {
-                                                        if (liveChartSelectedMetrics.length > 1) {
+                                                        if (
+                                                          liveChartSelectedMetrics.length >
+                                                          1
+                                                        ) {
                                                           setLiveChartSelectedMetrics(
-                                                            liveChartSelectedMetrics.filter((x) => x !== m.id),
+                                                            liveChartSelectedMetrics.filter(
+                                                              (x) =>
+                                                                x !== m.key,
+                                                            ),
                                                           );
                                                         }
                                                       } else {
-                                                        setLiveChartSelectedMetrics([
-                                                          ...liveChartSelectedMetrics,
-                                                          m.id,
-                                                        ]);
+                                                        setLiveChartSelectedMetrics(
+                                                          [
+                                                            ...liveChartSelectedMetrics,
+                                                            m.key,
+                                                          ],
+                                                        );
                                                       }
                                                     }}
-                                                    className={`inline-flex items-center gap-1.5 rounded-[12px] border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition-all ${
+                                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
                                                       isSelected
-                                                        ? "bg-white text-[#1b1c1c] border-[#dfd3ff] shadow-[0_2px_8px_rgba(27,28,28,0.08)]"
-                                                        : "border-transparent bg-transparent text-[#7a7488] hover:bg-white hover:text-[#494456]"
+                                                        ? `${m.color} scale-[1.02] shadow-xs font-extrabold`
+                                                        : "bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50"
                                                     }`}
                                                   >
                                                     <span
-                                                      className={`h-2 w-2 rounded-full ${
-                                                        m.id === "gmv"
+                                                      className={`w-1.5 h-1.5 rounded-full ${
+                                                        m.key === "gmv"
                                                           ? "bg-emerald-500"
-                                                          : m.id === "orders"
+                                                          : m.key === "orders"
                                                             ? "bg-indigo-600"
-                                                            : m.id === "itemsSold"
+                                                            : m.key ===
+                                                                "itemsSold"
                                                               ? "bg-amber-500"
-                                                              : m.id === "clicks"
+                                                              : m.key ===
+                                                                  "clicks"
                                                                 ? "bg-pink-500"
                                                                 : "bg-cyan-500"
                                                       }`}
-                                                    />
+                                                    ></span>
                                                     {m.label}
                                                   </button>
                                                 );
                                               })}
                                             </div>
-
-                                            <div className="flex items-center gap-2 self-start text-[10px] font-bold text-[#7a7488] sm:self-auto sm:justify-end">
+                                            <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
                                               <button
-                                                type="button"
                                                 onClick={() =>
                                                   setLiveChartSelectedMetrics([
                                                     "gmv",
@@ -20896,200 +20416,221 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     "penonton",
                                                   ])
                                                 }
-                                                className="rounded-full border border-[#dfd3ff] bg-white px-3 py-1.5 uppercase tracking-[0.22em] text-[#5600e0] transition-colors hover:bg-[#f6f3ff]"
+                                                className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
                                               >
                                                 Semua
                                               </button>
+                                              <span>|</span>
                                               <button
-                                                type="button"
                                                 onClick={() =>
-                                                  setLiveChartSelectedMetrics(["gmv", "orders"])
+                                                  setLiveChartSelectedMetrics([
+                                                    "gmv",
+                                                    "orders",
+                                                  ])
                                                 }
-                                                className="rounded-full border border-[#e5e2e1] bg-white px-3 py-1.5 uppercase tracking-[0.22em] text-[#7a7488] transition-colors hover:bg-[#fcfbfa]"
+                                                className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
                                               >
                                                 Reset
                                               </button>
                                             </div>
                                           </div>
-                                        </div>
-
-                                        <div className="px-5 pb-6 pt-5 sm:px-8">
-                                          <div className="rounded-[24px] border border-[#ebe6e3] bg-gradient-to-b from-[#fcfbfa] to-white p-4 sm:p-5">
-                                            <div className="mb-4 flex items-center justify-end gap-6 text-sm font-medium text-[#494456]">
-                                              <div className="flex items-center gap-2">
-                                                <span className="h-3 w-3 rounded-full bg-[#1f9d6b]" />
-                                                <span>GMV (Rp)</span>
-                                              </div>
-                                              <div className="flex items-center gap-2">
-                                                <span className="h-3 w-3 rounded-full border-2 border-white bg-[#5600e0] outline outline-1 outline-[#5600e0]" />
-                                                <span>{chartMetricLabels.orders}</span>
-                                              </div>
+                                          <div className="hidden">
+                                            <p></p>
+                                          </div>
+                                          <div className="hidden">
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                                              <span>GMV</span>
                                             </div>
-
-                                            <div className="h-[340px] w-full min-w-0">
-                                              <ResponsiveContainer width="100%" height="100%">
-                                                <RechartsLineChart
-                                                  data={liveChartData}
-                                                  margin={{ top: 10, right: 18, left: 6, bottom: 0 }}
-                                                >
-                                                  <defs>
-                                                    <linearGradient
-                                                      id="brand-live-gradient"
-                                                      x1="0"
-                                                      x2="0"
-                                                      y1="0"
-                                                      y2="1"
-                                                    >
-                                                      <stop offset="0%" stopColor="#1f9d6b" stopOpacity={0.18} />
-                                                      <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
-                                                    </linearGradient>
-                                                  </defs>
-                                                  <CartesianGrid
-                                                    strokeDasharray="3 6"
-                                                    vertical={false}
-                                                    stroke="#ece8e6"
-                                                  />
-                                                  <XAxis
-                                                    dataKey="date"
-                                                    tickFormatter={(value) =>
-                                                      formatChartDateSafe(value, {
-                                                        day: "2-digit",
-                                                        month: "short",
-                                                      })
-                                                    }
-                                                    tick={{
-                                                      fontSize: 10,
-                                                      fill: "#494456",
-                                                      fontWeight: 600,
-                                                    }}
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tickMargin={10}
-                                                  />
-                                                  <YAxis
-                                                    yAxisId="left"
-                                                    tick={{
-                                                      fontSize: 10,
-                                                      fill: "#1f9d6b",
-                                                      fontWeight: 600,
-                                                    }}
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tickFormatter={(val) =>
-                                                      `Rp${new Intl.NumberFormat("id-ID", { notation: "compact" }).format(val)}`
-                                                    }
-                                                    width={44}
-                                                    hide={!liveChartSelectedMetrics.includes("gmv")}
-                                                  />
-                                                  <YAxis
-                                                    yAxisId="right"
-                                                    orientation="right"
-                                                    tick={{
-                                                      fontSize: 10,
-                                                      fill: "#5600e0",
-                                                      fontWeight: 600,
-                                                    }}
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tickFormatter={(val) =>
-                                                      new Intl.NumberFormat("id-ID", { notation: "compact" }).format(val)
-                                                    }
-                                                    width={38}
-                                                  />
-                                                  <Tooltip
-                                                    cursor={{
-                                                      stroke: "#cbc3d9",
-                                                      strokeWidth: 1,
-                                                    }}
-                                                    contentStyle={{
-                                                      borderRadius: "16px",
-                                                      border: "1px solid #e5e2e1",
-                                                      boxShadow: "0 16px 40px rgba(27,28,28,0.08)",
-                                                      fontWeight: "600",
-                                                      fontSize: "12px",
-                                                    }}
-                                                    formatter={(value: any, name: string) => [
-                                                      name === "GMV (Rp)"
-                                                        ? new Intl.NumberFormat("id-ID", {
-                                                            style: "currency",
-                                                            currency: "IDR",
-                                                            maximumFractionDigits: 0,
-                                                          }).format(value)
-                                                        : new Intl.NumberFormat("id-ID").format(value),
-                                                      name,
-                                                    ]}
-                                                    labelFormatter={(label) =>
-                                                      formatChartDateSafe(label, {
-                                                        day: "2-digit",
-                                                        month: "short",
-                                                        year: "numeric",
-                                                      })
-                                                    }
-                                                  />
-                                                  <Area
-                                                    yAxisId="left"
-                                                    type="monotone"
-                                                    name="GMV (Rp)"
-                                                    dataKey="gmv"
-                                                    stroke="#1f9d6b"
-                                                    strokeWidth={3}
-                                                    fill="url(#brand-live-gradient)"
-                                                    fillOpacity={1}
-                                                    dot={false}
-                                                    activeDot={{ r: 5, fill: "#1f9d6b" }}
-                                                    hide={!liveChartSelectedMetrics.includes("gmv")}
-                                                  />
-                                                  <Line
-                                                    yAxisId="right"
-                                                    type="monotone"
-                                                    name={chartMetricLabels.orders}
-                                                    dataKey="orders"
-                                                    stroke="#5600e0"
-                                                    strokeWidth={2.5}
-                                                    dot={false}
-                                                    activeDot={{ r: 5, fill: "#5600e0" }}
-                                                    hide={!liveChartSelectedMetrics.includes("orders")}
-                                                  />
-                                                  <Line
-                                                    yAxisId="right"
-                                                    type="monotone"
-                                                    name={chartMetricLabels.itemsSold}
-                                                    dataKey="itemsSold"
-                                                    stroke="#c77d00"
-                                                    strokeWidth={2.5}
-                                                    strokeDasharray="4 4"
-                                                    dot={false}
-                                                    activeDot={{ r: 5, fill: "#c77d00" }}
-                                                    hide={!liveChartSelectedMetrics.includes("itemsSold")}
-                                                  />
-                                                  <Line
-                                                    yAxisId="right"
-                                                    type="monotone"
-                                                    name={chartMetricLabels.clicks}
-                                                    dataKey="clicks"
-                                                    stroke="#d9467a"
-                                                    strokeWidth={2.5}
-                                                    strokeDasharray="4 4"
-                                                    dot={false}
-                                                    activeDot={{ r: 5, fill: "#d9467a" }}
-                                                    hide={!liveChartSelectedMetrics.includes("clicks")}
-                                                  />
-                                                  <Line
-                                                    yAxisId="right"
-                                                    type="monotone"
-                                                    name={chartMetricLabels.views}
-                                                    dataKey="penonton"
-                                                    stroke="#0f9acb"
-                                                    strokeWidth={2.5}
-                                                    strokeDasharray="4 4"
-                                                    dot={false}
-                                                    activeDot={{ r: 5, fill: "#0f9acb" }}
-                                                    hide={!liveChartSelectedMetrics.includes("penonton")}
-                                                  />
-                                                </RechartsLineChart>
-                                              </ResponsiveContainer>
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
+                                              <span>Pesanan (Orders)</span>
                                             </div>
                                           </div>
+                                        </div>
+                                        <div className="h-72 w-full mt-4">
+                                          <ResponsiveContainer
+                                            width="100%"
+                                            height="100%"
+                                          >
+                                            <RechartsLineChart
+                                              data={liveChartData}
+                                              margin={{
+                                                top: 10,
+                                                right: 35,
+                                                left: 15,
+                                                bottom: 5,
+                                              }}
+                                            >
+                                              <CartesianGrid
+                                                strokeDasharray="3 3"
+                                                vertical={false}
+                                                stroke="#e2e8f0"
+                                              />
+                                              <XAxis
+                                                dataKey="date"
+                                                tick={{
+                                                  fontSize: 10,
+                                                  fill: "#64748b",
+                                                  fontWeight: "bold",
+                                                }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                              />
+                                              <YAxis
+                                                yAxisId="left"
+                                                tick={{
+                                                  fontSize: 10,
+                                                  fill: "#10b981",
+                                                  fontWeight: "bold",
+                                                }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tickFormatter={(val) =>
+                                                  `Rp${new Intl.NumberFormat("id-ID", { notation: "compact" }).format(val)}`
+                                                }
+                                                hide={
+                                                  !liveChartSelectedMetrics.includes(
+                                                    "gmv",
+                                                  )
+                                                }
+                                              />
+                                              <YAxis
+                                                yAxisId="right"
+                                                orientation="right"
+                                                tick={{
+                                                  fontSize: 10,
+                                                  fill: "#4f46e5",
+                                                  fontWeight: "bold",
+                                                }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tickFormatter={(val) =>
+                                                  new Intl.NumberFormat(
+                                                    "id-ID",
+                                                    { notation: "compact" },
+                                                  ).format(val)
+                                                }
+                                              />
+                                              <Tooltip
+                                                contentStyle={{
+                                                  borderRadius: "16px",
+                                                  border: "none",
+                                                  boxShadow:
+                                                    "0 4px 24px rgba(0,0,0,0.08)",
+                                                  fontWeight: "bold",
+                                                  fontSize: "11px",
+                                                }}
+                                                formatter={(
+                                                  value: any,
+                                                  name: string,
+                                                ) => [
+                                                  name === "GMV (Pendapatan)"
+                                                    ? `Rp${new Intl.NumberFormat("id-ID").format(value)}`
+                                                    : new Intl.NumberFormat(
+                                                        "id-ID",
+                                                      ).format(value),
+                                                  name,
+                                                ]}
+                                              />
+                                              <Line
+                                                yAxisId="left"
+                                                type="monotone"
+                                                name="GMV (Pendapatan)"
+                                                dataKey="gmv"
+                                                stroke="#10b981"
+                                                strokeWidth={3}
+                                                dot={{
+                                                  r: 4,
+                                                  fill: "#10b981",
+                                                  strokeWidth: 2,
+                                                  stroke: "#fff",
+                                                }}
+                                                activeDot={{ r: 6 }}
+                                                hide={
+                                                  !liveChartSelectedMetrics.includes(
+                                                    "gmv",
+                                                  )
+                                                }
+                                              />
+                                              <Line
+                                                yAxisId="right"
+                                                type="monotone"
+                                                name="Pesanan (Orders)"
+                                                dataKey="orders"
+                                                stroke="#4f46e5"
+                                                strokeWidth={3}
+                                                dot={{
+                                                  r: 4,
+                                                  fill: "#4f46e5",
+                                                  strokeWidth: 2,
+                                                  stroke: "#fff",
+                                                }}
+                                                hide={
+                                                  !liveChartSelectedMetrics.includes(
+                                                    "orders",
+                                                  )
+                                                }
+                                              />
+                                              <Line
+                                                yAxisId="right"
+                                                type="monotone"
+                                                name="Produk Terjual"
+                                                dataKey="itemsSold"
+                                                stroke="#f59e0b"
+                                                strokeWidth={3}
+                                                dot={{
+                                                  r: 4,
+                                                  fill: "#f59e0b",
+                                                  strokeWidth: 2,
+                                                  stroke: "#fff",
+                                                }}
+                                                hide={
+                                                  !liveChartSelectedMetrics.includes(
+                                                    "itemsSold",
+                                                  )
+                                                }
+                                              />
+                                              <Line
+                                                yAxisId="right"
+                                                type="monotone"
+                                                name="Klik Produk"
+                                                dataKey="clicks"
+                                                stroke="#ec4899"
+                                                strokeWidth={3}
+                                                dot={{
+                                                  r: 4,
+                                                  fill: "#ec4899",
+                                                  strokeWidth: 2,
+                                                  stroke: "#fff",
+                                                }}
+                                                hide={
+                                                  !liveChartSelectedMetrics.includes(
+                                                    "clicks",
+                                                  )
+                                                }
+                                              />
+                                              <Line
+                                                yAxisId="right"
+                                                type="monotone"
+                                                name="Penonton (Views)"
+                                                dataKey="penonton"
+                                                stroke="#0ea5e9"
+                                                strokeWidth={3}
+                                                dot={{
+                                                  r: 4,
+                                                  fill: "#0ea5e9",
+                                                  strokeWidth: 2,
+                                                  stroke: "#fff",
+                                                }}
+                                                hide={
+                                                  !liveChartSelectedMetrics.includes(
+                                                    "penonton",
+                                                  )
+                                                }
+                                              />
+                                            </RechartsLineChart>
+                                          </ResponsiveContainer>
                                         </div>
                                       </div>
                                     )}
@@ -21097,91 +20638,50 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     {/* Removed duplicated SKU Analytics here */}
 
                                     {/* Table */}
-                                    <div className="mb-3 flex flex-col gap-1">
-                                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
-                                        Detail Data
-                                      </p>
-                                      <h4 className="text-sm font-semibold tracking-tight text-[#1b1c1c] sm:text-base">
-                                        Tabulasi sesi, filter shift, dan data mentah.
-                                      </h4>
-                                    </div>
-                                    <div className="mb-4 w-full overflow-hidden rounded-[18px] border border-[#e5e2e1] bg-[#fcfbfa] p-1.5 shadow-[0_6px_18px_rgba(27,28,28,0.04)] sm:w-fit">
-                                      <div className="flex flex-wrap gap-1.5">
-                                        {[
-                                          { id: "day", label: "Harian" },
-                                          { id: "shift", label: "Shift" },
-                                          { id: "dayOfWeek", label: "Hari" },
-                                          { id: "raw", label: "Data Mentah" },
-                                        ].map((tab) => (
-                                          <button
-                                            key={tab.id}
-                                            onClick={() =>
-                                              setReportingShopeeRawTab(tab.id as any)
-                                            }
-                                            className={`rounded-[12px] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition-all ${
-                                              reportingShopeeRawTab === tab.id
-                                                ? "bg-white text-[#5600e0] shadow-[0_2px_8px_rgba(27,28,28,0.08)]"
-                                                : "text-[#7a7488] hover:bg-white hover:text-[#494456]"
-                                            }`}
-                                          >
-                                            {tab.label}
-                                          </button>
-                                        ))}
-                                      </div>
+                                    <div className="flex bg-slate-100 p-1 mb-4 rounded-xl w-fit">
+                                      {[
+                                        { id: "day", label: "Harian" },
+                                        { id: "shift", label: "Shift" },
+                                        { id: "dayOfWeek", label: "Hari" },
+                                        { id: "raw", label: "By Raw" },
+                                      ].map(tab => (
+                                        <button
+                                          key={tab.id}
+                                          onClick={() => setReportingShopeeRawTab(tab.id as any)}
+                                          className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${reportingShopeeRawTab === tab.id ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                                        >
+                                          {tab.label}
+                                        </button>
+                                      ))}
                                     </div>
                                     {reportingShopeeRawTab === "shift" && (
-                                      <div className="mb-4 rounded-[18px] border border-[#e5e2e1] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(27,28,28,0.03)]">
-                                        <div className="mb-3 flex flex-wrap items-center gap-2">
-                                          <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
-                                            Filter Shift
-                                          </span>
-                                          <span className="inline-flex items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5600e0]">
-                                            Grouping
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                          {shifts.map((sh, idx) => (
-                                            <label
-                                              key={idx}
-                                              className="inline-flex cursor-pointer items-center gap-2 rounded-[12px] border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-2 text-xs font-semibold text-[#494456] transition-colors hover:border-[#dfd3ff] hover:bg-[#f8f5ff]"
-                                            >
-                                              <input
-                                                type="checkbox"
-                                                className="rounded border-[#cbc3d9] text-[#5600e0] focus:ring-[#5600e0]"
-                                                checked={adminShiftChecklist.includes(
-                                                  sh,
-                                                )}
-                                                onChange={(e) => {
-                                                  if (e.target.checked) {
-                                                    setAdminShiftChecklist([
-                                                      ...adminShiftChecklist,
-                                                      sh,
-                                                    ]);
-                                                  } else {
-                                                    setAdminShiftChecklist(
-                                                      adminShiftChecklist.filter(
-                                                        (x) => x !== sh,
-                                                      ),
-                                                    );
-                                                  }
-                                                }}
-                                              />
-                                              <span>{sh}</span>
-                                            </label>
-                                          ))}
-                                        </div>
-                                      </div>
+                                       <div className="mb-4 flex flex-wrap gap-2 items-center p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+                                         <span className="text-xs font-bold text-indigo-600 mr-2">Filter & Grouping Shift:</span>
+                                         {shifts.map((sh, idx) => (
+                                           <label key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                                             <input
+                                               type="checkbox"
+                                               className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                               checked={adminShiftChecklist.includes(sh)}
+                                               onChange={(e) => {
+                                                 if (e.target.checked) setAdminShiftChecklist([...adminShiftChecklist, sh]);
+                                                 else setAdminShiftChecklist(adminShiftChecklist.filter(x => x !== sh));
+                                               }}
+                                             />
+                                             <span className="text-xs font-semibold text-slate-700">{sh}</span>
+                                           </label>
+                                         ))}
+                                       </div>
                                     )}
-                                    <div className="overflow-hidden rounded-[24px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                      <div className="overflow-x-auto">
+                                    <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
                                       <table className="w-full text-left whitespace-nowrap">
-                                        <thead className="bg-[#fcfbfa] border-b border-[#ece8e6] uppercase text-[9px] font-black text-[#7a7488] tracking-[0.18em]">
+                                        <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
                                           <tr>
                                             <th className="px-5 py-3.5">No</th>
                                            {reportingShopeeRawTab !== "raw" ? (
                                              <>
                                                <th 
-                                                 className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]" 
+                                                 className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" 
                                                  onClick={() => handleSort("date")}
                                                >
                                                  {reportingShopeeRawTab === "day" ? "Tanggal" : reportingShopeeRawTab === "shift" ? "Shift" : "Hari"}
@@ -21193,7 +20693,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     : ""}
                                                </th>
                                                <th 
-                                                 className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
+                                                 className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                                  onClick={() => handleSort("duration")}
                                                >
                                                  Durasi
@@ -21208,7 +20708,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                            ) : (
                                              <>
                                                <th
-                                                 className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
+                                                 className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                                  onClick={() => handleSort("date")}
                                                >
                                                  Tanggal{" "}
@@ -21221,7 +20721,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                <th className="px-5 py-3.5">
                                                  Jam Start Live
                                                </th>
-                                               <th className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]" onClick={() => handleSort("duration")}>
+                                               <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort("duration")}>
                                                  Durasi
                                                  {reportDbSortCol === "duration"
                                                    ? reportDbSortAsc
@@ -21232,12 +20732,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                              </>
                                            )}
                                             <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
+                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                               onClick={() =>
                                                 handleSort("views")
                                               }
                                             >
-                                              Penonton{" "}
+                                              Viewers{" "}
                                               {reportDbSortCol === "views"
                                                 ? reportDbSortAsc
                                                   ? "↑"
@@ -21245,7 +20745,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 : ""}
                                             </th>
                                             <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
+                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                               onClick={() => handleSort("gmv")}
                                             >
                                               GMV{" "}
@@ -21256,7 +20756,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 : ""}
                                             </th>
                                             <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-[#f8f5ff]"
+                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
                                               onClick={() =>
                                                 handleSort("products_sold")
                                               }
@@ -21275,7 +20775,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 handleSort("customers")
                                               }
                                             >
-                                              Pembeli{" "}
+                                              Customer{" "}
                                               {reportDbSortCol === "customers"
                                                 ? reportDbSortAsc
                                                   ? "↑"
@@ -21283,26 +20783,32 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 : ""}
                                             </th>
                                             <th className="px-5 py-3.5">
-                                              Conversion Rate
+                                              Convertion Rate
                                             </th>
                                             <th className="px-5 py-3.5 text-right">
                                               Aksi
                                             </th>
                                           </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-[#f4f1ef] text-xs font-semibold text-[#494456] bg-white">
-                                          {isReportingDataLoading || reportingDataError ? (
-                                            <ReportingTableStatusRow
-                                              colSpan={9}
-                                              loading={isReportingDataLoading}
-                                              error={reportingDataError}
-                                              onRetry={() => setReportingReloadKey((key) => key + 1)}
-                                            />
+                                        <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
+                                          {isLogsLoading ? (
+                                            <tr>
+                                              <td
+                                                colSpan={8}
+                                                className="px-5 py-16 text-center text-slate-500 font-bold w-full"
+                                              >
+                                                <div className="flex flex-col items-center justify-center gap-4">
+                                                  <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
+                                                  Sedang memuat data dari
+                                                  database...
+                                                </div>
+                                              </td>
+                                            </tr>
                                           ) : sortedTableLogs.length === 0 ? (
                                             <tr>
                                               <td
                                                 colSpan={9}
-                                                className="px-5 py-10 text-center text-[#7a7488]"
+                                                className="px-5 py-10 text-center text-slate-400"
                                               >
                                                 Tidak ada sesi ditemukan.
                                               </td>
@@ -21437,9 +20943,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               return paginatedLogs.map((log, idx) => {
                                               const isLogShopee = log.platform && log.platform.toLowerCase().includes("shopee");
                                               const lViews = isLogShopee 
-                                                ? (log.reportType === "engagement" || String(log.sourceKind || "").includes("engagement")
-                                                    ? (log.views || 0)
-                                                    : (log.penonton || log.impressions || log.views || 0))
+                                                ? (log.penonton || log.impressions || log.views || 0)
                                                 : (log.impressions || log.views || log.liveVisits || 0);
                                               const lCtr =
                                                 log.productImpressions > 0
@@ -21562,11 +21066,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           )}
                                         </tbody>
                                       </table>
-                                      </div>
                                     </div>
 
                                     {totalPages > 1 && reportingShopeeRawTab === "raw" && (
-                                      <div className="flex flex-col gap-3 border-t border-[#ece8e6] p-4 text-xs font-semibold text-[#7a7488] sm:flex-row sm:items-center sm:justify-between">
+                                      <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
                                         <div>
                                           Menampilkan{" "}
                                           {(currentPage - 1) * ITEMS_PER_PAGE +
@@ -21578,7 +21081,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           )}{" "}
                                           dari {sortedTableLogs.length} data
                                         </div>
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="flex gap-2">
                                           <button
                                             onClick={() =>
                                               setCurrentPage((prev) =>
@@ -21586,11 +21089,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               )
                                             }
                                             disabled={currentPage === 1}
-                                            className="cursor-pointer rounded-lg border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1.5 transition-colors hover:bg-white disabled:opacity-50"
+                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
                                           >
                                             Sebelumnya
                                           </button>
-                                          <span className="px-3 py-1.5 text-[#494456]">
+                                          <span className="px-3 py-1.5">
                                             Halaman {currentPage} / {totalPages}
                                           </span>
                                           <button
@@ -21602,7 +21105,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             disabled={
                                               currentPage === totalPages
                                             }
-                                            className="cursor-pointer rounded-lg border border-[#e5e2e1] bg-[#fcfbfa] px-3 py-1.5 transition-colors hover:bg-white disabled:opacity-50"
+                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
                                           >
                                             Selanjutnya
                                           </button>
@@ -21721,13 +21224,19 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
-                                          {isReportingDataLoading || reportingDataError ? (
-                                            <ReportingTableStatusRow
-                                              colSpan={6}
-                                              loading={isReportingDataLoading}
-                                              error={reportingDataError}
-                                              onRetry={() => setReportingReloadKey((key) => key + 1)}
-                                            />
+                                          {isLogsLoading ? (
+                                            <tr key="loading">
+                                              <td
+                                                colSpan={6}
+                                                className="px-5 py-16 text-center text-slate-500 font-bold w-full"
+                                              >
+                                                <div className="flex flex-col items-center justify-center gap-4">
+                                                  <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
+                                                  Sedang memuat data dari
+                                                  database...
+                                                </div>
+                                              </td>
+                                            </tr>
                                           ) : completeUploadHistory.length ===
                                             0 ? (
                                             <tr key="empty-history">
@@ -21747,7 +21256,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   className="hover:bg-slate-50/50 transition-colors"
                                                 >
                                                   <td className="px-5 py-3.5 text-slate-500">
-                                                    {formatDateTimeSafe(history.uploadedAt, {
+                                                    {new Date(
+                                                      history.uploadedAt,
+                                                    ).toLocaleString("id-ID", {
                                                       day: "numeric",
                                                       month: "short",
                                                       year: "numeric",
@@ -21814,21 +21325,654 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           {/* STORED SKU DATABASE VIEWER */}
                           {operatorReportingTab === "product" && (
                             <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-                              {/* Table Filters */}
+
+                              {/* SKU Analytics */}
+                              {(() => {
+                                const applySkuFilter = (logsArr: any[]) => {
+                                  if (!logsArr) return [];
+                                  let res = logsArr.filter(
+                                    (r) => r.brandId === activeReportBrandId,
+                                  );
+                                  if (
+                                    operatorDateFilterType === "latest" &&
+                                    brandPerformanceLogs.filter(
+                                      (log) =>
+                                        log.brandId === activeReportBrandId,
+                                    ).length > 0
+                                  ) {
+                                    const targetLatestDate =
+                                      brandPerformanceLogs
+                                        .filter(
+                                          (log) =>
+                                            log.brandId === activeReportBrandId,
+                                        )
+                                        .sort(
+                                          (a, b) =>
+                                            new Date(b.date || "0").getTime() -
+                                            new Date(a.date || "0").getTime(),
+                                        )[0]?.date || "";
+                                    res = res.filter(
+                                      (r) =>
+                                        r.date &&
+                                        r.date.startsWith(
+                                          targetLatestDate.substring(0, 10),
+                                        ),
+                                    );
+                                  } else if (
+                                    operatorDateFilterType === "custom" &&
+                                    operatorCustomStartDate
+                                  ) {
+                                    res = res.filter(
+                                      (r) =>
+                                        r.date &&
+                                        r.date >= operatorCustomStartDate &&
+                                        r.date <=
+                                          (operatorCustomEndDate ||
+                                            operatorCustomStartDate),
+                                    );
+                                  } else if (
+                                    operatorDateFilterType === "month" &&
+                                    operatorSelectedMonth
+                                  ) {
+                                    res = res.filter(
+                                      (r) =>
+                                        r.date &&
+                                        r.date.startsWith(
+                                          operatorSelectedMonth,
+                                        ),
+                                    );
+                                  }
+
+                                  if (operatorPlatformFilter) {
+                                    res = res.filter((r) => {
+                                      return (
+                                        r.platform &&
+                                        operatorPlatformFilter &&
+                                        r.platform
+                                          .toLowerCase()
+                                          .includes(
+                                            operatorPlatformFilter.toLowerCase(),
+                                          )
+                                      );
+                                    });
+                                  }
+
+                                  if (operatorShiftFilters.length > 0) {
+                                    res = res.filter((r) =>
+                                      operatorShiftFilters.includes(
+                                        r.shift || "",
+                                      ),
+                                    );
+                                  }
+
+                                  if (reportDbSearchQuery) {
+                                    const q = reportDbSearchQuery.toLowerCase();
+                                    res = res.filter(
+                                      (r) =>
+                                        (r.sku &&
+                                          r.sku.toLowerCase().includes(q)) ||
+                                        (r.productName &&
+                                          r.productName
+                                            .toLowerCase()
+                                            .includes(q)),
+                                    );
+                                  }
+
+                                  return res;
+                                };
+
+                                const currentSkus =
+                                  applySkuFilter(shopeeSkuLogs);
+                                if (currentSkus.length === 0)
+                                  return (
+                                    <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-sm mb-6 text-center text-slate-500 font-semibold text-sm">
+                                      Tidak ada data product performance / SKU
+                                      untuk filter saat ini.
+                                    </div>
+                                  );
+
+                                const skuMap = new Map();
+                                currentSkus.forEach((s) => {
+                                  const key =
+                                    s.sku !== "N/A" ? s.sku : s.productName;
+                                  const ex = skuMap.get(key);
+                                  if (ex) {
+                                    ex.sold += Number(s.sold) || 0;
+                                    ex.revenue += Number(s.revenue) || 0;
+                                  } else {
+                                    skuMap.set(key, {
+                                      sku: s.sku,
+                                      productName: s.productName,
+                                      sold: Number(s.sold) || 0,
+                                      revenue: Number(s.revenue) || 0,
+                                    });
+                                  }
+                                });
+
+                                let aggregatedSkus = Array.from(
+                                  skuMap.values(),
+                                ).sort((a, b) => {
+                                  if (skuSortCol === "sold")
+                                    return skuSortAsc
+                                      ? a.sold - b.sold
+                                      : b.sold - a.sold;
+                                  if (skuSortCol === "revenue")
+                                    return skuSortAsc
+                                      ? a.revenue - b.revenue
+                                      : b.revenue - a.revenue;
+                                  return 0;
+                                });
+
+                                let productDateLabel = "Semua Waktu";
+                                if (
+                                  operatorDateFilterType === "latest" &&
+                                  brandPerformanceLogs.filter(
+                                    (log) =>
+                                      log.brandId === activeReportBrandId,
+                                  ).length > 0
+                                ) {
+                                  const targetLatestDate =
+                                    brandPerformanceLogs
+                                      .filter(
+                                        (log) =>
+                                          log.brandId === activeReportBrandId,
+                                      )
+                                      .sort(
+                                        (a, b) =>
+                                          new Date(b.date || "0").getTime() -
+                                          new Date(a.date || "0").getTime(),
+                                      )[0]?.date || "";
+                                  if (targetLatestDate)
+                                    productDateLabel =
+                                      targetLatestDate.split(" ")[0];
+                                } else if (
+                                  operatorDateFilterType === "custom" &&
+                                  operatorCustomStartDate
+                                ) {
+                                  productDateLabel = `${operatorCustomStartDate} to ${operatorCustomEndDate}`;
+                                } else if (
+                                  operatorDateFilterType === "month" &&
+                                  operatorSelectedMonth
+                                ) {
+                                  productDateLabel = getIndonesianMonthLabel(
+                                    operatorSelectedMonth,
+                                  );
+                                }
+
+                                return (
+                                  <div className="bg-white border border-slate-100 p-5 lg:p-7 rounded-3xl shadow-sm mb-6">
+                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
+                                      <div>
+                                        <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                          Product Performance
+                                        </h4>
+                                        <p className="text-[10px] sm:text-xs text-slate-500 font-semibold mt-1">
+                                          Distribusi revenue & sales by SKU
+                                        </p>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                        <div className="flex items-center gap-2 sm:gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
+                                          <button
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              let tld =
+                                                brandPerformanceLogs
+                                                  .filter(
+                                                    (log) =>
+                                                      log.brandId ===
+                                                      activeReportBrandId,
+                                                  )
+                                                  .sort(
+                                                    (a, b) =>
+                                                      new Date(
+                                                        b.date || "0",
+                                                      ).getTime() -
+                                                      new Date(
+                                                        a.date || "0",
+                                                      ).getTime(),
+                                                  )[0]?.date || "";
+                                              if (
+                                                operatorDateFilterType ===
+                                                  "latest" &&
+                                                tld
+                                              ) {
+                                                pd = new Date(tld);
+                                              } else if (
+                                                operatorDateFilterType ===
+                                                  "custom" &&
+                                                operatorCustomStartDate
+                                              ) {
+                                                pd = new Date(
+                                                  operatorCustomStartDate,
+                                                );
+                                              }
+                                              pd.setDate(pd.getDate() - 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
+                                              setOperatorDateFilterType(
+                                                "custom",
+                                              );
+                                              setOperatorCustomStartDate(newD);
+                                              setOperatorCustomEndDate(newD);
+                                            }}
+                                            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                          >
+                                            <ChevronLeft className="w-4 h-4" />
+                                          </button>
+                                          <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[140px] sm:min-w-[160px] text-center">
+                                            {(() => {
+                                              if (
+                                                operatorDateFilterType ===
+                                                  "month" ||
+                                                operatorDateFilterType === "all"
+                                              )
+                                                return (
+                                                  productDateLabel ||
+                                                  "Semua Waktu"
+                                                );
+                                              let curD = new Date();
+                                              let tld =
+                                                brandPerformanceLogs
+                                                  .filter(
+                                                    (log) =>
+                                                      log.brandId ===
+                                                      activeReportBrandId,
+                                                  )
+                                                  .sort(
+                                                    (a, b) =>
+                                                      new Date(
+                                                        b.date || "0",
+                                                      ).getTime() -
+                                                      new Date(
+                                                        a.date || "0",
+                                                      ).getTime(),
+                                                  )[0]?.date || "";
+                                              if (
+                                                operatorDateFilterType ===
+                                                  "latest" &&
+                                                tld
+                                              ) {
+                                                curD = new Date(tld);
+                                              } else if (
+                                                operatorDateFilterType ===
+                                                  "custom" &&
+                                                operatorCustomStartDate
+                                              ) {
+                                                curD = new Date(
+                                                  operatorCustomStartDate,
+                                                );
+                                              }
+                                              return curD.toLocaleDateString(
+                                                "id-ID",
+                                                {
+                                                  weekday: "long",
+                                                  day: "numeric",
+                                                  month: "long",
+                                                  year: "numeric",
+                                                },
+                                              );
+                                            })()}
+                                          </span>
+                                          <button
+                                            onClick={() => {
+                                              let pd = new Date();
+                                              let tld =
+                                                brandPerformanceLogs
+                                                  .filter(
+                                                    (log) =>
+                                                      log.brandId ===
+                                                      activeReportBrandId,
+                                                  )
+                                                  .sort(
+                                                    (a, b) =>
+                                                      new Date(
+                                                        b.date || "0",
+                                                      ).getTime() -
+                                                      new Date(
+                                                        a.date || "0",
+                                                      ).getTime(),
+                                                  )[0]?.date || "";
+                                              if (
+                                                operatorDateFilterType ===
+                                                  "latest" &&
+                                                tld
+                                              ) {
+                                                pd = new Date(tld);
+                                              } else if (
+                                                operatorDateFilterType ===
+                                                  "custom" &&
+                                                operatorCustomStartDate
+                                              ) {
+                                                pd = new Date(
+                                                  operatorCustomStartDate,
+                                                );
+                                              }
+                                              pd.setDate(pd.getDate() + 1);
+                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
+                                              setOperatorDateFilterType(
+                                                "custom",
+                                              );
+                                              setOperatorCustomStartDate(newD);
+                                              setOperatorCustomEndDate(newD);
+                                            }}
+                                            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+                                          >
+                                            <ChevronRight className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                        <div className="bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-xs h-[36px] sm:h-[40px] flex items-center">
+                                          Total Item Sold:{" "}
+                                          {new Intl.NumberFormat(
+                                            "id-ID",
+                                          ).format(
+                                            aggregatedSkus.reduce(
+                                              (sum, item) => sum + item.sold,
+                                              0,
+                                            ),
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-[500px] overflow-y-auto custom-scrollbar">
+                                      <table className="w-full text-left bg-white">
+                                        <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                                          <tr>
+                                            <th className="px-5 py-4 w-16 text-center text-slate-500 font-semibold text-xs tracking-widest uppercase">
+                                              No
+                                            </th>
+                                            <th className="px-5 py-4 text-slate-500 font-semibold text-xs tracking-widest uppercase">
+                                              SKU
+                                            </th>
+                                            <th
+                                              className="px-5 py-4 w-32 cursor-pointer hover:bg-slate-100 transition-colors"
+                                              onClick={() => {
+                                                if (skuSortCol === "sold")
+                                                  setSkuSortAsc(!skuSortAsc);
+                                                else {
+                                                  setSkuSortCol("sold");
+                                                  setSkuSortAsc(false);
+                                                }
+                                              }}
+                                            >
+                                              <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
+                                                Sold
+                                                {skuSortCol === "sold" &&
+                                                  (skuSortAsc ? (
+                                                    <ChevronUp className="w-3 h-3" />
+                                                  ) : (
+                                                    <ChevronDown className="w-3 h-3" />
+                                                  ))}
+                                              </div>
+                                            </th>
+                                            <th
+                                              className="px-5 py-4 w-40 cursor-pointer hover:bg-slate-100 transition-colors"
+                                              onClick={() => {
+                                                if (skuSortCol === "revenue")
+                                                  setSkuSortAsc(!skuSortAsc);
+                                                else {
+                                                  setSkuSortCol("revenue");
+                                                  setSkuSortAsc(false);
+                                                }
+                                              }}
+                                            >
+                                              <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
+                                                Revenue
+                                                {skuSortCol === "revenue" &&
+                                                  (skuSortAsc ? (
+                                                    <ChevronUp className="w-3 h-3" />
+                                                  ) : (
+                                                    <ChevronDown className="w-3 h-3" />
+                                                  ))}
+                                              </div>
+                                            </th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
+                                          {aggregatedSkus.map((sku, idx) => (
+                                            <tr
+                                              key={idx}
+                                              className="hover:bg-slate-50/70 transition-colors"
+                                            >
+                                              <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">
+                                                {idx + 1}
+                                              </td>
+                                              <td className="px-5 py-3 whitespace-normal min-w-[250px]">
+                                                <div className="line-clamp-2 text-slate-800 leading-snug">
+                                                  {sku.productName}
+                                                </div>
+                                              </td>
+                                              <td className="px-5 py-3 text-right text-emerald-600 font-black">
+                                                {new Intl.NumberFormat(
+                                                  "id-ID",
+                                                ).format(sku.sold)}
+                                              </td>
+                                              <td className="px-5 py-3 text-right text-slate-800 font-black">
+                                                Rp{" "}
+                                                {new Intl.NumberFormat(
+                                                  "id-ID",
+                                                ).format(sku.revenue)}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* UPLOAD HISTORY SKU VIEWER */}
+                              {(() => {
+                                const brandSkuLogs = shopeeSkuLogs.filter(
+                                  (r) => r.brandId === activeReportBrandId,
+                                );
+
+                                const uploadHistoryMap = new Map();
+                                brandSkuLogs.forEach((log) => {
+                                  if (!log.batchId) return;
+                                  const existing = uploadHistoryMap.get(
+                                    log.batchId,
+                                  );
+                                  if (existing) {
+                                    existing.records += 1;
+                                  } else {
+                                    uploadHistoryMap.set(log.batchId, {
+                                      batchId: log.batchId,
+                                      uploadedAt: log.uploadedAt || "",
+                                      records: 1,
+                                      platform: log.platform || "Shopee Live",
+                                    });
+                                  }
+                                });
+                                const uploadHistoryList = Array.from(
+                                  uploadHistoryMap.values(),
+                                ).sort(
+                                  (a, b) =>
+                                    new Date(b.uploadedAt).getTime() -
+                                    new Date(a.uploadedAt).getTime(),
+                                );
+
+                                const totalPages = Math.max(
+                                  1,
+                                  Math.ceil(
+                                    uploadHistoryList.length / ITEMS_PER_PAGE,
+                                  ),
+                                );
+                                const paginatedHistory =
+                                  uploadHistoryList.slice(
+                                    (currentPage - 1) * ITEMS_PER_PAGE,
+                                    currentPage * ITEMS_PER_PAGE,
+                                  );
+
+                                return (
+                                  <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-6">
+                                    <div className="bg-[#f8fafc] border-b border-slate-100 px-5 lg:px-7 py-5 flex items-center justify-between gap-4">
+                                      <div>
+                                        <h4 className="text-base font-black text-slate-800 uppercase flex items-center gap-2 tracking-widest">
+                                          <Database className="w-5 h-5 text-indigo-500" />{" "}
+                                          History Upload SKU
+                                        </h4>
+                                        <p className="text-xs text-slate-500 font-semibold mt-1.5 flex items-center gap-1.5">
+                                          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                                          {uploadHistoryList.length} riwayat
+                                          batch ditemukan
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <div className="overflow-x-auto w-full">
+                                      <table className="w-full text-left whitespace-nowrap min-w-[700px]">
+                                        <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none border-b border-slate-100">
+                                          <tr>
+                                            <th className="px-5 py-4 w-12 text-center">
+                                              No
+                                            </th>
+                                            <th className="px-5 py-4 w-40">
+                                              Tanggal Upload
+                                            </th>
+                                            <th className="px-5 py-4 min-w-[150px]">
+                                              Batch ID
+                                            </th>
+                                            <th className="px-5 py-4 w-32">
+                                              Platform
+                                            </th>
+                                            <th className="px-5 py-4 w-32 text-right">
+                                              Jumlah Record
+                                            </th>
+                                            <th className="px-5 py-4 w-24 text-center">
+                                              Aksi
+                                            </th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-[11px] font-semibold text-slate-700 bg-white">
+                                          {paginatedHistory.length === 0 ? (
+                                            <tr>
+                                              <td
+                                                colSpan={6}
+                                                className="px-5 py-10 text-center text-slate-400"
+                                              >
+                                                Belum ada riwayat upload.
+                                              </td>
+                                            </tr>
+                                          ) : (
+                                            paginatedHistory.map(
+                                              (batch, idx) => {
+                                                return (
+                                                  <tr
+                                                    key={batch.batchId}
+                                                    className="hover:bg-slate-50/50 transition-colors"
+                                                  >
+                                                    <td className="px-5 py-3 text-center text-slate-400 font-bold">
+                                                      {(currentPage - 1) *
+                                                        ITEMS_PER_PAGE +
+                                                        idx +
+                                                        1}
+                                                    </td>
+                                                    <td className="px-5 py-3">
+                                                      {new Date(
+                                                        batch.uploadedAt,
+                                                      ).toLocaleString(
+                                                        "id-ID",
+                                                        {
+                                                          day: "numeric",
+                                                          month: "short",
+                                                          year: "numeric",
+                                                          hour: "2-digit",
+                                                          minute: "2-digit",
+                                                        },
+                                                      )}
+                                                    </td>
+                                                    <td className="px-5 py-3">
+                                                      <div className="bg-slate-100 text-slate-500 px-2 py-1 rounded inline-block text-[10px] font-mono tracking-tight">
+                                                        {batch.batchId}
+                                                      </div>
+                                                    </td>
+                                                    <td className="px-5 py-3">
+                                                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#FF5722]/10 text-[#FF5722] font-black text-[10px] uppercase">
+                                                        {batch.platform}
+                                                      </span>
+                                                    </td>
+                                                    <td className="px-5 py-3 text-right text-emerald-600 font-bold">
+                                                      {new Intl.NumberFormat(
+                                                        "id-ID",
+                                                      ).format(batch.records)}
+                                                    </td>
+                                                    <td className="px-5 py-3 text-center">
+                                                      <button
+                                                        onClick={() =>
+                                                          handleDeleteSkuBatch(
+                                                            batch.batchId,
+                                                          )
+                                                        }
+                                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                                        title="Hapus History"
+                                                      >
+                                                        <Trash2 className="w-4 h-4" />
+                                                      </button>
+                                                    </td>
+                                                  </tr>
+                                                );
+                                              },
+                                            )
+                                          )}
+                                        </tbody>
+                                      </table>
+                                    </div>
+
+                                    {totalPages > 1 && (
+                                      <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+                                        <div>
+                                          Menampilkan{" "}
+                                          {(currentPage - 1) * ITEMS_PER_PAGE +
+                                            1}{" "}
+                                          -{" "}
+                                          {Math.min(
+                                            currentPage * ITEMS_PER_PAGE,
+                                            uploadHistoryList.length,
+                                          )}{" "}
+                                          dari {uploadHistoryList.length} data
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={() =>
+                                              setCurrentPage((prev) =>
+                                                Math.max(1, prev - 1),
+                                              )
+                                            }
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                          >
+                                            Sebelumnya
+                                          </button>
+                                          <span className="px-3 py-1.5">
+                                            Halaman {currentPage} / {totalPages}
+                                          </span>
+                                          <button
+                                            onClick={() =>
+                                              setCurrentPage((prev) =>
+                                                Math.min(totalPages, prev + 1),
+                                              )
+                                            }
+                                            disabled={
+                                              currentPage === totalPages
+                                            }
+                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
+                                          >
+                                            Selanjutnya
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
+                          {operatorReportingTab === "engagement" && (
+                            <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap mt-0">
                                 <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
-                                  <div className="relative w-full sm:w-72">
-                                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input
-                                      type="text"
-                                      placeholder="Search SKU..."
-                                      value={reportDbSearchQuery}
-                                      onChange={(e) =>
-                                        setReportDbSearchQuery(e.target.value)
-                                      }
-                                      className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 transition-colors shadow-sm"
-                                    />
-                                  </div>
                                   <select
                                     value={operatorPlatformFilter}
                                     onChange={(e) =>
@@ -22100,992 +22244,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     )}
                                 </div>
                               </div>
-
-                              {/* SKU Analytics */}
-                              {(() => {
-                                const applySkuFilter = (logsArr: any[]) => {
-                                  if (!logsArr) return [];
-                                  let res = logsArr.filter(
-                                    (r) => r.brandId === activeReportBrandId,
-                                  );
-                                  if (
-                                    operatorDateFilterType === "latest" &&
-                                    brandPerformanceLogs.filter(
-                                      (log) =>
-                                        log.brandId === activeReportBrandId,
-                                    ).length > 0
-                                  ) {
-                                    const targetLatestDate =
-                                      brandPerformanceLogs
-                                        .filter(
-                                          (log) =>
-                                            log.brandId === activeReportBrandId,
-                                        )
-                                        .sort(
-                                          (a, b) =>
-                                            new Date(b.date || "0").getTime() -
-                                            new Date(a.date || "0").getTime(),
-                                        )[0]?.date || "";
-                                    res = res.filter(
-                                      (r) =>
-                                        r.date &&
-                                        r.date.startsWith(
-                                          targetLatestDate.substring(0, 10),
-                                        ),
-                                    );
-                                  } else if (
-                                    operatorDateFilterType === "custom" &&
-                                    operatorCustomStartDate
-                                  ) {
-                                    res = res.filter(
-                                      (r) =>
-                                        r.date &&
-                                        r.date >= operatorCustomStartDate &&
-                                        r.date <=
-                                          (operatorCustomEndDate ||
-                                            operatorCustomStartDate),
-                                    );
-                                  } else if (
-                                    operatorDateFilterType === "month" &&
-                                    operatorSelectedMonth
-                                  ) {
-                                    res = res.filter(
-                                      (r) =>
-                                        r.date &&
-                                        r.date.startsWith(
-                                          operatorSelectedMonth,
-                                        ),
-                                    );
-                                  }
-
-                                  if (operatorPlatformFilter) {
-                                    res = res.filter((r) => {
-                                      return (
-                                        r.platform &&
-                                        operatorPlatformFilter &&
-                                        r.platform
-                                          .toLowerCase()
-                                          .includes(
-                                            operatorPlatformFilter.toLowerCase(),
-                                          )
-                                      );
-                                    });
-                                  }
-
-                                  if (operatorShiftFilters.length > 0) {
-                                    res = res.filter((r) =>
-                                      operatorShiftFilters.includes(
-                                        r.shift || "",
-                                      ),
-                                    );
-                                  }
-
-                                  if (reportDbSearchQuery) {
-                                    const q = reportDbSearchQuery.toLowerCase();
-                                    res = res.filter(
-                                      (r) =>
-                                        (r.sku &&
-                                          r.sku.toLowerCase().includes(q)) ||
-                                        (r.productName &&
-                                          r.productName
-                                            .toLowerCase()
-                                            .includes(q)),
-                                    );
-                                  }
-
-                                  return res;
-                                };
-
-                                const currentSkus =
-                                  applySkuFilter(shopeeSkuLogs);
-                                if (currentSkus.length === 0)
-                                  return (
-                                    <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-sm mb-6 text-center text-slate-500 font-semibold text-sm">
-                                      Tidak ada data product performance / SKU
-                                      untuk filter saat ini.
-                                    </div>
-                                  );
-
-                                const skuMap = new Map();
-                                currentSkus.forEach((s) => {
-                                  const key =
-                                    s.sku !== "N/A" ? s.sku : s.productName;
-                                  const ex = skuMap.get(key);
-                                  if (ex) {
-                                    ex.sold += Number(s.sold) || 0;
-                                    ex.revenue += Number(s.revenue) || 0;
-                                  } else {
-                                    skuMap.set(key, {
-                                      sku: s.sku,
-                                      productName: s.productName,
-                                      sold: Number(s.sold) || 0,
-                                      revenue: Number(s.revenue) || 0,
-                                    });
-                                  }
-                                });
-
-                                let aggregatedSkus = Array.from(
-                                  skuMap.values(),
-                                ).sort((a, b) => {
-                                  if (skuSortCol === "sold")
-                                    return skuSortAsc
-                                      ? a.sold - b.sold
-                                      : b.sold - a.sold;
-                                  if (skuSortCol === "revenue")
-                                    return skuSortAsc
-                                      ? a.revenue - b.revenue
-                                      : b.revenue - a.revenue;
-                                  return 0;
-                                });
-                                const totalSkuRows = aggregatedSkus.length;
-                                const totalSkuSold = aggregatedSkus.reduce(
-                                  (sum, item) => sum + (item.sold || 0),
-                                  0,
-                                );
-                                const totalSkuRevenue = aggregatedSkus.reduce(
-                                  (sum, item) => sum + (item.revenue || 0),
-                                  0,
-                                );
-
-                                let productDateLabel = "Semua Waktu";
-                                if (
-                                  operatorDateFilterType === "latest" &&
-                                  brandPerformanceLogs.filter(
-                                    (log) =>
-                                      log.brandId === activeReportBrandId,
-                                  ).length > 0
-                                ) {
-                                  const targetLatestDate =
-                                    brandPerformanceLogs
-                                      .filter(
-                                        (log) =>
-                                          log.brandId === activeReportBrandId,
-                                      )
-                                      .sort(
-                                        (a, b) =>
-                                          new Date(b.date || "0").getTime() -
-                                          new Date(a.date || "0").getTime(),
-                                      )[0]?.date || "";
-                                  if (targetLatestDate)
-                                    productDateLabel =
-                                      targetLatestDate.split(" ")[0];
-                                } else if (
-                                  operatorDateFilterType === "custom" &&
-                                  operatorCustomStartDate
-                                ) {
-                                  productDateLabel = `${operatorCustomStartDate} to ${operatorCustomEndDate}`;
-                                } else if (
-                                  operatorDateFilterType === "month" &&
-                                  operatorSelectedMonth
-                                ) {
-                                  productDateLabel = getIndonesianMonthLabel(
-                                    operatorSelectedMonth,
-                                  );
-                                }
-
-                                return (
-                                  <div className="bg-white border border-slate-100 p-5 lg:p-7 rounded-3xl shadow-sm mb-6">
-                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
-                                      <div>
-                                        <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                          Product Performance
-                                        </h4>
-                                        <p className="text-[10px] sm:text-xs text-slate-500 font-semibold mt-1">
-                                          Distribusi revenue & sales by SKU
-                                        </p>
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                        <div className="flex items-center gap-2 sm:gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
-                                          <button
-                                            onClick={() => {
-                                              let pd = new Date();
-                                              let tld =
-                                                brandPerformanceLogs
-                                                  .filter(
-                                                    (log) =>
-                                                      log.brandId ===
-                                                      activeReportBrandId,
-                                                  )
-                                                  .sort(
-                                                    (a, b) =>
-                                                      new Date(
-                                                        b.date || "0",
-                                                      ).getTime() -
-                                                      new Date(
-                                                        a.date || "0",
-                                                      ).getTime(),
-                                                  )[0]?.date || "";
-                                              if (
-                                                operatorDateFilterType ===
-                                                  "latest" &&
-                                                tld
-                                              ) {
-                                                pd = new Date(tld);
-                                              } else if (
-                                                operatorDateFilterType ===
-                                                  "custom" &&
-                                                operatorCustomStartDate
-                                              ) {
-                                                pd = new Date(
-                                                  operatorCustomStartDate,
-                                                );
-                                              }
-                                              pd.setDate(pd.getDate() - 1);
-                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                              setOperatorDateFilterType(
-                                                "custom",
-                                              );
-                                              setOperatorCustomStartDate(newD);
-                                              setOperatorCustomEndDate(newD);
-                                            }}
-                                            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                          >
-                                            <ChevronLeft className="w-4 h-4" />
-                                          </button>
-                                          <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[140px] sm:min-w-[160px] text-center">
-                                            {(() => {
-                                              if (
-                                                operatorDateFilterType ===
-                                                  "month" ||
-                                                operatorDateFilterType === "all"
-                                              )
-                                                return (
-                                                  productDateLabel ||
-                                                  "Semua Waktu"
-                                                );
-                                              let curD = new Date();
-                                              let tld =
-                                                brandPerformanceLogs
-                                                  .filter(
-                                                    (log) =>
-                                                      log.brandId ===
-                                                      activeReportBrandId,
-                                                  )
-                                                  .sort(
-                                                    (a, b) =>
-                                                      new Date(
-                                                        b.date || "0",
-                                                      ).getTime() -
-                                                      new Date(
-                                                        a.date || "0",
-                                                      ).getTime(),
-                                                  )[0]?.date || "";
-                                              if (
-                                                operatorDateFilterType ===
-                                                  "latest" &&
-                                                tld
-                                              ) {
-                                                curD = new Date(tld);
-                                              } else if (
-                                                operatorDateFilterType ===
-                                                  "custom" &&
-                                                operatorCustomStartDate
-                                              ) {
-                                                curD = new Date(
-                                                  operatorCustomStartDate,
-                                                );
-                                              }
-                                              return curD.toLocaleDateString(
-                                                "id-ID",
-                                                {
-                                                  weekday: "long",
-                                                  day: "numeric",
-                                                  month: "long",
-                                                  year: "numeric",
-                                                },
-                                              );
-                                            })()}
-                                          </span>
-                                          <button
-                                            onClick={() => {
-                                              let pd = new Date();
-                                              let tld =
-                                                brandPerformanceLogs
-                                                  .filter(
-                                                    (log) =>
-                                                      log.brandId ===
-                                                      activeReportBrandId,
-                                                  )
-                                                  .sort(
-                                                    (a, b) =>
-                                                      new Date(
-                                                        b.date || "0",
-                                                      ).getTime() -
-                                                      new Date(
-                                                        a.date || "0",
-                                                      ).getTime(),
-                                                  )[0]?.date || "";
-                                              if (
-                                                operatorDateFilterType ===
-                                                  "latest" &&
-                                                tld
-                                              ) {
-                                                pd = new Date(tld);
-                                              } else if (
-                                                operatorDateFilterType ===
-                                                  "custom" &&
-                                                operatorCustomStartDate
-                                              ) {
-                                                pd = new Date(
-                                                  operatorCustomStartDate,
-                                                );
-                                              }
-                                              pd.setDate(pd.getDate() + 1);
-                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                              setOperatorDateFilterType(
-                                                "custom",
-                                              );
-                                              setOperatorCustomStartDate(newD);
-                                              setOperatorCustomEndDate(newD);
-                                            }}
-                                            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                          >
-                                            <ChevronRight className="w-4 h-4" />
-                                          </button>
-                                        </div>
-                                        <div className="bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-xs h-[36px] sm:h-[40px] flex items-center">
-                                          Total Item Sold:{" "}
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(
-                                            aggregatedSkus.reduce(
-                                              (sum, item) => sum + item.sold,
-                                              0,
-                                            ),
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="mb-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                                      <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                        <span>Filter Aktif</span>
-                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                                          {productDateLabel}
-                                        </span>
-                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                                          {operatorPlatformFilter}
-                                        </span>
-                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                                          {operatorShiftFilters.length === 0
-                                            ? "Semua Shift"
-                                            : `${operatorShiftFilters.length} Shift`}
-                                        </span>
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-500">
-                                        <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-indigo-700">
-                                          {totalSkuRows} SKU
-                                        </span>
-                                        <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-emerald-700">
-                                          {new Intl.NumberFormat("id-ID").format(
-                                            totalSkuSold,
-                                          )}{" "}
-                                          sold
-                                        </span>
-                                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-700">
-                                          Rp{" "}
-                                          {new Intl.NumberFormat("id-ID", {
-                                            maximumFractionDigits: 0,
-                                          }).format(totalSkuRevenue)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-[11px] font-bold text-slate-600">
-                                      <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-indigo-700 border border-indigo-100 shadow-sm">
-                                        Sumber: raw Shopee product performance
-                                      </span>
-                                      <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 border border-slate-100 shadow-sm">
-                                        Fokus tampilan: nama produk saja
-                                      </span>
-                                    </div>
-
-                                    <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-[500px] overflow-y-auto custom-scrollbar">
-                                      <table className="w-full text-left bg-white">
-                                        <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                                          <tr>
-                                            <th className="px-5 py-4 w-16 text-center text-slate-500 font-semibold text-xs tracking-widest uppercase">
-                                              No
-                                            </th>
-                                            <th className="px-5 py-4 text-slate-500 font-semibold text-xs tracking-widest uppercase">
-                                              SKU
-                                            </th>
-                                            <th
-                                              className="px-5 py-4 w-32 cursor-pointer hover:bg-slate-100 transition-colors"
-                                              onClick={() => {
-                                                if (skuSortCol === "sold")
-                                                  setSkuSortAsc(!skuSortAsc);
-                                                else {
-                                                  setSkuSortCol("sold");
-                                                  setSkuSortAsc(false);
-                                                }
-                                              }}
-                                            >
-                                              <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
-                                                Sold
-                                                {skuSortCol === "sold" &&
-                                                  (skuSortAsc ? (
-                                                    <ChevronUp className="w-3 h-3" />
-                                                  ) : (
-                                                    <ChevronDown className="w-3 h-3" />
-                                                  ))}
-                                              </div>
-                                            </th>
-                                            <th
-                                              className="px-5 py-4 w-40 cursor-pointer hover:bg-slate-100 transition-colors"
-                                              onClick={() => {
-                                                if (skuSortCol === "revenue")
-                                                  setSkuSortAsc(!skuSortAsc);
-                                                else {
-                                                  setSkuSortCol("revenue");
-                                                  setSkuSortAsc(false);
-                                                }
-                                              }}
-                                            >
-                                              <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
-                                                Revenue
-                                                {skuSortCol === "revenue" &&
-                                                  (skuSortAsc ? (
-                                                    <ChevronUp className="w-3 h-3" />
-                                                  ) : (
-                                                    <ChevronDown className="w-3 h-3" />
-                                                  ))}
-                                              </div>
-                                            </th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
-                                          {aggregatedSkus.map((sku, idx) => (
-                                            <tr
-                                              key={idx}
-                                              className="hover:bg-slate-50/70 transition-colors"
-                                            >
-                                              <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">
-                                                {idx + 1}
-                                              </td>
-                                              <td className="px-5 py-3 whitespace-normal min-w-[250px]">
-                                                <div className="line-clamp-2 text-slate-800 leading-snug">
-                                                  {sku.productName}
-                                                </div>
-                                              </td>
-                                              <td className="px-5 py-3 text-right text-emerald-600 font-black">
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(sku.sold)}
-                                              </td>
-                                              <td className="px-5 py-3 text-right text-slate-800 font-black">
-                                                Rp{" "}
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(sku.revenue)}
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-
-                              {/* UPLOAD HISTORY SKU VIEWER */}
-                              {(() => {
-                                const brandSkuLogs = shopeeSkuLogs.filter(
-                                  (r) => r.brandId === activeReportBrandId,
-                                );
-
-                                const uploadHistoryMap = new Map();
-                                brandSkuLogs.forEach((log) => {
-                                  if (!log.batchId) return;
-                                  const existing = uploadHistoryMap.get(
-                                    log.batchId,
-                                  );
-                                  if (existing) {
-                                    existing.records += 1;
-                                  } else {
-                                    uploadHistoryMap.set(log.batchId, {
-                                      batchId: log.batchId,
-                                      uploadedAt: log.uploadedAt || "",
-                                      records: 1,
-                                      platform: log.platform || "Shopee Live",
-                                    });
-                                  }
-                                });
-                                const uploadHistoryList = Array.from(
-                                  uploadHistoryMap.values(),
-                                ).sort(
-                                  (a, b) =>
-                                    new Date(b.uploadedAt).getTime() -
-                                    new Date(a.uploadedAt).getTime(),
-                                );
-
-                                const totalPages = Math.max(
-                                  1,
-                                  Math.ceil(
-                                    uploadHistoryList.length / ITEMS_PER_PAGE,
-                                  ),
-                                );
-                                const paginatedHistory =
-                                  uploadHistoryList.slice(
-                                    (currentPage - 1) * ITEMS_PER_PAGE,
-                                    currentPage * ITEMS_PER_PAGE,
-                                  );
-
-                                return (
-                                  <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-6">
-                                    <div className="bg-[#f8fafc] border-b border-slate-100 px-5 lg:px-7 py-5 flex items-center justify-between gap-4">
-                                      <div>
-                                        <h4 className="text-base font-black text-slate-800 uppercase flex items-center gap-2 tracking-widest">
-                                          <Database className="w-5 h-5 text-indigo-500" />{" "}
-                                          History Upload SKU
-                                        </h4>
-                                        <p className="text-xs text-slate-500 font-semibold mt-1.5 flex items-center gap-1.5">
-                                          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                                          {uploadHistoryList.length} riwayat
-                                          batch ditemukan
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    <div className="overflow-x-auto w-full">
-                                      <table className="w-full text-left whitespace-nowrap min-w-[700px]">
-                                        <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none border-b border-slate-100">
-                                          <tr>
-                                            <th className="px-5 py-4 w-12 text-center">
-                                              No
-                                            </th>
-                                            <th className="px-5 py-4 w-40">
-                                              Tanggal Upload
-                                            </th>
-                                            <th className="px-5 py-4 min-w-[150px]">
-                                              Batch ID
-                                            </th>
-                                            <th className="px-5 py-4 w-32">
-                                              Platform
-                                            </th>
-                                            <th className="px-5 py-4 w-32 text-right">
-                                              Jumlah Record
-                                            </th>
-                                            <th className="px-5 py-4 w-24 text-center">
-                                              Aksi
-                                            </th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 text-[11px] font-semibold text-slate-700 bg-white">
-                                          {paginatedHistory.length === 0 ? (
-                                            <tr>
-                                              <td
-                                                colSpan={6}
-                                                className="px-5 py-10 text-center text-slate-400"
-                                              >
-                                                Belum ada riwayat upload.
-                                              </td>
-                                            </tr>
-                                          ) : (
-                                            paginatedHistory.map(
-                                              (batch, idx) => {
-                                                return (
-                                                  <tr
-                                                    key={batch.batchId}
-                                                    className="hover:bg-slate-50/50 transition-colors"
-                                                  >
-                                                    <td className="px-5 py-3 text-center text-slate-400 font-bold">
-                                                      {(currentPage - 1) *
-                                                        ITEMS_PER_PAGE +
-                                                        idx +
-                                                        1}
-                                                    </td>
-                                                    <td className="px-5 py-3">
-                                                      {formatDateTimeSafe(batch.uploadedAt, {
-                                                        day: "numeric",
-                                                        month: "short",
-                                                        year: "numeric",
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                      })}
-                                                    </td>
-                                                    <td className="px-5 py-3">
-                                                      <div className="bg-slate-100 text-slate-500 px-2 py-1 rounded inline-block text-[10px] font-mono tracking-tight">
-                                                        {batch.batchId}
-                                                      </div>
-                                                    </td>
-                                                    <td className="px-5 py-3">
-                                                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#FF5722]/10 text-[#FF5722] font-black text-[10px] uppercase">
-                                                        {batch.platform}
-                                                      </span>
-                                                    </td>
-                                                    <td className="px-5 py-3 text-right text-emerald-600 font-bold">
-                                                      {new Intl.NumberFormat(
-                                                        "id-ID",
-                                                      ).format(batch.records)}
-                                                    </td>
-                                                    <td className="px-5 py-3 text-center">
-                                                      <button
-                                                        onClick={() =>
-                                                          handleDeleteSkuBatch(
-                                                            batch.batchId,
-                                                          )
-                                                        }
-                                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                                        title="Hapus History"
-                                                      >
-                                                        <Trash2 className="w-4 h-4" />
-                                                      </button>
-                                                    </td>
-                                                  </tr>
-                                                );
-                                              },
-                                            )
-                                          )}
-                                        </tbody>
-                                      </table>
-                                    </div>
-
-                                    {totalPages > 1 && (
-                                      <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
-                                        <div>
-                                          Menampilkan{" "}
-                                          {(currentPage - 1) * ITEMS_PER_PAGE +
-                                            1}{" "}
-                                          -{" "}
-                                          {Math.min(
-                                            currentPage * ITEMS_PER_PAGE,
-                                            uploadHistoryList.length,
-                                          )}{" "}
-                                          dari {uploadHistoryList.length} data
-                                        </div>
-                                        <div className="flex gap-2">
-                                          <button
-                                            onClick={() =>
-                                              setCurrentPage((prev) =>
-                                                Math.max(1, prev - 1),
-                                              )
-                                            }
-                                            disabled={currentPage === 1}
-                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
-                                          >
-                                            Sebelumnya
-                                          </button>
-                                          <span className="px-3 py-1.5">
-                                            Halaman {currentPage} / {totalPages}
-                                          </span>
-                                          <button
-                                            onClick={() =>
-                                              setCurrentPage((prev) =>
-                                                Math.min(totalPages, prev + 1),
-                                              )
-                                            }
-                                            disabled={
-                                              currentPage === totalPages
-                                            }
-                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
-                                          >
-                                            Selanjutnya
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          )}
-
-                          {operatorReportingTab === "engagement" && (
-                            <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap mt-0">
-                                <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
-                                  <label className="sr-only" htmlFor="engagement-platform-filter">
-                                    Filter platform
-                                  </label>
-                                  <select
-                                    id="engagement-platform-filter"
-                                    value={operatorPlatformFilter}
-                                    onChange={(e) =>
-                                      setOperatorPlatformFilter(e.target.value)
-                                    }
-                                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm min-w-[140px]"
-                                  >
-                                    {availableOperatorPlatforms.map((p) => (
-                                      <option key={p} value={p}>
-                                        {p}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <div className="relative">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setIsShiftFilterOpen(!isShiftFilterOpen)
-                                      }
-                                      aria-label="Filter shift"
-                                      aria-haspopup="menu"
-                                      aria-expanded={isShiftFilterOpen}
-                                      className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm flex items-center justify-between min-w-[130px] whitespace-nowrap"
-                                    >
-                                      <span className="truncate mr-2 text-left">
-                                        {operatorShiftFilters.length === 0
-                                          ? "Semua Shift"
-                                          : `${operatorShiftFilters.length} Shift`}
-                                      </span>
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="lucide lucide-chevron-down w-3 h-3 text-slate-400 shrink-0"
-                                      >
-                                        <path d="m6 9 6 6 6-6" />
-                                      </svg>
-                                    </button>
-                                    {isShiftFilterOpen && (
-                                      <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                                        <div className="p-2 space-y-1">
-                                          <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded cursor-pointer text-xs font-semibold text-slate-700">
-                                            <input
-                                              type="checkbox"
-                                              checked={
-                                                operatorShiftFilters.length ===
-                                                0
-                                              }
-                                              onChange={() => {
-                                                setOperatorShiftFilters([]);
-                                                setIsShiftFilterOpen(false);
-                                              }}
-                                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                            />
-                                            Semua Shift
-                                          </label>
-                                          {shifts.map((s) => (
-                                            <label
-                                              key={s}
-                                              className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded cursor-pointer text-xs font-semibold text-slate-700"
-                                            >
-                                              <input
-                                                type="checkbox"
-                                                checked={operatorShiftFilters.includes(
-                                                  s,
-                                                )}
-                                                onChange={(e) => {
-                                                  if (e.target.checked)
-                                                    setOperatorShiftFilters([
-                                                      ...operatorShiftFilters,
-                                                      s,
-                                                    ]);
-                                                  else
-                                                    setOperatorShiftFilters(
-                                                      operatorShiftFilters.filter(
-                                                        (x) => x !== s,
-                                                      ),
-                                                    );
-                                                }}
-                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                              />
-                                              {s}
-                                            </label>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="relative flex gap-2 w-full sm:w-auto h-9">
-                                  <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                                    {[
-                                      { id: "latest", label: "Terbaru" },
-                                      { id: "all", label: "Semua" },
-                                      { id: "month", label: "Bulan" },
-                                      { id: "custom", label: "Custom" },
-                                    ].map((item) => (
-                                      <button
-                                        key={item.id}
-                                        type="button"
-                                        aria-pressed={operatorDateFilterType === item.id}
-                                        onClick={() => {
-                                          setOperatorDateFilterType(item.id);
-                                          if (
-                                            item.id === "all" ||
-                                            item.id === "latest"
-                                          ) {
-                                            setIsOperatorCalendarOpen(false);
-                                            setIsOperatorMonthOpen(false);
-                                          } else if (item.id === "month") {
-                                            setIsOperatorMonthOpen(true);
-                                            setIsOperatorCalendarOpen(false);
-                                          } else if (item.id === "custom") {
-                                            setIsOperatorCalendarOpen(true);
-                                            setIsOperatorMonthOpen(false);
-                                            setOperatorTempStartDate(
-                                              operatorCustomStartDate ||
-                                                formatDateYYYYMMDD(new Date()),
-                                            );
-                                            setOperatorTempEndDate(
-                                              operatorCustomEndDate ||
-                                                formatDateYYYYMMDD(new Date()),
-                                            );
-                                          }
-                                        }}
-                                        className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
-                                          operatorDateFilterType === item.id
-                                            ? "bg-white text-indigo-700 shadow-sm border border-slate-100"
-                                            : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
-                                        }`}
-                                      >
-                                        {item.label}
-                                      </button>
-                                    ))}
-                                  </div>
-
-                                  {((operatorDateFilterType === "custom" &&
-                                    operatorCustomStartDate) ||
-                                    operatorDateFilterType === "month") && (
-                                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                      <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                                      <span className="text-[10px] font-bold text-slate-700">
-                                        {operatorDateFilterType === "month"
-                                          ? getIndonesianMonthLabel(
-                                              operatorSelectedMonth,
-                                            )
-                                          : `${operatorCustomStartDate} to ${operatorCustomEndDate}`}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {/* Custom Date Overlay UI (Month) */}
-                                  {isOperatorMonthOpen &&
-                                    operatorDateFilterType === "month" && (
-                                      <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
-                                        <div className="flex justify-between items-center mb-4 text-slate-800">
-                                          <button
-                                            type="button"
-                                            aria-label="Tahun sebelumnya"
-                                            onClick={() =>
-                                              setOperatorMonthPickerYear(
-                                                (y) => y - 1,
-                                              )
-                                            }
-                                            className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
-                                          >
-                                            &laquo;
-                                          </button>
-                                          <div className="text-sm font-bold tracking-widest">
-                                            {operatorMonthPickerYear}
-                                          </div>
-                                          <button
-                                            type="button"
-                                            aria-label="Tahun berikutnya"
-                                            onClick={() =>
-                                              setOperatorMonthPickerYear(
-                                                (y) => y + 1,
-                                              )
-                                            }
-                                            className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
-                                          >
-                                            &raquo;
-                                          </button>
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-y-2 pb-1 border-t border-slate-100 pt-3 relative">
-                                          {[
-                                            { val: "01", label: "Jan" },
-                                            { val: "02", label: "Feb" },
-                                            { val: "03", label: "Mar" },
-                                            { val: "04", label: "Apr" },
-                                            { val: "05", label: "May" },
-                                            { val: "06", label: "Jun" },
-                                            { val: "07", label: "Jul" },
-                                            { val: "08", label: "Aug" },
-                                            { val: "09", label: "Sept" },
-                                            { val: "10", label: "Oct" },
-                                            { val: "11", label: "Nov" },
-                                            { val: "12", label: "Dec" },
-                                          ].map((m, idx) => {
-                                            const mVal = `${operatorMonthPickerYear}-${m.val}`;
-                                            const isSelected =
-                                              operatorSelectedMonth === mVal;
-
-                                            const currentDate = new Date();
-                                            const isFuture =
-                                              operatorMonthPickerYear >
-                                                currentDate.getFullYear() ||
-                                              (operatorMonthPickerYear ===
-                                                currentDate.getFullYear() &&
-                                                parseInt(m.val) >
-                                                  currentDate.getMonth() + 1);
-
-                                            return (
-                                              <button
-                                                key={m.val}
-                                                type="button"
-                                                aria-pressed={isSelected}
-                                                onClick={() => {
-                                                  if (!isFuture) {
-                                                    setOperatorSelectedMonth(
-                                                      mVal,
-                                                    );
-                                                    setIsOperatorMonthOpen(
-                                                      false,
-                                                    );
-                                                  }
-                                                }}
-                                                className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
-                                                  isFuture
-                                                    ? "bg-slate-50 text-slate-400 cursor-not-allowed"
-                                                    : "bg-white text-slate-800 hover:bg-slate-50 cursor-pointer"
-                                                } ${isSelected ? "bg-slate-50 shadow-sm relative" : ""}`}
-                                              >
-                                                {m.label}
-                                                {isSelected && !isFuture && (
-                                                  <div className="w-1.5 h-1.5 rounded-full bg-slate-300 absolute bottom-1"></div>
-                                                )}
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                  {/* Custom Date Overlay UI (Custom) */}
-                                  {isOperatorCalendarOpen &&
-                                    operatorDateFilterType === "custom" && (
-                                      <div className="absolute right-0 top-full mt-2 z-50 animate-fadeIn">
-                                        <DoubleDatePicker
-                                          startDate={operatorTempStartDate}
-                                          endDate={operatorTempEndDate}
-                                          onChange={(start, end) => {
-                                            setOperatorTempStartDate(start);
-                                            setOperatorTempEndDate(end);
-                                          }}
-                                          onApply={() => {
-                                            setOperatorCustomStartDate(
-                                              operatorTempStartDate,
-                                            );
-                                            setOperatorCustomEndDate(
-                                              operatorTempEndDate,
-                                            );
-                                            setIsOperatorCalendarOpen(false);
-                                          }}
-                                          onCancel={() =>
-                                            setIsOperatorCalendarOpen(false)
-                                          }
-                                        />
-                                      </div>
-                                    )}
-                                </div>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-[11px] font-bold text-slate-600">
-                                <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-indigo-700 border border-indigo-100 shadow-sm">
-                                  Sumber: raw Shopee engagement
-                                </span>
-                                <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 border border-slate-100 shadow-sm">
-                                  Views: kolom Dilihat
-                                </span>
-                                <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 border border-slate-100 shadow-sm">
-                                  ERR % = (Interaksi ÷ Views) × 100
-                                </span>
-                              </div>
+                              {/* Oh wait, actually let's just make it a table based on aggregated brandPerformanceLogs */}
                               {(() => {
                                 let engagementDateLabel = "Semua Waktu";
                                 if (
@@ -23185,15 +22344,12 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 // Grouped or detailed? Let's just sum it up.
                                 const isShopeeEng = operatorPlatformFilter && operatorPlatformFilter.toLowerCase().includes("shopee");
                                 const totalImpressions = logs.reduce(
-                                  (sum, l) =>
-                                    sum +
-                                    (isShopeeEng
-                                      ? (l.views || 0)
-                                      : (l.views || 0)),
+                                  (sum, l) => sum + (isShopeeEng ? (l.penonton || l.impressions || l.views || 0) : (l.views || 0)),
                                   0,
                                 );
                                 const totalPenonton = logs.reduce(
-                                  (sum, l) => sum + (l.views || 0),
+                                  (sum, l) =>
+                                    sum + (l.penonton || l.impressions || 0),
                                   0,
                                 );
                                 const avgPeakViewers =
@@ -23263,7 +22419,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     };
                                   }
                                   groupedByDate[dateStr].penonton +=
-                                    log.views || 0;
+                                    log.penonton || log.impressions || 0;
                                   groupedByDate[dateStr].likes +=
                                     log.likes || 0;
                                   groupedByDate[dateStr].shares +=
@@ -23462,105 +22618,68 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </div>
                                     </div>
                                     {/* INTERAKSI */}
-                                    <div className="rounded-[28px] border border-[#e5e2e1] bg-white p-6 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                                        <div>
-                                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
-                                            Interaksi
-                                          </p>
-                                          <h4 className="mt-1 flex items-center gap-2 text-sm font-semibold tracking-tight text-[#1b1c1c]">
-                                            <Users className="h-5 w-5 text-[#5600e0]" />
-                                            Engagement
-                                          </h4>
-                                        </div>
-                                        <span className="inline-flex w-fit items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-                                          Live filter
-                                        </span>
-                                      </div>
-                                      <div className="mb-4 flex flex-col gap-3 rounded-[22px] border border-[#e5e2e1] bg-[#fcfbfa] px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
-                                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#7a7488]">
-                                          <span>Filter Aktif</span>
-                                          <span className="rounded-full border border-[#e5e2e1] bg-white px-2.5 py-1 text-[#494456]">
-                                            {engagementDateLabel}
-                                          </span>
-                                          <span className="rounded-full border border-[#e5e2e1] bg-white px-2.5 py-1 text-[#494456]">
-                                            {operatorPlatformFilter}
-                                          </span>
-                                          <span className="rounded-full border border-[#e5e2e1] bg-white px-2.5 py-1 text-[#494456]">
-                                            {operatorShiftFilters.length === 0
-                                              ? "Semua Shift"
-                                              : `${operatorShiftFilters.length} Shift`}
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-[#494456]">
-                                          <span className="rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-2.5 py-1 text-[#5600e0]">
-                                            Views {new Intl.NumberFormat("id-ID").format(totalImpressions)}
-                                          </span>
-                                          <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-emerald-700">
-                                            ERR {formattedErrRate}
-                                          </span>
-                                          <span className="rounded-full border border-[#e5e2e1] bg-white px-2.5 py-1 text-[#494456]">
-                                            {new Intl.NumberFormat("id-ID").format(totalFollowers)} followers
-                                          </span>
-                                        </div>
-                                      </div>
+                                    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
+                                      <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-indigo-500" />{" "}
+                                        Interaksi (Engagement)
+                                      </h4>
 
                                       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
-                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
+                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                             Views
                                           </div>
-                                          <div className="mt-1 text-xl font-black text-[#1b1c1c]">
+                                          <div className="text-xl font-black text-slate-800 mt-1">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalImpressions)}
                                           </div>
                                         </div>
-                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
-                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
+                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                             Likes
                                           </div>
-                                          <div className="mt-1 text-xl font-black text-[#1b1c1c]">
+                                          <div className="text-xl font-black text-slate-800 mt-1">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalLikes)}
                                           </div>
                                         </div>
-                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
-                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
+                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                             Shares
                                           </div>
-                                          <div className="mt-1 text-xl font-black text-[#1b1c1c]">
+                                          <div className="text-xl font-black text-slate-800 mt-1">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalShares)}
                                           </div>
                                         </div>
-                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
-                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
+                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                             Comments
                                           </div>
-                                          <div className="mt-1 text-xl font-black text-[#1b1c1c]">
+                                          <div className="text-xl font-black text-slate-800 mt-1">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalComments)}
                                           </div>
                                         </div>
-                                        <div className="rounded-2xl border border-[#e5e2e1] bg-[#fcfbfa] p-4">
-                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#7a7488]">
+                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                             New Followers
                                           </div>
-                                          <div className="mt-1 text-xl font-black text-emerald-600">
+                                          <div className="text-xl text-emerald-600 font-black mt-1">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalFollowers)}
                                           </div>
                                         </div>
-                                        <div className="rounded-2xl border border-[#dfd3ff] bg-[#efe8ff] p-4">
-                                          <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5600e0]">
+                                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                                          <div className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">
                                             ERR %
                                           </div>
-                                          <div className="mt-1 text-xl font-extrabold text-[#5600e0]">
+                                          <div className="text-xl text-indigo-600 font-extrabold mt-1">
                                             {formattedErrRate}
                                           </div>
                                         </div>
@@ -23569,23 +22688,23 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                                     {/* CHART TRENDS */}
                                     {chartData.length > 0 && (
-                                      <div className="rounded-[28px] border border-[#e5e2e1] bg-white/90 p-5 sm:p-6 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                                      <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
                                           <div>
-                                            <h4 className="text-sm font-black uppercase tracking-widest text-[#1b1c1c] flex items-center gap-2">
-                                              <TrendingUp className="w-5 h-5 text-[#5600e0]" />{" "}
+                                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
+                                              <TrendingUp className="w-5 h-5 text-indigo-500" />{" "}
                                               Tren Kinerja Interaksi Harian
                                             </h4>
-                                            <p className="text-[11px] text-[#7a7488] font-bold mt-1">
+                                            <p className="text-[11px] text-slate-400 font-bold mt-1">
                                               Visualisasi harian metrik
                                               interaksi terpilih dari data
                                               historis siaran langsung.
                                             </p>
                                           </div>
-                                          <div className="flex flex-wrap items-center gap-3 bg-[#fbfaf8] p-3.5 rounded-[22px] border border-[#e9e4df] shadow-[0_10px_24px_rgba(27,28,28,0.04)] max-w-full">
+                                          <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
                                             <div className="flex items-center gap-1 mr-1 select-none">
-                                              <Sliders className="w-3.5 h-3.5 text-[#5600e0]/80" />
-                                              <span className="text-[10px] font-black uppercase text-[#7a7488] tracking-wider">
+                                              <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
+                                              <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">
                                                 Metrik:
                                               </span>
                                             </div>
@@ -23595,37 +22714,37 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   key: "errRateNumeric",
                                                   label: "ERR %",
                                                   color:
-                                                    "bg-[#efe8ff] text-[#5600e0] border-[#dfd3ff]",
+                                                    "bg-indigo-50 text-indigo-700 border-indigo-200",
                                                 },
                                                 {
                                                   key: "uniqueViewers",
                                                   label: "Unique Viewers",
                                                   color:
-                                                    "bg-[#e7f6fb] text-[#0f9acb] border-[#ccecf8]",
+                                                    "bg-cyan-50 text-cyan-750 border-cyan-200",
                                                 },
                                                 {
                                                   key: "likes",
                                                   label: "Likes",
                                                   color:
-                                                    "bg-[#fff2db] text-[#c77d00] border-[#f7ddb2]",
+                                                    "bg-amber-50 text-amber-700 border-amber-200",
                                                 },
                                                 {
                                                   key: "comments",
                                                   label: "Comments",
                                                   color:
-                                                    "bg-[#ffe8f0] text-[#d9467a] border-[#f7c4d7]",
+                                                    "bg-pink-50 text-pink-700 border-pink-200",
                                                 },
                                                 {
                                                   key: "shares",
                                                   label: "Shares",
                                                   color:
-                                                    "bg-[#e8f7f0] text-[#1f9d6b] border-[#cce9da]",
+                                                    "bg-emerald-50 text-emerald-700 border-emerald-200",
                                                 },
                                                 {
                                                   key: "followers",
                                                   label: "New Followers",
                                                   color:
-                                                    "bg-[#fff0e4] text-[#a85b00] border-[#f3d9bf]",
+                                                    "bg-orange-50 text-orange-700 border-orange-200",
                                                 },
                                               ].map((m) => {
                                                 const isSelected =
@@ -23660,7 +22779,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
                                                       isSelected
                                                         ? `${m.color} scale-[1.02] shadow-xs font-extrabold`
-                                                        : "bg-white text-[#7a7488] border-[#e5e2e1] hover:text-[#494456] hover:bg-[#fcfbfa]"
+                                                        : "bg-white text-slate-400 border-slate-200 hover:text-slate-650 hover:bg-slate-50"
                                                     }`}
                                                   >
                                                     <span
@@ -23687,12 +22806,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 );
                                               })}
                                             </div>
-                                          <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-[#e5e2e1] sm:pl-2.5 ml-auto font-bold text-[#7a7488]">
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                setEngagementChartSelectedMetrics(
-                                                  [
+                                            <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
+                                              <button
+                                                onClick={() =>
+                                                  setEngagementChartSelectedMetrics(
+                                                    [
                                                       "errRateNumeric",
                                                       "uniqueViewers",
                                                       "likes",
@@ -23702,22 +22820,21 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     ],
                                                   )
                                                 }
-                                                className="text-[#5600e0] uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+                                                className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
                                               >
-                                              Semua
-                                            </button>
-                                            <span>|</span>
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                setEngagementChartSelectedMetrics(
-                                                  [
+                                                Semua
+                                              </button>
+                                              <span>|</span>
+                                              <button
+                                                onClick={() =>
+                                                  setEngagementChartSelectedMetrics(
+                                                    [
                                                       "errRateNumeric",
                                                       "uniqueViewers",
                                                     ],
                                                   )
                                                 }
-                                                className="text-[#7a7488] uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+                                                className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
                                               >
                                                 Reset
                                               </button>
@@ -23754,13 +22871,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <CartesianGrid
                                                 strokeDasharray="3 3"
                                                 vertical={false}
-                                                stroke="#e9e4df"
+                                                stroke="#e2e8f0"
                                               />
                                               <XAxis
                                                 dataKey="date"
                                                 tick={{
                                                   fontSize: 10,
-                                                  fill: "#7a7488",
+                                                  fill: "#64748b",
                                                   fontWeight: "bold",
                                                 }}
                                                 axisLine={false}
@@ -23770,7 +22887,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 yAxisId="left"
                                                 tick={{
                                                   fontSize: 10,
-                                                  fill: "#5600e0",
+                                                  fill: "#4f46e5",
                                                   fontWeight: "bold",
                                                 }}
                                                 axisLine={false}
@@ -23789,7 +22906,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 orientation="right"
                                                 tick={{
                                                   fontSize: 10,
-                                                  fill: "#7a7488",
+                                                  fill: "#64748b",
                                                   fontWeight: "bold",
                                                 }}
                                                 hide={
@@ -23816,10 +22933,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               />
                                               <Tooltip
                                                 contentStyle={{
-                                                  borderRadius: "18px",
-                                                  border: "1px solid #e5e2e1",
+                                                  borderRadius: "16px",
+                                                  border: "none",
                                                   boxShadow:
-                                                    "0 14px 30px rgba(27,28,28,0.08)",
+                                                    "0 4px 24px rgba(0,0,0,0.08)",
                                                   fontWeight: "bold",
                                                   fontSize: "11px",
                                                 }}
@@ -23841,11 +22958,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Tingkat Interaksi (ERR)"
                                                 dataKey="errRateNumeric"
-                                                stroke="#5600e0"
+                                                stroke="#4f46e5"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#5600e0",
+                                                  fill: "#4f46e5",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23861,11 +22978,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Unique Viewers (Penonton)"
                                                 dataKey="uniqueViewers"
-                                                stroke="#0f9acb"
+                                                stroke="#0ea5e9"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#0f9acb",
+                                                  fill: "#0ea5e9",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23880,11 +22997,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Likes"
                                                 dataKey="likes"
-                                                stroke="#c77d00"
+                                                stroke="#f59e0b"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#c77d00",
+                                                  fill: "#f59e0b",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23899,11 +23016,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Comments"
                                                 dataKey="comments"
-                                                stroke="#d9467a"
+                                                stroke="#ec4899"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#d9467a",
+                                                  fill: "#ec4899",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23916,13 +23033,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               <Line
                                                 yAxisId="right"
                                                 type="monotone"
-                                                name="Shares"
+                                                name="Share"
                                                 dataKey="shares"
-                                                stroke="#1f9d6b"
+                                                stroke="#10b981"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#1f9d6b",
+                                                  fill: "#10b981",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23937,11 +23054,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 type="monotone"
                                                 name="Followers"
                                                 dataKey="followers"
-                                                stroke="#a85b00"
+                                                stroke="#f97316"
                                                 strokeWidth={3}
                                                 dot={{
                                                   r: 4,
-                                                  fill: "#a85b00",
+                                                  fill: "#f97316",
                                                   strokeWidth: 2,
                                                   stroke: "#fff",
                                                 }}
@@ -23958,37 +23075,37 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     )}
 
                                     {/* PROMOSI */}
-                                    <div className="rounded-[28px] border border-[#e5e2e1] bg-white/90 p-5 sm:p-6 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                      <h4 className="text-sm font-black uppercase tracking-widest text-[#1b1c1c] mb-4 flex items-center gap-2">
-                                        <Gift className="w-5 h-5 text-[#5600e0]" />{" "}
+                                    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
+                                      <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
+                                        <Gift className="w-5 h-5 text-indigo-500" />{" "}
                                         Promosi (Vouchers & Koin)
                                       </h4>
                                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider mb-1">
+                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                             Voucher Toko Diklaim
                                           </div>
-                                          <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                          <div className="text-xl font-black text-slate-800 mt-1">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalShopVouchers)}
                                           </div>
                                         </div>
-                                        <div className="rounded-2xl border border-[#e5e2e1] bg-white/85 p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
-                                          <div className="text-[10px] font-bold text-[#7a7488] uppercase tracking-wider mb-1">
+                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                             Voucher Spesial Live Diklaim
                                           </div>
-                                          <div className="text-xl font-black text-[#1b1c1c] mt-1">
+                                          <div className="text-xl font-black text-slate-800 mt-1">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalSpecialVouchers)}
                                           </div>
                                         </div>
-                                        <div className="rounded-2xl border border-[#f3d9bf] bg-[#fff4e8] p-4 shadow-[0_8px_24px_rgba(27,28,28,0.04)]">
-                                          <div className="text-[10px] font-bold text-[#a85b00] uppercase tracking-wider mb-1">
+                                        <div className="bg-slate-50 border border-amber-100 rounded-xl p-4 bg-amber-50/30">
+                                          <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">
                                             Koin Diklaim
                                           </div>
-                                          <div className="text-lg font-black text-[#a85b00]">
+                                          <div className="text-lg font-black text-amber-700">
                                             {new Intl.NumberFormat(
                                               "id-ID",
                                             ).format(totalCoinsClaimed)}
@@ -23997,18 +23114,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       </div>
                                     </div>
 
-                                    <div className="rounded-[24px] border border-[#e5e2e1] bg-[#fcfbfa] px-5 py-5 shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                      <div className="mx-auto flex max-w-2xl flex-col items-center gap-2 text-center">
-                                        <span className="inline-flex items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-                                          Ringkasan Raw Data
-                                        </span>
-                                        <div className="text-xs font-medium leading-relaxed text-[#494456]">
-                                          Menampilkan metrik agregat Engagement
-                                          dan Promosi dari file Raw Data yang
-                                          diunggah. Filter periode dan platform
-                                          yang sama seperti di tab Live/Product
-                                          berlaku di data ini.
-                                        </div>
+                                    <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                                      <div className="text-xs text-slate-400 font-semibold italic text-center">
+                                        Menampilkan metrik agregat Engagement
+                                        dan Promosi dari file Raw Data yang
+                                        diunggah. Filter periode dan platform
+                                        yang sama seperti di tab Live/Product
+                                        berlaku di data ini.
                                       </div>
                                     </div>
 
@@ -24095,28 +23207,23 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         );
 
                                       return (
-                                        <details className="mt-8 overflow-hidden rounded-[24px] border border-[#e5e2e1] bg-white shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
-                                          <summary className="cursor-pointer list-none px-6 py-5 transition-colors hover:bg-[#fcfbfa]">
-                                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                              <div className="min-w-0">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7a7488]">
-                                                  Riwayat Upload
-                                                </p>
-                                                <h4 className="mt-1 text-base font-black text-[#1b1c1c]">
-                                                  Riwayat Upload Data Engagement
-                                                </h4>
-                                                <p className="mt-1 text-[11px] font-medium leading-relaxed text-[#494456]">
-                                                  Riwayat file CSV raw data performa yang telah berhasil dikonversi dan masuk ke database sentral.
-                                                </p>
-                                              </div>
-                                              <span className="inline-flex shrink-0 items-center rounded-full border border-[#dfd3ff] bg-[#efe8ff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#5600e0]">
-                                                Lihat riwayat
-                                              </span>
+                                        <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden mt-8">
+                                          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                                            <div>
+                                              <h4 className="text-base font-black text-slate-800">
+                                                Riwayat Upload Data Engagement
+                                              </h4>
+                                              <p className="text-[11px] text-slate-500 font-medium">
+                                                History file CSV raw data
+                                                performa yang telah berhasil
+                                                dikonversi & masuk ke database
+                                                sentral.
+                                              </p>
                                             </div>
-                                          </summary>
-                                          <div className="overflow-x-auto border-t border-[#ece8e6]">
+                                          </div>
+                                          <div className="overflow-x-auto">
                                             <table className="w-full text-left whitespace-nowrap">
-                                              <thead className="bg-[#fcfbfa] border-b border-[#ece8e6] uppercase text-[9px] font-black text-[#7a7488] tracking-[0.18em]">
+                                              <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
                                                 <tr>
                                                   <th className="px-5 py-3.5">
                                                     Waktu Upload
@@ -24138,20 +23245,26 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   </th>
                                                 </tr>
                                               </thead>
-                                              <tbody className="divide-y divide-[#f4f1ef] text-xs font-semibold text-[#494456] bg-white">
-                                                {isReportingDataLoading || reportingDataError ? (
-                                                  <ReportingTableStatusRow
-                                                    colSpan={6}
-                                                    loading={isReportingDataLoading}
-                                                    error={reportingDataError}
-                                                    onRetry={() => setReportingReloadKey((key) => key + 1)}
-                                                  />
+                                              <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
+                                                {isLogsLoading ? (
+                                                  <tr key="loading">
+                                                    <td
+                                                      colSpan={6}
+                                                      className="px-5 py-16 text-center text-slate-500 font-bold w-full"
+                                                    >
+                                                      <div className="flex flex-col items-center justify-center gap-4">
+                                                        <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
+                                                        Sedang memuat data dari
+                                                        database...
+                                                      </div>
+                                                    </td>
+                                                  </tr>
                                                 ) : completeUploadHistory.length ===
                                                   0 ? (
                                                   <tr key="empty-history">
                                                     <td
                                                       colSpan={6}
-                                                      className="px-5 py-10 text-center text-[#7a7488]"
+                                                      className="px-5 py-10 text-center text-slate-400"
                                                     >
                                                       Belum ada riwayat upload
                                                       untuk brand ini.
@@ -24162,16 +23275,21 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     (history, idx) => (
                                                       <tr
                                                         key={history.id || idx}
-                                                        className="hover:bg-[#fcfbfa] transition-colors"
+                                                        className="hover:bg-slate-50/50 transition-colors"
                                                       >
-                                                        <td className="px-5 py-3.5 text-[#7a7488]">
-                                                          {formatDateTimeSafe(history.uploadedAt, {
-                                                            day: "numeric",
-                                                            month: "short",
-                                                            year: "numeric",
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                          })}
+                                                        <td className="px-5 py-3.5 text-slate-500">
+                                                          {new Date(
+                                                            history.uploadedAt,
+                                                          ).toLocaleString(
+                                                            "id-ID",
+                                                            {
+                                                              day: "numeric",
+                                                              month: "short",
+                                                              year: "numeric",
+                                                              hour: "2-digit",
+                                                              minute: "2-digit",
+                                                            },
+                                                          )}
                                                         </td>
                                                         <td
                                                           className="px-5 py-3.5 max-w-[200px] truncate"
@@ -24182,11 +23300,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                           {history.fileName}
                                                         </td>
                                                         <td className="px-5 py-3.5">
-                                                          <span className="text-[10px] bg-[#f4f1ef] text-[#494456] px-2 py-0.5 rounded uppercase font-bold">
+                                                          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded uppercase font-bold">
                                                             {history.platform ||
                                                               "UNKNOWN"}
                                                           </span>
-                                                      </td>
+                                                        </td>
                                                         <td className="px-5 py-3.5">
                                                           {new Intl.NumberFormat(
                                                             "id-ID",
@@ -24216,7 +23334,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                   0,
                                                               )
                                                             }
-                                                            className="inline-flex items-center gap-1 rounded-lg border border-[#e5e2e1] bg-[#fcfbfa] p-1.5 text-[10px] font-bold text-[#7a7488] transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500 focus:outline-none cursor-pointer"
+                                                            className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-slate-50 hover:bg-red-50 p-1.5 rounded-lg border border-slate-200 hover:border-red-200 text-[10px] font-bold inline-flex items-center gap-1"
                                                             title="Hapus Batch & Semua Data Raw"
                                                           >
                                                             Hapus Batch
@@ -24229,7 +23347,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               </tbody>
                                             </table>
                                           </div>
-                                        </details>
+                                        </div>
                                       );
                                     })()}
                                   </div>
@@ -24237,6 +23355,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               })()}
                             </div>
                           )}
+                        </div>
                       </>
                     )}
                   </div>
@@ -26245,18 +25364,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 return;
                               }
 
-                              // update secure admin credentials state
-                              const newCreds = {
+                              // update secure admin credentials state (this auto triggers localStorage save via useEffect in App.tsx)
+                              setAdminCredentials({
                                 username: adminCredentials.username,
                                 password: newPasswordInput,
-                              };
-                              setAdminCredentials(newCreds);
-
-                              // Save explicitly to backend (Fixes the race condition reset bug)
-                              saveLocalConfig({ adminCredentials: newCreds });
-                              if (typeof settingsApi !== 'undefined') {
-                                settingsApi.save('adminCredentials', newCreds).catch(console.error);
-                              }
+                              });
 
                               setCurrentPasswordInput("");
                               setNewPasswordInput("");
@@ -26934,24 +26046,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                           <div>
                             <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              Nama Bank & Rekening Bank:
+                              Rekening Bank:
                             </label>
-                            <div className="flex gap-2">
-                               <input
-                                 type="text"
-                                 value={newHostBankName}
-                                 onChange={(e) => setNewHostBankName(e.target.value)}
-                                 placeholder="BCA"
-                                 className="w-32 min-w-[7rem] bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
-                               />
-                               <input
-                                 type="text"
-                                 value={newHostBank}
-                                 onChange={(e) => setNewHostBank(e.target.value)}
-                                 placeholder="Opsional, misal: 12345 a/n Budi"
-                                 className="flex-1 bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
-                               />
-                            </div>
+                            <input
+                              type="text"
+                              value={newHostBank}
+                              onChange={(e) => setNewHostBank(e.target.value)}
+                              placeholder="Opsional, misal: BCA 12345"
+                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                            />
                           </div>
                         </div>
 
@@ -26979,7 +26082,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 studio: newHostStudio,
                                 phone: newHostPhone.trim() || "-",
                                 bankAccount: newHostBank.trim() || "-",
-                                bankName: newHostBankName.trim() || "",
                                 username: newHostUser,
                                 password: newHostPass,
                                 customWorkingDaysTarget: undefined,
@@ -26990,7 +26092,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               setNewHostStudio("Bandar Lampung");
                               setNewHostPhone("");
                               setNewHostBank("");
-                              setNewHostBankName("");
                               setNewHostUser("");
                               setNewHostPass("");
                               setShowAddForm(false);
@@ -27004,25 +26105,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
                     )}
 
-                    {/* FILTER TABS */}
-                    <div className="flex gap-2 mb-4 border-b border-purple-100 pb-4 overflow-x-auto scrollbar-hide">
-                      <button
-                        onClick={() => setHostCredentialFilter("Semua")}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${hostCredentialFilter === "Semua" ? "bg-purple-600 text-white shadow-sm" : "bg-purple-50 text-purple-600 hover:bg-purple-100"}`}
-                      >
-                        Semua Kota
-                      </button>
-                      {Array.from(new Set(studios.map(std => std.location || "Bandar Lampung"))).map(loc => (
-                        <button
-                          key={loc}
-                          onClick={() => setHostCredentialFilter(loc)}
-                          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${hostCredentialFilter === loc ? "bg-purple-600 text-white shadow-sm" : "bg-purple-50 text-purple-600 hover:bg-purple-100"}`}
-                        >
-                          {loc}
-                        </button>
-                      ))}
-                    </div>
-
                     <div className="overflow-x-auto border border-purple-100 rounded-2xl bg-white bg-white">
                       <table className="min-w-full divide-y divide-purple-100">
                         <thead className="bg-[#faf9fe]">
@@ -27033,9 +26115,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             <th className="px-6 py-4 font-sans">Grup / Role</th>
                             <th className="px-6 py-4 font-sans">
                               Lokasi Studio
-                            </th>
-                            <th className="px-6 py-4 font-sans">
-                              Kontak & Rekening
                             </th>
                             <th className="px-6 py-4 font-sans">
                               Username Login
@@ -27049,24 +26128,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-purple-100">
-                          {hosts
-                            .filter(h => {
-                              if (hostCredentialFilter === "Semua") return true;
-                              const hostStudioObj = studios.find(s => s.name === (h.studio || "Studio Bandar Lampung"));
-                              const hostLoc = hostStudioObj ? hostStudioObj.location : (h.studio || "").includes("Tanggamus") ? "Tanggamus" : "Bandar Lampung";
-                              return hostLoc === hostCredentialFilter;
-                            })
-                            .map((h) => {
-                              return (
-                                <HostCredentialRow
-                                  key={h.id}
-                                  host={h}
-                                  onUpdate={handleUpdateHost}
-                                  onDelete={handleDeleteHost}
-                                  studios={studios}
-                                />
-                              );
-                            })}
+                          {hosts.map((h) => (
+                            <HostCredentialRow
+                              key={h.id}
+                              host={h}
+                              onUpdate={handleUpdateHost}
+                              onDelete={handleDeleteHost}
+                              studios={studios}
+                            />
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -27184,8 +26254,8 @@ function HostCredentialRow({
   studios = [],
 }: {
   host: HostEmployee;
-  onUpdate: (id: string, fields: Partial<HostEmployee>) => void | Promise<void>;
-  onDelete: (id: string) => void | Promise<void>;
+  onUpdate: (id: string, fields: Partial<HostEmployee>) => void;
+  onDelete: (id: string) => void;
   studios?: StudioItem[];
   key?: any;
 }) {
@@ -27195,7 +26265,6 @@ function HostCredentialRow({
   const [studio, setStudio] = useState(host.studio || "Studio Bandar Lampung");
   const [phone, setPhone] = useState(host.phone || "");
   const [bankAccount, setBankAccount] = useState(host.bankAccount || "");
-  const [bankName, setBankName] = useState(host.bankName || "");
   const [username, setUsername] = useState(host.username || "");
   const [password, setPassword] = useState(host.password || "");
   const [customWorkingDaysTarget, setCustomWorkingDaysTarget] =
@@ -27208,21 +26277,19 @@ function HostCredentialRow({
     setStudio(host.studio || "Studio Bandar Lampung");
     setPhone(host.phone || "");
     setBankAccount(host.bankAccount || "");
-    setBankName(host.bankName || "");
     setUsername(host.username || "");
     setPassword(host.password || "");
     setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
   }, [host, isEditing]);
 
   const handleSave = () => {
-    void onUpdate(host.id, {
+    onUpdate(host.id, {
       name,
       role,
       hostType: role.toLowerCase().includes("back up") ? "Backup" : "Reguler",
       studio,
       phone,
       bankAccount,
-      bankName,
       username,
       password,
       customWorkingDaysTarget: role.toLowerCase().includes("back up")
@@ -27238,7 +26305,6 @@ function HostCredentialRow({
     setStudio(host.studio || "Studio Bandar Lampung");
     setPhone(host.phone || "");
     setBankAccount(host.bankAccount || "");
-    setBankName(host.bankName || "");
     setUsername(host.username || "");
     setPassword(host.password || "");
     setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
@@ -27334,48 +26400,6 @@ function HostCredentialRow({
         )}
       </td>
 
-      {/* 3. KONTAK & REKENING */}
-      <td className="px-6 py-4">
-        {isEditing ? (
-          <div className="space-y-1.5 w-[17rem] min-w-[15rem] max-w-full">
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
-              placeholder="No HP"
-            />
-            <input
-              type="text"
-              value={bankName}
-              onChange={(e) => setBankName(e.target.value)}
-              className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
-              placeholder="Nama Bank"
-            />
-            <input
-              type="text"
-              value={bankAccount}
-              onChange={(e) => setBankAccount(e.target.value)}
-              className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-[10px] text-[#3c2f56] block w-full"
-              placeholder="No Rekening"
-            />
-          </div>
-        ) : (
-          <div className="flex flex-col gap-0.5 min-w-[120px]">
-            {host.phone && host.phone !== "-" ? (
-              <span className="text-[10px] font-bold text-purple-900 block truncate">📞 {host.phone}</span>
-            ) : (
-              <span className="text-[9px] font-medium text-slate-400 italic">Tanpa No HP</span>
-            )}
-            {host.bankAccount && host.bankAccount !== "-" ? (
-              <span className="text-[10px] font-mono font-bold text-emerald-650 block truncate" title={`${host.bankName || ""} ${host.bankAccount}`}>💳 {host.bankName ? host.bankName + " " : ""}{host.bankAccount}</span>
-            ) : (
-              <span className="text-[9px] font-medium text-slate-400 italic">Tanpa Rekening</span>
-            )}
-          </div>
-        )}
-      </td>
-
       {/* 4. USERNAME */}
       <td className="px-6 py-4">
         {isEditing ? (
@@ -27443,7 +26467,7 @@ function HostCredentialRow({
               <button
                 type="button"
                 onClick={() => {
-                  void onDelete(host.id);
+                  onDelete(host.id);
                 }}
                 className="p-1.5 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100/60 rounded-lg border border-red-100/40 transition-all cursor-pointer"
                 title="Hapus Host"
