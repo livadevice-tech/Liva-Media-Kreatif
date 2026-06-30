@@ -16782,7 +16782,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </div>
                     ) : (
                       <>
-                        <div className="overflow-hidden rounded-[28px] border border-[#e5e2e1] bg-gradient-to-b from-white to-[#fbf8f6] shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
+                        <div className="overflow-visible rounded-[28px] border border-[#e5e2e1] bg-gradient-to-b from-white to-[#fbf8f6] shadow-[0_12px_32px_rgba(27,28,28,0.05)]">
                           <div className="border-b border-[#e5e2e1] px-6 py-6 sm:px-8">
                             <div className="max-w-2xl space-y-5">
                               <div className="flex items-start gap-4">
