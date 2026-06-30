@@ -2578,6 +2578,12 @@ export default function App() {
   const [activeReportBrandId, setActiveReportBrandId] = useState<string | null>(
     null,
   );
+  const [isReportBrandDateMenuOpen, setIsReportBrandDateMenuOpen] = useState(false);
+  const [isReportBrandDateCustomOpen, setIsReportBrandDateCustomOpen] = useState(false);
+  const [isReportBrandPlatformMenuOpen, setIsReportBrandPlatformMenuOpen] =
+    useState(false);
+  const reportBrandDateMenuRef = useRef<HTMLDivElement>(null);
+  const reportBrandPlatformMenuRef = useRef<HTMLDivElement>(null);
   const [openBrandCardActionsId, setOpenBrandCardActionsId] = useState<
     string | null
   >(null);
@@ -2624,6 +2630,36 @@ export default function App() {
       );
     };
   }, [openBrandCardActionsId]);
+
+  useEffect(() => {
+    if (!isReportBrandDateMenuOpen && !isReportBrandPlatformMenuOpen) return;
+    const handleClickOutsideReportBrandMenus = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        isReportBrandDateMenuOpen &&
+        reportBrandDateMenuRef.current &&
+        !reportBrandDateMenuRef.current.contains(target)
+      ) {
+        setIsReportBrandDateMenuOpen(false);
+        setIsReportBrandDateCustomOpen(false);
+      }
+      if (
+        isReportBrandPlatformMenuOpen &&
+        reportBrandPlatformMenuRef.current &&
+        !reportBrandPlatformMenuRef.current.contains(target)
+      ) {
+        setIsReportBrandPlatformMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutsideReportBrandMenus);
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutsideReportBrandMenus,
+      );
+    };
+  }, [isReportBrandDateMenuOpen, isReportBrandPlatformMenuOpen]);
 
   useEffect(() => {
     setReportBrandPage(1);
@@ -2754,6 +2790,40 @@ export default function App() {
     const end = formatter.format(new Date(timestamps[timestamps.length - 1]));
     return start === end ? start : `${start} - ${end}`;
   }, [activeReportBrandLogs, activeReportBrandBatches]);
+
+  const activeReportBrandDateLabel = useMemo(() => {
+    const formatShortDate = (dateStr: string) => {
+      if (!dateStr) return "";
+      const parsed = new Date(dateStr);
+      if (Number.isNaN(parsed.getTime())) return dateStr;
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(parsed);
+    };
+
+    if (operatorDateFilterType === "latest") {
+      return "Terbaru";
+    }
+    if (operatorDateFilterType === "month") {
+      return `${getIndonesianMonthLabel(operatorSelectedMonth)} ${operatorSelectedMonth.split("-")[0]}`;
+    }
+    if (
+      operatorDateFilterType === "custom" &&
+      operatorCustomStartDate &&
+      operatorCustomEndDate
+    ) {
+      return `${formatShortDate(operatorCustomStartDate)} - ${formatShortDate(operatorCustomEndDate)}`;
+    }
+    return activeReportBrandDateRange;
+  }, [
+    activeReportBrandDateRange,
+    operatorCustomEndDate,
+    operatorCustomStartDate,
+    operatorDateFilterType,
+    operatorSelectedMonth,
+  ]);
 
   const activeReportBrandSummaryCards = useMemo(() => {
     const totalGmv =
@@ -16748,31 +16818,157 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             </div>
                             <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
                               <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-stretch">
-                                <button
-                                  type="button"
-                                  className="flex min-h-12 w-full flex-1 items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
-                                >
-                                  <span className="flex min-w-0 items-center gap-3">
-                                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f6f3f2] text-[#494456]">
-                                      <Calendar className="h-4 w-4" />
+                                <div className="relative w-full flex-1" ref={reportBrandDateMenuRef}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsReportBrandPlatformMenuOpen(false);
+                                      setIsReportBrandDateMenuOpen((open) => !open);
+                                    }}
+                                    className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
+                                  >
+                                    <span className="flex min-w-0 items-center gap-3">
+                                      <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f6f3f2] text-[#494456]">
+                                        <Calendar className="h-4 w-4" />
+                                      </span>
+                                      <span className="truncate">{activeReportBrandDateLabel}</span>
                                     </span>
-                                    <span className="truncate">{activeReportBrandDateRange}</span>
-                                  </span>
-                                  <ChevronDown className="h-4 w-4 shrink-0 text-[#494456]" />
-                                </button>
+                                    <ChevronDown className="h-4 w-4 shrink-0 text-[#494456]" />
+                                  </button>
 
-                                <button
-                                  type="button"
-                                  className="flex min-h-12 w-full flex-1 items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
-                                >
-                                  <span className="flex min-w-0 items-center gap-3">
-                                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f6f3f2] text-[#5600e0]">
-                                      <Briefcase className="h-4 w-4" />
+                                  {isReportBrandDateMenuOpen && (
+                                    <div className="absolute left-0 top-full z-40 mt-2 w-full overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white p-3 shadow-[0_20px_50px_rgba(27,28,28,0.12)]">
+                                      <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                          { label: "Semua Waktu", value: "all" },
+                                          { label: "Terbaru", value: "latest" },
+                                          { label: "Bulan Ini", value: "month" },
+                                          { label: "Kustom", value: "custom" },
+                                        ].map((item) => (
+                                          <button
+                                            key={item.value}
+                                            type="button"
+                                            onClick={() => {
+                                              if (item.value === "custom") {
+                                                const today = formatDateYYYYMMDD(new Date());
+                                                setOperatorTempStartDate(
+                                                  operatorCustomStartDate || today,
+                                                );
+                                                setOperatorTempEndDate(
+                                                  operatorCustomEndDate || today,
+                                                );
+                                                setIsReportBrandDateCustomOpen(true);
+                                                return;
+                                              }
+                                              setIsReportBrandDateCustomOpen(false);
+                                              setOperatorDateFilterType(
+                                                item.value as "latest" | "all" | "month",
+                                              );
+                                              if (item.value === "month") {
+                                                const now = new Date();
+                                                setOperatorSelectedMonth(
+                                                  `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+                                                );
+                                              }
+                                              setIsReportBrandDateMenuOpen(false);
+                                            }}
+                                            className={`rounded-xl border px-3 py-2 text-left text-xs font-black uppercase tracking-[0.18em] transition-colors ${
+                                              operatorDateFilterType === item.value
+                                                ? "border-[#dfd3ff] bg-[#efe8ff] text-[#5600e0]"
+                                                : "border-[#e5e2e1] bg-white text-[#494456] hover:bg-[#fcfbfa]"
+                                            }`}
+                                          >
+                                            {item.label}
+                                          </button>
+                                        ))}
+                                      </div>
+
+                                      {isReportBrandDateCustomOpen && (
+                                        <div className="mt-3">
+                                          <DoubleDatePicker
+                                            startDate={
+                                              operatorTempStartDate ||
+                                              operatorCustomStartDate ||
+                                              formatDateYYYYMMDD(new Date())
+                                            }
+                                            endDate={
+                                              operatorTempEndDate ||
+                                              operatorCustomEndDate ||
+                                              formatDateYYYYMMDD(new Date())
+                                            }
+                                            onChange={(start, end) => {
+                                              setOperatorTempStartDate(start);
+                                              setOperatorTempEndDate(end);
+                                            }}
+                                            onApply={() => {
+                                              setOperatorCustomStartDate(
+                                                operatorTempStartDate,
+                                              );
+                                              setOperatorCustomEndDate(
+                                                operatorTempEndDate,
+                                              );
+                                              setOperatorDateFilterType("custom");
+                                              setIsReportBrandDateCustomOpen(false);
+                                              setIsReportBrandDateMenuOpen(false);
+                                            }}
+                                            onCancel={() => {
+                                              setIsReportBrandDateCustomOpen(false);
+                                            }}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="relative w-full flex-1" ref={reportBrandPlatformMenuRef}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsReportBrandDateMenuOpen(false);
+                                      setIsReportBrandDateCustomOpen(false);
+                                      setIsReportBrandPlatformMenuOpen((open) => !open);
+                                    }}
+                                    className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-sm font-medium text-[#1b1c1c]"
+                                  >
+                                    <span className="flex min-w-0 items-center gap-3">
+                                      <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#f6f3f2] text-[#5600e0]">
+                                        <Briefcase className="h-4 w-4" />
+                                      </span>
+                                      <span className="truncate">
+                                        {operatorPlatformFilter}
+                                      </span>
                                     </span>
-                                    <span className="truncate">{activeReportBrandPlatforms[0] || "Shopee Live"}</span>
-                                  </span>
-                                  <ChevronDown className="h-4 w-4 shrink-0 text-[#494456]" />
-                                </button>
+                                    <ChevronDown className="h-4 w-4 shrink-0 text-[#494456]" />
+                                  </button>
+
+                                  {isReportBrandPlatformMenuOpen && (
+                                    <div className="absolute left-0 top-full z-40 mt-2 w-full overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white p-2 shadow-[0_20px_50px_rgba(27,28,28,0.12)]">
+                                      <div className="space-y-1">
+                                        {["Semua Platform", ...availableOperatorPlatforms].map((platform) => (
+                                          <button
+                                            key={platform}
+                                            type="button"
+                                            onClick={() => {
+                                              setOperatorPlatformFilter(platform);
+                                              setIsReportBrandPlatformMenuOpen(false);
+                                            }}
+                                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors ${
+                                              operatorPlatformFilter === platform
+                                                ? "bg-[#efe8ff] text-[#5600e0]"
+                                                : "text-[#1b1c1c] hover:bg-[#fcfbfa]"
+                                            }`}
+                                          >
+                                            <span>{platform}</span>
+                                            {operatorPlatformFilter === platform && (
+                                              <span className="text-[10px] font-black uppercase tracking-[0.22em]">Aktif</span>
+                                            )}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
 
                                 <button
                                   type="button"
