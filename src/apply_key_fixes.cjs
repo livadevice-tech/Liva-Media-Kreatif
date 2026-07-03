@@ -2,7 +2,7 @@ const fs = require('fs');
 let c = fs.readFileSync('src/App.tsx', 'utf8');
 
 // Fix 1: Admin Calendar mappings
-c = c.replace(/scheds\.slice\(0,\s*4\)\.map\(\(sch:\s*any\)\s*=>\s*\{/g, 'scheds.slice(0, 4).map((sch: any, idxSch: number) => {');
+c = c.replace(/scheds\.slice\(0,\s*4\)\.map\(\(sch:\s*unknown\)\s*=>\s*\{/g, 'scheds.slice(0, 4).map((sch: unknown, idxSch: number) => {');
 c = c.replace(/return \(\s*<div\s*key=\{sch\.id\}/g, 'return (\\n                                                  <div \\n                                                    key={sch.id + "_" + idxSch}');
 
 // Fix 2: Operator Calendar mappings

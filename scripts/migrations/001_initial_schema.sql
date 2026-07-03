@@ -2,14 +2,8 @@
 -- Liva Media Kreatif - Host Intelligence Platform
 -- MySQL Database Schema
 -- Migration from: Firebase Firestore
--- Target: Hostinger Business MySQL
+-- Target: database selected by DB_NAME
 -- ==========================================================
-
-CREATE DATABASE IF NOT EXISTS u287082095_systemdb
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE u287082095_systemdb;
 
 -- ----------------------------------------------------------
 -- 1. HOSTS (HostEmployee)

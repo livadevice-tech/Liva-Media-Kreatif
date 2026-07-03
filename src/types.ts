@@ -64,6 +64,7 @@ export interface AttendanceLog {
   fraudReason?: string;
   overtimeHours?: number;
   isBackupShift?: boolean;
+  timestamp?: string;
 }
 
 export interface StudioItem {
@@ -82,6 +83,13 @@ export interface ShiftSchedule {
   platform: string;
   brand: string;
   status: "Assigned" | "Completed" | "No Show";
+  studio?: string;
+  backupHostId?: string;
+  backupHostName?: string;
+  isDeleted?: boolean;
+  isOffDay?: boolean;
+  isPindahStudio?: boolean;
+  timestamp?: string;
 }
 
 export interface KPIAlert {

@@ -7,18 +7,60 @@
  * Semua fungsi ini akan dipanggil dari App.tsx sebagai pengganti
  * fungsi-fungsi Firebase seperti onSnapshot, getDoc, setDoc, deleteDoc, dll.
  */
+import type { AuthSession } from "./shared/auth/session";
+import type {
+  AdminAccount,
+  AttendanceLog,
+  ClientBrand,
+  ClientLead,
+  ClientReporting,
+  HostEmployee,
+  KPIAlert,
+  ShiftSchedule,
+} from "./types";
+import type {
+  BrandPerformanceLogEntry,
+  UploadHistoryEntry,
+} from "./shared/types/reporting";
 
 // Base URL backend — di production sudah satu domain dengan frontend
 const API_BASE = '/api';
+
+type JsonRecord = Record<string, unknown>;
+
+type CrudApi<TItem, TCreate = TItem, TUpdate = TCreate> = {
+  getAll: () => Promise<TItem[]>;
+  getById?: (id: string) => Promise<TItem>;
+  create: (item: TCreate) => Promise<{ id: string }>;
+  update: (id: string, item: TUpdate) => Promise<void>;
+  delete: (id: string) => Promise<void>;
+};
+
+type DbTestResponse = {
+  success: boolean;
+  message: string;
+  data?: JsonRecord;
+};
+
+type SyncItem = {
+  id?: string;
+  [key: string]: unknown;
+};
+
+type SyncApi = {
+  delete: (id: string) => Promise<unknown>;
+  create: (item: SyncItem) => Promise<unknown>;
+  update: (id: string, item: SyncItem) => Promise<unknown>;
+};
 
 // ------------------------------------------------------------------
 // UTILS
 // ------------------------------------------------------------------
 
-export const testDbConnection = async (): Promise<{ success: boolean; message: string; data?: any }> => {
-  const res = await fetch(`${API_BASE}/db-test`);
+export const testDbConnection = async (): Promise<DbTestResponse> => {
+  const res = await fetch(`${API_BASE}/db-test`, { credentials: 'same-origin' });
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}) as Partial<DbTestResponse>);
     throw new Error(data.message || 'Gagal mengecek koneksi database');
   }
   return res.json();
@@ -36,6 +78,7 @@ async function request<T>(
   const options: RequestInit = {
     method,
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     signal,
   };
   if (body !== undefined) {
@@ -52,25 +95,32 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
+export const authApi = {
+  login: (role: 'admin' | 'host' | 'brand', username: string, password: string) =>
+    request<AuthSession>('POST', '/auth/login', { role, username, password }),
+  getSession: () => request<AuthSession | null>('GET', '/auth/session'),
+  logout: () => request<{ success: boolean }>('POST', '/auth/logout'),
+};
+
 // ==================================================================
 // HOSTS
 // ==================================================================
 export const hostsApi = {
   /** Ambil semua host */
-  getAll: () => request<any[]>('GET', '/hosts'),
+  getAll: () => request<HostEmployee[]>('GET', '/hosts'),
 
   /** Ambil satu host by ID (termasuk platforms & brands) */
-  getById: (id: string) => request<any>('GET', `/hosts/${id}`),
+  getById: (id: string) => request<HostEmployee>('GET', `/hosts/${id}`),
 
   /** Buat host baru */
-  create: (host: any) => request<{ id: string }>('POST', '/hosts', host),
+  create: (host: HostEmployee) => request<{ id: string }>('POST', '/hosts', host),
 
   /** Update host */
-  update: (id: string, host: any) => request<void>('PUT', `/hosts/${id}`, host),
+  update: (id: string, host: HostEmployee) => request<void>('PUT', `/hosts/${id}`, host),
 
   /** Hapus host */
   delete: (id: string) => request<void>('DELETE', `/hosts/${id}`),
-};
+} satisfies CrudApi<HostEmployee>;
 
 // ==================================================================
 // ATTENDANCE LOGS
@@ -83,14 +133,14 @@ export const logsApi = {
     if (params?.dateFrom) query.set('dateFrom', params.dateFrom);
     if (params?.dateTo)   query.set('dateTo', params.dateTo);
     const qs = query.toString() ? `?${query.toString()}` : '';
-    return request<any[]>('GET', `/logs${qs}`);
+    return request<AttendanceLog[]>('GET', `/logs${qs}`);
   },
 
   /** Buat log baru */
-  create: (log: any) => request<{ id: string }>('POST', '/logs', log),
+  create: (log: AttendanceLog) => request<{ id: string }>('POST', '/logs', log),
 
   /** Update log */
-  update: (id: string, log: any) => request<void>('PUT', `/logs/${id}`, log),
+  update: (id: string, log: AttendanceLog) => request<void>('PUT', `/logs/${id}`, log),
 
   /** Hapus log */
   delete: (id: string) => request<void>('DELETE', `/logs/${id}`),
@@ -104,16 +154,20 @@ export const logsApi = {
 // ==================================================================
 export const schedulesApi = {
   /** Ambil semua jadwal */
-  getAll: (params?: { date?: string }) => {
-    const qs = params?.date ? `?date=${params.date}` : '';
-    return request<any[]>('GET', `/schedules${qs}`);
+  getAll: (params?: { date?: string; hostId?: string; brandId?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.date) query.set('date', params.date);
+    if (params?.hostId) query.set('hostId', params.hostId);
+    if (params?.brandId) query.set('brandId', params.brandId);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return request<ShiftSchedule[]>('GET', `/schedules${qs}`);
   },
 
   /** Buat jadwal */
-  create: (schedule: any) => request<{ id: string }>('POST', '/schedules', schedule),
+  create: (schedule: ShiftSchedule) => request<{ id: string }>('POST', '/schedules', schedule),
 
   /** Update jadwal */
-  update: (id: string, schedule: any) => request<void>('PUT', `/schedules/${id}`, schedule),
+  update: (id: string, schedule: ShiftSchedule) => request<void>('PUT', `/schedules/${id}`, schedule),
 
   /** Hapus jadwal */
   delete: (id: string) => request<void>('DELETE', `/schedules/${id}`),
@@ -126,14 +180,14 @@ export const alertsApi = {
   /** Ambil semua alert */
   getAll: (params?: { resolved?: boolean }) => {
     const qs = params?.resolved !== undefined ? `?resolved=${params.resolved ? 1 : 0}` : '';
-    return request<any[]>('GET', `/alerts${qs}`);
+    return request<KPIAlert[]>('GET', `/alerts${qs}`);
   },
 
   /** Buat alert */
-  create: (alert: any) => request<{ id: string }>('POST', '/alerts', alert),
+  create: (alert: KPIAlert) => request<{ id: string }>('POST', '/alerts', alert),
 
   /** Update alert (termasuk resolve) */
-  update: (id: string, alert: any) => request<void>('PUT', `/alerts/${id}`, alert),
+  update: (id: string, alert: KPIAlert) => request<void>('PUT', `/alerts/${id}`, alert),
 
   /** Hapus alert */
   delete: (id: string) => request<void>('DELETE', `/alerts/${id}`),
@@ -144,16 +198,16 @@ export const alertsApi = {
 // ==================================================================
 export const clientBrandsApi = {
   /** Ambil semua brand klien (termasuk sessions, accounts, invoices, berkas) */
-  getAll: () => request<any[]>('GET', '/client-brands'),
+  getAll: () => request<ClientBrand[]>('GET', '/client-brands'),
 
   /** Ambil satu brand klien by ID */
-  getById: (id: string) => request<any>('GET', `/client-brands/${id}`),
+  getById: (id: string) => request<ClientBrand>('GET', `/client-brands/${id}`),
 
   /** Buat brand klien baru */
-  create: (brand: any) => request<{ id: string }>('POST', '/client-brands', brand),
+  create: (brand: ClientBrand) => request<{ id: string }>('POST', '/client-brands', brand),
 
   /** Update brand klien */
-  update: (id: string, brand: any) => request<void>('PUT', `/client-brands/${id}`, brand),
+  update: (id: string, brand: ClientBrand) => request<void>('PUT', `/client-brands/${id}`, brand),
 
   /** Hapus brand klien */
   delete: (id: string) => request<void>('DELETE', `/client-brands/${id}`),
@@ -164,13 +218,13 @@ export const clientBrandsApi = {
 // ==================================================================
 export const clientLeadsApi = {
   /** Ambil semua leads */
-  getAll: () => request<any[]>('GET', '/client-leads'),
+  getAll: () => request<ClientLead[]>('GET', '/client-leads'),
 
   /** Buat lead baru */
-  create: (lead: any) => request<{ id: string }>('POST', '/client-leads', lead),
+  create: (lead: ClientLead) => request<{ id: string }>('POST', '/client-leads', lead),
 
   /** Update lead */
-  update: (id: string, lead: any) => request<void>('PUT', `/client-leads/${id}`, lead),
+  update: (id: string, lead: ClientLead) => request<void>('PUT', `/client-leads/${id}`, lead),
 
   /** Hapus lead */
   delete: (id: string) => request<void>('DELETE', `/client-leads/${id}`),
@@ -181,13 +235,13 @@ export const clientLeadsApi = {
 // ==================================================================
 export const adminAccountsApi = {
   /** Ambil semua admin */
-  getAll: () => request<any[]>('GET', '/admin-accounts'),
+  getAll: () => request<AdminAccount[]>('GET', '/admin-accounts'),
 
   /** Buat admin baru */
-  create: (admin: any) => request<{ id: string }>('POST', '/admin-accounts', admin),
+  create: (admin: AdminAccount) => request<{ id: string }>('POST', '/admin-accounts', admin),
 
   /** Update admin */
-  update: (id: string, admin: any) => request<void>('PUT', `/admin-accounts/${id}`, admin),
+  update: (id: string, admin: AdminAccount) => request<void>('PUT', `/admin-accounts/${id}`, admin),
 
   /** Hapus admin */
   delete: (id: string) => request<void>('DELETE', `/admin-accounts/${id}`),
@@ -197,8 +251,8 @@ export const adminAccountsApi = {
 // SETTINGS
 // ==================================================================
 export const settingsApi = {
-  get: (key: string) => request<any>('GET', `/settings/${key}`),
-  save: (key: string, data: any) => request<any>('POST', `/settings/${key}`, data),
+  get: <T = unknown>(key: string) => request<T>('GET', `/settings/${key}`),
+  save: <T = unknown>(key: string, data: T) => request<T>('POST', `/settings/${key}`, data),
 };
 
 // ==================================================================
@@ -208,14 +262,14 @@ export const clientReportingApi = {
   /** Ambil semua reporting */
   getAll: (params?: { brandId?: string }) => {
     const qs = params?.brandId ? `?brandId=${params.brandId}` : '';
-    return request<any[]>('GET', `/client-reporting${qs}`);
+    return request<ClientReporting[]>('GET', `/client-reporting${qs}`);
   },
 
   /** Buat reporting baru */
-  create: (report: any) => request<{ id: string }>('POST', '/client-reporting', report),
+  create: (report: ClientReporting) => request<{ id: string }>('POST', '/client-reporting', report),
 
   /** Update reporting */
-  update: (id: string, report: any) => request<void>('PUT', `/client-reporting/${id}`, report),
+  update: (id: string, report: ClientReporting) => request<void>('PUT', `/client-reporting/${id}`, report),
 
   /** Hapus reporting */
   delete: (id: string) => request<void>('DELETE', `/client-reporting/${id}`),
@@ -226,14 +280,14 @@ export const clientReportingApi = {
 // ==================================================================
 export const reportingBrandApi = {
   /** Ambil ringkasan reporting brand */
-  getSummary: () => request<any[]>('GET', '/reporting/brand/summary'),
+  getSummary: () => request<UploadHistoryEntry[]>('GET', '/reporting/brand/summary'),
 
   /** Ambil snapshot reporting brand (batch + raw logs) */
   getAll: (params?: { brandId?: string; signal?: AbortSignal }) => {
     const query = new URLSearchParams();
     if (params?.brandId) query.set('brandId', params.brandId);
     const qs = query.toString() ? `?${query.toString()}` : '';
-    return request<{ batches: any[]; rows: any[] }>(
+    return request<{ batches: UploadHistoryEntry[]; rows: BrandPerformanceLogEntry[] }>(
       'GET',
       `/reporting/brand${qs}`,
       undefined,
@@ -242,7 +296,7 @@ export const reportingBrandApi = {
   },
 
   /** Simpan 1 batch upload beserta seluruh raw rows */
-  createBatch: (payload: { batch: any; rows: any[] }) =>
+  createBatch: (payload: { batch: UploadHistoryEntry; rows: BrandPerformanceLogEntry[] }) =>
     request<{ success: boolean; id: string; rowCount: number }>('POST', '/reporting/brand/batch', payload),
 
   /** Hapus beberapa batch dan/atau row sekaligusa */
@@ -260,24 +314,24 @@ export const reportingBrandApi = {
  * Strategi: compare oldArray vs newArray, PUT yang berubah, DELETE yang hilang, POST yang baru.
  */
 export async function syncToMySQL(
-  entityType: any,
-  oldArray: any[],
-  newArray: any[]
+  entityType: string,
+  oldArray: SyncItem[],
+  newArray: SyncItem[]
 ): Promise<void> {
-  const apiMap: any = {
-    'hosts':          hostsApi,
-    'logs':           logsApi,
-    'schedules':      schedulesApi,
-    'alerts':         alertsApi,
-    'client-brands':  clientBrandsApi,
-    'client_brands':  clientBrandsApi,
-    'client-leads':   clientLeadsApi,
-    'client_leads':   clientLeadsApi,
-    'admin-accounts': adminAccountsApi,
-    'admin_accounts': adminAccountsApi,
+  const apiMap: Record<string, SyncApi> = {
+    'hosts': hostsApi as unknown as SyncApi,
+    'logs': logsApi as unknown as SyncApi,
+    'schedules': schedulesApi as unknown as SyncApi,
+    'alerts': alertsApi as unknown as SyncApi,
+    'client-brands': clientBrandsApi as unknown as SyncApi,
+    'client_brands': clientBrandsApi as unknown as SyncApi,
+    'client-leads': clientLeadsApi as unknown as SyncApi,
+    'client_leads': clientLeadsApi as unknown as SyncApi,
+    'admin-accounts': adminAccountsApi as unknown as SyncApi,
+    'admin_accounts': adminAccountsApi as unknown as SyncApi,
   };
 
-  const api = apiMap[entityType] as any;
+  const api = apiMap[entityType];
   if (!api) {
     console.warn(`[syncToMySQL] No API map found for entityType: ${entityType}`);
     return;
@@ -302,7 +356,7 @@ export async function syncToMySQL(
   // Items yang di-update
   const toUpdate = toUpsert.filter((item) => oldIds.includes(item.id));
 
-  const promises: Promise<any>[] = [
+  const promises: Promise<unknown>[] = [
     ...toDelete.map((id) => api.delete(id)),
     ...toCreate.map((item) => api.create(item)),
     ...toUpdate.map((item) => api.update(item.id, item)),

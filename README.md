@@ -31,6 +31,28 @@ npm run build
 npm start
 ```
 
+### Verifikasi Sebelum Push
+Satu perintah untuk gate kualitas lokal:
+```bash
+npm run check
+```
+
+Perintah ini menjalankan:
+- `npm test`
+- `npm run lint`
+- `npm run build`
+
+Untuk verifikasi production sebelum deploy, gunakan:
+```bash
+npm run check:prod
+```
+
+Perintah ini menjalankan:
+- `npm test`
+- `npm run lint`
+- `npm run preflight`
+- `npm run build`
+
 ## Panduan Desain
 
 Untuk konsistensi visual saat mengubah UI, ikuti dokumentasi desain di [DESIGN.md](./DESIGN.md).

@@ -10,7 +10,10 @@ interface State {
   errorInfo: ErrorInfo | null;
 }
 
-export class ErrorBoundary extends React.Component<Props, State> {
+export class ErrorBoundary extends Component<Props, State> {
+  public declare props: Readonly<Props>;
+  public declare setState: React.Component<Props, State>["setState"];
+
   public state: State = {
     hasError: false,
     error: null,
@@ -23,7 +26,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
-    (this as any).setState({ errorInfo });
+    this.setState({ errorInfo });
   }
 
   public render() {
@@ -45,6 +48,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    return (this as any).props.children;
+    return this.props.children;
   }
 }

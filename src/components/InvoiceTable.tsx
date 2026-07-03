@@ -121,7 +121,13 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     <td className="py-4 px-6 text-center">
                       <select 
                          value={inv.status}
-                         onChange={(e) => updateInvoiceStatus(inv.brandId, inv.id, e.target.value as any)}
+                         onChange={(e) =>
+                           updateInvoiceStatus(
+                             inv.brandId,
+                             inv.id,
+                             e.target.value as BrandInvoice["status"],
+                           )
+                         }
                          className={`text-[10px] uppercase font-black tracking-widest px-3 py-1.5 rounded-lg border border-transparent outline-none cursor-pointer text-center appearance-none transition-all
                            ${inv.status === 'Draft' ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 
                              inv.status === 'Open Invoice' ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' : 

@@ -7,14 +7,51 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import mysql from "mysql2/promise";
 import { randomUUID } from "crypto";
+import {
+  AuthSession,
+  createSessionToken,
+  canAccessDbTest,
+  hashPasswordForStorage,
+  isRequestAllowed,
+  parseSessionToken,
+  readCookie,
+  verifyStoredPassword,
+} from "./server/auth";
+import { validateProductionConfig } from "./server/productionConfig";
 
 dns.setDefaultResultOrder('ipv4first');
 dotenv.config();
 
+const productionConfigErrors = validateProductionConfig(process.env);
+if (productionConfigErrors.length > 0) {
+  throw new Error(`Konfigurasi production tidak valid:\n- ${productionConfigErrors.join("\n- ")}`);
+}
+
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000");
+const SESSION_COOKIE = "liva_session";
+const SESSION_TTL_SECONDS = 12 * 60 * 60;
 
+declare global {
+  namespace Express {
+    interface Request {
+      auth?: AuthSession;
+    }
+  }
+}
+
+app.disable("x-powered-by");
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 app.use(express.json({ limit: '10mb' }));
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  next();
+});
 
 // ==================================================================
 // MySQL Connection Pool
@@ -97,6 +134,155 @@ async function execute(sql: string, params: any[]): Promise<mysql.ResultSetHeade
 }
 
 // ==================================================================
+// Authentication
+// ==================================================================
+
+function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET || "";
+  if (process.env.NODE_ENV === "production" && secret.length < 32) {
+    throw new Error("SESSION_SECRET wajib diisi minimal 32 karakter di production");
+  }
+  return secret || "development-session-secret-change-before-production";
+}
+
+function setSessionCookie(res: Response, token: string, maxAge: number): void {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader(
+    "Set-Cookie",
+    `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`,
+  );
+}
+
+function getRequestSession(req: Request): AuthSession | null {
+  const token = readCookie(req.headers.cookie, SESSION_COOKIE);
+  return token ? parseSessionToken(token, getSessionSecret()) : null;
+}
+
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function allowLoginAttempt(ip: string): boolean {
+  const now = Date.now();
+  const current = loginAttempts.get(ip);
+  if (!current || current.resetAt <= now) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 });
+    return true;
+  }
+  if (current.count >= 10) return false;
+  current.count += 1;
+  return true;
+}
+
+app.post("/api/auth/login", asyncHandler(async (req, res) => {
+  const role = String(req.body?.role || "");
+  const username = String(req.body?.username || "").trim();
+  const password = String(req.body?.password || "");
+
+  if (!allowLoginAttempt(req.ip || req.socket.remoteAddress || "unknown")) {
+    return res.status(429).json({ error: "Terlalu banyak percobaan login. Coba lagi dalam 15 menit." });
+  }
+  if (!username || !password || username.length > 150 || password.length > 300) {
+    return res.status(400).json({ error: "Username atau password tidak valid." });
+  }
+
+  let session: AuthSession | null = null;
+  if (role === "admin") {
+    const masterUsername = process.env.ADMIN_USERNAME || "";
+    const masterPassword = process.env.ADMIN_PASSWORD_HASH || process.env.ADMIN_PASSWORD || "";
+    if (
+      masterUsername &&
+      username === masterUsername &&
+      verifyStoredPassword(password, masterPassword)
+    ) {
+      session = { role: "master", subjectId: "master", expiresAt: 0 };
+    } else {
+      const admin = await queryOne(
+        `SELECT id, password_hash FROM admin_accounts WHERE LOWER(username) = LOWER(?) LIMIT 1`,
+        [username],
+      );
+      if (admin && verifyStoredPassword(password, admin.password_hash || "")) {
+        const tabs = await queryMany(
+          `SELECT tab_name FROM admin_access_tabs WHERE admin_id = ?`,
+          [admin.id],
+        );
+        session = {
+          role: "admin",
+          subjectId: admin.id,
+          expiresAt: 0,
+          accessTabs: tabs.map((tab: any) => tab.tab_name),
+        };
+      }
+    }
+  } else if (role === "host") {
+    const host = await queryOne(
+      `SELECT id, password_hash FROM hosts WHERE LOWER(username) = LOWER(?) LIMIT 1`,
+      [username],
+    );
+    if (host && verifyStoredPassword(password, host.password_hash || "")) {
+      session = { role: "host", subjectId: host.id, expiresAt: 0 };
+    }
+  } else if (role === "brand") {
+    const brand = await queryOne(
+      `SELECT id, client_password FROM client_brands WHERE LOWER(client_username) = LOWER(?) LIMIT 1`,
+      [username],
+    );
+    if (brand && verifyStoredPassword(password, brand.client_password || "")) {
+      session = { role: "brand", subjectId: brand.id, expiresAt: 0 };
+    }
+  } else {
+    return res.status(400).json({ error: "Role login tidak valid." });
+  }
+
+  if (!session) {
+    return res.status(401).json({ error: "Username atau password salah." });
+  }
+
+  session.expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
+  const token = createSessionToken(session, getSessionSecret());
+  setSessionCookie(res, token, SESSION_TTL_SECONDS);
+  return res.json(session);
+}));
+
+app.get("/api/auth/session", (req, res) => {
+  const session = getRequestSession(req);
+  return res.json(session);
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  setSessionCookie(res, "", 0);
+  return res.json({ success: true });
+});
+
+app.use("/api", (req, res, next) => {
+  if (req.path === "/health") return next();
+
+  const session = getRequestSession(req);
+  if (!session) return res.status(401).json({ error: "Autentikasi diperlukan." });
+
+  if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    const origin = req.get("origin");
+    if (origin) {
+      const proto = (req.get("x-forwarded-proto") || req.protocol).split(",")[0].trim();
+      const expectedOrigin = `${proto}://${req.get("host")}`;
+      const configuredOrigins = (process.env.ALLOWED_ORIGINS || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (origin !== expectedOrigin && !configuredOrigins.includes(origin)) {
+        return res.status(403).json({ error: "Origin request tidak diizinkan." });
+      }
+    }
+  }
+
+  req.auth = session;
+
+  if (!isRequestAllowed(session, req.method, req.path)) {
+    return res.status(403).json({ error: "Akses tidak diizinkan." });
+  }
+
+  return next();
+});
+
+// ==================================================================
 // Lazy-initialized Gemini Client
 // ==================================================================
 let aiInstance: GoogleGenAI | null = null;
@@ -115,17 +301,30 @@ function getGeminiClient(): GoogleGenAI | null {
 // ==================================================================
 app.get("/api/settings/:key", asyncHandler(async (req, res) => {
   const { key } = req.params;
+  if (key === "adminCredentials") {
+    return res.status(404).json({ error: "Pengaturan tidak ditemukan." });
+  }
   const row = await queryOne(`SELECT setting_value FROM global_settings WHERE setting_key = ?`, [key]);
   if (!row) {
     return res.json(null);
   }
-  // setting_value is already a JSON string in MySQL
-  res.type('json').send(row.setting_value);
+  let value = row.setting_value;
+  if (key === "liva_global_configs") {
+    if (typeof value === "string") value = JSON.parse(value);
+    if (value && typeof value === "object") delete value.adminCredentials;
+  }
+  return res.json(value);
 }));
 
 app.post("/api/settings/:key", asyncHandler(async (req, res) => {
   const { key } = req.params;
-  const value = req.body;
+  if (key === "adminCredentials") {
+    return res.status(403).json({ error: "Kredensial admin dikelola oleh server." });
+  }
+  const value = req.body && typeof req.body === "object"
+    ? { ...req.body }
+    : req.body;
+  if (key === "liva_global_configs" && value) delete value.adminCredentials;
   await execute(`
     INSERT INTO global_settings (setting_key, setting_value) 
     VALUES (?, ?) 
@@ -178,7 +377,8 @@ app.get("/api/hosts", asyncHandler(async (req, res) => {
     host.customWorkingDaysTarget = host.custom_working_days_target;
     host.customBaseSalary = host.custom_base_salary;
     host.customShiftRate = host.custom_shift_rate;
-    host.password = host.password_hash;
+    host.password = "";
+    delete host.password_hash;
   }
 
   res.json(hosts);
@@ -193,7 +393,8 @@ app.get("/api/hosts/:id", asyncHandler(async (req, res) => {
   const brands = await queryMany(`SELECT brand FROM host_brands WHERE host_id = ?`, [host.id]);
   host.platforms = platforms.map((p: any) => p.platform);
   host.brands = brands.map((b: any) => b.brand);
-  host.password = host.password_hash;
+  host.password = "";
+  delete host.password_hash;
   host.bankName = host.bank_name;
 
   res.json(host);
@@ -217,7 +418,7 @@ app.post("/api/hosts", asyncHandler(async (req, res) => {
     h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
     h.consistencyScore || 0, h.joinedDate || null,
     h.email || null, h.phone || null,
-    h.username || null, h.password || null,
+    h.username || null, h.password ? hashPasswordForStorage(h.password) : null,
     h.bankAccount || null, h.bankName || null, h.studio || null,
     h.hostType || 'Reguler',
     h.customWorkingDaysTarget ?? null,
@@ -247,6 +448,11 @@ app.put("/api/hosts/:id", asyncHandler(async (req, res) => {
   const id = req.params.id;
   const h = req.body;
 
+  const existing = await queryOne(`SELECT password_hash FROM hosts WHERE id = ?`, [id]);
+  const passwordHash = h.password
+    ? hashPasswordForStorage(h.password)
+    : existing?.password_hash || null;
+
   await execute(`
     UPDATE hosts SET
       name = ?, employee_id = ?, avatar = ?, role = ?,
@@ -261,7 +467,7 @@ app.put("/api/hosts/:id", asyncHandler(async (req, res) => {
     h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
     h.consistencyScore || 0, h.joinedDate || null,
     h.email || null, h.phone || null,
-    h.username || null, h.password || null, h.bankAccount || null, h.bankName || null, h.studio || null,
+    h.username || null, passwordHash, h.bankAccount || null, h.bankName || null, h.studio || null,
     h.hostType || 'Reguler',
     h.customWorkingDaysTarget ?? null,
     h.customBaseSalary ?? null,
@@ -300,7 +506,10 @@ app.delete("/api/hosts/:id", asyncHandler(async (req, res) => {
 
 // GET /api/logs
 app.get("/api/logs", asyncHandler(async (req, res) => {
-  const { hostId, dateFrom, dateTo } = req.query as Record<string, string>;
+  const { dateFrom, dateTo } = req.query as Record<string, string>;
+  const hostId = req.auth?.role === "host"
+    ? req.auth.subjectId
+    : String(req.query.hostId || "");
   let sql = `SELECT * FROM attendance_logs WHERE 1=1`;
   const params: any[] = [];
 
@@ -347,6 +556,9 @@ app.get("/api/logs", asyncHandler(async (req, res) => {
 // POST /api/logs
 app.post("/api/logs", asyncHandler(async (req, res) => {
   const l = req.body;
+  if (req.auth?.role === "host" && l.hostId !== req.auth.subjectId) {
+    return res.status(403).json({ error: "Host hanya dapat mengisi absensinya sendiri." });
+  }
   const id = l.id || genId('log');
 
   await execute(`
@@ -425,6 +637,21 @@ app.get("/api/schedules", asyncHandler(async (req, res) => {
   let sql = `SELECT * FROM shift_schedules WHERE 1=1`;
   const params: any[] = [];
   if (date) { sql += ` AND date = ?`; params.push(date); }
+  if (req.auth?.role === "host") {
+    sql += ` AND host_id = ?`;
+    params.push(req.auth.subjectId);
+  } else if (req.auth?.role === "brand") {
+    const brand = await queryOne(`SELECT name FROM client_brands WHERE id = ?`, [req.auth.subjectId]);
+    sql += ` AND brand = ?`;
+    params.push(brand?.name || "__missing_brand__");
+  } else if (req.query.hostId) {
+    sql += ` AND host_id = ?`;
+    params.push(String(req.query.hostId));
+  } else if (req.query.brandId) {
+    const brand = await queryOne(`SELECT name FROM client_brands WHERE id = ?`, [String(req.query.brandId)]);
+    sql += ` AND brand = ?`;
+    params.push(brand?.name || "__missing_brand__");
+  }
   sql += ` ORDER BY date ASC, time_slot ASC`;
 
   const rows = await queryMany(sql, params);
@@ -711,7 +938,8 @@ app.get("/api/admin-accounts", asyncHandler(async (req, res) => {
   for (const admin of admins) {
     const tabs = await queryMany(`SELECT tab_name FROM admin_access_tabs WHERE admin_id = ?`, [admin.id]);
     admin.accessTabs = tabs.map((t: any) => t.tab_name);
-    admin.password = admin.password_hash;
+    admin.password = "";
+    delete admin.password_hash;
   }
   res.json(admins);
 }));
@@ -719,9 +947,8 @@ app.get("/api/admin-accounts", asyncHandler(async (req, res) => {
 app.post("/api/admin-accounts", asyncHandler(async (req, res) => {
   const a = req.body;
   const id = a.id || genId('admin');
-  // Password disimpan as-is dari frontend (frontend bertanggung jawab hash atau kirim plain)
   await execute(`INSERT INTO admin_accounts (id, name, username, password_hash) VALUES (?,?,?,?)`,
-    [id, a.name, a.username, a.password || a.passwordHash || '']);
+    [id, a.name, a.username, hashPasswordForStorage(a.password || a.passwordHash || '')]);
   if (Array.isArray(a.accessTabs)) {
     for (const tab of a.accessTabs) {
       await execute(`INSERT INTO admin_access_tabs (admin_id, tab_name) VALUES (?,?)`, [id, tab]);
@@ -732,7 +959,17 @@ app.post("/api/admin-accounts", asyncHandler(async (req, res) => {
 
 app.put("/api/admin-accounts/:id", asyncHandler(async (req, res) => {
   const a = req.body;
-  await execute(`UPDATE admin_accounts SET name=?, username=?, password_hash=? WHERE id=?`, [a.name, a.username, a.password || a.passwordHash || '', req.params.id]);
+  if (a.password || a.passwordHash) {
+    await execute(
+      `UPDATE admin_accounts SET name=?, username=?, password_hash=? WHERE id=?`,
+      [a.name, a.username, hashPasswordForStorage(a.password || a.passwordHash), req.params.id],
+    );
+  } else {
+    await execute(
+      `UPDATE admin_accounts SET name=?, username=? WHERE id=?`,
+      [a.name, a.username, req.params.id],
+    );
+  }
   if (Array.isArray(a.accessTabs)) {
     await execute(`DELETE FROM admin_access_tabs WHERE admin_id = ?`, [req.params.id]);
     for (const tab of a.accessTabs) {
@@ -752,7 +989,9 @@ app.delete("/api/admin-accounts/:id", asyncHandler(async (req, res) => {
 // ==================================================================
 
 app.get("/api/client-reporting", asyncHandler(async (req, res) => {
-  const { brandId } = req.query as Record<string, string>;
+  const brandId = req.auth?.role === "brand"
+    ? req.auth.subjectId
+    : String(req.query.brandId || "");
   let sql = `SELECT * FROM client_reporting WHERE 1=1`;
   const params: any[] = [];
   if (brandId) { sql += ` AND brand_id = ?`; params.push(brandId); }
@@ -786,18 +1025,23 @@ app.delete("/api/client-reporting/:id", asyncHandler(async (req, res) => {
   res.json({ success: true });
 }));
 
-app.get("/api/reporting/brand/summary", asyncHandler(async (_req, res) => {
+app.get("/api/reporting/brand/summary", asyncHandler(async (req, res) => {
+  const brandId = req.auth?.role === "brand" ? req.auth.subjectId : "";
+  const batchFilter = brandId ? "WHERE brand_id = ?" : "";
+  const filterParams = brandId ? [brandId] : [];
   const [batchRows, rowRows] = await Promise.all([
     queryMany(`
       SELECT brand_id AS brandId, MAX(brand_name) AS brandName, COUNT(*) AS batchCount, COALESCE(SUM(total_gmv), 0) AS totalGmv
       FROM reporting_upload_batches
+      ${batchFilter}
       GROUP BY brand_id
-    `, []),
+    `, filterParams),
     queryMany(`
       SELECT brand_id AS brandId, COUNT(*) AS sessionCount
       FROM reporting_upload_rows
+      ${batchFilter}
       GROUP BY brand_id
-    `, []),
+    `, filterParams),
   ]);
 
   const summaryMap = new Map<string, any>();
@@ -883,7 +1127,10 @@ const mapReportingRow = (row: any) => ({
 });
 
 app.get("/api/reporting/brand", asyncHandler(async (req, res) => {
-  const { brandId, platform, sourceKind } = req.query as Record<string, string>;
+  const { platform, sourceKind } = req.query as Record<string, string>;
+  const brandId = req.auth?.role === "brand"
+    ? req.auth.subjectId
+    : String(req.query.brandId || "");
 
   const batchParams: any[] = [];
   let batchSql = `
@@ -1259,6 +1506,10 @@ app.post('/api/invoice/send-reminder', async (req, res) => {
 // ==================================================================
 app.get('/api/db-test', async (req, res) => {
   try {
+    const session = getRequestSession(req);
+    if (!canAccessDbTest(session)) {
+      return res.status(403).json({ success: false, message: "Akses tidak diizinkan." });
+    }
     const db = getPool();
     const [rows] = await db.query('SELECT 1 as result');
     res.json({ success: true, message: 'Koneksi MySQL berhasil tersambung!', data: rows });
@@ -1400,6 +1651,7 @@ async function runMigrations() {
 }
 
 async function bootstrap() {
+  getSessionSecret();
   await runMigrations();
 
   if (process.env.NODE_ENV !== "production") {

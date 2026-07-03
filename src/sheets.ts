@@ -35,9 +35,9 @@ export const createNewSpreadsheet = async (
 export const syncSpreadsheetData = async (
   accessToken: string,
   spreadsheetId: string,
-  reports: any[],
-  logs: any[],
-  salarySettings: any
+  reports: ReadonlyArray<Record<string, unknown>>,
+  logs: ReadonlyArray<Record<string, unknown>>,
+  salarySettings: Record<string, unknown>
 ): Promise<void> => {
   // no-op
 };

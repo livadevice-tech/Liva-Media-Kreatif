@@ -117,6 +117,7 @@ import {
   ClientBrand,
   ClientReporting,
   ClientLead,
+  ShiftSchedule,
   AdminAccount,
 } from "./types";
 import { INITIAL_HOSTS, INITIAL_LOGS, PLATFORMS, BRANDS, SHIFTS } from "./data";
@@ -127,8 +128,89 @@ import {
   syncSpreadsheetData,
 } from "./sheets";
 import { DoubleDatePicker } from "./components/DoubleDatePicker";
-
-
+import {
+  formatDateYYYYMMDD,
+  formatDateUI,
+  formatHumanDate,
+} from "./shared/utils/date";
+import { formatDateTimeSafe } from "./shared/utils/dateTime";
+import { formatIDR } from "./shared/utils/currency";
+import { formatContractDate, padLocal } from "./shared/utils/dateFormatting";
+import { getPickerDays } from "./shared/utils/calendar";
+import {
+  applyDateFilterSelection,
+  getReportPeriodLabel,
+  shiftReportPeriodByOneDay,
+} from "./shared/utils/reportDateFilters";
+import {
+  getIndonesianMockResponse,
+} from "./shared/utils/copilotFallback";
+import {
+  buildDatabaseBackupPayload,
+  createBackupDownloadHref,
+  extractBackupImportCollections,
+  getBackupFilename,
+  hasAnyBackupCollections,
+  recoverCollectionsFromLocalStorage,
+} from "./shared/utils/dataBackup";
+import {
+  buildMappedUploadRows,
+} from "./shared/utils/mappingUpload";
+import {
+  parseReportingUploadRows,
+  parseSkuUploadRows,
+} from "./shared/utils/xlsxUploadParsers";
+import {
+  type BrandReportRow,
+  type BrandPerformanceLogEntry,
+  type UploadHistoryEntry,
+  type ReportingRawRow,
+  type SkuRawRow,
+  type SkuLogEntry,
+} from "./shared/types/reporting";
+import {
+  getAvatarUrl,
+  isPlatformMatch,
+  formatDisplayDate,
+  normalizeDateYMD,
+  PercentBadge,
+  getBrandStyle,
+  getShiftStyle,
+  getStudioHeaderStyle,
+  getBrandColor,
+  getShiftFromHour,
+} from "./shared/utils/appUi";
+import {
+  buildDailyChart,
+  buildMonthlyChart,
+  buildAvailableCutoffMonths,
+  getIndonesianMonthLabel,
+  getLogDateInput,
+  getMonthOffset,
+  isLogDateMatching,
+} from "./shared/utils/reporting";
+import { buildLiveReportViewModel } from "./shared/utils/liveReporting";
+import { buildEngagementReportViewModel } from "./shared/utils/engagementReporting";
+import { buildActiveReportBrandUploadHistory } from "./shared/utils/uploadHistory";
+import { buildHostReportList } from "./shared/utils/salaryReporting";
+import {
+  buildReportChartData,
+  filterReportLogs,
+  getNextSortState,
+  sortReportLogs,
+} from "./shared/utils/reportTable";
+import {
+  DEFAULT_GLOBAL_CONFIG,
+  type GlobalConfigData,
+  saveLocalConfig,
+} from "./shared/config/globalConfig";
+import type { AuthSession } from "./shared/auth/session";
+import {
+  type AdminTab,
+  canAccessAnyTab,
+  canAccessDbTest,
+  MODULE_TAB_REQUIREMENTS,
+} from "./shared/auth/access";
 import {
   hostsApi,
   logsApi,
@@ -139,887 +221,101 @@ import {
   adminAccountsApi,
   settingsApi,
   testDbConnection,
+  authApi,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
 import { QuickGridInput } from "./components/QuickGridInput";
+import {
+  HostCredentialRow,
+  SearchableHostSelect,
+} from "./components/admin/HostManagement";
 
-const getAvatarUrl = (name: string) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "Host")}&background=f3e8ff&color=7e22ce&bold=true`;
+import {
+  HorizontalFunnel,
+  LivaLogo,
+} from "./components/branding/BrandGraphics";
+import { ShopeeLiveMetricsGrid } from "./components/reporting/ShopeeLiveMetricsGrid";
+import { ReportPeriodNavigator } from "./components/reporting/ReportPeriodNavigator";
+import { ReportMetricCard } from "./components/reporting/ReportMetricCard";
+import { ReportFiltersBar } from "./components/reporting/ReportFiltersBar";
+import { ReportRawSessionsCard } from "./components/reporting/ReportRawSessionsCard";
+import { EngagementReportPanel } from "./components/reporting/EngagementReportPanel";
+import { LiveReportPanel } from "./components/reporting/LiveReportPanel";
+import { UploadHistoryCard } from "./components/reporting/UploadHistoryCard";
+import { SkuUploadHistoryCard } from "./components/reporting/SkuUploadHistoryCard";
+import { LeadPipelinePanel } from "./components/reporting/LeadPipelinePanel";
+import { LeadFormModal } from "./components/reporting/LeadFormModal";
+import { CutoffPeriodSelector } from "./components/reporting/CutoffPeriodSelector";
+import { SettingsMetadataPanels } from "./components/reporting/SettingsMetadataPanels";
+import { AdminPasswordCard } from "./components/reporting/AdminPasswordCard";
+import { AdminMaintenancePanel } from "./components/reporting/AdminMaintenancePanel";
+import { CopilotPanel } from "./components/reporting/CopilotPanel";
+import {
+  aggregateSkuLogs,
+  filterSkuLogs,
+  getLatestDateForBrand,
+} from "./shared/utils/skuReporting";
 
-/**
- * Menggantikan setDoc(doc(db, "settings", "global_configs"), ...) dari Firebase.
- * Menyimpan config ke localStorage dengan merge (hanya update field yang diberikan).
- */
-function saveLocalConfig(partialConfig: Record<string, any>): void {
-  try {
-    const existing = localStorage.getItem('liva_global_configs');
-    const current = existing ? JSON.parse(existing) : {};
-    const merged = { ...current, ...partialConfig };
-    localStorage.setItem('liva_global_configs', JSON.stringify(merged));
-    
-    // Sync to MySQL
-    if (typeof settingsApi !== 'undefined') {
-      settingsApi.save('liva_global_configs', merged).catch(console.error);
-    }
-  } catch (e) {
-    console.error('saveLocalConfig error:', e);
-  }
+interface GoogleUserProfile {
+  displayName?: string | null;
+  email?: string | null;
+  photoURL?: string | null;
 }
 
-const isPlatformMatch = (lp: string, fp: string) => {
-  if (!fp || fp === "Semua Platform") return true;
-  if (!lp) return false;
-  const val1 = String(lp)
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-  const val2 = String(fp)
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-  return val1 === val2 || val1.includes(val2) || val2.includes(val1);
-};
-
-const formatDisplayDate = (dString: string, platform?: string) => {
-  if (!dString) return "";
-  const dStr = String(dString);
-  const mainPart = dStr.includes("T") ? dStr.split("T")[0] : dStr.split(" ")[0];
-  let timePart = "";
-  if (platform !== "Shopee Live") {
-    if (dStr.includes("T")) {
-       const tSplit = dStr.split("T")[1];
-       if (tSplit) timePart = tSplit.substring(0, 5);
-    } else {
-       timePart = dStr.substring(mainPart.length).trim();
-    }
-  }
-  const parts = mainPart.split("-");
-  if (parts.length === 3 && parts[0].length === 4) {
-    const newDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    return timePart ? `${newDate} ${timePart}` : newDate;
-  }
-  if (parts.length === 3) {
-    return platform === "Shopee Live" ? mainPart : (timePart ? `${mainPart} ${timePart}` : dStr);
-  }
-  return platform === "Shopee Live" ? mainPart : dStr;
-};
-
-const normalizeDateYMD = (d: string) => {
-  if (!d) return "";
-  let norm = d.split("T")[0].split(" ")[0]; // strip time if ISO or datetime
-  
-  const p = norm.split(/[\/\-]/);
-  if (p.length === 3) {
-    // If format is DD/MM/YYYY or DD-MM-YYYY
-    if (p[0].length <= 2) {
-      const y = p[2].length === 2 ? `20${p[2]}` : p[2];
-      const m = String(p[1]).padStart(2, "0");
-      const day = String(p[0]).padStart(2, "0");
-      norm = `${y}-${m}-${day}`;
-    } 
-    // If format is YYYY/MM/DD or YYYY-MM-DD or YYYY-M-D
-    else if (p[0].length === 4) {
-      const y = p[0];
-      const m = String(p[1]).padStart(2, "0");
-      const day = String(p[2]).padStart(2, "0");
-      norm = `${y}-${m}-${day}`;
-    }
-  }
-  return norm;
-};
-
-// Dynamic color generators for Brand, Shift, and Studio to boost UX readability
-const getBrandStyle = (brandName: string) => {
-  if (!brandName) return "bg-slate-50 text-slate-700 border-slate-200/40";
-  const b = brandName.toLowerCase().trim();
-  
-  // High-contrast, beautifully paired visual identities
-  if (b.includes("somethinc") || b.includes("skin")) {
-    return "bg-rose-50 text-rose-700 border-rose-200/50";
-  }
-  if (b.includes("wardah") || b.includes("cosmetic") || b.includes("cosmetics")) {
-    return "bg-emerald-50 text-emerald-700 border-emerald-200/50";
-  }
-  if (b.includes("skintific") || b.includes("scientific") || b.includes("scien")) {
-    return "bg-sky-50 text-sky-750 border-sky-200/50";
-  }
-  if (b.includes("scarlett") || b.includes("scarlet")) {
-    return "bg-purple-50 text-purple-700 border-purple-200/50";
-  }
-  if (b.includes("avoskin") || b.includes("nourish") || b.includes("hair")) {
-    return "bg-teal-50 text-teal-700 border-teal-200/50";
-  }
-  if (b.includes("make over") || b.includes("over") || b.includes("beauty")) {
-    return "bg-slate-100 text-slate-800 border-slate-300/50";
-  }
-  if (b.includes("maybelline")) {
-    return "bg-amber-50 text-amber-805 border-amber-200/50";
-  }
-
-  // Consistent hashing for custom brands
-  let hash = 0;
-  for (let i = 0; i < brandName.length; i++) {
-    hash = brandName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % 7;
-  const colorMap = [
-    "bg-indigo-50 text-indigo-700 border-indigo-200/50",
-    "bg-fuchsia-100/50 text-fuchsia-800 border-fuchsia-200/50",
-    "bg-violet-50 text-violet-750 border-violet-200/50",
-    "bg-pink-100/50 text-pink-700 border-pink-200/50",
-    "bg-cyan-50 text-cyan-750 border-cyan-200/50",
-    "bg-orange-50 text-orange-755 border-orange-200/50",
-    "bg-lime-50 text-lime-800 border-lime-200/50"
-  ];
-  return colorMap[index];
-};
-
-const getShiftStyle = (timeSlot: string) => {
-  if (!timeSlot) return "bg-slate-50 text-slate-600 border-slate-200/40";
-  const t = timeSlot.toLowerCase();
-
-  // Highlight shift times dynamically with beautiful morning/afternoon/night/backup palettes
-  if (t.includes("pagi") || t.includes("06:") || t.includes("07:") || t.includes("08:") || t.includes("09:")) {
-    return "bg-sky-50 text-sky-850 border border-sky-200/40";
-  }
-  if (t.includes("siang") || t.includes("10:") || t.includes("11:") || t.includes("12:") || t.includes("13:") || t.includes("14:")) {
-    return "bg-amber-50 text-amber-850 border border-amber-200/40";
-  }
-  if (t.includes("sore") || t.includes("15:") || t.includes("16:") || t.includes("17:") || t.includes("18:")) {
-    return "bg-teal-50 text-teal-850 border border-teal-200/40";
-  }
-  if (t.includes("malam") || t.includes("19:") || t.includes("20:") || t.includes("21:") || t.includes("22:") || t.includes("23:") || t.includes("00:")) {
-    return "bg-indigo-50 text-indigo-850 border border-indigo-200/40";
-  }
-
-  // General hash-based mapping for generic shifts like "Shift 1", "Shift 2", etc.
-  let hash = 0;
-  for (let i = 0; i < timeSlot.length; i++) {
-    hash = timeSlot.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % 4;
-  const palettes = [
-    "bg-sky-50/85 text-sky-850 border border-sky-200/30",
-    "bg-amber-50/85 text-amber-850 border border-amber-200/30",
-    "bg-rose-50/85 text-rose-850 border border-rose-200/30",
-    "bg-emerald-50/85 text-emerald-850 border border-emerald-200/30"
-  ];
-  return palettes[index];
-};
-
-const getStudioHeaderStyle = (studioName: string) => {
-  if (!studioName) return "bg-gradient-to-r from-slate-100 to-slate-50 text-slate-100";
-  const s = studioName.toLowerCase();
-  
-  if (s.includes("1") || s.includes("satu") || s.includes("reguler")) {
-    return "bg-gradient-to-r from-blue-500/10 to-blue-500/5 border-l-[3.5px] border-l-blue-600 text-blue-900 border-y border-r border-blue-150/40";
-  }
-  if (s.includes("2") || s.includes("dua") || s.includes("backup")) {
-    return "bg-gradient-to-r from-teal-500/10 to-teal-500/5 border-l-[3.5px] border-l-teal-600 text-teal-900 border-y border-r border-teal-150/40";
-  }
-  if (s.includes("3") || s.includes("tiga")) {
-    return "bg-gradient-to-r from-purple-500/10 to-purple-500/5 border-l-[3.5px] border-l-purple-600 text-purple-900 border-y border-r border-purple-150/40";
-  }
-  if (s.includes("4") || s.includes("empat")) {
-    return "bg-gradient-to-r from-amber-500/10 to-amber-500/5 border-l-[3.5px] border-l-amber-600 text-amber-900 border-y border-r border-amber-150/40";
-  }
-  if (s.includes("5") || s.includes("lima")) {
-    return "bg-gradient-to-r from-pink-500/10 to-pink-500/5 border-l-[3.5px] border-l-pink-600 text-pink-900 border-y border-r border-pink-150/40";
-  }
-  
-  // Hash fallback
-  let hash = 0;
-  for (let i = 0; i < studioName.length; i++) {
-    hash = studioName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % 5;
-  const gradients = [
-    "bg-gradient-to-r from-indigo-500/10 to-indigo-500/5 border-l-[3.5px] border-l-indigo-600 text-indigo-950 border-y border-r border-indigo-150/40",
-    "bg-gradient-to-r from-cyan-500/10 to-cyan-500/5 border-l-[3.5px] border-l-cyan-600 text-cyan-950 border-y border-r border-cyan-150/40",
-    "bg-gradient-to-r from-rose-500/10 to-rose-500/5 border-l-[3.5px] border-l-rose-600 text-rose-950 border-y border-r border-rose-150/40",
-    "bg-gradient-to-r from-violet-500/10 to-violet-500/5 border-l-[3.5px] border-l-violet-600 text-violet-950 border-y border-r border-violet-150/40",
-    "bg-gradient-to-r from-emerald-505/10 to-emerald-500/5 border-l-[3.5px] border-l-emerald-600 text-emerald-950 border-y border-r border-emerald-150/40"
-  ];
-  return gradients[index];
-};
-
-const getCutoffMonthForDate = (rawDate: string) => {
-  const norm = normalizeDateYMD(rawDate);
-  if (!norm) return "";
-  const parts = norm.split("-");
-  const y = parseInt(parts[0], 10);
-  const m = parseInt(parts[1], 10);
-  const d = parseInt(parts[2], 10);
-  if (!y || !m || !d) return "";
-  
-  let targetMonth = m;
-  let targetYear = y;
-  if (d >= 16) {
-    targetMonth += 1;
-    if (targetMonth > 12) {
-      targetMonth = 1;
-      targetYear += 1;
-    }
-  }
-  return `${targetYear}-${String(targetMonth).padStart(2, "0")}`;
-};
-
-const PercentBadge = ({ cur, prev }: { cur: number; prev: number }) => {
-  if (prev == null || isNaN(prev) || prev === 0) return null;
-  const diff = cur - prev;
-  const pct = Math.abs((diff / prev) * 100);
-  const isUp = diff >= 0;
-  return (
-    <div
-      className={`flex items-center gap-1 text-[9px] sm:text-[10px] font-extrabold px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap ${isUp ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}
-    >
-      {pct.toFixed(0)}%
-    </div>
-  );
-};
-
-export function LivaLogo({
-  className = "h-11",
-  url,
-}: {
-  className?: string;
-  url?: string;
-}) {
-  if (url)
-    return (
-      <img
-        src={url}
-        className={`object-contain ${className}`}
-        alt="Liva Agency Logo"
-      />
-    );
-  return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <svg
-        viewBox="0 0 380 130"
-        className="h-full w-auto select-none"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient
-            id="livaBrandGrad"
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor="#b158fc" />
-            <stop offset="100%" stopColor="#772bf2" />
-          </linearGradient>
-        </defs>
-
-        {/* Rounded Purple Squircle Icon */}
-        <rect
-          x="5"
-          y="5"
-          width="110"
-          height="110"
-          rx="28"
-          fill="url(#livaBrandGrad)"
-        />
-
-        {/* Shopping Bag / Camcorder White Silhouette */}
-        {/* Handbag handle */}
-        <path
-          d="M 43 42 C 43 31, 77 31, 77 42"
-          stroke="white"
-          strokeWidth="5"
-          strokeLinecap="round"
-          fill="none"
-        />
-        {/* Main bag/camera rectangular body */}
-        <rect x="32" y="42" width="56" height="42" rx="8" fill="white" />
-        {/* Camcorder triangle lens pointing right */}
-        <path
-          d="M 85 51 Q 88 50, 99 44 Q 104 41, 104 47 L 104 79 Q 104 85, 99 82 Q 88 76, 85 75 Z"
-          fill="white"
-        />
-
-        {/* Liva Agency Branding Typo */}
-        {/* Blocky capital L */}
-        <path
-          d="M 132 32 L 132 82 L 165 82"
-          stroke="#772bf2"
-          strokeWidth="15"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Lowercase thick 'i' */}
-        <path
-          d="M 188 50 L 188 82"
-          stroke="#772bf2"
-          strokeWidth="15"
-          strokeLinecap="round"
-        />
-
-        {/* Orange Broadcast/WiFi Sound Wave curves replacing the dot of the 'i' */}
-        <path
-          d="M 174 34 C 182 25, 194 25, 202 34"
-          stroke="#f97316"
-          strokeWidth="4"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <path
-          d="M 180 42 C 184 38, 192 38, 196 42"
-          stroke="#f97316"
-          strokeWidth="4"
-          strokeLinecap="round"
-          fill="none"
-        />
-
-        {/* Lowercase thick 'v' */}
-        <path
-          d="M 215 50 L 230 82 L 245 50"
-          stroke="#772bf2"
-          strokeWidth="14"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Lowercase thick 'a' */}
-        <circle
-          cx="282"
-          cy="66"
-          r="16"
-          stroke="#772bf2"
-          strokeWidth="13"
-          fill="none"
-        />
-        <path
-          d="M 298 50 L 298 82"
-          stroke="#772bf2"
-          strokeWidth="13"
-          strokeLinecap="round"
-        />
-
-        {/* Cleaner subtitle "Agency" */}
-        <text
-          x="132"
-          y="114"
-          fill="#3c2f56"
-          fontSize="24"
-          fontWeight="900"
-          fontFamily="system-ui, -apple-system, sans-serif"
-          letterSpacing="0.8"
-        >
-          Agency
-        </text>
-      </svg>
-    </div>
-  );
+interface NotificationItem {
+  id: string;
+  title: string;
+  description: string;
+  type: "success" | "info" | "warning" | "danger" | "error";
+  timestamp: string;
+  read: boolean;
+  actionTab?: string;
 }
 
-// --- HORIZONTAL FUNNEL COMPONENT ---
-export function HorizontalFunnel({
-  steps,
-  title = "Sales Funnel",
-  subtitle = "TikTok Shop Live Performance",
-  tag = "",
-}: {
-  steps: { label: string; value: string | number; raw?: number }[];
-  title?: string;
-  subtitle?: string;
-  tag?: string;
-}) {
-  const colors = ["#dce4f4", "#aebbef", "#83a3f0", "#5681ea", "#1c52e4"];
-  const stepWidth = steps.length > 0 ? 1000 / steps.length : 1000;
-
-  return (
-    <div className="w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm font-sans flex flex-col justify-between text-left col-span-full">
-      {(title || subtitle || tag) && (
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            {title && (
-              <h4 className="text-sm font-black text-slate-800 flex items-center gap-1.5 font-sans">
-                <Sparkles className="w-4 h-4 text-amber-500" /> {title}
-              </h4>
-            )}
-            {subtitle && (
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                {subtitle}
-              </p>
-            )}
-          </div>
-          {tag && (
-            <span className="text-[9px] bg-slate-100 font-extrabold text-slate-500 px-2 py-0.5 rounded-md">
-              {tag}
-            </span>
-          )}
-        </div>
-      )}
-
-      <div className="flex w-full mb-6 mt-2">
-        {steps.map((step, i) => {
-          const prevRaw = i > 0 ? steps[i - 1].raw : undefined;
-          const pct = typeof step.raw !== 'undefined' && typeof prevRaw !== 'undefined' && prevRaw > 0 
-                      ? ((step.raw / prevRaw) * 100).toFixed(1) 
-                      : undefined;
-          return (
-          <div
-            key={i}
-            className={`flex-1 ${i !== 0 ? "border-l border-slate-200" : ""} px-4`}
-          >
-            <div className="text-[11px] sm:text-[13px] text-slate-500 mb-2 font-medium whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
-              <span>{step.label}</span>
-              {pct !== undefined && (
-                <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
-                  {pct}%
-                </span>
-              )}
-            </div>
-            <div className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
-              {step.value}
-            </div>
-          </div>
-        )})}
-      </div>
-
-      <div className="w-full h-[80px] sm:h-[110px] relative -mt-2">
-        <svg
-          viewBox="0 0 1000 130"
-          preserveAspectRatio="none"
-          className="w-full h-full"
-        >
-          <defs>
-            <clipPath
-              id={`funnel-inner-clip-${title.replace(/[^a-zA-Z0-9]/g, "")}`}
-            >
-              <path d="M 0,20 Q 300,35 1000,42 L 1000,88 Q 300,95 0,110 Z" />
-            </clipPath>
-          </defs>
-
-          {/* Outer halo background */}
-          <path
-            d="M 0,0 Q 300,25 1000,35 L 1000,95 Q 300,105 0,130 Z"
-            fill="#e9effc"
-            opacity="0.6"
-          />
-
-          <g
-            clipPath={`url(#funnel-inner-clip-${title.replace(/[^a-zA-Z0-9]/g, "")})`}
-          >
-            {steps.map((_, i) => (
-              <rect
-                key={i}
-                x={i * stepWidth}
-                y="0"
-                width={stepWidth + 1} // +1 to prevent rendering gaps
-                height="130"
-                fill={colors[i % colors.length]}
-              />
-            ))}
-          </g>
-        </svg>
-      </div>
-    </div>
-  );
+interface HostNotificationItem {
+  id: string;
+  hostId: string;
+  title: string;
+  message: string;
+  date: string;
+  createdAt: string;
+  read: boolean;
 }
-// --- END HORIZONTAL FUNNEL COMPONENT ---
 
-const getBrandColor = (brandName: string) => {
-  if (!brandName)
-    return {
-      bg: "bg-emerald-100",
-      text: "text-emerald-800",
-      border: "border-emerald-300",
-    };
-  const colors = [
-    {
-      bg: "bg-indigo-100",
-      text: "text-indigo-800",
-      border: "border-indigo-300",
-    },
-    {
-      bg: "bg-emerald-100",
-      text: "text-emerald-800",
-      border: "border-emerald-300",
-    },
-    { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300" },
-    { bg: "bg-sky-100", text: "text-sky-800", border: "border-sky-300" },
-    {
-      bg: "bg-fuchsia-100",
-      text: "text-fuchsia-800",
-      border: "border-fuchsia-300",
-    },
-    { bg: "bg-teal-100", text: "text-teal-800", border: "border-teal-300" },
-    {
-      bg: "bg-orange-100",
-      text: "text-orange-800",
-      border: "border-orange-300",
-    },
-    { bg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300" },
-  ];
-  let hash = 0;
-  for (let i = 0; i < brandName.length; i++) {
-    hash = brandName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
+
+type ShopeeRawGroupRow = {
+  label: string;
+  duration?: number;
+  penonton: number;
+  gmv: number;
+  products_sold: number;
+  orders: number;
 };
 
-export const getShiftFromHour = (hour: number, shiftsList: string[]) => {
-  for (const shiftStr of shiftsList) {
-    const match = shiftStr.match(
-      /\((\d{1,2})[.:]\d{2}\s*-\s*(\d{1,2})[.:]\d{2}\)/,
-    );
-    if (match) {
-      const startH = parseInt(match[1], 10);
-      const endH = parseInt(match[2], 10);
-
-      if (startH <= endH) {
-        if (hour >= startH && hour < endH) return shiftStr;
-      } else {
-        // Crosses midnight
-        if (hour >= startH || hour < endH) return shiftStr;
-      }
-    }
-  }
+type ReportChartPoint = {
+  date: string;
+  gmv: number;
+  orders: number;
+  itemsSold: number;
+  clicks: number;
+  penonton: number;
 };
 
-export function SearchableHostSelect({
-  hosts,
-  value,
-  onChange,
-  placeholder = "-- Pilih Host --",
-  className = "",
-  triggerClassName = "w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold text-left text-slate-700 hover:bg-slate-100/50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 cursor-pointer transition-all flex items-center justify-between min-h-[42px]",
-  valueType = "id",
-  includeType = false,
-  includeStudio = false,
-  showAllOption = false,
-  allOptionLabel = "Semua Host",
-}: {
-  hosts: any[];
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  className?: string;
-  triggerClassName?: string;
-  valueType?: "id" | "name";
-  includeType?: boolean;
-  includeStudio?: boolean;
-  showAllOption?: boolean;
-  allOptionLabel?: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
-
-  // Reset search when opening/closing
-  useEffect(() => {
-    if (!isOpen) {
-      setSearch("");
-    }
-  }, [isOpen]);
-
-  // Find currently selected host
-  const selectedHost = (hosts || []).find((h) => 
-    h && (valueType === "id" ? h.id === value : h.name === value)
-  );
-
-  // Filter hosts based on search query
-  const filteredHosts = (hosts || []).filter((h) =>
-    h && (
-      (h.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (h.studio && h.studio.toLowerCase().includes(search.toLowerCase())) ||
-      (h.hostType && h.hostType.toLowerCase().includes(search.toLowerCase()))
-    )
-  );
-
-  const handleSelect = (val: string) => {
-    onChange(val);
-    setIsOpen(false);
-  };
-
-  return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={triggerClassName}
-      >
-        <span className="truncate">
-          {showAllOption && value === "all"
-            ? allOptionLabel
-            : selectedHost
-            ? `${selectedHost.name || ""}${
-                includeType && selectedHost.hostType
-                  ? ` (${selectedHost.hostType})`
-                  : ""
-              }${
-                includeStudio && selectedHost.studio
-                  ? ` (${selectedHost.studio.replace(/^Studio\s+/, "")})`
-                  : ""
-              }`
-            : placeholder}
-        </span>
-        <span className="text-[10px] text-slate-400 select-none ml-2 shrink-0">
-          ▼
-        </span>
-      </button>
-
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-[150] p-2 flex flex-col gap-2 animate-fadeIn origin-top">
-          {/* Search Input */}
-          <div className="relative flex-shrink-0">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari host..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
-              autoFocus
-            />
-          </div>
-
-          {/* Options List */}
-          <div className="max-h-[200px] overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
-            {showAllOption && !search && (
-              <button
-                type="button"
-                onClick={() => handleSelect("all")}
-                className={`w-full px-3 py-2 rounded-lg text-left text-xs font-bold transition-colors cursor-pointer ${
-                  value === "all"
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {allOptionLabel}
-              </button>
-            )}
-
-            {filteredHosts.length > 0 ? (
-              filteredHosts.map((h, i) => {
-                const isSelected = valueType === "id" ? h.id === value : h.name === value;
-                return (
-                  <button
-                    key={h.id + "_" + i}
-                    type="button"
-                    onClick={() => handleSelect(valueType === "id" ? h.id : h.name)}
-                    className={`w-full px-3 py-2 rounded-lg text-left text-xs font-bold transition-colors cursor-pointer flex justify-between items-center ${
-                      isSelected
-                        ? "bg-indigo-50 text-indigo-700"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span className="truncate">
-                      {h.name || ""}
-                      {includeStudio && h.studio && (
-                        <span className="text-[10px] text-slate-400 font-semibold ml-1.5">
-                          ({h.studio.replace(/^Studio\s+/, "")})
-                        </span>
-                      )}
-                    </span>
-                    {includeType && h.hostType && (
-                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border shrink-0 ${
-                        h.hostType === "Reguler"
-                          ? "bg-indigo-50/50 text-indigo-600 border-indigo-100"
-                          : "bg-emerald-50/50 text-emerald-600 border-emerald-100"
-                      }`}>
-                        {h.hostType}
-                      </span>
-                    )}
-                  </button>
-                );
-              })
-            ) : (
-              <div className="py-6 text-center text-xs text-slate-400 italic">
-                Host tidak ditemukan
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+type DailyEngagementAggregate = {
+  date: string;
+  penonton: number;
+  likes: number;
+  shares: number;
+  comments: number;
+  followers: number;
+};
 
 export default function App() {
   const initPath = window.location.pathname;
   const initRoleMatch = initPath.match(/\/login\/(admin|host|brand)/);
-
-  const formatDateYYYYMMDD = (d: Date) => {
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  const formatDateUI = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-
-      const hasTime = dateStr.includes("T") || dateStr.includes(":");
-      const useUTC = dateStr.endsWith("Z");
-      
-      const day = String(useUTC ? d.getUTCDate() : d.getDate()).padStart(2, '0');
-      const month = String((useUTC ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
-      const year = useUTC ? d.getUTCFullYear() : d.getFullYear();
-      
-      const hh = String(useUTC ? d.getUTCHours() : d.getHours()).padStart(2, '0');
-      const mm = String(useUTC ? d.getUTCMinutes() : d.getMinutes()).padStart(2, '0');
-      const ss = String(useUTC ? d.getUTCSeconds() : d.getSeconds()).padStart(2, '0');
-      
-      if (!hasTime || (hh === '00' && mm === '00' && ss === '00')) {
-         return `${day}/${month}/${year}`;
-      } else {
-         return `${day}/${month}/${year} ${hh}:${mm}:${ss}`;
-      }
-    } catch(e) {
-      return dateStr;
-    }
-  };
-
-  const formatDateTimeSafe = (
-    value?: string,
-    options?: Intl.DateTimeFormatOptions,
-  ) => {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat("id-ID", options || {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
-
-  const getDaysInMonthGrid = (year: number, month: number) => {
-    const firstDay = new Date(year, month - 1, 1);
-    let firstDayOfWeek = firstDay.getDay();
-    // Convert Sun-Sat to Mon-Sun (Mon is 0, Sun is 6)
-    firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
-
-    const grid: Date[] = [];
-
-    // Prior month days
-    const prevMonthEnd = new Date(year, month - 1, 0);
-    const prevMonthDaysCount = prevMonthEnd.getDate();
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-      grid.push(new Date(year, month - 2, prevMonthDaysCount - i));
-    }
-
-    // Current month days
-    const currMonthEnd = new Date(year, month, 0);
-    const currMonthDaysCount = currMonthEnd.getDate();
-    for (let i = 1; i <= currMonthDaysCount; i++) {
-      grid.push(new Date(year, month - 1, i));
-    }
-
-    // Next month days to fill grid (42 days)
-    const remainingCells = 42 - grid.length;
-    for (let i = 1; i <= remainingCells; i++) {
-      grid.push(new Date(year, month, i));
-    }
-
-    return grid;
-  };
-
-  const formatHumanDate = (dateStr: string) => {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const monthNames = [
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-    ];
-    // Let's use standard English month names in proper ordering
-    const correctedMonths = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    return `${correctedMonths[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-  };
-
-  const getPresetDates = (
-    preset:
-      | "all"
-      | "last7"
-      | "last28"
-      | "calendarDay"
-      | "week"
-      | "month"
-      | "custom",
-  ) => {
-    const today = new Date();
-    let start = new Date(today);
-    let end = new Date(today);
-
-    if (preset === "last7") {
-      end.setDate(today.getDate() - 1);
-      start.setDate(today.getDate() - 7);
-    } else if (preset === "last28") {
-      end.setDate(today.getDate() - 1);
-      start.setDate(today.getDate() - 28);
-    } else if (preset === "calendarDay") {
-      start = new Date(today);
-      end = new Date(today);
-    } else if (preset === "week") {
-      const day = today.getDay();
-      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-      start.setDate(diff);
-      end = new Date(start);
-      end.setDate(start.getDate() + 6);
-    } else if (preset === "month") {
-      start = new Date(today.getFullYear(), today.getMonth(), 1);
-      end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    } else if (preset === "all") {
-      return { start: "", end: "" };
-    }
-
-    return {
-      start: formatDateYYYYMMDD(start),
-      end: formatDateYYYYMMDD(end),
-    };
-  };
 
   // Dynamic Platforms, Brands, and Shifts lists which can be customized
   const [platforms, _setPlatforms] = useState<string[]>(PLATFORMS);
@@ -1028,7 +324,7 @@ export default function App() {
   const [isQuotaBannerDismissed, setIsQuotaBannerDismissed] = useState(false);
 
   // --- GOOGLE SHEETS SYNC SYSTEM STATE ---
-  const [googleUser, setGoogleUser] = useState<any>(null);
+  const [googleUser, setGoogleUser] = useState<GoogleUserProfile | null>(null);
   const [googleToken, setGoogleToken] = useState<string | null>(null);
   const [sheetsAuthLoading, setSheetsAuthLoading] = useState(false);
 
@@ -1037,7 +333,9 @@ export default function App() {
   const [uploadBrand, setUploadBrand] = useState<string>("");
   const [uploadPlatform, setUploadPlatform] = useState<string>("Tiktok");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadHistory, setUploadHistory] = useState<any[]>([]);
+  const [uploadHistory, setUploadHistory] = useState<UploadHistoryEntry[]>(
+    [],
+  );
 
   useEffect(() => {
     if (isGlobalConfigsLoaded && uploadHistory.length > 0) {
@@ -1046,7 +344,9 @@ export default function App() {
   }, [uploadHistory, isGlobalConfigsLoaded]);
 
 
-  const [brandReports, setBrandReports] = useState<Record<string, any[]>>({});
+  const [brandReports, setBrandReports] = useState<
+    Record<string, BrandReportRow[]>
+  >({});
 
   useEffect(() => {
     if (isGlobalConfigsLoaded && Object.keys(brandReports).length > 0) {
@@ -1075,11 +375,12 @@ export default function App() {
   const [reportSortKey, setReportSortKey] = useState<string>("name");
   const [reportSortDir, setReportSortDir] = useState<"desc" | "asc">("desc");
   const [editingReportIdx, setEditingReportIdx] = useState<string | null>(null);
-  const [editingReportForm, setEditingReportForm] = useState<any>({});
+  const [editingReportForm, setEditingReportForm] =
+    useState<Partial<ClientReporting>>({});
 
   const [showMappingModal, setShowMappingModal] = useState<boolean>(false);
   const [mappingHeaders, setMappingHeaders] = useState<string[]>([]);
-  const [mappingRawData, setMappingRawData] = useState<any[]>([]);
+  const [mappingRawData, setMappingRawData] = useState<unknown[][]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({
     date: "",
     gmv: "",
@@ -1127,8 +428,9 @@ export default function App() {
     setAlertState({ message });
   };
 
-  const handleQuotaError = useCallback((err: any, context?: string) => {
-    if (err && err.message && err.message.toLowerCase().includes("quota")) {
+  const handleQuotaError = useCallback((err: unknown, context?: string) => {
+    const message = err instanceof Error ? err.message : String(err ?? "");
+    if (message.toLowerCase().includes("quota")) {
       setIsQuotaExceeded(true);
       console.warn(`Firestore Quota Limit Exceeded detected in ${context || "general"}. Standard cached/local values are active.`);
     } else {
@@ -1137,13 +439,19 @@ export default function App() {
   }, []);
 
   const [agencyLogoUrl, _setAgencyLogoUrl] = useState<string>("");
-  const setAgencyLogoUrl = useCallback((action: any) => {
-    _setAgencyLogoUrl((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
-      saveLocalConfig({ agencyLogoUrl: next });
-      return next;
-    });
-  }, []);
+  const setAgencyLogoUrl = useCallback(
+    (action: React.SetStateAction<string>) => {
+      _setAgencyLogoUrl((prev) => {
+        const next =
+          typeof action === "function"
+            ? (action as (prevState: string) => string)(prev)
+            : action;
+        saveLocalConfig({ agencyLogoUrl: next });
+        return next;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (agencyLogoUrl) {
@@ -1172,33 +480,46 @@ export default function App() {
     { id: "std_4", name: "Studio 02", location: "Tanggamus" },
   ]);
 
-  const setPlatforms = useCallback((action: any) => {
+  const setPlatforms = useCallback((action: React.SetStateAction<string[]>) => {
     _setPlatforms((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: string[]) => string[])(prev)
+          : action;
       saveLocalConfig({ platforms: next });
       return next;
     });
   }, []);
 
-  const setBrands = useCallback((action: any) => {
+  const setBrands = useCallback((action: React.SetStateAction<string[]>) => {
     _setBrands((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: string[]) => string[])(prev)
+          : action;
       saveLocalConfig({ brands: next });
       return next;
     });
   }, []);
 
-  const setShifts = useCallback((action: any) => {
+  const setShifts = useCallback((action: React.SetStateAction<string[]>) => {
     _setShifts((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: string[]) => string[])(prev)
+          : action;
       saveLocalConfig({ shifts: next });
       return next;
     });
   }, []);
 
-  const setStudios = useCallback((action: any) => {
+  const setStudios = useCallback(
+    (action: React.SetStateAction<StudioItem[]>) => {
     _setStudios((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: StudioItem[]) => StudioItem[])(prev)
+          : action;
       saveLocalConfig({ studios: next });
       return next;
     });
@@ -1226,10 +547,10 @@ export default function App() {
           clientBrands.find((b) => b.id === brandId)?.name || brandId;
         // Group by platform so we can show one entry per platform
         const platforms = Array.from(
-          new Set((records as any[]).map((r) => r.platform || "Tiktok")),
+          new Set((records as BrandReportRow[]).map((r) => r.platform || "Tiktok")),
         );
         platforms.forEach((plat) => {
-          const platRecords = (records as any[]).filter(
+          const platRecords = (records as BrandReportRow[]).filter(
             (r) => (r.platform || "Tiktok") === plat,
           );
           if (platRecords.length > 0) {
@@ -1289,21 +610,62 @@ export default function App() {
 
   const [loggedInClientBrandId, setLoggedInClientBrandId] = useState<
     string | null
-  >(() => {
-    return sessionStorage.getItem("mcn_logged_in_client_brand_id") || null;
-  });
+  >(null);
 
-  const [loggedInHostId, setLoggedInHostId] = useState<string | null>(() => {
-    return sessionStorage.getItem("mcn_logged_in_host_id") || null;
-  });
+  const [loggedInHostId, setLoggedInHostId] = useState<string | null>(null);
 
-  const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(() => {
-    return sessionStorage.getItem("mcn_logged_in_admin_id") || null;
-  });
+  const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(null);
 
-  const [isOperatorLoggedIn, setIsOperatorLoggedIn] = useState<boolean>(() => {
-    return sessionStorage.getItem("mcn_is_operator_logged_in") === "true";
-  });
+  const [authSession, setAuthSession] = useState<AuthSession | null>(null);
+
+  const [isOperatorLoggedIn, setIsOperatorLoggedIn] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    authApi
+      .getSession()
+      .then((session) => {
+        if (cancelled || !session) return;
+        setAuthSession(session);
+        if (session.role === "host") setLoggedInHostId(session.subjectId);
+        if (session.role === "brand") setLoggedInClientBrandId(session.subjectId);
+        if (session.role === "master" || session.role === "admin") {
+          setIsOperatorLoggedIn(true);
+          setLoggedInAdminId(session.role === "admin" ? session.subjectId : null);
+          if (session.accessTabs?.length) {
+            setOperatorTab(session.accessTabs[0] as AdminTab);
+          }
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoggedInClientBrandId(null);
+        setLoggedInHostId(null);
+        setLoggedInAdminId(null);
+        setIsOperatorLoggedIn(false);
+        setAuthSession(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsAuthReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    authApi.logout().catch(console.error);
+    setLoggedInClientBrandId(null);
+    setLoggedInHostId(null);
+    setLoggedInAdminId(null);
+    setIsOperatorLoggedIn(false);
+    setAuthSession(null);
+    setClientLoginBrandId("");
+    setClientLoginPass("");
+  }, []);
 
   // Refs untuk menjaga nilai terbaru tanpa re-render
   const salarySettingsRef = useRef(salarySettings);
@@ -1323,41 +685,51 @@ export default function App() {
 
   // Simpan salarySettings ke localStorage (dengan debounce 1 detik)
   useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
+    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn) return;
     const timer = setTimeout(() => {
       saveLocalConfig({ salarySettings });
     }, 1000);
     return () => clearTimeout(timer);
-  }, [salarySettings, isGlobalConfigsLoaded]);
+  }, [salarySettings, isGlobalConfigsLoaded, isOperatorLoggedIn]);
 
   // Simpan spreadsheet settings ke localStorage
   useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
+    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn) return;
     const timer = setTimeout(() => {
       saveLocalConfig({ spreadsheetId, spreadsheetUrl, autoSyncSheets });
     }, 1000);
     return () => clearTimeout(timer);
-  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets, isGlobalConfigsLoaded]);
+  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets, isGlobalConfigsLoaded, isOperatorLoggedIn]);
 
 
   useEffect(() => {
-    let unsubs: any[] = [];
     let cancelled = false;
+
+    if (!isAuthReady) return;
 
     const isAdminOrOperator = loggedInAdminId || isOperatorLoggedIn;
     const isHost = loggedInHostId;
     const isBrand = loggedInClientBrandId;
     const isGuest = !isAdminOrOperator && !isHost && !isBrand;
+    const isMaster = authSession?.role === "master";
+    const canLoad = (...tabs: string[]) =>
+      isMaster || canAccessAnyTab(authSession?.accessTabs, tabs);
+
+    if (isGuest) {
+      setIsGlobalConfigsLoaded(true);
+      setIsLogsLoading(false);
+      return;
+    }
 
     // MySQL REST API: load semua data sesuai role
     // (tidak ada real-time listener, data di-fetch saat mount)
     const loadAll = async () => {
       setIsLogsLoading(true);
       try {
-        const loadTasks: Promise<any>[] = [];
+        const loadTasks: Promise<unknown>[] = [];
 
         // 1. admin_accounts
-        if (isGuest || isAdminOrOperator) {
+        if (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.adminAccounts)) {
           loadTasks.push(
             adminAccountsApi
               .getAll()
@@ -1367,37 +739,39 @@ export default function App() {
         }
 
         // 2. hosts
-        if (isGuest || isAdminOrOperator || isHost) {
+        if (isHost || (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.hosts))) {
           loadTasks.push(
-            hostsApi
-              .getAll()
+            (isHost
+              ? hostsApi.getById(loggedInHostId).then((host) => [host])
+              : hostsApi.getAll())
               .then(_setHosts)
               .catch((err) => handleQuotaError(err, "hosts")),
           );
         }
 
         // 3. logs
-        if (isAdminOrOperator || isHost) {
+        if (isHost || (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.logs))) {
           loadTasks.push(
             logsApi
-              .getAll()
+              .getAll(isHost ? { hostId: loggedInHostId } : undefined)
               .then(_setLogs)
               .catch((err) => handleQuotaError(err, "logs")),
           );
         }
 
         // 4. client_brands
-        if (isGuest || isAdminOrOperator || isBrand) {
+        if (isBrand || (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.clientBrands))) {
           loadTasks.push(
-            clientBrandsApi
-              .getAll()
+            (isBrand
+              ? clientBrandsApi.getById(loggedInClientBrandId).then((brand) => [brand])
+              : clientBrandsApi.getAll())
               .then(_setClientBrands)
               .catch((err) => handleQuotaError(err, "client_brands")),
           );
         }
 
         // 5. client_leads
-        if (isAdminOrOperator) {
+        if (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.clientLeads)) {
           loadTasks.push(
             clientLeadsApi
               .getAll()
@@ -1407,17 +781,27 @@ export default function App() {
         }
 
         // 6. schedules
-        if (isAdminOrOperator || isHost || isBrand) {
+        if (
+          isHost ||
+          isBrand ||
+          (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.schedules))
+        ) {
           loadTasks.push(
             schedulesApi
-              .getAll()
+              .getAll(
+                isHost
+                  ? { hostId: loggedInHostId }
+                  : isBrand
+                    ? { brandId: loggedInClientBrandId }
+                    : undefined,
+              )
               .then(_setSchedules)
               .catch((err) => handleQuotaError(err, "schedules")),
           );
         }
 
         // 7. alerts
-        if (isAdminOrOperator) {
+        if (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.alerts)) {
           loadTasks.push(
             alertsApi
               .getAll()
@@ -1430,24 +814,10 @@ export default function App() {
           );
         }
 
-        // Fetch adminCredentials from backend
-        loadTasks.push(
-          settingsApi
-            .get("adminCredentials")
-            .then((data) => {
-              if (data && data.username && data.password) {
-                setAdminCredentials(data);
-              }
-            })
-            .catch((err) =>
-              console.error("Error fetching adminCredentials from API:", err),
-            ),
-        );
-
         // Global configs — load dari MySQL (dengan fallback ke localStorage)
         loadTasks.push(
-          settingsApi
-            .get("liva_global_configs")
+        settingsApi
+            .get<GlobalConfigData | string>("liva_global_configs")
             .then((mysqlData) => {
               let data = mysqlData;
               if (typeof data === "string") {
@@ -1477,68 +847,27 @@ export default function App() {
                       data = JSON.parse(data); // fix corrupted localStorage
 
                     // Migrasikan ke MySQL agar sinkron
-                    settingsApi
-                      .save("liva_global_configs", data)
-                      .catch(console.error);
+                    if (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.settings)) {
+                      settingsApi
+                        .save("liva_global_configs", data)
+                        .catch(console.error);
+                    }
                   } catch {
                     /* ignore parse error */
                   }
                 } else {
                   // Seed default global configs
-                  const defaults = {
-                    platforms: PLATFORMS,
-                    brands: BRANDS,
-                    shifts: SHIFTS,
-                    studios: [
-                      {
-                        id: "std_1",
-                        name: "Studio Bandar Lampung",
-                        location: "Bandar Lampung",
-                      },
-                      {
-                        id: "std_2",
-                        name: "Studio Tanggamus",
-                        location: "Tanggamus",
-                      },
-                      {
-                        id: "std_3",
-                        name: "Studio 01",
-                        location: "Bandar Lampung",
-                      },
-                      {
-                        id: "std_4",
-                        name: "Studio 02",
-                        location: "Tanggamus",
-                      },
-                    ],
-                    agencyLogoUrl: "",
-                    salarySettings: {
-                      workingDays: 26,
-                      bandarLampungRegulerBase: 4000000,
-                      tanggamusRegulerBase: 3500000,
-                      bandarLampungBackupPay: 175000,
-                      tanggamusBackupPay: 150000,
-                      bandarLampungRegulerBonus: 300000,
-                      tanggamusRegulerBonus: 250000,
-                      overtimePayPerHour: 20000,
-                      useCutOff: true,
-                      cutOffStartDay: 16,
-                      cutOffEndDay: 15,
-                    },
-                    adminCredentials: {
-                      username: "admin",
-                      password: "Liva123@@",
-                    },
-                    adminShiftChecklistObj: {},
-                  };
+                  const defaults = DEFAULT_GLOBAL_CONFIG;
                   data = defaults;
                   localStorage.setItem(
                     "liva_global_configs",
                     JSON.stringify(defaults),
                   );
-                  settingsApi
-                    .save("liva_global_configs", defaults)
-                    .catch(console.error);
+                  if (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.settings)) {
+                    settingsApi
+                      .save("liva_global_configs", defaults)
+                      .catch(console.error);
+                  }
                 }
               } else {
                 // MySQL has data, save to localStorage for offline cache
@@ -1546,22 +875,21 @@ export default function App() {
               }
 
               // Set all the states
-              if (data) {
-                if (Array.isArray(data.brands)) _setBrands(data.brands);
-                if (Array.isArray(data.shifts)) _setShifts(data.shifts);
-                if (Array.isArray(data.studios)) _setStudios(data.studios);
-                if (Array.isArray(data.platforms)) _setPlatforms(data.platforms);
-                if (typeof data.agencyLogoUrl === "string")
-                  _setAgencyLogoUrl(data.agencyLogoUrl);
-                if (data.salarySettings) setSalarySettings(data.salarySettings);
-                if (data.adminCredentials)
-                  setAdminCredentials((prev) =>
-                    prev.username === "admin" && prev.password === "Liva123@@"
-                      ? data.adminCredentials
-                      : prev,
-                  );
-                if (data.adminShiftChecklistObj)
-                  setAdminShiftChecklistObj(data.adminShiftChecklistObj);
+              const configData =
+                data && typeof data === "object"
+                  ? (data as GlobalConfigData)
+                  : null;
+
+              if (configData) {
+                if (Array.isArray(configData.brands)) _setBrands(configData.brands);
+                if (Array.isArray(configData.shifts)) _setShifts(configData.shifts);
+                if (Array.isArray(configData.studios)) _setStudios(configData.studios);
+                if (Array.isArray(configData.platforms)) _setPlatforms(configData.platforms);
+                if (typeof configData.agencyLogoUrl === "string")
+                  _setAgencyLogoUrl(configData.agencyLogoUrl);
+                if (configData.salarySettings) setSalarySettings(configData.salarySettings);
+                if (configData.adminShiftChecklistObj)
+                  setAdminShiftChecklistObj(configData.adminShiftChecklistObj);
               }
             })
             .catch((err) => {
@@ -1588,35 +916,48 @@ export default function App() {
       cancelled = true;
     };
 
-  }, [loggedInHostId, loggedInAdminId, isOperatorLoggedIn, loggedInClientBrandId]);
+  }, [isAuthReady, loggedInHostId, loggedInAdminId, isOperatorLoggedIn, loggedInClientBrandId, authSession]);
 
-  const setHosts = useCallback((action: any) => {
+  const setHosts = useCallback((action: React.SetStateAction<HostEmployee[]>) => {
     _setHosts((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: HostEmployee[]) => HostEmployee[])(prev)
+          : action;
       syncToFirestore("hosts", prev, next);
       return next;
     });
   }, []);
 
-  const setLogs = useCallback((action: any) => {
+  const setLogs = useCallback((action: React.SetStateAction<AttendanceLog[]>) => {
     _setLogs((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: AttendanceLog[]) => AttendanceLog[])(prev)
+          : action;
       syncToFirestore("logs", prev, next);
       return next;
     });
   }, []);
 
-  const setClientBrands = useCallback((action: any) => {
+  const setClientBrands = useCallback(
+    (action: React.SetStateAction<ClientBrand[]>) => {
     _setClientBrands((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: ClientBrand[]) => ClientBrand[])(prev)
+          : action;
       syncToFirestore("client_brands", prev, next);
       return next;
     });
   }, []);
 
-  const setClientLeads = useCallback((action: any) => {
+  const setClientLeads = useCallback((action: React.SetStateAction<ClientLead[]>) => {
     _setClientLeads((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: ClientLead[]) => ClientLead[])(prev)
+          : action;
       syncToFirestore("client_leads", prev, next);
       return next;
     });
@@ -1639,11 +980,14 @@ export default function App() {
   const [leadSearchQuery, setLeadSearchQuery] = useState("");
 
   // --- SCHEDULES SYSTEM FOR HOST WORKING CALENDAR ---
-  const [schedules, _setSchedules] = useState<any[]>([]);
+  const [schedules, _setSchedules] = useState<ShiftSchedule[]>([]);
 
-  const setSchedules = useCallback((action: any) => {
+  const setSchedules = useCallback((action: React.SetStateAction<ShiftSchedule[]>) => {
     _setSchedules((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: ShiftSchedule[]) => ShiftSchedule[])(prev)
+          : action;
       syncToFirestore("schedules", prev, next);
       return next;
     });
@@ -1686,9 +1030,13 @@ export default function App() {
   const [clientLoginBrandId, setClientLoginBrandId] = useState<string>("");
   const [clientLoginUsername, setClientLoginUsername] = useState<string>("");
   const [clientLoginPass, setClientLoginPass] = useState<string>("");
-  const [brandPerformanceLogs, setBrandPerformanceLogs] = useState<any[]>([]);
+  const [brandPerformanceLogs, setBrandPerformanceLogs] = useState<
+    BrandPerformanceLogEntry[]
+  >([]);
   const [isLogsLoading, setIsLogsLoading] = useState<boolean>(true);
-  const [brandUploadHistory, setBrandUploadHistory] = useState<any[]>([]);
+  const [brandUploadHistory, setBrandUploadHistory] = useState<
+    UploadHistoryEntry[]
+  >([]);
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [clientDateFilterType, setClientDateFilterType] = useState<
     "latest" | "all" | "month" | "weekly" | "custom"
@@ -1740,47 +1088,33 @@ export default function App() {
   const [hoveredCalendarDate, setHoveredCalendarDate] = useState("");
   const [trendFilters, setTrendFilters] = useState({ gmv: true, views: true });
 
-  const getIndonesianMonthLabel = (monthStr: string) => {
-    if (!monthStr) return "";
-    const [year, month] = monthStr.split("-");
-    const monthNames = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
-    ];
-    const monthLabel = monthNames[parseInt(month) - 1] || "";
-    return monthLabel;
-  };
+  const handleClientDateFilterSelect = (
+    value: "latest" | "all" | "month" | "custom",
+  ) =>
+    applyDateFilterSelection({
+      value,
+      setFilterType: setClientDateFilterType,
+      setMonthOpen: setIsClientMonthOpen,
+      setCalendarOpen: setIsClientCalendarOpen,
+      setTempStartDate: setClientTempStartDate,
+      setTempEndDate: setClientTempEndDate,
+      currentStartDate: clientCustomStartDate,
+      currentEndDate: clientCustomEndDate,
+    });
 
-  const getOperatorDateDescription = () => {
-    if (operatorDateFilterType === "all") {
-      return "Menampilkan semua data tanpa batasan waktu (Semua Periode)";
-    }
-
-    const startStr = formatHumanDate(operatorCustomStartDate);
-    const endStr = formatHumanDate(operatorCustomEndDate);
-
-    let label = "";
-    if (operatorDateFilterType === "month") {
-      label = `Periode Bulan ${getIndonesianMonthLabel(operatorSelectedMonth)}`;
-    } else if (operatorDateFilterType === "custom") {
-      label = "Rentang Kustom";
-    }
-
-    if (startStr === endStr) {
-      return `${label}: ${startStr}`;
-    }
-    return `${label}: ${startStr} hingga ${endStr}`;
-  };
+  const handleOperatorDateFilterSelect = (
+    value: "latest" | "all" | "month" | "custom",
+  ) =>
+    applyDateFilterSelection({
+      value,
+      setFilterType: setOperatorDateFilterType,
+      setMonthOpen: setIsOperatorMonthOpen,
+      setCalendarOpen: setIsOperatorCalendarOpen,
+      setTempStartDate: setOperatorTempStartDate,
+      setTempEndDate: setOperatorTempEndDate,
+      currentStartDate: operatorCustomStartDate,
+      currentEndDate: operatorCustomEndDate,
+    });
 
   useEffect(() => {
     if (operatorDateFilterType === "month") {
@@ -1839,21 +1173,14 @@ export default function App() {
   const [hostError, setHostError] = useState("");
 
   // Admin credentials & login session
-  const [adminCredentials, setAdminCredentials] = useState<{ username: string; password: string }>({ username: "admin", password: "Liva123@@" });
-
-  useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
-    const timer = setTimeout(() => {
-      saveLocalConfig({ adminCredentials });
-      settingsApi.save('adminCredentials', adminCredentials).catch(console.error);
-    }, 1000); // 1-second debounce
-    return () => clearTimeout(timer);
-  }, [adminCredentials, isGlobalConfigsLoaded]);
-
   const [adminAccounts, _setAdminAccounts] = useState<AdminAccount[]>([]);
-  const setAdminAccounts = useCallback((action: any) => {
+  const setAdminAccounts = useCallback(
+    (action: React.SetStateAction<AdminAccount[]>) => {
     _setAdminAccounts((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
+      const next =
+        typeof action === "function"
+          ? (action as (prevState: AdminAccount[]) => AdminAccount[])(prev)
+          : action;
       syncToFirestore("admin_accounts", prev, next);
       return next;
     });
@@ -2035,7 +1362,7 @@ export default function App() {
 
     // Safety check: if host logged in, logout
     if (loggedInHostId === hostId) {
-      setLoggedInHostId(null);
+      handleLogout();
     }
   };
 
@@ -2493,69 +1820,66 @@ export default function App() {
     reportBrandPage * 9,
   );
 
-  const activeReportBrandUploadHistory = useMemo(() => {
-    if (!activeReportBrandId) return [];
+  const activeReportBrandUploadHistory = useMemo(
+    () =>
+      buildActiveReportBrandUploadHistory({
+        activeReportBrandId: activeReportBrandId || "",
+        brandPerformanceLogs,
+        brandUploadHistory,
+        uploadHistory,
+      }),
+    [activeReportBrandId, brandPerformanceLogs, brandUploadHistory, uploadHistory],
+  );
 
-    const brandLogsForHistory = brandPerformanceLogs.filter(
-      (log) =>
-        log.brandId === activeReportBrandId &&
-        log.reportType !== "engagement",
-    );
+  const liveReportView = useMemo(
+    () =>
+      buildLiveReportViewModel({
+        brandPerformanceLogs,
+        activeReportBrandId: activeReportBrandId || "",
+        dateFilterType: operatorDateFilterType,
+        selectedMonth: operatorSelectedMonth,
+        customStartDate: operatorCustomStartDate,
+        customEndDate: operatorCustomEndDate,
+        searchQuery: reportDbSearchQuery,
+        platformFilter: operatorPlatformFilter,
+        shiftFilters: operatorShiftFilters,
+      }),
+    [
+      activeReportBrandId,
+      brandPerformanceLogs,
+      operatorCustomEndDate,
+      operatorCustomStartDate,
+      operatorDateFilterType,
+      operatorPlatformFilter,
+      operatorSelectedMonth,
+      operatorShiftFilters,
+      reportDbSearchQuery,
+      ],
+  );
 
-    const batchesMap = new Map<string, any>();
-    brandLogsForHistory.forEach((log) => {
-      const batchId = log.batchId;
-      if (!batchId) return;
-      if (!batchesMap.has(batchId)) {
-        batchesMap.set(batchId, {
-          id: batchId,
-          brandId: log.brandId,
-          brandName: log.brandName || "Unknown",
-          platform: log.platform || "Unknown",
-          fileName: "Manual Upload / Legacy Import",
-          uploadedAt: log.uploadedAt || new Date(2023, 0, 1).toISOString(),
-          rowCount: 0,
-          gmv: 0,
-        });
-      }
-      const batch = batchesMap.get(batchId);
-      batch.rowCount += 1;
-      batch.gmv += Number(log.gmv) || 0;
-    });
-
-    const existingBatchIds = new Set(
-      brandUploadHistory.map((history) => history.id),
-    );
-    const missingBatches = Array.from(batchesMap.values()).filter(
-      (batch) => !existingBatchIds.has(batch.id),
-    );
-
-    const localHistories = uploadHistory.filter(
-      (history) =>
-        history.brandId === activeReportBrandId &&
-        history.reportType !== "engagement" &&
-        !existingBatchIds.has(history.id),
-    );
-
-    return [
-      ...brandUploadHistory.filter(
-        (history) =>
-          history.brandId === activeReportBrandId &&
-          history.reportType !== "engagement",
-      ),
-      ...missingBatches,
-      ...localHistories,
-    ]
-      .reduce((acc: any[], current: any) => {
-        if (acc.some((item) => item.id === current.id)) return acc;
-        acc.push(current);
-        return acc;
-      }, [])
-      .sort(
-        (a, b) =>
-          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
-      );
-  }, [activeReportBrandId, brandPerformanceLogs, brandUploadHistory, uploadHistory]);
+  const engagementReportView = useMemo(
+    () =>
+      buildEngagementReportViewModel({
+        brandPerformanceLogs,
+        activeReportBrandId: activeReportBrandId || "",
+        operatorDateFilterType,
+        operatorPlatformFilter,
+        operatorShiftFilters,
+        operatorSelectedMonth,
+        operatorCustomStartDate,
+        operatorCustomEndDate,
+      }),
+    [
+      activeReportBrandId,
+      brandPerformanceLogs,
+      operatorCustomEndDate,
+      operatorCustomStartDate,
+      operatorDateFilterType,
+      operatorPlatformFilter,
+      operatorSelectedMonth,
+      operatorShiftFilters,
+    ],
+  );
 
   useEffect(() => {
     setReportBrandPage(1);
@@ -2572,15 +1896,21 @@ export default function App() {
   const [dayAnalyticsSortAsc, setDayAnalyticsSortAsc] = useState(false);
 
   // --- NOTIFICATION ENGINE ---
-  const [notifications, _setNotifications] = useState<any[]>([]);
+  const [notifications, _setNotifications] = useState<NotificationItem[]>([]);
 
-  const setNotifications = useCallback((action: any) => {
-    _setNotifications((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
-      syncToFirestore("notifications", prev, next);
-      return next;
-    });
-  }, []);
+  const setNotifications = useCallback(
+    (action: React.SetStateAction<NotificationItem[]>) => {
+      _setNotifications((prev) => {
+        const next =
+          typeof action === "function"
+            ? (action as (prevState: NotificationItem[]) => NotificationItem[])(prev)
+            : action;
+        syncToFirestore("notifications", prev, next);
+        return next;
+      });
+    },
+    [],
+  );
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
@@ -2629,15 +1959,21 @@ export default function App() {
   };
 
   // --- HOST NOTIFICATION ENGINE ---
-  const [hostNotifications, _setHostNotifications] = useState<any[]>([]);
+  const [hostNotifications, _setHostNotifications] = useState<HostNotificationItem[]>([]);
 
-  const setHostNotifications = useCallback((action: any) => {
-    _setHostNotifications((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
-      syncToFirestore("host_notifications", prev, next);
-      return next;
-    });
-  }, []);
+  const setHostNotifications = useCallback(
+    (action: React.SetStateAction<HostNotificationItem[]>) => {
+      _setHostNotifications((prev) => {
+        const next =
+          typeof action === "function"
+            ? (action as (prevState: HostNotificationItem[]) => HostNotificationItem[])(prev)
+            : action;
+        syncToFirestore("host_notifications", prev, next);
+        return next;
+      });
+    },
+    [],
+  );
 
   const [isHostNotificationOpen, setIsHostNotificationOpen] = useState(false);
 
@@ -2665,9 +2001,11 @@ export default function App() {
     );
   };
 
-  const [reportingRawData, setReportingRawData] = useState<any[]>([]);
-  const [skuRawData, setSkuRawData] = useState<any[]>([]);
-  const [shopeeSkuLogs, setShopeeSkuLogs] = useState<any[]>([]);
+  const [reportingRawData, setReportingRawData] = useState<ReportingRawRow[]>(
+    [],
+  );
+  const [skuRawData, setSkuRawData] = useState<SkuRawRow[]>([]);
+  const [shopeeSkuLogs, setShopeeSkuLogs] = useState<SkuLogEntry[]>([]);
   const [isDragOverReporting, setIsDragOverReporting] = useState(false);
   const [saveTargetBrandId, setSaveTargetBrandId] = useState("");
   const [saveTargetPlatform, setSaveTargetPlatform] = useState("TikTok Live");
@@ -2686,13 +2024,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!isGlobalConfigsLoaded) return;
+    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn) return;
     const timer = setTimeout(() => {
       saveLocalConfig({ adminShiftChecklistObj });
 
     }, 1000); // 1-second debounce
     return () => clearTimeout(timer);
-  }, [adminShiftChecklistObj, isGlobalConfigsLoaded]);
+  }, [adminShiftChecklistObj, isGlobalConfigsLoaded, isOperatorLoggedIn]);
   const [autoDetectNotice, setAutoDetectNotice] = useState("");
   const [isSavingReport, setIsSavingReport] = useState(false);
 
@@ -2728,9 +2066,9 @@ export default function App() {
           // Hapus dari state lokal
           setBrandPerformanceLogs((prev) => prev.filter((log) => log.id !== id));
           customAlert("Data live stream berhasil dihapus dari database!");
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Gagal menghapus:", err);
-          customAlert("Error: " + err.message);
+          customAlert("Error: " + getErrorMessage(err));
         }
       },
       "danger",
@@ -2777,7 +2115,7 @@ export default function App() {
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
           header: 1,
-        }) as any[];
+        }) as unknown[][];
 
         if (jsonData.length < 2) {
           alert("File kosong atau format salah.");
@@ -2787,7 +2125,7 @@ export default function App() {
         // Find headers
         let headerRowIdx = -1;
         for (let r = 0; r < Math.min(jsonData.length, 50); r++) {
-          const row = jsonData[r] as any[];
+          const row = jsonData[r];
           if (
             row &&
             row?.some(
@@ -2808,7 +2146,7 @@ export default function App() {
 
         let globalDateFallback = "";
         for (let r = 0; r < headerRowIdx; r++) {
-          const row = jsonData[r] as any[];
+          const row = jsonData[r];
           if (!row) continue;
           for (let i = 0; i < row.length; i++) {
             const cellStr = String(row[i] || "");
@@ -2834,7 +2172,7 @@ export default function App() {
           }
         }
 
-        const headers = Array.from(jsonData[headerRowIdx] || []).map((h: any) =>
+        const headers = Array.from(jsonData[headerRowIdx] || []).map((h) =>
           String(h || "")
             .trim()
             .toLowerCase(),
@@ -2864,245 +2202,14 @@ export default function App() {
           setSaveTargetPlatform(detectedPlatform);
         }
 
-        let isMonthFirst = false;
-        let shouldSwapExcelDates = false;
-        let firstVals = new Set<number>();
-        let secondVals = new Set<number>();
-        let definiteMatchFound = false;
-
-        for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
-          const row = jsonData[r] as any[];
-          if (!row || row.length === 0) continue;
-          let dtMatchStr = "";
-          let rawStart: any = null;
-          headers.forEach((h, idx) => {
-            if (
-              h.includes("tanggal") ||
-              h.includes("waktu") ||
-              h.includes("date") ||
-              h.includes("start time") ||
-              h.includes("start") ||
-              h.includes("time") ||
-              h.includes("periode")
-            ) {
-              rawStart = row[idx];
-              dtMatchStr = String(row[idx]);
-            }
-          });
-
-          if (rawStart && typeof rawStart === "number") {
-            const dateObj = XLSX.SSF.parse_date_code(rawStart);
-            firstVals.add(dateObj.d);
-            secondVals.add(dateObj.m);
-            if (dateObj.d > 12) {
-              shouldSwapExcelDates = false;
-              definiteMatchFound = true;
-            } else if (dateObj.m > 12) {
-              shouldSwapExcelDates = true;
-              definiteMatchFound = true;
-            }
-          } else if (dtMatchStr && typeof dtMatchStr === "string") {
-            const allMatches = dtMatchStr.match(/\b(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,4})\b/g);
-            if (allMatches) {
-              for (const matchStr of allMatches) {
-                const dtSplit = matchStr.split(/[\/\-]/);
-                if (dtSplit.length === 3) {
-                  let firstStr = dtSplit[0];
-                  let secondStr = dtSplit[1];
-                  if (dtSplit[0].length === 4) {
-                    firstStr = dtSplit[1];
-                    secondStr = dtSplit[2];
-                  }
-                  const first = parseInt(firstStr, 10);
-                  const second = parseInt(secondStr, 10);
-                  if (!isNaN(first) && !isNaN(second)) {
-                    firstVals.add(first);
-                    secondVals.add(second);
-                    if (first > 12) {
-                      isMonthFirst = false; // DD/MM
-                      shouldSwapExcelDates = false;
-                      definiteMatchFound = true;
-                    } else if (second > 12) {
-                      isMonthFirst = true; // MM/DD
-                      shouldSwapExcelDates = true;
-                      definiteMatchFound = true;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        if (!definiteMatchFound) {
-          isMonthFirst = false;
-          shouldSwapExcelDates = false;
-        }
-
-        const parseDate = (val: any) => {
-          if (!val) return "";
-          if (typeof val === "number") {
-            const dateObj = XLSX.SSF.parse_date_code(val);
-            const y = dateObj.y;
-            let m = dateObj.m;
-            let d = dateObj.d;
-            if (shouldSwapExcelDates) {
-              const temp = m;
-              m = d;
-              d = temp;
-            }
-            const mStr = String(m).padStart(2, "0");
-            const dStr = String(d).padStart(2, "0");
-            return `${y}-${mStr}-${dStr}`;
-          }
-          let str = String(val).trim();
-          let match = str.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
-          if (match) {
-            let dStr = match[3];
-            let mStr = match[2];
-            return `${match[1]}-${mStr.padStart(2, "0")}-${dStr.padStart(2, "0")}`;
-          }
-          match = str.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
-          if (match) {
-            let dStr, mStr;
-            if (isMonthFirst) {
-              mStr = match[1];
-              dStr = match[2];
-            } else {
-              dStr = match[1];
-              mStr = match[2];
-            }
-            return `${match[3]}-${mStr.padStart(2, "0")}-${dStr.padStart(2, "0")}`;
-          }
-          return str;
-        };
-
-        const parseNum = (val: any) => {
-          if (!val) return 0;
-          if (typeof val === "number") return val;
-          let s = String(val)
-            .trim()
-            .replace(/Rp|rp|IDR|idr|\s/g, "");
-          if (
-            s.indexOf(",") === -1 &&
-            s.indexOf(".") !== -1 &&
-            s.split(".").length > 2
-          ) {
-            s = s.replace(/\./g, "");
-          } else if (s.indexOf(",") !== -1 && s.indexOf(".") !== -1) {
-            if (s.indexOf(",") < s.indexOf(".")) {
-              s = s.replace(/,/g, "");
-            } else {
-              s = s.replace(/\./g, "").replace(/,/g, ".");
-            }
-          } else if (s.indexOf(",") !== -1 && s.indexOf(".") === -1) {
-            s = s.replace(/,/g, ".");
-          } else if (
-            s.indexOf(".") !== -1 &&
-            s.split(".").length === 2 &&
-            s.split(".")[1].length === 3
-          ) {
-            s = s.replace(/\./g, "");
-          }
-          return Number(s.replace(/[^0-9.-]+/g, ""));
-        };
-
-        const parsedData = [];
-        for (let i = headerRowIdx + 1; i < jsonData.length; i++) {
-          const row = jsonData[i] as any[];
-          if (!row || row.length === 0) continue;
-
-          let sku = "",
-            productName = "",
-            sold = 0,
-            revenue = 0,
-            date = "";
-
-          headers.forEach((h, idx) => {
-            const val = row[idx];
-            if (!val) return;
-            if (
-              h.includes("nama produk") ||
-              h.includes("product name") ||
-              h.includes("judul produk") ||
-              h.includes("item name") ||
-              h.includes("nama item") ||
-              h === "produk" ||
-              h === "product" ||
-              h.includes("product list") ||
-              h.includes("title")
-            )
-              productName = String(val);
-            else if (
-              h.includes("sku") ||
-              h.includes("induk") ||
-              h.includes("product id") ||
-              h.includes("item id")
-            )
-              sku = String(val);
-            else if (
-              h.includes("produk terjual(pesanan dibayar)") ||
-              h.includes("produk terjual (pesanan dibayar)") ||
-              h.includes("jumlah terjual") ||
-              h.includes("items sold") ||
-              h.includes("produk terjual(pesanan dibuat)") ||
-              h.includes("attributed items sold") ||
-              h.includes("barang terjual") ||
-              h.includes("units sold")
-            )
-              sold = parseNum(val);
-            else if (
-              h.includes("penjualan(pesanan dibayar)") ||
-              h.includes("penjualan (pesanan dibayar)") ||
-              h.includes("revenue") ||
-              h.includes("gmv") ||
-              h.includes("penjualan(pesanan dibuat)") ||
-              h.includes("penjualan (idr)") ||
-              h.includes("attributed gmv") ||
-              h.includes("pendapatan") ||
-              h.includes("sales")
-            )
-              revenue = parseNum(val);
-            else if (
-              h.includes("tanggal") ||
-              h.includes("waktu") ||
-              h.includes("date") ||
-              h.includes("start time") ||
-              h.includes("start") ||
-              h.includes("time") ||
-              h.includes("periode")
-            )
-              date = parseDate(val);
-            // Fallbacks for Shopee export
-            else if (
-              h.includes("pesanan dibayar") ||
-              h.includes("orders paid") ||
-              h.includes("pesanan(pesanan dibuat)")
-            ) {
-              if (sold === 0) sold = parseNum(val);
-            } else if (h.includes("sales") || h.includes("penjualan")) {
-              if (revenue === 0) revenue = parseNum(val);
-            }
-          });
-
-          if (productName || sku) {
-            parsedData.push({
-              id: `sku_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-              sku: sku || "N/A",
-              productName: productName || "Unnamed Product",
-              sold: sold,
-              revenue: revenue,
-              date: date || globalDateFallback || new Date().toISOString().split("T")[0],
-            });
-          }
-        }
-
-        setSkuRawData(parsedData);
+        const skuRows = parseSkuUploadRows(jsonData, file.name);
+        setSkuRawData(skuRows);
         if (detectedBrandObj) {
           setAutoDetectNotice(
-            `Auto-detected Klien: ${detectedBrandObj.name} (${parsedData.length} records).`,
+            `Auto-detected Klien: ${detectedBrandObj.name} (${skuRows.length} records).`,
           );
         }
+        return;
       } catch (err) {
         console.error(err);
         alert("Error: " + err);
@@ -3170,7 +2277,7 @@ export default function App() {
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
           header: 1,
-        }) as any[];
+        }) as unknown[][];
 
         if (jsonData.length < 2) {
           alert("File kosong atau format salah.");
@@ -3220,7 +2327,7 @@ export default function App() {
           headerRowIdx = 0; // fallback to first row
         }
 
-        const headers = Array.from(jsonData[headerRowIdx] || []).map((h: any) =>
+        const headers = Array.from(jsonData[headerRowIdx] || []).map((h) =>
           String(h || "")
             .trim()
             .toLowerCase(),
@@ -3305,626 +2412,9 @@ export default function App() {
           );
         }
 
-        // Helper to find indices
-        const findColIdx = (aliases: string[]) => {
-          // 1st pass: exact match (prioritize the first alias in the list)
-          for (const alias of aliases) {
-            const idx = headers.findIndex((h) => h === alias);
-            if (idx !== -1) return idx;
-          }
-          // 2nd pass: partial match
-          for (const alias of aliases) {
-            const idx = headers.findIndex((h) => h.includes(alias));
-            if (idx !== -1) return idx;
-          }
-          return -1;
-        };
-
-        const titleIdx = findColIdx([
-          "nama livestream",
-          "livestream name",
-          "live room title",
-          "judul ruang live",
-          "judul",
-          "livestream",
-          "streaming",
-          "live",
-          "nama_brand",
-          "brand",
-        ]);
-        const startIdx = findColIdx([
-          "start time",
-          "waktu mulai",
-          "tanggal",
-          "date",
-          "waktu",
-          "mulai",
-          "start",
-          "periode data",
-          "periode",
-        ]);
-        const durationIdx = findColIdx([
-          "durasi",
-          "duration",
-          "lama",
-          "waktu streaming",
-        ]);
-        const gmvIdx = findColIdx([
-          "penjualan(pesanan siap dikirim)",
-          "penjualan(pesanan dibuat)",
-          "sales(orders paid)",
-          "sales(orders created)",
-          "penjualan",
-          "attributed gmv",
-          "gmv",
-          "perolehan",
-          "omset",
-          "revenue",
-          "pendapatan",
-          "gross profit",
-          "gross revenue",
-          "total sales",
-        ]);
-        const productIdx = findColIdx([
-          "produk terjual(pesanan siap dikirim)",
-          "produk terjual(pesanan dibuat)",
-          "items sold(orders paid)",
-          "items sold(orders created)",
-          "produk terjual",
-          "attributed items sold",
-          "unit terjual",
-          "produk",
-          "product",
-          "terjual",
-          "item",
-          "items sold",
-          "items",
-        ]);
-        const buyerIdx = findColIdx([
-          "pembeli(pesanan siap dikirim)",
-          "pembeli(pesanan dibuat)",
-          "pembeli",
-          "buyers(orders paid)",
-          "buyers(orders created)",
-          "buyers",
-          "customers",
-          "customer",
-          "buyer",
-          "pelanggan",
-        ]);
-        const aovIdx = findColIdx([
-          "avg. price",
-          "sales per buyer(orders paid)",
-          "sales per buyer(orders created)",
-          "sales per buyer",
-          "aov",
-          "average order value",
-          "rata-rata",
-          "order value",
-        ]);
-        const viewsIdx = findColIdx([
-          "views",
-          "view",
-        ]);
-        const impressionsIdx = findColIdx([
-          "dilihat",
-          "total viewers",
-          "live impressions",
-          "tayangan live",
-          "impression",
-          "tayangan",
-          "visitor",
-          "traffic",
-          "pemirsa",
-          "exposure",
-          "viewers",
-        ]);
-        const penontonIdx = findColIdx([
-          "penonton",
-          "unique viewers",
-          "viewer",
-        ]);
-        const liveVisitsIdx = findColIdx([
-          "penonton aktif",
-          "max concurrent viewers",
-          "viewers(max concurrent)",
-          "viewers(max co-current)",
-          "highest ccu",
-          "penonton serentak tertinggi",
-          "live visits",
-          "kunjungan live",
-          "engaged viewers",
-          "active viewers",
-        ]);
-        const productImpressionsIdx = findColIdx([
-          "tayangan produk",
-          "product views",
-          "product impression",
-          "product impressions",
-        ]);
-        const avgViewDurationIdx = findColIdx([
-          "rata-rata durasi ditonton",
-          "durasi ditonton",
-          "durasi rata-rata menonton",
-          "avg. watch duration",
-          "average watch time",
-          "watch duration",
-          "avg view",
-          "average view",
-          "rata-rata menonton",
-          "rata rata menonton",
-          "waktu menonton",
-          "rata-rata view",
-          "avg. viewing duration",
-          "avg viewing duration",
-          "viewing duration",
-        ]);
-        const clicksIdx = findColIdx([
-          "tambah ke keranjang",
-          "add to cart",
-          "keranjang",
-          "product clicks",
-          "klik produk",
-          "clicks",
-          "click",
-          "klik",
-          "kunjungan",
-          "detail",
-          "buka",
-        ]);
-        const ordersIdx = findColIdx([
-          "pesanan(pesanan siap dikirim)",
-          "pesanan(pesanan dibuat)",
-          "orders(orders paid)",
-          "orders(orders created)",
-          "pesanan",
-          "attributed sku orders",
-          "attributed orders",
-          "orders",
-          "created",
-          "buat pesanan",
-          "order created",
-          "pesanan dibuat",
-        ]);
-        const followersIdx = findColIdx([
-          "pengikut baru dari livestream",
-          "pengikut baru",
-          "new followers",
-          "pengikut",
-          "follower",
-          "followers",
-          "fans",
-        ]);
-        const likesIdx = findColIdx(["suka", "likes", "like", "love"]);
-        const sharesIdx = findColIdx([
-          "dibagikan",
-          "share",
-          "shares",
-          "bagikan",
-          "sebar",
-        ]);
-        const commentsIdx = findColIdx([
-          "komentar",
-          "comment",
-          "komen",
-          "comments",
-        ]);
-        const peakViewersIdx = findColIdx([
-          "penonton tertinggi",
-          "peak viewers",
-          "highest viewers",
-        ]);
-        const shopVouchersIdx = findColIdx([
-          "voucher toko diklaim",
-          "shop voucher claimed",
-        ]);
-        const specialVouchersIdx = findColIdx([
-          "voucher spesial live diklaim",
-          "special live voucher claimed",
-        ]);
-        const coinsClaimedIdx = findColIdx(["koin diklaim", "coins claimed"]);
-
-        const parseIndonesianNumber = (val: any): number => {
-          if (val === undefined || val === null || val === "-" || val === "")
-            return 0;
-          if (typeof val === "number") return val;
-
-          let str = String(val)
-            .replace(/rp/gi, "")
-            .replace(/\s/g, "")
-            .trim()
-            .toLowerCase();
-
-          // handle metric suffixes
-          let multiplier = 1;
-          if (str.endsWith("k") || str.endsWith("rb") || str.endsWith("ribu")) {
-            multiplier = 1000;
-            str = str.replace(/(k|rb|ribu)$/, "");
-          } else if (
-            str.endsWith("m") ||
-            str.endsWith("jt") ||
-            str.endsWith("juta")
-          ) {
-            multiplier = 1000000;
-            str = str.replace(/(m|jt|juta)$/, "");
-          } else if (str.endsWith("b") || str.endsWith("miliar")) {
-            multiplier = 1000000000;
-            str = str.replace(/(b|miliar)$/, "");
-          }
-
-          const isNegative = str.includes("-");
-
-          if (str.includes(".") && str.includes(",")) {
-            const lastComma = str.lastIndexOf(",");
-            const lastDot = str.lastIndexOf(".");
-            if (lastComma > lastDot) {
-              str = str.replace(/\./g, "").replace(",", ".");
-            } else {
-              str = str.replace(/,/g, "");
-            }
-          } else if (str.includes(",")) {
-            if (str.indexOf(",") !== str.lastIndexOf(",")) {
-              str = str.replace(/,/g, "");
-            } else {
-              if (/,\d{3}$/.test(str)) {
-                str = str.replace(/,/g, "");
-              } else {
-                str = str.replace(",", ".");
-              }
-            }
-          } else if (str.includes(".")) {
-            if (str.indexOf(".") !== str.lastIndexOf(".")) {
-              str = str.replace(/\./g, "");
-            } else {
-              if (/\.\d{3}$/.test(str)) {
-                str = str.replace(/\./g, "");
-              }
-            }
-          }
-
-          str = str.replace(/[^0-9.]/g, "");
-          const parsed = parseFloat(str) * (isNegative ? -1 : 1);
-          return (isNaN(parsed) ? 0 : parsed) * multiplier;
-        };
-
-        // Heuristic detection: check if string dates are MM/DD or DD/MM
-        let isMonthFirst = false; // assume DD/MM/YYYY by default
-        let shouldSwapExcelDates = false;
-        let firstVals = new Set<number>();
-        let secondVals = new Set<number>();
-        let definiteMatchFound = false;
-
-        for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
-          const rowData = jsonData[r] as any[];
-          if (!rowData || rowData.length === 0) continue;
-          const rawStart = rowData[startIdx !== -1 ? startIdx : 0];
-
-          if (rawStart && typeof rawStart === "number") {
-            const dateObj = XLSX.SSF.parse_date_code(rawStart);
-            firstVals.add(dateObj.d);
-            secondVals.add(dateObj.m);
-            if (dateObj.d > 12) {
-              shouldSwapExcelDates = false;
-              definiteMatchFound = true;
-            } else if (dateObj.m > 12) {
-              shouldSwapExcelDates = true;
-              definiteMatchFound = true;
-            }
-          } else if (rawStart && typeof rawStart === "string") {
-            const allMatches = rawStart.match(/\b(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,4})\b/g);
-            if (allMatches) {
-              for (const matchStr of allMatches) {
-                const dtSplit = matchStr.split(/[\/\-]/);
-                if (dtSplit.length === 3) {
-                  let firstStr = dtSplit[0];
-                  let secondStr = dtSplit[1];
-                  let checkIdx1 = 0;
-                  let checkIdx2 = 1;
-                  if (dtSplit[0].length === 4) {
-                    firstStr = dtSplit[1];
-                    secondStr = dtSplit[2];
-                    checkIdx1 = 1;
-                    checkIdx2 = 2;
-                  }
-                  const first = parseInt(firstStr, 10);
-                  const second = parseInt(secondStr, 10);
-                  if (!isNaN(first) && !isNaN(second)) {
-                    firstVals.add(first);
-                    secondVals.add(second);
-                    if (first > 12) {
-                      isMonthFirst = false; // DD/MM (or YYYY/MM/DD if 4 length)
-                      shouldSwapExcelDates = false;
-                      definiteMatchFound = true;
-                    } else if (second > 12) {
-                      isMonthFirst = true; // MM/DD (or swapped YYYY/DD/MM)
-                      shouldSwapExcelDates = true;
-                      definiteMatchFound = true;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        if (!definiteMatchFound) {
-          isMonthFirst = false;
-          shouldSwapExcelDates = false;
-        }
-
-        const rows: any[] = [];
-        for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
-          const rowData = jsonData[r] as any[];
-          // Skip completely empty rows
-          if (!rowData || rowData.length === 0) continue;
-
-          const titleRaw =
-            titleIdx !== -1
-              ? String(rowData[titleIdx] || "")
-              : String(rowData[0] || "");
-          // Identify "Total" or summary rows which shouldn't be counted as individual streams
-          if (
-            titleRaw.toLowerCase() === "total" ||
-            titleRaw.toLowerCase().includes("ringkasan") ||
-            titleRaw.toLowerCase() === "summary"
-          ) {
-            continue; // Skip total aggregated row from export files
-          }
-          if (titleIdx !== -1 && !rowData[titleIdx]) continue; // Skip if title column is mapped but it's empty
-
-          const title = titleRaw || `Stream ${r}`;
-          const rawStart = rowData[startIdx !== -1 ? startIdx : 0];
-
-          let formattedDate = "";
-          let shift = "Shift Lainnya";
-          if (rawStart) {
-            if (typeof rawStart === "number") {
-              const dateObj = XLSX.SSF.parse_date_code(rawStart);
-              const y = dateObj.y;
-              let m = dateObj.m;
-              let d = dateObj.d;
-              if (shouldSwapExcelDates) {
-                const temp = m;
-                m = d;
-                d = temp;
-              }
-              const mStr = String(m).padStart(2, "0");
-              const dStr = String(d).padStart(2, "0");
-              const hh = String(dateObj.H).padStart(2, "0");
-              const mm = String(dateObj.M).padStart(2, "0");
-              formattedDate = `${y}-${mStr}-${dStr} ${hh}:${mm}`;
-
-              const hour = parseInt(hh, 10);
-              const matchedShift = getShiftFromHour(hour, shifts);
-              if (matchedShift) shift = matchedShift;
-            } else {
-              formattedDate = String(rawStart).trim();
-
-              // Normalize DD/MM/YYYY or MM/DD/YYYY or DD-MM-YYYY to YYYY-MM-DD
-              if (
-                formattedDate.indexOf("/") !== -1 ||
-                (formattedDate.indexOf("-") !== -1 &&
-                  formattedDate.split("-")[0].length <= 2)
-              ) {
-                const dtSplitRegex = formattedDate
-                  .split(" ")[0]
-                  .split(/[\/\-]/);
-                if (dtSplitRegex.length === 3) {
-                  const timeMatchList = formattedDate.match(
-                    /\d{1,2}:\d{2}(:\d{2})?/,
-                  );
-                  const tmPart = timeMatchList ? timeMatchList[0] : "";
-                  let y =
-                    dtSplitRegex[2].length === 2
-                      ? `20${dtSplitRegex[2]}`
-                      : dtSplitRegex[2];
-
-                  let m, d;
-                  if (isMonthFirst) {
-                    m = String(dtSplitRegex[0]).padStart(2, "0");
-                    d = String(dtSplitRegex[1]).padStart(2, "0");
-                  } else {
-                    m = String(dtSplitRegex[1]).padStart(2, "0");
-                    d = String(dtSplitRegex[0]).padStart(2, "0");
-                  }
-
-                  if (dtSplitRegex[0].length === 4) {
-                    y = dtSplitRegex[0];
-                    if (isMonthFirst) {
-                      m = String(dtSplitRegex[1]).padStart(2, "0");
-                      d = String(dtSplitRegex[2]).padStart(2, "0");
-                    } else {
-                      m = String(dtSplitRegex[1]).padStart(2, "0");
-                      d = String(dtSplitRegex[2]).padStart(2, "0");
-                    }
-                  }
-                  formattedDate = `${y}-${m}-${d} ${tmPart}`.trim();
-                }
-              }
-
-              const timeMatch = formattedDate.match(/(\d{1,2}:\d{2})/);
-              if (timeMatch) {
-                const hour = parseInt(timeMatch[1], 10);
-                if (!isNaN(hour)) {
-                  const matchedShift = getShiftFromHour(hour, shifts);
-                  if (matchedShift) shift = matchedShift;
-                }
-              }
-            }
-          }
-
-          const dateOnly = formattedDate.split(" ")[0] || formattedDate;
-
-          let duration = 0;
-          if (durationIdx !== -1) {
-            const rawDur = String(rowData[durationIdx] || "");
-            if (rawDur.includes(":")) {
-              const parts = rawDur.split(":").map(Number);
-              if (parts.length === 3) {
-                duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
-              } else if (parts.length === 2) {
-                duration = parts[0] * 60 + parts[1];
-              }
-            } else {
-              // Direct replace commas to dot for safe float cast
-              const safeFloat = parseFloat(rawDur.replace(/,/g, "."));
-              if (!isNaN(safeFloat)) {
-                if (safeFloat > 0 && safeFloat < 1.0) {
-                  duration = Math.round(safeFloat * 86400); // Excel fractional day
-                } else {
-                  duration = safeFloat;
-                }
-              }
-            }
-          }
-          const gmv =
-            gmvIdx !== -1 ? parseIndonesianNumber(rowData[gmvIdx]) : 0;
-          const products_sold =
-            productIdx !== -1 ? parseIndonesianNumber(rowData[productIdx]) : 0;
-
-          const parsedImpressions =
-            impressionsIdx !== -1
-              ? parseIndonesianNumber(rowData[impressionsIdx])
-              : 0;
-          const parsedViews =
-            viewsIdx !== -1
-              ? parseIndonesianNumber(rowData[viewsIdx])
-              : 0;
-          const parsedPenonton =
-            penontonIdx !== -1
-              ? parseIndonesianNumber(rowData[penontonIdx])
-              : 0;
-          const parsedLiveVisits =
-            liveVisitsIdx !== -1
-              ? parseIndonesianNumber(rowData[liveVisitsIdx])
-              : 0;
-          const parsedProductImpressions =
-            productImpressionsIdx !== -1
-              ? parseIndonesianNumber(rowData[productImpressionsIdx])
-              : 0;
-          const parsedClicks =
-            clicksIdx !== -1 ? parseIndonesianNumber(rowData[clicksIdx]) : 0;
-          const parsedOrders =
-            ordersIdx !== -1 ? parseIndonesianNumber(rowData[ordersIdx]) : 0;
-
-          let buyers =
-            buyerIdx !== -1
-              ? parseIndonesianNumber(rowData[buyerIdx])
-              : parsedOrders;
-          // Use parsedOrders as fallback for buyers since Shopee reports often lack an explicit buyers column
-
-          const aov =
-            aovIdx !== -1
-              ? parseIndonesianNumber(rowData[aovIdx])
-              : buyers > 0
-                ? gmv / buyers
-                : 0;
-
-          const parsedFollowers =
-            followersIdx !== -1
-              ? parseIndonesianNumber(rowData[followersIdx])
-              : 0;
-          const parsedLikes =
-            likesIdx !== -1 ? parseIndonesianNumber(rowData[likesIdx]) : 0;
-          const parsedShares =
-            sharesIdx !== -1 ? parseIndonesianNumber(rowData[sharesIdx]) : 0;
-          const parsedComments =
-            commentsIdx !== -1
-              ? parseIndonesianNumber(rowData[commentsIdx])
-              : 0;
-
-          const parsedPeakViewers =
-            peakViewersIdx !== -1
-              ? parseIndonesianNumber(rowData[peakViewersIdx])
-              : 0;
-          const parsedShopVouchers =
-            shopVouchersIdx !== -1
-              ? parseIndonesianNumber(rowData[shopVouchersIdx])
-              : 0;
-          const parsedSpecialVouchers =
-            specialVouchersIdx !== -1
-              ? parseIndonesianNumber(rowData[specialVouchersIdx])
-              : 0;
-          const parsedCoinsClaimed =
-            coinsClaimedIdx !== -1
-              ? parseIndonesianNumber(rowData[coinsClaimedIdx])
-              : 0;
-
-          const rawAvgViewDuration =
-            avgViewDurationIdx !== -1
-              ? String(rowData[avgViewDurationIdx])
-              : "";
-          let parsedAvgViewDuration = 0;
-          if (rawAvgViewDuration.includes(":")) {
-            const parts = rawAvgViewDuration.split(":").map(Number);
-            if (parts.length === 3) {
-              parsedAvgViewDuration =
-                parts[0] * 3600 + parts[1] * 60 + parts[2];
-            } else if (parts.length === 2) {
-              parsedAvgViewDuration = parts[0] * 60 + parts[1];
-            }
-          } else {
-            parsedAvgViewDuration =
-              parseFloat(rawAvgViewDuration.replace(/[^0-9.]/g, "")) || 0;
-          }
-
-          let fileLevelAvgView = parsedAvgViewDuration;
-          if (fileLevelAvgView > 0 && fileLevelAvgView < 10) {
-            // If the file actually wrote it in minutes, let's normalize to seconds roughly
-            fileLevelAvgView = Math.floor(fileLevelAvgView * 60);
-          }
-
-          const impressions = parsedImpressions || 0;
-          const views = parsedViews || parsedImpressions || 0;
-          const penonton = parsedPenonton || parsedImpressions || 0;
-          const clicks = parsedClicks || 0;
-          const liveVisits = parsedLiveVisits || 0;
-          const productImpressions = parsedProductImpressions || 0;
-          const orders = parsedOrders || 0;
-          const followers = parsedFollowers || 0;
-          const likes = parsedLikes || 0;
-          const shares = parsedShares || 0;
-          const comments = parsedComments || 0;
-          const avgViewDuration = fileLevelAvgView || 0;
-          const peakViewers = parsedPeakViewers || 0;
-          const shopVouchers = parsedShopVouchers || 0;
-          const specialVouchers = parsedSpecialVouchers || 0;
-          const coinsClaimed = parsedCoinsClaimed || 0;
-
-          const hasFunnelInFile =
-            parsedImpressions > 0 || parsedClicks > 0 || parsedOrders > 0;
-
-          rows.push({
-            title,
-            date: dateOnly,
-            dateTime: formattedDate,
-            shift,
-            duration,
-            gmv,
-            products_sold,
-            buyers,
-            aov,
-            views,
-            impressions,
-            penonton,
-            liveVisits,
-            productImpressions,
-            clicks,
-            orders,
-            followers,
-            likes,
-            shares,
-            comments,
-            avgViewDuration,
-            peakViewers,
-            shopVouchers,
-            specialVouchers,
-            coinsClaimed,
-            hasFunnelInFile,
-          });
-        }
-
-        setReportingRawData(rows);
+        const reportingRows = parseReportingUploadRows(jsonData, shifts);
+        setReportingRawData(reportingRows);
+        return;
       } catch (err) {
         console.error("Error parsing workbook:", err);
         alert(
@@ -3952,9 +2442,9 @@ export default function App() {
           const idsToDelete = new Set(relatedLogs.map((l) => l.id));
           setShopeeSkuLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
           customAlert(`Data upload history SKU (${relatedLogs.length} baris) berhasil dihapus.`);
-        } catch (e: any) {
+        } catch (e: unknown) {
           console.error(e);
-          customAlert("Gagal menghapus data: " + e.message);
+          customAlert("Gagal menghapus data: " + getErrorMessage(e));
         } finally {
           setIsSavingReport(false);
         }
@@ -3993,8 +2483,9 @@ export default function App() {
             const idsToDelete = new Set(brandSkuLogs.map((l) => l.id));
             setShopeeSkuLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
             customAlert("Data Product Performance SKU berhasil dihapus.");
-          } catch(e: any) {
-            console.error(e);customAlert("Gagal menghapus data: " + e.message);
+          } catch (e: unknown) {
+            console.error(e);
+            customAlert("Gagal menghapus data: " + getErrorMessage(e));
           } finally { setIsSavingReport(false); }
         },
         "danger"
@@ -4021,8 +2512,9 @@ export default function App() {
             setBrandPerformanceLogs((prev) => prev.filter((l) => !logIdsToDelete.has(l.id)));
             setBrandUploadHistory((prev) => prev.filter((b) => !batchIdsToDelete.has(b.id)));
             customAlert("Data raw berhasil dihapus.");
-          } catch(e: any) {
-            console.error(e);customAlert("Gagal menghapus data: " + e.message);
+          } catch (e: unknown) {
+            console.error(e);
+            customAlert("Gagal menghapus data: " + getErrorMessage(e));
           } finally { setIsSavingReport(false); }
         },
         "danger"
@@ -4060,9 +2552,9 @@ export default function App() {
           customAlert(
             `Berhasil menghapus seluruh raw data (${brandLogs.length} sesi), ${brandSkuLogs.length} SKU logs, dan riwayat upload (${brandBatches.length} batch) untuk brand "${brandName}" dari database!`,
           );
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Gagal menghapus semua data raw brand:", err);
-          customAlert("Error saat menghapus data brand: " + err.message);
+          customAlert("Error saat menghapus data brand: " + getErrorMessage(err));
         } finally {
           setIsSavingReport(false);
         }
@@ -4094,9 +2586,9 @@ export default function App() {
             "data_brand"
           );
           customAlert(`Data brand "${brandToDelete?.name || brandId}" berhasil dihapus permanen.`);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("Gagal menghapus brand:", error);
-          customAlert("Error saat menghapus data brand: " + error.message);
+          customAlert("Error saat menghapus data brand: " + getErrorMessage(error));
         }
       },
       "danger"
@@ -4146,9 +2638,9 @@ export default function App() {
             setIsDeleteByDateModalOpen(false);
             setDeleteByDateStart("");
             setDeleteByDateEnd("");
-          } catch(e: any) {
+          } catch (e: unknown) {
              console.error(e);
-             customAlert("Gagal menghapus data: " + e.message);
+             customAlert("Gagal menghapus data: " + getErrorMessage(e));
           } finally { setIsSavingReport(false); }
         },
         "danger"
@@ -4209,9 +2701,9 @@ export default function App() {
           setIsDeleteByDateModalOpen(false);
           setDeleteByDateStart("");
           setDeleteByDateEnd("");
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Gagal menghapus data berdasarkan rentang waktu:", err);
-          customAlert("Error saat menghapus data: " + err.message);
+          customAlert("Error saat menghapus data: " + getErrorMessage(err));
         } finally {
           setIsSavingReport(false);
         }
@@ -4247,9 +2739,9 @@ export default function App() {
           customAlert(
             `Berhasil menghapus batch upload "${fileName}" beserta seluruh raw data terkait (${batchLogs.length} data) dari database!`,
           );
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Gagal menghapus batch:", err);
-          customAlert("Error saat menghapus batch: " + err.message);
+          customAlert("Error saat menghapus batch: " + getErrorMessage(err));
         } finally {
           setIsSavingReport(false);
         }
@@ -4299,7 +2791,7 @@ export default function App() {
       try {
         const batchId = "batch_" + Date.now();
         let totalBatchGmv = 0;
-        let allRecordsToSave: any[] = [];
+        let allRecordsToSave: BrandPerformanceLogEntry[] = [];
 
         for (const row of dataToSave) {
           const sanitizedTitle = String(row.title || "Live")
@@ -4372,7 +2864,7 @@ export default function App() {
             });
           } else {
             const isEngagement = uploadTargetTab === "engagement";
-            const record: any = {
+            const record: BrandPerformanceLogEntry = {
               id: baseId,
               batchId: batchId,
               brandId: brandIdToSave,
@@ -4434,7 +2926,7 @@ export default function App() {
         });
 
         // Simpan upload history ke state lokal
-        const uploadHistoryRecord = {
+        const uploadHistoryRecord: UploadHistoryEntry = {
           id: batchId,
           brandId: brandIdToSave,
           brandName: brandNameToSave,
@@ -4454,14 +2946,14 @@ export default function App() {
           "success",
           "reporting_brand",
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(
           "Gagal menyimpan data laporan:",
           err,
         );
         addNotification(
           "❌ Gagal Menyimpan",
-          `Terjadi kesalahan saat menyimpan data ${brandNameToSave}: ${err.message}`,
+          `Terjadi kesalahan saat menyimpan data ${brandNameToSave}: ${getErrorMessage(err)}`,
           "danger",
           "reporting_brand",
         );
@@ -4502,59 +2994,6 @@ export default function App() {
   });
   const [pickerMonth, setPickerMonth] = useState(() => new Date().getMonth());
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
-
-  const getPickerDays = (year: number, month: number) => {
-    const firstDayIndex = new Date(year, month, 1).getDay(); // Sunday is 0
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const prevMonthTotalDays = new Date(year, month, 0).getDate();
-
-    const days: {
-      day: number;
-      monthType: "prev" | "current" | "next";
-      dateString: string;
-    }[] = [];
-
-    // Previous fill-in
-    for (let i = firstDayIndex - 1; i >= 0; i--) {
-      const d = prevMonthTotalDays - i;
-      const prevMonth = month === 0 ? 11 : month - 1;
-      const prevYear = month === 0 ? year - 1 : year;
-      const mStr = String(prevMonth + 1).padStart(2, "0");
-      const dStr = String(d).padStart(2, "0");
-      days.push({
-        day: d,
-        monthType: "prev",
-        dateString: `${prevYear}-${mStr}-${dStr}`,
-      });
-    }
-
-    // Current month
-    for (let d = 1; d <= totalDays; d++) {
-      const mStr = String(month + 1).padStart(2, "0");
-      const dStr = String(d).padStart(2, "0");
-      days.push({
-        day: d,
-        monthType: "current",
-        dateString: `${year}-${mStr}-${dStr}`,
-      });
-    }
-
-    // Next fill-in
-    const remainingCells = 42 - days.length;
-    for (let d = 1; d <= remainingCells; d++) {
-      const nextMonth = month === 11 ? 0 : month + 1;
-      const nextYear = month === 11 ? year + 1 : year;
-      const mStr = String(nextMonth + 1).padStart(2, "0");
-      const dStr = String(d).padStart(2, "0");
-      days.push({
-        day: d,
-        monthType: "next",
-        dateString: `${nextYear}-${mStr}-${dStr}`,
-      });
-    }
-
-    return days;
-  };
 
   const handleDaySelect = (dayObj: {
     day: number;
@@ -4635,12 +3074,13 @@ export default function App() {
   });
 
   const toggleSalarySort = (key: string) => {
-    if (salarySortKey === key) {
-      setSalarySortDir((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSalarySortKey(key);
-      setSalarySortDir("asc");
-    }
+    const nextSort = getNextSortState(
+      salarySortKey,
+      salarySortDir === "asc",
+      key,
+    );
+    setSalarySortKey(nextSort.sortKey);
+    setSalarySortDir(nextSort.sortAsc ? "asc" : "desc");
   };
 
   // --- GOOGLE SHEETS SYNC SYSTEM STATE ---
@@ -4683,8 +3123,8 @@ export default function App() {
   const computedSchedules = useMemo(() => {
     const result = schedules.filter((es) => !es.isDeleted);
 
-    const uniqueResult: any[] = [];
-    const seen = new Set();
+    const uniqueResult: ShiftSchedule[] = [];
+    const seen = new Set<string>();
 
     result.forEach((r) => {
       // Unique key for deduplication. A host can only physically exist in one place per time slot.
@@ -4716,7 +3156,7 @@ export default function App() {
     const endDay = salarySettings.cutOffEndDay ?? 15;
 
     return base.filter((l) => {
-      const rawDate = l.date || (typeof (l as any).timestamp === "string" ? (l as any).timestamp.split(" ")[0] : "");
+      const rawDate = getLogDateInput(l);
       const logDateStr = normalizeDateYMD(rawDate);
       if (!logDateStr) return false;
 
@@ -4728,7 +3168,6 @@ export default function App() {
           startPeriodY -= 1;
         }
         
-        const padLocal = (n: number) => String(n).padStart(2, "0");
         const startStr = `${startPeriodY}-${padLocal(startPeriodM)}-${padLocal(startDay)}`;
         const endStr = `${year}-${padLocal(month)}-${padLocal(endDay)}`;
 
@@ -4767,70 +3206,15 @@ export default function App() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   });
 
-  const pad = (num: number | string) => String(num).padStart(2, "0");
-
-  const isLogDateMatching = useCallback(
-    (rawLogDateStr: string) => {
-      if (timeFilter === "Semua") return true;
-
-      const logDateStr = normalizeDateYMD(rawLogDateStr);
-      if (!logDateStr) return false;
-
-      const [logY, logM, logD] = logDateStr.split("-").map(Number);
-      if (!logY || !logM || !logD) return false;
-
-      // Parse Reference Date safely
-      const [refY, refM, refD] = filterReferenceDate.split("-").map(Number);
-      if (!refY || !refM || !refD) return true;
-
-      if (timeFilter === "Harian") {
-        return logDateStr === filterReferenceDate;
-      }
-
-      if (timeFilter === "Mingguan") {
-        // For week differences, since we rely on 7 backward days, use UTC date objects to avoid timezone jumps
-        const logUtc = Date.UTC(logY, logM - 1, logD);
-        const refUtc = Date.UTC(refY, refM - 1, refD);
-        const diffDays = (refUtc - logUtc) / (1000 * 60 * 60 * 24);
-        return diffDays >= 0 && diffDays < 7;
-      }
-
-      if (timeFilter === "Bulanan") {
-        if (salarySettings.useCutOff) {
-          const startDay = salarySettings.cutOffStartDay ?? 16;
-          const endDay = salarySettings.cutOffEndDay ?? 15;
-
-          let startPeriodY = refY;
-          let startPeriodM = refM;
-          let endPeriodY = refY;
-          let endPeriodM = refM;
-
-          if (refD >= startDay) {
-            endPeriodM += 1;
-            if (endPeriodM > 12) {
-              endPeriodM = 1;
-              endPeriodY += 1;
-            }
-          } else {
-            startPeriodM -= 1;
-            if (startPeriodM < 1) {
-              startPeriodM = 12;
-              startPeriodY -= 1;
-            }
-          }
-
-          const startStr = `${startPeriodY}-${pad(startPeriodM)}-${pad(startDay)}`;
-          const endStr = `${endPeriodY}-${pad(endPeriodM)}-${pad(endDay)}`;
-
-          return logDateStr >= startStr && logDateStr <= endStr;
-        }
-
-        // matches same year & month (without cutoff)
-        return logY === refY && logM === refM;
-      }
-
-      return true;
-    },
+  const isLogDateMatchingMemo = useCallback(
+    (rawLogDateStr: string) =>
+      isLogDateMatching(rawLogDateStr, {
+        timeFilter,
+        referenceDate: filterReferenceDate,
+        useCutOff: salarySettings.useCutOff,
+        cutOffStartDay: salarySettings.cutOffStartDay,
+        cutOffEndDay: salarySettings.cutOffEndDay,
+      }),
     [
       timeFilter,
       filterReferenceDate,
@@ -4854,62 +3238,10 @@ export default function App() {
   const [dbSortDir, setDbSortDir] = useState<"desc" | "asc">("desc");
   const [dbTabMode, setDbTabMode] = useState<"today" | "all">("all");
 
-  const availableCutoffMonths = useMemo(() => {
-    const set = new Set<string>();
-
-    // Always ensure the active current month's cutoff logic is present to avoid empty select
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonthIdx = now.getMonth();
-    const currentDay = now.getDate();
-    let activeMonth = currentMonthIdx + 1;
-    let activeYear = currentYear;
-    if (currentDay >= 16) {
-      activeMonth += 1;
-      if (activeMonth > 12) {
-        activeMonth = 1;
-        activeYear += 1;
-      }
-    }
-    set.add(`${activeYear}-${String(activeMonth).padStart(2, "0")}`);
-
-    // If there is filterReferenceDate state, also add it
-    if (filterReferenceDate) {
-      const parts = filterReferenceDate.split("-");
-      const rY = parseInt(parts[0], 10);
-      const rM = parseInt(parts[1], 10);
-      const rD = parseInt(parts[2], 10);
-      if (rY && rM && rD) {
-        let targetM = rM;
-        let targetY = rY;
-        if (rD >= 16) {
-          targetM += 1;
-          if (targetM > 12) {
-            targetM = 1;
-            targetY += 1;
-          }
-        }
-        set.add(`${targetY}-${String(targetM).padStart(2, "0")}`);
-      }
-    }
-
-    // Now scan through all logs and find any cutoff months that have registered log items
-    logs.forEach((item) => {
-      const rawDate =
-        item.date ||
-        (typeof item.timestamp === "string"
-          ? item.timestamp.split(" ")[0]
-          : "");
-      if (rawDate) {
-        const cut = getCutoffMonthForDate(rawDate);
-        if (cut) {
-          set.add(cut);
-        }
-      }
-    });
-
-    return Array.from(set).sort().reverse();
-  }, [logs, filterReferenceDate]);
+  const availableCutoffMonths = useMemo(
+    () => buildAvailableCutoffMonths(logs, filterReferenceDate),
+    [logs, filterReferenceDate],
+  );
 
   // Filter/Sort for Operator Data Brand tab
   const [brandDataSearch, setBrandDataSearch] = useState("");
@@ -4981,140 +3313,18 @@ export default function App() {
     });
   };
 
-  // Format Helper for Currency
-  const formatIDR = (num: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(num);
-  };
-
   // Operator-level list of Host detailed stats & Salary recapitulation
-  const hostReportList = useMemo(() => {
-    return hosts.map((host) => {
-      const records = logs.filter(
-        (l) =>
-          (l.hostId === host.id || l.hostName === host.name) &&
-          isLogDateMatching(
-            l.date ||
-              (typeof (l as any).timestamp === "string"
-                ? (l as any).timestamp.split(" ")[0]
-                : ""),
-          ),
-      );
-
-      const regulerRecords = records.filter((r) => !r.isBackupShift);
-      const backupShiftRecords = records.filter((r) => r.isBackupShift);
-
-      const countTepatWaktu = regulerRecords.filter(
-        (r) => r.status === "Present",
-      ).length;
-      const countTerlambat = regulerRecords.filter(
-        (r) => r.status === "Late",
-      ).length;
-      const countAlpa = regulerRecords.filter(
-        (r) =>
-          r.status !== "Present" &&
-          r.status !== "Late" &&
-          r.status !== "Excused",
-      ).length;
-      const countIzin = regulerRecords.filter(
-        (r) => r.status === "Excused",
-      ).length;
-      const totalHadir = countTepatWaktu + countTerlambat;
-
-      const totalBackupShiftsAsReguler = backupShiftRecords.filter(
-        (r) => r.status === "Present" || r.status === "Late",
-      ).length;
-
-      const totalOvertimeHours = records.reduce(
-        (sum, r) => sum + (r.overtimeHours || 0),
-        0,
-      );
-      const calculatedOvertimePay =
-        totalOvertimeHours * (salarySettings.overtimePayPerHour || 20000);
-
-      // Determine regional parameters & type parameters
-      const isTanggamus = host.studio && host.studio.includes("Tanggamus");
-      const hostType = host.hostType || "Reguler";
-
-      const backupShiftRate =
-        typeof host.customShiftRate === "number"
-          ? host.customShiftRate
-          : isTanggamus
-            ? (salarySettings.tanggamusBackupPay ?? 150000)
-            : (salarySettings.bandarLampungBackupPay ?? 175000);
-
-      let basePayRate = 0;
-      let netSalary = calculatedOvertimePay;
-      let isEligibleForBonus = false;
-      let calculatedBonus = 0;
-      let calculatedBackupPay = 0;
-
-      const requiredWorkingDays =
-        hostType === "Reguler"
-          ? host.customWorkingDaysTarget || salarySettings.workingDays || 26
-          : salarySettings.workingDays || 26;
-
-      if (hostType === "Reguler") {
-        // Gaji Reguler Pokok bulanan
-        const regulerBase =
-          typeof host.customBaseSalary === "number"
-            ? host.customBaseSalary
-            : isTanggamus
-              ? (salarySettings.tanggamusRegulerBase ?? 3500000)
-              : (salarySettings.bandarLampungRegulerBase ?? 4000000);
-        basePayRate = regulerBase;
-        // Hitung hari kerja sebulan proporsional (totalHadir / requiredWorkingDays)
-        const activeDaysRatio = totalHadir / requiredWorkingDays;
-        netSalary += Math.round(regulerBase * activeDaysRatio);
-
-        // Calculate extra backup pay for regular host
-        calculatedBackupPay = totalBackupShiftsAsReguler * backupShiftRate;
-        netSalary += calculatedBackupPay;
-
-        // Bonus: Kehadiran 100% (totalHadir >= requiredWorkingDays) dan Terlambat maksimal 3x (countTerlambat <= 3)
-        if (totalHadir >= requiredWorkingDays && countTerlambat <= 3) {
-          isEligibleForBonus = true;
-          calculatedBonus = isTanggamus
-            ? (salarySettings.tanggamusRegulerBonus ?? 250000)
-            : (salarySettings.bandarLampungRegulerBonus ?? 300000);
-          netSalary += calculatedBonus;
-        }
-      } else {
-        // Gaji Backup per shift (include all present/late shifts, both regular and backup list since they are a backup host)
-        const totalBackupHadir = records.filter(
-          (r) => r.status === "Present" || r.status === "Late",
-        ).length;
-        basePayRate = backupShiftRate;
-        netSalary += totalBackupHadir * backupShiftRate;
-      }
-
-      return {
-        ...host,
-        countTepatWaktu,
-        countTerlambat,
-        countAlpa,
-        countIzin,
-        totalHadir,
-        totalBackupShiftsAsReguler,
-        calculatedBackupPay,
-        isEligibleForBonus,
-        calculatedBonus,
-        totalOvertimeHours,
-        calculatedOvertimePay,
-        basePayRate,
-        netSalary,
-        requiredWorkingDays,
-        revenueSum: records.reduce(
-          (sum, r) => sum + (r.revenueGenerated || 0),
-          0,
-        ),
-        ordersSum: records.reduce((sum, r) => sum + (r.orders || 0), 0),
-      };
-    });
-  }, [hosts, logs, salarySettings, isLogDateMatching]);
+  const hostReportList = useMemo(
+    () =>
+      buildHostReportList(
+        hosts,
+        logs,
+        salarySettings,
+        (rawDate) => isLogDateMatchingMemo(rawDate),
+        getLogDateInput,
+      ),
+    [hosts, logs, salarySettings, isLogDateMatchingMemo],
+  );
 
   // Debounced Auto-Sync Trigger when database records mutate
   useEffect(() => {
@@ -5187,10 +3397,10 @@ export default function App() {
         text: "Data absensi & rekap gaji Liva Agency telah sukses direkam ke Google Sheets!",
         type: "success",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Manual Sheets Export error:", err);
       setSheetsSyncMessage({
-        text: `Gagal sinkronisasi data: ${err.message || err}`,
+        text: `Gagal sinkronisasi data: ${getErrorMessage(err)}`,
         type: "error",
       });
     } finally {
@@ -5225,8 +3435,8 @@ export default function App() {
 
     // Implement sorting
     return [...filtered].sort((a, b) => {
-      let valA: any = 0;
-      let valB: any = 0;
+      let valA: string | number = 0;
+      let valB: string | number = 0;
 
       if (salarySortKey === "name") {
         valA = a.name.toLowerCase();
@@ -5579,8 +3789,8 @@ export default function App() {
         }));
       }
       // setShowManualForm(false); removed in Phase 4
-    } catch (err: any) {
-      alert("Error: " + err.message);
+    } catch (err: unknown) {
+      alert("Error: " + getErrorMessage(err));
     }
   };
 
@@ -5665,85 +3875,11 @@ export default function App() {
     if (!uploadBrand || !uploadPlatform) return;
     const rb = clientBrands.find((b) => b.name === uploadBrand);
     const targetId = rb ? rb.id : uploadBrand;
-
-    const sanitizeNum = (val: any) => {
-      if (val === undefined || val === null) return 0;
-      if (typeof val === "number") return val;
-      if (typeof val === "string") {
-        const cleanStr = val.replace(/[^0-9.,-]/g, "");
-        let finalStr = cleanStr;
-        if (cleanStr.includes(",") && cleanStr.includes(".")) {
-          if (cleanStr.lastIndexOf(",") > cleanStr.lastIndexOf(".")) {
-            finalStr = cleanStr.replace(/\./g, "").replace(/,/g, ".");
-          } else {
-            finalStr = cleanStr.replace(/,/g, "");
-          }
-        } else if (cleanStr.includes(",")) {
-          const parts = cleanStr.split(",");
-          if (parts[parts.length - 1].length <= 2) {
-            finalStr = cleanStr.replace(/,/g, ".");
-          } else {
-            finalStr = cleanStr.replace(/,/g, "");
-          }
-        } else if (cleanStr.includes(".")) {
-          const parts = cleanStr.split(".");
-          if (parts.length > 2 || parts[parts.length - 1].length === 3) {
-            finalStr = cleanStr.replace(/\./g, "");
-          }
-        }
-
-        const parsed = parseFloat(finalStr);
-        return isNaN(parsed) ? 0 : parsed;
-      }
-      return 0;
-    };
-
-    let parsedData = mappingRawData
-      .map((row: any, index: number) => {
-        const getVal = (colIdxStr: string) => {
-          const idx = parseInt(colIdxStr);
-          if (isNaN(idx) || idx < 0 || idx >= row.length) return undefined;
-          return row[idx];
-        };
-
-        const dateIdxStr = columnMapping.date;
-        let name = `Record ${index + 1}`;
-        if (dateIdxStr) {
-          const idx = parseInt(dateIdxStr);
-          if (!isNaN(idx) && idx >= 0 && idx < row.length) {
-            name = row[idx] || name;
-          }
-        }
-
-        return {
-          name: String(name).substring(0, 15),
-          platform: uploadPlatform,
-          gmv: sanitizeNum(getVal(columnMapping.gmv)),
-          items_sold: sanitizeNum(getVal(columnMapping.items_sold)),
-          ctr: sanitizeNum(getVal(columnMapping.ctr)),
-          ctor: sanitizeNum(getVal(columnMapping.ctor)),
-          views: sanitizeNum(getVal(columnMapping.views)),
-          viewers: sanitizeNum(getVal(columnMapping.viewers)),
-          impressions: sanitizeNum(getVal(columnMapping.impressions)),
-          clicks: sanitizeNum(getVal(columnMapping.clicks)),
-          orders: sanitizeNum(getVal(columnMapping.orders)),
-        };
-      })
-      .filter(Boolean);
-
-    parsedData = parsedData.filter((r: any) => {
-      const totalMetrics =
-        r.gmv +
-        r.items_sold +
-        r.views +
-        r.viewers +
-        r.impressions +
-        r.clicks +
-        r.orders;
-      if (totalMetrics === 0) return false;
-      if (r.name.toLowerCase().includes("total")) return false;
-      return true;
-    });
+    const parsedData = buildMappedUploadRows(
+      mappingRawData as unknown[][],
+      columnMapping,
+      uploadPlatform,
+    );
 
     if (parsedData.length > 0) {
       const newUploadId = "upl-" + Date.now();
@@ -5751,13 +3887,16 @@ export default function App() {
       setBrandReports((prev) => {
         const existingData = prev[targetId] || [];
         const merged = [...existingData];
-        parsedData.forEach((pd: any) => {
-          pd.uploadId = newUploadId;
+        parsedData.forEach((pd) => {
+          const rowWithUploadId: BrandReportRow = {
+            ...pd,
+            uploadId: newUploadId,
+          };
           const idx = merged.findIndex(
-            (m: any) => m.name === pd.name && m.platform === pd.platform,
+            (m) => m.name === rowWithUploadId.name && m.platform === rowWithUploadId.platform,
           );
-          if (idx >= 0) merged[idx] = pd;
-          else merged.push(pd);
+          if (idx >= 0) merged[idx] = rowWithUploadId;
+          else merged.push(rowWithUploadId);
         });
         merged.sort(
           (a, b) =>
@@ -5882,7 +4021,12 @@ export default function App() {
     } catch (err) {
       console.error("Failed to query API chat:", err);
       // Mock Fallback responses optimized in Indonesian
-      const fallbackMsg = getIndonesianMockResponse(chatInput, hostReportList);
+      const fallbackMsg = getIndonesianMockResponse(chatInput, hostReportList, {
+        timelyIncentive: salarySettings.timelyIncentive,
+        latePenalty: salarySettings.latePenalty,
+        punctualityRate: agencyOverviewStats.punctualityRate,
+        totalLogs: logs.length,
+      });
       setChatMessages((prev) => [
         ...prev,
         {
@@ -5899,115 +4043,6 @@ export default function App() {
       setChatLoading(false);
     }
   };
-
-  // Helper calculation for custom local AI fallbacks
-  function getIndonesianMockResponse(input: string, reports: any[]): string {
-    const lowercase = input.toLowerCase();
-
-    if (
-      lowercase.includes("ringkasan") ||
-      lowercase.includes("performa") ||
-      lowercase.includes("minggu")
-    ) {
-      const totalTepatWaktu = reports.reduce(
-        (acc, r) => acc + r.countTepatWaktu,
-        0,
-      );
-      const totalTerlambat = reports.reduce(
-        (acc, r) => acc + r.countTerlambat,
-        0,
-      );
-      const totalAlpa = reports.reduce((acc, r) => acc + r.countAlpa, 0);
-      const totalSesiHadir = totalTepatWaktu + totalTerlambat;
-      const scheduled = totalSesiHadir + totalAlpa;
-      const onTimeRate =
-        totalSesiHadir > 0
-          ? Math.round((totalTepatWaktu / totalSesiHadir) * 100)
-          : 0;
-
-      return `📊 **Ringkasan Performa Kehadiran Tim Minggu Ini:**
-
-- **Total Sesi Dijalankan**: ${totalSesiHadir} sesi
-- **Tepat Waktu**: ${totalTepatWaktu} sesi
-- **Terlambat**: ${totalTerlambat} sesi
-- **Alpa / Bolos**: ${totalAlpa} sesi
-- **Tingkat On-Time (Punctuality)**: **${onTimeRate}%**
-
-✨ **Insight AI**: ${onTimeRate > 80 ? "Tingkat kedisiplinan tim sangat baik! Pertahankan insentif tepat waktu untuk menjaga konsistensi." : "Tingkat keterlambatan perlu diperhatikan. Coba evaluasi beban shift atau terapkan penalti yang lebih tegas."}`;
-    }
-
-    if (
-      lowercase.includes("gaji") ||
-      lowercase.includes("hitung") ||
-      lowercase.includes("rekap")
-    ) {
-      const topEarner = [...reports].sort(
-        (a, b) => b.netSalary - a.netSalary,
-      )[0];
-      return `📊 **Rekapitulasi Gaji Host (Mode Analisis Offline):**
-
-Berdasarkan parameter operasional yang diatur:
-
-- **Host Terajin / Pendapatan Tertinggi**: **${topEarner?.name}** dengan estimasi gaji bersih **${formatIDR(topEarner?.netSalary || 0)}** (${topEarner?.totalHadir} kali hadir).
-- **Total Host Aktif**: ${reports.length} streamer.
-- Syarat bonus insentif tepat waktu sebesar **${formatIDR(salarySettings.timelyIncentive)}** sangat membantu meningkatkan kerajinan host.
-
-Anda dapat mengunduh berkas laporan dalam menu Operator Dashboard secara langsung!`;
-    }
-
-    if (
-      lowercase.includes("terlambat") ||
-      lowercase.includes("alpa") ||
-      lowercase.includes("masalah") ||
-      lowercase.includes("absen")
-    ) {
-      const toxicHosts = reports.filter(
-        (r) => r.countTerlambat > 1 || r.countAlpa > 0,
-      );
-      let listDetails = "";
-      if (toxicHosts.length > 0) {
-        listDetails = toxicHosts
-          .map(
-            (h) =>
-              `- **${h.name}**: Terlambat **${h.countTerlambat} kali**, Alpa/Tidak Hadir **${h.countAlpa} kali**. (Kehadiran: ${Math.round((h.totalHadir / (h.totalHadir + h.countAlpa)) * 100)}%)`,
-          )
-          .join("\n");
-      } else {
-        listDetails = "Semua host hadir dengan kedisiplinan 100% tepat waktu!";
-      }
-
-      return `⚠️ **Laporan Anomali Kehadiran & Kedisiplinan:**
-
-Berikut daftar host yang membutuhkan perhatian khusus:
-
-${listDetails}
-
-*Rekomendasi tindakan*: Kurangi shift pagi bagi host yang sering terlambat atau hubungi langsung untuk restrukturisasi jam tayang. Potongan gaji otomatis ${formatIDR(salarySettings.latePenalty)} telah diaplikasikan.`;
-    }
-
-    if (lowercase.includes("amanda") || lowercase.includes("putri")) {
-      const amanda = reports.find((r) =>
-        r.name.toLowerCase().includes("amanda"),
-      );
-      if (amanda) {
-        return `**Analisis Performa Host: Amanda Putri**
-
-- **Tepat Waktu**: ${amanda.countTepatWaktu} kali
-- **Terlambat**: ${amanda.countTerlambat} kali
-- **Alpa / Tidak Hadir**: ${amanda.countAlpa} kali
-- **Estimasi Gaji Bersih**: \`${formatIDR(amanda.netSalary)}\`
-
-Amanda sangat konsisten dalam live platform TikTok Live dengan brand kecantikan Wardah & Somethinc. Performa kehadirannya luar biasa di angka **${Math.round((amanda.totalHadir / (amanda.totalHadir + amanda.countAlpa)) * 100)}%**!`;
-      }
-    }
-
-    return `✨ Menyusul anomali data di Liva Agency, berikut adalah ringkasan absensi host kami:
-
-- Kehadiran Tepat Waktu Tim: **${agencyOverviewStats.punctualityRate}%**
-- Total log tersimpan: **${logs.length}** absensi
-
-Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasional** untuk mengonfigurasikan insentif yang optimal bagi para host live streaming! Ada yang ingin ditanyakan lagi?`;
-  }
 
   const handleClearAllData = () => {
     requestConfirm(
@@ -6029,26 +4064,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
       "Pulihkan Data Lokal",
       "Apakah Anda ingin mencoba menarik kembali data (Host, Log Absensi, Daftar Klien, Leads) yang mungkin tersimpan di perangkat lokal Anda ke dalam Database Cloud?",
       () => {
-        let count = 0;
-        const checkAndMigrate = (collectionName: string, localKey: string) => {
-          try {
-            const localData = localStorage.getItem(localKey);
-            if (localData) {
-              const parsed = JSON.parse(localData);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                syncToFirestore(collectionName, [], parsed);
-                count += parsed.length;
-              }
-            }
-          } catch (e) {
-            console.error("Migration error for", localKey, e);
-          }
-        };
-
-        checkAndMigrate("hosts", "mcn_hosts");
-        checkAndMigrate("logs", "mcn_logs");
-        checkAndMigrate("client_brands", "mcn_client_brands");
-        checkAndMigrate("client_leads", "mcn_client_leads");
+        recoverCollectionsFromLocalStorage(syncToFirestore);
 
         customAlert(
           `Berhasil memeriksa dan menyinkronkan data lokal. (Menemukan dan mencoba memulihkan item)`,
@@ -6060,7 +4076,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
   const handleExportJSON = () => {
     try {
-      const backupData = {
+      const backupData = buildDatabaseBackupPayload({
         hosts,
         logs,
         clientBrands,
@@ -6070,22 +4086,17 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
         shifts,
         studios,
         platforms,
-      };
-      const dataStr =
-        "data:text/json;charset=utf-8," +
-        encodeURIComponent(JSON.stringify(backupData, null, 2));
+      });
+      const dataStr = createBackupDownloadHref(backupData);
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute(
-        "download",
-        `liva_database_backup_${new Date().toISOString().split("T")[0]}.json`,
-      );
+      downloadAnchor.setAttribute("download", getBackupFilename());
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
       customAlert("Berhasil mengunduh berkas backup data JSON!");
-    } catch (err: any) {
-      customAlert("Gagal mengekspor data: " + err.message);
+    } catch (err: unknown) {
+      customAlert("Gagal mengekspor data: " + getErrorMessage(err));
     }
   };
 
@@ -6097,7 +4108,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
       fileReader.onload = (event) => {
         try {
           const parsed = JSON.parse(event.target?.result as string);
-          if (!parsed || typeof parsed !== "object") {
+          const backupCollections = extractBackupImportCollections(parsed);
+          if (!backupCollections || !hasAnyBackupCollections(backupCollections)) {
             customAlert("Format berkas backup JSON tidak valid!");
             return;
           }
@@ -6106,33 +4118,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
             "Impor & Timpa Database",
             "Apakah Anda yakin ingin mengganti seluruh data saat ini (Host, Log Absensi, Klien, Leads, Jadwal, Brand, Platform, Shift, dan Studio) dengan data dari file JSON ini? Seluruh data real di cloud juga akan diperbarui.",
             () => {
-              if (Array.isArray(parsed.hosts)) {
-                setHosts(parsed.hosts);
-              }
-              if (Array.isArray(parsed.logs)) {
-                setLogs(parsed.logs);
-              }
-              if (Array.isArray(parsed.clientBrands)) {
-                setClientBrands(parsed.clientBrands);
-              }
-              if (Array.isArray(parsed.clientLeads)) {
-                setClientLeads(parsed.clientLeads);
-              }
-              if (Array.isArray(parsed.schedules)) {
-                setSchedules(parsed.schedules);
-              }
-              if (Array.isArray(parsed.brands)) {
-                setBrands(parsed.brands);
-              }
-              if (Array.isArray(parsed.shifts)) {
-                setShifts(parsed.shifts);
-              }
-              if (Array.isArray(parsed.studios)) {
-                setStudios(parsed.studios);
-              }
-              if (Array.isArray(parsed.platforms)) {
-                setPlatforms(parsed.platforms);
-              }
+              if (backupCollections.hosts) setHosts(backupCollections.hosts);
+              if (backupCollections.logs) setLogs(backupCollections.logs);
+              if (backupCollections.clientBrands)
+                setClientBrands(backupCollections.clientBrands);
+              if (backupCollections.clientLeads)
+                setClientLeads(backupCollections.clientLeads);
+              if (backupCollections.schedules)
+                setSchedules(backupCollections.schedules);
+              if (backupCollections.brands) setBrands(backupCollections.brands);
+              if (backupCollections.shifts) setShifts(backupCollections.shifts);
+              if (backupCollections.studios)
+                setStudios(backupCollections.studios);
+              if (backupCollections.platforms)
+                setPlatforms(backupCollections.platforms);
 
               customAlert(
                 "Database berhasil diimpor & disinkronkan ke Cloud dari file JSON secara real-time!",
@@ -6140,8 +4139,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
             },
             "warning",
           );
-        } catch (err: any) {
-          customAlert("Gagal membaca file JSON: " + err.message);
+        } catch (err: unknown) {
+          customAlert("Gagal membaca file JSON: " + getErrorMessage(err));
         }
       };
     }
@@ -6292,10 +4291,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
               </div>
 
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   const enteredUser = clientLoginUsername.trim().toLowerCase();
-                  const enteredPass = clientLoginPass.trim();
 
                   if (!enteredUser) {
                     setHostError(
@@ -6304,34 +4302,22 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     return;
                   }
 
-                  const targetBrand = clientBrands.find((b) => {
-                    const username = (
-                      b.clientUsername ||
-                      (b.name || "").toLowerCase().replace(/[^a-z0-9]/g, "")
-                    )
-                      .trim()
-                      .toLowerCase();
-                    return username === enteredUser;
-                  });
-
-                  if (!targetBrand) {
-                    setHostError(
-                      "Akun brand tidak terdaftar atau username salah.",
+                  try {
+                    const session = await authApi.login(
+                      "brand",
+                      enteredUser,
+                      clientLoginPass,
                     );
-                    return;
-                  }
-
-                  const storedPass = (
-                    targetBrand.clientPassword || "liva123"
-                  ).trim();
-                  if (enteredPass === storedPass) {
-                    setLoggedInClientBrandId(targetBrand.id);
+                    setAuthSession(session);
+                    setLoggedInClientBrandId(session.subjectId);
                     setClientLoginUsername("");
                     setClientLoginPass("");
                     setHostError("");
-                  } else {
+                  } catch (error) {
                     setHostError(
-                      "Username atau password brand klien tidak sesuai!",
+                      error instanceof Error
+                        ? error.message
+                        : "Username atau password brand klien tidak sesuai!",
                     );
                   }
                 }}
@@ -6343,10 +4329,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
                 )}
                 <div className="text-left">
-                  <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
+                  <label htmlFor="brand-login-username" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
                     Username Portal Klien:
                   </label>
                   <input
+                    id="brand-login-username"
+                    name="username"
+                    autoComplete="username"
                     type="text"
                     required
                     value={clientLoginUsername}
@@ -6357,10 +4346,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                 </div>
 
                 <div className="text-left">
-                  <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
+                  <label htmlFor="brand-login-password" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
                     Password Portal:
                   </label>
                   <input
+                    id="brand-login-password"
+                    name="password"
+                    autoComplete="current-password"
                     type="password"
                     required
                     value={clientLoginPass}
@@ -6443,22 +4435,25 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
               {activeRole === "host" ? (
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
-                    // Host Login
-                    const found = hosts.find(
-                      (h) =>
-                        ((h as any).username || "").toLowerCase().trim() ===
-                          hostLoginUser.toLowerCase().trim() &&
-                        ((h as any).password || "") === hostLoginPass.trim(),
-                    );
-                    if (found) {
-                      setLoggedInHostId(found.id);
+                    try {
+                      const session = await authApi.login(
+                        "host",
+                        hostLoginUser.trim(),
+                        hostLoginPass,
+                      );
+                      setAuthSession(session);
+                      setLoggedInHostId(session.subjectId);
                       setHostLoginUser("");
                       setHostLoginPass("");
                       setHostError("");
-                    } else {
-                      setHostError("Username Host atau Password salah!");
+                    } catch (error) {
+                      setHostError(
+                        error instanceof Error
+                          ? error.message
+                          : "Username Host atau Password salah!",
+                      );
                     }
                   }}
                   className="space-y-4 font-sans animate-fadeIn"
@@ -6469,10 +4464,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     </div>
                   )}
                   <div className="text-left">
-                    <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
+                    <label htmlFor="host-login-username" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
                       Username Host:
                     </label>
                     <input
+                      id="host-login-username"
+                      name="username"
+                      autoComplete="username"
                       type="text"
                       required
                       value={hostLoginUser}
@@ -6483,10 +4481,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
 
                   <div className="text-left">
-                    <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
+                    <label htmlFor="host-login-password" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
                       Password:
                     </label>
                     <input
+                      id="host-login-password"
+                      name="password"
+                      autoComplete="current-password"
                       type="password"
                       required
                       value={hostLoginPass}
@@ -6505,40 +4506,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                 </form>
               ) : (
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
-                    // Admin Login
-                    if (
-                      hostLoginUser.trim() === adminCredentials.username &&
-                      hostLoginPass === adminCredentials.password
-                    ) {
+                    try {
+                      const session = await authApi.login(
+                        "admin",
+                        hostLoginUser.trim(),
+                        hostLoginPass,
+                      );
+                      setAuthSession(session);
                       setIsOperatorLoggedIn(true);
-                      setLoggedInAdminId(null); // Master Admin
+                      setLoggedInAdminId(
+                        session.role === "admin" ? session.subjectId : null,
+                      );
                       setHostLoginUser("");
                       setHostLoginPass("");
                       setHostError("");
-                      return;
-                    }
-
-                    // Custom Admin Login
-                    const foundAdmin = adminAccounts.find(
-                      (a) =>
-                        a.username === hostLoginUser.trim() &&
-                        a.password === hostLoginPass,
-                    );
-                    if (foundAdmin) {
-                      setIsOperatorLoggedIn(true);
-                      setLoggedInAdminId(foundAdmin.id);
-                      setHostLoginUser("");
-                      setHostLoginPass("");
-                      setHostError("");
-                      // Force navigation to the first allowed tab
-                      if (foundAdmin.accessTabs.length > 0) {
-                        setOperatorTab(foundAdmin.accessTabs[0] as any);
+                      if (session.accessTabs?.length) {
+                        setOperatorTab(session.accessTabs[0] as AdminTab);
                       }
-                      return;
-                    } else {
-                      setHostError("ID Admin atau Password Admin salah!");
+                    } catch (error) {
+                      setHostError(
+                        error instanceof Error
+                          ? error.message
+                          : "ID Admin atau Password Admin salah!",
+                      );
                     }
                   }}
                   className="space-y-4 font-sans animate-fadeIn"
@@ -6549,10 +4541,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     </div>
                   )}
                   <div className="text-left">
-                    <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
+                    <label htmlFor="admin-login-username" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
                       ID Admin Master:
                     </label>
                     <input
+                      id="admin-login-username"
+                      name="username"
+                      autoComplete="username"
                       type="text"
                       required
                       value={hostLoginUser}
@@ -6563,10 +4558,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                   </div>
 
                   <div className="text-left">
-                    <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
+                    <label htmlFor="admin-login-password" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
                       Password Admin:
                     </label>
                     <input
+                      id="admin-login-password"
+                      name="password"
+                      autoComplete="current-password"
                       type="password"
                       required
                       value={hostLoginPass}
@@ -6752,7 +4750,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                     <button
                       type="button"
-                      onClick={() => setLoggedInHostId(null)}
+                      onClick={handleLogout}
                       className="text-[9.5px] font-black text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-3 py-2 rounded-xl cursor-pointer transition-colors"
                       id="host_logout_button"
                     >
@@ -7111,87 +5109,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     </h3>
 
                     {/* Cutoff Period Selector */}
-                    <div
-                      className="mb-4 bg-purple-50/50 p-2.5 rounded-xl border border-purple-100 flex flex-col gap-1.5"
-                      id="host_cutoff_period_selector_container"
-                    >
-                      <label className="text-[10px] font-black text-purple-950 uppercase tracking-wider block">
-                        Pilih Siklus Cut Off Absen:
-                      </label>
-                      <div className="flex gap-1.5 items-center">
-                        <select
-                          id="host_cutoff_period_dropdown"
-                          value={hostCutoffPeriod}
-                          onChange={(e) => setHostCutoffPeriod(e.target.value)}
-                          className="flex-1 bg-white border border-purple-200/85 rounded-lg px-2 py-1 text-[11px] font-bold text-purple-950 focus:outline-none focus:border-purple-500 shadow-3xs cursor-pointer hover:border-purple-300 transition-all font-sans"
-                        >
-                          <option value="Semua">
-                            Semua Riwayat (Tanpa Filter)
-                          </option>
-                          {availableCutoffMonths.map((value) => {
-                            const [yearStr, monthStr] = value.split("-");
-                            const yr = Number(yearStr);
-                            const m = Number(monthStr);
-                            const monthNames = [
-                              "Januari",
-                              "Februari",
-                              "Maret",
-                              "April",
-                              "Mei",
-                              "Juni",
-                              "Juli",
-                              "Agustus",
-                              "September",
-                              "Oktober",
-                              "November",
-                              "Desember",
-                            ];
-                            let prevM = m - 1;
-                            if (prevM === 0) {
-                              prevM = 12;
-                            }
-                            const label = ` 25 ${monthNames[m - 1]} ${yr} (16 ${monthNames[prevM - 1]} - 15 ${monthNames[m - 1]}) `;
-                            return (
-                              <option key={value} value={value}>
-                                {label}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      </div>
-                      {hostCutoffPeriod !== "Semua" && (
-                        <span className="text-[8.5px] font-mono text-purple-650 italic font-semibold">
-                          *Menampilkan performa dari{" "}
-                          {(() => {
-                            const [yearStr, monthStr] =
-                              hostCutoffPeriod.split("-");
-                            const year = Number(yearStr);
-                            const m = Number(monthStr);
-                            const monthNames = [
-                              "Januari",
-                              "Februari",
-                              "Maret",
-                              "April",
-                              "Mei",
-                              "Juni",
-                              "Juli",
-                              "Agustus",
-                              "September",
-                              "Oktober",
-                              "November",
-                              "Desember",
-                            ];
-                            let prevM = m - 1;
-                            let prevYear = year;
-                            if (prevM === 0) {
-                              prevM = 12;
-                              prevYear -= 1;
-                            }
-                            return `${salarySettings.cutOffStartDay ?? 16} ${monthNames[prevM - 1]} ${prevYear} s/d ${salarySettings.cutOffEndDay ?? 15} ${monthNames[m - 1]} ${year}`;
-                          })()}
-                        </span>
-                      )}
-                    </div>
+                    <CutoffPeriodSelector
+                      id="host_cutoff_period_dropdown"
+                      value={hostCutoffPeriod}
+                      availableCutoffMonths={availableCutoffMonths}
+                      onChange={setHostCutoffPeriod}
+                      label="Pilih Siklus Cut Off Absen:"
+                      showNote
+                      startDay={salarySettings.cutOffStartDay ?? 16}
+                      endDay={salarySettings.cutOffEndDay ?? 15}
+                      containerClassName="mb-4 bg-purple-50/50 p-2.5 rounded-xl border border-purple-100 flex flex-col gap-1.5"
+                      labelClassName="text-[10px] font-black text-purple-950 uppercase tracking-wider block"
+                      selectClassName="flex-1 bg-white border border-purple-200/85 rounded-lg px-2 py-1 text-[11px] font-bold text-purple-950 focus:outline-none focus:border-purple-500 shadow-3xs cursor-pointer hover:border-purple-300 transition-all font-sans"
+                      noteClassName="text-[8.5px] font-mono text-purple-650 italic font-semibold"
+                    />
 
                     {/* 2 Grid Personal Counter Cards */}
                     <div
@@ -7767,7 +5698,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
               <div className="mt-8 px-4 flex-shrink-0 mb-4 h-auto">
                 <button
                   type="button"
-                  onClick={() => setLoggedInHostId(null)}
+                  onClick={handleLogout}
                   className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2"
                 >
                   Keluar Akses (Logout)
@@ -7884,11 +5815,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       {clientBrand?.name} Admin
                     </div>
                     <button
-                      onClick={() => {
-                        setLoggedInClientBrandId(null);
-                        setClientLoginBrandId("");
-                        setClientLoginPass("");
-                      }}
+                      onClick={handleLogout}
                       className="text-slate-400 hover:text-rose-500 cursor-pointer border-0 bg-transparent p-1 hidden sm:block delay-150 relative"
                     >
                       <LogOut className="w-4 h-4" />
@@ -7933,11 +5860,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     {/* MOBILE CONTROLS */}
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => {
-                          setLoggedInClientBrandId(null);
-                          setClientLoginBrandId("");
-                          setClientLoginPass("");
-                        }}
+                        onClick={handleLogout}
                         className="md:hidden flex items-center gap-2 p-2 rounded-lg bg-rose-50 text-rose-600 border border-rose-100"
                       >
                         <LogOut className="w-4 h-4" />
@@ -8020,81 +5943,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       } else {
                         latestDateLabel = "Semua Waktu";
                       }
-                      const applyFilter = (logs, isPrevPeriod) => {
-                        return logs.filter((log) => {
-                          let normalizedLogDate = normalizeDateYMD(log.date);
-                          if (effectiveFilter !== "all") {
-                            if (isPrevPeriod) {
-                              if (effectiveFilter === "latest") {
-                                if (normalizedLogDate !== prevStartDate)
-                                  return false;
-                              } else if (effectiveFilter === "month") {
-                                if (
-                                  normalizedLogDate.substring(0, 7) !==
-                                  prevStartDate.substring(0, 7)
-                                )
-                                  return false;
-                              } else if (effectiveFilter === "custom") {
-                                if (
-                                  normalizedLogDate < prevStartDate ||
-                                  normalizedLogDate > prevEndDate
-                                )
-                                  return false;
-                              }
-                            } else {
-                              if (effectiveFilter === "latest") {
-                                if (normalizedLogDate !== targetLatestDate)
-                                  return false;
-                              } else if (effectiveFilter === "month") {
-                                if (
-                                  normalizedLogDate.substring(0, 7) !==
-                                  clientSelectedMonth
-                                )
-                                  return false;
-                              } else if (effectiveFilter === "custom") {
-                                if (
-                                  clientCustomStartDate &&
-                                  normalizedLogDate < clientCustomStartDate
-                                )
-                                  return false;
-                                if (
-                                  clientCustomEndDate &&
-                                  normalizedLogDate > clientCustomEndDate
-                                )
-                                  return false;
-                              }
-                            }
-                          }
-                          if (reportDbSearchQuery.trim()) {
-                            const q = reportDbSearchQuery.toLowerCase();
-                            const matchTitle = String(log.title || "")
-                              .toLowerCase()
-                              .includes(q);
-                            const matchDate = String(log.date || "")
-                              .toLowerCase()
-                              .includes(q);
-                            const matchPlatformStr = String(log.platform || "")
-                              .toLowerCase()
-                              .includes(q);
-                            if (!matchTitle && !matchDate && !matchPlatformStr)
-                              return false;
-                          }
-                          if (clientPlatformFilter) {
-                            if (
-                              !isPlatformMatch(
-                                log.platform,
-                                clientPlatformFilter,
-                              )
-                            )
-                              return false;
-                          }
-                          return true;
-                        });
-                      };
-                      const tableLogs = applyFilter(filteredDb, false);
+                      const tableLogs = filterReportLogs(filteredDb, {
+                        filterType: effectiveFilter,
+                        latestDate: targetLatestDate,
+                        prevStartDate,
+                        prevEndDate,
+                        selectedMonth: clientSelectedMonth,
+                        customStartDate: clientCustomStartDate,
+                        customEndDate: clientCustomEndDate,
+                        searchQuery: reportDbSearchQuery,
+                        platformFilter: clientPlatformFilter,
+                      });
                       const prevTableLogs =
                         effectiveFilter !== "all"
-                          ? applyFilter(filteredDb, true)
+                          ? filterReportLogs(filteredDb, {
+                              filterType: effectiveFilter,
+                              isPrevPeriod: true,
+                              latestDate: targetLatestDate,
+                              prevStartDate,
+                              prevEndDate,
+                              selectedMonth: clientSelectedMonth,
+                              customStartDate: clientCustomStartDate,
+                              customEndDate: clientCustomEndDate,
+                              searchQuery: reportDbSearchQuery,
+                              platformFilter: clientPlatformFilter,
+                            })
                           : [];
                       const totalSessionsDb = tableLogs.length;
                       const totalGmvDb = tableLogs.reduce(
@@ -8298,110 +6171,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             : 0;
                       }
 
-                      const chartDataObj = [...tableLogs].reduce(
-                        (acc: any, curr: any) => {
-                          let d = curr.date;
-                          if (
-                            d &&
-                            (d.indexOf("/") !== -1 ||
-                              (d.indexOf("-") !== -1 &&
-                                d.split("-")[0].length <= 2))
-                          ) {
-                            const parts = d.split(/[\/\-]/);
-                            if (parts.length === 3) {
-                              if (parts[0].length === 4) {
-                                d = `${parts[0]}-${String(parts[1]).padStart(2, "0")}-${String(parts[2]).padStart(2, "0")}`;
-                              } else {
-                                const y =
-                                  parts[2].length === 2
-                                    ? `20${parts[2]}`
-                                    : parts[2];
-                                d = `${y}-${String(parts[1]).padStart(2, "0")}-${String(parts[0]).padStart(2, "0")}`;
-                              }
-                            }
-                          }
-
-                          if (!acc[d])
-                            acc[d] = { date: d, gmv: 0, impressions: 0 };
-                          acc[d].gmv += curr.gmv || 0;
-                          acc[d].impressions +=
-                            curr.impressions ||
-                            curr.views ||
-                            curr.liveVisits ||
-                            0;
-                          return acc;
-                        },
-                        {},
-                      );
-                      const chartData = Object.values(chartDataObj).sort(
-                        (a: any, b: any) =>
-                          new Date(a.date).getTime() -
-                          new Date(b.date).getTime(),
-                      );
+                      const chartData = buildReportChartData(tableLogs);
 
                       // Apply Sorting for Table
-                      const sortedTableLogs = [...tableLogs].sort((a, b) => {
-                        let valA = a[reportDbSortCol] || "";
-                        let valB = b[reportDbSortCol] || "";
-
-                        if (reportDbSortCol === "date") {
-                          const normalizeDateStr = (d: string) => {
-                            if (!d) return "";
-                            if (
-                              d.indexOf("/") !== -1 ||
-                              (d.indexOf("-") !== -1 &&
-                                d.split("-")[0].length <= 2)
-                            ) {
-                              const parts = d.split(/[\/\-]/);
-                              if (parts.length === 3) {
-                                if (parts[0].length === 4) {
-                                  return `${parts[0]}-${String(parts[1]).padStart(2, "0")}-${String(parts[2]).padStart(2, "0")}`;
-                                }
-                                const y =
-                                  parts[2].length === 2
-                                    ? `20${parts[2]}`
-                                    : parts[2];
-                                return `${y}-${String(parts[1]).padStart(2, "0")}-${String(parts[0]).padStart(2, "0")}`;
-                              }
-                            }
-                            return d;
-                          };
-                          valA = normalizeDateStr(a.date);
-                          valB = normalizeDateStr(b.date);
-                        } else if (reportDbSortCol === "views") {
-                          valA = a.impressions || a.views || 0;
-                          valB = b.impressions || b.views || 0;
-                        } else if (reportDbSortCol === "ctr") {
-                          valA = a.productImpressions
-                            ? a.clicks / a.productImpressions
-                            : 0;
-                          valB = b.productImpressions
-                            ? b.clicks / b.productImpressions
-                            : 0;
-                        } else if (reportDbSortCol === "ctor") {
-                          valA = a.clicks ? a.orders / a.clicks : 0;
-                          valB = b.clicks ? b.orders / b.clicks : 0;
-                        } else if (reportDbSortCol === "customers") {
-                          valA = a.buyers || 0;
-                          valB = b.buyers || 0;
-                        }
-
-                        if (
-                          typeof valA === "string" &&
-                          typeof valB === "string"
-                        ) {
-                          return reportDbSortAsc
-                            ? valA.localeCompare(valB)
-                            : valB.localeCompare(valA);
-                        }
-                        return reportDbSortAsc
-                          ? valA > valB
-                            ? 1
-                            : -1
-                          : valB > valA
-                            ? 1
-                            : -1;
-                      });
+                      const sortedTableLogs = sortReportLogs(
+                        tableLogs,
+                        reportDbSortCol,
+                        reportDbSortAsc,
+                      );
 
                       const paginatedLogs = sortedTableLogs.slice(
                         (currentPage - 1) * ITEMS_PER_PAGE,
@@ -8411,217 +6188,47 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         sortedTableLogs.length / ITEMS_PER_PAGE,
                       );
 
-                      const handleSort = (col) => {
-                        if (reportDbSortCol === col) {
-                          setReportDbSortAsc(!reportDbSortAsc);
-                        } else {
-                          setReportDbSortCol(col);
-                          setReportDbSortAsc(true); // default to asc on new col
-                        }
+                      const handleSort = (col: string) => {
+                        const nextSort = getNextSortState(
+                          reportDbSortCol,
+                          reportDbSortAsc,
+                          col,
+                        );
+                        setReportDbSortCol(nextSort.sortKey);
+                        setReportDbSortAsc(nextSort.sortAsc);
                       };
 
                       return (
                         <>
-                          {/* Table Filters */}
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap">
-                            <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
-                              <div className="relative w-full sm:w-72">
-                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input
-                                  type="text"
-                                  placeholder="Search sessions..."
-                                  value={reportDbSearchQuery}
-                                  onChange={(e) =>
-                                    setReportDbSearchQuery(e.target.value)
-                                  }
-                                  className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 transition-colors shadow-sm"
-                                />
-                              </div>
-                              <select
-                                value={clientPlatformFilter}
-                                onChange={(e) =>
-                                  setClientPlatformFilter(e.target.value)
-                                }
-                                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
-                              >
-                                {availableClientPlatforms.map((p) => (
-                                  <option key={p} value={p}>
-                                    {p}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="relative flex gap-2 w-full sm:w-auto h-9">
-                              <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                                {[
-                                  { id: "latest", label: "Terbaru" },
-                                  { id: "all", label: "Semua" },
-                                  { id: "month", label: "Bulan" },
-                                  { id: "custom", label: "Custom" },
-                                ].map((item) => (
-                                  <button
-                                    key={item.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setClientDateFilterType(item.id);
-                                      if (
-                                        item.id === "all" ||
-                                        item.id === "latest"
-                                      ) {
-                                        setIsClientCalendarOpen(false);
-                                        setIsClientMonthOpen(false);
-                                      } else if (item.id === "month") {
-                                        setIsClientMonthOpen(true);
-                                        setIsClientCalendarOpen(false);
-                                      } else if (item.id === "custom") {
-                                        setIsClientCalendarOpen(true);
-                                        setIsClientMonthOpen(false);
-                                        setClientTempStartDate(
-                                          clientCustomStartDate ||
-                                            formatDateYYYYMMDD(new Date()),
-                                        );
-                                        setClientTempEndDate(
-                                          clientCustomEndDate ||
-                                            formatDateYYYYMMDD(new Date()),
-                                        );
-                                      }
-                                    }}
-                                    className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
-                                      clientDateFilterType === item.id
-                                        ? "bg-white text-indigo-700 shadow-sm border border-slate-100"
-                                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
-                                    }`}
-                                  >
-                                    {item.label}
-                                  </button>
-                                ))}
-                              </div>
-
-                              {((clientDateFilterType === "custom" &&
-                                clientCustomStartDate) ||
-                                clientDateFilterType === "month") && (
-                                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                  <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                                  <span className="text-[10px] font-bold text-slate-700">
-                                    {clientDateFilterType === "month"
-                                      ? getIndonesianMonthLabel(
-                                          clientSelectedMonth,
-                                        )
-                                      : `${clientCustomStartDate} to ${clientCustomEndDate}`}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Custom Date Overlay UI (Month) */}
-                              {isClientMonthOpen &&
-                                clientDateFilterType === "month" && (
-                                  <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
-                                    <div className="flex justify-between items-center mb-4 text-slate-800">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setClientMonthPickerYear((y) => y - 1)
-                                        }
-                                        className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
-                                      >
-                                        &laquo;
-                                      </button>
-                                      <div className="text-sm font-bold tracking-widest">
-                                        {clientMonthPickerYear}
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setClientMonthPickerYear((y) => y + 1)
-                                        }
-                                        className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
-                                      >
-                                        &raquo;
-                                      </button>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-y-2 pb-1 border-t border-slate-100 pt-3 relative">
-                                      {[
-                                        { val: "01", label: "Jan" },
-                                        { val: "02", label: "Feb" },
-                                        { val: "03", label: "Mar" },
-                                        { val: "04", label: "Apr" },
-                                        { val: "05", label: "May" },
-                                        { val: "06", label: "Jun" },
-                                        { val: "07", label: "Jul" },
-                                        { val: "08", label: "Aug" },
-                                        { val: "09", label: "Sept" },
-                                        { val: "10", label: "Oct" },
-                                        { val: "11", label: "Nov" },
-                                        { val: "12", label: "Dec" },
-                                      ].map((m, idx) => {
-                                        const mVal = `${clientMonthPickerYear}-${m.val}`;
-                                        const isSelected =
-                                          clientSelectedMonth === mVal;
-
-                                        const currentDate = new Date();
-                                        const isFuture =
-                                          clientMonthPickerYear >
-                                            currentDate.getFullYear() ||
-                                          (clientMonthPickerYear ===
-                                            currentDate.getFullYear() &&
-                                            parseInt(m.val) >
-                                              currentDate.getMonth() + 1);
-
-                                        return (
-                                          <button
-                                            key={m.val}
-                                            type="button"
-                                            onClick={() => {
-                                              if (!isFuture) {
-                                                setClientSelectedMonth(mVal);
-                                                setIsClientMonthOpen(false);
-                                              }
-                                            }}
-                                            className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
-                                              isFuture
-                                                ? "bg-slate-50 text-slate-400 cursor-not-allowed"
-                                                : "bg-white text-slate-800 hover:bg-slate-50 cursor-pointer"
-                                            } ${isSelected ? "bg-slate-50 shadow-sm relative" : ""}`}
-                                          >
-                                            {m.label}
-                                            {isSelected && !isFuture && (
-                                              <div className="w-1.5 h-1.5 rounded-full bg-slate-300 absolute bottom-1"></div>
-                                            )}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-
-                              {/* Custom Date Overlay UI (Custom) */}
-                              {isClientCalendarOpen &&
-                                clientDateFilterType === "custom" && (
-                                  <div className="absolute right-0 top-full mt-2 z-50 animate-fadeIn">
-                                    <DoubleDatePicker
-                                      startDate={clientTempStartDate}
-                                      endDate={clientTempEndDate}
-                                      onChange={(start, end) => {
-                                        setClientTempStartDate(start);
-                                        setClientTempEndDate(end);
-                                      }}
-                                      onApply={() => {
-                                        setClientCustomStartDate(
-                                          clientTempStartDate,
-                                        );
-                                        setClientCustomEndDate(
-                                          clientTempEndDate,
-                                        );
-                                        setIsClientCalendarOpen(false);
-                                      }}
-                                      onCancel={() =>
-                                        setIsClientCalendarOpen(false)
-                                      }
-                                    />
-                                  </div>
-                                )}
-                            </div>
-                          </div>
+                          <ReportFiltersBar
+                            searchQuery={reportDbSearchQuery}
+                            onSearchQueryChange={setReportDbSearchQuery}
+                            platformFilter={clientPlatformFilter}
+                            onPlatformFilterChange={setClientPlatformFilter}
+                            availablePlatforms={availableClientPlatforms}
+                            dateFilterType={clientDateFilterType}
+                            onDateFilterTypeSelect={handleClientDateFilterSelect}
+                            monthPickerYear={clientMonthPickerYear}
+                            setMonthPickerYear={setClientMonthPickerYear}
+                            selectedMonth={clientSelectedMonth}
+                            setSelectedMonth={setClientSelectedMonth}
+                            isMonthOpen={isClientMonthOpen}
+                            setIsMonthOpen={setIsClientMonthOpen}
+                            isCalendarOpen={isClientCalendarOpen}
+                            setIsCalendarOpen={setIsClientCalendarOpen}
+                            customStartDate={clientCustomStartDate}
+                            customEndDate={clientCustomEndDate}
+                            tempStartDate={clientTempStartDate}
+                            tempEndDate={clientTempEndDate}
+                            onTempStartDateChange={setClientTempStartDate}
+                            onTempEndDateChange={setClientTempEndDate}
+                            onApplyCustom={(start, end) => {
+                              setClientCustomStartDate(start);
+                              setClientCustomEndDate(end);
+                              setIsClientCalendarOpen(false);
+                            }}
+                            onCancelCustom={() => setIsClientCalendarOpen(false)}
+                          />
 
                           {/* Summary Cards */}
                           {(() => {
@@ -8640,218 +6247,101 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               return (
                                 <div className="space-y-6 mb-6">
                                   <div>
-                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-                                      <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">
-                                        Performance live
-                                      </h4>
-                                      <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
-                                        <button
-                                          onClick={() => {
-                                            let pd = new Date();
-                                            if (
-                                              clientDateFilterType ===
-                                                "latest" &&
-                                              targetLatestDate
-                                            ) {
-                                              pd = new Date(targetLatestDate);
-                                            } else if (
-                                              clientDateFilterType ===
-                                                "custom" &&
-                                              clientCustomStartDate
-                                            ) {
-                                              pd = new Date(
-                                                clientCustomStartDate,
-                                              );
-                                            }
-                                            pd.setDate(pd.getDate() - 1);
-                                            const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                            setClientDateFilterType("custom");
-                                            setClientCustomStartDate(newD);
-                                            setClientCustomEndDate(newD);
-                                          }}
-                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                        >
-                                          <ChevronLeft className="w-4 h-4" />
-                                        </button>
-                                        <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
-                                          {(() => {
-                                            if (
-                                              clientDateFilterType ===
-                                                "month" ||
-                                              clientDateFilterType === "all"
-                                            )
-                                              return (
-                                                latestDateLabel || "Semua Waktu"
-                                              );
-                                            let curD = new Date();
-                                            if (
-                                              clientDateFilterType ===
-                                                "latest" &&
-                                              targetLatestDate
-                                            ) {
-                                              curD = new Date(targetLatestDate);
-                                            } else if (
-                                              clientDateFilterType ===
-                                                "custom" &&
-                                              clientCustomStartDate
-                                            ) {
-                                              curD = new Date(
-                                                clientCustomStartDate,
-                                              );
-                                            }
-                                            return curD.toLocaleDateString(
-                                              "id-ID",
-                                              {
-                                                weekday: "long",
-                                                day: "numeric",
-                                                month: "long",
-                                                year: "numeric",
-                                              },
-                                            );
-                                          })()}
-                                        </span>
-                                        <button
-                                          onClick={() => {
-                                            let pd = new Date();
-                                            if (
-                                              clientDateFilterType ===
-                                                "latest" &&
-                                              targetLatestDate
-                                            ) {
-                                              pd = new Date(targetLatestDate);
-                                            } else if (
-                                              clientDateFilterType ===
-                                                "custom" &&
-                                              clientCustomStartDate
-                                            ) {
-                                              pd = new Date(
-                                                clientCustomStartDate,
-                                              );
-                                            }
-                                            pd.setDate(pd.getDate() + 1);
-                                            const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                            setClientDateFilterType("custom");
-                                            setClientCustomStartDate(newD);
-                                            setClientCustomEndDate(newD);
-                                          }}
-                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                        >
-                                          <ChevronRight className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    </div>
+                                    <ReportPeriodNavigator
+                                      title="Performance live"
+                                      label={getReportPeriodLabel({
+                                        dateFilterType: clientDateFilterType,
+                                        latestDateLabel,
+                                        targetLatestDate,
+                                        customStartDate: clientCustomStartDate,
+                                      })}
+                                      onPrev={() =>
+                                        shiftReportPeriodByOneDay({
+                                          direction: -1,
+                                          dateFilterType: clientDateFilterType,
+                                          targetLatestDate,
+                                          customStartDate:
+                                            clientCustomStartDate,
+                                          setDateFilterType:
+                                            setClientDateFilterType,
+                                          setCustomStartDate:
+                                            setClientCustomStartDate,
+                                          setCustomEndDate:
+                                            setClientCustomEndDate,
+                                        })
+                                      }
+                                      onNext={() =>
+                                        shiftReportPeriodByOneDay({
+                                          direction: 1,
+                                          dateFilterType: clientDateFilterType,
+                                          targetLatestDate,
+                                          customStartDate:
+                                            clientCustomStartDate,
+                                          setDateFilterType:
+                                            setClientDateFilterType,
+                                          setCustomStartDate:
+                                            setClientCustomStartDate,
+                                          setCustomEndDate:
+                                            setClientCustomEndDate,
+                                        })
+                                      }
+                                    />
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            GMV
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalGmvDb}
-                                            prev={pTotalGmvDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          Rp
-                                          {new Intl.NumberFormat("id-ID", {
-                                            maximumFractionDigits: 0,
-                                          }).format(totalGmvDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Item Solds
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalItemsSoldDb}
-                                            prev={pTotalItemsSoldDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(totalItemsSoldDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            GMV/Hours
-                                          </div>
-                                          <PercentBadge
-                                            cur={gmvPerHour}
-                                            prev={pGmvPerHour}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          Rp
-                                          {new Intl.NumberFormat("id-ID", {
-                                            maximumFractionDigits: 0,
-                                          }).format(gmvPerHour)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Conversion Rate %
-                                          </div>
-                                          <PercentBadge
-                                            cur={conversionRateShopee}
-                                            prev={pConversionRateShopee}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {conversionRateShopee.toFixed(2)}%
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Orders
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalOrdersDb}
-                                            prev={pTotalOrdersDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(totalOrdersDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Avg. Viewer Duration
-                                          </div>
-                                          <PercentBadge
-                                            cur={avgViewDurationDb}
-                                            prev={pAvgViewDurationDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {avgViewDurationDb.toFixed(2)}s
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            AOV
-                                          </div>
-                                          <PercentBadge
-                                            cur={avgAovDb}
-                                            prev={pAvgAovDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          Rp
-                                          {new Intl.NumberFormat("id-ID", {
-                                            maximumFractionDigits: 0,
-                                          }).format(avgAovDb)}
-                                        </div>
-                                      </div>
+                                      <ReportMetricCard
+                                        label="GMV"
+                                        cur={totalGmvDb}
+                                        prev={pTotalGmvDb}
+                                        prefix="Rp "
+                                        value={new Intl.NumberFormat("id-ID", {
+                                          maximumFractionDigits: 0,
+                                        }).format(totalGmvDb)}
+                                      />
+                                      <ReportMetricCard
+                                        label="Item Solds"
+                                        cur={totalItemsSoldDb}
+                                        prev={pTotalItemsSoldDb}
+                                        value={new Intl.NumberFormat(
+                                          "id-ID",
+                                        ).format(totalItemsSoldDb)}
+                                      />
+                                      <ReportMetricCard
+                                        label="GMV/Hours"
+                                        cur={gmvPerHour}
+                                        prev={pGmvPerHour}
+                                        prefix="Rp "
+                                        value={new Intl.NumberFormat("id-ID", {
+                                          maximumFractionDigits: 0,
+                                        }).format(gmvPerHour)}
+                                      />
+                                      <ReportMetricCard
+                                        label="Conversion Rate %"
+                                        cur={conversionRateShopee}
+                                        prev={pConversionRateShopee}
+                                        value={`${conversionRateShopee.toFixed(2)}%`}
+                                      />
+                                      <ReportMetricCard
+                                        label="Orders"
+                                        cur={totalOrdersDb}
+                                        prev={pTotalOrdersDb}
+                                        value={new Intl.NumberFormat(
+                                          "id-ID",
+                                        ).format(totalOrdersDb)}
+                                      />
+                                      <ReportMetricCard
+                                        label="Avg. Viewer Duration"
+                                        cur={avgViewDurationDb}
+                                        prev={pAvgViewDurationDb}
+                                        value={`${avgViewDurationDb.toFixed(2)}s`}
+                                      />
+                                      <ReportMetricCard
+                                        label="AOV"
+                                        cur={avgAovDb}
+                                        prev={pAvgAovDb}
+                                        prefix="Rp "
+                                        value={new Intl.NumberFormat("id-ID", {
+                                          maximumFractionDigits: 0,
+                                        }).format(avgAovDb)}
+                                      />
                                     </div>
                                   </div>
 
@@ -9195,70 +6685,18 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 );
                             if (!isShopee) return null;
 
-                            const applySkuFilter = (logsArr: any[]) => {
-                              if (!logsArr) return [];
-                              let res = logsArr.filter(
-                                (r) => r.brandId === loggedInClientBrandId,
-                              );
-                              if (
-                                clientDateFilterType === "latest" &&
-                                targetLatestDate
-                              ) {
-                                res = res.filter(
-                                  (r) =>
-                                    r.date &&
-                                    r.date.startsWith(
-                                      targetLatestDate.substring(0, 10),
-                                    ),
-                                );
-                              } else if (
-                                clientDateFilterType === "custom" &&
-                                clientCustomStartDate
-                              ) {
-                                res = res.filter(
-                                  (r) =>
-                                    r.date &&
-                                    r.date >= clientCustomStartDate &&
-                                    r.date <=
-                                      (clientCustomEndDate ||
-                                        clientCustomStartDate),
-                                );
-                              } else if (
-                                clientDateFilterType === "month" &&
-                                clientSelectedMonth
-                              ) {
-                                res = res.filter(
-                                  (r) =>
-                                    r.date &&
-                                    r.date.startsWith(clientSelectedMonth),
-                                );
-                              }
-                              return res;
-                            };
-
-                            const currentSkus = applySkuFilter(shopeeSkuLogs);
+                            const currentSkus = filterSkuLogs(shopeeSkuLogs, {
+                              brandId: loggedInClientBrandId,
+                              dateFilterType: clientDateFilterType,
+                              latestDate: targetLatestDate,
+                              customStartDate: clientCustomStartDate,
+                              customEndDate: clientCustomEndDate,
+                              selectedMonth: clientSelectedMonth,
+                            });
                             if (currentSkus.length === 0) return null;
 
-                            const skuMap = new Map();
-                            currentSkus.forEach((s) => {
-                              const key =
-                                s.sku !== "N/A" ? s.sku : s.productName;
-                              const ex = skuMap.get(key);
-                              if (ex) {
-                                ex.sold += Number(s.sold) || 0;
-                                ex.revenue += Number(s.revenue) || 0;
-                              } else {
-                                skuMap.set(key, {
-                                  sku: s.sku,
-                                  productName: s.productName,
-                                  sold: Number(s.sold) || 0,
-                                  revenue: Number(s.revenue) || 0,
-                                });
-                              }
-                            });
-
-                            let aggregatedSkus = Array.from(
-                              skuMap.values(),
+                            let aggregatedSkus = aggregateSkuLogs(
+                              currentSkus,
                             ).sort((a, b) => b.sold - a.sold);
 
                             return (
@@ -9979,10 +7417,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                     let allowedTabs: string[] | null = null;
                     if (loggedInAdminId) {
-                      const adm = adminAccounts.find(
-                        (a) => a.id === loggedInAdminId,
-                      );
-                      if (adm) allowedTabs = adm.accessTabs;
+                      allowedTabs = authSession?.role === "admin"
+                        ? authSession.accessTabs ?? null
+                        : null;
+                      if (!allowedTabs) {
+                        const adm = adminAccounts.find(
+                          (a) => a.id === loggedInAdminId,
+                        );
+                        if (adm) allowedTabs = adm.accessTabs;
+                      }
                     }
 
                     const filteredItems = allItems.filter((item) => {
@@ -10037,7 +7480,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       return null;
                     }
 
-                    const IconComponent = item.icon as any;
+                    const IconComponent = item.icon;
                     const isActive = operatorTab === item.tabId;
 
                     return (
@@ -10109,10 +7552,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     </div>
                   </div>
                   <button
-                    onClick={() => {
-                      setIsOperatorLoggedIn(false);
-                      setLoggedInAdminId(null);
-                    }}
+                    onClick={handleLogout}
                     className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all cursor-pointer border-0 bg-transparent"
                     title="Sign Out"
                   >
@@ -10323,7 +7763,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         return updated;
                                       });
                                       if (notif.actionTab) {
-                                        setOperatorTab(notif.actionTab as any);
+                                        setOperatorTab(notif.actionTab as AdminTab);
                                         setIsNotificationOpen(false);
                                       }
                                     }}
@@ -10414,36 +7854,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
               {/* WORKSPACE AREA CONTAINER */}
               <div className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 pb-24 relative">
-                {/* Proactive Security Check: Warn on default password */}
-                {!loggedInAdminId && adminCredentials.password === "Liva123@@" && (
-                  <div
-                    className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fadeIn"
-                    id="cybersecurity_alert_banner"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-amber-100 rounded-lg text-amber-800 text-sm">
-                        ⚠️
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-amber-900 uppercase">
-                          Peringatan Keamanan Kritis (Cybersecurity Alert)
-                        </h4>
-                        <p className="text-[11px] text-amber-700 font-semibold mt-0.5">
-                          Sistem mendeteksi Anda masih menggunakan kata sandi
-                          default ("123"). Demi keamanan data agency, segera
-                          perbarui sandi Master Admin di menu Privasi.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setOperatorTab("admin_privacy")}
-                      className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-black tracking-wide uppercase transition-all cursor-pointer border-0 shadow-sm shrink-0"
-                    >
-                      Ubah Sandi
-                    </button>
-                  </div>
-                )}
-
                 {/* ==================== SUBTAB: 1. DASHBOARD UTAMA ⭐ ==================== */}
                 {operatorTab === "dashboard_utama" && (
                   <div
@@ -10958,7 +8368,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             "Konfirmasi Auto Generate",
                                             `Auto Generate akan membuat jadwal harian untuk seluruh sesi dari tanggal ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} (dan menghapus jadwal lama yang berpotongan). Lanjutkan?`,
                                             () => {
-                                              const newSchedules: any[] = [];
+                                              const newSchedules: ShiftSchedule[] = [];
                                               const dateWalker = new Date(startObj);
 
                                               while (dateWalker <= endObj) {
@@ -11514,9 +8924,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 );
                               }
 
-                              const uniqueScheds: any[] = Array.from(
-                                new Map(
-                                  dayScheds.map((s: any) => [s.id, s]),
+                              const uniqueScheds = Array.from(
+                                new Map<string, ShiftSchedule>(
+                                  dayScheds.map((s) => [s.id, s] as const),
                                 ).values(),
                               );
 
@@ -11606,8 +9016,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               Kosong
                                             </div>
                                           ) : (
-                                            studioScheds.map(
-                                              (sch: any, idxSch: number) => {
+                                            studioScheds.map((sch, idxSch: number) => {
                                                 const isOff = sch.isOffDay;
                                                 const isPindah =
                                                   sch.isPindahStudio;
@@ -11982,9 +9391,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       {(() => {
                                         const groupedSchedules: Record<
                                           string,
-                                          any[]
+                                          ShiftSchedule[]
                                         > = {};
-                                        daySchedules.forEach((sch: any) => {
+                                        daySchedules.forEach((sch) => {
                                           const stdName =
                                             sch.studio ||
                                             "Studio Bandar Lampung";
@@ -11998,7 +9407,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           .map(
                                             ([stdName, scheds]: [
                                               string,
-                                              any[],
+                                              ShiftSchedule[],
                                             ]) => (
                                               <div
                                                 key={stdName}
@@ -12012,7 +9421,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                     .slice(0, 4)
                                                     .map(
                                                       (
-                                                        sch: any,
+                                                        sch,
                                                         idxSch: number,
                                                       ) => {
                                                         const bColor =
@@ -13159,78 +10568,44 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         </div>
 
                         {/* Month Range Cut-Off filter directly on toolbar */}
-                        <div
-                          className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-purple-150 shadow-2xs"
-                          id="toolbar_cutoff_period_selector"
-                        >
-                          <select
-                            id="toolbar_select_cutoff_periode"
-                            value={(() => {
-                              const refDateObj = new Date(filterReferenceDate);
-                              if (isNaN(refDateObj.getTime())) return "";
-                              const day = refDateObj.getDate();
-                              let targetMonth = refDateObj.getMonth();
-                              let targetYear = refDateObj.getFullYear();
-                              if (day >= 16) {
-                                targetMonth += 1;
-                                if (targetMonth > 11) {
-                                  targetMonth = 0;
-                                  targetYear += 1;
-                                }
+                        <CutoffPeriodSelector
+                          id="toolbar_select_cutoff_periode"
+                          value={(() => {
+                            const refDateObj = new Date(filterReferenceDate);
+                            if (isNaN(refDateObj.getTime())) return "";
+                            const day = refDateObj.getDate();
+                            let targetMonth = refDateObj.getMonth();
+                            let targetYear = refDateObj.getFullYear();
+                            if (day >= 16) {
+                              targetMonth += 1;
+                              if (targetMonth > 11) {
+                                targetMonth = 0;
+                                targetYear += 1;
                               }
-                              return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}`;
-                            })()}
-                            onChange={(e) => {
-                              if (!e.target.value) return;
-                              const [yearStr, monthStr] =
-                                e.target.value.split("-");
-                              const year = Number(yearStr);
-                              const monthIdx = Number(monthStr) - 1;
-                              const dateToSet = new Date(year, monthIdx, 15);
-                              const formatted = `${dateToSet.getFullYear()}-${String(dateToSet.getMonth() + 1).padStart(2, "0")}-15`;
+                            }
+                            return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}`;
+                          })()}
+                          availableCutoffMonths={availableCutoffMonths}
+                          onChange={(value) => {
+                            if (!value) return;
+                            const [yearStr, monthStr] = value.split("-");
+                            const year = Number(yearStr);
+                            const monthIdx = Number(monthStr) - 1;
+                            const dateToSet = new Date(year, monthIdx, 15);
+                            const formatted = `${dateToSet.getFullYear()}-${String(dateToSet.getMonth() + 1).padStart(2, "0")}-15`;
 
-                              setFilterReferenceDate(formatted);
-                              setTimeFilter("Bulanan");
-                              setSalarySettings((prev) => ({
-                                ...prev,
-                                useCutOff: true,
-                                cutOffStartDay: 16,
-                                cutOffEndDay: 15,
-                              }));
-                            }}
-                            className="bg-transparent text-xs font-black text-purple-950 focus:outline-none cursor-pointer border-none py-0.5 outline-none font-mono"
-                          >
-                            {availableCutoffMonths.map((value) => {
-                              const [yearStr, monthStr] = value.split("-");
-                              const yr = Number(yearStr);
-                              const m = Number(monthStr);
-                              const monthNames = [
-                                "Januari",
-                                "Februari",
-                                "Maret",
-                                "April",
-                                "Mei",
-                                "Juni",
-                                "Juli",
-                                "Agustus",
-                                "September",
-                                "Oktober",
-                                "November",
-                                "Desember",
-                              ];
-                              let prevM = m - 1;
-                              if (prevM === 0) {
-                                prevM = 12;
-                              }
-                              const label = ` 25 ${monthNames[m - 1]} ${yr} (16 ${monthNames[prevM - 1]} - 15 ${monthNames[m - 1]}) `;
-                              return (
-                                <option key={value} value={value}>
-                                  {label}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
+                            setFilterReferenceDate(formatted);
+                            setTimeFilter("Bulanan");
+                            setSalarySettings((prev) => ({
+                              ...prev,
+                              useCutOff: true,
+                              cutOffStartDay: 16,
+                              cutOffEndDay: 15,
+                            }));
+                          }}
+                          containerClassName="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-purple-150 shadow-2xs"
+                          selectClassName="bg-transparent text-xs font-black text-purple-950 focus:outline-none cursor-pointer border-none py-0.5 outline-none font-mono"
+                        />
 
                       </div>
                     </div>
@@ -13253,12 +10628,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                         const records = logs.filter(
                           (l) =>
                             (l.hostId === h.id || l.hostName === h.name) &&
-                            isLogDateMatching(
-                              l.date ||
-                                (typeof (l as any).timestamp === "string"
-                                  ? (l as any).timestamp.split(" ")[0]
-                                  : ""),
-                            ),
+                            isLogDateMatchingMemo(getLogDateInput(l)),
                         );
                         records.forEach((r) => {
                           if (r.brandHandled)
@@ -14660,7 +12030,14 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             type="button"
                             key={pill.id}
                             onClick={() => {
-                              setDbStatusFilter(pill.id as any);
+                              setDbStatusFilter(
+                                pill.id as
+                                  | "All"
+                                  | "Present"
+                                  | "Late"
+                                  | "Absent"
+                                  | "Excused",
+                              );
                               setSelectedLogIds([]); // clear selection when switching filters
                             }}
                             className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border border-transparent select-none shrink-0 ${
@@ -15244,7 +12621,11 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               onChange={(e) =>
                                 setManualForm((prev) => ({
                                   ...prev,
-                                  status: e.target.value as any,
+                                  status: e.target.value as
+                                    | "Present"
+                                    | "Late"
+                                    | "Absent"
+                                    | "Excused",
                                 }))
                               }
                               className="w-full bg-white border border-purple-150 rounded-lg px-3 py-2 text-purple-950 focus:outline-none font-black"
@@ -15435,7 +12816,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                      {logs.length > 0 && (
                                        <button
                                          onClick={() => {
-                                           setDbStatusFilter("All" as any);
+                                           setDbStatusFilter("All");
                                            setGlobalSearch("");
                                            setDbPlatformFilter("Semua Platform");
                                            setDbBrandFilter("Semua Brand");
@@ -16392,14 +13773,6 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                             const isExpired = endDate ? endDate < today : false;
                             const daysLeft = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
                             const isNearExpiry = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
-
-                            const formatContractDate = (d?: string) => {
-                              if (!d) return "—";
-                              const datePart = d.split("T")[0];
-                              const p = datePart.split("-");
-                              if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
-                              return d;
-                            };
 
                             return (
                               <div
@@ -17409,14 +14782,16 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               const batchId = `sku_batch_${Date.now()}`;
 
                                               // Simpan ke state lokal (Firebase dihapus)
-                                              const newRecords = skuRawData.map((p) => ({
-                                                ...p,
-                                                id: `${batchId}_${Math.random().toString(36).slice(2)}`,
-                                                platform: saveTargetPlatform,
-                                                batchId,
-                                                brandId: saveTargetBrandId,
-                                                uploadedAt: new Date().toISOString(),
-                                              }));
+                                              const newRecords: SkuLogEntry[] =
+                                                skuRawData.map((p) => ({
+                                                  ...p,
+                                                  id: `${batchId}_${Math.random().toString(36).slice(2)}`,
+                                                  platform: saveTargetPlatform,
+                                                  batchId,
+                                                  brandId: saveTargetBrandId,
+                                                  uploadedAt:
+                                                    new Date().toISOString(),
+                                                }));
                                               setShopeeSkuLogs((prev) => [...prev, ...newRecords]);
                                               customAlert(
                                                 "Data SKU berhasil disimpan!",
@@ -17424,10 +14799,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                               setIsSkuUploadModalOpen(false);
                                               setSkuRawData([]);
                                               setOperatorPlatformFilter(saveTargetPlatform || "Shopee Live");
-                                            } catch (e: any) {
+                                            } catch (e: unknown) {
                                               console.error(e);
                                               alert(
-                                                "Error saving: " + e.message,
+                                                "Error saving: " + getErrorMessage(e),
                                               );
                                             } finally {
                                               setIsSavingReport(false);
@@ -18471,7 +15846,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                         fontSize: "12px",
                                                       }}
                                                       formatter={(
-                                                        value: any,
+                                                        value: number | string,
                                                         name: string,
                                                       ) => [
                                                         name === "GMV"
@@ -18483,7 +15858,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                                 currency: "IDR",
                                                                 minimumFractionDigits: 0,
                                                               },
-                                                            ).format(value)
+                                                            ).format(Number(value))
                                                           : value,
                                                         name,
                                                       ]}
@@ -18651,7 +16026,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                             <button
                                               key={tab.id}
                                               onClick={() =>
-                                                setShopeeRawTab(tab.id as any)
+                                                setShopeeRawTab(
+                                                  tab.id as
+                                                    | "day"
+                                                    | "shift"
+                                                    | "dayOfWeek"
+                                                    | "raw",
+                                                )
                                               }
                                               className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${shopeeRawTab === tab.id ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                                             >
@@ -18808,7 +16189,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 uploadTargetTab === "live" &&
                                                 shopeeRawTab !== "raw"
                                               ) {
-                                                const groups: Record<string, any> = {};
+                                                const groups: Record<string, ShopeeRawGroupRow> = {};
 
                                                 reportingRawData.forEach(
                                                   (row) => {
@@ -18928,10 +16309,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                 );
 
                                                 const idFmt2 = new Intl.NumberFormat("id-ID");
-                                                return Object.values(
-                                                  groups,
-                                                )
-                                                .sort((a: any, b: any) => {
+                                                return Object.values(groups)
+                                                .sort((a, b) => {
                                                   const labelA = a.label || "";
                                                   const labelB = b.label || "";
                                                   // Basic string sort is decent enough for YYYY-MM-DD or shift strings
@@ -18939,7 +16318,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                                   if (labelA > labelB) return rawDateSortAsc ? 1 : -1;
                                                   return 0;
                                                 })
-                                                .map((g: any, idx) => (
+                                                .map((g, idx) => (
                                                   <tr
                                                     key={idx}
                                                     className="hover:bg-slate-50/50 transition-colors"
@@ -19381,2497 +16760,131 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                           {/* STORED DATABASE VIEWER - NEW DESIGN */}
                           {operatorReportingTab === "live" && (
-                            <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-                              {(() => {
-                                const filteredDb = brandPerformanceLogs.filter(
-                                  (log) =>
-                                    log.brandId === activeReportBrandId &&
-                                    log.reportType !== "engagement",
-                                );
-
-                                let effectiveFilter = operatorDateFilterType;
-                                let targetLatestDate = "";
-                                let latestDateLabel = "";
-
-                                let prevStartDate = "";
-                                let prevEndDate = "";
-                                if (effectiveFilter === "latest") {
-                                  const allDates = Array.from<string>(
-                                    new Set(
-                                      filteredDb
-                                        .map((l) => normalizeDateYMD(l.date))
-                                        .filter(Boolean) as string[],
-                                    ),
+                            <LiveReportPanel
+                              model={liveReportView}
+                              chartSelectedMetrics={liveChartSelectedMetrics}
+                              onChartSelectedMetricsChange={
+                                setLiveChartSelectedMetrics
+                              }
+                              onPrev={() => {
+                                const pd = new Date();
+                                if (
+                                  operatorDateFilterType === "latest" &&
+                                  liveReportView.targetLatestDate
+                                ) {
+                                  pd.setTime(
+                                    new Date(
+                                      liveReportView.targetLatestDate,
+                                    ).getTime(),
                                   );
-                                  allDates.sort();
-                                  if (allDates.length > 0) {
-                                    targetLatestDate =
-                                      allDates[allDates.length - 1];
-                                    latestDateLabel = targetLatestDate;
-                                    const d = new Date(targetLatestDate);
-                                    d.setDate(d.getDate() - 1);
-                                    prevStartDate =
-                                      prevEndDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                                  } else {
-                                    effectiveFilter = "all";
-                                  }
                                 } else if (
-                                  effectiveFilter === "month" &&
-                                  operatorSelectedMonth
+                                  operatorDateFilterType === "custom" &&
+                                  operatorCustomStartDate
                                 ) {
-                                  latestDateLabel = getIndonesianMonthLabel(
-                                    operatorSelectedMonth,
+                                  pd.setTime(
+                                    new Date(operatorCustomStartDate).getTime(),
                                   );
-                                  const partsVal =
-                                    operatorSelectedMonth.split("-");
-                                  const y = partsVal[0];
-                                  const m = partsVal[1];
-                                  let ny = parseInt(y, 10);
-                                  let nm = parseInt(m, 10) - 1;
-                                  if (nm <= 0) {
-                                    nm = 12;
-                                    ny--;
-                                  }
-                                  const prevMonth = `${ny}-${String(nm).padStart(2, "0")}`;
-                                  prevStartDate = `${prevMonth}-01`;
-                                  prevEndDate = `${prevMonth}-31`;
+                                }
+                                pd.setDate(pd.getDate() - 1);
+                                const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
+                                setOperatorDateFilterType("custom");
+                                setOperatorCustomStartDate(newD);
+                                setOperatorCustomEndDate(newD);
+                              }}
+                              onNext={() => {
+                                const pd = new Date();
+                                if (
+                                  operatorDateFilterType === "latest" &&
+                                  liveReportView.targetLatestDate
+                                ) {
+                                  pd.setTime(
+                                    new Date(
+                                      liveReportView.targetLatestDate,
+                                    ).getTime(),
+                                  );
                                 } else if (
-                                  effectiveFilter === "custom" &&
-                                  operatorCustomStartDate &&
-                                  operatorCustomEndDate
+                                  operatorDateFilterType === "custom" &&
+                                  operatorCustomStartDate
                                 ) {
-                                  latestDateLabel = `${operatorCustomStartDate} ke ${operatorCustomEndDate}`;
-                                  const s = new Date(operatorCustomStartDate);
-                                  const e = new Date(operatorCustomEndDate);
-                                  const durationDays = Math.round(
-                                    (e.getTime() - s.getTime()) /
-                                      (1000 * 3600 * 24),
+                                  pd.setTime(
+                                    new Date(operatorCustomStartDate).getTime(),
                                   );
-                                  const pE = new Date(s);
-                                  pE.setDate(pE.getDate() - 1);
-                                  const pS = new Date(pE);
-                                  pS.setDate(pS.getDate() - durationDays);
-                                  const fYMD = (date) =>
-                                    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-                                  prevStartDate = fYMD(pS);
-                                  prevEndDate = fYMD(pE);
-                                } else {
-                                  latestDateLabel = "Semua Waktu";
                                 }
-                                const applyFilter = (logs, isPrevPeriod) => {
-                                  return logs.filter((log) => {
-                                    let normalizedLogDate = normalizeDateYMD(
-                                      log.date,
-                                    );
-                                    if (effectiveFilter !== "all") {
-                                      if (isPrevPeriod) {
-                                        if (effectiveFilter === "latest") {
-                                          if (
-                                            normalizedLogDate !== prevStartDate
-                                          )
-                                            return false;
-                                        } else if (
-                                          effectiveFilter === "month"
-                                        ) {
-                                          if (
-                                            normalizedLogDate.substring(
-                                              0,
-                                              7,
-                                            ) !== prevStartDate.substring(0, 7)
-                                          )
-                                            return false;
-                                        } else if (
-                                          effectiveFilter === "custom"
-                                        ) {
-                                          if (
-                                            normalizedLogDate < prevStartDate ||
-                                            normalizedLogDate > prevEndDate
-                                          )
-                                            return false;
-                                        }
-                                      } else {
-                                        if (effectiveFilter === "latest") {
-                                          if (
-                                            normalizedLogDate !==
-                                            targetLatestDate
-                                          )
-                                            return false;
-                                        } else if (
-                                          effectiveFilter === "month"
-                                        ) {
-                                          if (
-                                            normalizedLogDate.substring(
-                                              0,
-                                              7,
-                                            ) !== operatorSelectedMonth
-                                          )
-                                            return false;
-                                        } else if (
-                                          effectiveFilter === "custom"
-                                        ) {
-                                          if (
-                                            operatorCustomStartDate &&
-                                            normalizedLogDate <
-                                              operatorCustomStartDate
-                                          )
-                                            return false;
-                                          if (
-                                            operatorCustomEndDate &&
-                                            normalizedLogDate >
-                                              operatorCustomEndDate
-                                          )
-                                            return false;
-                                        }
-                                      }
-                                    }
-                                    if (reportDbSearchQuery.trim()) {
-                                      const q =
-                                        reportDbSearchQuery.toLowerCase();
-                                      const matchTitle = String(log.title || "")
-                                        .toLowerCase()
-                                        .includes(q);
-                                      const matchDate = String(log.date || "")
-                                        .toLowerCase()
-                                        .includes(q);
-                                      const matchPlatformStr = String(
-                                        log.platform || "",
-                                      )
-                                        .toLowerCase()
-                                        .includes(q);
-                                      if (
-                                        !matchTitle &&
-                                        !matchDate &&
-                                        !matchPlatformStr
-                                      )
-                                        return false;
-                                    }
-                                    if (operatorPlatformFilter) {
-                                      if (
-                                        !isPlatformMatch(
-                                          log.platform,
-                                          operatorPlatformFilter,
-                                        )
-                                      )
-                                        return false;
-                                    }
-                                    if (operatorShiftFilters.length > 0) {
-                                      if (
-                                        !operatorShiftFilters.includes(
-                                          log.shift || "",
-                                        )
-                                      ) {
-                                        return false;
-                                      }
-                                    }
-                                    return true;
-                                  });
-                                };
-                                const tableLogs = applyFilter(
-                                  filteredDb,
-                                  false,
-                                );
-                                const prevTableLogs =
-                                  effectiveFilter !== "all"
-                                    ? applyFilter(filteredDb, true)
-                                    : [];
-
-                                const buildDailyChart = (startDate: string, endDate: string) => {
-                                  const group: any = {};
-                                  filteredDb.forEach((log: any) => {
-                                    if (!log.date) return;
-                                    const d = normalizeDateYMD(log.date);
-                                    if (d >= startDate && d <= endDate) {
-                                      if (!group[d]) {
-                                        group[d] = { date: d, gmv: 0, orders: 0, itemsSold: 0, clicks: 0, penonton: 0 };
-                                      }
-                                      group[d].gmv += log.gmv || 0;
-                                      group[d].orders += log.orders || 0;
-                                      group[d].itemsSold += log.products_sold || 0;
-                                      group[d].clicks += log.clicks || 0;
-                                      group[d].penonton += log.penonton || log.impressions || 0;
-                                    }
-                                  });
-                                  return Object.values(group).sort((a:any, b:any) => a.date.localeCompare(b.date));
-                                };
-
-                                const buildMonthlyChart = (monthsArray: string[]) => {
-                                  const group: any = {};
-                                  monthsArray.forEach(m => {
-                                    group[m] = { date: getIndonesianMonthLabel(m), labelMonth: m, gmv: 0, orders: 0, itemsSold: 0, clicks: 0, penonton: 0 };
-                                  });
-
-                                  filteredDb.forEach((log: any) => {
-                                    if (!log.date) return;
-                                    const mLabel = log.date.substring(0, 7); // YYYY-MM
-                                    if (group[mLabel]) {
-                                      group[mLabel].gmv += log.gmv || 0;
-                                      group[mLabel].orders += log.orders || 0;
-                                      group[mLabel].itemsSold += log.products_sold || 0;
-                                      group[mLabel].clicks += log.clicks || 0;
-                                      group[mLabel].penonton += log.penonton || log.impressions || 0;
-                                    }
-                                  });
-                                  return Object.values(group).sort((a:any, b:any) => a.labelMonth.localeCompare(b.labelMonth));
-                                };
-
-                                let customChartData: any[] = [];
-                                
-                                if (effectiveFilter === "all") {
-                                  const activeYear = new Date().getFullYear().toString();
-                                  const months: string[] = [];
-                                  for (let i=1; i<=12; i++) { months.push(`${activeYear}-${String(i).padStart(2, '0')}`); }
-                                  customChartData = buildMonthlyChart(months);
-                                } else if (effectiveFilter === "latest" || (effectiveFilter === "custom" && operatorCustomStartDate === operatorCustomEndDate)) {
-                                  const endDStr = effectiveFilter === "latest" ? targetLatestDate : operatorCustomStartDate;
-                                  if (endDStr) {
-                                    const e = new Date(endDStr);
-                                    const s = new Date(e);
-                                    s.setDate(s.getDate() - 7);
-                                    const fYMD = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-                                    customChartData = buildDailyChart(fYMD(s), fYMD(e));
-                                  }
-                                } else if (effectiveFilter === "custom") {
-                                  customChartData = buildDailyChart(operatorCustomStartDate, operatorCustomEndDate);
-                                } else if (effectiveFilter === "month") {
-                                  const selM = operatorSelectedMonth;
-                                  if (selM) {
-                                    const rawMonths = Array.from(new Set(filteredDb.map(l => l.date ? l.date.substring(0, 7) : "").filter(Boolean))).sort();
-                                    const hasNext = rawMonths.some(rm => rm > selM);
-                                    
-                                    const getMonthOffset = (baseYYYYMM: string, offset: number) => {
-                                      const [y, m] = baseYYYYMM.split("-").map(Number);
-                                      const d = new Date(y, m - 1 + offset, 1);
-                                      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-                                    };
-                                    
-                                    const neededMonths = hasNext 
-                                      ? [getMonthOffset(selM, -2), getMonthOffset(selM, -1), selM, getMonthOffset(selM, 1)] 
-                                      : [getMonthOffset(selM, -3), getMonthOffset(selM, -2), getMonthOffset(selM, -1), selM];
-                                      
-                                    customChartData = buildMonthlyChart(neededMonths);
-                                  }
-                                }
-                                
-                                const liveChartData = customChartData.map((item: any) => ({
-                                  date: item.date,
-                                  gmv: item.gmv,
-                                  orders: item.orders,
-                                  itemsSold: item.itemsSold,
-                                  clicks: item.clicks,
-                                  penonton: item.penonton,
-                                }));
-                                const totalSessionsDb = tableLogs.length;
-                                const totalGmvDb = tableLogs.reduce(
-                                  (sum, item) => sum + (item.gmv || 0),
-                                  0,
-                                );
-                                const totalBuyersDb = tableLogs.reduce(
-                                  (sum, item) => sum + (item.buyers || 0),
-                                  0,
-                                );
-                                const totalOrdersDb = tableLogs.reduce(
-                                  (sum, item) => sum + (item.orders || item.buyers || 0),
-                                  0,
-                                );
-                                const totalItemsSoldDb = tableLogs.reduce(
-                                  (sum, item) =>
-                                    sum + (item.products_sold || 0),
-                                  0,
-                                );
-                                let avgAovDb =
-                                  totalBuyersDb > 0
-                                    ? totalGmvDb / totalBuyersDb
-                                    : 0;
-                                if (
-                                  tableLogs.length > 0 &&
-                                  tableLogs[0].platform &&
-                                  (tableLogs[0].platform
-                                    .toLowerCase()
-                                    .includes("shopee") ||
-                                    tableLogs[0].platform
-                                      .toLowerCase()
-                                      .includes("tiktok"))
-                                ) {
-                                  avgAovDb =
-                                    totalOrdersDb > 0
-                                      ? totalGmvDb / totalOrdersDb
-                                      : 0;
-                                }
-                                const totalLikesDb = tableLogs.reduce(
-                                  (sum, item) => sum + (item.likes || 0),
-                                  0,
-                                );
-                                const totalCommentsDb = tableLogs.reduce(
-                                  (sum, item) => sum + (item.comments || 0),
-                                  0,
-                                );
-                                const totalSharesDb = tableLogs.reduce(
-                                  (sum, item) => sum + (item.shares || 0),
-                                  0,
-                                );
-                                const totalClicksDb = tableLogs.reduce(
-                                  (sum, item) => sum + (item.clicks || 0),
-                                  0,
-                                );
-                                const avgViewDurationDb =
-                                  tableLogs.length > 0
-                                    ? tableLogs.reduce(
-                                        (sum, item) =>
-                                          sum + (item.avgViewDuration || 0),
-                                        0,
-                                      ) / tableLogs.length
-                                    : 0;
-                                const pTotalGmvDb = prevTableLogs.reduce(
-                                  (sum, item) => sum + (item.gmv || 0),
-                                  0,
-                                );
-                                const pTotalBuyersDb = prevTableLogs.reduce(
-                                  (sum, item) => sum + (item.buyers || 0),
-                                  0,
-                                );
-                                const pTotalOrdersDb = prevTableLogs.reduce(
-                                  (sum, item) => sum + (item.orders || item.buyers || 0),
-                                  0,
-                                );
-                                const pTotalItemsSoldDb = prevTableLogs.reduce(
-                                  (sum, item) =>
-                                    sum + (item.products_sold || 0),
-                                  0,
-                                );
-                                let pAvgAovDb =
-                                  pTotalBuyersDb > 0
-                                    ? pTotalGmvDb / pTotalBuyersDb
-                                    : 0;
-                                if (
-                                  prevTableLogs.length > 0 &&
-                                  prevTableLogs[0].platform &&
-                                  (prevTableLogs[0].platform
-                                    .toLowerCase()
-                                    .includes("shopee") ||
-                                    prevTableLogs[0].platform
-                                      .toLowerCase()
-                                      .includes("tiktok"))
-                                ) {
-                                  pAvgAovDb =
-                                    pTotalOrdersDb > 0
-                                      ? pTotalGmvDb / pTotalOrdersDb
-                                      : 0;
-                                }
-                                const pTotalLikesDb = prevTableLogs.reduce(
-                                  (sum, item) => sum + (item.likes || 0),
-                                  0,
-                                );
-                                const pTotalCommentsDb = prevTableLogs.reduce(
-                                  (sum, item) => sum + (item.comments || 0),
-                                  0,
-                                );
-                                const pTotalSharesDb = prevTableLogs.reduce(
-                                  (sum, item) => sum + (item.shares || 0),
-                                  0,
-                                );
-                                const pTotalClicksDb = prevTableLogs.reduce(
-                                  (sum, item) => sum + (item.clicks || 0),
-                                  0,
-                                );
-                                const pAvgViewDurationDb =
-                                  prevTableLogs.length > 0
-                                    ? prevTableLogs.reduce(
-                                        (sum, item) =>
-                                          sum + (item.avgViewDuration || 0),
-                                        0,
-                                      ) / prevTableLogs.length
-                                    : 0;
-                                const totalDbImpressions = tableLogs.reduce(
-                                  (acc, curr) => {
-                                    const isShopee = curr.platform && curr.platform.toLowerCase().includes("shopee");
-                                    return acc + (isShopee ? (curr.penonton || curr.impressions || curr.views || 0) : (curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0));
-                                  },
-                                  0,
-                                );
-                                const totalDbLiveVisits = tableLogs.reduce(
-                                  (acc, curr) => acc + (curr.liveVisits || 0),
-                                  0,
-                                );
-                                const totalDbProductImpressions =
-                                  tableLogs.reduce(
-                                    (acc, curr) =>
-                                      acc + (curr.productImpressions || 0),
-                                    0,
-                                  );
-                                const totalDbClicks = tableLogs.reduce(
-                                  (acc, curr) => acc + (curr.clicks || 0),
-                                  0,
-                                );
-                                const totalDbBuyers = tableLogs.reduce(
-                                  (acc, curr) => acc + (curr.buyers || curr.orders || 0),
-                                  0,
-                                );
-                                const totalDbOrdersFunnel = tableLogs.reduce(
-                                  (acc, curr) => acc + (curr.orders || curr.buyers || 0),
-                                  0,
-                                );
-                                const funnelCtr =
-                                  totalDbProductImpressions > 0
-                                    ? (totalDbClicks /
-                                        totalDbProductImpressions) *
-                                      100
-                                    : 0;
-                                const funnelCtor =
-                                  totalDbClicks > 0
-                                    ? (totalDbOrdersFunnel / totalDbClicks) *
-                                      100
-                                    : 0;
-                                const totalDbDuration = tableLogs.reduce(
-                                  (acc, curr) => {
-                                    let dur = curr.duration || 0;
-                                    if (dur > 0 && dur < 1.0) {
-                                      dur = dur * 86400; // Excel fraction to seconds
-                                    }
-                                    return acc + dur;
-                                  },
-                                  0,
-                                );
-                                const pTotalDbDuration = prevTableLogs.reduce(
-                                  (acc, curr) => {
-                                    let dur = curr.duration || 0;
-                                    if (dur > 0 && dur < 1.0) {
-                                      dur = dur * 86400; // Excel fraction to seconds
-                                    }
-                                    return acc + dur;
-                                  },
-                                  0,
-                                );
-                                const gmvPerHour =
-                                  totalDbDuration > 0
-                                    ? totalGmvDb / (totalDbDuration / 3600)
-                                    : 0;
-                                const pGmvPerHour =
-                                  pTotalDbDuration > 0
-                                    ? pTotalGmvDb / (pTotalDbDuration / 3600)
-                                    : 0;
-                                let conversionRateShopee = 0;
-                                let pConversionRateShopee = 0;
-                                const pTotalDbImpressions =
-                                  prevTableLogs.reduce(
-                                    (acc, curr) => {
-                                      const isShopee = curr.platform && curr.platform.toLowerCase().includes("shopee");
-                                      return acc + (isShopee ? (curr.penonton || curr.impressions || curr.views || 0) : (curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0));
-                                    },
-                                    0,
-                                  );
-                                if (
-                                  tableLogs.length > 0 &&
-                                  tableLogs[0].platform &&
-                                  tableLogs[0].platform
-                                    .toLowerCase()
-                                    .includes("tiktok")
-                                ) {
-                                  conversionRateShopee =
-                                    totalDbClicks > 0
-                                      ? (totalDbOrdersFunnel / totalDbClicks) *
-                                        100
-                                      : 0;
-                                  pConversionRateShopee =
-                                    pTotalClicksDb > 0
-                                      ? (pTotalOrdersDb / pTotalClicksDb) * 100
-                                      : 0;
-                                } else {
-                                  conversionRateShopee =
-                                    totalDbImpressions > 0
-                                      ? (totalDbOrdersFunnel /
-                                          totalDbImpressions) *
-                                        100
-                                      : 0;
-                                  pConversionRateShopee =
-                                    pTotalDbImpressions > 0
-                                      ? (pTotalOrdersDb / pTotalDbImpressions) *
-                                        100
-                                      : 0;
-                                }
-
-                                const chartDataObj = [...tableLogs].reduce(
-                                  (acc: any, curr: any) => {
-                                    let d = curr.date;
-                                    if (
-                                      d &&
-                                      (d.indexOf("/") !== -1 ||
-                                        (d.indexOf("-") !== -1 &&
-                                          d.split("-")[0].length <= 2))
-                                    ) {
-                                      const parts = d.split(/[\/\-]/);
-                                      if (parts.length === 3) {
-                                        if (parts[0].length === 4) {
-                                          d = `${parts[0]}-${String(parts[1]).padStart(2, "0")}-${String(parts[2]).padStart(2, "0")}`;
-                                        } else {
-                                          const y =
-                                            parts[2].length === 2
-                                              ? `20${parts[2]}`
-                                              : parts[2];
-                                          d = `${y}-${String(parts[1]).padStart(2, "0")}-${String(parts[0]).padStart(2, "0")}`;
-                                        }
-                                      }
-                                    }
-
-                                    if (!acc[d])
-                                      acc[d] = {
-                                        date: d,
-                                        gmv: 0,
-                                        impressions: 0,
-                                      };
-                                    acc[d].gmv += curr.gmv || 0;
-                                    acc[d].impressions +=
-                                      curr.impressions ||
-                                      curr.views ||
-                                      curr.liveVisits ||
-                                      0;
-                                    return acc;
-                                  },
-                                  {},
-                                );
-                                const chartData = Object.values(
-                                  chartDataObj,
-                                ).sort(
-                                  (a: any, b: any) =>
-                                    new Date(a.date).getTime() -
-                                    new Date(b.date).getTime(),
-                                );
-
-                                // Apply Sorting for Table
-                                const sortedTableLogs = [...tableLogs].sort(
-                                  (a, b) => {
-                                    let valA = a[reportDbSortCol] || "";
-                                    let valB = b[reportDbSortCol] || "";
-
-                                    if (reportDbSortCol === "date") {
-                                      const normalizeDateStr = (d: string) => {
-                                        if (!d) return "";
-                                        if (
-                                          d.indexOf("/") !== -1 ||
-                                          (d.indexOf("-") !== -1 &&
-                                            d.split("-")[0].length <= 2)
-                                        ) {
-                                          const parts = d.split(/[\/\-]/);
-                                          if (parts.length === 3) {
-                                            if (parts[0].length === 4) {
-                                              return `${parts[0]}-${String(parts[1]).padStart(2, "0")}-${String(parts[2]).padStart(2, "0")}`;
-                                            }
-                                            const y =
-                                              parts[2].length === 2
-                                                ? `20${parts[2]}`
-                                                : parts[2];
-                                            return `${y}-${String(parts[1]).padStart(2, "0")}-${String(parts[0]).padStart(2, "0")}`;
-                                          }
-                                        }
-                                        return d;
-                                      };
-                                      valA = normalizeDateStr(a.date);
-                                      valB = normalizeDateStr(b.date);
-                                    } else if (reportDbSortCol === "views") {
-                                      valA = a.impressions || a.views || 0;
-                                      valB = b.impressions || b.views || 0;
-                                    } else if (reportDbSortCol === "ctr") {
-                                      valA = a.productImpressions
-                                        ? a.clicks / a.productImpressions
-                                        : 0;
-                                      valB = b.productImpressions
-                                        ? b.clicks / b.productImpressions
-                                        : 0;
-                                    } else if (reportDbSortCol === "ctor") {
-                                      valA = a.clicks ? a.orders / a.clicks : 0;
-                                      valB = b.clicks ? b.orders / b.clicks : 0;
-                                    } else if (
-                                      reportDbSortCol === "customers"
-                                    ) {
-                                      valA = a.buyers || 0;
-                                      valB = b.buyers || 0;
-                                    }
-
-                                    if (
-                                      typeof valA === "string" &&
-                                      typeof valB === "string"
-                                    ) {
-                                      return reportDbSortAsc
-                                        ? valA.localeCompare(valB)
-                                        : valB.localeCompare(valA);
-                                    }
-                                    return reportDbSortAsc
-                                      ? valA > valB
-                                        ? 1
-                                        : -1
-                                      : valB > valA
-                                        ? 1
-                                        : -1;
-                                  },
-                                );
-
-                                const paginatedLogs = sortedTableLogs.slice(
-                                  (currentPage - 1) * ITEMS_PER_PAGE,
-                                  currentPage * ITEMS_PER_PAGE,
-                                );
-                                const totalPages = Math.ceil(
-                                  sortedTableLogs.length / ITEMS_PER_PAGE,
-                                );
-
-                                const handleSort = (col) => {
-                                  if (reportDbSortCol === col) {
-                                    setReportDbSortAsc(!reportDbSortAsc);
-                                  } else {
-                                    setReportDbSortCol(col);
-                                    setReportDbSortAsc(true); // default to asc on new col
-                                  }
-                                };
-
-                                return (
-                                  <>
-                                    {/* Table Filters */}
-                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap">
-                                      <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
-                                        <div className="relative w-full sm:w-72">
-                                          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                          <input
-                                            type="text"
-                                            placeholder="Search sessions..."
-                                            value={reportDbSearchQuery}
-                                            onChange={(e) =>
-                                              setReportDbSearchQuery(
-                                                e.target.value,
-                                              )
-                                            }
-                                            className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 transition-colors shadow-sm"
-                                          />
-                                        </div>
-                                        <select
-                                          value={operatorPlatformFilter}
-                                          onChange={(e) =>
-                                            setOperatorPlatformFilter(
-                                              e.target.value,
-                                            )
-                                          }
-                                          className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
-                                        >
-                                          {availableOperatorPlatforms.map((p) => (
-                                            <option key={p} value={p}>
-                                              {p}
-                                            </option>
-                                          ))}
-                                        </select>
-
-                                      </div>
-                                      <div className="relative flex gap-2 w-full sm:w-auto h-9">
-                                        <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                                          {[
-                                            { id: "latest", label: "Terbaru" },
-                                            { id: "all", label: "Semua" },
-                                            { id: "month", label: "Bulan" },
-                                            { id: "custom", label: "Custom" },
-                                          ].map((item) => (
-                                            <button
-                                              key={item.id}
-                                              type="button"
-                                              onClick={() => {
-                                                setOperatorDateFilterType(
-                                                  item.id,
-                                                );
-                                                if (
-                                                  item.id === "all" ||
-                                                  item.id === "latest"
-                                                ) {
-                                                  setIsOperatorCalendarOpen(
-                                                    false,
-                                                  );
-                                                  setIsOperatorMonthOpen(false);
-                                                } else if (
-                                                  item.id === "month"
-                                                ) {
-                                                  setIsOperatorMonthOpen(true);
-                                                  setIsOperatorCalendarOpen(
-                                                    false,
-                                                  );
-                                                } else if (
-                                                  item.id === "custom"
-                                                ) {
-                                                  setIsOperatorCalendarOpen(
-                                                    true,
-                                                  );
-                                                  setIsOperatorMonthOpen(false);
-                                                  setOperatorTempStartDate(
-                                                    operatorCustomStartDate ||
-                                                      formatDateYYYYMMDD(
-                                                        new Date(),
-                                                      ),
-                                                  );
-                                                  setOperatorTempEndDate(
-                                                    operatorCustomEndDate ||
-                                                      formatDateYYYYMMDD(
-                                                        new Date(),
-                                                      ),
-                                                  );
-                                                }
-                                              }}
-                                              className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
-                                                operatorDateFilterType ===
-                                                item.id
-                                                  ? "bg-white text-indigo-700 shadow-sm border border-slate-100"
-                                                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
-                                              }`}
-                                            >
-                                              {item.label}
-                                            </button>
-                                          ))}
-                                        </div>
-
-                                        {((operatorDateFilterType ===
-                                          "custom" &&
-                                          operatorCustomStartDate) ||
-                                          operatorDateFilterType ===
-                                            "month") && (
-                                          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                            <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                                            <span className="text-[10px] font-bold text-slate-700">
-                                              {operatorDateFilterType ===
-                                              "month"
-                                                ? getIndonesianMonthLabel(
-                                                    operatorSelectedMonth,
-                                                  )
-                                                : `${operatorCustomStartDate} to ${operatorCustomEndDate}`}
-                                            </span>
-                                          </div>
-                                        )}
-
-                                        {/* Custom Date Overlay UI (Month) */}
-                                        {isOperatorMonthOpen &&
-                                          operatorDateFilterType ===
-                                            "month" && (
-                                            <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
-                                              <div className="flex justify-between items-center mb-4 text-slate-800">
-                                                <button
-                                                  type="button"
-                                                  onClick={() =>
-                                                    setOperatorMonthPickerYear(
-                                                      (y) => y - 1,
-                                                    )
-                                                  }
-                                                  className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
-                                                >
-                                                  &laquo;
-                                                </button>
-                                                <div className="text-sm font-bold tracking-widest">
-                                                  {operatorMonthPickerYear}
-                                                </div>
-                                                <button
-                                                  type="button"
-                                                  onClick={() =>
-                                                    setOperatorMonthPickerYear(
-                                                      (y) => y + 1,
-                                                    )
-                                                  }
-                                                  className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
-                                                >
-                                                  &raquo;
-                                                </button>
-                                              </div>
-                                              <div className="grid grid-cols-3 gap-y-2 pb-1 border-t border-slate-100 pt-3 relative">
-                                                {[
-                                                  { val: "01", label: "Jan" },
-                                                  { val: "02", label: "Feb" },
-                                                  { val: "03", label: "Mar" },
-                                                  { val: "04", label: "Apr" },
-                                                  { val: "05", label: "May" },
-                                                  { val: "06", label: "Jun" },
-                                                  { val: "07", label: "Jul" },
-                                                  { val: "08", label: "Aug" },
-                                                  { val: "09", label: "Sept" },
-                                                  { val: "10", label: "Oct" },
-                                                  { val: "11", label: "Nov" },
-                                                  { val: "12", label: "Dec" },
-                                                ].map((m, idx) => {
-                                                  const mVal = `${operatorMonthPickerYear}-${m.val}`;
-                                                  const isSelected =
-                                                    operatorSelectedMonth ===
-                                                    mVal;
-
-                                                  const currentDate =
-                                                    new Date();
-                                                  const isFuture =
-                                                    operatorMonthPickerYear >
-                                                      currentDate.getFullYear() ||
-                                                    (operatorMonthPickerYear ===
-                                                      currentDate.getFullYear() &&
-                                                      parseInt(m.val) >
-                                                        currentDate.getMonth() +
-                                                          1);
-
-                                                  return (
-                                                    <button
-                                                      key={m.val}
-                                                      type="button"
-                                                      onClick={() => {
-                                                        if (!isFuture) {
-                                                          setOperatorSelectedMonth(
-                                                            mVal,
-                                                          );
-                                                          setIsOperatorMonthOpen(
-                                                            false,
-                                                          );
-                                                        }
-                                                      }}
-                                                      className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
-                                                        isFuture
-                                                          ? "bg-slate-50 text-slate-400 cursor-not-allowed"
-                                                          : "bg-white text-slate-800 hover:bg-slate-50 cursor-pointer"
-                                                      } ${isSelected ? "bg-slate-50 shadow-sm relative" : ""}`}
-                                                    >
-                                                      {m.label}
-                                                      {isSelected &&
-                                                        !isFuture && (
-                                                          <div className="w-1.5 h-1.5 rounded-full bg-slate-300 absolute bottom-1"></div>
-                                                        )}
-                                                    </button>
-                                                  );
-                                                })}
-                                              </div>
-                                            </div>
-                                          )}
-
-                                        {/* Custom Date Overlay UI (Custom) */}
-                                        {isOperatorCalendarOpen &&
-                                          operatorDateFilterType ===
-                                            "custom" && (
-                                            <div className="absolute right-0 top-full mt-2 z-50 animate-fadeIn">
-                                              <DoubleDatePicker
-                                                startDate={
-                                                  operatorTempStartDate
-                                                }
-                                                endDate={operatorTempEndDate}
-                                                onChange={(start, end) => {
-                                                  setOperatorTempStartDate(
-                                                    start,
-                                                  );
-                                                  setOperatorTempEndDate(end);
-                                                }}
-                                                onApply={() => {
-                                                  setOperatorCustomStartDate(
-                                                    operatorTempStartDate,
-                                                  );
-                                                  setOperatorCustomEndDate(
-                                                    operatorTempEndDate,
-                                                  );
-                                                  setIsOperatorCalendarOpen(
-                                                    false,
-                                                  );
-                                                }}
-                                                onCancel={() =>
-                                                  setIsOperatorCalendarOpen(
-                                                    false,
-                                                  )
-                                                }
-                                              />
-                                            </div>
-                                          )}
-                                      </div>
-                                    </div>
-
-                                    {/* Summary Cards */}
-                                    {(() => {
-                                      const isShopee = operatorPlatformFilter
-                                        ? operatorPlatformFilter
-                                            .toLowerCase()
-                                            .includes("shopee")
-                                        : filteredDb?.some(
-                                            (log) =>
-                                              log.platform &&
-                                              log.platform
-                                                .toLowerCase()
-                                                .includes("shopee"),
-                                          );
-                                      if (isShopee) {
-                                        return (
-                                          <div className="space-y-6 mb-6">
-                                            <div>
-                                              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-                                                <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">
-                                                  Performance live
-                                                </h4>
-                                                <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
-                                                  <button
-                                                    onClick={() => {
-                                                      let pd = new Date();
-                                                      if (
-                                                        operatorDateFilterType ===
-                                                          "latest" &&
-                                                        targetLatestDate
-                                                      ) {
-                                                        pd = new Date(
-                                                          targetLatestDate,
-                                                        );
-                                                      } else if (
-                                                        operatorDateFilterType ===
-                                                          "custom" &&
-                                                        operatorCustomStartDate
-                                                      ) {
-                                                        pd = new Date(
-                                                          operatorCustomStartDate,
-                                                        );
-                                                      }
-                                                      pd.setDate(
-                                                        pd.getDate() - 1,
-                                                      );
-                                                      const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                                      setOperatorDateFilterType(
-                                                        "custom",
-                                                      );
-                                                      setOperatorCustomStartDate(
-                                                        newD,
-                                                      );
-                                                      setOperatorCustomEndDate(
-                                                        newD,
-                                                      );
-                                                    }}
-                                                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                                  >
-                                                    <ChevronLeft className="w-4 h-4" />
-                                                  </button>
-                                                  <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
-                                                    {(() => {
-                                                      if (
-                                                        operatorDateFilterType ===
-                                                          "month" ||
-                                                        operatorDateFilterType ===
-                                                          "all"
-                                                      )
-                                                        return (
-                                                          latestDateLabel ||
-                                                          "Semua Waktu"
-                                                        );
-                                                      let curD = new Date();
-                                                      if (
-                                                        operatorDateFilterType ===
-                                                          "latest" &&
-                                                        targetLatestDate
-                                                      ) {
-                                                        curD = new Date(
-                                                          targetLatestDate,
-                                                        );
-                                                      } else if (
-                                                        operatorDateFilterType ===
-                                                          "custom" &&
-                                                        operatorCustomStartDate
-                                                      ) {
-                                                        curD = new Date(
-                                                          operatorCustomStartDate,
-                                                        );
-                                                      }
-                                                      return curD.toLocaleDateString(
-                                                        "id-ID",
-                                                        {
-                                                          weekday: "long",
-                                                          day: "numeric",
-                                                          month: "long",
-                                                          year: "numeric",
-                                                        },
-                                                      );
-                                                    })()}
-                                                  </span>
-                                                  <button
-                                                    onClick={() => {
-                                                      let pd = new Date();
-                                                      if (
-                                                        operatorDateFilterType ===
-                                                          "latest" &&
-                                                        targetLatestDate
-                                                      ) {
-                                                        pd = new Date(
-                                                          targetLatestDate,
-                                                        );
-                                                      } else if (
-                                                        operatorDateFilterType ===
-                                                          "custom" &&
-                                                        operatorCustomStartDate
-                                                      ) {
-                                                        pd = new Date(
-                                                          operatorCustomStartDate,
-                                                        );
-                                                      }
-                                                      pd.setDate(
-                                                        pd.getDate() + 1,
-                                                      );
-                                                      const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                                      setOperatorDateFilterType(
-                                                        "custom",
-                                                      );
-                                                      setOperatorCustomStartDate(
-                                                        newD,
-                                                      );
-                                                      setOperatorCustomEndDate(
-                                                        newD,
-                                                      );
-                                                    }}
-                                                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                                  >
-                                                    <ChevronRight className="w-4 h-4" />
-                                                  </button>
-                                                </div>
-                                              </div>
-                                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      GMV
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalGmvDb}
-                                                      prev={pTotalGmvDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    Rp
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                      {
-                                                        maximumFractionDigits: 0,
-                                                      },
-                                                    ).format(totalGmvDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Item Solds
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalItemsSoldDb}
-                                                      prev={pTotalItemsSoldDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(totalItemsSoldDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      GMV/Hours
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={gmvPerHour}
-                                                      prev={pGmvPerHour}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    Rp
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                      {
-                                                        maximumFractionDigits: 0,
-                                                      },
-                                                    ).format(gmvPerHour)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Conversion Rate %
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={conversionRateShopee}
-                                                      prev={
-                                                        pConversionRateShopee
-                                                      }
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {conversionRateShopee.toFixed(
-                                                      2,
-                                                    )}
-                                                    %
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Orders
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalOrdersDb}
-                                                      prev={pTotalOrdersDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(totalOrdersDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Avg. Viewer Duration
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={avgViewDurationDb}
-                                                      prev={pAvgViewDurationDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {avgViewDurationDb.toFixed(
-                                                      2,
-                                                    )}
-                                                    s
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      AOV
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={avgAovDb}
-                                                      prev={pAvgAovDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    Rp
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                      {
-                                                        maximumFractionDigits: 0,
-                                                      },
-                                                    ).format(avgAovDb)}
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </div>
-
-                                            {totalDbImpressions > 0 && (
-                                              <div className="mb-6">
-                                                <HorizontalFunnel
-                                                  title=""
-                                                  subtitle=""
-                                                  steps={[
-                                                    {
-                                                      label: "Viewer",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalDbImpressions,
-                                                        ),
-                                                      raw: totalDbImpressions,
-                                                    },
-                                                    {
-                                                      label: "Viewer Enganged",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalDbLiveVisits,
-                                                        ),
-                                                      raw: totalDbLiveVisits,
-                                                    },
-                                                    {
-                                                      label: "Add To Card",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(totalDbClicks),
-                                                      raw: totalDbClicks,
-                                                    },
-                                                    {
-                                                      label: "Purchase",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalDbOrdersFunnel,
-                                                        ),
-                                                      raw: totalDbOrdersFunnel,
-                                                    },
-                                                  ]}
-                                                />
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      }
-
-                                      return (
-                                        <>
-                                          <div className="space-y-6 mb-6">
-                                            <div>
-                                              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-                                                <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">
-                                                  Sale Metrics
-                                                </h4>
-                                                <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
-                                                  <button
-                                                    onClick={() => {
-                                                      let pd = new Date();
-                                                      if (
-                                                        operatorDateFilterType ===
-                                                          "latest" &&
-                                                        targetLatestDate
-                                                      ) {
-                                                        pd = new Date(
-                                                          targetLatestDate,
-                                                        );
-                                                      } else if (
-                                                        operatorDateFilterType ===
-                                                          "custom" &&
-                                                        operatorCustomStartDate
-                                                      ) {
-                                                        pd = new Date(
-                                                          operatorCustomStartDate,
-                                                        );
-                                                      }
-                                                      pd.setDate(
-                                                        pd.getDate() - 1,
-                                                      );
-                                                      const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                                      setOperatorDateFilterType(
-                                                        "custom",
-                                                      );
-                                                      setOperatorCustomStartDate(
-                                                        newD,
-                                                      );
-                                                      setOperatorCustomEndDate(
-                                                        newD,
-                                                      );
-                                                    }}
-                                                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                                  >
-                                                    <ChevronLeft className="w-4 h-4" />
-                                                  </button>
-                                                  <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
-                                                    {(() => {
-                                                      if (
-                                                        operatorDateFilterType ===
-                                                          "month" ||
-                                                        operatorDateFilterType ===
-                                                          "all"
-                                                      )
-                                                        return (
-                                                          latestDateLabel ||
-                                                          "Semua Waktu"
-                                                        );
-                                                      let curD = new Date();
-                                                      if (
-                                                        operatorDateFilterType ===
-                                                          "latest" &&
-                                                        targetLatestDate
-                                                      ) {
-                                                        curD = new Date(
-                                                          targetLatestDate,
-                                                        );
-                                                      } else if (
-                                                        operatorDateFilterType ===
-                                                          "custom" &&
-                                                        operatorCustomStartDate
-                                                      ) {
-                                                        curD = new Date(
-                                                          operatorCustomStartDate,
-                                                        );
-                                                      }
-                                                      return curD.toLocaleDateString(
-                                                        "id-ID",
-                                                        {
-                                                          weekday: "long",
-                                                          day: "numeric",
-                                                          month: "long",
-                                                          year: "numeric",
-                                                        },
-                                                      );
-                                                    })()}
-                                                  </span>
-                                                  <button
-                                                    onClick={() => {
-                                                      let pd = new Date();
-                                                      if (
-                                                        operatorDateFilterType ===
-                                                          "latest" &&
-                                                        targetLatestDate
-                                                      ) {
-                                                        pd = new Date(
-                                                          targetLatestDate,
-                                                        );
-                                                      } else if (
-                                                        operatorDateFilterType ===
-                                                          "custom" &&
-                                                        operatorCustomStartDate
-                                                      ) {
-                                                        pd = new Date(
-                                                          operatorCustomStartDate,
-                                                        );
-                                                      }
-                                                      pd.setDate(
-                                                        pd.getDate() + 1,
-                                                      );
-                                                      const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                                      setOperatorDateFilterType(
-                                                        "custom",
-                                                      );
-                                                      setOperatorCustomStartDate(
-                                                        newD,
-                                                      );
-                                                      setOperatorCustomEndDate(
-                                                        newD,
-                                                      );
-                                                    }}
-                                                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                                  >
-                                                    <ChevronRight className="w-4 h-4" />
-                                                  </button>
-                                                </div>
-                                              </div>
-                                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      GMV
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalGmvDb}
-                                                      prev={pTotalGmvDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    Rp
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                      {
-                                                        maximumFractionDigits: 0,
-                                                      },
-                                                    ).format(totalGmvDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Item Sold
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalItemsSoldDb}
-                                                      prev={pTotalItemsSoldDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(totalItemsSoldDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Customers
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalBuyersDb}
-                                                      prev={pTotalBuyersDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(totalBuyersDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      SKU Orders
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalOrdersDb}
-                                                      prev={pTotalOrdersDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(totalOrdersDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      AOV
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={avgAovDb}
-                                                      prev={pAvgAovDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    Rp
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                      {
-                                                        maximumFractionDigits: 0,
-                                                      },
-                                                    ).format(avgAovDb)}
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </div>
-
-                                            <div>
-                                              <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">
-                                                Engagement Metrics
-                                              </h4>
-                                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Like
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalLikesDb}
-                                                      prev={pTotalLikesDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(totalLikesDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Comment
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalCommentsDb}
-                                                      prev={pTotalCommentsDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(totalCommentsDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Share
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalSharesDb}
-                                                      prev={pTotalSharesDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(totalSharesDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      Product Clicks
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={totalClicksDb}
-                                                      prev={pTotalClicksDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(totalClicksDb)}
-                                                  </div>
-                                                </div>
-                                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                                  <div className="flex justify-between items-start mb-1">
-                                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                                      AVG TIME/VIEWER
-                                                    </div>
-                                                    <PercentBadge
-                                                      cur={avgViewDurationDb}
-                                                      prev={pAvgViewDurationDb}
-                                                    />
-                                                  </div>
-                                                  <div className="text-xl font-black text-slate-800 mt-1">
-                                                    {Math.round(
-                                                      avgViewDurationDb,
-                                                    )}{" "}
-                                                    <span className="text-[10px] text-slate-400 font-bold">
-                                                      detik
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </>
-                                      );
-                                    })()}
-
-                                    {/* CHART TRENDS FOR LIVE PERFORMANCE */}
-                                    {liveChartData.length > 0 && (
-                                      <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm mb-6">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
-                                          <div>
-                                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-                                              <TrendingUp className="w-5 h-5 text-emerald-500" />{" "}
-                                              Tren Kinerja Penjualan Live Harian
-                                            </h4>
-                                            <p className="text-[11px] text-slate-400 font-bold mt-1">
-                                              Visualisasi harian data penyiaran
-                                              langsung (Live Streaming) dinamis
-                                              harian.
-                                            </p>
-                                          </div>
-                                          <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
-                                            <div className="flex items-center gap-1 mr-1 select-none">
-                                              <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
-                                              <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">
-                                                Metrik:
-                                              </span>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-1.5">
-                                              {[
-                                                {
-                                                  key: "gmv",
-                                                  label: "GMV",
-                                                  color:
-                                                    "bg-emerald-50 text-emerald-700 border-emerald-200",
-                                                },
-                                                {
-                                                  key: "orders",
-                                                  label: "Pesanan",
-                                                  color:
-                                                    "bg-indigo-50 text-indigo-700 border-indigo-200",
-                                                },
-                                                {
-                                                  key: "itemsSold",
-                                                  label: "Produk",
-                                                  color:
-                                                    "bg-amber-50 text-amber-700 border-amber-200",
-                                                },
-                                                {
-                                                  key: "clicks",
-                                                  label: "Klik",
-                                                  color:
-                                                    "bg-pink-50 text-pink-700 border-pink-200",
-                                                },
-                                                {
-                                                  key: "penonton",
-                                                  label: "Penonton",
-                                                  color:
-                                                    "bg-cyan-50 text-cyan-750 border-cyan-200",
-                                                },
-                                              ].map((m) => {
-                                                const isSelected =
-                                                  liveChartSelectedMetrics.includes(
-                                                    m.key,
-                                                  );
-                                                return (
-                                                  <button
-                                                    key={m.key}
-                                                    onClick={() => {
-                                                      if (isSelected) {
-                                                        if (
-                                                          liveChartSelectedMetrics.length >
-                                                          1
-                                                        ) {
-                                                          setLiveChartSelectedMetrics(
-                                                            liveChartSelectedMetrics.filter(
-                                                              (x) =>
-                                                                x !== m.key,
-                                                            ),
-                                                          );
-                                                        }
-                                                      } else {
-                                                        setLiveChartSelectedMetrics(
-                                                          [
-                                                            ...liveChartSelectedMetrics,
-                                                            m.key,
-                                                          ],
-                                                        );
-                                                      }
-                                                    }}
-                                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
-                                                      isSelected
-                                                        ? `${m.color} scale-[1.02] shadow-xs font-extrabold`
-                                                        : "bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50"
-                                                    }`}
-                                                  >
-                                                    <span
-                                                      className={`w-1.5 h-1.5 rounded-full ${
-                                                        m.key === "gmv"
-                                                          ? "bg-emerald-500"
-                                                          : m.key === "orders"
-                                                            ? "bg-indigo-600"
-                                                            : m.key ===
-                                                                "itemsSold"
-                                                              ? "bg-amber-500"
-                                                              : m.key ===
-                                                                  "clicks"
-                                                                ? "bg-pink-500"
-                                                                : "bg-cyan-500"
-                                                      }`}
-                                                    ></span>
-                                                    {m.label}
-                                                  </button>
-                                                );
-                                              })}
-                                            </div>
-                                            <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
-                                              <button
-                                                onClick={() =>
-                                                  setLiveChartSelectedMetrics([
-                                                    "gmv",
-                                                    "orders",
-                                                    "itemsSold",
-                                                    "clicks",
-                                                    "penonton",
-                                                  ])
-                                                }
-                                                className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
-                                              >
-                                                Semua
-                                              </button>
-                                              <span>|</span>
-                                              <button
-                                                onClick={() =>
-                                                  setLiveChartSelectedMetrics([
-                                                    "gmv",
-                                                    "orders",
-                                                  ])
-                                                }
-                                                className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
-                                              >
-                                                Reset
-                                              </button>
-                                            </div>
-                                          </div>
-                                          <div className="hidden">
-                                            <p></p>
-                                          </div>
-                                          <div className="hidden">
-                                            <div className="flex items-center gap-1.5">
-                                              <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-                                              <span>GMV</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                              <span className="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
-                                              <span>Pesanan (Orders)</span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <div className="h-72 w-full mt-4">
-                                          <ResponsiveContainer
-                                            width="100%"
-                                            height="100%"
-                                          >
-                                            <RechartsLineChart
-                                              data={liveChartData}
-                                              margin={{
-                                                top: 10,
-                                                right: 35,
-                                                left: 15,
-                                                bottom: 5,
-                                              }}
-                                            >
-                                              <CartesianGrid
-                                                strokeDasharray="3 3"
-                                                vertical={false}
-                                                stroke="#e2e8f0"
-                                              />
-                                              <XAxis
-                                                dataKey="date"
-                                                tick={{
-                                                  fontSize: 10,
-                                                  fill: "#64748b",
-                                                  fontWeight: "bold",
-                                                }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                              />
-                                              <YAxis
-                                                yAxisId="left"
-                                                tick={{
-                                                  fontSize: 10,
-                                                  fill: "#10b981",
-                                                  fontWeight: "bold",
-                                                }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tickFormatter={(val) =>
-                                                  `Rp${new Intl.NumberFormat("id-ID", { notation: "compact" }).format(val)}`
-                                                }
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "gmv",
-                                                  )
-                                                }
-                                              />
-                                              <YAxis
-                                                yAxisId="right"
-                                                orientation="right"
-                                                tick={{
-                                                  fontSize: 10,
-                                                  fill: "#4f46e5",
-                                                  fontWeight: "bold",
-                                                }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tickFormatter={(val) =>
-                                                  new Intl.NumberFormat(
-                                                    "id-ID",
-                                                    { notation: "compact" },
-                                                  ).format(val)
-                                                }
-                                              />
-                                              <Tooltip
-                                                contentStyle={{
-                                                  borderRadius: "16px",
-                                                  border: "none",
-                                                  boxShadow:
-                                                    "0 4px 24px rgba(0,0,0,0.08)",
-                                                  fontWeight: "bold",
-                                                  fontSize: "11px",
-                                                }}
-                                                formatter={(
-                                                  value: any,
-                                                  name: string,
-                                                ) => [
-                                                  name === "GMV (Pendapatan)"
-                                                    ? `Rp${new Intl.NumberFormat("id-ID").format(value)}`
-                                                    : new Intl.NumberFormat(
-                                                        "id-ID",
-                                                      ).format(value),
-                                                  name,
-                                                ]}
-                                              />
-                                              <Line
-                                                yAxisId="left"
-                                                type="monotone"
-                                                name="GMV (Pendapatan)"
-                                                dataKey="gmv"
-                                                stroke="#10b981"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#10b981",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                activeDot={{ r: 6 }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "gmv",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name="Pesanan (Orders)"
-                                                dataKey="orders"
-                                                stroke="#4f46e5"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#4f46e5",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "orders",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name="Produk Terjual"
-                                                dataKey="itemsSold"
-                                                stroke="#f59e0b"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#f59e0b",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "itemsSold",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name="Klik Produk"
-                                                dataKey="clicks"
-                                                stroke="#ec4899"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#ec4899",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "clicks",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name="Penonton (Views)"
-                                                dataKey="penonton"
-                                                stroke="#0ea5e9"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#0ea5e9",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !liveChartSelectedMetrics.includes(
-                                                    "penonton",
-                                                  )
-                                                }
-                                              />
-                                            </RechartsLineChart>
-                                          </ResponsiveContainer>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Removed duplicated SKU Analytics here */}
-
-                                    {/* Table */}
-                                    <div className="flex bg-slate-100 p-1 mb-4 rounded-xl w-fit">
-                                      {[
-                                        { id: "day", label: "Harian" },
-                                        { id: "shift", label: "Shift" },
-                                        { id: "dayOfWeek", label: "Hari" },
-                                        { id: "raw", label: "By Raw" },
-                                      ].map(tab => (
-                                        <button
-                                          key={tab.id}
-                                          onClick={() => setReportingShopeeRawTab(tab.id as any)}
-                                          className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${reportingShopeeRawTab === tab.id ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                                        >
-                                          {tab.label}
-                                        </button>
-                                      ))}
-                                    </div>
-                                    {reportingShopeeRawTab === "shift" && (
-                                       <div className="mb-4 flex flex-wrap gap-2 items-center p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
-                                         <span className="text-xs font-bold text-indigo-600 mr-2">Filter & Grouping Shift:</span>
-                                         {shifts.map((sh, idx) => (
-                                           <label key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                                             <input
-                                               type="checkbox"
-                                               className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                               checked={adminShiftChecklist.includes(sh)}
-                                               onChange={(e) => {
-                                                 if (e.target.checked) setAdminShiftChecklist([...adminShiftChecklist, sh]);
-                                                 else setAdminShiftChecklist(adminShiftChecklist.filter(x => x !== sh));
-                                               }}
-                                             />
-                                             <span className="text-xs font-semibold text-slate-700">{sh}</span>
-                                           </label>
-                                         ))}
-                                       </div>
-                                    )}
-                                    <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
-                                      <table className="w-full text-left whitespace-nowrap">
-                                        <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
-                                          <tr>
-                                            <th className="px-5 py-3.5">No</th>
-                                           {reportingShopeeRawTab !== "raw" ? (
-                                             <>
-                                               <th 
-                                                 className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" 
-                                                 onClick={() => handleSort("date")}
-                                               >
-                                                 {reportingShopeeRawTab === "day" ? "Tanggal" : reportingShopeeRawTab === "shift" ? "Shift" : "Hari"}
-                                                 {" "}
-                                                 {reportDbSortCol === "date"
-                                                   ? reportDbSortAsc
-                                                     ? "↑"
-                                                     : "↓"
-                                                    : ""}
-                                               </th>
-                                               <th 
-                                                 className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                                 onClick={() => handleSort("duration")}
-                                               >
-                                                 Durasi
-                                                 {" "}
-                                                 {reportDbSortCol === "duration"
-                                                   ? reportDbSortAsc
-                                                     ? "↑"
-                                                     : "↓"
-                                                   : ""}
-                                               </th>
-                                             </>
-                                           ) : (
-                                             <>
-                                               <th
-                                                 className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                                 onClick={() => handleSort("date")}
-                                               >
-                                                 Tanggal{" "}
-                                                 {reportDbSortCol === "date"
-                                                   ? reportDbSortAsc
-                                                     ? "↑"
-                                                     : "↓"
-                                                   : ""}
-                                               </th>
-                                               <th className="px-5 py-3.5">
-                                                 Jam Start Live
-                                               </th>
-                                               <th className="px-5 py-3.5 cursor-pointer hover:bg-slate-100" onClick={() => handleSort("duration")}>
-                                                 Durasi
-                                                 {reportDbSortCol === "duration"
-                                                   ? reportDbSortAsc
-                                                     ? "↑"
-                                                     : "↓"
-                                                   : ""}
-                                               </th>
-                                             </>
-                                           )}
-                                            <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                              onClick={() =>
-                                                handleSort("views")
-                                              }
-                                            >
-                                              Viewers{" "}
-                                              {reportDbSortCol === "views"
-                                                ? reportDbSortAsc
-                                                  ? "↑"
-                                                  : "↓"
-                                                : ""}
-                                            </th>
-                                            <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                              onClick={() => handleSort("gmv")}
-                                            >
-                                              GMV{" "}
-                                              {reportDbSortCol === "gmv"
-                                                ? reportDbSortAsc
-                                                  ? "↑"
-                                                  : "↓"
-                                                : ""}
-                                            </th>
-                                            <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                              onClick={() =>
-                                                handleSort("products_sold")
-                                              }
-                                            >
-                                              Produk Terjual{" "}
-                                              {reportDbSortCol ===
-                                              "products_sold"
-                                                ? reportDbSortAsc
-                                                  ? "↑"
-                                                  : "↓"
-                                                : ""}
-                                            </th>
-                                            <th
-                                              className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                              onClick={() =>
-                                                handleSort("customers")
-                                              }
-                                            >
-                                              Customer{" "}
-                                              {reportDbSortCol === "customers"
-                                                ? reportDbSortAsc
-                                                  ? "↑"
-                                                  : "↓"
-                                                : ""}
-                                            </th>
-                                            <th className="px-5 py-3.5">
-                                              Convertion Rate
-                                            </th>
-                                            <th className="px-5 py-3.5 text-right">
-                                              Aksi
-                                            </th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
-                                          {isLogsLoading ? (
-                                            <tr>
-                                              <td
-                                                colSpan={8}
-                                                className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-                                              >
-                                                <div className="flex flex-col items-center justify-center gap-4">
-                                                  <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
-                                                  Sedang memuat data dari
-                                                  database...
-                                                </div>
-                                              </td>
-                                            </tr>
-                                          ) : sortedTableLogs.length === 0 ? (
-                                            <tr>
-                                              <td
-                                                colSpan={9}
-                                                className="px-5 py-10 text-center text-slate-400"
-                                              >
-                                                Tidak ada sesi ditemukan.
-                                              </td>
-                                            </tr>
-                                          ) : (
-                                            (() => {
-                                              if (reportingShopeeRawTab !== "raw") {
-                                                const groups: Record<string, any> = {};
-                                                if (reportingShopeeRawTab === "shift" && adminShiftChecklist.length > 0) {
-                                                  adminShiftChecklist.forEach(sh => {
-                                                    groups[sh] = { label: sh, impressions: 0, gmv: 0, products_sold: 0, buyers: 0 };
-                                                  });
-                                                }
-                                                
-                                                sortedTableLogs.forEach(log => {
-                                                  let key = "";
-                                                  const dStr = String(log.dateTime || log.date || "");
-                                                  const dPart = dStr.includes("T") ? dStr.split("T")[0] : dStr.split(" ")[0];
-                                                  
-                                                  if (reportingShopeeRawTab === "day") {
-                                                    const dSplit = dPart.split("-");
-                                                    if (dSplit.length === 3) {
-                                                      if (dSplit[0].length === 4) { key = dSplit[2] + '-' + dSplit[1] + '-' + dSplit[0]; }
-                                                      else { key = dSplit[0] + '-' + dSplit[1] + '-' + dSplit[2]; }
-                                                    } else {
-                                                      key = dPart;
-                                                    }
-                                                  } else if (reportingShopeeRawTab === "shift") {
-                                                    key = log.shift || "Lainnya";
-                                                    if (adminShiftChecklist.length > 0 && !adminShiftChecklist.includes(key)) return;
-                                                  } else if (reportingShopeeRawTab === "dayOfWeek") {
-                                                    const dSplit = dPart.split("-");
-                                                    if (dSplit.length === 3) {
-                                                      const dateObj = dSplit[0].length === 4 ? new Date(dPart) : new Date(dSplit[2] + '-' + dSplit[1] + '-' + dSplit[0]);
-                                                      if (!isNaN(dateObj.getTime())) {
-                                                        const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-                                                        key = days[dateObj.getDay()];
-                                                      } else key = "Unknown";
-                                                    } else key = "Unknown";
-                                                  }
-                                                  
-                                                  if (!groups[key]) {
-                                                    groups[key] = { label: key, duration: 0, impressions: 0, gmv: 0, products_sold: 0, buyers: 0 };
-                                                  }
-                                                  groups[key].duration = (groups[key].duration || 0) + (log.duration || 0);
-                                                   groups[key].impressions += ((log.impressions || log.views || log.liveVisits || log.penonton) || 0);
-                                                  groups[key].gmv += (log.gmv || 0);
-                                                  groups[key].products_sold += (log.products_sold || log.items_sold || 0);
-                                                  groups[key].buyers += (log.buyers || log.orders || 0);
-                                                });
-                                                
-                                                const idFormatter = new Intl.NumberFormat("id-ID");
-                                                
-                                                const sortedGroups = Object.values(groups).sort((a: any, b: any) => {
-                                                  let valA = a[reportDbSortCol];
-                                                  let valB = b[reportDbSortCol];
-
-                                                  if (reportDbSortCol === "date") {
-                                                    const parseLabelToDate = (lbl: string) => {
-                                                      const parts = lbl.split("-");
-                                                      if (parts.length === 3) {
-                                                        if (parts[0].length === 2 && parts[2].length === 4) {
-                                                          return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
-                                                        }
-                                                        return new Date(lbl).getTime();
-                                                      }
-                                                      return lbl;
-                                                    };
-                                                    valA = parseLabelToDate(a.label);
-                                                    valB = parseLabelToDate(b.label);
-                                                    if (typeof valA === "number" && typeof valB === "number" && !isNaN(valA) && !isNaN(valB)) {
-                                                      return reportDbSortAsc ? valA - valB : valB - valA;
-                                                    }
-                                                    valA = a.label;
-                                                    valB = b.label;
-                                                  } else if (reportDbSortCol === "views") {
-                                                    valA = a.impressions || 0;
-                                                    valB = b.impressions || 0;
-                                                  } else if (reportDbSortCol === "customers") {
-                                                    valA = a.buyers || 0;
-                                                    valB = b.buyers || 0;
-                                                  } else if (reportDbSortCol === "gmv") {
-                                                    valA = a.gmv || 0;
-                                                    valB = b.gmv || 0;
-                                                  } else if (reportDbSortCol === "products_sold") {
-                                                    valA = a.products_sold || 0;
-                                                    valB = b.products_sold || 0;
-                                                  } else if (reportDbSortCol === "duration") {
-                                                    valA = a.duration || 0;
-                                                    valB = b.duration || 0;
-                                                  }
-
-                                                  if (valA < valB) return reportDbSortAsc ? -1 : 1;
-                                                  if (valA > valB) return reportDbSortAsc ? 1 : -1;
-                                                  return 0;
-                                                });
-
-                                                return sortedGroups.map((g: any, idx) => (
-                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                                                      <td className="px-5 py-3.5 text-slate-400">{idx + 1}</td>
-                                                      <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
-                                                        {g.label}
-                                                      </td>
-                                                      <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
-                                                        {(() => {
-                                                            const secs = g.duration || 0;
-                                                            if (!secs) return "-";
-                                                            const h = Math.floor(secs / 3600);
-                                                            const m = Math.floor((secs % 3600) / 60);
-                                                            return `${h > 0 ? h + "j " : ""}${m}m`;
-                                                        })()}
-                                                      </td>
-                                                      <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
-                                                        {idFormatter.format(g.impressions)}
-                                                      </td>
-                                                      <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-emerald-600">
-                                                        Rp{idFormatter.format(g.gmv)}
-                                                      </td>
-                                                      <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
-                                                        {idFormatter.format(g.products_sold)}
-                                                      </td>
-                                                      <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-indigo-600">
-                                                        {idFormatter.format(g.buyers)}
-                                                      </td>
-                                                      <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-indigo-600">
-                                                        {g.impressions > 0 ? ((g.buyers / g.impressions) * 100).toFixed(2) : "0.00"}%
-                                                      </td>
-                                                      <td className="px-5 py-3.5"></td>
-                                                    </tr>
-                                                ));
-                                              }
-                                              return paginatedLogs.map((log, idx) => {
-                                              const isLogShopee = log.platform && log.platform.toLowerCase().includes("shopee");
-                                              const lViews = isLogShopee 
-                                                ? (log.penonton || log.impressions || log.views || 0)
-                                                : (log.impressions || log.views || log.liveVisits || 0);
-                                              const lCtr =
-                                                log.productImpressions > 0
-                                                  ? (log.clicks /
-                                                      log.productImpressions) *
-                                                    100
-                                                  : 0;
-                                              const lCtor =
-                                                log.clicks > 0
-                                                  ? (log.orders / log.clicks) *
-                                                    100
-                                                  : 0;
-
-                                              return (
-                                                <tr
-                                                  key={log.id || idx}
-                                                  className="hover:bg-slate-50/50 transition-colors"
-                                                >
-                                                  <td className="px-5 py-3.5 text-slate-400">
-                                                    {(currentPage - 1) *
-                                                      ITEMS_PER_PAGE +
-                                                      idx +
-                                                      1}
-                                                  </td>
-                                                  <td className="px-5 py-3.5 text-slate-500">
-                                                    <div className="flex flex-col">
-                                                      <span>
-                                                        {formatDisplayDate(
-                                                          log.dateTime ||
-                                                            log.date,
-                                                          log.platform,
-                                                        )}
-                                                      </span>
-                                                      <span className="text-[9px] text-indigo-500">
-                                                        {log.platform}
-                                                      </span>
-                                                    </div>
-                                                  </td>
-                                                  <td className="px-5 py-3.5 font-mono text-xs">
-                                                    {log.dateTime
-                                                      ? log.dateTime.includes(
-                                                          " ",
-                                                        )
-                                                        ? log.dateTime.split(
-                                                            " ",
-                                                          )[1]
-                                                        : "-"
-                                                      : "-"}
-                                                  </td>
-                                                  {reportingShopeeRawTab === "raw" && (
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
-                                                      {(() => {
-                                                        const secs = log.duration || 0;
-                                                        if (!secs) return "-";
-                                                        const h = Math.floor(secs / 3600);
-                                                        const m = Math.floor((secs % 3600) / 60);
-                                                        return `${h > 0 ? h + "j " : ""}${m}m`;
-                                                      })()}
-                                                    </td>
-                                                  )}
-                                                  <td className="px-5 py-3.5">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(lViews)}
-                                                  </td>
-                                                  <td className="px-5 py-3.5">
-                                                    Rp
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                      {
-                                                        maximumFractionDigits: 0,
-                                                      },
-                                                    ).format(log.gmv || 0)}
-                                                  </td>
-                                                  <td className="px-5 py-3.5">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(
-                                                      log.products_sold ||
-                                                        log.items_sold ||
-                                                        0,
-                                                    )}
-                                                  </td>
-                                                  <td className="px-5 py-3.5">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(log.buyers || 0)}
-                                                  </td>
-                                                  <td className="px-5 py-3.5">
-                                                    {lViews > 0
-                                                      ? (
-                                                          ((log.buyers ||
-                                                            log.orders ||
-                                                            0) /
-                                                            lViews) *
-                                                          100
-                                                        ).toFixed(2)
-                                                      : "0.00"}
-                                                    %
-                                                  </td>
-                                                  <td className="px-5 py-3.5 text-right">
-                                                    <button
-                                                      onClick={() =>
-                                                        handleDeletePerformanceLog(
-                                                          log.id,
-                                                          log.brandName,
-                                                          log.date,
-                                                        )
-                                                      }
-                                                      className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-transparent border-0"
-                                                      title="Hapus Log"
-                                                    >
-                                                      ✕
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                              );
-                                            });
-                                          })()
-                                          )}
-                                        </tbody>
-                                      </table>
-                                    </div>
-
-                                    {totalPages > 1 && reportingShopeeRawTab === "raw" && (
-                                      <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
-                                        <div>
-                                          Menampilkan{" "}
-                                          {(currentPage - 1) * ITEMS_PER_PAGE +
-                                            1}{" "}
-                                          -{" "}
-                                          {Math.min(
-                                            currentPage * ITEMS_PER_PAGE,
-                                            sortedTableLogs.length,
-                                          )}{" "}
-                                          dari {sortedTableLogs.length} data
-                                        </div>
-                                        <div className="flex gap-2">
-                                          <button
-                                            onClick={() =>
-                                              setCurrentPage((prev) =>
-                                                Math.max(1, prev - 1),
-                                              )
-                                            }
-                                            disabled={currentPage === 1}
-                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
-                                          >
-                                            Sebelumnya
-                                          </button>
-                                          <span className="px-3 py-1.5">
-                                            Halaman {currentPage} / {totalPages}
-                                          </span>
-                                          <button
-                                            onClick={() =>
-                                              setCurrentPage((prev) =>
-                                                Math.min(totalPages, prev + 1),
-                                              )
-                                            }
-                                            disabled={
-                                              currentPage === totalPages
-                                            }
-                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
-                                          >
-                                            Selanjutnya
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              })()}
-
-                              {/* BATCH UPLOAD HISTORY VIEWER */}
-                              {(() => {
-                                const completeUploadHistory =
-                                  activeReportBrandUploadHistory;
-
-                                return (
-                                  <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden mt-8">
-                                    <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-                                      <div>
-                                        <h4 className="text-base font-black text-slate-800">
-                                          Riwayat Upload Data Mentah
-                                        </h4>
-                                        <p className="text-[11px] text-slate-500 font-medium">
-                                          History file CSV raw data performa
-                                          yang telah berhasil dikonversi & masuk
-                                          ke database sentral.
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                      <table className="w-full text-left whitespace-nowrap">
-                                        <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
-                                          <tr>
-                                            <th className="px-5 py-3.5">
-                                              Waktu Upload
-                                            </th>
-                                            <th className="px-5 py-3.5">
-                                              Nama File / Tipe
-                                            </th>
-                                            <th className="px-5 py-3.5">
-                                              Platform
-                                            </th>
-                                            <th className="px-5 py-3.5">
-                                              Total Baris
-                                            </th>
-                                            <th className="px-5 py-3.5">
-                                              Total GMV (Rp)
-                                            </th>
-                                            <th className="px-5 py-3.5 text-right">
-                                              Aksi
-                                            </th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
-                                          {isLogsLoading ? (
-                                            <tr key="loading">
-                                              <td
-                                                colSpan={6}
-                                                className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-                                              >
-                                                <div className="flex flex-col items-center justify-center gap-4">
-                                                  <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
-                                                  Sedang memuat data dari
-                                                  database...
-                                                </div>
-                                              </td>
-                                            </tr>
-                                          ) : completeUploadHistory.length ===
-                                            0 ? (
-                                            <tr key="empty-history">
-                                              <td
-                                                colSpan={6}
-                                                className="px-5 py-10 text-center text-slate-400"
-                                              >
-                                                Belum ada riwayat upload untuk
-                                                brand ini.
-                                              </td>
-                                            </tr>
-                                          ) : (
-                                            completeUploadHistory.map(
-                                              (history, idx) => (
-                                                <tr
-                                                  key={history.id || idx}
-                                                  className="hover:bg-slate-50/50 transition-colors"
-                                                >
-                                                  <td className="px-5 py-3.5 text-slate-500">
-                                                    {new Date(
-                                                      history.uploadedAt,
-                                                    ).toLocaleString("id-ID", {
-                                                      day: "numeric",
-                                                      month: "short",
-                                                      year: "numeric",
-                                                      hour: "2-digit",
-                                                      minute: "2-digit",
-                                                    })}
-                                                  </td>
-                                                  <td
-                                                    className="px-5 py-3.5 max-w-[200px] truncate"
-                                                    title={history.fileName}
-                                                  >
-                                                    {history.fileName}
-                                                  </td>
-                                                  <td className="px-5 py-3.5">
-                                                    <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded uppercase font-bold">
-                                                      {history.platform ||
-                                                        "UNKNOWN"}
-                                                    </span>
-                                                  </td>
-                                                  <td className="px-5 py-3.5">
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                    ).format(
-                                                      history.rowCount || 0,
-                                                    )}
-                                                  </td>
-                                                  <td className="px-5 py-3.5">
-                                                    Rp
-                                                    {new Intl.NumberFormat(
-                                                      "id-ID",
-                                                      {
-                                                        maximumFractionDigits: 0,
-                                                      },
-                                                    ).format(history.gmv || 0)}
-                                                  </td>
-                                                  <td className="px-5 py-3.5 text-right">
-                                                    <button
-                                                      onClick={() =>
-                                                        handleDeleteUploadBatch(
-                                                          history.id,
-                                                          history.fileName,
-                                                          history.rowCount || 0,
-                                                        )
-                                                      }
-                                                      className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-slate-50 hover:bg-red-50 p-1.5 rounded-lg border border-slate-200 hover:border-red-200 text-[10px] font-bold inline-flex items-center gap-1"
-                                                      title="Hapus Batch & Semua Data Raw"
-                                                    >
-                                                      Hapus Batch
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                              ),
-                                            )
-                                          )}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-                            </div>
+                                pd.setDate(pd.getDate() + 1);
+                                const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
+                                setOperatorDateFilterType("custom");
+                                setOperatorCustomStartDate(newD);
+                                setOperatorCustomEndDate(newD);
+                              }}
+                              reportDbSearchQuery={reportDbSearchQuery}
+                              onSearchQueryChange={setReportDbSearchQuery}
+                              operatorPlatformFilter={operatorPlatformFilter}
+                              onPlatformFilterChange={
+                                setOperatorPlatformFilter
+                              }
+                              availableOperatorPlatforms={
+                                availableOperatorPlatforms
+                              }
+                              operatorDateFilterType={operatorDateFilterType}
+                              onDateFilterTypeSelect={
+                                handleOperatorDateFilterSelect
+                              }
+                              operatorMonthPickerYear={
+                                operatorMonthPickerYear
+                              }
+                              setOperatorMonthPickerYear={
+                                setOperatorMonthPickerYear
+                              }
+                              operatorSelectedMonth={operatorSelectedMonth}
+                              setOperatorSelectedMonth={
+                                setOperatorSelectedMonth
+                              }
+                              isOperatorMonthOpen={isOperatorMonthOpen}
+                              setIsOperatorMonthOpen={setIsOperatorMonthOpen}
+                              isOperatorCalendarOpen={isOperatorCalendarOpen}
+                              setIsOperatorCalendarOpen={
+                                setIsOperatorCalendarOpen
+                              }
+                              operatorCustomStartDate={
+                                operatorCustomStartDate
+                              }
+                              operatorCustomEndDate={operatorCustomEndDate}
+                              operatorTempStartDate={operatorTempStartDate}
+                              operatorTempEndDate={operatorTempEndDate}
+                              setOperatorTempStartDate={
+                                setOperatorTempStartDate
+                              }
+                              setOperatorTempEndDate={setOperatorTempEndDate}
+                              setOperatorCustomStartDate={
+                                setOperatorCustomStartDate
+                              }
+                              setOperatorCustomEndDate={
+                                setOperatorCustomEndDate
+                              }
+                              shifts={shifts}
+                              adminShiftChecklist={adminShiftChecklist}
+                              setAdminShiftChecklist={setAdminShiftChecklist}
+                              reportingShopeeRawTab={reportingShopeeRawTab}
+                              setReportingShopeeRawTab={
+                                setReportingShopeeRawTab
+                              }
+                              reportDbSortCol={reportDbSortCol}
+                              reportDbSortAsc={reportDbSortAsc}
+                              setReportDbSortCol={setReportDbSortCol}
+                              setReportDbSortAsc={setReportDbSortAsc}
+                              currentPage={currentPage}
+                              setCurrentPage={setCurrentPage}
+                              itemsPerPage={ITEMS_PER_PAGE}
+                              isLogsLoading={isLogsLoading}
+                              handleDeletePerformanceLog={
+                                handleDeletePerformanceLog
+                              }
+                              brandPerformanceLogs={brandPerformanceLogs}
+                              activeReportBrandId={activeReportBrandId || ""}
+                              brandUploadHistory={brandUploadHistory}
+                              uploadHistory={uploadHistory}
+                              onDeleteUploadBatch={handleDeleteUploadBatch}
+                            />
                           )}
 
                           {/* STORED SKU DATABASE VIEWER */}
@@ -21880,101 +16893,25 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                               {/* SKU Analytics */}
                               {(() => {
-                                const applySkuFilter = (logsArr: any[]) => {
-                                  if (!logsArr) return [];
-                                  let res = logsArr.filter(
-                                    (r) => r.brandId === activeReportBrandId,
+                                const targetLatestDate =
+                                  getLatestDateForBrand(
+                                    brandPerformanceLogs,
+                                    activeReportBrandId,
                                   );
-                                  if (
-                                    operatorDateFilterType === "latest" &&
-                                    brandPerformanceLogs.filter(
-                                      (log) =>
-                                        log.brandId === activeReportBrandId,
-                                    ).length > 0
-                                  ) {
-                                    const targetLatestDate =
-                                      brandPerformanceLogs
-                                        .filter(
-                                          (log) =>
-                                            log.brandId === activeReportBrandId,
-                                        )
-                                        .sort(
-                                          (a, b) =>
-                                            new Date(b.date || "0").getTime() -
-                                            new Date(a.date || "0").getTime(),
-                                        )[0]?.date || "";
-                                    res = res.filter(
-                                      (r) =>
-                                        r.date &&
-                                        r.date.startsWith(
-                                          targetLatestDate.substring(0, 10),
-                                        ),
-                                    );
-                                  } else if (
-                                    operatorDateFilterType === "custom" &&
-                                    operatorCustomStartDate
-                                  ) {
-                                    res = res.filter(
-                                      (r) =>
-                                        r.date &&
-                                        r.date >= operatorCustomStartDate &&
-                                        r.date <=
-                                          (operatorCustomEndDate ||
-                                            operatorCustomStartDate),
-                                    );
-                                  } else if (
-                                    operatorDateFilterType === "month" &&
-                                    operatorSelectedMonth
-                                  ) {
-                                    res = res.filter(
-                                      (r) =>
-                                        r.date &&
-                                        r.date.startsWith(
-                                          operatorSelectedMonth,
-                                        ),
-                                    );
-                                  }
-
-                                  if (operatorPlatformFilter) {
-                                    res = res.filter((r) => {
-                                      return (
-                                        r.platform &&
-                                        operatorPlatformFilter &&
-                                        r.platform
-                                          .toLowerCase()
-                                          .includes(
-                                            operatorPlatformFilter.toLowerCase(),
-                                          )
-                                      );
-                                    });
-                                  }
-
-                                  if (operatorShiftFilters.length > 0) {
-                                    res = res.filter((r) =>
-                                      operatorShiftFilters.includes(
-                                        r.shift || "",
-                                      ),
-                                    );
-                                  }
-
-                                  if (reportDbSearchQuery) {
-                                    const q = reportDbSearchQuery.toLowerCase();
-                                    res = res.filter(
-                                      (r) =>
-                                        (r.sku &&
-                                          r.sku.toLowerCase().includes(q)) ||
-                                        (r.productName &&
-                                          r.productName
-                                            .toLowerCase()
-                                            .includes(q)),
-                                    );
-                                  }
-
-                                  return res;
-                                };
-
-                                const currentSkus =
-                                  applySkuFilter(shopeeSkuLogs);
+                                const currentSkus = filterSkuLogs(
+                                  shopeeSkuLogs,
+                                  {
+                                    brandId: activeReportBrandId,
+                                    dateFilterType: operatorDateFilterType,
+                                    latestDate: targetLatestDate,
+                                    customStartDate: operatorCustomStartDate,
+                                    customEndDate: operatorCustomEndDate,
+                                    selectedMonth: operatorSelectedMonth,
+                                    platformFilter: operatorPlatformFilter,
+                                    shiftFilters: operatorShiftFilters,
+                                    searchQuery: reportDbSearchQuery,
+                                  },
+                                );
                                 if (currentSkus.length === 0)
                                   return (
                                     <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-sm mb-6 text-center text-slate-500 font-semibold text-sm">
@@ -21983,26 +16920,8 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                     </div>
                                   );
 
-                                const skuMap = new Map();
-                                currentSkus.forEach((s) => {
-                                  const key =
-                                    s.sku !== "N/A" ? s.sku : s.productName;
-                                  const ex = skuMap.get(key);
-                                  if (ex) {
-                                    ex.sold += Number(s.sold) || 0;
-                                    ex.revenue += Number(s.revenue) || 0;
-                                  } else {
-                                    skuMap.set(key, {
-                                      sku: s.sku,
-                                      productName: s.productName,
-                                      sold: Number(s.sold) || 0,
-                                      revenue: Number(s.revenue) || 0,
-                                    });
-                                  }
-                                });
-
-                                let aggregatedSkus = Array.from(
-                                  skuMap.values(),
+                                let aggregatedSkus = aggregateSkuLogs(
+                                  currentSkus,
                                 ).sort((a, b) => {
                                   if (skuSortCol === "sold")
                                     return skuSortAsc
@@ -22018,25 +16937,10 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 let productDateLabel = "Semua Waktu";
                                 if (
                                   operatorDateFilterType === "latest" &&
-                                  brandPerformanceLogs.filter(
-                                    (log) =>
-                                      log.brandId === activeReportBrandId,
-                                  ).length > 0
+                                  targetLatestDate
                                 ) {
-                                  const targetLatestDate =
-                                    brandPerformanceLogs
-                                      .filter(
-                                        (log) =>
-                                          log.brandId === activeReportBrandId,
-                                      )
-                                      .sort(
-                                        (a, b) =>
-                                          new Date(b.date || "0").getTime() -
-                                          new Date(a.date || "0").getTime(),
-                                      )[0]?.date || "";
-                                  if (targetLatestDate)
-                                    productDateLabel =
-                                      targetLatestDate.split(" ")[0];
+                                  productDateLabel =
+                                    targetLatestDate.split(" ")[0];
                                 } else if (
                                   operatorDateFilterType === "custom" &&
                                   operatorCustomStartDate
@@ -22065,46 +16969,21 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                         <div className="flex items-center gap-2 sm:gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
                                           <button
-                                            onClick={() => {
-                                              let pd = new Date();
-                                              let tld =
-                                                brandPerformanceLogs
-                                                  .filter(
-                                                    (log) =>
-                                                      log.brandId ===
-                                                      activeReportBrandId,
-                                                  )
-                                                  .sort(
-                                                    (a, b) =>
-                                                      new Date(
-                                                        b.date || "0",
-                                                      ).getTime() -
-                                                      new Date(
-                                                        a.date || "0",
-                                                      ).getTime(),
-                                                  )[0]?.date || "";
-                                              if (
-                                                operatorDateFilterType ===
-                                                  "latest" &&
-                                                tld
-                                              ) {
-                                                pd = new Date(tld);
-                                              } else if (
-                                                operatorDateFilterType ===
-                                                  "custom" &&
-                                                operatorCustomStartDate
-                                              ) {
-                                                pd = new Date(
+                                          onClick={() => {
+                                              shiftReportPeriodByOneDay({
+                                                direction: -1,
+                                                dateFilterType:
+                                                  operatorDateFilterType,
+                                                targetLatestDate,
+                                                customStartDate:
                                                   operatorCustomStartDate,
-                                                );
-                                              }
-                                              pd.setDate(pd.getDate() - 1);
-                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                              setOperatorDateFilterType(
-                                                "custom",
-                                              );
-                                              setOperatorCustomStartDate(newD);
-                                              setOperatorCustomEndDate(newD);
+                                                setDateFilterType:
+                                                  setOperatorDateFilterType,
+                                                setCustomStartDate:
+                                                  setOperatorCustomStartDate,
+                                                setCustomEndDate:
+                                                  setOperatorCustomEndDate,
+                                              });
                                             }}
                                             className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
                                           >
@@ -22166,45 +17045,20 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                           </span>
                                           <button
                                             onClick={() => {
-                                              let pd = new Date();
-                                              let tld =
-                                                brandPerformanceLogs
-                                                  .filter(
-                                                    (log) =>
-                                                      log.brandId ===
-                                                      activeReportBrandId,
-                                                  )
-                                                  .sort(
-                                                    (a, b) =>
-                                                      new Date(
-                                                        b.date || "0",
-                                                      ).getTime() -
-                                                      new Date(
-                                                        a.date || "0",
-                                                      ).getTime(),
-                                                  )[0]?.date || "";
-                                              if (
-                                                operatorDateFilterType ===
-                                                  "latest" &&
-                                                tld
-                                              ) {
-                                                pd = new Date(tld);
-                                              } else if (
-                                                operatorDateFilterType ===
-                                                  "custom" &&
-                                                operatorCustomStartDate
-                                              ) {
-                                                pd = new Date(
+                                              shiftReportPeriodByOneDay({
+                                                direction: 1,
+                                                dateFilterType:
+                                                  operatorDateFilterType,
+                                                targetLatestDate,
+                                                customStartDate:
                                                   operatorCustomStartDate,
-                                                );
-                                              }
-                                              pd.setDate(pd.getDate() + 1);
-                                              const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                              setOperatorDateFilterType(
-                                                "custom",
-                                              );
-                                              setOperatorCustomStartDate(newD);
-                                              setOperatorCustomEndDate(newD);
+                                                setDateFilterType:
+                                                  setOperatorDateFilterType,
+                                                setCustomStartDate:
+                                                  setOperatorCustomStartDate,
+                                                setCustomEndDate:
+                                                  setOperatorCustomEndDate,
+                                              });
                                             }}
                                             className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
                                           >
@@ -22314,210 +17168,15 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                               })()}
 
                               {/* UPLOAD HISTORY SKU VIEWER */}
-                              {(() => {
-                                const brandSkuLogs = shopeeSkuLogs.filter(
+                              <SkuUploadHistoryCard
+                                brandSkuLogs={shopeeSkuLogs.filter(
                                   (r) => r.brandId === activeReportBrandId,
-                                );
-
-                                const uploadHistoryMap = new Map();
-                                brandSkuLogs.forEach((log) => {
-                                  if (!log.batchId) return;
-                                  const existing = uploadHistoryMap.get(
-                                    log.batchId,
-                                  );
-                                  if (existing) {
-                                    existing.records += 1;
-                                  } else {
-                                    uploadHistoryMap.set(log.batchId, {
-                                      batchId: log.batchId,
-                                      uploadedAt: log.uploadedAt || "",
-                                      records: 1,
-                                      platform: log.platform || "Shopee Live",
-                                    });
-                                  }
-                                });
-                                const uploadHistoryList = Array.from(
-                                  uploadHistoryMap.values(),
-                                ).sort(
-                                  (a, b) =>
-                                    new Date(b.uploadedAt).getTime() -
-                                    new Date(a.uploadedAt).getTime(),
-                                );
-
-                                const totalPages = Math.max(
-                                  1,
-                                  Math.ceil(
-                                    uploadHistoryList.length / ITEMS_PER_PAGE,
-                                  ),
-                                );
-                                const paginatedHistory =
-                                  uploadHistoryList.slice(
-                                    (currentPage - 1) * ITEMS_PER_PAGE,
-                                    currentPage * ITEMS_PER_PAGE,
-                                  );
-
-                                return (
-                                  <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-6">
-                                    <div className="bg-[#f8fafc] border-b border-slate-100 px-5 lg:px-7 py-5 flex items-center justify-between gap-4">
-                                      <div>
-                                        <h4 className="text-base font-black text-slate-800 uppercase flex items-center gap-2 tracking-widest">
-                                          <Database className="w-5 h-5 text-indigo-500" />{" "}
-                                          History Upload SKU
-                                        </h4>
-                                        <p className="text-xs text-slate-500 font-semibold mt-1.5 flex items-center gap-1.5">
-                                          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                                          {uploadHistoryList.length} riwayat
-                                          batch ditemukan
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    <div className="overflow-x-auto w-full">
-                                      <table className="w-full text-left whitespace-nowrap min-w-[700px]">
-                                        <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none border-b border-slate-100">
-                                          <tr>
-                                            <th className="px-5 py-4 w-12 text-center">
-                                              No
-                                            </th>
-                                            <th className="px-5 py-4 w-40">
-                                              Tanggal Upload
-                                            </th>
-                                            <th className="px-5 py-4 min-w-[150px]">
-                                              Batch ID
-                                            </th>
-                                            <th className="px-5 py-4 w-32">
-                                              Platform
-                                            </th>
-                                            <th className="px-5 py-4 w-32 text-right">
-                                              Jumlah Record
-                                            </th>
-                                            <th className="px-5 py-4 w-24 text-center">
-                                              Aksi
-                                            </th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 text-[11px] font-semibold text-slate-700 bg-white">
-                                          {paginatedHistory.length === 0 ? (
-                                            <tr>
-                                              <td
-                                                colSpan={6}
-                                                className="px-5 py-10 text-center text-slate-400"
-                                              >
-                                                Belum ada riwayat upload.
-                                              </td>
-                                            </tr>
-                                          ) : (
-                                            paginatedHistory.map(
-                                              (batch, idx) => {
-                                                return (
-                                                  <tr
-                                                    key={batch.batchId}
-                                                    className="hover:bg-slate-50/50 transition-colors"
-                                                  >
-                                                    <td className="px-5 py-3 text-center text-slate-400 font-bold">
-                                                      {(currentPage - 1) *
-                                                        ITEMS_PER_PAGE +
-                                                        idx +
-                                                        1}
-                                                    </td>
-                                                    <td className="px-5 py-3">
-                                                      {new Date(
-                                                        batch.uploadedAt,
-                                                      ).toLocaleString(
-                                                        "id-ID",
-                                                        {
-                                                          day: "numeric",
-                                                          month: "short",
-                                                          year: "numeric",
-                                                          hour: "2-digit",
-                                                          minute: "2-digit",
-                                                        },
-                                                      )}
-                                                    </td>
-                                                    <td className="px-5 py-3">
-                                                      <div className="bg-slate-100 text-slate-500 px-2 py-1 rounded inline-block text-[10px] font-mono tracking-tight">
-                                                        {batch.batchId}
-                                                      </div>
-                                                    </td>
-                                                    <td className="px-5 py-3">
-                                                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#FF5722]/10 text-[#FF5722] font-black text-[10px] uppercase">
-                                                        {batch.platform}
-                                                      </span>
-                                                    </td>
-                                                    <td className="px-5 py-3 text-right text-emerald-600 font-bold">
-                                                      {new Intl.NumberFormat(
-                                                        "id-ID",
-                                                      ).format(batch.records)}
-                                                    </td>
-                                                    <td className="px-5 py-3 text-center">
-                                                      <button
-                                                        onClick={() =>
-                                                          handleDeleteSkuBatch(
-                                                            batch.batchId,
-                                                          )
-                                                        }
-                                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                                        title="Hapus History"
-                                                      >
-                                                        <Trash2 className="w-4 h-4" />
-                                                      </button>
-                                                    </td>
-                                                  </tr>
-                                                );
-                                              },
-                                            )
-                                          )}
-                                        </tbody>
-                                      </table>
-                                    </div>
-
-                                    {totalPages > 1 && (
-                                      <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
-                                        <div>
-                                          Menampilkan{" "}
-                                          {(currentPage - 1) * ITEMS_PER_PAGE +
-                                            1}{" "}
-                                          -{" "}
-                                          {Math.min(
-                                            currentPage * ITEMS_PER_PAGE,
-                                            uploadHistoryList.length,
-                                          )}{" "}
-                                          dari {uploadHistoryList.length} data
-                                        </div>
-                                        <div className="flex gap-2">
-                                          <button
-                                            onClick={() =>
-                                              setCurrentPage((prev) =>
-                                                Math.max(1, prev - 1),
-                                              )
-                                            }
-                                            disabled={currentPage === 1}
-                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
-                                          >
-                                            Sebelumnya
-                                          </button>
-                                          <span className="px-3 py-1.5">
-                                            Halaman {currentPage} / {totalPages}
-                                          </span>
-                                          <button
-                                            onClick={() =>
-                                              setCurrentPage((prev) =>
-                                                Math.min(totalPages, prev + 1),
-                                              )
-                                            }
-                                            disabled={
-                                              currentPage === totalPages
-                                            }
-                                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
-                                          >
-                                            Selanjutnya
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
+                                )}
+                                currentPage={currentPage}
+                                itemsPerPage={ITEMS_PER_PAGE}
+                                setCurrentPage={setCurrentPage}
+                                onDeleteBatch={handleDeleteSkuBatch}
+                              />
                             </div>
                           )}
 
@@ -22797,1114 +17456,49 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 </div>
                               </div>
                               {/* Oh wait, actually let's just make it a table based on aggregated brandPerformanceLogs */}
-                              {(() => {
-                                let engagementDateLabel = "Semua Waktu";
-                                if (
-                                  operatorDateFilterType === "latest" &&
-                                  brandPerformanceLogs.filter(
-                                    (log) =>
-                                      log.brandId === activeReportBrandId &&
-                                      log.reportType === "engagement",
-                                  ).length > 0
-                                ) {
-                                  const targetLatestDate =
-                                    brandPerformanceLogs
-                                      .filter(
-                                        (log) =>
-                                          log.brandId === activeReportBrandId &&
-                                          log.reportType === "engagement",
-                                      )
-                                      .sort(
-                                        (a, b) =>
-                                          new Date(b.date || "0").getTime() -
-                                          new Date(a.date || "0").getTime(),
-                                      )[0]?.date || "";
-                                  if (targetLatestDate)
-                                    engagementDateLabel =
-                                      targetLatestDate.split(" ")[0];
-                                } else if (
-                                  operatorDateFilterType === "custom" &&
-                                  operatorCustomStartDate
-                                ) {
-                                  engagementDateLabel = `${operatorCustomStartDate} to ${operatorCustomEndDate}`;
-                                } else if (
-                                  operatorDateFilterType === "month" &&
-                                  operatorSelectedMonth
-                                ) {
-                                  engagementDateLabel = getIndonesianMonthLabel(
-                                    operatorSelectedMonth,
-                                  );
+                              <EngagementReportPanel
+                                model={engagementReportView}
+                                chartSelectedMetrics={
+                                  engagementChartSelectedMetrics
                                 }
-
-                                let logs = brandPerformanceLogs.filter(
-                                  (l) =>
-                                    l.brandId === activeReportBrandId &&
-                                    l.reportType === "engagement",
-                                );
-
-                                // Apply same date/platform filters if needed
-                                if (
-                                  operatorDateFilterType === "latest" &&
-                                  logs.length > 0
-                                ) {
-                                  const latestDate =
-                                    [...logs].sort(
-                                      (a, b) =>
-                                        new Date(b.date || "0").getTime() -
-                                        new Date(a.date || "0").getTime(),
-                                    )[0]?.date || "";
-                                  logs = logs.filter(
-                                    (r) => r.date === latestDate,
-                                  );
-                                } else if (
-                                  operatorDateFilterType === "custom" &&
-                                  operatorCustomStartDate
-                                ) {
-                                  logs = logs.filter(
-                                    (r) =>
-                                      r.date >= operatorCustomStartDate &&
-                                      r.date <=
-                                        (operatorCustomEndDate ||
-                                          operatorCustomStartDate),
-                                  );
-                                } else if (
-                                  operatorDateFilterType === "month" &&
-                                  operatorSelectedMonth
-                                ) {
-                                  logs = logs.filter((r) =>
-                                    r.date.startsWith(operatorSelectedMonth),
-                                  );
+                                onChartSelectedMetricsChange={
+                                  setEngagementChartSelectedMetrics
                                 }
-
-                                if (operatorPlatformFilter) {
-                                  logs = logs.filter(
-                                    (r) =>
-                                      r.platform &&
-                                      r.platform.toLowerCase() ===
-                                        operatorPlatformFilter.toLowerCase(),
-                                  );
+                                onPrev={() =>
+                                  shiftReportPeriodByOneDay({
+                                    direction: -1,
+                                    dateFilterType: operatorDateFilterType,
+                                    targetLatestDate:
+                                      engagementReportView.engagementLatestDate,
+                                    customStartDate: operatorCustomStartDate,
+                                    setDateFilterType:
+                                      setOperatorDateFilterType,
+                                    setCustomStartDate:
+                                      setOperatorCustomStartDate,
+                                    setCustomEndDate: setOperatorCustomEndDate,
+                                  })
                                 }
-
-                                if (operatorShiftFilters.length > 0) {
-                                  logs = logs.filter((r) =>
-                                    operatorShiftFilters.includes(
-                                      r.shift || "",
-                                    ),
-                                  );
+                                onNext={() =>
+                                  shiftReportPeriodByOneDay({
+                                    direction: 1,
+                                    dateFilterType: operatorDateFilterType,
+                                    targetLatestDate:
+                                      engagementReportView.engagementLatestDate,
+                                    customStartDate: operatorCustomStartDate,
+                                    setDateFilterType:
+                                      setOperatorDateFilterType,
+                                    setCustomStartDate:
+                                      setOperatorCustomStartDate,
+                                    setCustomEndDate: setOperatorCustomEndDate,
+                                  })
                                 }
-
-                                // Grouped or detailed? Let's just sum it up.
-                                const isShopeeEng = operatorPlatformFilter && operatorPlatformFilter.toLowerCase().includes("shopee");
-                                const totalImpressions = logs.reduce(
-                                  (sum, l) => sum + (isShopeeEng ? (l.penonton || l.impressions || l.views || 0) : (l.views || 0)),
-                                  0,
-                                );
-                                const totalPenonton = logs.reduce(
-                                  (sum, l) =>
-                                    sum + (l.penonton || l.impressions || 0),
-                                  0,
-                                );
-                                const avgPeakViewers =
-                                  logs.length > 0
-                                    ? Math.round(
-                                        logs.reduce(
-                                          (sum, l) =>
-                                            sum + (l.peakViewers || 0),
-                                          0,
-                                        ) / logs.length,
-                                      )
-                                    : 0;
-                                const totalLikes = logs.reduce(
-                                  (sum, l) => sum + (l.likes || 0),
-                                  0,
-                                );
-                                const totalShares = logs.reduce(
-                                  (sum, l) => sum + (l.shares || 0),
-                                  0,
-                                );
-                                const totalComments = logs.reduce(
-                                  (sum, l) => sum + (l.comments || 0),
-                                  0,
-                                );
-                                const totalFollowers = logs.reduce(
-                                  (sum, l) => sum + (l.followers || 0),
-                                  0,
-                                );
-                                const formattedErrRate =
-                                  totalPenonton > 0
-                                    ? (
-                                        ((totalLikes +
-                                          totalComments +
-                                          totalShares +
-                                          totalFollowers) /
-                                          totalPenonton) *
-                                        100
-                                      ).toFixed(2) + "%"
-                                    : "0.00%";
-
-                                const totalShopVouchers = logs.reduce(
-                                  (sum, l) => sum + (l.shopVouchers || 0),
-                                  0,
-                                );
-                                const totalSpecialVouchers = logs.reduce(
-                                  (sum, l) => sum + (l.specialVouchers || 0),
-                                  0,
-                                );
-                                const totalCoinsClaimed = logs.reduce(
-                                  (sum, l) => sum + (l.coinsClaimed || 0),
-                                  0,
-                                );
-
-                                // Group log data daily for the trend chart to prevent multi-session point clutter
-                                const groupedByDate: { [key: string]: any } =
-                                  {};
-                                logs.forEach((log) => {
-                                  const dateStr = log.date || "Tanpa Tanggal";
-                                  if (!groupedByDate[dateStr]) {
-                                    groupedByDate[dateStr] = {
-                                      date: dateStr,
-                                      penonton: 0,
-                                      likes: 0,
-                                      shares: 0,
-                                      comments: 0,
-                                      followers: 0,
-                                    };
-                                  }
-                                  groupedByDate[dateStr].penonton +=
-                                    log.penonton || log.impressions || 0;
-                                  groupedByDate[dateStr].likes +=
-                                    log.likes || 0;
-                                  groupedByDate[dateStr].shares +=
-                                    log.shares || 0;
-                                  groupedByDate[dateStr].comments +=
-                                    log.comments || 0;
-                                  groupedByDate[dateStr].followers +=
-                                    log.followers || 0;
-                                });
-
-                                const chartData = Object.values(groupedByDate)
-                                  .sort(
-                                    (a, b) =>
-                                      new Date(a.date).getTime() -
-                                      new Date(b.date).getTime(),
-                                  )
-                                  .map((item: any) => {
-                                    const interactionsSum =
-                                      item.likes +
-                                      item.comments +
-                                      item.shares +
-                                      item.followers;
-                                    const errVal =
-                                      item.penonton > 0
-                                        ? (interactionsSum / item.penonton) *
-                                          100
-                                        : 0;
-                                    return {
-                                      date: item.date,
-                                      uniqueViewers: item.penonton,
-                                      errRateNumeric: parseFloat(
-                                        errVal.toFixed(2),
-                                      ),
-                                      likes: item.likes,
-                                      comments: item.comments,
-                                      shares: item.shares,
-                                      followers: item.followers,
-                                    };
-                                  });
-
-                                return (
-                                  <div className="space-y-6">
-                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                                      <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest pl-1">
-                                        Performance Engagement
-                                      </h4>
-                                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm w-fit">
-                                        <button
-                                          onClick={() => {
-                                            let pd = new Date();
-                                            let tld =
-                                              brandPerformanceLogs
-                                                .filter(
-                                                  (log) =>
-                                                    log.brandId ===
-                                                      activeReportBrandId &&
-                                                    log.reportType ===
-                                                      "engagement",
-                                                )
-                                                .sort(
-                                                  (a, b) =>
-                                                    new Date(
-                                                      b.date || "0",
-                                                    ).getTime() -
-                                                    new Date(
-                                                      a.date || "0",
-                                                    ).getTime(),
-                                                )[0]?.date || "";
-                                            if (
-                                              operatorDateFilterType ===
-                                                "latest" &&
-                                              tld
-                                            ) {
-                                              pd = new Date(tld);
-                                            } else if (
-                                              operatorDateFilterType ===
-                                                "custom" &&
-                                              operatorCustomStartDate
-                                            ) {
-                                              pd = new Date(
-                                                operatorCustomStartDate,
-                                              );
-                                            }
-                                            pd.setDate(pd.getDate() - 1);
-                                            const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                            setOperatorDateFilterType("custom");
-                                            setOperatorCustomStartDate(newD);
-                                            setOperatorCustomEndDate(newD);
-                                          }}
-                                          className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                        >
-                                          <ChevronLeft className="w-4 h-4" />
-                                        </button>
-                                        <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[140px] sm:min-w-[160px] text-center">
-                                          {(() => {
-                                            if (
-                                              operatorDateFilterType ===
-                                                "month" ||
-                                              operatorDateFilterType === "all"
-                                            )
-                                              return (
-                                                engagementDateLabel ||
-                                                "Semua Waktu"
-                                              );
-                                            let curD = new Date();
-                                            let tld =
-                                              brandPerformanceLogs
-                                                .filter(
-                                                  (log) =>
-                                                    log.brandId ===
-                                                      activeReportBrandId &&
-                                                    log.reportType ===
-                                                      "engagement",
-                                                )
-                                                .sort(
-                                                  (a, b) =>
-                                                    new Date(
-                                                      b.date || "0",
-                                                    ).getTime() -
-                                                    new Date(
-                                                      a.date || "0",
-                                                    ).getTime(),
-                                                )[0]?.date || "";
-                                            if (
-                                              operatorDateFilterType ===
-                                                "latest" &&
-                                              tld
-                                            ) {
-                                              curD = new Date(tld);
-                                            } else if (
-                                              operatorDateFilterType ===
-                                                "custom" &&
-                                              operatorCustomStartDate
-                                            ) {
-                                              curD = new Date(
-                                                operatorCustomStartDate,
-                                              );
-                                            }
-                                            return curD.toLocaleDateString(
-                                              "id-ID",
-                                              {
-                                                weekday: "long",
-                                                day: "numeric",
-                                                month: "long",
-                                                year: "numeric",
-                                              },
-                                            );
-                                          })()}
-                                        </span>
-                                        <button
-                                          onClick={() => {
-                                            let pd = new Date();
-                                            let tld =
-                                              brandPerformanceLogs
-                                                .filter(
-                                                  (log) =>
-                                                    log.brandId ===
-                                                      activeReportBrandId &&
-                                                    log.reportType ===
-                                                      "engagement",
-                                                )
-                                                .sort(
-                                                  (a, b) =>
-                                                    new Date(
-                                                      b.date || "0",
-                                                    ).getTime() -
-                                                    new Date(
-                                                      a.date || "0",
-                                                    ).getTime(),
-                                                )[0]?.date || "";
-                                            if (
-                                              operatorDateFilterType ===
-                                                "latest" &&
-                                              tld
-                                            ) {
-                                              pd = new Date(tld);
-                                            } else if (
-                                              operatorDateFilterType ===
-                                                "custom" &&
-                                              operatorCustomStartDate
-                                            ) {
-                                              pd = new Date(
-                                                operatorCustomStartDate,
-                                              );
-                                            }
-                                            pd.setDate(pd.getDate() + 1);
-                                            const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                            setOperatorDateFilterType("custom");
-                                            setOperatorCustomStartDate(newD);
-                                            setOperatorCustomEndDate(newD);
-                                          }}
-                                          className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                        >
-                                          <ChevronRight className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                    {/* INTERAKSI */}
-                                    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
-                                      <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
-                                        <Users className="w-5 h-5 text-indigo-500" />{" "}
-                                        Interaksi (Engagement)
-                                      </h4>
-
-                                      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                            Views
-                                          </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalImpressions)}
-                                          </div>
-                                        </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                            Likes
-                                          </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalLikes)}
-                                          </div>
-                                        </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                            Shares
-                                          </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalShares)}
-                                          </div>
-                                        </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                            Comments
-                                          </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalComments)}
-                                          </div>
-                                        </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                            New Followers
-                                          </div>
-                                          <div className="text-xl text-emerald-600 font-black mt-1">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalFollowers)}
-                                          </div>
-                                        </div>
-                                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">
-                                            ERR %
-                                          </div>
-                                          <div className="text-xl text-indigo-600 font-extrabold mt-1">
-                                            {formattedErrRate}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* CHART TRENDS */}
-                                    {chartData.length > 0 && (
-                                      <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
-                                          <div>
-                                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-                                              <TrendingUp className="w-5 h-5 text-indigo-500" />{" "}
-                                              Tren Kinerja Interaksi Harian
-                                            </h4>
-                                            <p className="text-[11px] text-slate-400 font-bold mt-1">
-                                              Visualisasi harian metrik
-                                              interaksi terpilih dari data
-                                              historis siaran langsung.
-                                            </p>
-                                          </div>
-                                          <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
-                                            <div className="flex items-center gap-1 mr-1 select-none">
-                                              <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
-                                              <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">
-                                                Metrik:
-                                              </span>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-1.5">
-                                              {[
-                                                {
-                                                  key: "errRateNumeric",
-                                                  label: "ERR %",
-                                                  color:
-                                                    "bg-indigo-50 text-indigo-700 border-indigo-200",
-                                                },
-                                                {
-                                                  key: "uniqueViewers",
-                                                  label: "Unique Viewers",
-                                                  color:
-                                                    "bg-cyan-50 text-cyan-750 border-cyan-200",
-                                                },
-                                                {
-                                                  key: "likes",
-                                                  label: "Likes",
-                                                  color:
-                                                    "bg-amber-50 text-amber-700 border-amber-200",
-                                                },
-                                                {
-                                                  key: "comments",
-                                                  label: "Comments",
-                                                  color:
-                                                    "bg-pink-50 text-pink-700 border-pink-200",
-                                                },
-                                                {
-                                                  key: "shares",
-                                                  label: "Shares",
-                                                  color:
-                                                    "bg-emerald-50 text-emerald-700 border-emerald-200",
-                                                },
-                                                {
-                                                  key: "followers",
-                                                  label: "New Followers",
-                                                  color:
-                                                    "bg-orange-50 text-orange-700 border-orange-200",
-                                                },
-                                              ].map((m) => {
-                                                const isSelected =
-                                                  engagementChartSelectedMetrics.includes(
-                                                    m.key,
-                                                  );
-                                                return (
-                                                  <button
-                                                    key={m.key}
-                                                    onClick={() => {
-                                                      if (isSelected) {
-                                                        if (
-                                                          engagementChartSelectedMetrics.length >
-                                                          1
-                                                        ) {
-                                                          setEngagementChartSelectedMetrics(
-                                                            engagementChartSelectedMetrics.filter(
-                                                              (x) =>
-                                                                x !== m.key,
-                                                            ),
-                                                          );
-                                                        }
-                                                      } else {
-                                                        setEngagementChartSelectedMetrics(
-                                                          [
-                                                            ...engagementChartSelectedMetrics,
-                                                            m.key,
-                                                          ],
-                                                        );
-                                                      }
-                                                    }}
-                                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
-                                                      isSelected
-                                                        ? `${m.color} scale-[1.02] shadow-xs font-extrabold`
-                                                        : "bg-white text-slate-400 border-slate-200 hover:text-slate-650 hover:bg-slate-50"
-                                                    }`}
-                                                  >
-                                                    <span
-                                                      className={`w-1.5 h-1.5 rounded-full ${
-                                                        m.key ===
-                                                        "errRateNumeric"
-                                                          ? "bg-indigo-600"
-                                                          : m.key ===
-                                                              "uniqueViewers"
-                                                            ? "bg-cyan-500"
-                                                            : m.key === "likes"
-                                                              ? "bg-amber-500"
-                                                              : m.key ===
-                                                                  "comments"
-                                                                ? "bg-pink-500"
-                                                                : m.key ===
-                                                                    "shares"
-                                                                  ? "bg-emerald-500"
-                                                                  : "bg-orange-550"
-                                                      }`}
-                                                    ></span>
-                                                    {m.label}
-                                                  </button>
-                                                );
-                                              })}
-                                            </div>
-                                            <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
-                                              <button
-                                                onClick={() =>
-                                                  setEngagementChartSelectedMetrics(
-                                                    [
-                                                      "errRateNumeric",
-                                                      "uniqueViewers",
-                                                      "likes",
-                                                      "comments",
-                                                      "shares",
-                                                      "followers",
-                                                    ],
-                                                  )
-                                                }
-                                                className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
-                                              >
-                                                Semua
-                                              </button>
-                                              <span>|</span>
-                                              <button
-                                                onClick={() =>
-                                                  setEngagementChartSelectedMetrics(
-                                                    [
-                                                      "errRateNumeric",
-                                                      "uniqueViewers",
-                                                    ],
-                                                  )
-                                                }
-                                                className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
-                                              >
-                                                Reset
-                                              </button>
-                                            </div>
-                                          </div>
-                                          <div className="hidden">
-                                            <p></p>
-                                          </div>
-                                          <div className="hidden">
-                                            <div className="flex items-center gap-1.5">
-                                              <span className="w-3 h-3 rounded-full bg-indigo-600 inline-block"></span>
-                                              <span>ERR %</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                              <span className="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span>
-                                              <span>Unique Viewers</span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <div className="h-72 w-full mt-4">
-                                          <ResponsiveContainer
-                                            width="100%"
-                                            height="100%"
-                                          >
-                                            <RechartsLineChart
-                                              data={chartData}
-                                              margin={{
-                                                top: 10,
-                                                right: 30,
-                                                left: 10,
-                                                bottom: 5,
-                                              }}
-                                            >
-                                              <CartesianGrid
-                                                strokeDasharray="3 3"
-                                                vertical={false}
-                                                stroke="#e2e8f0"
-                                              />
-                                              <XAxis
-                                                dataKey="date"
-                                                tick={{
-                                                  fontSize: 10,
-                                                  fill: "#64748b",
-                                                  fontWeight: "bold",
-                                                }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                              />
-                                              <YAxis
-                                                yAxisId="left"
-                                                tick={{
-                                                  fontSize: 10,
-                                                  fill: "#4f46e5",
-                                                  fontWeight: "bold",
-                                                }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tickFormatter={(val) =>
-                                                  `${val}%`
-                                                }
-                                                hide={
-                                                  !engagementChartSelectedMetrics.includes(
-                                                    "errRateNumeric",
-                                                  )
-                                                }
-                                              />
-                                              <YAxis
-                                                yAxisId="right"
-                                                orientation="right"
-                                                tick={{
-                                                  fontSize: 10,
-                                                  fill: "#64748b",
-                                                  fontWeight: "bold",
-                                                }}
-                                                hide={
-                                                  ![
-                                                    "uniqueViewers",
-                                                    "likes",
-                                                    "comments",
-                                                    "shares",
-                                                    "followers",
-                                                  ].some((k) =>
-                                                    engagementChartSelectedMetrics.includes(
-                                                      k,
-                                                    ),
-                                                  )
-                                                }
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tickFormatter={(val) =>
-                                                  new Intl.NumberFormat(
-                                                    "id-ID",
-                                                    { notation: "compact" },
-                                                  ).format(val)
-                                                }
-                                              />
-                                              <Tooltip
-                                                contentStyle={{
-                                                  borderRadius: "16px",
-                                                  border: "none",
-                                                  boxShadow:
-                                                    "0 4px 24px rgba(0,0,0,0.08)",
-                                                  fontWeight: "bold",
-                                                  fontSize: "11px",
-                                                }}
-                                                formatter={(
-                                                  value: any,
-                                                  name: string,
-                                                ) => [
-                                                  name ===
-                                                  "Tingkat Interaksi (ERR)"
-                                                    ? `${parseFloat(value).toFixed(2)}%`
-                                                    : new Intl.NumberFormat(
-                                                        "id-ID",
-                                                      ).format(value),
-                                                  name,
-                                                ]}
-                                              />
-                                              <Line
-                                                yAxisId="left"
-                                                type="monotone"
-                                                name="Tingkat Interaksi (ERR)"
-                                                dataKey="errRateNumeric"
-                                                stroke="#4f46e5"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#4f46e5",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                activeDot={{ r: 6 }}
-                                                hide={
-                                                  !engagementChartSelectedMetrics.includes(
-                                                    "errRateNumeric",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name="Unique Viewers (Penonton)"
-                                                dataKey="uniqueViewers"
-                                                stroke="#0ea5e9"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#0ea5e9",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !engagementChartSelectedMetrics.includes(
-                                                    "uniqueViewers",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name="Likes"
-                                                dataKey="likes"
-                                                stroke="#f59e0b"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#f59e0b",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !engagementChartSelectedMetrics.includes(
-                                                    "likes",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name="Comments"
-                                                dataKey="comments"
-                                                stroke="#ec4899"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#ec4899",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !engagementChartSelectedMetrics.includes(
-                                                    "comments",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name="Share"
-                                                dataKey="shares"
-                                                stroke="#10b981"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#10b981",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !engagementChartSelectedMetrics.includes(
-                                                    "shares",
-                                                  )
-                                                }
-                                              />
-                                              <Line
-                                                yAxisId="right"
-                                                type="monotone"
-                                                name="Followers"
-                                                dataKey="followers"
-                                                stroke="#f97316"
-                                                strokeWidth={3}
-                                                dot={{
-                                                  r: 4,
-                                                  fill: "#f97316",
-                                                  strokeWidth: 2,
-                                                  stroke: "#fff",
-                                                }}
-                                                hide={
-                                                  !engagementChartSelectedMetrics.includes(
-                                                    "followers",
-                                                  )
-                                                }
-                                              />
-                                            </RechartsLineChart>
-                                          </ResponsiveContainer>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* PROMOSI */}
-                                    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
-                                      <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
-                                        <Gift className="w-5 h-5 text-indigo-500" />{" "}
-                                        Promosi (Vouchers & Koin)
-                                      </h4>
-                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                            Voucher Toko Diklaim
-                                          </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalShopVouchers)}
-                                          </div>
-                                        </div>
-                                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                            Voucher Spesial Live Diklaim
-                                          </div>
-                                          <div className="text-xl font-black text-slate-800 mt-1">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalSpecialVouchers)}
-                                          </div>
-                                        </div>
-                                        <div className="bg-slate-50 border border-amber-100 rounded-xl p-4 bg-amber-50/30">
-                                          <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">
-                                            Koin Diklaim
-                                          </div>
-                                          <div className="text-lg font-black text-amber-700">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalCoinsClaimed)}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                                      <div className="text-xs text-slate-400 font-semibold italic text-center">
-                                        Menampilkan metrik agregat Engagement
-                                        dan Promosi dari file Raw Data yang
-                                        diunggah. Filter periode dan platform
-                                        yang sama seperti di tab Live/Product
-                                        berlaku di data ini.
-                                      </div>
-                                    </div>
-
-                                    {/* BATCH UPLOAD HISTORY VIEWER (REUSED) */}
-                                    {(() => {
-                                      const brandLogsForHistory =
-                                        brandPerformanceLogs.filter(
-                                          (log) =>
-                                            log.brandId ===
-                                              activeReportBrandId &&
-                                            log.reportType === "engagement",
-                                        );
-                                      const batchesMap = {} as Record<
-                                        string,
-                                        any
-                                      >;
-                                      brandLogsForHistory.forEach((log) => {
-                                        const bId = log.batchId;
-                                        if (!bId) return;
-                                        if (!batchesMap[bId]) {
-                                          batchesMap[bId] = {
-                                            id: bId,
-                                            brandId: log.brandId,
-                                            brandName:
-                                              log.brandName || "Unknown",
-                                            platform: log.platform || "Unknown",
-                                            fileName: `Manual Upload / Legacy Import`,
-                                            uploadedAt:
-                                              log.uploadedAt ||
-                                              new Date(
-                                                2023,
-                                                0,
-                                                1,
-                                              ).toISOString(),
-                                            rowCount: 0,
-                                            gmv: 0,
-                                          };
-                                        }
-                                        batchesMap[bId].rowCount += 1;
-                                        batchesMap[bId].gmv +=
-                                          Number(log.gmv) || 0;
-                                      });
-
-                                      const existingBatchIds = new Set(
-                                        brandUploadHistory.map((h) => h.id),
-                                      );
-                                      const missingBatches = Object.values(
-                                        batchesMap,
-                                      ).filter(
-                                        (b) => !existingBatchIds.has(b.id),
-                                      );
-
-                                      const localHistories =
-                                        uploadHistory.filter(
-                                          (h) =>
-                                            h.brandId === activeReportBrandId &&
-                                            h.reportType === "engagement" &&
-                                            !existingBatchIds.has(h.id),
-                                        );
-                                      const completeUploadHistory = [
-                                        ...brandUploadHistory.filter(
-                                          (h) =>
-                                            h.brandId === activeReportBrandId &&
-                                            h.reportType === "engagement",
-                                        ),
-                                        ...missingBatches,
-                                        ...localHistories,
-                                      ]
-                                        .reduce((acc, current) => {
-                                          const x = acc.find(
-                                            (item: any) =>
-                                              item.id === current.id,
-                                          );
-                                          if (!x) {
-                                            return acc.concat([current]);
-                                          } else {
-                                            return acc;
-                                          }
-                                        }, [])
-                                        .sort(
-                                          (a, b) =>
-                                            new Date(b.uploadedAt).getTime() -
-                                            new Date(a.uploadedAt).getTime(),
-                                        );
-
-                                      return (
-                                        <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden mt-8">
-                                          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-                                            <div>
-                                              <h4 className="text-base font-black text-slate-800">
-                                                Riwayat Upload Data Engagement
-                                              </h4>
-                                              <p className="text-[11px] text-slate-500 font-medium">
-                                                History file CSV raw data
-                                                performa yang telah berhasil
-                                                dikonversi & masuk ke database
-                                                sentral.
-                                              </p>
-                                            </div>
-                                          </div>
-                                          <div className="overflow-x-auto">
-                                            <table className="w-full text-left whitespace-nowrap">
-                                              <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
-                                                <tr>
-                                                  <th className="px-5 py-3.5">
-                                                    Waktu Upload
-                                                  </th>
-                                                  <th className="px-5 py-3.5">
-                                                    Nama File / Tipe
-                                                  </th>
-                                                  <th className="px-5 py-3.5">
-                                                    Platform
-                                                  </th>
-                                                  <th className="px-5 py-3.5">
-                                                    Total Baris
-                                                  </th>
-                                                  <th className="px-5 py-3.5">
-                                                    Total GMV (Rp)
-                                                  </th>
-                                                  <th className="px-5 py-3.5 text-right">
-                                                    Aksi
-                                                  </th>
-                                                </tr>
-                                              </thead>
-                                              <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
-                                                {isLogsLoading ? (
-                                                  <tr key="loading">
-                                                    <td
-                                                      colSpan={6}
-                                                      className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-                                                    >
-                                                      <div className="flex flex-col items-center justify-center gap-4">
-                                                        <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
-                                                        Sedang memuat data dari
-                                                        database...
-                                                      </div>
-                                                    </td>
-                                                  </tr>
-                                                ) : completeUploadHistory.length ===
-                                                  0 ? (
-                                                  <tr key="empty-history">
-                                                    <td
-                                                      colSpan={6}
-                                                      className="px-5 py-10 text-center text-slate-400"
-                                                    >
-                                                      Belum ada riwayat upload
-                                                      untuk brand ini.
-                                                    </td>
-                                                  </tr>
-                                                ) : (
-                                                  completeUploadHistory.map(
-                                                    (history, idx) => (
-                                                      <tr
-                                                        key={history.id || idx}
-                                                        className="hover:bg-slate-50/50 transition-colors"
-                                                      >
-                                                        <td className="px-5 py-3.5 text-slate-500">
-                                                          {new Date(
-                                                            history.uploadedAt,
-                                                          ).toLocaleString(
-                                                            "id-ID",
-                                                            {
-                                                              day: "numeric",
-                                                              month: "short",
-                                                              year: "numeric",
-                                                              hour: "2-digit",
-                                                              minute: "2-digit",
-                                                            },
-                                                          )}
-                                                        </td>
-                                                        <td
-                                                          className="px-5 py-3.5 max-w-[200px] truncate"
-                                                          title={
-                                                            history.fileName
-                                                          }
-                                                        >
-                                                          {history.fileName}
-                                                        </td>
-                                                        <td className="px-5 py-3.5">
-                                                          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded uppercase font-bold">
-                                                            {history.platform ||
-                                                              "UNKNOWN"}
-                                                          </span>
-                                                        </td>
-                                                        <td className="px-5 py-3.5">
-                                                          {new Intl.NumberFormat(
-                                                            "id-ID",
-                                                          ).format(
-                                                            history.rowCount ||
-                                                              0,
-                                                          )}
-                                                        </td>
-                                                        <td className="px-5 py-3.5">
-                                                          Rp
-                                                          {new Intl.NumberFormat(
-                                                            "id-ID",
-                                                            {
-                                                              maximumFractionDigits: 0,
-                                                            },
-                                                          ).format(
-                                                            history.gmv || 0,
-                                                          )}
-                                                        </td>
-                                                        <td className="px-5 py-3.5 text-right">
-                                                          <button
-                                                            onClick={() =>
-                                                              handleDeleteUploadBatch(
-                                                                history.id,
-                                                                history.fileName,
-                                                                history.rowCount ||
-                                                                  0,
-                                                              )
-                                                            }
-                                                            className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-slate-50 hover:bg-red-50 p-1.5 rounded-lg border border-slate-200 hover:border-red-200 text-[10px] font-bold inline-flex items-center gap-1"
-                                                            title="Hapus Batch & Semua Data Raw"
-                                                          >
-                                                            Hapus Batch
-                                                          </button>
-                                                        </td>
-                                                      </tr>
-                                                    ),
-                                                  )
-                                                )}
-                                              </tbody>
-                                            </table>
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
-                                  </div>
-                                );
-                              })()}
+                                activeReportBrandId={activeReportBrandId || ""}
+                                brandPerformanceLogs={brandPerformanceLogs}
+                                brandUploadHistory={brandUploadHistory}
+                                uploadHistory={uploadHistory}
+                                isLogsLoading={isLogsLoading}
+                                onDeleteUploadBatch={handleDeleteUploadBatch}
+                              />
                             </div>
                           )}
                         </div>
@@ -23918,642 +17512,76 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                     className="space-y-6 animate-fadeIn"
                     id="operator_leads_content"
                   >
-                    <div className="bg-white p-6 rounded-3xl border border-indigo-100 shadow-sm relative overflow-hidden">
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                        <div>
-                          <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                            <Users className="w-6 h-6 text-indigo-600" />{" "}
-                            Pipeline Leads & Calon Klien
-                          </h3>
-                          <p className="text-xs text-slate-500 font-semibold mt-1">
-                            Tracking status penawaran harga & dealing Liva
-                            Agency.
-                          </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-                          <div className="relative">
-                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input
-                              type="text"
-                              placeholder="Cari lead..."
-                              value={leadSearchQuery}
-                              onChange={(e) =>
-                                setLeadSearchQuery(e.target.value)
-                              }
-                              className="w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-400"
-                            />
-                          </div>
-                          <button
-                            onClick={() =>
-                              setLeadFormModal({ isOpen: true, data: {} })
-                            }
-                            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all border-0 cursor-pointer flex items-center justify-center gap-2 shadow-sm whitespace-nowrap"
-                          >
-                            <Plus className="w-4 h-4" /> Lead Baru
-                          </button>
-                        </div>
-                      </div>
+                    <LeadPipelinePanel
+                      leads={clientLeads}
+                      leadSearchQuery={leadSearchQuery}
+                      onLeadSearchQueryChange={setLeadSearchQuery}
+                      onCreateLead={() =>
+                        setLeadFormModal({ isOpen: true, data: {} })
+                      }
+                      onEditLead={(lead) =>
+                        setLeadFormModal({ isOpen: true, data: lead })
+                      }
+                      onDeleteLead={(lead) => {
+                        requestConfirm(
+                          "Hapus Lead Klien?",
+                          `Data pipeline calon klien ini akan dihapus permanen. Lanjutkan?`,
+                          () =>
+                            setClientLeads((prev) =>
+                              prev.filter((b) => b.id !== lead.id),
+                            ),
+                          "danger",
+                        );
+                      }}
+                      onStatusChange={(leadId, status) =>
+                        setClientLeads((p) =>
+                          p.map((x) =>
+                            x.id === leadId ? { ...x, status } : x,
+                          ),
+                        )
+                      }
+                    />
 
-                      <div className="overflow-x-auto rounded-2xl border border-indigo-50 bg-white shadow-sm font-sans">
-                        <table className="w-full text-left border-collapse min-w-[700px]">
-                          <thead className="bg-indigo-50/50 border-b border-indigo-50">
-                            <tr>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">
-                                No
-                              </th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">
-                                Nama Leads
-                              </th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">
-                                Brand
-                              </th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">
-                                Status Leads
-                              </th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">
-                                Channel
-                              </th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider">
-                                Contact (HP/Email)
-                              </th>
-                              <th className="px-6 py-4 text-[10px] font-black uppercase text-indigo-900 tracking-wider text-right">
-                                Aksi
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-indigo-50">
-                            {clientLeads.length === 0 ? (
-                              <tr key="empty-all">
-                                <td
-                                  colSpan={7}
-                                  className="py-12 text-center text-slate-400 font-semibold text-xs bg-slate-50/20"
-                                >
-                                  Belum ada pipeline leads tersedia. Tambahkan
-                                  data lead baru.
-                                </td>
-                              </tr>
-                            ) : (
-                              (() => {
-                                const filteredLeads = clientLeads.filter(
-                                  (lead) =>
-                                    leadSearchQuery === "" ||
-                                    lead.name
-                                      .toLowerCase()
-                                      .includes(
-                                        leadSearchQuery.toLowerCase(),
-                                      ) ||
-                                    (lead.contactPerson || "")
-                                      .toLowerCase()
-                                      .includes(
-                                        leadSearchQuery.toLowerCase(),
-                                      ) ||
-                                    (lead.contactNumber || "")
-                                      .toLowerCase()
-                                      .includes(leadSearchQuery.toLowerCase()),
-                                );
-                                if (filteredLeads.length === 0) {
-                                  return (
-                                    <tr key="empty-search">
-                                      <td
-                                        colSpan={7}
-                                        className="py-12 text-center text-slate-400 font-semibold text-xs bg-slate-50/20"
-                                      >
-                                        Tidak ada lead yang cocok dengan
-                                        pencarian "{leadSearchQuery}".
-                                      </td>
-                                    </tr>
-                                  );
-                                }
-                                return filteredLeads.map((lead, idx) => (
-                                  <tr
-                                    key={lead.id || idx}
-                                    className="hover:bg-indigo-50/30 transition-colors"
-                                  >
-                                    <td className="px-6 py-4 text-[11px] font-bold text-slate-500">
-                                      {idx + 1}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <div className="font-bold text-indigo-950 text-sm mb-1">
-                                        {lead.contactPerson || "-"}
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <div className="font-black text-slate-800 text-sm bg-slate-100/50 px-2.5 py-1 rounded-lg inline-block border border-slate-200/60 shadow-sm">
-                                        {lead.name}
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <select
-                                        className={`text-[10px] font-extrabold border-2 rounded-lg p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-100 cursor-pointer ${
-                                          lead.status === "Closed Won"
-                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                            : lead.status === "Closed Lost"
-                                              ? "bg-red-50 text-red-700 border-red-200"
-                                              : lead.status === "Negotiation"
-                                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                                : "bg-white text-indigo-700 border-indigo-100"
-                                        }`}
-                                        value={lead.status}
-                                        onChange={(e) =>
-                                          setClientLeads((p) =>
-                                            p.map((x) =>
-                                              x.id === lead.id
-                                                ? {
-                                                    ...x,
-                                                    status: e.target
-                                                      .value as any,
-                                                  }
-                                                : x,
-                                            ),
-                                          )
-                                        }
-                                      >
-                                        <option value="New">🏷️ New</option>
-                                        <option value="Contacted">
-                                          📞 Contacted
-                                        </option>
-                                        <option value="Meeting Scheduled">
-                                          📅 Meeting Scheduled
-                                        </option>
-                                        <option value="Proposal Sent">
-                                          📤 Proposal Sent
-                                        </option>
-                                        <option value="Negotiation">
-                                          💬 Negotiation
-                                        </option>
-                                        <option value="Closed Won">
-                                          🎉 Closed Won
-                                        </option>
-                                        <option value="Closed Lost">
-                                          ❌ Closed Lost
-                                        </option>
-                                      </select>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-md inline-block">
-                                        {lead.platformInterest}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                      <div className="text-[11px] text-slate-600 font-mono mt-0.5">
-                                        {lead.contactNumber || "-"}
-                                      </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right text-nowrap">
-                                      <div className="flex justify-end gap-1.5">
-                                        <button
-                                          onClick={() => {
-                                            setLeadFormModal({
-                                              isOpen: true,
-                                              data: lead,
-                                            });
-                                          }}
-                                          className="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white p-2 text-[10px] font-black rounded-lg cursor-pointer transition-colors shadow-none border-0 flex items-center gap-1.5"
-                                          title="Edit Lead"
-                                        >
-                                          <Edit2 className="w-3.5 h-3.5" /> Edit
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            requestConfirm(
-                                              "Hapus Lead Klien?",
-                                              `Data pipeline calon klien ini akan dihapus permanen. Lanjutkan?`,
-                                              () =>
-                                                setClientLeads((prev) =>
-                                                  prev.filter(
-                                                    (b) => b.id !== lead.id,
-                                                  ),
-                                                ),
-                                              "danger",
-                                            );
-                                          }}
-                                          className="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white p-2 text-[10px] font-black rounded-lg cursor-pointer transition-colors shadow-none border-0 flex items-center gap-1.5"
-                                          title="Hapus Lead"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />{" "}
-                                          Hapus
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ));
-                              })()
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* MODAL LEADS */}
-                    {leadFormModal.isOpen &&
-                      createPortal(
-                        <div className="fixed inset-0 z-[120] bg-slate-900/40 backdrop-blur-md flex justify-end animate-fadeIn font-sans overflow-hidden">
-                          <div className="bg-white max-w-md w-full h-full shadow-2xl flex flex-col animate-slideInRight text-slate-800 border-l border-slate-200">
-                            <div className="bg-gradient-to-br from-indigo-50 to-white px-5 sm:px-8 py-5 sm:py-6 border-b border-indigo-100 flex justify-between items-center flex-shrink-0">
-                              <div className="flex items-center gap-3">
-                                <div className="bg-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30 flex-shrink-0">
-                                  <Users className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                  <h4 className="text-base sm:text-lg font-black text-indigo-950 leading-tight">
-                                    {leadFormModal.data.id
-                                      ? "Edit Pipeline Lead"
-                                      : "Lead Baru"}
-                                  </h4>
-                                  <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 mt-1 sm:mt-0.5 leading-tight">
-                                    Kelola data klien dan update status
-                                    negosiasi.
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setLeadFormModal({ isOpen: false, data: {} })
-                                }
-                                className="bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-700 p-2 sm:p-2.5 rounded-full transition-all cursor-pointer border-0 shadow-sm flex-shrink-0 ml-2"
-                              >
-                                <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                              </button>
-                            </div>
-
-                            <div className="p-5 sm:p-8 w-full overflow-y-auto custom-scrollbar flex-1">
-                              <form
-                                onSubmit={(e) => {
-                                  e.preventDefault();
-                                  const fd = new FormData(e.currentTarget);
-                                  const newLead: ClientLead = {
-                                    id:
-                                      leadFormModal.data.id ||
-                                      `cl_${Date.now()}`,
-                                    name: fd.get("name") as string,
-                                    contactPerson: fd.get(
-                                      "contactPerson",
-                                    ) as string,
-                                    contactNumber: fd.get(
-                                      "contactNumber",
-                                    ) as string,
-                                    platformInterest: fd.get(
-                                      "platformInterest",
-                                    ) as string,
-                                    status: fd.get("status") as any,
-                                    notes: fd.get("notes") as string,
-                                  };
-
-                                  if (leadFormModal.data.id) {
-                                    setClientLeads((prev) =>
-                                      prev.map((l) =>
-                                        l.id === newLead.id ? newLead : l,
-                                      ),
-                                    );
-                                    addNotification(
-                                      "💼 Informasi Lead Diupdate",
-                                      `Data lead "${newLead.name}" telah diupdate oleh admin.`,
-                                      "info",
-                                      "leads",
-                                    );
-                                  } else {
-                                    setClientLeads((prev) => [
-                                      ...prev,
-                                      newLead,
-                                    ]);
-                                    addNotification(
-                                      "🔥 Leads Calon Klien Baru",
-                                      `Ada registrasi lead prospek baru masuk untuk "${newLead.name}" via platform "${newLead.platformInterest}".`,
-                                      "warning",
-                                      "leads",
-                                    );
-                                  }
-                                  setLeadFormModal({ isOpen: false, data: {} });
-                                }}
-                                className="space-y-5 text-xs font-medium"
-                              >
-                                <div className="space-y-4">
-                                  <div>
-                                    <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                      Nama Brand Klien *
-                                    </label>
-                                    <input
-                                      required
-                                      name="name"
-                                      defaultValue={leadFormModal.data.name}
-                                      type="text"
-                                      placeholder="Misal: PT. Liva Agency Kosmetik"
-                                      className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                    />
-                                  </div>
-
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                        Nama PIC
-                                      </label>
-                                      <input
-                                        name="contactPerson"
-                                        defaultValue={
-                                          leadFormModal.data.contactPerson
-                                        }
-                                        type="text"
-                                        placeholder="Misal: Budi / HRD"
-                                        className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                        No. WhatsApp/HP
-                                      </label>
-                                      <input
-                                        name="contactNumber"
-                                        defaultValue={
-                                          leadFormModal.data.contactNumber
-                                        }
-                                        type="text"
-                                        placeholder="08..."
-                                        className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)] font-mono"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                        Platform Target
-                                      </label>
-                                      <select
-                                        name="platformInterest"
-                                        defaultValue={
-                                          leadFormModal.data.platformInterest ||
-                                          platforms[0]
-                                        }
-                                        className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-[0_2px_10px_rgba(79,70,229,0.03)] cursor-pointer appearance-none"
-                                      >
-                                        {platforms.map((p, i) => (
-                                          <option key={p + "_" + i} value={p}>
-                                            {p}
-                                          </option>
-                                        ))}
-                                        <option value="Multi-platform">
-                                          Multi-platform
-                                        </option>
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                        Status Interaksi
-                                      </label>
-                                      <select
-                                        name="status"
-                                        defaultValue={
-                                          leadFormModal.data.status || "New"
-                                        }
-                                        className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-[0_2px_10px_rgba(79,70,229,0.03)] cursor-pointer appearance-none"
-                                      >
-                                        <option value="New">🏷️ New Lead</option>
-                                        <option value="Contacted">
-                                          📞 Sudah Dihubungi
-                                        </option>
-                                        <option value="Meeting Scheduled">
-                                          📅 Jadwal Meeting
-                                        </option>
-                                        <option value="Proposal Sent">
-                                          📤 Proposal Dikirim
-                                        </option>
-                                        <option value="Negotiation">
-                                          💬 Proses Negosiasi
-                                        </option>
-                                        <option value="Closed Won">
-                                          🎉 Deal / Project Goal
-                                        </option>
-                                        <option value="Closed Lost">
-                                          ❌ Gagal / Batal
-                                        </option>
-                                      </select>
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                      Catatan / Detail
-                                    </label>
-                                    <textarea
-                                      name="notes"
-                                      defaultValue={leadFormModal.data.notes}
-                                      rows={3}
-                                      className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                      placeholder="Tuliskan detail permintaan klien, budget, hasil meeting, atau catatan lainnya di sini..."
-                                    />
-                                  </div>
-                                </div>
-
-                                <div className="pt-4 mt-6 border-t border-slate-100 flex justify-end gap-3">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setLeadFormModal({
-                                        isOpen: false,
-                                        data: {},
-                                      })
-                                    }
-                                    className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-600 font-bold rounded-lg border border-slate-200 cursor-pointer text-sm"
-                                  >
-                                    Batal
-                                  </button>
-                                  <button
-                                    type="submit"
-                                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-lg border-0 cursor-pointer text-sm"
-                                  >
-                                    {leadFormModal.data.id
-                                      ? "Simpan Perbaikan"
-                                      : "Tambah Lead"}
-                                  </button>
-                                </div>
-                              </form>
-                            </div>
-                          </div>
-                        </div>,
-                        document.body,
-                      )}
+                    <LeadFormModal
+                      isOpen={leadFormModal.isOpen}
+                      lead={leadFormModal.data}
+                      platforms={platforms}
+                      onClose={() => setLeadFormModal({ isOpen: false, data: {} })}
+                      onSubmit={(newLead) => {
+                        if (leadFormModal.data.id) {
+                          setClientLeads((prev) =>
+                            prev.map((l) => (l.id === newLead.id ? newLead : l)),
+                          );
+                          addNotification(
+                            "💼 Informasi Lead Diupdate",
+                            `Data lead "${newLead.name}" telah diupdate oleh admin.`,
+                            "info",
+                            "leads",
+                          );
+                        } else {
+                          setClientLeads((prev) => [...prev, newLead]);
+                          addNotification(
+                            "🔥 Leads Calon Klien Baru",
+                            `Ada registrasi lead prospek baru masuk untuk "${newLead.name}" via platform "${newLead.platformInterest}".`,
+                            "warning",
+                            "leads",
+                          );
+                        }
+                        setLeadFormModal({ isOpen: false, data: {} });
+                      }}
+                    />
                   </div>
                 )}
 
                 {/* ==================== SUBTAB: AI AGENCY COPILOT CHAT ==================== */}
                 {operatorTab === "copilot" && (
-                  <div
-                    className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-                    id="operator_copilot_content"
-                  >
-                    {/* Information sidebar inside Copilot */}
-                    <div className="bg-[#f8f6fc] p-5 rounded-2xl border border-purple-100 h-fit space-y-4 shadow-sm">
-                      <div className="flex items-center gap-2.5 text-purple-700 font-black text-sm">
-                        <Sparkles className="w-4.5 h-4.5 text-purple-500" />
-                        AI AGENT COPILOT Liva Agency
-                      </div>
-                      <p className="text-xs text-purple-900 font-semibold leading-relaxed">
-                        Asisten intelijen ini mempelajari database operator
-                        secara dinamis. Anda dapat berkonsultasi tentang
-                        rekapitulasi gaji, keterlambatan host, denda, dan saran
-                        roster siaran dalam Bahasa Indonesia.
-                      </p>
-
-                      <div className="text-xs space-y-3.5 pt-3.5 border-t border-purple-100">
-                        <span className="font-extrabold uppercase text-[10px] tracking-widest text-purple-500 block">
-                          Analisis Absensi Host Terpadu:
-                        </span>
-                        <ul className="space-y-2 text-purple-950 list-disc list-inside font-semibold">
-                          <li>
-                            Menghitung persentase ketepatan waktu digital.
-                          </li>
-                          <li>Deteksi otomatis pola keterlambatan host.</li>
-                          <li>
-                            Kalkulator nominal penggajian per bulan secara
-                            instan.
-                          </li>
-                          <li>
-                            Skema insentif terbaik bagi performa studio
-                            streaming.
-                          </li>
-                        </ul>
-                      </div>
-
-                      <div className="p-3 bg-[#f3effa] rounded-xl border border-purple-100 text-[10.5px] text-purple-800 font-bold leading-normal">
-                        💡{" "}
-                        <em>
-                          Asisten ini memvalidasi data logs real-time, termasuk
-                          data absensi yang baru saja diisikan host lewat Portal
-                          Host!
-                        </em>
-                      </div>
-                    </div>
-
-                    {/* Main Interactive Chat Box Area */}
-                    <div
-                      className="lg:col-span-2 bg-[#fdfdfd] rounded-2xl border border-purple-100 flex flex-col h-[520px] shadow-sm overflow-hidden"
-                      id="copilot_chat_interface_container"
-                    >
-                      {/* Chat Top Banner */}
-                      <div className="bg-white p-4 border-b border-purple-100 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                          <span className="text-xs font-black text-purple-950">
-                            Asisten Digital Liva Agency
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-bold font-mono text-purple-500">
-                          GEMINI AGENCY INTEGRATE v3.5
-                        </span>
-                      </div>
-
-                      {/* Message Streams view */}
-                      <div
-                        className="flex-1 overflow-y-auto p-4 space-y-4 text-xs font-sans"
-                        id="chat_scroll_area"
-                      >
-                        {chatMessages.map((msg) => (
-                          <div
-                            key={msg.id}
-                            className={`flex gap-3 max-w-[85%] ${
-                              msg.role === "user"
-                                ? "ml-auto flex-row-reverse"
-                                : "mr-auto"
-                            }`}
-                          >
-                            {/* Avatar */}
-                            <div
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[10.5px] ${
-                                msg.role === "user"
-                                  ? "bg-purple-600 text-white shadow-sm"
-                                  : "bg-purple-100 border border-purple-200 text-purple-700 shadow-sm"
-                              }`}
-                            >
-                              {msg.role === "user" ? "OP" : "AI"}
-                            </div>
-
-                            {/* Content text block */}
-                            <div>
-                              <div
-                                className={`p-3.5 rounded-2xl leading-relaxed whitespace-pre-wrap font-semibold ${
-                                  msg.role === "user"
-                                    ? "bg-purple-600 text-white rounded-tr-none shadow-sm"
-                                    : "bg-[#f9f7fd] text-purple-950 border border-purple-100 rounded-tl-none shadow-sm"
-                                }`}
-                              >
-                                {msg.content}
-                              </div>
-                              <span className="text-[9px] text-purple-400 font-bold px-1 mt-1 block tracking-wider font-mono">
-                                {msg.timestamp}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-
-                        {chatLoading && (
-                          <div
-                            className="flex gap-2 text-purple-500 text-[11px] font-bold items-center italic mt-2 pl-12"
-                            id="chat_ai_loading_indicator"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-purple-500 animate-spin" />
-                            AI sedang menghitung rekap absensi dan performa
-                            kehadiran...
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Message Input Interface form */}
-                      <div className="bg-white p-3 border-t border-purple-100 flex flex-col gap-2 relative">
-                        <div className="flex gap-2 w-full overflow-x-auto pb-1 scrollbar-hide">
-                          <button
-                            onClick={() =>
-                              setChatInput("Siapa host yang paling disiplin?")
-                            }
-                            className="shrink-0 flex-1 whitespace-nowrap px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold border border-purple-150 transition-colors shadow-3xs cursor-pointer text-left"
-                          >
-                            🏆 Host Paling Disiplin
-                          </button>
-                          <button
-                            onClick={() =>
-                              setChatInput("Ada host yang sering alpa?")
-                            }
-                            className="shrink-0 flex-1 whitespace-nowrap px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold border border-purple-150 transition-colors shadow-3xs cursor-pointer text-left"
-                          >
-                            ⚠️ Cek Host Sering Alpa
-                          </button>
-                          <button
-                            onClick={() =>
-                              setChatInput(
-                                "Berikan ringkasan performa kehadiran tim minggu ini.",
-                              )
-                            }
-                            className="shrink-0 flex-1 whitespace-nowrap px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold border border-purple-150 transition-colors shadow-3xs cursor-pointer text-left"
-                          >
-                            📊 Ringkasan Kehadiran
-                          </button>
-                        </div>
-                        <form
-                          onSubmit={handleSendChatMessage}
-                          className="flex gap-2"
-                          id="copilot_chat_input_form"
-                        >
-                          <input
-                            type="text"
-                            id="copilot_chat_input_text_box"
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            placeholder="Masukkan pertanyaan Anda dalam Bahasa Indonesia..."
-                            className="flex-1 bg-[#fcfaff] border border-purple-150 rounded-xl px-4 py-2.5 text-xs text-purple-950 font-bold placeholder-purple-300 focus:outline-none focus:border-purple-500 transition-all"
-                          />
-                          <button
-                            type="submit"
-                            id="copilot_send_message_button"
-                            disabled={!chatInput.trim() || chatLoading}
-                            className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-50 disabled:text-purple-300 text-white font-extrabold px-5 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 h-full min-h-[42px] cursor-pointer shadow-xs"
-                          >
-                            <span>Kirim</span>
-                            <Send className="w-3.5 h-3.5" />
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-                  </div>
+                  <CopilotPanel
+                    chatMessages={chatMessages}
+                    chatLoading={chatLoading}
+                    chatInput={chatInput}
+                    onChatInputChange={setChatInput}
+                    onSendChatMessage={handleSendChatMessage}
+                  />
                 )}
 
                 {/* ==================== SUBTAB: SETTINGS CONFIGURATION ⚙️ ==================== */}
@@ -24578,821 +17606,56 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-                      {/* AGENCY LOGO UPLOAD CARD */}
-                      <div
-                        className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm space-y-4 flex flex-col justify-between md:col-span-2 xl:col-span-4"
-                        id="setting_logo_panel"
-                      >
-                        <div className="space-y-4">
-                          <div className="border-b border-purple-50 pb-2 flex items-center justify-between">
-                            <h4 className="text-xs font-black uppercase text-purple-950 flex items-center gap-2">
-                              🖼️ Logo Agency
-                            </h4>
-                          </div>
-                          <div className="flex items-center gap-6">
-                            <div className="flex-shrink-0">
-                              {agencyLogoUrl ? (
-                                <img
-                                  src={agencyLogoUrl}
-                                  className="w-20 h-20 rounded-xl object-contain bg-slate-50 border border-slate-200 shadow-sm"
-                                  alt="Logo Preview"
-                                />
-                              ) : (
-                                <div className="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs text-slate-400 font-bold border-dashed">
-                                  No Logo
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <label className="block text-xs font-bold text-slate-500 mb-1">
-                                Upload Logo Baru (.jpg / .png)
-                              </label>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const reader = new FileReader();
-                                    reader.onload = (evt) => {
-                                      setAgencyLogoUrl(
-                                        evt.target?.result as string,
-                                      );
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
-                              />
-                              <p className="text-[10px] text-slate-400 mt-2 font-medium">
-                                Logo akan langsung berubah di sidebar utama dan
-                                tersimpan ke cloud. Rekomendasi rasio 1:1, max
-                                1MB.
-                              </p>
-                              {agencyLogoUrl && (
-                                <button
-                                  onClick={() => setAgencyLogoUrl("")}
-                                  className="mt-2 text-xs font-bold text-red-500 hover:text-red-700 underline cursor-pointer"
-                                >
-                                  Hapus Logo
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                    <SettingsMetadataPanels
+                      agencyLogoUrl={agencyLogoUrl}
+                      setAgencyLogoUrl={setAgencyLogoUrl}
+                      platforms={platforms}
+                      setPlatforms={setPlatforms}
+                      newPlatformInput={newPlatformInput}
+                      setNewPlatformInput={setNewPlatformInput}
+                      platformError={platformError}
+                      setPlatformError={setPlatformError}
+                      editingPlatformIdx={editingPlatformIdx}
+                      setEditingPlatformIdx={setEditingPlatformIdx}
+                      editingPlatformValue={editingPlatformValue}
+                      setEditingPlatformValue={setEditingPlatformValue}
+                      brands={brands}
+                      setBrands={setBrands}
+                      newBrandInput={newBrandInput}
+                      setNewBrandInput={setNewBrandInput}
+                      brandError={brandError}
+                      setBrandError={setBrandError}
+                      editingBrandIdx={editingBrandIdx}
+                      setEditingBrandIdx={setEditingBrandIdx}
+                      editingBrandValue={editingBrandValue}
+                      setEditingBrandValue={setEditingBrandValue}
+                      shifts={shifts}
+                      setShifts={setShifts}
+                      newShiftInput={newShiftInput}
+                      setNewShiftInput={setNewShiftInput}
+                      shiftError={shiftError}
+                      setShiftError={setShiftError}
+                      editingShiftIdx={editingShiftIdx}
+                      setEditingShiftIdx={setEditingShiftIdx}
+                      editingShiftValue={editingShiftValue}
+                      setEditingShiftValue={setEditingShiftValue}
+                      studios={studios}
+                      setStudios={setStudios}
+                      newStudioName={newStudioName}
+                      setNewStudioName={setNewStudioName}
+                      newStudioLocation={newStudioLocation}
+                      setNewStudioLocation={setNewStudioLocation}
+                      studioError={studioError}
+                      setStudioError={setStudioError}
+                      editingStudioIdx={editingStudioIdx}
+                      setEditingStudioIdx={setEditingStudioIdx}
+                      editingStudioName={editingStudioName}
+                      setEditingStudioName={setEditingStudioName}
+                      editingStudioLocation={editingStudioLocation}
+                      setEditingStudioLocation={setEditingStudioLocation}
+                      onRequestConfirm={requestConfirm}
+                    />
 
-                      {/* 1. PLATFORM CONFIGURATION CARD */}
-                      <div
-                        className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm space-y-4 flex flex-col justify-between"
-                        id="setting_platform_panel"
-                      >
-                        <div className="space-y-4">
-                          <div className="border-b border-purple-50 pb-2 flex items-center justify-between">
-                            <h4 className="text-xs font-black uppercase text-purple-950 flex items-center gap-2">
-                              📱 Nama Platform
-                            </h4>
-                            <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-50 border border-purple-100 text-purple-700 rounded-full font-mono">
-                              {platforms.length} Item
-                            </span>
-                          </div>
-
-                          {/* Inline Simple Add Form (wrapped in form to prevent full-page reload and support enter key) */}
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              const trimmed = newPlatformInput.trim();
-                              if (trimmed) {
-                                if (platforms.includes(trimmed)) {
-                                  setPlatformError(
-                                    "Platform ini sudah terdaftar!",
-                                  );
-                                  return;
-                                }
-                                setPlatforms((prev) => [...prev, trimmed]);
-                                setNewPlatformInput("");
-                                setPlatformError("");
-                              }
-                            }}
-                            className="space-y-1.5"
-                          >
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                placeholder="Tambah platform baru..."
-                                value={newPlatformInput}
-                                onChange={(e) => {
-                                  setNewPlatformInput(e.target.value);
-                                  if (platformError) setPlatformError("");
-                                }}
-                                className="flex-1 min-w-0 w-full bg-purple-50/20 border border-purple-150 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-purple-400 font-sans text-purple-950"
-                                id="new_platform_field"
-                              />
-                              <button
-                                type="submit"
-                                className="flex-shrink-0 w-9 h-9 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer shadow-2xs"
-                                id="add_platform_btn"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </button>
-                            </div>
-                            {platformError && (
-                              <p className="text-[10px] text-red-650 font-black pl-1">
-                                {platformError}
-                              </p>
-                            )}
-                          </form>
-
-                          {/* Items List */}
-                          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                            {platforms.map((platform, idx) => (
-                              <div
-                                key={idx}
-                                className="flex justify-between items-center bg-purple-50/25 p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2"
-                              >
-                                {editingPlatformIdx === idx ? (
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <input
-                                      type="text"
-                                      value={editingPlatformValue}
-                                      onChange={(e) =>
-                                        setEditingPlatformValue(e.target.value)
-                                      }
-                                      className="flex-1 min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs font-bold focus:outline-none text-purple-950"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const newVal =
-                                          editingPlatformValue.trim();
-                                        if (newVal) {
-                                          if (
-                                            platforms?.some(
-                                              (p, i) =>
-                                                p === newVal && i !== idx,
-                                            )
-                                          ) {
-                                            setPlatformError(
-                                              "Nama platform sudah terdaftar!",
-                                            );
-                                            return;
-                                          }
-                                          setPlatforms((prev) => {
-                                            const updated = [...prev];
-                                            updated[idx] = newVal;
-                                            return updated;
-                                          });
-                                          setEditingPlatformIdx(null);
-                                          setPlatformError("");
-                                        }
-                                      }}
-                                      className="flex-shrink-0 p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                                      title="Simpan"
-                                    >
-                                      <Check className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEditingPlatformIdx(null);
-                                        setPlatformError("");
-                                      }}
-                                      className="flex-shrink-0 p-1 text-gray-400 hover:bg-gray-100 rounded-lg transition-all"
-                                      title="Batal"
-                                    >
-                                      <X className="w-4 h-4 text-purple-400" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <span
-                                      className="flex-1 min-w-0 truncate text-xs font-bold text-purple-900 font-mono"
-                                      title={platform}
-                                    >
-                                      {platform}
-                                    </span>
-                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingPlatformIdx(idx);
-                                          setEditingPlatformValue(platform);
-                                          setPlatformError("");
-                                        }}
-                                        className="text-purple-400 hover:text-purple-700 p-1 rounded hover:bg-purple-50 transition-all cursor-pointer"
-                                        title="Edit platform"
-                                      >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          requestConfirm(
-                                            "Hapus Platform",
-                                            `Apakah Anda yakin ingin menghapus platform "${platform}"? Platform ini tidak akan bisa dipilih lagi pada form.`,
-                                            () =>
-                                              setPlatforms((prev) =>
-                                                prev.filter(
-                                                  (p) => p !== platform,
-                                                ),
-                                              ),
-                                            "danger",
-                                          );
-                                        }}
-                                        className="text-purple-300 hover:text-red-650 p-1 rounded hover:bg-red-50 transition-all cursor-pointer"
-                                        title="Hapus platform"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            ))}
-                            {platforms.length === 0 && (
-                              <p className="text-xs text-purple-400 font-bold text-center py-4">
-                                Belum ada platform terdaftar.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 2. BRAND CONFIGURATION CARD */}
-                      <div
-                        className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm space-y-4 flex flex-col justify-between"
-                        id="setting_brand_panel"
-                      >
-                        <div className="space-y-4">
-                          <div className="border-b border-purple-50 pb-2 flex items-center justify-between">
-                            <h4 className="text-xs font-black uppercase text-purple-950 flex items-center gap-2">
-                              🛍️ Nama Brand Klien
-                            </h4>
-                            <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-50 border border-purple-100 text-purple-700 rounded-full font-mono">
-                              {brands.length} Item
-                            </span>
-                          </div>
-
-                          {/* Inline Simple Add Form (wrapped in form) */}
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              const trimmed = newBrandInput.trim();
-                              if (trimmed) {
-                                if (brands.includes(trimmed)) {
-                                  setBrandError("Brand ini sudah terdaftar!");
-                                  return;
-                                }
-                                setBrands((prev) => [...prev, trimmed]);
-                                setNewBrandInput("");
-                                setBrandError("");
-                              }
-                            }}
-                            className="space-y-1.5"
-                          >
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                placeholder="Tambah brand baru..."
-                                value={newBrandInput}
-                                onChange={(e) => {
-                                  setNewBrandInput(e.target.value);
-                                  if (brandError) setBrandError("");
-                                }}
-                                className="flex-1 min-w-0 w-full bg-purple-50/20 border border-purple-150 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-purple-400 font-sans text-purple-950"
-                                id="new_brand_field"
-                              />
-                              <button
-                                type="submit"
-                                className="flex-shrink-0 w-9 h-9 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer shadow-2xs"
-                                id="add_brand_btn"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </button>
-                            </div>
-                            {brandError && (
-                              <p className="text-[10px] text-red-650 font-black pl-1">
-                                {brandError}
-                              </p>
-                            )}
-                          </form>
-
-                          {/* Items List */}
-                          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                            {brands.map((brand, idx) => (
-                              <div
-                                key={idx}
-                                className="flex justify-between items-center bg-purple-50/25 p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2"
-                              >
-                                {editingBrandIdx === idx ? (
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <input
-                                      type="text"
-                                      value={editingBrandValue}
-                                      onChange={(e) =>
-                                        setEditingBrandValue(e.target.value)
-                                      }
-                                      className="flex-1 min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs font-bold focus:outline-none text-purple-950"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const newVal = editingBrandValue.trim();
-                                        if (newVal) {
-                                          if (
-                                            brands?.some(
-                                              (b, i) =>
-                                                b === newVal && i !== idx,
-                                            )
-                                          ) {
-                                            setBrandError(
-                                              "Nama brand sudah terdaftar!",
-                                            );
-                                            return;
-                                          }
-                                          setBrands((prev) => {
-                                            const updated = [...prev];
-                                            updated[idx] = newVal;
-                                            return updated;
-                                          });
-                                          setEditingBrandIdx(null);
-                                          setBrandError("");
-                                        }
-                                      }}
-                                      className="flex-shrink-0 p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                                      title="Simpan"
-                                    >
-                                      <Check className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEditingBrandIdx(null);
-                                        setBrandError("");
-                                      }}
-                                      className="flex-shrink-0 p-1 text-gray-400 hover:bg-gray-100 rounded-lg transition-all"
-                                      title="Batal"
-                                    >
-                                      <X className="w-4 h-4 text-purple-400" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <span
-                                      className="flex-1 min-w-0 truncate text-xs font-bold text-purple-900 font-sans"
-                                      title={brand}
-                                    >
-                                      {brand}
-                                    </span>
-                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingBrandIdx(idx);
-                                          setEditingBrandValue(brand);
-                                          setBrandError("");
-                                        }}
-                                        className="text-purple-400 hover:text-purple-700 p-1 rounded hover:bg-purple-50 transition-all cursor-pointer"
-                                        title="Edit brand"
-                                      >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          requestConfirm(
-                                            "Hapus Brand Klien",
-                                            `Apakah Anda yakin ingin menghapus brand "${brand}"? Sesi absensi lama yang merujuk ke brand ini akan tetap aman.`,
-                                            () =>
-                                              setBrands((prev) =>
-                                                prev.filter((b) => b !== brand),
-                                              ),
-                                            "danger",
-                                          );
-                                        }}
-                                        className="text-[#bd9fe4] hover:text-red-650 p-1 rounded hover:bg-red-50 transition-all cursor-pointer"
-                                        title="Hapus brand"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            ))}
-                            {brands.length === 0 && (
-                              <p className="text-xs text-purple-400 font-bold text-center py-4">
-                                Belum ada brand terdaftar.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 3. SHIFT CONFIGURATION CARD */}
-                      <div
-                        className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm space-y-4 flex flex-col justify-between"
-                        id="setting_shift_panel"
-                      >
-                        <div className="space-y-4">
-                          <div className="border-b border-purple-50 pb-2 flex items-center justify-between">
-                            <h4 className="text-xs font-black uppercase text-purple-950 flex items-center gap-2">
-                              ⏰ Jenis Sesi Shift
-                            </h4>
-                            <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-50 border border-purple-100 text-purple-700 rounded-full font-mono">
-                              {shifts.length} Sesi
-                            </span>
-                          </div>
-
-                          {/* Inline Simple Add Form (wrapped in form) */}
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              const trimmed = newShiftInput.trim();
-                              if (trimmed) {
-                                if (shifts.includes(trimmed)) {
-                                  setShiftError("Shift ini sudah terdaftar!");
-                                  return;
-                                }
-                                setShifts((prev) => [...prev, trimmed]);
-                                setNewShiftInput("");
-                                setShiftError("");
-                              }
-                            }}
-                            className="space-y-1.5"
-                          >
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                placeholder="Format: Shift X (00.00-00.00)..."
-                                value={newShiftInput}
-                                onChange={(e) => {
-                                  setNewShiftInput(e.target.value);
-                                  if (shiftError) setShiftError("");
-                                }}
-                                className="flex-1 min-w-0 w-full bg-purple-50/20 border border-purple-150 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-purple-400 font-mono text-purple-950"
-                                id="new_shift_field"
-                              />
-                              <button
-                                type="submit"
-                                className="flex-shrink-0 w-9 h-9 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer shadow-2xs"
-                                id="add_shift_btn"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </button>
-                            </div>
-                            {shiftError && (
-                              <p className="text-[10px] text-red-650 font-black pl-1">
-                                {shiftError}
-                              </p>
-                            )}
-                          </form>
-
-                          {/* Items List */}
-                          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                            {shifts.map((shift, idx) => (
-                              <div
-                                key={idx}
-                                className="flex justify-between items-center bg-purple-50/25 p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2"
-                              >
-                                {editingShiftIdx === idx ? (
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <input
-                                      type="text"
-                                      value={editingShiftValue}
-                                      onChange={(e) =>
-                                        setEditingShiftValue(e.target.value)
-                                      }
-                                      className="flex-1 min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs font-bold focus:outline-none text-purple-950 font-mono"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const newVal = editingShiftValue.trim();
-                                        if (newVal) {
-                                          if (
-                                            shifts?.some(
-                                              (s, i) =>
-                                                s === newVal && i !== idx,
-                                            )
-                                          ) {
-                                            setShiftError(
-                                              "Nama shift sudah terdaftar!",
-                                            );
-                                            return;
-                                          }
-                                          setShifts((prev) => {
-                                            const updated = [...prev];
-                                            updated[idx] = newVal;
-                                            return updated;
-                                          });
-                                          setEditingShiftIdx(null);
-                                          setShiftError("");
-                                        }
-                                      }}
-                                      className="flex-shrink-0 p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                                      title="Simpan"
-                                    >
-                                      <Check className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEditingShiftIdx(null);
-                                        setShiftError("");
-                                      }}
-                                      className="flex-shrink-0 p-1 text-gray-400 hover:bg-gray-100 rounded-lg transition-all"
-                                      title="Batal"
-                                    >
-                                      <X className="w-4 h-4 text-purple-400" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <span
-                                      className="flex-1 min-w-0 truncate text-xs font-bold text-purple-900 font-mono"
-                                      title={shift}
-                                    >
-                                      {shift}
-                                    </span>
-                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingShiftIdx(idx);
-                                          setEditingShiftValue(shift);
-                                          setShiftError("");
-                                        }}
-                                        className="text-purple-400 hover:text-purple-700 p-1 rounded hover:bg-purple-50 transition-all cursor-pointer"
-                                        title="Edit shift"
-                                      >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          requestConfirm(
-                                            "Hapus Roster Shift",
-                                            `Apakah Anda yakin ingin menghapus roster "${shift}"?`,
-                                            () =>
-                                              setShifts((prev) =>
-                                                prev.filter((s) => s !== shift),
-                                              ),
-                                            "danger",
-                                          );
-                                        }}
-                                        className="text-[#bd9fe4] hover:text-red-650 p-1 rounded hover:bg-red-50 transition-all cursor-pointer"
-                                        title="Hapus shift"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            ))}
-                            {shifts.length === 0 && (
-                              <p className="text-xs text-purple-400 font-bold text-center py-4">
-                                Belum ada shift terdaftar.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 4. BRAND NEW: STUDIO LOCATION & NAME CONFIGURATION CARD */}
-                      <div
-                        className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm space-y-4 flex flex-col justify-between"
-                        id="setting_studio_panel"
-                      >
-                        <div className="space-y-4">
-                          <div className="border-b border-purple-50 pb-2 flex items-center justify-between">
-                            <h4 className="text-xs font-black uppercase text-purple-950 flex items-center gap-2">
-                              🏢 Lokasi & Nama Studio
-                            </h4>
-                            <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-full font-mono">
-                              {studios.length} Cabang
-                            </span>
-                          </div>
-
-                          {/* Inline Simple Add Form (wrapped in form) */}
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              const trimmedName = newStudioName.trim();
-                              if (trimmedName) {
-                                const isDuplicate = studios?.some(
-                                  (std) =>
-                                    std.name.toLowerCase() ===
-                                      trimmedName.toLowerCase() &&
-                                    std.location.toLowerCase() ===
-                                      newStudioLocation.toLowerCase(),
-                                );
-                                if (isDuplicate) {
-                                  setStudioError("Studio ini sudah terdaftar!");
-                                  return;
-                                }
-                                const newStudio: StudioItem = {
-                                  id: `std_auto_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-                                  name: trimmedName,
-                                  location: newStudioLocation,
-                                };
-                                setStudios((prev) => [...prev, newStudio]);
-                                setNewStudioName("");
-                                setStudioError("");
-                              }
-                            }}
-                            className="space-y-2"
-                          >
-                            <div className="flex flex-col gap-1.5">
-                              <input
-                                type="text"
-                                placeholder="Nama studio (misal: Studio 01)..."
-                                value={newStudioName}
-                                onChange={(e) => {
-                                  setNewStudioName(e.target.value);
-                                  if (studioError) setStudioError("");
-                                }}
-                                className="bg-purple-50/20 border border-purple-150 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-purple-400 font-sans w-full min-w-0 text-purple-950"
-                              />
-                              <div className="flex gap-2">
-                                <select
-                                  value={newStudioLocation}
-                                  onChange={(e) =>
-                                    setNewStudioLocation(e.target.value)
-                                  }
-                                  className="flex-1 min-w-0 bg-purple-50/25 border border-purple-150 rounded-xl px-2 py-2 text-xs font-bold focus:outline-none text-purple-950 cursor-pointer"
-                                >
-                                  <option value="Bandar Lampung">
-                                    Bandar Lampung
-                                  </option>
-                                  <option value="Tanggamus">Tanggamus</option>
-                                </select>
-                                <button
-                                  type="submit"
-                                  className="flex-shrink-0 w-9 h-9 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer shadow-2xs"
-                                  id="add_studio_btn"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                            {studioError && (
-                              <p className="text-[10px] text-red-650 font-black pl-1">
-                                {studioError}
-                              </p>
-                            )}
-                          </form>
-
-                          {/* Items List */}
-                          <div className="space-y-2 max-h-[170px] overflow-y-auto pr-1">
-                            {studios.map((studio, idx) => (
-                              <div
-                                key={studio.id}
-                                className="flex justify-between items-center bg-[#faf9fe] p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2"
-                              >
-                                {editingStudioIdx === idx ? (
-                                  <div className="flex flex-col gap-1.5 w-full">
-                                    <input
-                                      type="text"
-                                      value={editingStudioName}
-                                      onChange={(e) =>
-                                        setEditingStudioName(e.target.value)
-                                      }
-                                      className="w-full min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs font-bold focus:outline-none text-purple-950"
-                                    />
-                                    <div className="flex gap-1.5 items-center justify-end">
-                                      <select
-                                        value={editingStudioLocation}
-                                        onChange={(e) =>
-                                          setEditingStudioLocation(
-                                            e.target.value,
-                                          )
-                                        }
-                                        className="bg-white border border-purple-200 rounded px-1 py-0.5 text-xs font-bold text-purple-950"
-                                      >
-                                        <option value="Bandar Lampung">
-                                          Bandar Lampung
-                                        </option>
-                                        <option value="Tanggamus">
-                                          Tanggamus
-                                        </option>
-                                      </select>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const newValName =
-                                            editingStudioName.trim();
-                                          if (newValName) {
-                                            const isDuplicate = studios?.some(
-                                              (std, i) =>
-                                                std.name.toLowerCase() ===
-                                                  newValName.toLowerCase() &&
-                                                std.location.toLowerCase() ===
-                                                  editingStudioLocation.toLowerCase() &&
-                                                i !== idx,
-                                            );
-                                            if (isDuplicate) {
-                                              setStudioError(
-                                                "Kombinasi nama dan lokasi ini sudah terdaftar!",
-                                              );
-                                              return;
-                                            }
-                                            setStudios((prev) => {
-                                              const updated = [...prev];
-                                              updated[idx] = {
-                                                ...updated[idx],
-                                                name: newValName,
-                                                location: editingStudioLocation,
-                                              };
-                                              return updated;
-                                            });
-                                            setEditingStudioIdx(null);
-                                            setStudioError("");
-                                          }
-                                        }}
-                                        className="flex-shrink-0 p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                                        title="Simpan"
-                                      >
-                                        <Check className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingStudioIdx(null);
-                                          setStudioError("");
-                                        }}
-                                        className="flex-shrink-0 p-1 text-gray-400 hover:bg-gray-100 rounded-lg transition-all"
-                                        title="Batal"
-                                      >
-                                        <X className="w-4 h-4 text-purple-400" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <div className="flex flex-col min-w-0 flex-1">
-                                      <span
-                                        className="text-xs font-bold text-purple-900 truncate font-sans"
-                                        title={studio.name}
-                                      >
-                                        {studio.name}
-                                      </span>
-                                      <span className="text-[9px] text-[#bd9fe4] font-bold font-mono uppercase">
-                                        {studio.location}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingStudioIdx(idx);
-                                          setEditingStudioName(studio.name);
-                                          setEditingStudioLocation(
-                                            studio.location,
-                                          );
-                                          setStudioError("");
-                                        }}
-                                        className="text-purple-400 hover:text-purple-700 p-1 rounded hover:bg-purple-50 transition-all cursor-pointer"
-                                        title="Edit studio"
-                                      >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          requestConfirm(
-                                            "Hapus Studio",
-                                            `Apakah Anda yakin ingin menghapus studio "${studio.name}"?`,
-                                            () =>
-                                              setStudios((prev) =>
-                                                prev.filter(
-                                                  (s) => s.id !== studio.id,
-                                                ),
-                                              ),
-                                            "danger",
-                                          );
-                                        }}
-                                        className="text-[#bd9fe4] hover:text-red-650 p-1 rounded hover:bg-red-50 transition-all cursor-pointer"
-                                        title="Hapus studio"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            ))}
-                            {studios.length === 0 && (
-                              <p className="text-xs text-purple-400 font-bold text-center py-4">
-                                Belum ada studio terdaftar.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
 
@@ -25433,7 +17696,7 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                 text: "Berhasil memutuskan tautan akun Google.",
                                 type: "info",
                               });
-                            } catch (err: any) {
+                            } catch (err: unknown) {
                               console.error("Logout error:", err);
                             } finally {
                               setSheetsAuthLoading(false);
@@ -25495,9 +17758,9 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                         type: "success",
                                       });
                                     }
-                                  } catch (err: any) {
+                                  } catch (err: unknown) {
                                     setSheetsSyncMessage({
-                                      text: `Gagal masuk: ${err.message || err}`,
+                                      text: `Gagal masuk: ${getErrorMessage(err)}`,
                                       type: "error",
                                     });
                                   } finally {
@@ -25597,13 +17860,13 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
                                       text: "Spreadsheet baru berhasil dibuat! Data siap disinkronkan sekarang.",
                                       type: "success",
                                     });
-                                  } catch (err: any) {
+                                  } catch (err: unknown) {
                                     console.error(
                                       "Create spreadsheet error:",
                                       err,
                                     );
                                     setSheetsSyncMessage({
-                                      text: `Gagal membuat spreadsheet: ${err.message || err}`,
+                                      text: `Gagal membuat spreadsheet: ${getErrorMessage(err)}`,
                                       type: "error",
                                     });
                                   } finally {
@@ -25855,307 +18118,31 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Ubah Password */}
-                        <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 h-fit">
-                          <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <Lock className="w-4 h-4 text-slate-500" /> Ubah
-                            Kata Sandi Admin
-                          </h4>
+                        <AdminPasswordCard
+                          currentPasswordInput={currentPasswordInput}
+                          newPasswordInput={newPasswordInput}
+                          confirmPasswordInput={confirmPasswordInput}
+                          passwordChangeError={passwordChangeError}
+                          passwordChangeSuccess={passwordChangeSuccess}
+                          onCurrentPasswordChange={setCurrentPasswordInput}
+                          onNewPasswordChange={setNewPasswordInput}
+                          onConfirmPasswordChange={setConfirmPasswordInput}
+                          onSubmit={() => {
+                            setPasswordChangeSuccess("");
+                            setPasswordChangeError(
+                              "Password Master Admin sekarang dikelola melalui environment server. Hubungi pengelola deployment untuk menggantinya.",
+                            );
+                          }}
+                        />
 
-                          {passwordChangeError && (
-                            <div className="mb-4 bg-red-50 border border-red-150 text-rose-700 text-xs py-2 px-3 rounded-lg font-bold">
-                              ⚠️ {passwordChangeError}
-                            </div>
-                          )}
-
-                          {passwordChangeSuccess && (
-                            <div className="mb-4 bg-emerald-50 border border-emerald-150 text-emerald-700 text-xs py-2 px-3 rounded-lg font-bold">
-                              ✅ {passwordChangeSuccess}
-                            </div>
-                          )}
-
-                          <form
-                            className="space-y-4"
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              setPasswordChangeError("");
-                              setPasswordChangeSuccess("");
-
-                              if (
-                                currentPasswordInput !==
-                                adminCredentials.password
-                              ) {
-                                setPasswordChangeError(
-                                  "Kata sandi saat ini tidak sesuai!",
-                                );
-                                return;
-                              }
-
-                              if (newPasswordInput.length < 6) {
-                                setPasswordChangeError(
-                                  "Kata sandi baru harus minimal 6 karakter demi keamanan.",
-                                );
-                                return;
-                              }
-
-                              if (
-                                newPasswordInput === "123" ||
-                                newPasswordInput === "admin"
-                              ) {
-                                setPasswordChangeError(
-                                  "Sandi '" +
-                                    newPasswordInput +
-                                    "' terlalu lemah. Silakan pilih sandi yang lebih kompleks.",
-                                );
-                                return;
-                              }
-
-                              if (newPasswordInput !== confirmPasswordInput) {
-                                setPasswordChangeError(
-                                  "Konfirmasi kata sandi baru tidak cocok.",
-                                );
-                                return;
-                              }
-
-                              // update secure admin credentials state (this auto triggers localStorage save via useEffect in App.tsx)
-                              setAdminCredentials({
-                                username: adminCredentials.username,
-                                password: newPasswordInput,
-                              });
-
-                              setCurrentPasswordInput("");
-                              setNewPasswordInput("");
-                              setConfirmPasswordInput("");
-                              setPasswordChangeSuccess(
-                                "Kata sandi admin berhasil diperbarui secara aman!",
-                              );
-
-                              setTimeout(() => {
-                                setPasswordChangeSuccess("");
-                              }, 5000);
-                            }}
-                          >
-                            <div>
-                              <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                                Kata Sandi Saat Ini
-                              </label>
-                              <input
-                                type="password"
-                                required
-                                value={currentPasswordInput}
-                                onChange={(e) =>
-                                  setCurrentPasswordInput(e.target.value)
-                                }
-                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-rose-500 outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                                Kata Sandi Baru
-                              </label>
-                              <input
-                                type="password"
-                                required
-                                value={newPasswordInput}
-                                onChange={(e) =>
-                                  setNewPasswordInput(e.target.value)
-                                }
-                                placeholder="Min. 6 karakter"
-                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-rose-500 outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                                Konfirmasi Kata Sandi Baru
-                              </label>
-                              <input
-                                type="password"
-                                required
-                                value={confirmPasswordInput}
-                                onChange={(e) =>
-                                  setConfirmPasswordInput(e.target.value)
-                                }
-                                placeholder="Ketik ulang sandi baru"
-                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-rose-500 outline-none"
-                              />
-                            </div>
-                            <button
-                              type="submit"
-                              className="w-full mt-2 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer border-0"
-                            >
-                              Perbarui Kata Sandi
-                            </button>
-                          </form>
-                        </div>
-
-                        <div className="space-y-6">
-                          {/* Test Koneksi MySQL */}
-                          <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                            <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
-                              <Database className="w-4 h-4 text-indigo-500" />{" "}
-                              Test Koneksi MySQL
-                            </h4>
-                            <p className="text-xs text-slate-500 font-medium mb-4">
-                              Uji coba apakah server aplikasi saat ini berhasil terhubung dengan database MySQL.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  const result = await testDbConnection();
-                                  alert("✅ " + result.message);
-                                } catch (err: any) {
-                                  alert("❌ " + err.message);
-                                }
-                              }}
-                              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer border-0"
-                            >
-                              Jalankan Test Koneksi
-                            </button>
-                          </div>
-
-                          {/* Authenticator */}
-                          <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                            <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
-                              <Smartphone className="w-4 h-4 text-slate-500" />{" "}
-                              Otentikasi Dua Langkah (2FA)
-                            </h4>
-                            <p className="text-xs text-slate-500 font-medium mb-4">
-                              Lindungi akun Master Admin dengan verifikasi
-                              tambahan dari aplikasi auth.
-                            </p>
-
-                            <div className="flex items-center justify-between bg-white border border-emerald-100 p-3 rounded-lg">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                                  <CheckCircle2 className="w-4 h-4" />
-                                </div>
-                                <div>
-                                  <div className="text-[11px] font-bold text-emerald-700 uppercase">
-                                    Aktif
-                                  </div>
-                                  <div className="text-[10px] text-slate-500">
-                                    Sejak 2 Hari Lalu
-                                  </div>
-                                </div>
-                              </div>
-                              <button className="text-[10px] font-bold px-3 py-1.5 bg-red-50 text-red-600 rounded-lg border border-red-100 hover:bg-red-100 transition-colors cursor-pointer">
-                                Nonaktifkan
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Log Akses */}
-                          <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                            <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                              <Eye className="w-4 h-4 text-slate-500" /> Sesi &
-                              Log Perangkat
-                            </h4>
-
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200">
-                                <div className="flex items-center gap-2.5">
-                                  <Monitor className="w-5 h-5 text-indigo-500" />
-                                  <div>
-                                    <div className="text-xs font-bold text-slate-800">
-                                      MacBook Pro (Chrome)
-                                    </div>
-                                    <div className="text-[10px] text-emerald-600 font-semibold">
-                                      Sedang Aktif (IP: 103.111.43.x)
-                                    </div>
-                                  </div>
-                                </div>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100">
-                                  Current
-                                </span>
-                              </div>
-
-                              <div className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200">
-                                <div className="flex items-center gap-2.5">
-                                  <Smartphone className="w-5 h-5 text-slate-400" />
-                                  <div>
-                                    <div className="text-xs font-bold text-slate-700">
-                                      iPhone 14 Pro (Safari)
-                                    </div>
-                                    <div className="text-[10px] text-slate-500">
-                                      Terakhir aktif: 2 jam lalu (Jakarta)
-                                    </div>
-                                  </div>
-                                </div>
-                                <button className="text-[9px] font-bold text-slate-400 border-0 bg-transparent hover:text-red-500 transition-colors cursor-pointer">
-                                  Logout
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Migrasi & Backup Instan (JSON) */}
-                          <div className="bg-purple-50 rounded-xl p-5 border border-purple-100">
-                            <h4 className="text-sm font-black text-purple-900 mb-2 flex items-center gap-2">
-                              <Download className="w-4 h-4 text-purple-600" />{" "}
-                              Migrasi & Alat Backup Instan
-                            </h4>
-                            <p className="text-[11px] text-purple-700 font-semibold mb-4 leading-relaxed">
-                              Gunakan fitur ini untuk memindahkan seluruh data
-                              (Host, Absensi, Brand, Leads, Kalender) dari
-                              Google AI Studio atau VPS lain secara instan
-                              dengan berkas pertukaran `.json`.
-                            </p>
-
-                            <div className="space-y-3">
-                              <button
-                                type="button"
-                                onClick={handleExportJSON}
-                                className="w-full text-xs font-bold bg-white border border-purple-200 hover:bg-purple-100 text-purple-700 px-4 py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer border-0"
-                              >
-                                <Download className="w-4 h-4" /> Ekspor Basis
-                                Data (.json)
-                              </button>
-
-                              <div className="bg-white border border-dashed border-purple-200 rounded-lg p-3 text-center transition-all relative">
-                                <label className="block text-purple-700 hover:text-purple-950 font-bold text-xs cursor-pointer">
-                                  <Upload className="w-4 h-4 mx-auto mb-1.5 text-purple-500" />
-                                  Impor Dari Berkas Backup (.json)
-                                  <input
-                                    type="file"
-                                    accept=".json"
-                                    onChange={handleImportJSON}
-                                    className="hidden"
-                                  />
-                                </label>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Manajemen Data Master / Danger Zone */}
-                          <div className="bg-red-50 rounded-xl p-5 border border-red-100">
-                            <h4 className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">
-                              <Trash2 className="w-4 h-4 text-red-600" />{" "}
-                              Manajemen Basis Data
-                            </h4>
-                            <p className="text-xs text-red-600/80 font-medium mb-4">
-                              Aksi berbahaya. Pengelolaan ulang dan pemulihan
-                              data sistem secara paksa dari atau ke cloud.
-                            </p>
-
-                            <div className="flex flex-col gap-3">
-                              <button
-                                onClick={handleRecoverLocalStorage}
-                                className="w-full text-xs font-black bg-white border border-amber-200 hover:bg-amber-50 text-amber-700 px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                              >
-                                <RefreshCw className="w-4 h-4" /> Pulihkan Data
-                                Lokal ke Cloud
-                              </button>
-
-                              <button
-                                onClick={handleClearAllData}
-                                className="w-full text-xs font-black bg-white border border-red-200 hover:bg-red-600 hover:text-white text-red-700 px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4" /> Kosongkan Seluruh
-                                Data Cloud
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                        <AdminMaintenancePanel
+                          canTestDb={canAccessDbTest(authSession)}
+                          testDbConnection={testDbConnection}
+                          onExportJSON={handleExportJSON}
+                          onImportJSON={handleImportJSON}
+                          onRecoverLocalStorage={handleRecoverLocalStorage}
+                          onClearAllData={handleClearAllData}
+                        />
                       </div>
 
                       {/* ======= MANAJEMEN AKUN ADMIN TAMBAHAN ======= */}
@@ -26795,241 +18782,5 @@ Saya merekomendasikan untuk meninjau detail penalti di tab **Kalkulator Operasio
         </div>
       )}
     </div>
-  );
-}
-
-// Subcomponent to prevent parent lagging re-renders and keep form states clean
-function HostCredentialRow({
-  host,
-  onUpdate,
-  onDelete,
-  studios = [],
-}: {
-  host: HostEmployee;
-  onUpdate: (id: string, fields: Partial<HostEmployee>) => void;
-  onDelete: (id: string) => void;
-  studios?: StudioItem[];
-  key?: any;
-}) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(host.name || "");
-  const [role, setRole] = useState(host.role || "");
-  const [studio, setStudio] = useState(host.studio || "Studio Bandar Lampung");
-  const [phone, setPhone] = useState(host.phone || "");
-  const [bankAccount, setBankAccount] = useState(host.bankAccount || "");
-  const [username, setUsername] = useState(host.username || "");
-  const [password, setPassword] = useState(host.password || "");
-  const [customWorkingDaysTarget, setCustomWorkingDaysTarget] =
-    useState<number>(host.customWorkingDaysTarget || 26);
-
-  useEffect(() => {
-    if (isEditing) return;
-    setName(host.name || "");
-    setRole(host.role || "");
-    setStudio(host.studio || "Studio Bandar Lampung");
-    setPhone(host.phone || "");
-    setBankAccount(host.bankAccount || "");
-    setUsername(host.username || "");
-    setPassword(host.password || "");
-    setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
-  }, [host, isEditing]);
-
-  const handleSave = () => {
-    onUpdate(host.id, {
-      name,
-      role,
-      hostType: role.toLowerCase().includes("back up") ? "Backup" : "Reguler",
-      studio,
-      phone,
-      bankAccount,
-      username,
-      password,
-      customWorkingDaysTarget: role.toLowerCase().includes("back up")
-        ? undefined
-        : customWorkingDaysTarget,
-    });
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setName(host.name || "");
-    setRole(host.role || "");
-    setStudio(host.studio || "Studio Bandar Lampung");
-    setPhone(host.phone || "");
-    setBankAccount(host.bankAccount || "");
-    setUsername(host.username || "");
-    setPassword(host.password || "");
-    setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
-    setIsEditing(false);
-  };
-
-  return (
-    <tr className="hover:bg-purple-50/40 transition-colors border-b border-purple-100/65 text-xs text-[#3c2f56]">
-      {/* 1. NAMA & ID */}
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <img
-            src={getAvatarUrl(host.name)}
-            alt={host.name}
-            referrerPolicy="no-referrer"
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500/10 flex-shrink-0"
-          />
-          <div className="flex-1">
-            {isEditing ? (
-              <div className="space-y-1">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-xs font-bold text-purple-950 block w-full focus:outline-none focus:border-purple-500"
-                  placeholder="Nama Host"
-                />
-                <span className="text-[9px] text-purple-400 font-bold font-mono block">
-                  ID: {host.employeeId}
-                </span>
-              </div>
-            ) : (
-              <div>
-                <span className="font-extrabold text-purple-950 text-xs block">
-                  {host.name}
-                </span>
-                <span className="text-[9px] text-purple-400 font-bold font-mono block">
-                  ID: {host.employeeId}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </td>
-
-      {/* 2. GRUP / ROLE */}
-      <td className="px-6 py-4">
-        {isEditing ? (
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
-          >
-            <option value="Reguler Host">Reguler Host</option>
-            <option value="Back Up Host">Back Up Host</option>
-          </select>
-        ) : (
-          <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-extrabold text-[9.5px] uppercase border border-purple-100/40">
-            {host.role}
-          </span>
-        )}
-      </td>
-
-      {/* 2.5 LOKASI STUDIO */}
-      <td className="px-6 py-4">
-        {isEditing ? (
-          <select
-            value={studio}
-            onChange={(e) => setStudio(e.target.value)}
-            className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 cursor-pointer"
-          >
-            {studios.length > 0 ? (
-              studios.map((std, i) => (
-                <option key={std.id + "_" + i} value={std.name}>
-                  {std.name} ({std.location})
-                </option>
-              ))
-            ) : (
-              <>
-                <option value="Studio Bandar Lampung">
-                  Studio Bandar Lampung (Bandar Lampung)
-                </option>
-                <option value="Studio Tanggamus">
-                  Studio Tanggamus (Tanggamus)
-                </option>
-              </>
-            )}
-          </select>
-        ) : (
-          <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/45 font-extrabold text-[9.5px] uppercase">
-            {host.studio || "Studio Bandar Lampung"}
-          </span>
-        )}
-      </td>
-
-      {/* 4. USERNAME */}
-      <td className="px-6 py-4">
-        {isEditing ? (
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="bg-[#faf9fe] border border-purple-150 rounded-lg px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-xs w-28"
-            placeholder="username"
-          />
-        ) : (
-          <code className="bg-purple-50 px-2 py-1 rounded text-purple-650 font-mono font-bold text-[11px] border border-purple-100/30">
-            {host.username}
-          </code>
-        )}
-      </td>
-
-      {/* 5. PASSWORD */}
-      <td className="px-6 py-4">
-        {isEditing ? (
-          <input
-            type="text"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="bg-[#faf9fe] border border-purple-150 rounded-lg px-2 py-1 focus:outline-none focus:border-purple-500 font-mono text-xs font-bold w-28"
-            placeholder="password"
-          />
-        ) : (
-          <code className="bg-purple-50 px-2 py-1 rounded text-purple-650 font-mono font-bold text-[11px] border border-purple-100/30">
-            {host.password}
-          </code>
-        )}
-      </td>
-
-      {/* 6. AKSI MANAJEMEN */}
-      <td className="px-6 py-4 text-right">
-        <div className="flex items-center justify-end gap-2">
-          {isEditing ? (
-            <>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="px-2.5 py-1.5 rounded-lg text-[10px] font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-3xs cursor-pointer transition-all"
-              >
-                Simpan
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-gray-100 hover:bg-gray-200 text-gray-750 transition-all cursor-pointer"
-              >
-                Batal
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="p-1.5 text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100/60 rounded-lg border border-purple-100/40 transition-all cursor-pointer"
-                title="Edit Host"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onDelete(host.id);
-                }}
-                className="p-1.5 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100/60 rounded-lg border border-red-100/40 transition-all cursor-pointer"
-                title="Hapus Host"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
   );
 }

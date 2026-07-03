@@ -1,10 +1,7 @@
 name: Deploy to Hostinger
 
 on:
-  push:
-    branches:
-      - feature/mysql-migration
-      - mysql-migration
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -13,7 +10,7 @@ jobs:
     
     steps:
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f # v1.2.2
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           port: ${{ secrets.HOSTINGER_PORT }}
@@ -29,13 +26,13 @@ jobs:
             git reset --hard origin/${{ github.ref_name }}
             
             echo "2. Instal dependensi baru..."
-            npm ci || npm install --production=false
+            npm ci
             
-            echo "3. Menjalankan migrasi database otomatis..."
+            echo "3. Jalankan quality gate production..."
+            npm run check:prod
+
+            echo "4. Menjalankan migrasi database..."
             npm run migrate
-            
-            echo "4. Build ulang frontend..."
-            npm run build
             
             echo "5. Restart PM2 Server..."
             pm2 restart all

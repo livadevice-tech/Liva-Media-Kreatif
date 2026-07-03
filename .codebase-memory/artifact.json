@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
-    "commit": "cd80e614fd8e569f4c71e6dd7c112700fb0c6991",
-    "indexed_at": "2026-06-27T13:34:36Z",
+    "commit": "cf0bfa0248ebf7be6e24472a0a59c427c33b6c16",
+    "indexed_at": "2026-07-03T14:32:28Z",
     "project": "Users-galta-Data-Galang-Program-Liva-Media-Kreatif",
-    "nodes": 1161,
-    "edges": 1945,
-    "original_size": 3276800,
-    "compressed_size": 595529,
-    "compression_level": 9
+    "nodes": 1702,
+    "edges": 2807,
+    "original_size": 5898240,
+    "compressed_size": 934987,
+    "compression_level": 3
 }
