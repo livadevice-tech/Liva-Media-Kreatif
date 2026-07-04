@@ -161,10 +161,10 @@ export function buildLiveReportViewModel(
         penonton: 0,
       };
     }
-    groupedByDate[d].gmv += log.omzet || 0;
-    groupedByDate[d].orders += log.order || 0;
-    groupedByDate[d].itemsSold += log.terjual || 0;
-    groupedByDate[d].clicks += log.click || 0;
+    groupedByDate[d].gmv += log.gmv || 0;
+    groupedByDate[d].orders += log.orders || 0;
+    groupedByDate[d].itemsSold += log.products_sold || 0;
+    groupedByDate[d].clicks += log.clicks || 0;
     groupedByDate[d].penonton += log.penonton || 0;
   });
 

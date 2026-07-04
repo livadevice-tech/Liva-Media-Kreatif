@@ -2212,12 +2212,16 @@ export default function App() {
         async () => {
           try {
             setIsSavingReport(true);
-            const logIdsToDelete = new Set(logsToDelete.map((l) => l.id));
-            const batchIdsToDelete = new Set(batchesToDelete.map((b) => b.id));
+            const logIdsToDelete: Set<string> = new Set(
+              logsToDelete.map((l) => String(l.id)),
+            );
+            const batchIdsToDelete: Set<string> = new Set(
+              batchesToDelete.map((b) => String(b.id)),
+            );
             // Hapus dari MySQL terlebih dahulu
             await reportingBrandApi.deleteMany({
-              logIds: [...logIdsToDelete],
-              batchIds: [...batchIdsToDelete],
+              logIds: Array.from(logIdsToDelete),
+              batchIds: Array.from(batchIdsToDelete),
             });
             // Baru update state lokal
             setBrandPerformanceLogs((prev) => prev.filter((l) => !logIdsToDelete.has(l.id)));
@@ -2252,14 +2256,20 @@ export default function App() {
             (log) => log.brandId === brandId,
           );
 
-          const logIds = new Set(brandLogs.map((l) => l.id));
-          const batchIds = new Set(brandBatches.map((b) => b.id));
-          const skuIds = new Set(brandSkuLogs.map((l) => l.id));
+          const logIds: Set<string> = new Set(
+            brandLogs.map((l) => String(l.id)),
+          );
+          const batchIds: Set<string> = new Set(
+            brandBatches.map((b) => String(b.id)),
+          );
+          const skuIds: Set<string> = new Set(
+            brandSkuLogs.map((l) => String(l.id)),
+          );
 
           // Hapus dari MySQL terlebih dahulu
           await reportingBrandApi.deleteMany({
-            logIds: [...logIds],
-            batchIds: [...batchIds],
+            logIds: Array.from(logIds),
+            batchIds: Array.from(batchIds),
           });
 
           // Baru update state lokal

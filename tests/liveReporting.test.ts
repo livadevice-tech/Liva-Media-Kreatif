@@ -69,6 +69,49 @@ test("buildLiveReportViewModel resolves latest filter and ignores engagement log
   assert.equal(result.liveChartData[1].date, "2024-05-03");
 });
 
+test("buildLiveReportViewModel aggregates live GMV from gmv fields", () => {
+  const result = buildLiveReportViewModel({
+    brandPerformanceLogs: [
+      {
+        id: "10",
+        brandId: "brand-a",
+        reportType: "live",
+        date: "2024-05-01",
+        platform: "Shopee Live",
+        gmv: 150,
+        penonton: 12,
+      },
+      {
+        id: "11",
+        brandId: "brand-a",
+        reportType: "live",
+        date: "2024-05-01",
+        platform: "TikTok Live",
+        gmv: 250,
+        penonton: 18,
+      },
+      {
+        id: "12",
+        brandId: "brand-a",
+        reportType: "engagement",
+        date: "2024-05-01",
+        platform: "TikTok Live",
+        gmv: 999,
+      },
+    ],
+    activeReportBrandId: "brand-a",
+    dateFilterType: "all",
+    searchQuery: "",
+    platformFilter: "",
+    shiftFilters: [],
+  });
+
+  assert.equal(result.liveChartData.length, 1);
+  assert.equal(result.liveChartData[0].date, "2024-05-01");
+  assert.equal(result.liveChartData[0].gmv, 400);
+  assert.equal(result.liveChartData[0].penonton, 30);
+});
+
 test("buildLiveReportViewModel builds month comparison windows", () => {
   const result = buildLiveReportViewModel({
     brandPerformanceLogs: baseLogs,
