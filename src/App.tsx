@@ -242,6 +242,7 @@ import {
   settingsApi,
   testDbConnection,
   authApi,
+  reportingBrandApi,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
@@ -269,7 +270,6 @@ import {
 } from "./components/reporting/ReportingWorkspaceHeader";
 import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSelectionPanel";
 import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
-import { EngagementReportFilters } from "./components/reporting/EngagementReportFilters";
 import { DeleteByDateModal } from "./components/reporting/DeleteByDateModal";
 import { SkuUploadModal } from "./components/reporting/SkuUploadModal";
 import { ReportingUploadAnalyticsSection } from "./components/reporting/ReportingUploadAnalyticsSection";
@@ -851,6 +851,22 @@ export default function App() {
                 return data;
               })
               .catch(console.error),
+          );
+        }
+
+        // 8. brand performance logs + upload history (untuk reporting)
+        if (isAdminOrOperator || isBrand) {
+          loadTasks.push(
+            reportingBrandApi
+              .getAll(isBrand ? { brandId: loggedInClientBrandId } : undefined)
+              .then(({ batches, rows }) => {
+                if (!cancelled) {
+                  setBrandPerformanceLogs(rows);
+                  setBrandUploadHistory(batches);
+                  setUploadHistory(batches);
+                }
+              })
+              .catch((err) => handleQuotaError(err, "brand_reporting")),
           );
         }
 
@@ -2198,8 +2214,15 @@ export default function App() {
             setIsSavingReport(true);
             const logIdsToDelete = new Set(logsToDelete.map((l) => l.id));
             const batchIdsToDelete = new Set(batchesToDelete.map((b) => b.id));
+            // Hapus dari MySQL terlebih dahulu
+            await reportingBrandApi.deleteMany({
+              logIds: [...logIdsToDelete],
+              batchIds: [...batchIdsToDelete],
+            });
+            // Baru update state lokal
             setBrandPerformanceLogs((prev) => prev.filter((l) => !logIdsToDelete.has(l.id)));
             setBrandUploadHistory((prev) => prev.filter((b) => !batchIdsToDelete.has(b.id)));
+            setUploadHistory((prev) => prev.filter((b) => !batchIdsToDelete.has(b.id)));
             customAlert("Data raw berhasil dihapus.");
           } catch (e: unknown) {
             console.error(e);
@@ -2229,13 +2252,20 @@ export default function App() {
             (log) => log.brandId === brandId,
           );
 
-          // Hapus semua dari state lokal
           const logIds = new Set(brandLogs.map((l) => l.id));
           const batchIds = new Set(brandBatches.map((b) => b.id));
           const skuIds = new Set(brandSkuLogs.map((l) => l.id));
 
+          // Hapus dari MySQL terlebih dahulu
+          await reportingBrandApi.deleteMany({
+            logIds: [...logIds],
+            batchIds: [...batchIds],
+          });
+
+          // Baru update state lokal
           setBrandPerformanceLogs((prev) => prev.filter((l) => !logIds.has(l.id)));
           setBrandUploadHistory((prev) => prev.filter((b) => !batchIds.has(b.id)));
+          setUploadHistory((prev) => prev.filter((b) => !batchIds.has(b.id)));
           setShopeeSkuLogs((prev) => prev.filter((l) => !skuIds.has(l.id)));
 
           customAlert(
@@ -2362,6 +2392,10 @@ export default function App() {
         try {
           setIsSavingReport(true);
           const idsToDelete = new Set(logsToDelete.map((l) => l.id));
+          // Hapus dari MySQL terlebih dahulu
+          await reportingBrandApi.deleteMany({
+            logIds: [...idsToDelete],
+          });
           setBrandPerformanceLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
           customAlert(
             `Berhasil menghapus ${logsToDelete.length} data ${displayType} untuk brand "${brandName}"!`,
@@ -2397,10 +2431,16 @@ export default function App() {
             (log) => log.batchId === batchId,
           );
 
-          // Hapus batch receipt dari state lokal
-          setUploadHistory((prev) => prev.filter((h) => h.id !== batchId));
+          // Hapus dari MySQL terlebih dahulu
+          await reportingBrandApi.deleteMany({
+            logIds: [...batchLogs.map((l) => l.id)],
+            batchIds: [batchId],
+          });
 
-          // Hapus log terkait dari state lokal
+          // Hapus dari state lokal
+          setUploadHistory((prev) => prev.filter((h) => h.id !== batchId));
+          setBrandUploadHistory((prev) => prev.filter((h) => h.id !== batchId));
+
           const logIds = new Set(batchLogs.map((l) => l.id));
           setBrandPerformanceLogs((prev) => prev.filter((l) => !logIds.has(l.id)));
 
@@ -2588,14 +2628,7 @@ export default function App() {
 
         const isTiktokUpload = String(platformToSave).toLowerCase().includes("tiktok");
 
-        // Simpan ke state lokal (Firebase dihapus)
-        setBrandPerformanceLogs((prev) => {
-          const existingIds = new Set(prev.map((l) => l.id));
-          const newRecords = allRecordsToSave.filter((r) => !existingIds.has(r.id));
-          return [...prev, ...newRecords];
-        });
-
-        // Simpan upload history ke state lokal
+        // Buat batch record untuk upload history
         const uploadHistoryRecord: UploadHistoryEntry = {
           id: batchId,
           brandId: brandIdToSave,
@@ -2608,6 +2641,20 @@ export default function App() {
           reportType:
             String(platformToSave).toLowerCase().includes("tiktok") ? "both" : uploadTargetTab,
         };
+
+        // Simpan ke MySQL via API (agar data tidak hilang saat refresh)
+        await reportingBrandApi.createBatch({
+          batch: uploadHistoryRecord,
+          rows: allRecordsToSave,
+        });
+
+        // Setelah berhasil disimpan ke MySQL, update state lokal
+        setBrandPerformanceLogs((prev) => {
+          const existingIds = new Set(prev.map((l) => l.id));
+          const newRecords = allRecordsToSave.filter((r) => !existingIds.has(r.id));
+          return [...prev, ...newRecords];
+        });
+        setBrandUploadHistory((prev) => [...prev, uploadHistoryRecord]);
         setUploadHistory((prev) => [...prev, uploadHistoryRecord]);
 
         if (isTiktokUpload) {
@@ -14244,60 +14291,6 @@ export default function App() {
 
                           {operatorReportingTab === "engagement" && (
                             <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-                              <EngagementReportFilters
-                                operatorPlatformFilter={operatorPlatformFilter}
-                                onPlatformFilterChange={
-                                  setOperatorPlatformFilter
-                                }
-                                availableOperatorPlatforms={
-                                  availableOperatorPlatforms
-                                }
-                                operatorShiftFilters={operatorShiftFilters}
-                                onOperatorShiftFiltersChange={
-                                  setOperatorShiftFilters
-                                }
-                                isShiftFilterOpen={isShiftFilterOpen}
-                                onShiftFilterOpenChange={
-                                  setIsShiftFilterOpen
-                                }
-                                shifts={shifts}
-                                operatorDateFilterType={operatorDateFilterType}
-                                onDateFilterTypeSelect={
-                                  setOperatorDateFilterType
-                                }
-                                operatorMonthPickerYear={
-                                  operatorMonthPickerYear
-                                }
-                                setOperatorMonthPickerYear={
-                                  setOperatorMonthPickerYear
-                                }
-                                operatorSelectedMonth={operatorSelectedMonth}
-                                setOperatorSelectedMonth={
-                                  setOperatorSelectedMonth
-                                }
-                                isOperatorMonthOpen={isOperatorMonthOpen}
-                                setIsOperatorMonthOpen={setIsOperatorMonthOpen}
-                                isOperatorCalendarOpen={isOperatorCalendarOpen}
-                                setIsOperatorCalendarOpen={
-                                  setIsOperatorCalendarOpen
-                                }
-                                operatorCustomStartDate={
-                                  operatorCustomStartDate
-                                }
-                                operatorCustomEndDate={operatorCustomEndDate}
-                                operatorTempStartDate={operatorTempStartDate}
-                                operatorTempEndDate={operatorTempEndDate}
-                                setOperatorTempStartDate={
-                                  setOperatorTempStartDate
-                                }
-                                setOperatorTempEndDate={setOperatorTempEndDate}
-                                setOperatorCustomStartDate={
-                                  setOperatorCustomStartDate
-                                }
-                                setOperatorCustomEndDate={
-                                  setOperatorCustomEndDate
-                                }
-                              />
                               <React.Suspense
                                 fallback={
                                   <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
