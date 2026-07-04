@@ -4,7 +4,9 @@ export interface UploadHistoryEntry {
   brandName?: string;
   platform?: string;
   fileName?: string;
+  createdAt?: string;
   uploadedAt?: string;
+  date?: string;
   rowCount?: number;
   gmv?: number;
   reportType?: string;

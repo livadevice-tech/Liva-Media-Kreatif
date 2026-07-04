@@ -1,0 +1,186 @@
+import type { LiveReportViewModel } from "./liveReporting";
+import { sortReportLogs, type ReportLogLike } from "./reportTable";
+
+export interface LiveReportPanelStats {
+  totalSessionsDb: number;
+  totalGmvDb: number;
+  totalBuyersDb: number;
+  totalOrdersDb: number;
+  totalItemsSoldDb: number;
+  totalLikesDb: number;
+  totalCommentsDb: number;
+  totalSharesDb: number;
+  totalClicksDb: number;
+  avgViewDurationDb: number;
+  pTotalGmvDb: number;
+  pTotalBuyersDb: number;
+  pTotalOrdersDb: number;
+  pTotalItemsSoldDb: number;
+  pTotalLikesDb: number;
+  pTotalCommentsDb: number;
+  pTotalSharesDb: number;
+  pTotalClicksDb: number;
+  pAvgViewDurationDb: number;
+  totalDbImpressions: number;
+  totalDbLiveVisits: number;
+  totalDbClicks: number;
+  totalDbOrdersFunnel: number;
+  pTotalDbImpressions: number;
+  totalDbDuration: number;
+  pTotalDbDuration: number;
+  gmvPerHour: number;
+  pGmvPerHour: number;
+  avgAovDb: number;
+  pAvgAovDb: number;
+  conversionRateShopee: number;
+  pConversionRateShopee: number;
+  isShopee: boolean;
+}
+
+export interface BuildLiveReportPanelDataInput {
+  model: LiveReportViewModel;
+  operatorPlatformFilter: string;
+  reportDbSortCol: string;
+  reportDbSortAsc: boolean;
+  currentPage: number;
+  itemsPerPage: number;
+}
+
+export interface BuildLiveReportPanelDataResult {
+  stats: LiveReportPanelStats;
+  chartData: LiveReportViewModel["liveChartData"];
+  sortedTableLogs: ReportLogLike[];
+  paginatedLogs: ReportLogLike[];
+  totalPages: number;
+}
+
+const sum = (rows: readonly ReportLogLike[], selector: (row: ReportLogLike) => number) =>
+  rows.reduce((acc, row) => acc + selector(row), 0);
+
+const getDurationSeconds = (duration?: number) => {
+  let value = duration || 0;
+  if (value > 0 && value < 1) value *= 86400;
+  return value;
+};
+
+export function buildLiveReportPanelData(
+  input: BuildLiveReportPanelDataInput,
+): BuildLiveReportPanelDataResult {
+  const tableLogs = input.model.tableLogs;
+  const prevTableLogs = input.model.prevTableLogs;
+
+  const totalSessionsDb = tableLogs.length;
+  const totalGmvDb = sum(tableLogs, (item) => item.gmv || 0);
+  const totalBuyersDb = sum(tableLogs, (item) => item.buyers || 0);
+  const totalOrdersDb = sum(tableLogs, (item) => item.orders || item.buyers || 0);
+  const totalItemsSoldDb = sum(tableLogs, (item) => item.products_sold || 0);
+  const totalLikesDb = sum(tableLogs, (item) => item.likes || 0);
+  const totalCommentsDb = sum(tableLogs, (item) => item.comments || 0);
+  const totalSharesDb = sum(tableLogs, (item) => item.shares || 0);
+  const totalClicksDb = sum(tableLogs, (item) => item.clicks || 0);
+  const avgViewDurationDb =
+    totalSessionsDb > 0
+      ? sum(tableLogs, (item) => item.avgViewDuration || 0) / totalSessionsDb
+      : 0;
+
+  const pTotalGmvDb = sum(prevTableLogs, (item) => item.gmv || 0);
+  const pTotalBuyersDb = sum(prevTableLogs, (item) => item.buyers || 0);
+  const pTotalOrdersDb = sum(prevTableLogs, (item) => item.orders || item.buyers || 0);
+  const pTotalItemsSoldDb = sum(prevTableLogs, (item) => item.products_sold || 0);
+  const pTotalLikesDb = sum(prevTableLogs, (item) => item.likes || 0);
+  const pTotalCommentsDb = sum(prevTableLogs, (item) => item.comments || 0);
+  const pTotalSharesDb = sum(prevTableLogs, (item) => item.shares || 0);
+  const pTotalClicksDb = sum(prevTableLogs, (item) => item.clicks || 0);
+  const pAvgViewDurationDb =
+    prevTableLogs.length > 0
+      ? sum(prevTableLogs, (item) => item.avgViewDuration || 0) / prevTableLogs.length
+      : 0;
+
+  const isShopee = input.operatorPlatformFilter
+    ? input.operatorPlatformFilter.toLowerCase().includes("shopee")
+    : input.model.filteredDb.some(
+        (log) => log.platform && log.platform.toLowerCase().includes("shopee"),
+      );
+
+  const totalDbImpressions = sum(tableLogs, (curr) => {
+    const shopee = curr.platform && curr.platform.toLowerCase().includes("shopee");
+    return shopee
+      ? curr.penonton || curr.impressions || curr.views || 0
+      : curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0;
+  });
+  const totalDbLiveVisits = sum(tableLogs, (curr) => curr.liveVisits || 0);
+  const totalDbClicks = sum(tableLogs, (curr) => curr.clicks || 0);
+  const totalDbOrdersFunnel = sum(tableLogs, (curr) => curr.orders || curr.buyers || 0);
+  const pTotalDbImpressions = sum(prevTableLogs, (curr) => {
+    const shopee = curr.platform && curr.platform.toLowerCase().includes("shopee");
+    return shopee
+      ? curr.penonton || curr.impressions || curr.views || 0
+      : curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0;
+  });
+  const totalDbDuration = sum(tableLogs, (curr) => getDurationSeconds(curr.duration));
+  const pTotalDbDuration = sum(prevTableLogs, (curr) => getDurationSeconds(curr.duration));
+  const gmvPerHour = totalDbDuration > 0 ? totalGmvDb / (totalDbDuration / 3600) : 0;
+  const pGmvPerHour = pTotalDbDuration > 0 ? pTotalGmvDb / (pTotalDbDuration / 3600) : 0;
+  const avgAovDb = totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
+  const pAvgAovDb = pTotalBuyersDb > 0 ? pTotalGmvDb / pTotalBuyersDb : 0;
+  const conversionRateShopee =
+    totalDbImpressions > 0 ? (totalDbOrdersFunnel / totalDbImpressions) * 100 : 0;
+  const pConversionRateShopee =
+    pTotalDbImpressions > 0 ? (pTotalOrdersDb / pTotalDbImpressions) * 100 : 0;
+
+  const stats: LiveReportPanelStats = {
+    totalSessionsDb,
+    totalGmvDb,
+    totalBuyersDb,
+    totalOrdersDb,
+    totalItemsSoldDb,
+    totalLikesDb,
+    totalCommentsDb,
+    totalSharesDb,
+    totalClicksDb,
+    avgViewDurationDb,
+    pTotalGmvDb,
+    pTotalBuyersDb,
+    pTotalOrdersDb,
+    pTotalItemsSoldDb,
+    pTotalLikesDb,
+    pTotalCommentsDb,
+    pTotalSharesDb,
+    pTotalClicksDb,
+    pAvgViewDurationDb,
+    totalDbImpressions,
+    totalDbLiveVisits,
+    totalDbClicks,
+    totalDbOrdersFunnel,
+    pTotalDbImpressions,
+    totalDbDuration,
+    pTotalDbDuration,
+    gmvPerHour,
+    pGmvPerHour,
+    avgAovDb,
+    pAvgAovDb,
+    conversionRateShopee,
+    pConversionRateShopee,
+    isShopee,
+  };
+
+  const chartData = input.model.liveChartData;
+  const sortedTableLogs = sortReportLogs(
+    tableLogs,
+    input.reportDbSortCol,
+    input.reportDbSortAsc,
+  );
+  const paginatedLogs = sortedTableLogs.slice(
+    (input.currentPage - 1) * input.itemsPerPage,
+    input.currentPage * input.itemsPerPage,
+  );
+  const totalPages = Math.ceil(sortedTableLogs.length / input.itemsPerPage);
+
+  return {
+    stats,
+    chartData,
+    sortedTableLogs,
+    paginatedLogs,
+    totalPages,
+  };
+}

@@ -72,6 +72,26 @@ export const DEFAULT_GLOBAL_CONFIG = {
   adminShiftChecklistObj: {},
 };
 
+export function parseNestedJsonValue<T extends object>(
+  rawValue: unknown,
+): T | null {
+  let value: unknown = rawValue;
+
+  for (let attempt = 0; attempt < 2 && typeof value === "string"; attempt += 1) {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as T;
+}
+
 export function saveLocalConfig(partialConfig: Partial<GlobalConfigData> & Record<string, unknown>): void {
   try {
     const existing = localStorage.getItem(GLOBAL_CONFIG_STORAGE_KEY);

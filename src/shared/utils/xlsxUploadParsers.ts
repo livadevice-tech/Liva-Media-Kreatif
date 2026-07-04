@@ -5,6 +5,22 @@ import type { ReportingRawRow, SkuRawRow } from "../types/reporting";
 
 type WorksheetRows = readonly unknown[][];
 
+export async function readFirstWorksheetRowsFromFile(
+  file: File,
+): Promise<WorksheetRows> {
+  const data = new Uint8Array(await file.arrayBuffer());
+  const workbook = XLSX.read(data, { type: "array", raw: true });
+  const firstSheetName = workbook.SheetNames[0];
+  if (!firstSheetName) return [];
+
+  const worksheet = workbook.Sheets[firstSheetName];
+  if (!worksheet) return [];
+
+  return XLSX.utils.sheet_to_json(worksheet, {
+    header: 1,
+  }) as unknown[][];
+}
+
 const normalizeText = (value: unknown) =>
   String(value ?? "")
     .trim()

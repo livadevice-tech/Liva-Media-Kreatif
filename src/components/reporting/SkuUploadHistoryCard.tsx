@@ -1,5 +1,6 @@
 import { Database, Trash2 } from "lucide-react";
 import type { SkuLogEntry } from "../../shared/types/reporting";
+import { buildSkuUploadHistoryRows } from "../../shared/utils/skuUploadHistory";
 
 interface SkuUploadHistoryCardProps {
   brandSkuLogs: SkuLogEntry[];
@@ -9,13 +10,6 @@ interface SkuUploadHistoryCardProps {
   onDeleteBatch: (batchId: string) => void;
 }
 
-interface SkuUploadHistoryRow {
-  batchId: string;
-  uploadedAt: string;
-  records: number;
-  platform: string;
-}
-
 export function SkuUploadHistoryCard({
   brandSkuLogs,
   currentPage,
@@ -23,25 +17,7 @@ export function SkuUploadHistoryCard({
   setCurrentPage,
   onDeleteBatch,
 }: SkuUploadHistoryCardProps) {
-  const uploadHistoryList = Array.from(
-    brandSkuLogs.reduce((acc, log) => {
-      if (!log.batchId) return acc;
-      const existing = acc.get(log.batchId);
-      if (existing) {
-        existing.records += 1;
-      } else {
-        acc.set(log.batchId, {
-          batchId: log.batchId,
-          uploadedAt: log.uploadedAt || "",
-          records: 1,
-          platform: log.platform || "Shopee Live",
-        });
-      }
-      return acc;
-    }, new Map<string, SkuUploadHistoryRow>()).values(),
-  ).sort(
-    (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
-  );
+  const uploadHistoryList = buildSkuUploadHistoryRows(brandSkuLogs);
 
   const totalPages = Math.max(
     1,

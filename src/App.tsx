@@ -159,7 +159,15 @@ import {
 import {
   parseReportingUploadRows,
   parseSkuUploadRows,
+  readFirstWorksheetRowsFromFile,
 } from "./shared/utils/xlsxUploadParsers";
+import { buildReportingUploadSummary } from "./shared/utils/reportingUploadSummary";
+import {
+  detectBrandFromFilename,
+  detectPlatformFromFilename,
+  findReportingUploadHeaderRowIndex,
+  detectReportingPlatformFromHeaders,
+} from "./shared/utils/uploadAutoDetect";
 import {
   type BrandReportRow,
   type BrandPerformanceLogEntry,
@@ -189,6 +197,7 @@ import {
   getMonthOffset,
   isLogDateMatching,
 } from "./shared/utils/reporting";
+import { filterItemsWithinDateRange } from "./shared/utils/reportingDeletion";
 import { buildLiveReportViewModel } from "./shared/utils/liveReporting";
 import { buildEngagementReportViewModel } from "./shared/utils/engagementReporting";
 import { buildActiveReportBrandUploadHistory } from "./shared/utils/uploadHistory";
@@ -200,8 +209,20 @@ import {
   sortReportLogs,
 } from "./shared/utils/reportTable";
 import {
+  buildReportBrandSummary,
+  getAvailablePlatformsForBrand,
+  selectMostUsedPlatform,
+} from "./shared/utils/reportBrandSummary";
+import {
+  markAllAsRead,
+  markHostNotificationsAsRead as markHostNotificationsAsReadList,
+  prependCappedNotification,
+  removeNotification,
+} from "./shared/utils/notificationList";
+import {
   DEFAULT_GLOBAL_CONFIG,
   type GlobalConfigData,
+  parseNestedJsonValue,
   saveLocalConfig,
 } from "./shared/config/globalConfig";
 import type { AuthSession } from "./shared/auth/session";
@@ -240,12 +261,20 @@ import { ReportPeriodNavigator } from "./components/reporting/ReportPeriodNaviga
 import { ReportMetricCard } from "./components/reporting/ReportMetricCard";
 import { ReportFiltersBar } from "./components/reporting/ReportFiltersBar";
 import { ReportRawSessionsCard } from "./components/reporting/ReportRawSessionsCard";
-import { EngagementReportPanel } from "./components/reporting/EngagementReportPanel";
-import { LiveReportPanel } from "./components/reporting/LiveReportPanel";
 import { UploadHistoryCard } from "./components/reporting/UploadHistoryCard";
-import { SkuUploadHistoryCard } from "./components/reporting/SkuUploadHistoryCard";
 import { LeadPipelinePanel } from "./components/reporting/LeadPipelinePanel";
 import { LeadFormModal } from "./components/reporting/LeadFormModal";
+import {
+  ReportingWorkspaceHeader,
+  ReportingWorkspaceTabs,
+} from "./components/reporting/ReportingWorkspaceHeader";
+import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSelectionPanel";
+import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
+import { EngagementReportFilters } from "./components/reporting/EngagementReportFilters";
+import { DeleteByDateModal } from "./components/reporting/DeleteByDateModal";
+import { SkuUploadModal } from "./components/reporting/SkuUploadModal";
+import { ReportingUploadAnalyticsSection } from "./components/reporting/ReportingUploadAnalyticsSection";
+import { ReportingUploadPreviewTable } from "./components/reporting/ReportingUploadPreviewTable";
 import { CutoffPeriodSelector } from "./components/reporting/CutoffPeriodSelector";
 import { SettingsMetadataPanels } from "./components/reporting/SettingsMetadataPanels";
 import { AdminPasswordCard } from "./components/reporting/AdminPasswordCard";
@@ -256,6 +285,17 @@ import {
   filterSkuLogs,
   getLatestDateForBrand,
 } from "./shared/utils/skuReporting";
+
+const LiveReportPanel = React.lazy(() =>
+  import("./components/reporting/LiveReportPanel").then((module) => ({
+    default: module.LiveReportPanel,
+  })),
+);
+const EngagementReportPanel = React.lazy(() =>
+  import("./components/reporting/EngagementReportPanel").then((module) => ({
+    default: module.EngagementReportPanel,
+  })),
+);
 
 interface GoogleUserProfile {
   displayName?: string | null;
@@ -816,20 +856,10 @@ export default function App() {
 
         // Global configs — load dari MySQL (dengan fallback ke localStorage)
         loadTasks.push(
-        settingsApi
+          settingsApi
             .get<GlobalConfigData | string>("liva_global_configs")
             .then((mysqlData) => {
-              let data = mysqlData;
-              if (typeof data === "string") {
-                try {
-                  data = JSON.parse(data);
-                } catch (e) {}
-              }
-              if (typeof data === "string") {
-                try {
-                  data = JSON.parse(data);
-                } catch (e) {} // double parse just in case
-              }
+              let data = parseNestedJsonValue<GlobalConfigData>(mysqlData);
 
               if (
                 !data ||
@@ -841,19 +871,17 @@ export default function App() {
                   "liva_global_configs",
                 );
                 if (storedConfig) {
-                  try {
-                    data = JSON.parse(storedConfig);
-                    if (typeof data === "string")
-                      data = JSON.parse(data); // fix corrupted localStorage
+                  const parsedStoredConfig =
+                    parseNestedJsonValue<GlobalConfigData>(storedConfig);
 
+                  if (parsedStoredConfig) {
+                    data = parsedStoredConfig;
                     // Migrasikan ke MySQL agar sinkron
                     if (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.settings)) {
                       settingsApi
                         .save("liva_global_configs", data)
                         .catch(console.error);
                     }
-                  } catch {
-                    /* ignore parse error */
                   }
                 } else {
                   // Seed default global configs
@@ -1603,6 +1631,15 @@ export default function App() {
   const [openBrandCardActionsId, setOpenBrandCardActionsId] = useState<
     string | null
   >(null);
+  const handleOpenReportBrand = (brandId: string) => {
+    setActiveReportBrandId(brandId);
+    setSaveTargetBrandId(brandId);
+    setAdminReportBrandFilter(brandId);
+    setOpenBrandCardActionsId(null);
+  };
+  const handleToggleBrandCardActions = (brandId: string) => {
+    setOpenBrandCardActionsId((prev) => (prev === brandId ? null : brandId));
+  };
   const [reportDbSearchQuery, setReportDbSearchQuery] = useState("");
   const [reportDbSortCol, setReportDbSortCol] = useState("date");
   const [reportDbSortAsc, setReportDbSortAsc] = useState(false);
@@ -1612,41 +1649,32 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 30;
 
-  const availableOperatorPlatforms = useMemo(() => {
-    if (!activeReportBrandId || brandPerformanceLogs.length === 0) return platforms;
-    const logs = brandPerformanceLogs.filter(log => log.brandId === activeReportBrandId);
-    if (logs.length === 0) return platforms;
-    const pfData = new Set<string>();
-    logs.forEach(l => { if (l.platform) pfData.add(l.platform); });
-    const res = Array.from(pfData);
-    return res.length > 0 ? res : platforms;
-  }, [activeReportBrandId, brandPerformanceLogs]);
+  const availableOperatorPlatforms = useMemo(
+    () =>
+      getAvailablePlatformsForBrand(
+        activeReportBrandId || "",
+        brandPerformanceLogs,
+        platforms,
+      ),
+    [activeReportBrandId, brandPerformanceLogs, platforms],
+  );
 
-  const availableClientPlatforms = useMemo(() => {
-    if (!loggedInClientBrandId || brandPerformanceLogs.length === 0) return platforms;
-    const logs = brandPerformanceLogs.filter(log => log.brandId === loggedInClientBrandId);
-    if (logs.length === 0) return platforms;
-    const pfData = new Set<string>();
-    logs.forEach(l => { if (l.platform) pfData.add(l.platform); });
-    const res = Array.from(pfData);
-    return res.length > 0 ? res : platforms;
-  }, [loggedInClientBrandId, brandPerformanceLogs]);
+  const availableClientPlatforms = useMemo(
+    () =>
+      getAvailablePlatformsForBrand(
+        loggedInClientBrandId || "",
+        brandPerformanceLogs,
+        platforms,
+      ),
+    [loggedInClientBrandId, brandPerformanceLogs, platforms],
+  );
 
   const prevActiveReportBrandIdRef = useRef("");
   useEffect(() => {
     if (activeReportBrandId && activeReportBrandId !== prevActiveReportBrandIdRef.current && brandPerformanceLogs.length > 0) {
       const logs = brandPerformanceLogs.filter((log) => log.brandId === activeReportBrandId);
       if (logs.length > 0) {
-        const counts: Record<string, number> = {};
-        logs.forEach((l) => {
-          if (l.platform) counts[l.platform] = (counts[l.platform] || 0) + 1;
-        });
-        let topPf = "TikTok Live";
-        let max = -1;
-        for (const [p, c] of Object.entries(counts)) {
-          if (c > max) { max = c; topPf = p; }
-        }
-        setOperatorPlatformFilter(topPf);
+        setOperatorPlatformFilter(selectMostUsedPlatform(logs));
         prevActiveReportBrandIdRef.current = activeReportBrandId;
       }
     }
@@ -1657,16 +1685,7 @@ export default function App() {
     if (loggedInClientBrandId && loggedInClientBrandId !== prevLoggedInClientBrandIdRef.current && brandPerformanceLogs.length > 0) {
       const logs = brandPerformanceLogs.filter((log) => log.brandId === loggedInClientBrandId);
       if (logs.length > 0) {
-        const counts: Record<string, number> = {};
-        logs.forEach((l) => {
-          if (l.platform) counts[l.platform] = (counts[l.platform] || 0) + 1;
-        });
-        let topPf = "TikTok Live";
-        let max = -1;
-        for (const [p, c] of Object.entries(counts)) {
-          if (c > max) { max = c; topPf = p; }
-        }
-        setClientPlatformFilter(topPf);
+        setClientPlatformFilter(selectMostUsedPlatform(logs));
         prevLoggedInClientBrandIdRef.current = loggedInClientBrandId;
       }
     }
@@ -1701,115 +1720,27 @@ export default function App() {
         : defaults;
   }, [brandPerformanceLogs]);
 
-  const reportBrandOverviewStats = useMemo(() => {
-    const totalSessions = brandPerformanceLogs.length;
-    const totalGmv = brandPerformanceLogs.reduce(
-      (sum, log) => sum + (log.gmv || 0),
-      0,
-    );
-    const activeBrandIds = new Set<string>();
-    brandPerformanceLogs.forEach((log) => activeBrandIds.add(log.brandId));
-    brandUploadHistory.forEach((batch) => activeBrandIds.add(batch.brandId));
-    return {
-      totalBrands: clientBrands.length,
-      activeBrands: activeBrandIds.size,
-      totalSessions,
-      totalGmv,
-    };
-  }, [brandPerformanceLogs, brandUploadHistory, clientBrands]);
-
-  const filteredReportBrandRows = useMemo(() => {
-    const query = reportBrandSearchQuery.trim().toLowerCase();
-    const rows = clientBrands
-      .map((brand) => {
-        const sessionLogs = brandPerformanceLogs.filter(
-          (log) => log.brandId === brand.id,
-        );
-        const batchLogs = brandUploadHistory.filter(
-          (batch) => batch.brandId === brand.id,
-        );
-        const platforms = Array.from(
-          new Set(
-            sessionLogs
-              .map((log) => log.platform)
-              .filter((platform): platform is string => Boolean(platform)),
-          ),
-        );
-        const totalGmv = sessionLogs.reduce(
-          (sum, log) => sum + (log.gmv || 0),
-          0,
-        );
-        const latestActivity =
-          (() => {
-            const timestamps = [...sessionLogs, ...batchLogs]
-              .map((item) => item.createdAt || item.uploadedAt || item.date || "")
-              .filter(Boolean)
-              .sort();
-            return timestamps[timestamps.length - 1] || "";
-          })();
-        return {
-          brand,
-          sessionCount: sessionLogs.length,
-          batchCount: batchLogs.length,
-          totalGmv,
-          platforms,
-          latestActivity,
-          hasData: sessionLogs.length > 0 || batchLogs.length > 0,
-        };
-      })
-      .filter((row) => {
-        if (query) {
-          const matches =
-            (row.brand.name || "").toLowerCase().includes(query) ||
-            row.brand.id.toLowerCase().includes(query);
-          if (!matches) return false;
-        }
-        if (
-          reportBrandPlatformFilter !== "Semua Platform" &&
-          !row.platforms.includes(reportBrandPlatformFilter)
-        ) {
-          return false;
-        }
-        if (
-          reportBrandStatusFilter === "Aktif" &&
-          !row.hasData
-        ) {
-          return false;
-        }
-        if (
-          reportBrandStatusFilter === "Belum Ada Data" &&
-          row.hasData
-        ) {
-          return false;
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        if (reportBrandSortKey === "name") {
-          return a.brand.name.localeCompare(b.brand.name);
-        }
-        if (reportBrandSortKey === "gmv") {
-          return b.totalGmv - a.totalGmv;
-        }
-        if (reportBrandSortKey === "sessions") {
-          return b.sessionCount - a.sessionCount;
-        }
-        if (reportBrandSortKey === "uploads") {
-          return b.batchCount - a.batchCount;
-        }
-        return (b.latestActivity || "").localeCompare(a.latestActivity || "");
-      });
-
-    return rows;
-  }, [
-    brandPerformanceLogs,
-    brandUploadHistory,
-    clientBrands,
-    reportBrandPlatformFilter,
-    reportBrandSearchQuery,
-    reportBrandSortKey,
-    reportBrandStatusFilter,
-  ]);
+  const { overviewStats: reportBrandOverviewStats, rows: filteredReportBrandRows } = useMemo(
+    () =>
+      buildReportBrandSummary({
+        clientBrands,
+        brandPerformanceLogs,
+        brandUploadHistory,
+        reportBrandSearchQuery,
+        reportBrandPlatformFilter,
+        reportBrandStatusFilter,
+        reportBrandSortKey,
+      }),
+    [
+      brandPerformanceLogs,
+      brandUploadHistory,
+      clientBrands,
+      reportBrandPlatformFilter,
+      reportBrandSearchQuery,
+      reportBrandSortKey,
+      reportBrandStatusFilter,
+    ],
+  );
 
   const totalReportBrandPages = Math.max(
     1,
@@ -1922,7 +1853,8 @@ export default function App() {
       actionTab?: string,
     ) => {
       setNotifications((prev) => {
-        const updated = [
+        return prependCappedNotification(
+          prev,
           {
             id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             title,
@@ -1932,26 +1864,19 @@ export default function App() {
             read: false,
             actionTab,
           },
-          ...prev,
-        ].slice(0, 40); // cap at 40 entries
-        return updated;
+          40,
+        );
       });
     },
     [setNotifications],
   );
 
   const markAllNotificationsAsRead = () => {
-    setNotifications((prev) => {
-      const updated = prev.map((n) => ({ ...n, read: true }));
-      return updated;
-    });
+    setNotifications((prev) => markAllAsRead(prev));
   };
 
   const deleteNotification = (id: string) => {
-    setNotifications((prev) => {
-      const updated = prev.filter((n) => n.id !== id);
-      return updated;
-    });
+    setNotifications((prev) => removeNotification(prev, id));
   };
 
   const clearAllNotifications = () => {
@@ -1996,13 +1921,15 @@ export default function App() {
   );
 
   const markHostNotificationsAsRead = (hostId: string) => {
-    setHostNotifications((prev) =>
-      prev.map((n) => (n.hostId === hostId ? { ...n, read: true } : n)),
-    );
+    setHostNotifications((prev) => markHostNotificationsAsReadList(prev, hostId));
   };
 
   const [reportingRawData, setReportingRawData] = useState<ReportingRawRow[]>(
     [],
+  );
+  const reportingUploadSummary = useMemo(
+    () => buildReportingUploadSummary(reportingRawData),
+    [reportingRawData],
   );
   const [skuRawData, setSkuRawData] = useState<SkuRawRow[]>([]);
   const [shopeeSkuLogs, setShopeeSkuLogs] = useState<SkuLogEntry[]>([]);
@@ -2076,190 +2003,79 @@ export default function App() {
   };
 
 
-  const handleUploadSkuRaw = (file: File) => {
+  const handleUploadSkuRaw = async (file: File) => {
     setAutoDetectNotice("");
     setUploadedFileName(file.name);
 
-    // Auto-detect brand from filename
-    let detectedBrandObj = null;
-    const fileNameLower = file.name.toLowerCase();
-    for (const b of clientBrands) {
-      const brandNameClean = (b.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (fileNameLower.includes(brandNameClean) && brandNameClean.length > 0) {
-        detectedBrandObj = b;
-        break;
-      }
-      const words = b.name
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((w) => w.length > 2);
-      if (words?.some((word) => fileNameLower.includes(word))) {
-        detectedBrandObj = b;
-        break;
-      }
-    }
+    const detectedBrandObj = detectBrandFromFilename(file.name, clientBrands);
 
     if (detectedBrandObj) {
       setSaveTargetBrandId(detectedBrandObj.id);
     }
-    setSaveTargetPlatform(
-      fileNameLower.includes("tiktok") ? "TikTok Live" : "Shopee Live",
-    );
+    setSaveTargetPlatform(detectPlatformFromFilename(file.name) || "Shopee Live");
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array", raw: true });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-          header: 1,
-        }) as unknown[][];
+    try {
+      const jsonData = await readFirstWorksheetRowsFromFile(file);
 
-        if (jsonData.length < 2) {
-          alert("File kosong atau format salah.");
-          return;
-        }
-
-        // Find headers
-        let headerRowIdx = -1;
-        for (let r = 0; r < Math.min(jsonData.length, 50); r++) {
-          const row = jsonData[r];
-          if (
-            row &&
-            row?.some(
-              (cell) =>
-                typeof cell === "string" &&
-                (cell.toLowerCase().includes("sku") ||
-                  cell.toLowerCase().includes("produk") ||
-                  cell.toLowerCase().includes("product") ||
-                  cell.toLowerCase().includes("item") ||
-                  cell.toLowerCase().includes("judul")),
-            )
-          ) {
-            headerRowIdx = r;
-            break;
-          }
-        }
-        if (headerRowIdx === -1) headerRowIdx = 0;
-
-        let globalDateFallback = "";
-        for (let r = 0; r < headerRowIdx; r++) {
-          const row = jsonData[r];
-          if (!row) continue;
-          for (let i = 0; i < row.length; i++) {
-            const cellStr = String(row[i] || "");
-            const matchYMD = cellStr.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
-            if (matchYMD) {
-              globalDateFallback = `${matchYMD[1]}-${matchYMD[2]}-${matchYMD[3]}`;
-              break;
-            }
-            const matchDMY = cellStr.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
-            if (matchDMY) {
-              globalDateFallback = `${matchDMY[3]}-${matchDMY[2]}-${matchDMY[1]}`;
-              break;
-            }
-          }
-          if (globalDateFallback) break;
-        }
-        if (!globalDateFallback) {
-          const fnMatchYMD = file.name.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
-          if (fnMatchYMD) globalDateFallback = `${fnMatchYMD[1]}-${fnMatchYMD[2]}-${fnMatchYMD[3]}`;
-          else {
-            const fnMatchYM = file.name.match(/(\d{4})[\/\-](\d{2})/);
-            if (fnMatchYM) globalDateFallback = `${fnMatchYM[1]}-${fnMatchYM[2]}-01`;
-          }
-        }
-
-        const headers = Array.from(jsonData[headerRowIdx] || []).map((h) =>
-          String(h || "")
-            .trim()
-            .toLowerCase(),
-        );
-
-        let detectedPlatform = fileNameLower.includes("tiktok")
-          ? "TikTok Live"
-          : fileNameLower.includes("shopee")
-            ? "Shopee Live"
-            : "";
-        if (!detectedPlatform) {
-          if (
-            headers?.some(
-              (h) =>
-                h.includes("tiktok") ||
-                h.includes("attributed") ||
-                h.includes("product impressions") ||
-                h.includes("product clicks"),
-            )
-          ) {
-            detectedPlatform = "TikTok Live";
-          } else if (headers?.some((h) => h.includes("shopee"))) {
-            detectedPlatform = "Shopee Live";
-          }
-        }
-        if (detectedPlatform) {
-          setSaveTargetPlatform(detectedPlatform);
-        }
-
-        const skuRows = parseSkuUploadRows(jsonData, file.name);
-        setSkuRawData(skuRows);
-        if (detectedBrandObj) {
-          setAutoDetectNotice(
-            `Auto-detected Klien: ${detectedBrandObj.name} (${skuRows.length} records).`,
-          );
-        }
+      if (jsonData.length < 2) {
+        alert("File kosong atau format salah.");
         return;
-      } catch (err) {
-        console.error(err);
-        alert("Error: " + err);
       }
-    };
-    reader.readAsArrayBuffer(file);
+
+      // Find headers
+      let headerRowIdx = -1;
+      for (let r = 0; r < Math.min(jsonData.length, 50); r++) {
+        const row = jsonData[r];
+        if (
+          row &&
+          row?.some(
+            (cell) =>
+              typeof cell === "string" &&
+              (cell.toLowerCase().includes("sku") ||
+                cell.toLowerCase().includes("produk") ||
+                cell.toLowerCase().includes("product") ||
+                cell.toLowerCase().includes("item") ||
+                cell.toLowerCase().includes("judul")),
+          )
+        ) {
+          headerRowIdx = r;
+          break;
+        }
+      }
+      if (headerRowIdx === -1) headerRowIdx = 0;
+
+      const headers = Array.from(jsonData[headerRowIdx] || []).map((h) =>
+        String(h || "")
+          .trim()
+          .toLowerCase(),
+      );
+
+      let detectedPlatform = detectPlatformFromFilename(file.name);
+      if (!detectedPlatform) {
+        detectedPlatform = detectReportingPlatformFromHeaders(headers);
+      }
+      if (detectedPlatform) {
+        setSaveTargetPlatform(detectedPlatform);
+      }
+
+      const skuRows = parseSkuUploadRows(jsonData, file.name);
+      setSkuRawData(skuRows);
+      if (detectedBrandObj) {
+        setAutoDetectNotice(
+          `Auto-detected Klien: ${detectedBrandObj.name} (${skuRows.length} records).`,
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error: " + err);
+    }
   };
 
-  const handleUploadReportingRaw = (file: File) => {
+  const handleUploadReportingRaw = async (file: File) => {
     setAutoDetectNotice("");
     setUploadedFileName(file.name);
-    const fileNameLower = file.name.toLowerCase();
-
-    // 1. Auto-detect platform from filename
-    let detectedPlatform = "";
-    if (fileNameLower.includes("tiktok")) {
-      detectedPlatform = "TikTok Live";
-    } else if (fileNameLower.includes("shopee")) {
-      detectedPlatform = "Shopee Live";
-    } else if (
-      fileNameLower.includes("tokopedia") ||
-      fileNameLower.includes("tokoped")
-    ) {
-      detectedPlatform = "Tokopedia";
-    } else if (
-      fileNameLower.includes("lazada") ||
-      fileNameLower.includes("laz")
-    ) {
-      detectedPlatform = "Lazada";
-    }
-
-    // 2. Auto-detect brand from filename
-    let detectedBrandObj = null;
-    for (const b of clientBrands) {
-      const brandNameClean = (b.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-      // Direct clean substring
-      if (fileNameLower.includes(brandNameClean) && brandNameClean.length > 0) {
-        detectedBrandObj = b;
-        break;
-      }
-      // Word by word matching for longer names
-      const words = b.name
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((w) => w.length > 2);
-      if (words?.some((word) => fileNameLower.includes(word))) {
-        detectedBrandObj = b;
-        break;
-      }
-    }
+    const detectedPlatform = detectPlatformFromFilename(file.name);
+    const detectedBrandObj = detectBrandFromFilename(file.name, clientBrands);
 
     if (detectedPlatform) {
       setSaveTargetPlatform(detectedPlatform);
@@ -2268,161 +2084,58 @@ export default function App() {
       setSaveTargetBrandId(detectedBrandObj.id);
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array", raw: true });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-          header: 1,
-        }) as unknown[][];
+    try {
+      const jsonData = await readFirstWorksheetRowsFromFile(file);
 
-        if (jsonData.length < 2) {
-          alert("File kosong atau format salah.");
-          return;
-        }
-
-        // Find headers row and map columns
-        let headerRowIdx = -1;
-        for (let r = 0; r < Math.min(jsonData.length, 50); r++) {
-          const row = jsonData[r];
-          if (
-            row &&
-            row?.some((cell) => {
-              if (typeof cell !== "string") return false;
-              const cLower = cell.toLowerCase().trim();
-              // Filter out row 0 main grouping titles
-              if (
-                cLower === "interaksi" ||
-                cLower === "promosi" ||
-                cLower === "konversi" ||
-                cLower === "data utama"
-              ) {
-                const nonEmpStrCols = row.filter(
-                  (c) => typeof c === "string" && c.trim().length > 0,
-                ).length;
-                if (nonEmpStrCols < 8) return false;
-              }
-              return (
-                cLower.includes("streaming") ||
-                cLower.includes("mulai") ||
-                cLower.includes("gmv") ||
-                cLower.includes("user id") ||
-                cLower === "penonton" ||
-                cLower === "penonton aktif" ||
-                cLower === "suka" ||
-                cLower === "komentar" ||
-                cLower.includes("pembeli(pesanan")
-              );
-            })
-          ) {
-            headerRowIdx = r;
-            break;
-          }
-        }
-
-        if (headerRowIdx === -1) {
-          headerRowIdx = 0; // fallback to first row
-        }
-
-        const headers = Array.from(jsonData[headerRowIdx] || []).map((h) =>
-          String(h || "")
-            .trim()
-            .toLowerCase(),
-        );
-
-        let detectedPlatform = fileNameLower.includes("tiktok")
-          ? "TikTok Live"
-          : fileNameLower.includes("shopee")
-            ? "Shopee Live"
-            : "";
-        if (!detectedPlatform) {
-          if (
-            headers?.some(
-              (h) =>
-                h.includes("tiktok") ||
-                h.includes("attributed") ||
-                h.includes("product impressions") ||
-                h.includes("product clicks"),
-            )
-          ) {
-            detectedPlatform = "TikTok Live";
-          } else if (headers?.some((h) => h.includes("shopee"))) {
-            detectedPlatform = "Shopee Live";
-          }
-        }
-        if (detectedPlatform) {
-          setSaveTargetPlatform(detectedPlatform);
-        }
-
-        // Help detect platform from columns if not detected yet
-        if (!detectedPlatform) {
-          if (
-            headers?.some(
-              (h) =>
-                h.includes("tiktok") ||
-                h.includes("live room") ||
-                h.includes("judul ruang live") ||
-                h.includes("highest ccu") ||
-                h.includes("penonton serentak tertinggi") ||
-                h.includes("anchor") ||
-                h.includes("uid") ||
-                h.includes("live impressions") ||
-                h.includes("attributed gmv") ||
-                h.includes("product impressions"),
-            )
-          ) {
-            detectedPlatform = "TikTok Live";
-            setSaveTargetPlatform(detectedPlatform);
-          } else if (
-            headers?.some(
-              (h) =>
-                h.includes("shopee") ||
-                h.includes("username pembeli") ||
-                h.includes("live id") ||
-                h.includes("nama produk") ||
-                h.includes("nama livestream") ||
-                h.includes("livestream name") ||
-                h.includes("tambah ke keranjang") ||
-                h.includes("penonton aktif") ||
-                h.includes("pesanan(pesanan dibuat)") ||
-                h.includes("max concurrent viewers") ||
-                h.includes("orders(orders paid)"),
-            )
-          ) {
-            detectedPlatform = "Shopee Live";
-            setSaveTargetPlatform(detectedPlatform);
-          }
-        }
-
-        // Prepare info banner
-        const parts = [];
-        if (detectedBrandObj) parts.push(`Klien: ${detectedBrandObj.name}`);
-        if (detectedPlatform) parts.push(`Platform: ${detectedPlatform}`);
-
-        if (parts.length > 0) {
-          setAutoDetectNotice(
-            `Auto-detection Pintar: Berhasil mendeteksi ${parts.join(" & ")} dari nama file/kolom (${file.name})!`,
-          );
-        } else {
-          setAutoDetectNotice(
-            `File "${file.name}" berhasil dibaca. Silakan pilih Brand & Platform secara manual.`,
-          );
-        }
-
-        const reportingRows = parseReportingUploadRows(jsonData, shifts);
-        setReportingRawData(reportingRows);
+      if (jsonData.length < 2) {
+        alert("File kosong atau format salah.");
         return;
-      } catch (err) {
-        console.error("Error parsing workbook:", err);
-        alert(
-          "Gagal membaca file excel. Silakan periksa kembali format file anda.",
+      }
+
+      // Find headers row and map columns
+      let headerRowIdx = findReportingUploadHeaderRowIndex(jsonData);
+
+      if (headerRowIdx === -1) {
+        headerRowIdx = 0; // fallback to first row
+      }
+
+      const headers = Array.from(jsonData[headerRowIdx] || []).map((h) =>
+        String(h || "")
+          .trim()
+          .toLowerCase(),
+      );
+
+      let detectedPlatform = detectPlatformFromFilename(file.name);
+      if (!detectedPlatform) {
+        detectedPlatform = detectReportingPlatformFromHeaders(headers);
+      }
+      if (detectedPlatform) {
+        setSaveTargetPlatform(detectedPlatform);
+      }
+
+      // Prepare info banner
+      const parts = [];
+      if (detectedBrandObj) parts.push(`Klien: ${detectedBrandObj.name}`);
+      if (detectedPlatform) parts.push(`Platform: ${detectedPlatform}`);
+
+      if (parts.length > 0) {
+        setAutoDetectNotice(
+          `Auto-detection Pintar: Berhasil mendeteksi ${parts.join(" & ")} dari nama file/kolom (${file.name})!`,
+        );
+      } else {
+        setAutoDetectNotice(
+          `File "${file.name}" berhasil dibaca. Silakan pilih Brand & Platform secara manual.`,
         );
       }
-    };
-    reader.readAsArrayBuffer(file);
+
+      const reportingRows = parseReportingUploadRows(jsonData, shifts);
+      setReportingRawData(reportingRows);
+    } catch (err) {
+      console.error("Error parsing workbook:", err);
+      alert(
+        "Gagal membaca file excel. Silakan periksa kembali format file anda.",
+      );
+    }
   };
 
   const handleDeleteSkuBatch = async (batchId: string) => {
@@ -2609,15 +2322,12 @@ export default function App() {
     const targetType = operatorReportingTab;
 
     if (targetType === "product") {
-      const logsToDelete = shopeeSkuLogs.filter((log) => {
-        if (!log.date) return false;
-        let normalizedDate = log.date;
-        return (
-          log.brandId === activeReportBrandId &&
-          normalizedDate >= deleteByDateStart &&
-          normalizedDate <= deleteByDateEnd
-        );
-      });
+      const logsToDelete = filterItemsWithinDateRange<SkuLogEntry>(
+        shopeeSkuLogs,
+        deleteByDateStart,
+        deleteByDateEnd,
+        (log) => log.brandId === activeReportBrandId,
+      );
 
       if (logsToDelete.length === 0) {
         customAlert(
@@ -2648,35 +2358,17 @@ export default function App() {
       return;
     }
 
-    const logsToDelete = brandPerformanceLogs.filter((log) => {
-      if (log.brandId !== activeReportBrandId) return false;
-      if (targetType === "live" && log.reportType === "engagement") return false;
-      if (targetType === "engagement" && log.reportType !== "engagement") return false;
-
-      if (!log.date) return false;
-      let normalizedLogDate = log.date;
-      if (
-        log.date.indexOf("/") !== -1 ||
-        (log.date.indexOf("-") !== -1 && log.date.split("-")[0].length <= 2)
-      ) {
-        const parts = log.date.split(/[\/\-]/);
-        if (parts.length === 3) {
-          const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
-          const m = String(parts[1]).padStart(2, "0");
-          const d = String(parts[0]).padStart(2, "0");
-
-          if (parts[0].length === 4) {
-            normalizedLogDate = `${parts[0]}-${m}-${parts[2].padStart(2, "0")}`;
-          } else {
-            normalizedLogDate = `${y}-${m}-${d}`;
-          }
-        }
-      }
-      return (
-        normalizedLogDate >= deleteByDateStart &&
-        normalizedLogDate <= deleteByDateEnd
-      );
-    });
+    const logsToDelete = filterItemsWithinDateRange<BrandPerformanceLogEntry>(
+      brandPerformanceLogs,
+      deleteByDateStart,
+      deleteByDateEnd,
+      (log) => {
+        if (log.brandId !== activeReportBrandId) return false;
+        if (targetType === "live" && log.reportType === "engagement") return false;
+        if (targetType === "engagement" && log.reportType !== "engagement") return false;
+        return true;
+      },
+    );
 
     const displayType = targetType === "live" ? "Live Streaming" : targetType === "engagement" ? "Engagement" : "Live & Engagement";
 
@@ -13967,911 +13659,151 @@ export default function App() {
                     id="operator_reporting_brand_content"
                   >
                     {activeReportBrandId === null ? (
-                      <div className="space-y-6">
-                        <div className="overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white shadow-[0_8px_28px_rgba(27,28,28,0.04)]">
-                          <div className="flex flex-col gap-5 p-6 sm:p-8">
-                            <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-end 2xl:justify-between">
-                              <div className="max-w-2xl">
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-                                  <Sparkles className="w-3 h-3 text-[#5600e0]" />
-                                  Reporting Brand Workspace
-                                </span>
-                                <h3 className="mt-3 text-2xl sm:text-[30px] font-black tracking-tight text-[#1b1c1c]">
-                                  Reporting Brand Overview
-                                </h3>
-                                <p className="mt-2 text-sm sm:text-[15px] text-[#494456] font-medium leading-relaxed max-w-xl">
-                                  Kelola semua brand, lihat sesi live, total GMV,
-                                  dan akses dashboard detail dalam satu workspace
-                                  yang lebih rapi.
-                                </p>
-                              </div>
-                              <div className="grid min-w-0 w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:w-auto">
-                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#ffffff] p-4">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                                    Brand
-                                  </div>
-                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">
-                                    {reportBrandOverviewStats.totalBrands}
-                                  </div>
-                                </div>
-                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] p-4">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                                    Aktif
-                                  </div>
-                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#5600e0] tabular-nums">
-                                    {reportBrandOverviewStats.activeBrands}
-                                  </div>
-                                </div>
-                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] p-4">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                                    Sesi Live
-                                  </div>
-                                  <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">
-                                    {new Intl.NumberFormat("id-ID").format(
-                                      reportBrandOverviewStats.totalSessions,
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="min-w-0 rounded-lg border border-[#cbc3d9] bg-[#ffffff] p-4 2xl:min-w-52">
-                                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                                    Total GMV
-                                  </div>
-                                  <div
-                                    className="mt-1 truncate whitespace-nowrap text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums"
-                                    title={new Intl.NumberFormat("id-ID", {
-                                      style: "currency",
-                                      currency: "IDR",
-                                      maximumFractionDigits: 0,
-                                    }).format(reportBrandOverviewStats.totalGmv)}
-                                  >
-                                    {new Intl.NumberFormat("id-ID", {
-                                      style: "currency",
-                                      currency: "IDR",
-                                      maximumFractionDigits: 0,
-                                    }).format(reportBrandOverviewStats.totalGmv)}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* FITUR PENCARIAN BRAND */}
-                        <div className="rounded-2xl border border-[#cbc3d9] bg-white p-4 sm:p-5 shadow-[0_8px_24px_rgba(27,28,28,0.03)] space-y-4">
-                          <div className="flex flex-col xl:flex-row xl:items-center gap-3">
-                            <div className="relative flex-1 w-full">
-                              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7a7488]" />
-                              <input
-                                type="text"
-                                placeholder="Cari brand klien berdasarkan nama atau ID..."
-                                value={reportBrandSearchQuery}
-                                onChange={(e) =>
-                                  setReportBrandSearchQuery(e.target.value)
-                                }
-                                className="w-full rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] py-3 pl-10 pr-4 text-sm font-medium text-[#1b1c1c] placeholder:text-[#7a7488] outline-none transition-all focus:border-[#5600e0] focus:bg-white"
-                              />
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <select
-                                value={reportBrandPlatformFilter}
-                                onChange={(e) =>
-                                  setReportBrandPlatformFilter(e.target.value)
-                                }
-                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
-                              >
-                                <option value="Semua Platform">
-                                  Semua Platform
-                                </option>
-                                {availableReportBrandPlatforms.map(
-                                  (platform) => (
-                                    <option key={platform} value={platform}>
-                                      {platform}
-                                    </option>
-                                  ),
-                                )}
-                              </select>
-                              <select
-                                value={reportBrandStatusFilter}
-                                onChange={(e) =>
-                                  setReportBrandStatusFilter(e.target.value)
-                                }
-                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
-                              >
-                                <option value="Semua Status">
-                                  Semua Status
-                                </option>
-                                <option value="Aktif">Aktif</option>
-                                <option value="Belum Ada Data">
-                                  Belum Ada Data
-                                </option>
-                              </select>
-                              <select
-                                value={reportBrandSortKey}
-                                onChange={(e) =>
-                                  setReportBrandSortKey(e.target.value)
-                                }
-                                className="rounded-lg border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none focus:border-[#5600e0]"
-                              >
-                                <option value="latest_activity">
-                                  Urutkan: Terbaru
-                                </option>
-                                <option value="gmv">
-                                  Urutkan: GMV Tertinggi
-                                </option>
-                                <option value="sessions">
-                                  Urutkan: Sesi Terbanyak
-                                </option>
-                                <option value="uploads">
-                                  Urutkan: Upload Terbanyak
-                                </option>
-                                <option value="name">Urutkan: Nama A-Z</option>
-                              </select>
-                              {reportBrandSearchQuery && (
-                                <button
-                                  onClick={() => setReportBrandSearchQuery("")}
-                                  className="rounded-lg border border-[#cbc3d9] bg-white px-4 py-3 text-xs font-black text-[#5600e0] transition-colors hover:bg-[#f6f3f2] cursor-pointer"
-                                >
-                                  Reset
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-3 text-left">
-                          <div>
-                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-800">
-                              Brand Tersimpan
-                            </h4>
-                            <p className="text-[11px] text-slate-400 font-semibold mt-1">
-                              {filteredReportBrandRows.length} brand terdeteksi
-                              sesuai filter aktif.
-                            </p>
-                          </div>
-                          {reportBrandSearchQuery && (
-                            <button
-                              onClick={() => setReportBrandSearchQuery("")}
-                              className="text-xs font-black text-[#5600e0] hover:text-[#4f00d0]"
-                            >
-                              Hapus kata kunci
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                          <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            <span>Filter Aktif</span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                              {reportBrandPlatformFilter}
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                              {reportBrandStatusFilter}
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                              {reportBrandSortKey === "latest_activity"
-                                ? "Terbaru"
-                                : reportBrandSortKey === "gmv"
-                                  ? "GMV Tertinggi"
-                                  : reportBrandSortKey === "sessions"
-                                    ? "Sesi Terbanyak"
-                                    : reportBrandSortKey === "uploads"
-                                      ? "Upload Terbanyak"
-                                      : "Nama A-Z"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-slate-500">
-                              Menampilkan {filteredReportBrandRows.length} brand
-                            </span>
-                            {(reportBrandSearchQuery ||
-                              reportBrandPlatformFilter !== "Semua Platform" ||
-                              reportBrandStatusFilter !== "Semua Status" ||
-                              reportBrandSortKey !== "latest_activity") && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setReportBrandSearchQuery("");
-                                  setReportBrandPlatformFilter(
-                                    "Semua Platform",
-                                  );
-                                  setReportBrandStatusFilter("Semua Status");
-                                  setReportBrandSortKey("latest_activity");
-                                }}
-                                className="rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0] hover:bg-white transition-colors"
-                              >
-                                Reset Semua Filter
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 text-left md:grid-cols-2 2xl:grid-cols-3">
-                          {visibleReportBrandRows.map((row) => {
-                            const brand = row.brand;
-                            const numBrandLogs = row.sessionCount;
-                            const numUploadBatches = row.batchCount;
-                            const totalGmvSum = row.totalGmv;
-                            const brandPlatforms = row.platforms;
-                            const isBrandActive = row.hasData;
-
-                            return (
-                              <div
-                                key={brand.id}
-                                onClick={() => {
-                                  setActiveReportBrandId(brand.id);
-                                  setSaveTargetBrandId(brand.id);
-                                  setAdminReportBrandFilter(brand.id);
-                                  setOpenBrandCardActionsId(null);
-                                }}
-                                className="group relative flex min-h-64 min-w-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-indigo-300 focus-within:border-indigo-400"
-                              >
-                                <div>
-                                  <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
-                                    <div className="flex items-start gap-3 min-w-0">
-                                      <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-indigo-600 group-hover:text-white transition-all uppercase whitespace-nowrap shrink-0">
-                                        {brand.name.substring(0, 2)}
-                                      </div>
-                                      <div className="min-w-0">
-                                        <h4 className="truncate text-sm font-black uppercase text-slate-900 transition-colors group-hover:text-indigo-600">
-                                          {brand.name}
-                                        </h4>
-                                        <p className="truncate text-[10px] font-bold uppercase text-slate-400">
-                                          ID: {brand.id}
-                                        </p>
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                          {brandPlatforms.length > 0 ? (
-                                            brandPlatforms
-                                              .slice(0, 2)
-                                              .map((platform) => (
-                                                <span
-                                                  key={platform}
-                                                  className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600"
-                                                >
-                                                  {platform}
-                                                </span>
-                                              ))
-                                          ) : (
-                                            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-500">
-                                              Belum ada platform
-                                            </span>
-                                          )}
-                                          {brandPlatforms.length > 2 && (
-                                            <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-600">
-                                              +{brandPlatforms.length - 2}
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-1 text-[10px] font-black text-slate-600">
-                                            {numBrandLogs} Sesi
-                                          </span>
-                                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2 py-1 text-[10px] font-black text-indigo-600">
-                                            {numUploadBatches} Batch
-                                          </span>
-                                          <span
-                                            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black border ${
-                                              isBrandActive
-                                                ? "bg-emerald-50 border-emerald-100 text-emerald-700"
-                                                : "bg-slate-50 border-slate-200 text-slate-500"
-                                            }`}
-                                          >
-                                            {isBrandActive
-                                              ? "Aktif"
-                                              : "Belum Ada Data"}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div
-                                      className="flex items-center gap-2 shrink-0 relative"
-                                      data-brand-card-actions="true"
-                                    >
-                                      {(numBrandLogs > 0 ||
-                                        numUploadBatches > 0) && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setOpenBrandCardActionsId(
-                                              openBrandCardActionsId === brand.id
-                                                ? null
-                                                : brand.id,
-                                            );
-                                          }}
-                                          title="Aksi brand"
-                                          aria-label="Aksi brand"
-                                          className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl border border-slate-200 cursor-pointer transition-colors"
-                                        >
-                                          <MoreHorizontal className="w-4 h-4" />
-                                        </button>
-                                      )}
-                                      {openBrandCardActionsId === brand.id && (
-                                        <div className="absolute right-0 top-11 z-30 w-44 rounded-2xl border border-slate-200 bg-white shadow-xl p-2">
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setActiveReportBrandId(brand.id);
-                                              setSaveTargetBrandId(brand.id);
-                                              setAdminReportBrandFilter(
-                                                brand.id,
-                                              );
-                                              setOpenBrandCardActionsId(null);
-                                            }}
-                                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50"
-                                          >
-                                            Masuk Dashboard
-                                          </button>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDeleteAllBrandRawData(
-                                                brand.id,
-                                                brand.name,
-                                              );
-                                              setOpenBrandCardActionsId(null);
-                                            }}
-                                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50"
-                                          >
-                                            Hapus Semua Data
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="mt-4 border-t border-slate-100 pt-3">
-                                  <div className="flex min-w-0 items-center justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
-                                        Total GMV
-                                      </span>
-                                      <span className="text-[11px] font-black text-indigo-600 block truncate">
-                                        {new Intl.NumberFormat("id-ID", {
-                                          style: "currency",
-                                          currency: "IDR",
-                                          minimumFractionDigits: 0,
-                                        }).format(totalGmvSum)}
-                                      </span>
-                                    </div>
-                                    <div className="text-right">
-                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
-                                        Terakhir update
-                                      </span>
-                                      <span className="text-[11px] font-black text-slate-700 block">
-                                        {row.latestActivity
-                                          ? formatDateTimeSafe(row.latestActivity, {
-                                              day: "numeric",
-                                              month: "short",
-                                              year: "numeric",
-                                            })
-                                          : "-"}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveReportBrandId(brand.id);
-                                      setSaveTargetBrandId(brand.id);
-                                      setAdminReportBrandFilter(brand.id);
-                                      setOpenBrandCardActionsId(null);
-                                    }}
-                                    className="mt-3 flex min-h-10 w-full items-center justify-center rounded-xl bg-indigo-600 px-4 text-[11px] font-black text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                  >
-                                    Masuk Dashboard{" "}
-                                    <ArrowRight
-                                      className="ml-1 size-3.5"
-                                      aria-hidden="true"
-                                    />
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-
-                          {filteredReportBrandRows.length === 0 && (
-                            <div className="col-span-full bg-slate-50 border border-slate-200 border-dashed p-10 rounded-3xl text-center text-slate-400 text-xs font-semibold">
-                              {reportBrandSearchQuery ||
-                              reportBrandPlatformFilter !== "Semua Platform" ||
-                              reportBrandStatusFilter !== "Semua Status"
-                                ? "Tidak ada brand yang cocok dengan filter aktif. Coba ubah kata kunci, platform, atau status."
-                                : 'Belum ada Brand Klien terdaftar. Silakan tambahkan brand pada sub-menu "Data Brand" terlebih dahulu.'}
-                            </div>
-                          )}
-                        </div>
-                        {totalReportBrandPages > 1 && (
-                          <div className="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
-                            <button
-                              type="button"
-                              disabled={reportBrandPage === 1}
-                              onClick={() =>
-                                setReportBrandPage((p) => Math.max(1, p - 1))
-                              }
-                              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
-                            >
-                              ← Sebelumnya
-                            </button>
-                            <div className="text-[11px] font-black text-slate-600">
-                              Halaman {reportBrandPage} / {totalReportBrandPages}
-                            </div>
-                            <button
-                              type="button"
-                              disabled={reportBrandPage === totalReportBrandPages}
-                              onClick={() =>
-                                setReportBrandPage((p) =>
-                                  Math.min(totalReportBrandPages, p + 1),
-                                )
-                              }
-                              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
-                            >
-                              Berikutnya →
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <ReportBrandSelectionPanel
+                        overviewStats={reportBrandOverviewStats}
+                        filteredRows={filteredReportBrandRows}
+                        visibleRows={visibleReportBrandRows}
+                        searchQuery={reportBrandSearchQuery}
+                        platformFilter={reportBrandPlatformFilter}
+                        statusFilter={reportBrandStatusFilter}
+                        sortKey={reportBrandSortKey}
+                        availablePlatforms={availableReportBrandPlatforms}
+                        currentPage={reportBrandPage}
+                        totalPages={totalReportBrandPages}
+                        openBrandCardActionsId={openBrandCardActionsId}
+                        onSearchQueryChange={setReportBrandSearchQuery}
+                        onPlatformFilterChange={setReportBrandPlatformFilter}
+                        onStatusFilterChange={setReportBrandStatusFilter}
+                        onSortKeyChange={setReportBrandSortKey}
+                        onResetSearch={() => setReportBrandSearchQuery("")}
+                        onResetFilters={() => {
+                          setReportBrandSearchQuery("");
+                          setReportBrandPlatformFilter("Semua Platform");
+                          setReportBrandStatusFilter("Semua Status");
+                          setReportBrandSortKey("latest_activity");
+                        }}
+                        onPageChange={setReportBrandPage}
+                        onBrandSelect={handleOpenReportBrand}
+                        onToggleBrandCardActions={handleToggleBrandCardActions}
+                        onDeleteAllBrandRawData={(brandId, brandName) => {
+                          handleDeleteAllBrandRawData(brandId, brandName);
+                          setOpenBrandCardActionsId(null);
+                        }}
+                      />
                     ) : (
                       <>
                         <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left">
-                          {/* Header Workspace */}
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white mb-6 text-left border-b border-slate-200 px-6 sm:px-8 py-5">
-                            <div className="flex items-center gap-4">
-                              <button
-                                onClick={() => {
-                                  setActiveReportBrandId(null);
-                                  setReportingRawData([]);
-                                  setAutoDetectNotice("");
-                                }}
-                                className="bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors shadow-sm focus:outline-none"
-                              >
-                                <ArrowLeft className="w-4 h-4" />
-                              </button>
-                              <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                                {clientBrands.find(
+                          <ReportingWorkspaceHeader
+                            brandName={
+                              clientBrands.find(
+                                (b) => b.id === activeReportBrandId,
+                              )?.name || "Nama Brand"
+                            }
+                            activeTab={operatorReportingTab}
+                            onBack={() => {
+                              setActiveReportBrandId(null);
+                              setReportingRawData([]);
+                              setAutoDetectNotice("");
+                            }}
+                            onDeleteRange={() =>
+                              setIsDeleteByDateModalOpen(true)
+                            }
+                            onDeleteAll={() => {
+                              handleDeleteAllBrandRawData(
+                                activeReportBrandId || "",
+                                clientBrands.find(
                                   (b) => b.id === activeReportBrandId,
-                                )?.name || "Nama Brand"}
-                              </h3>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                onClick={() => {
-                                  setIsDeleteByDateModalOpen(true);
-                                }}
-                                className="px-4 py-2 bg-white text-orange-600 hover:text-orange-700 font-bold text-[11px] rounded-lg shadow-sm border border-slate-200 hover:bg-orange-50 flex items-center gap-2 cursor-pointer transition-all"
-                                title="Hapus Rentang Waktu"
-                              >
-                                <Calendar className="w-3.5 h-3.5" />
-                                Hapus Rentang Waktu
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  handleDeleteAllBrandRawData(
-                                    activeReportBrandId || "",
-                                    clientBrands.find(
-                                      (b) => b.id === activeReportBrandId,
-                                    )?.name || "",
-                                    operatorReportingTab
-                                  );
-                                }}
-                                className="px-4 py-2 bg-white text-red-600 hover:text-red-700 font-bold text-[11px] rounded-lg shadow-sm border border-slate-200 hover:bg-red-50 flex items-center gap-2 cursor-pointer transition-all"
-                                title="Hapus Semua Data"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                Hapus Semua Data
-                              </button>
-
-                              {operatorReportingTab === "product" && (
-                                <button
-                                  onClick={() => {
-                                    setSaveTargetBrandId(
-                                      activeReportBrandId || "",
-                                    );
-                                    setIsSkuUploadModalOpen(true);
-                                  }}
-                                  className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-[11px] rounded-lg shadow-sm border border-indigo-200 hover:bg-indigo-100 flex items-center gap-2 cursor-pointer transition-all"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                  Import Data SKU
-                                </button>
-                              )}
-
-                              {(operatorReportingTab === "live" ||
-                                operatorReportingTab === "engagement") && (
-                                <button
-                                  onClick={() => {
-                                    setSaveTargetBrandId(
-                                      activeReportBrandId || "",
-                                    );
-                                    setUploadTargetTab(
-                                      operatorReportingTab === "engagement"
-                                        ? "engagement"
-                                        : "live",
-                                    );
-                                    setIsUploadModalOpen(true);
-                                  }}
-                                  className="px-4 py-2 bg-slate-900 text-white font-bold text-[11px] rounded-lg shadow-sm border border-slate-800 hover:bg-slate-800 flex items-center gap-2 cursor-pointer transition-all"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                  Import Raw Data
-                                </button>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Operator Reporting Subtabs */}
-                          <div className="px-6 sm:px-8 mb-6 border-b border-slate-200 flex gap-6">
-                            <button
-                              onClick={() => setOperatorReportingTab("live")}
-                              className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
-                                operatorReportingTab === "live"
-                                  ? "text-indigo-600 border-indigo-600"
-                                  : "text-slate-500 border-transparent hover:text-slate-800"
-                              }`}
-                            >
-                              Live Performance
-                            </button>
-                            <button
-                              onClick={() => setOperatorReportingTab("product")}
-                              className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
-                                operatorReportingTab === "product"
-                                  ? "text-indigo-600 border-indigo-600"
-                                  : "text-slate-500 border-transparent hover:text-slate-800"
-                              }`}
-                            >
-                              Product Performance
-                            </button>
-                            <button
-                              onClick={() =>
-                                setOperatorReportingTab("engagement")
-                              }
-                              className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer bg-transparent relative ${
+                                )?.name || "",
+                                operatorReportingTab,
+                              );
+                            }}
+                            onImportSku={() => {
+                              setSaveTargetBrandId(activeReportBrandId || "");
+                              setIsSkuUploadModalOpen(true);
+                            }}
+                            onImportRaw={() => {
+                              setSaveTargetBrandId(activeReportBrandId || "");
+                              setUploadTargetTab(
                                 operatorReportingTab === "engagement"
-                                  ? "text-indigo-600 border-indigo-600"
-                                  : "text-slate-500 border-transparent hover:text-slate-800"
-                              }`}
-                            >
-                              Engagement & Promotion
-                            </button>
-                          </div>
+                                  ? "engagement"
+                                  : "live",
+                              );
+                              setIsUploadModalOpen(true);
+                            }}
+                          />
 
-                          {isDeleteByDateModalOpen && (
-                            <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 sm:pt-[10vh] sm:pb-12 animate-fadeIn">
-                              <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 relative animate-scaleUp my-auto sm:my-4">
-                                <button
-                                  onClick={() =>
-                                    setIsDeleteByDateModalOpen(false)
-                                  }
-                                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-transparent border-0 cursor-pointer"
-                                >
-                                  ✕
-                                </button>
-                                <h3 className="text-lg font-black text-slate-800 mb-2">
-                                  Hapus Berdasarkan Rentang Waktu
-                                </h3>
-                                <p className="text-xs font-semibold text-slate-500 mb-6">
-                                  Pilih rentang tanggal. Semua raw data milik
-                                  brand ini pada periode yang dipilih akan
-                                  dihapus permanen.
-                                </p>
+                          <ReportingWorkspaceTabs
+                            activeTab={operatorReportingTab}
+                            onTabChange={setOperatorReportingTab}
+                          />
 
-                                <div className="space-y-4">
-                                  <div>
-                                    <label className="block text-[10px] uppercase font-black tracking-wider text-slate-500 mb-1">
-                                      Dari Tanggal (Start)
-                                    </label>
-                                    <input
-                                      type="date"
-                                      value={deleteByDateStart}
-                                      onChange={(e) =>
-                                        setDeleteByDateStart(e.target.value)
-                                      }
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-[10px] uppercase font-black tracking-wider text-slate-500 mb-1">
-                                      Sampai Tanggal (End)
-                                    </label>
-                                    <input
-                                      type="date"
-                                      value={deleteByDateEnd}
-                                      onChange={(e) =>
-                                        setDeleteByDateEnd(e.target.value)
-                                      }
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400"
-                                    />
-                                  </div>
-                                </div>
+                          <DeleteByDateModal
+                            isOpen={isDeleteByDateModalOpen}
+                            isSavingReport={isSavingReport}
+                            startDate={deleteByDateStart}
+                            endDate={deleteByDateEnd}
+                            onStartDateChange={setDeleteByDateStart}
+                            onEndDateChange={setDeleteByDateEnd}
+                            onClose={() => {
+                              setIsDeleteByDateModalOpen(false);
+                              setDeleteByDateStart("");
+                              setDeleteByDateEnd("");
+                            }}
+                            onConfirm={handleDeleteBrandRawDataByDateRange}
+                          />
 
-                                <div className="mt-8 flex justify-end gap-3">
-                                  <button
-                                    onClick={() =>
-                                      setIsDeleteByDateModalOpen(false)
-                                    }
-                                    className="px-4 py-2 font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer border-0"
-                                  >
-                                    Batal
-                                  </button>
-                                  <button
-                                    onClick={
-                                      handleDeleteBrandRawDataByDateRange
-                                    }
-                                    className="px-4 py-2 font-bold text-xs text-white bg-red-600 hover:bg-red-700 rounded-lg cursor-pointer border-0 shadow-sm flex items-center gap-2"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" /> Hapus
-                                    Data
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                          <SkuUploadModal
+                            isOpen={isSkuUploadModalOpen}
+                            isSavingReport={isSavingReport}
+                            isDragOverReporting={isDragOverReporting}
+                            saveTargetBrandId={saveTargetBrandId}
+                            saveTargetPlatform={saveTargetPlatform}
+                            skuRawData={skuRawData}
+                            clientBrands={clientBrands}
+                            onClose={() => {
+                              setIsSkuUploadModalOpen(false);
+                              setSkuRawData([]);
+                              setAutoDetectNotice("");
+                            }}
+                            onResetFile={() => {
+                              setSkuRawData([]);
+                              setAutoDetectNotice("");
+                            }}
+                            onSave={async () => {
+                              if (!saveTargetBrandId) {
+                                alert("Harap pilih brand terlebih dahulu!");
+                                return;
+                              }
+                              try {
+                                setIsSavingReport(true);
+                                const batchId = `sku_batch_${Date.now()}`;
 
-                          {isSkuUploadModalOpen && (
-                            <div
-                              className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn"
-                              id="upload_sku_modal"
-                            >
-                              <div
-                                className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
-                                onClick={() => {
-                                  if (isSavingReport) return;
-                                  setIsSkuUploadModalOpen(false);
-                                  setSkuRawData([]);
-                                  setAutoDetectNotice("");
-                                }}
-                              ></div>
-                              <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full p-6 sm:p-8 text-left relative animate-scaleUp my-auto sm:my-4 z-10">
-                                <button
-                                  onClick={() => {
-                                    if (isSavingReport) return;
-                                    setIsSkuUploadModalOpen(false);
-                                    setSkuRawData([]);
-                                    setAutoDetectNotice("");
-                                  }}
-                                  className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors z-20"
-                                  disabled={isSavingReport}
-                                >
-                                  ✕
-                                </button>
-
-                                <div className="mb-6">
-                                  <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
-                                    <Upload className="w-6 h-6 text-indigo-500" />{" "}
-                                    Upload SKU Data (Shopee / TikTok)
-                                  </h2>
-                                  <p className="text-sm text-slate-500 mt-1 font-semibold">
-                                    Extract and analyze top performing SKUs
-                                    directly from Shopee / TikTok item export.
-                                  </p>
-                                </div>
-
-                                {!skuRawData || skuRawData.length === 0 ? (
-                                  <div className="space-y-6">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                      <div className="space-y-1">
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                                          1. Tentukan Brand Klien
-                                        </label>
-                                        <select
-                                          value={saveTargetBrandId}
-                                          onChange={(e) =>
-                                            setSaveTargetBrandId(e.target.value)
-                                          }
-                                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 font-bold focus:border-indigo-500 outline-none text-xs text-slate-700"
-                                        >
-                                          <option value="" disabled>
-                                            Pilih Brand...
-                                          </option>
-                                          {clientBrands.map((b) => (
-                                            <option key={b.id} value={b.id}>
-                                              {b.name}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                                          2. Tentukan Platform
-                                        </label>
-                                        <select
-                                          value={saveTargetPlatform}
-                                          onChange={(e) =>
-                                            setSaveTargetPlatform(e.target.value)
-                                          }
-                                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 font-bold focus:border-indigo-500 outline-none text-xs text-slate-700"
-                                        >
-                                          <option value="TikTok Live">
-                                            TikTok Live
-                                          </option>
-                                          <option value="Shopee Live">
-                                            Shopee Live
-                                          </option>
-                                          <option value="Tokopedia">
-                                            Tokopedia
-                                          </option>
-                                          <option value="Lazada">Lazada</option>
-                                        </select>
-                                      </div>
-                                    </div>
-                                    <div
-                                      className={`border-2 border-dashed rounded-3xl p-10 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${isDragOverReporting ? "border-indigo-500 bg-indigo-50/50 scale-[0.99] shadow-inner" : "border-slate-200 hover:border-indigo-400 hover:bg-slate-50/50"}`}
-                                      onDragOver={(e) => {
-                                        e.preventDefault();
-                                        setIsDragOverReporting(true);
-                                      }}
-                                      onDragLeave={() =>
-                                        setIsDragOverReporting(false)
-                                      }
-                                      onDrop={(e) => {
-                                        e.preventDefault();
-                                        setIsDragOverReporting(false);
-                                        const file = e.dataTransfer.files?.[0];
-                                        if (file) handleUploadSkuRaw(file);
-                                      }}
-                                    >
-                                      <input
-                                        type="file"
-                                        id="sku_reporting_upload"
-                                        className="hidden"
-                                        accept=".xlsx,.xls,.csv"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) handleUploadSkuRaw(file);
-                                        }}
-                                      />
-                                      <label
-                                        htmlFor="sku_reporting_upload"
-                                        className="cursor-pointer flex flex-col items-center justify-center gap-4"
-                                      >
-                                        <div className="w-20 h-20 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center">
-                                          <Upload className="w-10 h-10 text-indigo-500" />
-                                        </div>
-                                        <div>
-                                          <p className="font-bold text-slate-800 text-lg mb-1">
-                                            Klik atau Drag & Drop file
-                                            (Shopee/TikTok Item Export)
-                                          </p>
-                                          <p className="text-xs text-slate-500 font-semibold mb-2">
-                                            Hanya menerima .xlsx, .xls, .csv
-                                          </p>
-                                        </div>
-                                      </label>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-6">
-                                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                      <div className="flex items-center gap-3 text-left">
-                                        <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-sm">
-                                          <CheckCircle2 className="w-5 h-5 text-white" />
-                                        </div>
-                                        <div>
-                                          <h3 className="text-sm font-black text-emerald-900">
-                                            Data SKU Berhasil Diproses
-                                          </h3>
-                                          <p className="text-[10px] sm:text-xs font-semibold text-emerald-700">
-                                            {skuRawData.length} Records
-                                            Terdeteksi
-                                          </p>
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                                        <button
-                                          onClick={() => {
-                                            setSkuRawData([]);
-                                            setAutoDetectNotice("");
-                                          }}
-                                          className="flex-1 sm:flex-none px-4 py-2 bg-white text-rose-600 border border-rose-200 text-xs font-black rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                                          disabled={isSavingReport}
-                                        >
-                                          Reset File
-                                        </button>
-                                        <button
-                                          onClick={async () => {
-                                            if (!saveTargetBrandId) {
-                                              alert(
-                                                "Harap pilih brand terlebih dahulu!",
-                                              );
-                                              return;
-                                            }
-                                            try {
-                                              setIsSavingReport(true);
-                                              const batchId = `sku_batch_${Date.now()}`;
-
-                                              // Simpan ke state lokal (Firebase dihapus)
-                                              const newRecords: SkuLogEntry[] =
-                                                skuRawData.map((p) => ({
-                                                  ...p,
-                                                  id: `${batchId}_${Math.random().toString(36).slice(2)}`,
-                                                  platform: saveTargetPlatform,
-                                                  batchId,
-                                                  brandId: saveTargetBrandId,
-                                                  uploadedAt:
-                                                    new Date().toISOString(),
-                                                }));
-                                              setShopeeSkuLogs((prev) => [...prev, ...newRecords]);
-                                              customAlert(
-                                                "Data SKU berhasil disimpan!",
-                                              );
-                                              setIsSkuUploadModalOpen(false);
-                                              setSkuRawData([]);
-                                              setOperatorPlatformFilter(saveTargetPlatform || "Shopee Live");
-                                            } catch (e: unknown) {
-                                              console.error(e);
-                                              alert(
-                                                "Error saving: " + getErrorMessage(e),
-                                              );
-                                            } finally {
-                                              setIsSavingReport(false);
-                                            }
-                                          }}
-                                          disabled={isSavingReport}
-                                          className="flex-1 sm:flex-none px-6 py-2 bg-indigo-600 text-white text-xs rounded-lg font-black shadow-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                                        >
-                                          {isSavingReport ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                          ) : (
-                                            <Save className="w-4 h-4" />
-                                          )}
-                                          Simpan Data
-                                        </button>
-                                      </div>
-                                    </div>
-
-                                    <div className="bg-white border text-xs border-slate-200 rounded-xl overflow-hidden max-h-[400px] overflow-y-auto">
-                                      <table className="w-full min-w-[600px] text-left">
-                                        <thead className="bg-slate-50 sticky top-0 z-10">
-                                          <tr>
-                                            <th className="px-4 py-3 font-semibold text-slate-500">
-                                              Date
-                                            </th>
-                                            <th className="px-4 py-3 font-semibold text-slate-500">
-                                              SKU
-                                            </th>
-                                            <th className="px-4 py-3 font-semibold text-slate-500">
-                                              Sold
-                                            </th>
-                                            <th className="px-4 py-3 font-semibold text-slate-500">
-                                              Revenue
-                                            </th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                          {skuRawData
-                                            .slice(0, 50)
-                                            .map((r, i) => (
-                                              <tr
-                                                key={i}
-                                                className="hover:bg-slate-50"
-                                              >
-                                                <td className="px-4 py-3 text-slate-500">
-                                                  {r.date}
-                                                </td>
-                                                <td className="px-4 py-3 text-slate-700 truncate max-w-[200px]">
-                                                  {r.productName}
-                                                </td>
-                                                <td className="px-4 py-3 text-emerald-600 font-bold">
-                                                  {r.sold}
-                                                </td>
-                                                <td className="px-4 py-3 text-slate-900 font-bold">
-                                                  Rp{" "}
-                                                  {new Intl.NumberFormat(
-                                                    "id-ID",
-                                                  ).format(r.revenue)}
-                                                </td>
-                                              </tr>
-                                            ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
+                                const newRecords: SkuLogEntry[] = skuRawData.map((p) => ({
+                                  ...p,
+                                  id: `${batchId}_${Math.random().toString(36).slice(2)}`,
+                                  platform: saveTargetPlatform,
+                                  batchId,
+                                  brandId: saveTargetBrandId,
+                                  uploadedAt: new Date().toISOString(),
+                                }));
+                                setShopeeSkuLogs((prev) => [...prev, ...newRecords]);
+                                customAlert("Data SKU berhasil disimpan!");
+                                setIsSkuUploadModalOpen(false);
+                                setSkuRawData([]);
+                                setOperatorPlatformFilter(saveTargetPlatform || "Shopee Live");
+                              } catch (e: unknown) {
+                                console.error(e);
+                                alert("Error saving: " + getErrorMessage(e));
+                              } finally {
+                                setIsSavingReport(false);
+                              }
+                            }}
+                            onBrandChange={setSaveTargetBrandId}
+                            onPlatformChange={setSaveTargetPlatform}
+                            onDragOver={() => setIsDragOverReporting(true)}
+                            onDragLeave={() => setIsDragOverReporting(false)}
+                            onFileSelect={handleUploadSkuRaw}
+                          />
 
                           {isUploadModalOpen && (
                             <div
@@ -15189,1569 +14121,28 @@ export default function App() {
                                       </button>
                                     </div>
 
-                                    {/* STATS OVERVIEW */}
-                                    {uploadTargetTab === "engagement" ? (
-                                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            Total Impressions / Tayangan
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            Total Interaksi (Like+Komen+Share)
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc +
-                                                  (curr.likes || 0) +
-                                                  (curr.comments || 0) +
-                                                  (curr.shares || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            Total Pengikut Baru
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            +
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.followers || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            Voucher Toko & Spesial Diklaim
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc +
-                                                  (curr.shopVouchers || 0) +
-                                                  (curr.specialVouchers || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            Total Koin Diklaim
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc +
-                                                  (curr.coinsClaimed || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            Total Perolehan GMV
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            {new Intl.NumberFormat("id-ID", {
-                                              style: "currency",
-                                              currency: "IDR",
-                                              minimumFractionDigits: 0,
-                                            }).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.gmv || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            Total Produk Terjual
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc +
-                                                  (curr.products_sold || 0),
-                                                0,
-                                              ),
-                                            )}{" "}
-                                            <span className="text-xs font-bold text-slate-400 ml-1">
-                                              pcs
-                                            </span>
-                                          </h3>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            Total Pembeli
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.buyers || 0),
-                                                0,
-                                              ),
-                                            )}{" "}
-                                            <span className="text-xs font-bold text-slate-400 ml-1">
-                                              users
-                                            </span>
-                                          </h3>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            Capaian AOV Rata-rata
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            {new Intl.NumberFormat("id-ID", {
-                                              style: "currency",
-                                              currency: "IDR",
-                                              minimumFractionDigits: 0,
-                                            }).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.gmv || 0),
-                                                0,
-                                              ) /
-                                                (reportingRawData.reduce(
-                                                  (acc, curr) =>
-                                                    acc + (curr.buyers || 0),
-                                                  0,
-                                                ) || 1),
-                                            )}
-                                          </h3>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm text-left">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                                            AVG TIME/VIEWER
-                                          </p>
-                                          <h3 className="text-base sm:text-lg lg:text-xl font-black text-slate-800 tracking-tight mt-1 xl:mt-2">
-                                            {Math.round(
-                                              reportingRawData.length > 0
-                                                ? reportingRawData.reduce(
-                                                    (acc, curr) =>
-                                                      acc +
-                                                      (curr.avgViewDuration ||
-                                                        0),
-                                                    0,
-                                                  ) / reportingRawData.length
-                                                : 0,
-                                            )}{" "}
-                                            <span className="text-xs font-bold text-slate-400 ml-1">
-                                              detik
-                                            </span>
-                                          </h3>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* TIKTOK ENGAGEMENT & LIVE METRICS PANEL */}
-                                    {saveTargetPlatform === "TikTok Live" && (
-                                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl text-left shadow-lg relative overflow-hidden dark:bg-slate-950">
-                                        <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl"></div>
-                                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl"></div>
-                                        <div className="col-span-2 md:col-span-4 flex items-center justify-between pb-2 border-b border-white/10">
-                                          <h5 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 font-sans">
-                                            <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />{" "}
-                                            TikTok Shop Liveroom Metrics
-                                          </h5>
-                                          <span className="text-[8px] font-black text-indigo-300 uppercase bg-indigo-500/15 px-2 py-0.5 rounded border border-indigo-500/30">
-                                            Live Performance
-                                          </span>
-                                        </div>
-                                        <div>
-                                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-pink-300">
-                                            Penonton Sesi (Views)
-                                          </p>
-                                          <h3 className="text-lg sm:text-xl font-black text-white font-mono mt-0.5">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                          <p className="text-[8px] text-slate-500 font-semibold mt-0.5">
-                                            Unique Impressions
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-green-300">
-                                            Pengikut Baru (Fans)
-                                          </p>
-                                          <h3 className="text-lg sm:text-xl font-black text-green-400 font-mono mt-0.5">
-                                            +
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.followers || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                          <p className="text-[8px] text-green-300 font-semibold mt-0.5">
-                                            Followers Gained
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-rose-300">
-                                            Total Likes
-                                          </p>
-                                          <h3 className="text-lg sm:text-xl font-black text-pink-400 font-mono mt-0.5">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.likes || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                          <p className="text-[8px] text-pink-300 font-semibold mt-0.5">
-                                            Stream Likes
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-cyan-300">
-                                            Dibagikan (Shares)
-                                          </p>
-                                          <h3 className="text-lg sm:text-xl font-black text-cyan-400 font-mono mt-0.5">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(
-                                              reportingRawData.reduce(
-                                                (acc, curr) =>
-                                                  acc + (curr.shares || 0),
-                                                0,
-                                              ),
-                                            )}
-                                          </h3>
-                                          <p className="text-[8px] text-cyan-300 font-semibold mt-0.5 max-w-full truncate">
-                                            Session Shared
-                                          </p>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* SHOPEE ENGAGEMENT & PROMOTION METRICS PANEL */}
-                                    {saveTargetPlatform === "Shopee Live" &&
-                                      uploadTargetTab === "engagement" &&
-                                      (() => {
-                                        const totalLikes =
-                                          reportingRawData.reduce(
-                                            (acc, curr) =>
-                                              acc + (curr.likes || 0),
-                                            0,
-                                          );
-                                        const totalComments =
-                                          reportingRawData.reduce(
-                                            (acc, curr) =>
-                                              acc + (curr.comments || 0),
-                                            0,
-                                          );
-                                        const totalShares =
-                                          reportingRawData.reduce(
-                                            (acc, curr) =>
-                                              acc + (curr.shares || 0),
-                                            0,
-                                          );
-                                        const totalFollowers =
-                                          reportingRawData.reduce(
-                                            (acc, curr) =>
-                                              acc + (curr.followers || 0),
-                                            0,
-                                          );
-                                        const totalPenonton =
-                                          reportingRawData.reduce(
-                                            (acc, curr) =>
-                                              acc +
-                                              (curr.penonton ||
-                                                curr.impressions ||
-                                                0),
-                                            0,
-                                          );
-                                        const totalShopVouchers =
-                                          reportingRawData.reduce(
-                                            (acc, curr) =>
-                                              acc + (curr.shopVouchers || 0),
-                                            0,
-                                          );
-                                        const totalSpecialVouchers =
-                                          reportingRawData.reduce(
-                                            (acc, curr) =>
-                                              acc + (curr.specialVouchers || 0),
-                                            0,
-                                          );
-                                        const totalCoinsClaimed =
-                                          reportingRawData.reduce(
-                                            (acc, curr) =>
-                                              acc + (curr.coinsClaimed || 0),
-                                            0,
-                                          );
-                                        const peakViewers =
-                                          reportingRawData.length > 0
-                                            ? Math.round(
-                                                reportingRawData.reduce(
-                                                  (acc, curr) =>
-                                                    acc +
-                                                    (curr.peakViewers || 0),
-                                                  0,
-                                                ) / reportingRawData.length,
-                                              )
-                                            : 0;
-                                        const errRate =
-                                          totalPenonton > 0
-                                            ? ((totalLikes +
-                                                totalComments +
-                                                totalShares +
-                                                totalFollowers) /
-                                                totalPenonton) *
-                                              100
-                                            : 0;
-
-                                        return (
-                                          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 bg-orange-600 p-5 rounded-2xl text-left shadow-lg relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-                                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
-                                            <div className="col-span-2 sm:col-span-4 lg:col-span-8 flex items-center justify-between pb-2 border-b border-white/25">
-                                              <h5 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 font-sans">
-                                                <Sparkles className="w-4 h-4 text-white animate-pulse" />{" "}
-                                                Shopee Live Interaction &
-                                                Promotion Metrics
-                                              </h5>
-                                              <span className="text-[8px] font-black text-white uppercase bg-white/20 px-2 py-0.5 rounded border border-white/30">
-                                                Engagement & Promotion
-                                              </span>
-                                            </div>
-                                            <div>
-                                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">
-                                                Likes
-                                              </p>
-                                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(totalLikes)}
-                                              </h3>
-                                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">
-                                                Total Likes
-                                              </p>
-                                            </div>
-                                            <div>
-                                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">
-                                                Comments
-                                              </p>
-                                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(totalComments)}
-                                              </h3>
-                                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">
-                                                Total Komen
-                                              </p>
-                                            </div>
-                                            <div>
-                                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">
-                                                Membagikan (Shares)
-                                              </p>
-                                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(totalShares)}
-                                              </h3>
-                                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">
-                                                Total Share
-                                              </p>
-                                            </div>
-                                            <div>
-                                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">
-                                                Pengikut Baru
-                                              </p>
-                                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
-                                                +
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(totalFollowers)}
-                                              </h3>
-                                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">
-                                                New Followers
-                                              </p>
-                                            </div>
-                                            <div>
-                                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">
-                                                Penonton Tertinggi
-                                              </p>
-                                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(peakViewers)}
-                                              </h3>
-                                              <p className="text-[8px] text-orange-200 mt-0.5 font-semibold">
-                                                Penonton Terbanyak
-                                              </p>
-                                            </div>
-                                            <div>
-                                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">
-                                                Voucher Diklaim
-                                              </p>
-                                              <h3 className="text-base sm:text-lg font-bold text-white font-mono mt-0.5">
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(
-                                                  totalShopVouchers +
-                                                    totalSpecialVouchers,
-                                                )}
-                                              </h3>
-                                              <p className="text-[8px] text-orange-200 font-semibold mt-0.5">
-                                                Toko & Spesial Live
-                                              </p>
-                                            </div>
-                                            <div>
-                                              <p className="text-[9px] font-black text-orange-100 uppercase tracking-widest leading-none mb-1">
-                                                Koin Diklaim
-                                              </p>
-                                              <h3 className="text-base sm:text-lg font-bold text-yellow-300 font-mono mt-0.5">
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(totalCoinsClaimed)}
-                                              </h3>
-                                              <p className="text-[8px] text-orange-200 font-semibold mt-0.5">
-                                                Coin Reward
-                                              </p>
-                                            </div>
-                                            <div className="bg-white/15 p-2 rounded-xl border border-white/20">
-                                              <p className="text-[9px] font-black text-yellow-250 uppercase tracking-widest leading-none mb-1">
-                                                ERR %
-                                              </p>
-                                              <h3 className="text-sm sm:text-base font-black text-white font-mono mt-0.5">
-                                                {errRate.toFixed(2)}%
-                                              </h3>
-                                              <p className="text-[7px] text-orange-150 leading-normal font-bold mt-0.5 uppercase tracking-wide">
-                                                (Like + Comment + Share +
-                                                Follow) / Unique Viewers
-                                              </p>
-                                            </div>
-                                          </div>
-                                        );
-                                      })()}
-
-                                    {/* CHART CONTAINER & FUNNEL */}
-                                    {(() => {
-                                      const totalImpressions =
-                                        reportingRawData.reduce(
-                                          (acc, curr) =>
-                                            acc + (curr.views || 0),
-                                          0,
-                                        );
-                                      const totalLiveVisits =
-                                        reportingRawData.reduce(
-                                          (acc, curr) =>
-                                            acc + (curr.liveVisits || 0),
-                                          0,
-                                        );
-                                      const totalProductImpressions =
-                                        reportingRawData.reduce(
-                                          (acc, curr) =>
-                                            acc +
-                                            (curr.productImpressions || 0),
-                                          0,
-                                        );
-                                      const totalClicks =
-                                        reportingRawData.reduce(
-                                          (acc, curr) =>
-                                            acc + (curr.clicks || 0),
-                                          0,
-                                        );
-                                      const totalOrders =
-                                        reportingRawData.reduce(
-                                          (acc, curr) =>
-                                            acc + (curr.orders || curr.buyers || 0),
-                                          0,
-                                        );
-                                      const totalBuyers =
-                                        reportingRawData.reduce(
-                                          (acc, curr) =>
-                                            acc + (curr.buyers || curr.orders || 0),
-                                          0,
-                                        );
-
-                                      const ctrRate =
-                                        totalImpressions > 0
-                                          ? (totalClicks / totalImpressions) *
-                                            100
-                                          : 0;
-                                      const cartToClickRate =
-                                        totalClicks > 0
-                                          ? (totalOrders / totalClicks) * 100
-                                          : 0;
-                                      const checkoutRate =
-                                        totalOrders > 0
-                                          ? (totalBuyers / totalOrders) * 100
-                                          : 0;
-                                      const overallCvr =
-                                        totalImpressions > 0
-                                          ? (totalBuyers / totalImpressions) *
-                                            100
-                                          : 0;
-
-                                      const clickWidth =
-                                        totalImpressions > 0
-                                          ? Math.max(
-                                              (totalClicks / totalImpressions) *
-                                                100,
-                                              30,
-                                            )
-                                          : 75;
-                                      const orderWidth =
-                                        totalImpressions > 0
-                                          ? Math.max(
-                                              (totalOrders / totalImpressions) *
-                                                100,
-                                              15,
-                                            )
-                                          : 40;
-                                      const buyerWidth =
-                                        totalImpressions > 0
-                                          ? Math.max(
-                                              (totalBuyers / totalImpressions) *
-                                                100,
-                                              5,
-                                            )
-                                          : 15;
-
-                                      return (
-                                        <div className="grid grid-cols-1 gap-6">
-                                          {/* CHART */}
-                                          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm min-h-[350px] flex flex-col justify-between">
-                                            <div>
-                                              <h4 className="text-sm font-black text-slate-800 mb-6 text-left">
-                                                Tren GMV & Transaksi Harian
-                                              </h4>
-                                              <div className="h-64 w-full">
-                                                <ResponsiveContainer
-                                                  width="100%"
-                                                  height="100%"
-                                                >
-                                                  <RechartsLineChart
-                                                    data={[
-                                                      ...reportingRawData,
-                                                    ].sort(
-                                                      (a, b) =>
-                                                        new Date(
-                                                          a.date,
-                                                        ).getTime() -
-                                                        new Date(
-                                                          b.date,
-                                                        ).getTime(),
-                                                    )}
-                                                    margin={{
-                                                      top: 5,
-                                                      right: 30,
-                                                      left: 20,
-                                                      bottom: 5,
-                                                    }}
-                                                  >
-                                                    <CartesianGrid
-                                                      strokeDasharray="3 3"
-                                                      vertical={false}
-                                                      stroke="#e2e8f0"
-                                                    />
-                                                    <XAxis
-                                                      dataKey="date"
-                                                      tick={{
-                                                        fontSize: 10,
-                                                        fill: "#64748b",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                      axisLine={false}
-                                                      tickLine={false}
-                                                    />
-                                                    <YAxis
-                                                      yAxisId="left"
-                                                      tick={{
-                                                        fontSize: 10,
-                                                        fill: "#64748b",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                      axisLine={false}
-                                                      tickLine={false}
-                                                      tickFormatter={(val) =>
-                                                        `Rp${(val / 1000000).toFixed(1)}M`
-                                                      }
-                                                    />
-                                                    <YAxis
-                                                      yAxisId="right"
-                                                      orientation="right"
-                                                      tick={{
-                                                        fontSize: 10,
-                                                        fill: "#64748b",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                      axisLine={false}
-                                                      tickLine={false}
-                                                    />
-                                                    <Tooltip
-                                                      contentStyle={{
-                                                        borderRadius: "12px",
-                                                        border: "none",
-                                                        boxShadow:
-                                                          "0 4px 20px rgba(0,0,0,0.1)",
-                                                        fontWeight: "bold",
-                                                        fontSize: "12px",
-                                                      }}
-                                                      formatter={(
-                                                        value: number | string,
-                                                        name: string,
-                                                      ) => [
-                                                        name === "GMV"
-                                                          ? new Intl.NumberFormat(
-                                                              "id-ID",
-                                                              {
-                                                                style:
-                                                                  "currency",
-                                                                currency: "IDR",
-                                                                minimumFractionDigits: 0,
-                                                              },
-                                                            ).format(Number(value))
-                                                          : value,
-                                                        name,
-                                                      ]}
-                                                    />
-                                                    <Legend
-                                                      wrapperStyle={{
-                                                        fontSize: "11px",
-                                                        fontWeight: "bold",
-                                                      }}
-                                                    />
-                                                    <Line
-                                                      yAxisId="left"
-                                                      type="monotone"
-                                                      name="GMV"
-                                                      dataKey="gmv"
-                                                      stroke="#4f46e5"
-                                                      strokeWidth={3}
-                                                      dot={{
-                                                        r: 4,
-                                                        fill: "#4f46e5",
-                                                        strokeWidth: 2,
-                                                        stroke: "#fff",
-                                                      }}
-                                                      activeDot={{ r: 6 }}
-                                                    />
-                                                    <Line
-                                                      yAxisId="right"
-                                                      type="monotone"
-                                                      name="Produk Terjual"
-                                                      dataKey="products_sold"
-                                                      stroke="#ec4899"
-                                                      strokeWidth={3}
-                                                      dot={{
-                                                        r: 4,
-                                                        fill: "#ec4899",
-                                                        strokeWidth: 2,
-                                                        stroke: "#fff",
-                                                      }}
-                                                    />
-                                                  </RechartsLineChart>
-                                                </ResponsiveContainer>
-                                              </div>
-                                            </div>
-                                          </div>
-
-                                          {/* FUNNEL CARD */}
-                                          <HorizontalFunnel
-                                            title="Corong Konversi Live (Funnel)"
-                                            subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
-                                            tag={
-                                              reportingRawData?.some(
-                                                (r) => r.hasFunnelInFile,
-                                              )
-                                                ? "Parsed Excel"
-                                                : "Benchmark Estimate"
-                                            }
-                                            steps={
-                                              saveTargetPlatform ===
-                                                "TikTok Live" ||
-                                              activeReportPlatform ===
-                                                "TikTok Live"
-                                                ? [
-                                                    {
-                                                      label: "LIVE impressions",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalImpressions,
-                                                        ),
-                                                      raw: totalImpressions,
-                                                    },
-                                                    {
-                                                      label: "LIVE visits",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalLiveVisits,
-                                                        ),
-                                                      raw: totalLiveVisits,
-                                                    },
-                                                    {
-                                                      label:
-                                                        "Product impressions",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalProductImpressions,
-                                                        ),
-                                                      raw: totalProductImpressions,
-                                                    },
-                                                    {
-                                                      label: "Product clicks",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(totalClicks),
-                                                      raw: totalClicks,
-                                                    },
-                                                    {
-                                                      label: "Orders paid for",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(totalBuyers),
-                                                      raw: totalBuyers,
-                                                    },
-                                                  ]
-                                                : [
-                                                    {
-                                                      label: "Total Viewers",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalImpressions,
-                                                        ),
-                                                      raw: totalImpressions,
-                                                    },
-                                                    {
-                                                      label: "Active Viewers",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(
-                                                          totalLiveVisits,
-                                                        ),
-                                                      raw: totalLiveVisits,
-                                                    },
-                                                    {
-                                                      label: "Add To Cart",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(totalClicks),
-                                                      raw: totalClicks,
-                                                    },
-                                                    {
-                                                      label: "Orders",
-                                                      value:
-                                                        new Intl.NumberFormat(
-                                                          "id-ID",
-                                                        ).format(totalOrders),
-                                                      raw: totalOrders,
-                                                    },
-                                                  ]
-                                            }
-                                          />
-                                        </div>
-                                      );
-                                    })()}
+                                    <ReportingUploadAnalyticsSection
+                                      reportingRawData={reportingRawData}
+                                      reportingUploadSummary={
+                                        reportingUploadSummary
+                                      }
+                                      saveTargetPlatform={saveTargetPlatform}
+                                      uploadTargetTab={uploadTargetTab}
+                                      activeReportPlatform={activeReportPlatform}
+                                    />
 
                                     {/* DATA TABLE */}
-                                    {saveTargetPlatform === "Shopee Live" &&
-                                      uploadTargetTab === "live" && (
-                                        <div className="flex bg-slate-100 p-1 mb-4 rounded-xl w-fit">
-                                          {[
-                                            { id: "day", label: "Harian" },
-                                            { id: "shift", label: "Shift" },
-                                            { id: "dayOfWeek", label: "Hari" },
-                                            { id: "raw", label: "By Raw" },
-                                          ].map((tab) => (
-                                            <button
-                                              key={tab.id}
-                                              onClick={() =>
-                                                setShopeeRawTab(
-                                                  tab.id as
-                                                    | "day"
-                                                    | "shift"
-                                                    | "dayOfWeek"
-                                                    | "raw",
-                                                )
-                                              }
-                                              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${shopeeRawTab === tab.id ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                                            >
-                                              {tab.label}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      )}
-                                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                                      <div className="overflow-x-auto">
-                                        <table className="w-full text-left">
-                                          <thead>
-                                            {uploadTargetTab ===
-                                            "engagement" ? (
-                                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                                <th 
-                                                  className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
-                                                  onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
-                                                >
-                                                  <div className="flex items-center gap-1">
-                                                    Waktu Sesi
-                                                    {rawDateSortAsc ? (
-                                                      <span className="text-indigo-500">↑</span>
-                                                    ) : (
-                                                      <span className="text-slate-400">↓</span>
-                                                    )}
-                                                  </div>
-                                                </th>
-                                                <th className="px-5 py-4">
-                                                  Streaming / Akun
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Tayangan Sesi
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Likes
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Comments / Shares
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  New Followers
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Voucher & Koin
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  ERR %
-                                                </th>
-                                              </tr>
-                                            ) : saveTargetPlatform ===
-                                              "Shopee Live" ? (
-                                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                                {shopeeRawTab !== "raw" ? (
-                                                  <>
-                                                    <th 
-                                                      className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
-                                                      onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
-                                                    >
-                                                      <div className="flex items-center gap-1">
-                                                        {shopeeRawTab === "day"
-                                                          ? "Tanggal"
-                                                          : shopeeRawTab === "shift"
-                                                            ? "Shift"
-                                                            : "Hari"}
-                                                        {rawDateSortAsc ? (
-                                                          <span className="text-indigo-500">↑</span>
-                                                        ) : (
-                                                          <span className="text-slate-400">↓</span>
-                                                        )}
-                                                      </div>
-                                                    </th>
-                                                    <th className="px-5 py-4">
-                                                      Durasi
-                                                    </th>
-                                                  </>
-                                                ) : (
-                                                  <>
-                                                    <th 
-                                                      className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
-                                                      onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
-                                                    >
-                                                      <div className="flex items-center gap-1">
-                                                        Date
-                                                        {rawDateSortAsc ? (
-                                                          <span className="text-indigo-500">↑</span>
-                                                        ) : (
-                                                          <span className="text-slate-400">↓</span>
-                                                        )}
-                                                      </div>
-                                                    </th>
-                                                    <th className="px-5 py-4">
-                                                      Start
-                                                    </th>
-                                                  </>
-                                                )}
-                                                <th className="px-5 py-4 text-right">
-                                                  Viewers
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  GMV
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Item Sold
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Customer
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Convertion Rate
-                                                </th>
-                                              </tr>
-                                            ) : (
-                                              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                                <th 
-                                                  className="px-5 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
-                                                  onClick={() => setRawDateSortAsc(!rawDateSortAsc)}
-                                                >
-                                                  <div className="flex items-center gap-1">
-                                                    Waktu Mulai
-                                                    {rawDateSortAsc ? (
-                                                      <span className="text-indigo-500">↑</span>
-                                                    ) : (
-                                                      <span className="text-slate-400">↓</span>
-                                                    )}
-                                                  </div>
-                                                </th>
-                                                <th className="px-5 py-4">
-                                                  Streaming / Akun
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Durasi (Mnt)
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Perolehan GMV
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Produk Terjual
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Pembeli (Orders)
-                                                </th>
-                                                <th className="px-5 py-4 text-right">
-                                                  Rasio CTR / CVR
-                                                </th>
-                                              </tr>
-                                            )}
-                                          </thead>
-                                          <tbody className="divide-y divide-slate-100">
-                                            {(() => {
-                                              if (
-                                                saveTargetPlatform ===
-                                                  "Shopee Live" &&
-                                                uploadTargetTab === "live" &&
-                                                shopeeRawTab !== "raw"
-                                              ) {
-                                                const groups: Record<string, ShopeeRawGroupRow> = {};
-
-                                                reportingRawData.forEach(
-                                                  (row) => {
-                                                    let key = "";
-                                                    const dtStr = String(row.dateTime || row.date || "");
-                                                    const dPart = dtStr.includes("T") ? dtStr.split("T")[0] : dtStr.split(" ")[0];
-                                                    const timeMatch = dtStr.match(/\d{1,2}:\d{2}/);
-                                                    const timeVal = timeMatch
-                                                      ? timeMatch[0]
-                                                      : "00:00";
-
-                                                    if (
-                                                      shopeeRawTab === "day"
-                                                    ) {
-                                                      const dSplit =
-                                                        dPart.split("-");
-                                                      if (dSplit.length === 3) {
-                                                        key = `${dSplit[0]}-${dSplit[1]}-${dSplit[2]}`;
-                                                      } else {
-                                                        key = dPart;
-                                                      }
-                                                    } else if (
-                                                      shopeeRawTab === "shift"
-                                                    ) {
-                                                      key = "Lainnya";
-                                                      if (timeMatch) {
-                                                        const [hStr, mStr] =
-                                                          timeVal.split(":");
-                                                        const mins =
-                                                          parseInt(hStr) * 60 +
-                                                          parseInt(mStr);
-                                                        for (const s of shifts) {
-                                                          const m = s.match(
-                                                            /(\d{1,2})[\.:](\d{2})\s*-\s*(\d{1,2})[\.:](\d{2})/,
-                                                          );
-                                                          if (m) {
-                                                            const sVal =
-                                                              parseInt(m[1]) *
-                                                                60 +
-                                                              parseInt(m[2]);
-                                                            const eVal =
-                                                              parseInt(m[3]) *
-                                                                60 +
-                                                              parseInt(m[4]);
-                                                            if (eVal < sVal) {
-                                                              if (
-                                                                mins >= sVal ||
-                                                                mins <= eVal
-                                                              ) {
-                                                                key = s;
-                                                                break;
-                                                              }
-                                                            } else {
-                                                              if (
-                                                                mins >= sVal &&
-                                                                mins <= eVal
-                                                              ) {
-                                                                key = s;
-                                                                break;
-                                                              }
-                                                            }
-                                                          }
-                                                        }
-                                                      }
-                                                    } else if (
-                                                      shopeeRawTab ===
-                                                      "dayOfWeek"
-                                                    ) {
-                                                      const dSplit =
-                                                        dPart.split("-");
-                                                      if (dSplit.length === 3) {
-                                                        const dateObj =
-                                                          new Date(
-                                                            `${dSplit[2]}-${dSplit[1]}-${dSplit[0]}`,
-                                                          );
-                                                        if (
-                                                          !isNaN(
-                                                            dateObj.getTime(),
-                                                          )
-                                                        ) {
-                                                          const days = [
-                                                            "Minggu",
-                                                            "Senin",
-                                                            "Selasa",
-                                                            "Rabu",
-                                                            "Kamis",
-                                                            "Jumat",
-                                                            "Sabtu",
-                                                          ];
-                                                          key =
-                                                            days[
-                                                              dateObj.getDay()
-                                                            ];
-                                                        } else key = "Unknown";
-                                                      } else key = "Unknown";
-                                                    }
-
-                                                    if (!groups[key]) {
-                                                      groups[key] = {
-                                                        label: key,
-                                                        penonton: 0,
-                                                        gmv: 0,
-                                                        products_sold: 0,
-                                                        orders: 0,
-                                                      };
-                                                    }
-                                                    groups[key].penonton +=
-                                                      row.penonton || 0;
-                                                    groups[key].duration = (groups[key].duration || 0) + (row.duration || 0);
-                                                    groups[key].gmv +=
-                                                      row.gmv || 0;
-                                                    groups[key].products_sold +=
-                                                      row.products_sold || 0;
-                                                    groups[key].orders +=
-                                                      row.orders || 0;
-                                                  },
-                                                );
-
-                                                const idFmt2 = new Intl.NumberFormat("id-ID");
-                                                return Object.values(groups)
-                                                .sort((a, b) => {
-                                                  const labelA = a.label || "";
-                                                  const labelB = b.label || "";
-                                                  // Basic string sort is decent enough for YYYY-MM-DD or shift strings
-                                                  if (labelA < labelB) return rawDateSortAsc ? -1 : 1;
-                                                  if (labelA > labelB) return rawDateSortAsc ? 1 : -1;
-                                                  return 0;
-                                                })
-                                                .map((g, idx) => (
-                                                  <tr
-                                                    key={idx}
-                                                    className="hover:bg-slate-50/50 transition-colors"
-                                                  >
-                                                    <td
-                                                      className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800"
-                                                    >
-                                                      {g.label}
-                                                    </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
-                                                      {(() => {
-                                                        const secs = g.duration || 0;
-                                                        if (!secs) return "-";
-                                                        const h = Math.floor(secs / 3600);
-                                                        const m = Math.floor((secs % 3600) / 60);
-                                                        return `${h > 0 ? h + "j " : ""}${m}m`;
-                                                      })()}
-                                                    </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
-                                                      {idFmt2.format(g.penonton)}
-                                                    </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-emerald-600">
-                                                      Rp
-                                                      {idFmt2.format(g.gmv)}
-                                                    </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
-                                                      {idFmt2.format(g.products_sold)}
-                                                    </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-indigo-600">
-                                                      {idFmt2.format(g.orders)}
-                                                    </td>
-                                                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600">
-                                                      {g.penonton > 0
-                                                        ? (
-                                                            (g.orders /
-                                                              g.penonton) *
-                                                            100
-                                                          ).toFixed(2)
-                                                        : "0.00"}
-                                                      %
-                                                    </td>
-                                                  </tr>
-                                                ));
-                                              }
-
-                                              return [...reportingRawData]
-                                                .sort((a, b) => {
-                                                  const d1 = new Date(a.date).getTime();
-                                                  const d2 = new Date(b.date).getTime();
-                                                  return rawDateSortAsc ? d1 - d2 : d2 - d1;
-                                                })
-                                                .map((row, idx) => {
-                                                  const actualCtr =
-                                                    row.impressions > 0
-                                                      ? (row.clicks /
-                                                          row.impressions) *
-                                                        100
-                                                      : 0;
-                                                  const finalCvr =
-                                                    row.impressions > 0
-                                                      ? (row.buyers /
-                                                          row.impressions) *
-                                                        100
-                                                      : 0;
-                                                  return (
-                                                    <tr
-                                                      key={idx}
-                                                      className="hover:bg-slate-50/50 transition-colors"
-                                                    >
-                                                      {saveTargetPlatform ===
-                                                      "Shopee Live" ? (
-                                                        <>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
-                                                            {(() => {
-                                                              const rawStr =
-                                                                String(
-                                                                  row.dateTime ||
-                                                                    row.date ||
-                                                                    "",
-                                                                );
-                                                              const dPart =
-                                                                rawStr.split(
-                                                                  " ",
-                                                                )[0] || "";
-                                                              const dSplit =
-                                                                dPart.split(
-                                                                  "-",
-                                                                );
-                                                              if (
-                                                                dSplit.length ===
-                                                                3
-                                                              ) {
-                                                                return `${dSplit[0].padStart(2, "0")}-${dSplit[1].padStart(2, "0")}-${dSplit[2]}`;
-                                                              }
-                                                              return dPart;
-                                                            })()}
-                                                          </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
-                                                            {(() => {
-                                                              const rawStr =
-                                                                String(
-                                                                  row.dateTime ||
-                                                                    row.date ||
-                                                                    "",
-                                                                );
-                                                              const match =
-                                                                rawStr.match(
-                                                                  /\d{1,2}:\d{2}(:\d{2})?/,
-                                                                );
-                                                              if (match) {
-                                                                let formatted =
-                                                                  match[0].replace(
-                                                                    ":",
-                                                                    ".",
-                                                                  );
-                                                                if (
-                                                                  formatted.startsWith(
-                                                                    "0",
-                                                                  ) &&
-                                                                  formatted.length >
-                                                                    4
-                                                                )
-                                                                  formatted =
-                                                                    formatted.substring(
-                                                                      1,
-                                                                    );
-                                                                return formatted;
-                                                              }
-                                                              return "-";
-                                                            })()}
-                                                          </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
-                                                            {new Intl.NumberFormat(
-                                                              "id-ID",
-                                                            ).format(
-                                                              row.penonton || 0,
-                                                            )}
-                                                          </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-emerald-600">
-                                                            Rp
-                                                            {new Intl.NumberFormat(
-                                                              "id-ID",
-                                                            ).format(
-                                                              row.gmv || 0,
-                                                            )}
-                                                          </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-bold text-slate-700">
-                                                            {new Intl.NumberFormat(
-                                                              "id-ID",
-                                                            ).format(
-                                                              row.products_sold ||
-                                                                0,
-                                                            )}
-                                                          </td>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600">
-                                                            {row.penonton > 0
-                                                              ? (
-                                                                  (row.orders /
-                                                                    row.penonton) *
-                                                                  100
-                                                                ).toFixed(2)
-                                                              : "0.00"}
-                                                            %
-                                                          </td>
-                                                        </>
-                                                      ) : (
-                                                        <>
-                                                          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
-                                                            {formatDisplayDate(
-                                                              row.dateTime ||
-                                                                row.date,
-                                                              saveTargetPlatform,
-                                                            )}
-                                                            <span className="block text-[9px] font-semibold text-slate-400 mt-1 font-mono">
-                                                              Platform:{" "}
-                                                              {
-                                                                saveTargetPlatform
-                                                              }
-                                                            </span>
-                                                          </td>
-                                                          <td className="px-5 py-3.5 text-xs text-left">
-                                                            <div className="font-extrabold text-indigo-950 leading-tight">
-                                                              {row.title}
-                                                            </div>
-                                                            {saveTargetPlatform ===
-                                                              "TikTok Live" && (
-                                                              <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
-                                                                <span>
-                                                                  ❤️{" "}
-                                                                  {new Intl.NumberFormat(
-                                                                    "id-ID",
-                                                                  ).format(
-                                                                    row.likes ||
-                                                                      0,
-                                                                  )}{" "}
-                                                                  Likes
-                                                                </span>
-                                                                <span>•</span>
-                                                                <span>
-                                                                  🔗{" "}
-                                                                  {new Intl.NumberFormat(
-                                                                    "id-ID",
-                                                                  ).format(
-                                                                    row.shares ||
-                                                                      0,
-                                                                  )}{" "}
-                                                                  Shares
-                                                                </span>
-                                                              </div>
-                                                            )}
-                                                            {saveTargetPlatform ===
-                                                              "Shopee Live" && (
-                                                              <div className="flex gap-2 text-[9px] font-bold text-slate-400 mt-1">
-                                                                <span>
-                                                                  ❤️{" "}
-                                                                  {new Intl.NumberFormat(
-                                                                    "id-ID",
-                                                                  ).format(
-                                                                    row.likes ||
-                                                                      0,
-                                                                  )}{" "}
-                                                                  Likes
-                                                                </span>
-                                                                <span>•</span>
-                                                                <span>
-                                                                  💬{" "}
-                                                                  {new Intl.NumberFormat(
-                                                                    "id-ID",
-                                                                  ).format(
-                                                                    row.comments ||
-                                                                      0,
-                                                                  )}{" "}
-                                                                  Comments
-                                                                </span>
-                                                              </div>
-                                                            )}
-                                                          </td>
-                                                          {uploadTargetTab ===
-                                                          "engagement" ? (
-                                                            <>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-slate-700 font-mono">
-                                                                {new Intl.NumberFormat(
-                                                                  "id-ID",
-                                                                ).format(
-                                                                  row.impressions ||
-                                                                    0,
-                                                                )}
-                                                              </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-slate-700 font-mono">
-                                                                {new Intl.NumberFormat(
-                                                                  "id-ID",
-                                                                ).format(
-                                                                  row.likes ||
-                                                                    0,
-                                                                )}
-                                                              </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-mono">
-                                                                <div className="font-semibold text-slate-700">
-                                                                  💬{" "}
-                                                                  {new Intl.NumberFormat(
-                                                                    "id-ID",
-                                                                  ).format(
-                                                                    row.comments ||
-                                                                      0,
-                                                                  )}
-                                                                </div>
-                                                                <div className="text-[9px] font-bold text-slate-400 mt-1">
-                                                                  🔗{" "}
-                                                                  {new Intl.NumberFormat(
-                                                                    "id-ID",
-                                                                  ).format(
-                                                                    row.shares ||
-                                                                      0,
-                                                                  )}{" "}
-                                                                  Shares
-                                                                </div>
-                                                              </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-extrabold text-emerald-600 font-mono">
-                                                                +
-                                                                {new Intl.NumberFormat(
-                                                                  "id-ID",
-                                                                ).format(
-                                                                  row.followers ||
-                                                                    0,
-                                                                )}{" "}
-                                                                Fans
-                                                              </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-mono">
-                                                                <div className="font-semibold text-slate-700">
-                                                                  🎫{" "}
-                                                                  {new Intl.NumberFormat(
-                                                                    "id-ID",
-                                                                  ).format(
-                                                                    (row.shopVouchers ||
-                                                                      0) +
-                                                                      (row.specialVouchers ||
-                                                                        0),
-                                                                  )}{" "}
-                                                                  Vcr
-                                                                </div>
-                                                                <div className="text-[9px] text-amber-600 font-bold mt-1">
-                                                                  🪙{" "}
-                                                                  {new Intl.NumberFormat(
-                                                                    "id-ID",
-                                                                  ).format(
-                                                                    row.coinsClaimed ||
-                                                                      0,
-                                                                  )}{" "}
-                                                                  Koin
-                                                                </div>
-                                                              </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-black text-indigo-600 font-mono">
-                                                                {(() => {
-                                                                  const rowUniqueViewers =
-                                                                    row.penonton ||
-                                                                    row.impressions ||
-                                                                    0;
-                                                                  return rowUniqueViewers >
-                                                                    0
-                                                                    ? (
-                                                                        ((row.likes +
-                                                                          row.comments +
-                                                                          row.shares +
-                                                                          row.followers) /
-                                                                          rowUniqueViewers) *
-                                                                        100
-                                                                      ).toFixed(
-                                                                        2,
-                                                                      )
-                                                                    : "0.00";
-                                                                })()}
-                                                                %
-                                                              </td>
-                                                            </>
-                                                          ) : (
-                                                            <>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-semibold text-slate-600">
-                                                                  {Math.round(
-                                                                    row.duration /
-                                                                      60,
-                                                                  ) ||
-                                                                    row.duration}{" "}
-                                                                  Mnt
-                                                                </div>
-                                                                {saveTargetPlatform ===
-                                                                  "TikTok Live" && (
-                                                                  <div className="text-[9px] font-black text-green-600 mt-1 animate-pulse">
-                                                                    +
-                                                                    {
-                                                                      row.followers
-                                                                    }{" "}
-                                                                    Fans
-                                                                  </div>
-                                                                )}
-                                                              </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-black text-emerald-600">
-                                                                  {new Intl.NumberFormat(
-                                                                    "id-ID",
-                                                                    {
-                                                                      style:
-                                                                        "currency",
-                                                                      currency:
-                                                                        "IDR",
-                                                                      minimumFractionDigits: 0,
-                                                                    },
-                                                                  ).format(
-                                                                    row.gmv,
-                                                                  )}
-                                                                </div>
-                                                                <div className="text-[9px] font-extrabold text-slate-400 mt-0.5">
-                                                                  AOV: Rp
-                                                                  {Math.round(
-                                                                    row.aov ||
-                                                                      0,
-                                                                  ).toLocaleString(
-                                                                    "id-ID",
-                                                                  )}
-                                                                </div>
-                                                              </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-bold text-slate-700">
-                                                                  {
-                                                                    row.products_sold
-                                                                  }{" "}
-                                                                  Pcs
-                                                                </div>
-                                                                <div className="text-[9px] text-slate-400 font-bold mt-1">
-                                                                  🛍️{" "}
-                                                                  {row.clicks}{" "}
-                                                                  Klik Keranjang
-                                                                </div>
-                                                              </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-bold text-slate-700">
-                                                                  {row.buyers}{" "}
-                                                                  Users
-                                                                </div>
-                                                                <div className="text-[9px] text-pink-600 font-bold mt-1">
-                                                                  🛒{" "}
-                                                                  {row.orders}{" "}
-                                                                  Checkout
-                                                                </div>
-                                                              </td>
-                                                              <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                                                                <div className="text-xs font-black text-indigo-600">
-                                                                  CTR:{" "}
-                                                                  {actualCtr.toFixed(
-                                                                    1,
-                                                                  )}
-                                                                  %
-                                                                </div>
-                                                                <div className="text-[9px] font-black text-slate-500 mt-1">
-                                                                  CVR:{" "}
-                                                                  {finalCvr.toFixed(
-                                                                    2,
-                                                                  )}
-                                                                  %
-                                                                </div>
-                                                              </td>
-                                                            </>
-                                                          )}
-                                                        </>
-                                                      )}
-                                                    </tr>
-                                                  );
-                                                });
-                                            })()}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    </div>
+                                    <ReportingUploadPreviewTable
+                                      reportingRawData={reportingRawData}
+                                      saveTargetPlatform={saveTargetPlatform}
+                                      uploadTargetTab={uploadTargetTab}
+                                      shopeeRawTab={shopeeRawTab}
+                                      rawDateSortAsc={rawDateSortAsc}
+                                      onRawDateSortToggle={() =>
+                                        setRawDateSortAsc(!rawDateSortAsc)
+                                      }
+                                      shifts={shifts}
+                                    />
                                   </div>
                                 )}
                               </div>
@@ -16760,745 +14151,283 @@ export default function App() {
 
                           {/* STORED DATABASE VIEWER - NEW DESIGN */}
                           {operatorReportingTab === "live" && (
-                            <LiveReportPanel
-                              model={liveReportView}
-                              chartSelectedMetrics={liveChartSelectedMetrics}
-                              onChartSelectedMetricsChange={
-                                setLiveChartSelectedMetrics
+                            <React.Suspense
+                              fallback={
+                                <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
+                                  Memuat panel reporting...
+                                </div>
                               }
-                              onPrev={() => {
-                                const pd = new Date();
-                                if (
-                                  operatorDateFilterType === "latest" &&
-                                  liveReportView.targetLatestDate
-                                ) {
-                                  pd.setTime(
-                                    new Date(
-                                      liveReportView.targetLatestDate,
-                                    ).getTime(),
-                                  );
-                                } else if (
-                                  operatorDateFilterType === "custom" &&
-                                  operatorCustomStartDate
-                                ) {
-                                  pd.setTime(
-                                    new Date(operatorCustomStartDate).getTime(),
-                                  );
+                            >
+                              <LiveReportPanel
+                                model={liveReportView}
+                                chartSelectedMetrics={liveChartSelectedMetrics}
+                                onChartSelectedMetricsChange={
+                                  setLiveChartSelectedMetrics
                                 }
-                                pd.setDate(pd.getDate() - 1);
-                                const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                setOperatorDateFilterType("custom");
-                                setOperatorCustomStartDate(newD);
-                                setOperatorCustomEndDate(newD);
-                              }}
-                              onNext={() => {
-                                const pd = new Date();
-                                if (
-                                  operatorDateFilterType === "latest" &&
-                                  liveReportView.targetLatestDate
-                                ) {
-                                  pd.setTime(
-                                    new Date(
-                                      liveReportView.targetLatestDate,
-                                    ).getTime(),
-                                  );
-                                } else if (
-                                  operatorDateFilterType === "custom" &&
-                                  operatorCustomStartDate
-                                ) {
-                                  pd.setTime(
-                                    new Date(operatorCustomStartDate).getTime(),
-                                  );
+                                onPrev={() => {
+                                  const pd = new Date();
+                                  if (
+                                    operatorDateFilterType === "latest" &&
+                                    liveReportView.targetLatestDate
+                                  ) {
+                                    pd.setTime(
+                                      new Date(
+                                        liveReportView.targetLatestDate,
+                                      ).getTime(),
+                                    );
+                                  } else if (
+                                    operatorDateFilterType === "custom" &&
+                                    operatorCustomStartDate
+                                  ) {
+                                    pd.setTime(
+                                      new Date(operatorCustomStartDate).getTime(),
+                                    );
+                                  }
+                                  pd.setDate(pd.getDate() - 1);
+                                  const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
+                                  setOperatorDateFilterType("custom");
+                                  setOperatorCustomStartDate(newD);
+                                  setOperatorCustomEndDate(newD);
+                                }}
+                                onNext={() => {
+                                  const pd = new Date();
+                                  if (
+                                    operatorDateFilterType === "latest" &&
+                                    liveReportView.targetLatestDate
+                                  ) {
+                                    pd.setTime(
+                                      new Date(
+                                        liveReportView.targetLatestDate,
+                                      ).getTime(),
+                                    );
+                                  } else if (
+                                    operatorDateFilterType === "custom" &&
+                                    operatorCustomStartDate
+                                  ) {
+                                    pd.setTime(
+                                      new Date(operatorCustomStartDate).getTime(),
+                                    );
+                                  }
+                                  pd.setDate(pd.getDate() + 1);
+                                  const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
+                                  setOperatorDateFilterType("custom");
+                                  setOperatorCustomStartDate(newD);
+                                  setOperatorCustomEndDate(newD);
+                                }}
+                                reportDbSearchQuery={reportDbSearchQuery}
+                                onSearchQueryChange={setReportDbSearchQuery}
+                                operatorPlatformFilter={operatorPlatformFilter}
+                                onPlatformFilterChange={
+                                  setOperatorPlatformFilter
                                 }
-                                pd.setDate(pd.getDate() + 1);
-                                const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                setOperatorDateFilterType("custom");
-                                setOperatorCustomStartDate(newD);
-                                setOperatorCustomEndDate(newD);
-                              }}
-                              reportDbSearchQuery={reportDbSearchQuery}
-                              onSearchQueryChange={setReportDbSearchQuery}
-                              operatorPlatformFilter={operatorPlatformFilter}
-                              onPlatformFilterChange={
-                                setOperatorPlatformFilter
-                              }
-                              availableOperatorPlatforms={
-                                availableOperatorPlatforms
-                              }
+                                availableOperatorPlatforms={
+                                  availableOperatorPlatforms
+                                }
+                                operatorDateFilterType={operatorDateFilterType}
+                                onDateFilterTypeSelect={
+                                  handleOperatorDateFilterSelect
+                                }
+                                operatorMonthPickerYear={
+                                  operatorMonthPickerYear
+                                }
+                                setOperatorMonthPickerYear={
+                                  setOperatorMonthPickerYear
+                                }
+                                operatorSelectedMonth={operatorSelectedMonth}
+                                setOperatorSelectedMonth={
+                                  setOperatorSelectedMonth
+                                }
+                                isOperatorMonthOpen={isOperatorMonthOpen}
+                                setIsOperatorMonthOpen={setIsOperatorMonthOpen}
+                                isOperatorCalendarOpen={isOperatorCalendarOpen}
+                                setIsOperatorCalendarOpen={
+                                  setIsOperatorCalendarOpen
+                                }
+                                operatorCustomStartDate={
+                                  operatorCustomStartDate
+                                }
+                                operatorCustomEndDate={operatorCustomEndDate}
+                                operatorTempStartDate={operatorTempStartDate}
+                                operatorTempEndDate={operatorTempEndDate}
+                                setOperatorTempStartDate={
+                                  setOperatorTempStartDate
+                                }
+                                setOperatorTempEndDate={setOperatorTempEndDate}
+                                setOperatorCustomStartDate={
+                                  setOperatorCustomStartDate
+                                }
+                                setOperatorCustomEndDate={
+                                  setOperatorCustomEndDate
+                                }
+                                shifts={shifts}
+                                adminShiftChecklist={adminShiftChecklist}
+                                setAdminShiftChecklist={setAdminShiftChecklist}
+                                reportingShopeeRawTab={reportingShopeeRawTab}
+                                setReportingShopeeRawTab={
+                                  setReportingShopeeRawTab
+                                }
+                                reportDbSortCol={reportDbSortCol}
+                                reportDbSortAsc={reportDbSortAsc}
+                                setReportDbSortCol={setReportDbSortCol}
+                                setReportDbSortAsc={setReportDbSortAsc}
+                                currentPage={currentPage}
+                                setCurrentPage={setCurrentPage}
+                                itemsPerPage={ITEMS_PER_PAGE}
+                                isLogsLoading={isLogsLoading}
+                                handleDeletePerformanceLog={
+                                  handleDeletePerformanceLog
+                                }
+                                brandPerformanceLogs={brandPerformanceLogs}
+                                activeReportBrandId={activeReportBrandId || ""}
+                                brandUploadHistory={brandUploadHistory}
+                                uploadHistory={uploadHistory}
+                                onDeleteUploadBatch={handleDeleteUploadBatch}
+                              />
+                            </React.Suspense>
+                          )}
+
+                          {/* STORED SKU DATABASE VIEWER */}
+                          {operatorReportingTab === "product" && (
+                            <ProductPerformancePanel
+                              shopeeSkuLogs={shopeeSkuLogs}
+                              brandPerformanceLogs={brandPerformanceLogs}
+                              activeReportBrandId={activeReportBrandId || ""}
                               operatorDateFilterType={operatorDateFilterType}
-                              onDateFilterTypeSelect={
-                                handleOperatorDateFilterSelect
-                              }
-                              operatorMonthPickerYear={
-                                operatorMonthPickerYear
-                              }
-                              setOperatorMonthPickerYear={
-                                setOperatorMonthPickerYear
-                              }
-                              operatorSelectedMonth={operatorSelectedMonth}
-                              setOperatorSelectedMonth={
-                                setOperatorSelectedMonth
-                              }
-                              isOperatorMonthOpen={isOperatorMonthOpen}
-                              setIsOperatorMonthOpen={setIsOperatorMonthOpen}
-                              isOperatorCalendarOpen={isOperatorCalendarOpen}
-                              setIsOperatorCalendarOpen={
-                                setIsOperatorCalendarOpen
-                              }
                               operatorCustomStartDate={
                                 operatorCustomStartDate
                               }
                               operatorCustomEndDate={operatorCustomEndDate}
-                              operatorTempStartDate={operatorTempStartDate}
-                              operatorTempEndDate={operatorTempEndDate}
-                              setOperatorTempStartDate={
-                                setOperatorTempStartDate
+                              operatorSelectedMonth={operatorSelectedMonth}
+                              operatorPlatformFilter={operatorPlatformFilter}
+                              operatorShiftFilters={operatorShiftFilters}
+                              reportDbSearchQuery={reportDbSearchQuery}
+                              skuSortCol={skuSortCol}
+                              skuSortAsc={skuSortAsc}
+                              setSkuSortCol={setSkuSortCol}
+                              setSkuSortAsc={setSkuSortAsc}
+                              setOperatorDateFilterType={
+                                setOperatorDateFilterType
                               }
-                              setOperatorTempEndDate={setOperatorTempEndDate}
                               setOperatorCustomStartDate={
                                 setOperatorCustomStartDate
                               }
                               setOperatorCustomEndDate={
                                 setOperatorCustomEndDate
                               }
-                              shifts={shifts}
-                              adminShiftChecklist={adminShiftChecklist}
-                              setAdminShiftChecklist={setAdminShiftChecklist}
-                              reportingShopeeRawTab={reportingShopeeRawTab}
-                              setReportingShopeeRawTab={
-                                setReportingShopeeRawTab
-                              }
-                              reportDbSortCol={reportDbSortCol}
-                              reportDbSortAsc={reportDbSortAsc}
-                              setReportDbSortCol={setReportDbSortCol}
-                              setReportDbSortAsc={setReportDbSortAsc}
                               currentPage={currentPage}
-                              setCurrentPage={setCurrentPage}
                               itemsPerPage={ITEMS_PER_PAGE}
-                              isLogsLoading={isLogsLoading}
-                              handleDeletePerformanceLog={
-                                handleDeletePerformanceLog
-                              }
-                              brandPerformanceLogs={brandPerformanceLogs}
-                              activeReportBrandId={activeReportBrandId || ""}
-                              brandUploadHistory={brandUploadHistory}
-                              uploadHistory={uploadHistory}
-                              onDeleteUploadBatch={handleDeleteUploadBatch}
+                              setCurrentPage={setCurrentPage}
+                              onDeleteBatch={handleDeleteSkuBatch}
                             />
-                          )}
-
-                          {/* STORED SKU DATABASE VIEWER */}
-                          {operatorReportingTab === "product" && (
-                            <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-
-                              {/* SKU Analytics */}
-                              {(() => {
-                                const targetLatestDate =
-                                  getLatestDateForBrand(
-                                    brandPerformanceLogs,
-                                    activeReportBrandId,
-                                  );
-                                const currentSkus = filterSkuLogs(
-                                  shopeeSkuLogs,
-                                  {
-                                    brandId: activeReportBrandId,
-                                    dateFilterType: operatorDateFilterType,
-                                    latestDate: targetLatestDate,
-                                    customStartDate: operatorCustomStartDate,
-                                    customEndDate: operatorCustomEndDate,
-                                    selectedMonth: operatorSelectedMonth,
-                                    platformFilter: operatorPlatformFilter,
-                                    shiftFilters: operatorShiftFilters,
-                                    searchQuery: reportDbSearchQuery,
-                                  },
-                                );
-                                if (currentSkus.length === 0)
-                                  return (
-                                    <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-sm mb-6 text-center text-slate-500 font-semibold text-sm">
-                                      Tidak ada data product performance / SKU
-                                      untuk filter saat ini.
-                                    </div>
-                                  );
-
-                                let aggregatedSkus = aggregateSkuLogs(
-                                  currentSkus,
-                                ).sort((a, b) => {
-                                  if (skuSortCol === "sold")
-                                    return skuSortAsc
-                                      ? a.sold - b.sold
-                                      : b.sold - a.sold;
-                                  if (skuSortCol === "revenue")
-                                    return skuSortAsc
-                                      ? a.revenue - b.revenue
-                                      : b.revenue - a.revenue;
-                                  return 0;
-                                });
-
-                                let productDateLabel = "Semua Waktu";
-                                if (
-                                  operatorDateFilterType === "latest" &&
-                                  targetLatestDate
-                                ) {
-                                  productDateLabel =
-                                    targetLatestDate.split(" ")[0];
-                                } else if (
-                                  operatorDateFilterType === "custom" &&
-                                  operatorCustomStartDate
-                                ) {
-                                  productDateLabel = `${operatorCustomStartDate} to ${operatorCustomEndDate}`;
-                                } else if (
-                                  operatorDateFilterType === "month" &&
-                                  operatorSelectedMonth
-                                ) {
-                                  productDateLabel = getIndonesianMonthLabel(
-                                    operatorSelectedMonth,
-                                  );
-                                }
-
-                                return (
-                                  <div className="bg-white border border-slate-100 p-5 lg:p-7 rounded-3xl shadow-sm mb-6">
-                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
-                                      <div>
-                                        <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                                          Product Performance
-                                        </h4>
-                                        <p className="text-[10px] sm:text-xs text-slate-500 font-semibold mt-1">
-                                          Distribusi revenue & sales by SKU
-                                        </p>
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                        <div className="flex items-center gap-2 sm:gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
-                                          <button
-                                          onClick={() => {
-                                              shiftReportPeriodByOneDay({
-                                                direction: -1,
-                                                dateFilterType:
-                                                  operatorDateFilterType,
-                                                targetLatestDate,
-                                                customStartDate:
-                                                  operatorCustomStartDate,
-                                                setDateFilterType:
-                                                  setOperatorDateFilterType,
-                                                setCustomStartDate:
-                                                  setOperatorCustomStartDate,
-                                                setCustomEndDate:
-                                                  setOperatorCustomEndDate,
-                                              });
-                                            }}
-                                            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                          >
-                                            <ChevronLeft className="w-4 h-4" />
-                                          </button>
-                                          <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[140px] sm:min-w-[160px] text-center">
-                                            {(() => {
-                                              if (
-                                                operatorDateFilterType ===
-                                                  "month" ||
-                                                operatorDateFilterType === "all"
-                                              )
-                                                return (
-                                                  productDateLabel ||
-                                                  "Semua Waktu"
-                                                );
-                                              let curD = new Date();
-                                              let tld =
-                                                brandPerformanceLogs
-                                                  .filter(
-                                                    (log) =>
-                                                      log.brandId ===
-                                                      activeReportBrandId,
-                                                  )
-                                                  .sort(
-                                                    (a, b) =>
-                                                      new Date(
-                                                        b.date || "0",
-                                                      ).getTime() -
-                                                      new Date(
-                                                        a.date || "0",
-                                                      ).getTime(),
-                                                  )[0]?.date || "";
-                                              if (
-                                                operatorDateFilterType ===
-                                                  "latest" &&
-                                                tld
-                                              ) {
-                                                curD = new Date(tld);
-                                              } else if (
-                                                operatorDateFilterType ===
-                                                  "custom" &&
-                                                operatorCustomStartDate
-                                              ) {
-                                                curD = new Date(
-                                                  operatorCustomStartDate,
-                                                );
-                                              }
-                                              return curD.toLocaleDateString(
-                                                "id-ID",
-                                                {
-                                                  weekday: "long",
-                                                  day: "numeric",
-                                                  month: "long",
-                                                  year: "numeric",
-                                                },
-                                              );
-                                            })()}
-                                          </span>
-                                          <button
-                                            onClick={() => {
-                                              shiftReportPeriodByOneDay({
-                                                direction: 1,
-                                                dateFilterType:
-                                                  operatorDateFilterType,
-                                                targetLatestDate,
-                                                customStartDate:
-                                                  operatorCustomStartDate,
-                                                setDateFilterType:
-                                                  setOperatorDateFilterType,
-                                                setCustomStartDate:
-                                                  setOperatorCustomStartDate,
-                                                setCustomEndDate:
-                                                  setOperatorCustomEndDate,
-                                              });
-                                            }}
-                                            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                          >
-                                            <ChevronRight className="w-4 h-4" />
-                                          </button>
-                                        </div>
-                                        <div className="bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-xs h-[36px] sm:h-[40px] flex items-center">
-                                          Total Item Sold:{" "}
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(
-                                            aggregatedSkus.reduce(
-                                              (sum, item) => sum + item.sold,
-                                              0,
-                                            ),
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-[500px] overflow-y-auto custom-scrollbar">
-                                      <table className="w-full text-left bg-white">
-                                        <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                                          <tr>
-                                            <th className="px-5 py-4 w-16 text-center text-slate-500 font-semibold text-xs tracking-widest uppercase">
-                                              No
-                                            </th>
-                                            <th className="px-5 py-4 text-slate-500 font-semibold text-xs tracking-widest uppercase">
-                                              SKU
-                                            </th>
-                                            <th
-                                              className="px-5 py-4 w-32 cursor-pointer hover:bg-slate-100 transition-colors"
-                                              onClick={() => {
-                                                if (skuSortCol === "sold")
-                                                  setSkuSortAsc(!skuSortAsc);
-                                                else {
-                                                  setSkuSortCol("sold");
-                                                  setSkuSortAsc(false);
-                                                }
-                                              }}
-                                            >
-                                              <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
-                                                Sold
-                                                {skuSortCol === "sold" &&
-                                                  (skuSortAsc ? (
-                                                    <ChevronUp className="w-3 h-3" />
-                                                  ) : (
-                                                    <ChevronDown className="w-3 h-3" />
-                                                  ))}
-                                              </div>
-                                            </th>
-                                            <th
-                                              className="px-5 py-4 w-40 cursor-pointer hover:bg-slate-100 transition-colors"
-                                              onClick={() => {
-                                                if (skuSortCol === "revenue")
-                                                  setSkuSortAsc(!skuSortAsc);
-                                                else {
-                                                  setSkuSortCol("revenue");
-                                                  setSkuSortAsc(false);
-                                                }
-                                              }}
-                                            >
-                                              <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
-                                                Revenue
-                                                {skuSortCol === "revenue" &&
-                                                  (skuSortAsc ? (
-                                                    <ChevronUp className="w-3 h-3" />
-                                                  ) : (
-                                                    <ChevronDown className="w-3 h-3" />
-                                                  ))}
-                                              </div>
-                                            </th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
-                                          {aggregatedSkus.map((sku, idx) => (
-                                            <tr
-                                              key={idx}
-                                              className="hover:bg-slate-50/70 transition-colors"
-                                            >
-                                              <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">
-                                                {idx + 1}
-                                              </td>
-                                              <td className="px-5 py-3 whitespace-normal min-w-[250px]">
-                                                <div className="line-clamp-2 text-slate-800 leading-snug">
-                                                  {sku.productName}
-                                                </div>
-                                              </td>
-                                              <td className="px-5 py-3 text-right text-emerald-600 font-black">
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(sku.sold)}
-                                              </td>
-                                              <td className="px-5 py-3 text-right text-slate-800 font-black">
-                                                Rp{" "}
-                                                {new Intl.NumberFormat(
-                                                  "id-ID",
-                                                ).format(sku.revenue)}
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-
-                              {/* UPLOAD HISTORY SKU VIEWER */}
-                              <SkuUploadHistoryCard
-                                brandSkuLogs={shopeeSkuLogs.filter(
-                                  (r) => r.brandId === activeReportBrandId,
-                                )}
-                                currentPage={currentPage}
-                                itemsPerPage={ITEMS_PER_PAGE}
-                                setCurrentPage={setCurrentPage}
-                                onDeleteBatch={handleDeleteSkuBatch}
-                              />
-                            </div>
                           )}
 
                           {operatorReportingTab === "engagement" && (
                             <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap mt-0">
-                                <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
-                                  <select
-                                    value={operatorPlatformFilter}
-                                    onChange={(e) =>
-                                      setOperatorPlatformFilter(e.target.value)
-                                    }
-                                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
-                                  >
-                                    {availableOperatorPlatforms.map((p) => (
-                                      <option key={p} value={p}>
-                                        {p}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <div className="relative">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setIsShiftFilterOpen(!isShiftFilterOpen)
-                                      }
-                                      className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm flex items-center justify-between min-w-[130px] whitespace-nowrap"
-                                    >
-                                      <span className="truncate mr-2 text-left">
-                                        {operatorShiftFilters.length === 0
-                                          ? "Semua Shift"
-                                          : `${operatorShiftFilters.length} Shift`}
-                                      </span>
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="lucide lucide-chevron-down w-3 h-3 text-slate-400 shrink-0"
-                                      >
-                                        <path d="m6 9 6 6 6-6" />
-                                      </svg>
-                                    </button>
-                                    {isShiftFilterOpen && (
-                                      <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                                        <div className="p-2 space-y-1">
-                                          <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded cursor-pointer text-xs font-semibold text-slate-700">
-                                            <input
-                                              type="checkbox"
-                                              checked={
-                                                operatorShiftFilters.length ===
-                                                0
-                                              }
-                                              onChange={() => {
-                                                setOperatorShiftFilters([]);
-                                                setIsShiftFilterOpen(false);
-                                              }}
-                                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                            />
-                                            Semua Shift
-                                          </label>
-                                          {shifts.map((s) => (
-                                            <label
-                                              key={s}
-                                              className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded cursor-pointer text-xs font-semibold text-slate-700"
-                                            >
-                                              <input
-                                                type="checkbox"
-                                                checked={operatorShiftFilters.includes(
-                                                  s,
-                                                )}
-                                                onChange={(e) => {
-                                                  if (e.target.checked)
-                                                    setOperatorShiftFilters([
-                                                      ...operatorShiftFilters,
-                                                      s,
-                                                    ]);
-                                                  else
-                                                    setOperatorShiftFilters(
-                                                      operatorShiftFilters.filter(
-                                                        (x) => x !== s,
-                                                      ),
-                                                    );
-                                                }}
-                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                              />
-                                              {s}
-                                            </label>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="relative flex gap-2 w-full sm:w-auto h-9">
-                                  <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                                    {[
-                                      { id: "latest", label: "Terbaru" },
-                                      { id: "all", label: "Semua" },
-                                      { id: "month", label: "Bulan" },
-                                      { id: "custom", label: "Custom" },
-                                    ].map((item) => (
-                                      <button
-                                        key={item.id}
-                                        type="button"
-                                        onClick={() => {
-                                          setOperatorDateFilterType(item.id);
-                                          if (
-                                            item.id === "all" ||
-                                            item.id === "latest"
-                                          ) {
-                                            setIsOperatorCalendarOpen(false);
-                                            setIsOperatorMonthOpen(false);
-                                          } else if (item.id === "month") {
-                                            setIsOperatorMonthOpen(true);
-                                            setIsOperatorCalendarOpen(false);
-                                          } else if (item.id === "custom") {
-                                            setIsOperatorCalendarOpen(true);
-                                            setIsOperatorMonthOpen(false);
-                                            setOperatorTempStartDate(
-                                              operatorCustomStartDate ||
-                                                formatDateYYYYMMDD(new Date()),
-                                            );
-                                            setOperatorTempEndDate(
-                                              operatorCustomEndDate ||
-                                                formatDateYYYYMMDD(new Date()),
-                                            );
-                                          }
-                                        }}
-                                        className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
-                                          operatorDateFilterType === item.id
-                                            ? "bg-white text-indigo-700 shadow-sm border border-slate-100"
-                                            : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
-                                        }`}
-                                      >
-                                        {item.label}
-                                      </button>
-                                    ))}
-                                  </div>
-
-                                  {((operatorDateFilterType === "custom" &&
-                                    operatorCustomStartDate) ||
-                                    operatorDateFilterType === "month") && (
-                                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                      <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                                      <span className="text-[10px] font-bold text-slate-700">
-                                        {operatorDateFilterType === "month"
-                                          ? getIndonesianMonthLabel(
-                                              operatorSelectedMonth,
-                                            )
-                                          : `${operatorCustomStartDate} to ${operatorCustomEndDate}`}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {/* Custom Date Overlay UI (Month) */}
-                                  {isOperatorMonthOpen &&
-                                    operatorDateFilterType === "month" && (
-                                      <div className="absolute right-0 top-full mt-2 z-50 bg-white p-4 rounded-xl shadow-lg border border-slate-200 w-64 animate-fadeIn">
-                                        <div className="flex justify-between items-center mb-4 text-slate-800">
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              setOperatorMonthPickerYear(
-                                                (y) => y - 1,
-                                              )
-                                            }
-                                            className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
-                                          >
-                                            &laquo;
-                                          </button>
-                                          <div className="text-sm font-bold tracking-widest">
-                                            {operatorMonthPickerYear}
-                                          </div>
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              setOperatorMonthPickerYear(
-                                                (y) => y + 1,
-                                              )
-                                            }
-                                            className="text-slate-400 hover:text-slate-700 bg-transparent border-0 cursor-pointer p-1"
-                                          >
-                                            &raquo;
-                                          </button>
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-y-2 pb-1 border-t border-slate-100 pt-3 relative">
-                                          {[
-                                            { val: "01", label: "Jan" },
-                                            { val: "02", label: "Feb" },
-                                            { val: "03", label: "Mar" },
-                                            { val: "04", label: "Apr" },
-                                            { val: "05", label: "May" },
-                                            { val: "06", label: "Jun" },
-                                            { val: "07", label: "Jul" },
-                                            { val: "08", label: "Aug" },
-                                            { val: "09", label: "Sept" },
-                                            { val: "10", label: "Oct" },
-                                            { val: "11", label: "Nov" },
-                                            { val: "12", label: "Dec" },
-                                          ].map((m, idx) => {
-                                            const mVal = `${operatorMonthPickerYear}-${m.val}`;
-                                            const isSelected =
-                                              operatorSelectedMonth === mVal;
-
-                                            const currentDate = new Date();
-                                            const isFuture =
-                                              operatorMonthPickerYear >
-                                                currentDate.getFullYear() ||
-                                              (operatorMonthPickerYear ===
-                                                currentDate.getFullYear() &&
-                                                parseInt(m.val) >
-                                                  currentDate.getMonth() + 1);
-
-                                            return (
-                                              <button
-                                                key={m.val}
-                                                type="button"
-                                                onClick={() => {
-                                                  if (!isFuture) {
-                                                    setOperatorSelectedMonth(
-                                                      mVal,
-                                                    );
-                                                    setIsOperatorMonthOpen(
-                                                      false,
-                                                    );
-                                                  }
-                                                }}
-                                                className={`py-2 text-[13px] font-semibold flex flex-col justify-center items-center h-10 border-0 ${
-                                                  isFuture
-                                                    ? "bg-slate-50 text-slate-400 cursor-not-allowed"
-                                                    : "bg-white text-slate-800 hover:bg-slate-50 cursor-pointer"
-                                                } ${isSelected ? "bg-slate-50 shadow-sm relative" : ""}`}
-                                              >
-                                                {m.label}
-                                                {isSelected && !isFuture && (
-                                                  <div className="w-1.5 h-1.5 rounded-full bg-slate-300 absolute bottom-1"></div>
-                                                )}
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                  {/* Custom Date Overlay UI (Custom) */}
-                                  {isOperatorCalendarOpen &&
-                                    operatorDateFilterType === "custom" && (
-                                      <div className="absolute right-0 top-full mt-2 z-50 animate-fadeIn">
-                                        <DoubleDatePicker
-                                          startDate={operatorTempStartDate}
-                                          endDate={operatorTempEndDate}
-                                          onChange={(start, end) => {
-                                            setOperatorTempStartDate(start);
-                                            setOperatorTempEndDate(end);
-                                          }}
-                                          onApply={() => {
-                                            setOperatorCustomStartDate(
-                                              operatorTempStartDate,
-                                            );
-                                            setOperatorCustomEndDate(
-                                              operatorTempEndDate,
-                                            );
-                                            setIsOperatorCalendarOpen(false);
-                                          }}
-                                          onCancel={() =>
-                                            setIsOperatorCalendarOpen(false)
-                                          }
-                                        />
-                                      </div>
-                                    )}
-                                </div>
-                              </div>
-                              {/* Oh wait, actually let's just make it a table based on aggregated brandPerformanceLogs */}
-                              <EngagementReportPanel
-                                model={engagementReportView}
-                                chartSelectedMetrics={
-                                  engagementChartSelectedMetrics
+                              <EngagementReportFilters
+                                operatorPlatformFilter={operatorPlatformFilter}
+                                onPlatformFilterChange={
+                                  setOperatorPlatformFilter
                                 }
-                                onChartSelectedMetricsChange={
-                                  setEngagementChartSelectedMetrics
+                                availableOperatorPlatforms={
+                                  availableOperatorPlatforms
                                 }
-                                onPrev={() =>
-                                  shiftReportPeriodByOneDay({
-                                    direction: -1,
-                                    dateFilterType: operatorDateFilterType,
-                                    targetLatestDate:
-                                      engagementReportView.engagementLatestDate,
-                                    customStartDate: operatorCustomStartDate,
-                                    setDateFilterType:
-                                      setOperatorDateFilterType,
-                                    setCustomStartDate:
-                                      setOperatorCustomStartDate,
-                                    setCustomEndDate: setOperatorCustomEndDate,
-                                  })
+                                operatorShiftFilters={operatorShiftFilters}
+                                onOperatorShiftFiltersChange={
+                                  setOperatorShiftFilters
                                 }
-                                onNext={() =>
-                                  shiftReportPeriodByOneDay({
-                                    direction: 1,
-                                    dateFilterType: operatorDateFilterType,
-                                    targetLatestDate:
-                                      engagementReportView.engagementLatestDate,
-                                    customStartDate: operatorCustomStartDate,
-                                    setDateFilterType:
-                                      setOperatorDateFilterType,
-                                    setCustomStartDate:
-                                      setOperatorCustomStartDate,
-                                    setCustomEndDate: setOperatorCustomEndDate,
-                                  })
+                                isShiftFilterOpen={isShiftFilterOpen}
+                                onShiftFilterOpenChange={
+                                  setIsShiftFilterOpen
                                 }
-                                activeReportBrandId={activeReportBrandId || ""}
-                                brandPerformanceLogs={brandPerformanceLogs}
-                                brandUploadHistory={brandUploadHistory}
-                                uploadHistory={uploadHistory}
-                                isLogsLoading={isLogsLoading}
-                                onDeleteUploadBatch={handleDeleteUploadBatch}
+                                shifts={shifts}
+                                operatorDateFilterType={operatorDateFilterType}
+                                onDateFilterTypeSelect={
+                                  setOperatorDateFilterType
+                                }
+                                operatorMonthPickerYear={
+                                  operatorMonthPickerYear
+                                }
+                                setOperatorMonthPickerYear={
+                                  setOperatorMonthPickerYear
+                                }
+                                operatorSelectedMonth={operatorSelectedMonth}
+                                setOperatorSelectedMonth={
+                                  setOperatorSelectedMonth
+                                }
+                                isOperatorMonthOpen={isOperatorMonthOpen}
+                                setIsOperatorMonthOpen={setIsOperatorMonthOpen}
+                                isOperatorCalendarOpen={isOperatorCalendarOpen}
+                                setIsOperatorCalendarOpen={
+                                  setIsOperatorCalendarOpen
+                                }
+                                operatorCustomStartDate={
+                                  operatorCustomStartDate
+                                }
+                                operatorCustomEndDate={operatorCustomEndDate}
+                                operatorTempStartDate={operatorTempStartDate}
+                                operatorTempEndDate={operatorTempEndDate}
+                                setOperatorTempStartDate={
+                                  setOperatorTempStartDate
+                                }
+                                setOperatorTempEndDate={setOperatorTempEndDate}
+                                setOperatorCustomStartDate={
+                                  setOperatorCustomStartDate
+                                }
+                                setOperatorCustomEndDate={
+                                  setOperatorCustomEndDate
+                                }
                               />
+                              <React.Suspense
+                                fallback={
+                                  <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
+                                    Memuat panel reporting...
+                                  </div>
+                                }
+                              >
+                                <EngagementReportPanel
+                                  model={engagementReportView}
+                                  chartSelectedMetrics={
+                                    engagementChartSelectedMetrics
+                                  }
+                                  onChartSelectedMetricsChange={
+                                    setEngagementChartSelectedMetrics
+                                  }
+                                  onPrev={() =>
+                                    shiftReportPeriodByOneDay({
+                                      direction: -1,
+                                      dateFilterType: operatorDateFilterType,
+                                      targetLatestDate:
+                                        engagementReportView.engagementLatestDate,
+                                      customStartDate: operatorCustomStartDate,
+                                      setDateFilterType:
+                                        setOperatorDateFilterType,
+                                      setCustomStartDate:
+                                        setOperatorCustomStartDate,
+                                      setCustomEndDate: setOperatorCustomEndDate,
+                                    })
+                                  }
+                                  onNext={() =>
+                                    shiftReportPeriodByOneDay({
+                                      direction: 1,
+                                      dateFilterType: operatorDateFilterType,
+                                      targetLatestDate:
+                                        engagementReportView.engagementLatestDate,
+                                      customStartDate: operatorCustomStartDate,
+                                      setDateFilterType:
+                                        setOperatorDateFilterType,
+                                      setCustomStartDate:
+                                        setOperatorCustomStartDate,
+                                      setCustomEndDate: setOperatorCustomEndDate,
+                                    })
+                                  }
+                                  activeReportBrandId={activeReportBrandId || ""}
+                                  brandPerformanceLogs={brandPerformanceLogs}
+                                  brandUploadHistory={brandUploadHistory}
+                                  uploadHistory={uploadHistory}
+                                  isLogsLoading={isLogsLoading}
+                                  onDeleteUploadBatch={handleDeleteUploadBatch}
+                                />
+                              </React.Suspense>
                             </div>
                           )}
                         </div>
