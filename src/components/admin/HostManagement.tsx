@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { Search, Edit2, Trash2 } from "lucide-react";
 import type { HostEmployee, StudioItem } from "../../types";
 import { getAvatarUrl } from "../../shared/utils/appUi";
+import {
+  getHostStudioOptions,
+  normalizeHostStudioLocation,
+} from "../../shared/utils/hostCredentials";
 
 type SearchableHostSelectProps = {
   hosts: HostEmployee[];
@@ -194,14 +198,20 @@ export function HostCredentialRow({
   onDelete,
   studios = [],
 }: HostCredentialRowProps) {
+  const studioOptions =
+    studios.length > 0
+      ? studios.map((std) => std.location)
+      : getHostStudioOptions();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(host.name || "");
   const [role, setRole] = useState(host.role || "");
-  const [studio, setStudio] = useState(host.studio || "Studio Bandar Lampung");
+  const [studio, setStudio] = useState(
+    normalizeHostStudioLocation(host.studio) || "Bandar Lampung",
+  );
   const [phone, setPhone] = useState(host.phone || "");
   const [bankAccount, setBankAccount] = useState(host.bankAccount || "");
   const [username, setUsername] = useState(host.username || "");
-  const [password, setPassword] = useState(host.password || "");
+  const [password, setPassword] = useState("");
   const [customWorkingDaysTarget, setCustomWorkingDaysTarget] = useState<number>(
     host.customWorkingDaysTarget || 26,
   );
@@ -210,11 +220,11 @@ export function HostCredentialRow({
     if (isEditing) return;
     setName(host.name || "");
     setRole(host.role || "");
-    setStudio(host.studio || "Studio Bandar Lampung");
+    setStudio(normalizeHostStudioLocation(host.studio) || "Bandar Lampung");
     setPhone(host.phone || "");
     setBankAccount(host.bankAccount || "");
     setUsername(host.username || "");
-    setPassword(host.password || "");
+    setPassword("");
     setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
   }, [host, isEditing]);
 
@@ -223,11 +233,11 @@ export function HostCredentialRow({
       name,
       role,
       hostType: role.toLowerCase().includes("back up") ? "Backup" : "Reguler",
-      studio,
+      studio: normalizeHostStudioLocation(studio),
       phone,
       bankAccount,
       username,
-      password,
+      ...(password.trim() ? { password: password.trim() } : {}),
       customWorkingDaysTarget: role.toLowerCase().includes("back up")
         ? undefined
         : customWorkingDaysTarget,
@@ -238,11 +248,11 @@ export function HostCredentialRow({
   const handleCancel = () => {
     setName(host.name || "");
     setRole(host.role || "");
-    setStudio(host.studio || "Studio Bandar Lampung");
+    setStudio(normalizeHostStudioLocation(host.studio) || "Bandar Lampung");
     setPhone(host.phone || "");
     setBankAccount(host.bankAccount || "");
     setUsername(host.username || "");
-    setPassword(host.password || "");
+    setPassword("");
     setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
     setIsEditing(false);
   };
@@ -309,26 +319,15 @@ export function HostCredentialRow({
             onChange={(e) => setStudio(e.target.value)}
             className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 cursor-pointer"
           >
-            {studios.length > 0 ? (
-              studios.map((std, i) => (
-                <option key={std.id + "_" + i} value={std.name}>
-                  {std.name} ({std.location})
-                </option>
-              ))
-            ) : (
-              <>
-                <option value="Studio Bandar Lampung">
-                  Studio Bandar Lampung (Bandar Lampung)
-                </option>
-                <option value="Studio Tanggamus">
-                  Studio Tanggamus (Tanggamus)
-                </option>
-              </>
-            )}
+            {studioOptions.map((location) => (
+              <option key={location} value={location}>
+                {location}
+              </option>
+            ))}
           </select>
         ) : (
           <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/45 font-extrabold text-[9.5px] uppercase">
-            {host.studio || "Studio Bandar Lampung"}
+            {normalizeHostStudioLocation(host.studio) || "Bandar Lampung"}
           </span>
         )}
       </td>
@@ -352,15 +351,21 @@ export function HostCredentialRow({
       <td className="px-6 py-4">
         {isEditing ? (
           <input
-            type="text"
+            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="bg-[#faf9fe] border border-purple-150 rounded-lg px-2 py-1 focus:outline-none focus:border-purple-500 font-mono text-xs font-bold w-28"
-            placeholder="password"
+            placeholder={
+              host.hasPassword || host.password
+                ? "Kosongkan untuk tetap memakai password lama"
+                : "Masukkan password baru"
+            }
           />
         ) : (
           <code className="bg-purple-50 px-2 py-1 rounded text-purple-650 font-mono font-bold text-[11px] border border-purple-100/30">
-            {host.password}
+            {host.hasPassword || host.password
+              ? "Password tersimpan"
+              : "Belum di-set"}
           </code>
         )}
       </td>

@@ -153,6 +153,9 @@ import {
   recoverCollectionsFromLocalStorage,
 } from "./shared/utils/dataBackup";
 import {
+  normalizeHostStudioLocation,
+} from "./shared/utils/hostCredentials";
+import {
   buildMappedUploadRows,
 } from "./shared/utils/mappingUpload";
 import {
@@ -1260,7 +1263,7 @@ export default function App() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHostName, setNewHostName] = useState("");
   const [newHostRole, setNewHostRole] = useState("Reguler Host");
-  const [newHostStudio, setNewHostStudio] = useState("Studio Bandar Lampung");
+  const [newHostStudio, setNewHostStudio] = useState("Bandar Lampung");
   const [newHostPhone, setNewHostPhone] = useState("");
   const [newHostBank, setNewHostBank] = useState("");
   const [newHostUser, setNewHostUser] = useState("");
@@ -1272,10 +1275,18 @@ export default function App() {
     hostId: string,
     updatedFields: Partial<HostEmployee>,
   ) => {
+    const normalizedFields =
+      typeof updatedFields.studio === "string"
+        ? {
+            ...updatedFields,
+            studio: normalizeHostStudioLocation(updatedFields.studio),
+          }
+        : updatedFields;
+
     setHosts((prev) =>
       prev.map((h) => {
         if (h.id === hostId) {
-          return { ...h, ...updatedFields };
+          return { ...h, ...normalizedFields };
         }
         return h;
       }),
@@ -1348,7 +1359,7 @@ export default function App() {
       hostType: newHostData.role.toLowerCase().includes("back up")
         ? "Backup"
         : "Reguler",
-      studio: newHostData.studio || "Studio Bandar Lampung",
+      studio: normalizeHostStudioLocation(newHostData.studio) || "Bandar Lampung",
       phone: newHostData.phone || "+62 812-0000-0000",
       bankAccount: newHostData.bankAccount || "-",
       username: (
@@ -1356,6 +1367,7 @@ export default function App() {
         newHostData.name.toLowerCase().replace(/\s+/g, "")
       ).trim(),
       password: (newHostData.password || "liva123").trim(),
+      hasPassword: true,
       platforms: ["TikTok Live", "Shopee Live"],
       brands: ["Wardah", "Somethinc"],
       baseMonthlyTargetHours: 80,
@@ -3851,7 +3863,29 @@ export default function App() {
             "Impor & Timpa Database",
             "Apakah Anda yakin ingin mengganti seluruh data saat ini (Host, Log Absensi, Klien, Leads, Jadwal, Brand, Platform, Shift, dan Studio) dengan data dari file JSON ini? Seluruh data real di cloud juga akan diperbarui.",
             () => {
-              if (backupCollections.hosts) setHosts(backupCollections.hosts);
+              if (backupCollections.hosts) {
+                const currentHostsById = new Map<string, HostEmployee>(
+                  hosts.map((host) => [host.id, host] as const),
+                );
+                const importedHosts = (backupCollections.hosts || []) as HostEmployee[];
+                setHosts(
+                  importedHosts.map((importedHost: HostEmployee) => {
+                    const hostId = importedHost.id || "";
+                    const currentHost = currentHostsById.get(hostId);
+                    const normalizedStudio = normalizeHostStudioLocation(
+                      importedHost.studio || currentHost?.studio || "",
+                    );
+
+                    return {
+                      ...(currentHost || {}),
+                      ...importedHost,
+                      studio: normalizedStudio || importedHost.studio || currentHost?.studio,
+                      hasPassword:
+                        importedHost.hasPassword ?? currentHost?.hasPassword ?? false,
+                    } as HostEmployee;
+                  }),
+                );
+              }
               if (backupCollections.logs) setLogs(backupCollections.logs);
               if (backupCollections.clientBrands)
                 setClientBrands(backupCollections.clientBrands);

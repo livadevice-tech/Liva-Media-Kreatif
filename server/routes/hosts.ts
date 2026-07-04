@@ -2,6 +2,10 @@ import type { Express, Request, Response } from "express";
 import { execute, queryMany, queryOne } from "../db";
 import { asyncHandler, genId } from "../http";
 import { hashPasswordForStorage } from "../auth";
+import {
+  normalizeHostStudioLocation,
+  resolveHostPasswordHash,
+} from "../../src/shared/utils/hostCredentials";
 
 function mapHost(host: any) {
   host.employeeId = host.employee_id;
@@ -15,6 +19,7 @@ function mapHost(host: any) {
   host.customWorkingDaysTarget = host.custom_working_days_target;
   host.customBaseSalary = host.custom_base_salary;
   host.customShiftRate = host.custom_shift_rate;
+  host.hasPassword = Boolean(host.password_hash);
   host.password = "";
   delete host.password_hash;
 }
@@ -42,6 +47,7 @@ export function registerHostRoutes(app: Express) {
     const brands = await queryMany(`SELECT brand FROM host_brands WHERE host_id = ?`, [host.id]);
     host.platforms = platforms.map((p: any) => p.platform);
     host.brands = brands.map((b: any) => b.brand);
+    host.hasPassword = Boolean(host.password_hash);
     host.password = "";
     delete host.password_hash;
     host.bankName = host.bank_name;
@@ -52,6 +58,7 @@ export function registerHostRoutes(app: Express) {
   app.post("/api/hosts", asyncHandler(async (req: Request, res: Response) => {
     const h = req.body;
     const id = h.id || genId("host");
+    const studio = normalizeHostStudioLocation(h.studio) || null;
 
     await execute(`
       INSERT INTO hosts (
@@ -66,8 +73,8 @@ export function registerHostRoutes(app: Express) {
       h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
       h.consistencyScore || 0, h.joinedDate || null,
       h.email || null, h.phone || null,
-      h.username || null, h.password ? hashPasswordForStorage(h.password) : null,
-      h.bankAccount || null, h.bankName || null, h.studio || null,
+      h.username || null, resolveHostPasswordHash(h.password, null, hashPasswordForStorage),
+      h.bankAccount || null, h.bankName || null, studio,
       h.hostType || "Reguler",
       h.customWorkingDaysTarget ?? null,
       h.customBaseSalary ?? null,
@@ -92,11 +99,14 @@ export function registerHostRoutes(app: Express) {
   app.put("/api/hosts/:id", asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id;
     const h = req.body;
+    const studio = normalizeHostStudioLocation(h.studio) || null;
 
     const existing = await queryOne(`SELECT password_hash FROM hosts WHERE id = ?`, [id]);
-    const passwordHash = h.password
-      ? hashPasswordForStorage(h.password)
-      : existing?.password_hash || null;
+    const passwordHash = resolveHostPasswordHash(
+      h.password,
+      existing?.password_hash,
+      hashPasswordForStorage,
+    );
 
     await execute(`
       UPDATE hosts SET
@@ -112,7 +122,7 @@ export function registerHostRoutes(app: Express) {
       h.baseMonthlyTargetHours || 0, h.baseMonthlyTargetRevenue || 0,
       h.consistencyScore || 0, h.joinedDate || null,
       h.email || null, h.phone || null,
-      h.username || null, passwordHash, h.bankAccount || null, h.bankName || null, h.studio || null,
+      h.username || null, passwordHash, h.bankAccount || null, h.bankName || null, studio,
       h.hostType || "Reguler",
       h.customWorkingDaysTarget ?? null,
       h.customBaseSalary ?? null,

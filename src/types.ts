@@ -31,11 +31,12 @@ export interface HostEmployee {
   password?: string;
   bankAccount?: string;
   bankName?: string;
-  studio?: string; // "Studio Bandar Lampung" | "Studio Tanggamus"
+  studio?: string; // "Bandar Lampung" | "Tanggamus"
   hostType?: "Reguler" | "Backup"; // "Reguler" or "Backup"
   customWorkingDaysTarget?: number; // Custom target working days for Reguler host
   customBaseSalary?: number; // Custom basic monthly salary for Reguler host
   customShiftRate?: number; // Custom rate per shift for Backup host
+  hasPassword?: boolean;
 }
 
 export interface AttendanceLog {

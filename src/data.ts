@@ -30,7 +30,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-01-15",
     email: "cica@livamedia.com",
     phone: "+62 812-1001-2001",
-    studio: "Studio Bandar Lampung",
+    studio: "Bandar Lampung",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -48,7 +48,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-02-10",
     email: "gesti@livamedia.com",
     phone: "+62 812-1002-2002",
-    studio: "Studio Bandar Lampung",
+    studio: "Bandar Lampung",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -66,7 +66,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2024-11-01",
     email: "nabila@livamedia.com",
     phone: "+62 813-1003-2003",
-    studio: "Studio Bandar Lampung",
+    studio: "Bandar Lampung",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -84,7 +84,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-03-01",
     email: "tiara.r@livamedia.com",
     phone: "+62 813-1004-2004",
-    studio: "Studio Bandar Lampung",
+    studio: "Bandar Lampung",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -102,7 +102,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-05-15",
     email: "veni@livamedia.com",
     phone: "+62 812-1005-2005",
-    studio: "Studio Bandar Lampung",
+    studio: "Bandar Lampung",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -120,7 +120,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2024-12-10",
     email: "adinda@livamedia.com",
     phone: "+62 813-1006-2006",
-    studio: "Studio Bandar Lampung",
+    studio: "Bandar Lampung",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -138,7 +138,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-06-20",
     email: "riska@livamedia.com",
     phone: "+62 812-1007-2007",
-    studio: "Studio Tanggamus",
+    studio: "Tanggamus",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -156,7 +156,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-08-01",
     email: "nadya@livamedia.com",
     phone: "+62 813-1008-2008",
-    studio: "Studio Tanggamus",
+    studio: "Tanggamus",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -174,7 +174,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2024-10-05",
     email: "rahma@livamedia.com",
     phone: "+62 812-1009-2009",
-    studio: "Studio Tanggamus",
+    studio: "Tanggamus",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -192,7 +192,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2024-09-15",
     email: "ika@livamedia.com",
     phone: "+62 813-1010-2010",
-    studio: "Studio Tanggamus",
+    studio: "Tanggamus",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -210,7 +210,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2024-08-01",
     email: "jihan@livamedia.com",
     phone: "+62 813-1011-2011",
-    studio: "Studio Tanggamus",
+    studio: "Tanggamus",
     hostType: "Reguler",
     customWorkingDaysTarget: 26
   },
@@ -228,7 +228,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-11-20",
     email: "nadin@livamedia.com",
     phone: "+62 812-1012-2012",
-    studio: "Studio Bandar Lampung",
+    studio: "Bandar Lampung",
     hostType: "Backup"
   },
   {
@@ -245,7 +245,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2026-01-05",
     email: "shela@livamedia.com",
     phone: "+62 813-1013-2013",
-    studio: "Studio Bandar Lampung",
+    studio: "Bandar Lampung",
     hostType: "Backup"
   },
   {
@@ -262,7 +262,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-10-10",
     email: "tiarab@livamedia.com",
     phone: "+62 812-1014-2014",
-    studio: "Studio Bandar Lampung",
+    studio: "Bandar Lampung",
     hostType: "Backup"
   },
   {
@@ -279,7 +279,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-09-01",
     email: "intan@livamedia.com",
     phone: "+62 813-1015-2015",
-    studio: "Studio Tanggamus",
+    studio: "Tanggamus",
     hostType: "Backup"
   },
   {
@@ -296,7 +296,7 @@ export const INITIAL_HOSTS: HostEmployee[] = [
     joinedDate: "2025-07-15",
     email: "anisa@livamedia.com",
     phone: "+62 812-1016-2016",
-    studio: "Studio Tanggamus",
+    studio: "Tanggamus",
     hostType: "Backup"
   }
 ];
