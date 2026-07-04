@@ -45,6 +45,7 @@ export function EngagementReportPanel({
         label={model.engagementPeriodLabel}
         onPrev={onPrev}
         onNext={onNext}
+        showHeaderText={false}
       />
 
       <EngagementReportMetricsSection model={model} platform={platform} />
