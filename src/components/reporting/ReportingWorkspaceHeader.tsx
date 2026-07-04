@@ -462,7 +462,8 @@ export function ReportingWorkspaceHeader({
                       <Settings2 className="h-4 w-4 text-[#0f766e]" />
                       Upload Raw Data Engagement
                     </button>
-              </div>
+                  </div>
+                </div>
             )}
           </div>
         </div>
