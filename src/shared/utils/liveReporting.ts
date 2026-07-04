@@ -46,6 +46,13 @@ export interface LiveReportViewModel {
 
 const toYmd = (date: string) => normalizeDateYMD(date);
 
+export const hasTikTokLiveLogs = (
+  logs: readonly BrandPerformanceLogEntry[],
+) =>
+  logs.some((log) =>
+    String(log.platform || "").toLowerCase().includes("tiktok"),
+  );
+
 export function buildLiveReportViewModel(
   input: BuildLiveReportViewModelInput,
 ): LiveReportViewModel {

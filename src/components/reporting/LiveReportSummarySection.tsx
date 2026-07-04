@@ -11,6 +11,8 @@ type LiveReportSummarySectionProps = {
   chartSelectedMetrics: string[];
   onChartSelectedMetricsChange: (value: string[]) => void;
   periodLabel: string;
+  hideEngagementMetrics?: boolean;
+  useShopeeLiveLayout?: boolean;
 };
 
 export type { LiveReportSummaryStats } from "./liveReportSummaryTypes";
@@ -21,10 +23,17 @@ export function LiveReportSummarySection({
   chartSelectedMetrics,
   onChartSelectedMetricsChange,
   periodLabel,
+  hideEngagementMetrics = false,
+  useShopeeLiveLayout = false,
 }: LiveReportSummarySectionProps) {
   return (
     <div className="space-y-6 mb-6">
-      <LiveReportMetricsSection stats={stats} periodLabel={periodLabel} />
+      <LiveReportMetricsSection
+        stats={stats}
+        periodLabel={periodLabel}
+        hideEngagementMetrics={hideEngagementMetrics}
+        useShopeeLiveLayout={useShopeeLiveLayout}
+      />
       {chartData.length > 0 && (
         <LiveReportChartSection
           chartData={chartData}

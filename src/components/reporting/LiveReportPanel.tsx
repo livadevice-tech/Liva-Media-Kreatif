@@ -68,6 +68,8 @@ export function LiveReportPanel({
   uploadHistory,
   onDeleteUploadBatch,
 }: LiveReportPanelProps) {
+  const isTikTokLive =
+    operatorPlatformFilter.toLowerCase().includes("tiktok");
   const panelData = buildLiveReportPanelData({
     model,
     operatorPlatformFilter,
@@ -97,6 +99,8 @@ export function LiveReportPanel({
         chartSelectedMetrics={chartSelectedMetrics}
         onChartSelectedMetricsChange={onChartSelectedMetricsChange}
         periodLabel={model.latestDateLabel}
+        hideEngagementMetrics={isTikTokLive}
+        useShopeeLiveLayout={isTikTokLive}
       />
 
       <ReportRawSessionsCard

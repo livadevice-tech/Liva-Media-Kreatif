@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildLiveReportViewModel } from "../src/shared/utils/liveReporting";
+import { buildLiveReportViewModel, hasTikTokLiveLogs } from "../src/shared/utils/liveReporting";
 
 const baseLogs = [
   {
@@ -86,4 +86,19 @@ test("buildLiveReportViewModel builds month comparison windows", () => {
   assert.equal(result.prevEndDate, "2024-04-31");
   assert.equal(result.tableLogs.length, 2);
   assert.equal(result.prevTableLogs.length, 0);
+});
+
+test("hasTikTokLiveLogs detects TikTok live platforms", () => {
+  assert.equal(
+    hasTikTokLiveLogs([
+      { id: "1", brandId: "brand-a", reportType: "live", platform: "TikTok Live" } as const,
+    ]),
+    true,
+  );
+  assert.equal(
+    hasTikTokLiveLogs([
+      { id: "2", brandId: "brand-a", reportType: "live", platform: "Shopee Live" } as const,
+    ]),
+    false,
+  );
 });
