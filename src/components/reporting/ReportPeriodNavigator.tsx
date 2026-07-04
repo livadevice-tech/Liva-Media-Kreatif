@@ -14,23 +14,27 @@ export function ReportPeriodNavigator({
   onNext,
 }: ReportPeriodNavigatorProps) {
   return (
-    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-      <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h4 className="text-sm font-black uppercase tracking-[0.22em] text-slate-900 md:text-base">
         {title}
       </h4>
-      <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
+      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm">
         <button
+          type="button"
           onClick={onPrev}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+          aria-label={`Lihat periode sebelumnya untuk ${title}`}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
+        <span className="min-w-[160px] px-1 text-center text-xs font-black text-indigo-950 sm:text-sm">
           {label}
         </span>
         <button
+          type="button"
           onClick={onNext}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
+          aria-label={`Lihat periode berikutnya untuk ${title}`}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100"
         >
           <ChevronRight className="w-4 h-4" />
         </button>

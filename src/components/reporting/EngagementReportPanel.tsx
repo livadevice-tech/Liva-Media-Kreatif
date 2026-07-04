@@ -38,6 +38,20 @@ export function EngagementReportPanel({
 }: EngagementReportPanelProps) {
   return (
     <div className="space-y-6">
+      <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+          Tab Engagement
+        </p>
+        <h3 className="mt-1 text-lg font-black text-slate-900">
+          Ringkasan interaksi dan promosi
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          Tab ini dipakai untuk membaca tren interaksi harian dan metrik
+          promosi dari raw data yang sudah masuk. Struktur awalnya dibuat agar
+          langsung memberi konteks sebelum chart dan metrik dibaca.
+        </p>
+      </div>
+
       <ReportPeriodNavigator
         title="Performance Engagement"
         label={model.engagementPeriodLabel}
@@ -52,7 +66,7 @@ export function EngagementReportPanel({
         onChartSelectedMetricsChange={onChartSelectedMetricsChange}
       />
 
-      <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
         <div className="text-xs text-slate-400 font-semibold italic text-center">
           Menampilkan metrik agregat Engagement dan Promosi dari file Raw Data
           yang diunggah. Filter periode dan platform yang sama seperti di tab

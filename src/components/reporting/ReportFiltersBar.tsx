@@ -55,7 +55,7 @@ const DATE_FILTERS: Array<{
   { id: "latest", label: "Terbaru" },
   { id: "all", label: "Semua" },
   { id: "month", label: "Bulan" },
-  { id: "custom", label: "Custom" },
+  { id: "custom", label: "Rentang" },
 ];
 
 export function ReportFiltersBar({
@@ -84,22 +84,24 @@ export function ReportFiltersBar({
   onCancelCustom,
 }: ReportFiltersBarProps) {
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-wrap">
-      <div className="flex gap-3 w-full sm:w-auto flex-1 flex-wrap">
+    <div className="mb-4 flex flex-col flex-wrap gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex w-full flex-1 flex-wrap gap-3 sm:w-auto">
         <div className="relative w-full sm:w-72">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search sessions..."
+            aria-label="Cari sesi, brand, atau kata kunci"
+            placeholder="Cari sesi, brand, atau kata kunci"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 transition-colors shadow-sm"
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-xs font-semibold text-slate-800 shadow-sm outline-none transition-colors focus:border-slate-400"
           />
         </div>
         <select
+          aria-label="Filter platform"
           value={platformFilter}
           onChange={(e) => onPlatformFilterChange(e.target.value)}
-          className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-slate-400 shadow-sm"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm outline-none focus:border-slate-400"
         >
           {availablePlatforms.map((p) => (
             <option key={p} value={p}>
@@ -108,14 +110,14 @@ export function ReportFiltersBar({
           ))}
         </select>
       </div>
-      <div className="relative flex gap-2 w-full sm:w-auto h-9">
-        <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+      <div className="relative flex h-9 w-full gap-2 sm:w-auto">
+        <div className="flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
           {DATE_FILTERS.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => onDateFilterTypeSelect(item.id)}
-              className={`px-3 py-1 rounded text-[10px] font-bold text-center flex-1 sm:flex-initial cursor-pointer border-0 transition-colors ${
+              className={`flex-1 cursor-pointer rounded border-0 px-3 py-1 text-center text-[10px] font-bold transition-colors sm:flex-initial ${
                 dateFilterType === item.id
                   ? "bg-white text-indigo-700 shadow-sm border border-slate-100"
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
@@ -133,7 +135,7 @@ export function ReportFiltersBar({
             <span className="text-[10px] font-bold text-slate-700">
               {dateFilterType === "month"
                 ? getIndonesianMonthLabel(selectedMonth)
-                : `${customStartDate} to ${customEndDate}`}
+                : `${customStartDate} s/d ${customEndDate}`}
             </span>
           </div>
         )}

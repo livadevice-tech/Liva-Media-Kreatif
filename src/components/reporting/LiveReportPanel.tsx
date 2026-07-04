@@ -140,7 +140,25 @@ export function LiveReportPanel({
   };
 
   return (
-    <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
+    <div className="px-6 pb-8 sm:px-8 space-y-6 animate-fadeIn">
+      <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+              Tab Live
+            </p>
+            <h3 className="mt-1 text-lg font-black text-slate-900">
+              Ringkasan sesi live dan raw data
+            </h3>
+          </div>
+          <p className="max-w-2xl text-sm leading-6 text-slate-500">
+            Mulai dari filter periode, lalu turun ke ringkasan performa, dan
+            terakhir ke tabel raw sessions serta riwayat upload. Urutannya
+            dibuat supaya orientasi data lebih mudah saat masuk ke workspace.
+          </p>
+        </div>
+      </div>
+
       <ReportFiltersBar
         searchQuery={reportDbSearchQuery}
         onSearchQueryChange={onSearchQueryChange}

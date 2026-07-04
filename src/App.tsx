@@ -269,6 +269,7 @@ import {
   ReportingWorkspaceTabs,
 } from "./components/reporting/ReportingWorkspaceHeader";
 import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSelectionPanel";
+import { ReportingBrandContextBanner } from "./components/reporting/ReportingBrandContextBanner";
 import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
 import { EngagementReportFilters } from "./components/reporting/EngagementReportFilters";
 import { DeleteByDateModal } from "./components/reporting/DeleteByDateModal";
@@ -1750,6 +1751,50 @@ export default function App() {
     (reportBrandPage - 1) * 9,
     reportBrandPage * 9,
   );
+
+  const activeReportBrandSummary = useMemo(() => {
+    if (!activeReportBrandId) return null;
+
+    const brand = clientBrands.find((item) => item.id === activeReportBrandId);
+    const brandLogs = brandPerformanceLogs.filter(
+      (log) => log.brandId === activeReportBrandId,
+    );
+    const brandBatches = brandUploadHistory.filter(
+      (batch) => batch.brandId === activeReportBrandId,
+    );
+    const latestActivitySource = [...brandLogs, ...brandBatches]
+      .map((item) =>
+        "createdAt" in item
+          ? item.createdAt || item.uploadedAt || item.date || ""
+          : item.uploadedAt || item.date || "",
+      )
+      .filter(Boolean)
+      .sort();
+    const latestActivity =
+      latestActivitySource[latestActivitySource.length - 1] || "";
+
+    return {
+      brandName: brand?.name || "Nama Brand",
+      sessionCount: brandLogs.length,
+      batchCount: brandBatches.length,
+      platformCount: new Set(
+        brandLogs.map((log) => log.platform).filter(Boolean),
+      ).size,
+      totalGmv: brandLogs.reduce((sum, log) => sum + (log.gmv || 0), 0),
+      latestActivity: latestActivity
+        ? formatDateTimeSafe(latestActivity, {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : "-",
+    };
+  }, [
+    activeReportBrandId,
+    brandPerformanceLogs,
+    brandUploadHistory,
+    clientBrands,
+  ]);
 
   const activeReportBrandUploadHistory = useMemo(
     () =>
@@ -13693,6 +13738,25 @@ export default function App() {
                     ) : (
                       <>
                         <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left">
+                          {activeReportBrandSummary ? (
+                            <div className="px-6 pt-6 sm:px-8">
+                              <ReportingBrandContextBanner
+                                brandName={activeReportBrandSummary.brandName}
+                                sessionCount={
+                                  activeReportBrandSummary.sessionCount
+                                }
+                                batchCount={activeReportBrandSummary.batchCount}
+                                platformCount={
+                                  activeReportBrandSummary.platformCount
+                                }
+                                totalGmv={activeReportBrandSummary.totalGmv}
+                                latestActivity={
+                                  activeReportBrandSummary.latestActivity
+                                }
+                              />
+                            </div>
+                          ) : null}
+
                           <ReportingWorkspaceHeader
                             brandName={
                               clientBrands.find(

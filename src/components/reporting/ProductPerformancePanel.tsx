@@ -73,9 +73,19 @@ export function ProductPerformancePanel({
 
   if (currentSkus.length === 0) {
     return (
-      <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-        <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-sm mb-6 text-center text-slate-500 font-semibold text-sm">
-          Tidak ada data product performance / SKU untuk filter saat ini.
+      <div className="px-6 pb-8 sm:px-8 space-y-6 animate-fadeIn">
+        <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+            Tab Product
+          </p>
+          <h3 className="mt-1 text-lg font-black text-slate-900">
+            Performa SKU per periode
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Data SKU belum ditemukan untuk kombinasi filter saat ini. Coba
+            ubah periode, platform, atau kata kunci pencarian agar daftar
+            produk muncul kembali.
+          </p>
         </div>
       </div>
     );
@@ -89,8 +99,22 @@ export function ProductPerformancePanel({
   });
 
   return (
-    <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-      <div className="bg-white border border-slate-100 p-5 lg:p-7 rounded-3xl shadow-sm mb-6">
+    <div className="px-6 pb-8 sm:px-8 space-y-6 animate-fadeIn">
+      <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+          Tab Product
+        </p>
+        <h3 className="mt-1 text-lg font-black text-slate-900">
+          Performa SKU per periode
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          Analisis ini menyorot distribusi revenue dan item terjual per SKU
+          pada brand aktif. Gunakan navigasi periode untuk membandingkan
+          performa harian secara lebih cepat.
+        </p>
+      </div>
+
+      <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm lg:p-7">
         <div className="flex flex-col gap-3 mb-6">
           <ReportPeriodNavigator
             title="Product Performance"
@@ -119,7 +143,7 @@ export function ProductPerformancePanel({
             }}
           />
           <p className="text-[10px] sm:text-xs text-slate-500 font-semibold -mt-1">
-            Distribusi revenue & sales by SKU
+            Distribusi revenue dan penjualan per SKU
           </p>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-xs h-[36px] sm:h-[40px] flex items-center">
