@@ -13742,7 +13742,12 @@ export default function App() {
                             <div className="px-6 pt-6 sm:px-8">
                               <ReportingBrandContextBanner
                                 brandName={activeReportBrandSummary.brandName}
-                                brandId={activeReportBrandId}
+                                brandId={activeReportBrandId || ""}
+                                onBack={() => {
+                                  setActiveReportBrandId(null);
+                                  setReportingRawData([]);
+                                  setAutoDetectNotice("");
+                                }}
                                 sessionCount={
                                   activeReportBrandSummary.sessionCount
                                 }
@@ -13764,12 +13769,8 @@ export default function App() {
                                 (b) => b.id === activeReportBrandId,
                               )?.name || "Nama Brand"
                             }
+                            brandId={activeReportBrandId || undefined}
                             activeTab={operatorReportingTab}
-                            onBack={() => {
-                              setActiveReportBrandId(null);
-                              setReportingRawData([]);
-                              setAutoDetectNotice("");
-                            }}
                             onDeleteRange={() =>
                               setIsDeleteByDateModalOpen(true)
                             }
@@ -13796,6 +13797,61 @@ export default function App() {
                               setIsUploadModalOpen(true);
                             }}
                           />
+
+                          {operatorReportingTab === "live" && (
+                            <div className="px-6 pt-4 sm:px-8">
+                              <ReportFiltersBar
+                                showSearch={false}
+                                searchQuery={reportDbSearchQuery}
+                                onSearchQueryChange={setReportDbSearchQuery}
+                                platformFilter={operatorPlatformFilter}
+                                onPlatformFilterChange={
+                                  setOperatorPlatformFilter
+                                }
+                                availablePlatforms={availableOperatorPlatforms}
+                                dateFilterType={operatorDateFilterType}
+                                onDateFilterTypeSelect={
+                                  handleOperatorDateFilterSelect
+                                }
+                                monthPickerYear={operatorMonthPickerYear}
+                                setMonthPickerYear={
+                                  setOperatorMonthPickerYear
+                                }
+                                selectedMonth={operatorSelectedMonth}
+                                setSelectedMonth={setOperatorSelectedMonth}
+                                isMonthOpen={isOperatorMonthOpen}
+                                setIsMonthOpen={setIsOperatorMonthOpen}
+                                isCalendarOpen={isOperatorCalendarOpen}
+                                setIsCalendarOpen={
+                                  setIsOperatorCalendarOpen
+                                }
+                                customStartDate={operatorCustomStartDate}
+                                customEndDate={operatorCustomEndDate}
+                                tempStartDate={operatorTempStartDate}
+                                tempEndDate={operatorTempEndDate}
+                                onTempStartDateChange={
+                                  setOperatorTempStartDate
+                                }
+                                onTempEndDateChange={setOperatorTempEndDate}
+                                onApplyCustom={(start, end) => {
+                                  setOperatorCustomStartDate(start);
+                                  setOperatorCustomEndDate(end);
+                                  setIsOperatorCalendarOpen(false);
+                                }}
+                                onCancelCustom={() =>
+                                  setIsOperatorCalendarOpen(false)
+                                }
+                                primaryActionLabel="Add Raw Data"
+                                onPrimaryAction={() => {
+                                  setSaveTargetBrandId(
+                                    activeReportBrandId || "",
+                                  );
+                                  setUploadTargetTab("live");
+                                  setIsUploadModalOpen(true);
+                                }}
+                              />
+                            </div>
+                          )}
 
                           <ReportingWorkspaceTabs
                             activeTab={operatorReportingTab}
@@ -14229,101 +14285,7 @@ export default function App() {
                                 onChartSelectedMetricsChange={
                                   setLiveChartSelectedMetrics
                                 }
-                                onPrev={() => {
-                                  const pd = new Date();
-                                  if (
-                                    operatorDateFilterType === "latest" &&
-                                    liveReportView.targetLatestDate
-                                  ) {
-                                    pd.setTime(
-                                      new Date(
-                                        liveReportView.targetLatestDate,
-                                      ).getTime(),
-                                    );
-                                  } else if (
-                                    operatorDateFilterType === "custom" &&
-                                    operatorCustomStartDate
-                                  ) {
-                                    pd.setTime(
-                                      new Date(operatorCustomStartDate).getTime(),
-                                    );
-                                  }
-                                  pd.setDate(pd.getDate() - 1);
-                                  const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                  setOperatorDateFilterType("custom");
-                                  setOperatorCustomStartDate(newD);
-                                  setOperatorCustomEndDate(newD);
-                                }}
-                                onNext={() => {
-                                  const pd = new Date();
-                                  if (
-                                    operatorDateFilterType === "latest" &&
-                                    liveReportView.targetLatestDate
-                                  ) {
-                                    pd.setTime(
-                                      new Date(
-                                        liveReportView.targetLatestDate,
-                                      ).getTime(),
-                                    );
-                                  } else if (
-                                    operatorDateFilterType === "custom" &&
-                                    operatorCustomStartDate
-                                  ) {
-                                    pd.setTime(
-                                      new Date(operatorCustomStartDate).getTime(),
-                                    );
-                                  }
-                                  pd.setDate(pd.getDate() + 1);
-                                  const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                  setOperatorDateFilterType("custom");
-                                  setOperatorCustomStartDate(newD);
-                                  setOperatorCustomEndDate(newD);
-                                }}
-                                reportDbSearchQuery={reportDbSearchQuery}
-                                onSearchQueryChange={setReportDbSearchQuery}
                                 operatorPlatformFilter={operatorPlatformFilter}
-                                onPlatformFilterChange={
-                                  setOperatorPlatformFilter
-                                }
-                                availableOperatorPlatforms={
-                                  availableOperatorPlatforms
-                                }
-                                operatorDateFilterType={operatorDateFilterType}
-                                onDateFilterTypeSelect={
-                                  handleOperatorDateFilterSelect
-                                }
-                                operatorMonthPickerYear={
-                                  operatorMonthPickerYear
-                                }
-                                setOperatorMonthPickerYear={
-                                  setOperatorMonthPickerYear
-                                }
-                                operatorSelectedMonth={operatorSelectedMonth}
-                                setOperatorSelectedMonth={
-                                  setOperatorSelectedMonth
-                                }
-                                isOperatorMonthOpen={isOperatorMonthOpen}
-                                setIsOperatorMonthOpen={setIsOperatorMonthOpen}
-                                isOperatorCalendarOpen={isOperatorCalendarOpen}
-                                setIsOperatorCalendarOpen={
-                                  setIsOperatorCalendarOpen
-                                }
-                                operatorCustomStartDate={
-                                  operatorCustomStartDate
-                                }
-                                operatorCustomEndDate={operatorCustomEndDate}
-                                operatorTempStartDate={operatorTempStartDate}
-                                operatorTempEndDate={operatorTempEndDate}
-                                setOperatorTempStartDate={
-                                  setOperatorTempStartDate
-                                }
-                                setOperatorTempEndDate={setOperatorTempEndDate}
-                                setOperatorCustomStartDate={
-                                  setOperatorCustomStartDate
-                                }
-                                setOperatorCustomEndDate={
-                                  setOperatorCustomEndDate
-                                }
                                 shifts={shifts}
                                 adminShiftChecklist={adminShiftChecklist}
                                 setAdminShiftChecklist={setAdminShiftChecklist}
@@ -14347,15 +14309,6 @@ export default function App() {
                                 brandUploadHistory={brandUploadHistory}
                                 uploadHistory={uploadHistory}
                                 onDeleteUploadBatch={handleDeleteUploadBatch}
-                                onImportRaw={() => {
-                                  setSaveTargetBrandId(activeReportBrandId || "");
-                                  setUploadTargetTab(
-                                    operatorReportingTab === "engagement"
-                                      ? "engagement"
-                                      : "live",
-                                  );
-                                  setIsUploadModalOpen(true);
-                                }}
                               />
                             </React.Suspense>
                           )}

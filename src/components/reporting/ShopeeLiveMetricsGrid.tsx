@@ -76,22 +76,22 @@ function renderMetricCard(metric: ShopeeLiveMetric) {
   const comparison = buildComparison(metric.current, metric.previous);
 
 	return (
-	    <article className="flex min-h-44 min-w-0 flex-col rounded-[14px] border border-[#e5e2e1] bg-white p-4 shadow-sm sm:min-h-48 sm:p-5">
+	    <article className="flex min-h-[195px] min-w-0 flex-col rounded-[18px] border border-[#dfd8ef] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:min-h-[205px] sm:p-5">
 	      <div className="flex min-w-0 items-center gap-3">
 	        <div
-	          className={`flex size-11 shrink-0 items-center justify-center rounded-[12px] ring-1 sm:size-12 ${tone.iconWrap}`}
+	          className={`flex size-12 shrink-0 items-center justify-center rounded-[14px] ring-1 sm:size-[54px] ${tone.iconWrap}`}
 	          aria-hidden="true"
 	        >
 	          {metric.icon}
 	        </div>
 	        <div className="min-w-0 flex-1">
-	          <div className="text-pretty text-[10px] font-black uppercase leading-4 tracking-[0.18em] text-slate-500 sm:text-[11px]">
+	          <div className="text-pretty text-[11px] font-black uppercase leading-4 tracking-[0.18em] text-slate-500 sm:text-[12px]">
 	            {metric.title}
 	          </div>
 	        </div>
 	      </div>
 
-	      <div className="mt-4 whitespace-nowrap font-display text-[clamp(1.55rem,2vw,2.2rem)] font-black leading-tight tracking-tight text-slate-950 tabular-nums">
+	      <div className="mt-5 whitespace-nowrap font-display text-[clamp(1.75rem,2.2vw,2.45rem)] font-black leading-tight tracking-tight text-slate-950 tabular-nums">
 	        {metric.value}
 	      </div>
 
@@ -127,14 +127,14 @@ export function ShopeeLiveMetricsGrid({
 
   return (
     <div className={`space-y-4 ${className}`.trim()}>
-      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {topRow.map((metric) => (
           <div key={metric.title}>{renderMetricCard(metric)}</div>
         ))}
       </div>
 
       {bottomRow.length > 0 && (
-        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:gap-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
           {bottomRow.map((metric) => (
             <div key={metric.title}>{renderMetricCard(metric)}</div>
           ))}

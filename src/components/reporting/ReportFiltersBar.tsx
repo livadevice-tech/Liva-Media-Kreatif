@@ -90,7 +90,7 @@ export function ReportFiltersBar({
   onPrimaryAction,
 }: ReportFiltersBarProps) {
   return (
-    <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex w-full flex-1 flex-wrap gap-3">
         {showSearch ? (
           <div className="relative w-full sm:w-72">
@@ -101,7 +101,7 @@ export function ReportFiltersBar({
               placeholder="Cari sesi, brand, atau kata kunci"
               value={searchQuery}
               onChange={(e) => onSearchQueryChange(e.target.value)}
-              className="w-full rounded-[12px] border border-[#e5e2e1] bg-white py-2.5 pl-9 pr-4 text-xs font-semibold text-slate-800 shadow-sm outline-none transition-colors focus:border-[#cbc3d9]"
+              className="w-full rounded-[14px] border border-[#ddd7ef] bg-white py-2.5 pl-9 pr-4 text-xs font-semibold text-slate-800 shadow-sm outline-none transition-colors focus:border-[#cbb7ff] focus:ring-2 focus:ring-[#efe6ff]"
             />
           </div>
         ) : null}
@@ -109,7 +109,7 @@ export function ReportFiltersBar({
           aria-label="Filter platform"
           value={platformFilter}
           onChange={(e) => onPlatformFilterChange(e.target.value)}
-          className="rounded-[12px] border border-[#e5e2e1] bg-white px-3 py-2.5 text-xs font-semibold text-slate-800 shadow-sm outline-none focus:border-[#cbc3d9]"
+          className="min-w-[180px] rounded-[14px] border border-[#ddd7ef] bg-white px-3 py-2.5 text-xs font-semibold text-slate-800 shadow-sm outline-none focus:border-[#cbb7ff] focus:ring-2 focus:ring-[#efe6ff]"
         >
           {availablePlatforms.map((p) => (
             <option key={p} value={p}>
@@ -119,16 +119,16 @@ export function ReportFiltersBar({
         </select>
       </div>
       <div className="relative flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-        <div className="flex rounded-[12px] border border-[#e5e2e1] bg-[#f6f3f2] p-0.5">
+        <div className="flex rounded-[14px] border border-[#ddd7ef] bg-[#f7f4ff] p-0.5 shadow-sm">
           {DATE_FILTERS.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => onDateFilterTypeSelect(item.id)}
-              className={`flex-1 cursor-pointer rounded-[10px] border-0 px-3 py-1.5 text-center text-[10px] font-bold transition-colors sm:flex-initial ${
+              className={`flex-1 cursor-pointer rounded-[12px] border-0 px-3 py-1.5 text-center text-[10px] font-bold transition-colors sm:flex-initial ${
                 dateFilterType === item.id
-                  ? "border border-[#cbc3d9] bg-white text-[#5600e0] shadow-sm"
-                  : "text-slate-500 hover:bg-white/70 hover:text-slate-800"
+                  ? "border border-[#d7c8ff] bg-white text-[#5600e0] shadow-sm"
+                  : "text-slate-500 hover:bg-white/80 hover:text-slate-800"
               }`}
             >
               {item.label}
@@ -138,8 +138,8 @@ export function ReportFiltersBar({
 
         {((dateFilterType === "custom" && customStartDate) ||
           dateFilterType === "month") && (
-          <div className="hidden items-center gap-1.5 rounded-[12px] border border-[#e5e2e1] bg-white px-3 py-1.5 shadow-sm sm:flex">
-            <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+          <div className="hidden items-center gap-1.5 rounded-[14px] border border-[#ddd7ef] bg-white px-3 py-2 shadow-sm sm:flex">
+            <Calendar className="h-3.5 w-3.5 text-[#5600e0]" />
             <span className="text-[10px] font-bold text-slate-700">
               {dateFilterType === "month"
                 ? getIndonesianMonthLabel(selectedMonth)
@@ -152,16 +152,16 @@ export function ReportFiltersBar({
           <button
             type="button"
             onClick={onPrimaryAction}
-            className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-[#e5e2e1] bg-white px-4 py-2.5 text-xs font-bold text-slate-800 shadow-sm transition-colors hover:border-[#cbc3d9] hover:bg-[#fcf9f8]"
+            className="inline-flex items-center justify-center gap-2 rounded-[14px] border border-[#5600e0] bg-[#5600e0] px-4 py-2.5 text-xs font-bold text-white shadow-[0_10px_22px_rgba(86,0,224,0.16)] transition-colors hover:bg-[#4600bb]"
           >
-            <Plus className="h-4 w-4 text-[#5600e0]" />
+            <Plus className="h-4 w-4 text-white" />
             {primaryActionLabel}
           </button>
         ) : null}
 
         {isMonthOpen && dateFilterType === "month" && (
-          <div className="absolute right-0 top-full z-50 mt-2 w-64 animate-fadeIn rounded-[14px] border border-[#e5e2e1] bg-white p-4 shadow-lg">
-            <div className="flex justify-between items-center mb-4 text-slate-800">
+          <div className="absolute right-0 top-full z-50 mt-2 w-64 animate-fadeIn rounded-[16px] border border-[#ddd7ef] bg-white p-4 shadow-[0_18px_36px_rgba(17,24,39,0.12)]">
+            <div className="mb-4 flex items-center justify-between text-slate-800">
               <button
                 type="button"
                 onClick={() => setMonthPickerYear((y) => y - 1)}

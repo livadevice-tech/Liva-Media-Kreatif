@@ -1,11 +1,17 @@
-import { ArrowLeft, Calendar, Download, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  Download,
+  FileText,
+  PackageOpen,
+  Trash2,
+} from "lucide-react";
 
 type ReportingTab = "live" | "product" | "engagement";
 
 type ReportingWorkspaceHeaderProps = {
   brandName: string;
+  brandId?: string;
   activeTab: ReportingTab;
-  onBack: () => void;
   onDeleteRange: () => void;
   onDeleteAll: () => void;
   onImportSku: () => void;
@@ -14,49 +20,30 @@ type ReportingWorkspaceHeaderProps = {
 
 export function ReportingWorkspaceHeader({
   brandName,
+  brandId,
   activeTab,
-  onBack,
   onDeleteRange,
   onDeleteAll,
   onImportSku,
   onImportRaw,
 }: ReportingWorkspaceHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 border-b border-[#e5e2e1] bg-white px-6 py-5 text-left sm:flex-row sm:items-center sm:justify-between sm:px-8">
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Kembali ke daftar brand"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
-            Workspace detail
-          </p>
-          <h3 className="font-display text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
-            {brandName || "Nama Brand"}
-          </h3>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-3 border-b border-[#e8e1fb] bg-white px-6 py-4 text-left sm:px-8">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={onDeleteRange}
-          className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-[11px] font-bold text-orange-700 shadow-sm transition-colors hover:bg-orange-100"
+          className="inline-flex items-center gap-2 rounded-full border border-[#ece7f7] bg-[#fbf9ff] px-3 py-2 text-[11px] font-bold text-slate-600 transition-colors hover:border-[#d6c9ff] hover:bg-[#f7f2ff]"
           title="Hapus Rentang Waktu"
         >
-          <Calendar className="w-3.5 h-3.5" />
+          <CalendarDays className="h-3.5 w-3.5 text-orange-600" />
           Hapus Rentang Waktu
         </button>
 
         <button
           type="button"
           onClick={onDeleteAll}
-          className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[11px] font-bold text-red-700 shadow-sm transition-colors hover:bg-red-100"
+          className="inline-flex items-center gap-2 rounded-full border border-[#ece7f7] bg-[#fbf9ff] px-3 py-2 text-[11px] font-bold text-slate-600 transition-colors hover:border-[#f7c9d0] hover:bg-rose-50 hover:text-rose-700"
           title="Hapus Semua Data"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -67,10 +54,10 @@ export function ReportingWorkspaceHeader({
           <button
             type="button"
             onClick={onImportSku}
-            className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-[11px] font-bold text-indigo-700 shadow-sm transition-colors hover:bg-indigo-100"
+            className="inline-flex items-center gap-2 rounded-full border border-[#ece7f7] bg-[#fbf9ff] px-3 py-2 text-[11px] font-bold text-slate-600 transition-colors hover:border-[#d6c9ff] hover:bg-[#f7f2ff]"
             title="Import Data SKU"
           >
-            <Download className="w-3.5 h-3.5" />
+            <PackageOpen className="h-3.5 w-3.5 text-indigo-600" />
             Import Data SKU
           </button>
         )}
@@ -79,13 +66,22 @@ export function ReportingWorkspaceHeader({
           <button
             type="button"
             onClick={onImportRaw}
-            className="flex items-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-slate-800"
+            className="inline-flex items-center gap-2 rounded-full border border-[#5600e0] bg-[#5600e0] px-3 py-2 text-[11px] font-bold text-white shadow-[0_8px_18px_rgba(86,0,224,0.16)] transition-colors hover:bg-[#4600bb]"
             title="Import Raw Data"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="h-3.5 w-3.5" />
             Import Raw Data
           </button>
         )}
+
+        <span className="inline-flex items-center rounded-full border border-[#ece7f7] bg-white px-3 py-2 text-[11px] font-bold text-slate-500">
+          {brandName || "Nama Brand"}
+          {brandId ? <span className="ml-2 text-slate-300">#{brandId}</span> : null}
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-[#ece7f7] bg-white px-3 py-2 text-[11px] font-bold text-slate-600">
+          <FileText className="h-3.5 w-3.5 text-slate-400" />
+          Kelola data
+        </span>
       </div>
     </div>
   );
@@ -103,12 +99,12 @@ export function ReportingWorkspaceTabs({
   const tabClass = (tab: ReportingTab) =>
     `relative border-b-2 pb-3 text-sm font-bold transition-colors bg-transparent ${
       activeTab === tab
-        ? "text-indigo-600 border-indigo-600"
-        : "text-slate-500 border-transparent hover:text-slate-800"
+        ? "border-[#5600e0] text-[#5600e0]"
+        : "border-transparent text-slate-500 hover:text-slate-900"
     }`;
 
   return (
-    <div className="mb-6 flex gap-6 border-b border-slate-200 px-6 sm:px-8">
+    <div className="mb-6 flex gap-6 border-b border-[#e8e1fb] px-6 sm:px-8">
       <button
         type="button"
         onClick={() => onTabChange("live")}
