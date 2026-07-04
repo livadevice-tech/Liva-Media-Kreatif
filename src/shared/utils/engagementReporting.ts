@@ -167,13 +167,15 @@ export function buildEngagementReportViewModel(
   const totalShares = logs.reduce((sum, l) => sum + (l.shares || 0), 0);
   const totalComments = logs.reduce((sum, l) => sum + (l.comments || 0), 0);
   const totalFollowers = logs.reduce((sum, l) => sum + (l.followers || 0), 0);
+  const errRateNumericVal =
+    totalPenonton > 0
+      ? ((totalLikes + totalComments + totalShares + totalFollowers) /
+          totalPenonton) *
+        100
+      : 0;
   const formattedErrRate =
     totalPenonton > 0
-      ? (
-          ((totalLikes + totalComments + totalShares + totalFollowers) /
-            totalPenonton) *
-          100
-        ).toFixed(2) + "%"
+      ? errRateNumericVal.toFixed(2) + "%"
       : "0.00%";
   const totalShopVouchers = logs.reduce(
     (sum, l) => sum + (l.shopVouchers || 0),
@@ -248,7 +250,7 @@ export function buildEngagementReportViewModel(
     totalFollowers,
     prevTotalFollowers: Math.floor(totalFollowers * 0.82),
     formattedErrRate,
-    prevErrRateNumeric: parseFloat((errRateNumeric * 0.86).toFixed(2)),
+    prevErrRateNumeric: parseFloat((errRateNumericVal * 0.86).toFixed(2)),
     totalShopVouchers,
     totalSpecialVouchers,
     totalCoinsClaimed,
