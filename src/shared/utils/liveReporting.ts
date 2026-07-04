@@ -1,9 +1,5 @@
 import { normalizeDateYMD } from "./appUi";
-import {
-  buildDailyChart,
-  buildMonthlyChart,
-  getMonthOffset,
-} from "./reporting";
+// Removed unused reporting imports
 import {
   filterReportLogs,
   type ReportDateFilterType,
@@ -152,78 +148,29 @@ export function buildLiveReportViewModel(
         })
       : [];
 
-  let customChartData: LiveReportChartPoint[] = [];
-
-  if (effectiveFilter === "all") {
-    const activeYear = new Date().getFullYear().toString();
-    const months: string[] = [];
-    for (let i = 1; i <= 12; i += 1) {
-      months.push(`${activeYear}-${String(i).padStart(2, "0")}`);
+  const groupedByDate: Record<string, LiveReportChartPoint> = {};
+  filteredDb.forEach((log) => {
+    const d = log.date || "Tanpa Tanggal";
+    if (!groupedByDate[d]) {
+      groupedByDate[d] = {
+        date: d,
+        gmv: 0,
+        orders: 0,
+        itemsSold: 0,
+        clicks: 0,
+        penonton: 0,
+      };
     }
-    customChartData = buildMonthlyChart(months, filteredDb as ReportLogLike[]);
-  } else if (
-    effectiveFilter === "latest" ||
-    (effectiveFilter === "custom" &&
-      input.customStartDate === input.customEndDate)
-  ) {
-    const endDate =
-      effectiveFilter === "latest" ? targetLatestDate : input.customStartDate;
-    if (endDate) {
-      const end = new Date(endDate);
-      const start = new Date(end);
-      start.setDate(start.getDate() - 7);
-      const formatYmd = (date: Date) =>
-        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-      customChartData = buildDailyChart(
-        filteredDb as ReportLogLike[],
-        formatYmd(start),
-        formatYmd(end),
-      );
-    }
-  } else if (effectiveFilter === "custom") {
-    customChartData = buildDailyChart(
-      filteredDb as ReportLogLike[],
-      input.customStartDate || "",
-      input.customEndDate || "",
-    );
-  } else if (effectiveFilter === "month" && input.selectedMonth) {
-    const rawMonths = Array.from(
-      new Set(
-        filteredDb
-          .map((log) => (log.date ? log.date.substring(0, 7) : ""))
-          .filter(Boolean),
-      ),
-    ).sort();
-    const hasNext = rawMonths.some((month) => month > input.selectedMonth!);
+    groupedByDate[d].gmv += log.omzet || 0;
+    groupedByDate[d].orders += log.order || 0;
+    groupedByDate[d].itemsSold += log.terjual || 0;
+    groupedByDate[d].clicks += log.click || 0;
+    groupedByDate[d].penonton += log.penonton || 0;
+  });
 
-    const neededMonths = hasNext
-      ? [
-          getMonthOffset(input.selectedMonth, -2),
-          getMonthOffset(input.selectedMonth, -1),
-          input.selectedMonth,
-          getMonthOffset(input.selectedMonth, 1),
-        ]
-      : [
-          getMonthOffset(input.selectedMonth, -3),
-          getMonthOffset(input.selectedMonth, -2),
-          getMonthOffset(input.selectedMonth, -1),
-          input.selectedMonth,
-        ];
-
-    customChartData = buildMonthlyChart(
-      neededMonths,
-      filteredDb as ReportLogLike[],
-    );
-  }
-
-  const liveChartData = customChartData.map((item) => ({
-    date: item.date,
-    gmv: item.gmv,
-    orders: item.orders,
-    itemsSold: item.itemsSold,
-    clicks: item.clicks,
-    penonton: item.penonton,
-  }));
+  const liveChartData = Object.values(groupedByDate).sort((a, b) => {
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
 
   return {
     effectiveFilter,
