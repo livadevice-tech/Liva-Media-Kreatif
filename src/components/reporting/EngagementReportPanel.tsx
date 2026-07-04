@@ -40,20 +40,6 @@ export function EngagementReportPanel({
 }: EngagementReportPanelProps) {
   return (
     <div className="space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
-      <div className="rounded-[22px] border border-[#e6dff8] bg-white px-5 py-4 shadow-[0_1px_0_rgba(17,24,39,0.03)]">
-        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
-          Tab Engagement
-        </p>
-        <h3 className="mt-1 font-display text-lg font-black tracking-tight text-slate-950">
-          Ringkasan interaksi dan promosi
-        </h3>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-          Tab ini dipakai untuk membaca tren interaksi harian dan metrik
-          promosi dari raw data yang sudah masuk. Struktur awalnya dibuat agar
-          langsung memberi konteks sebelum chart dan metrik dibaca.
-        </p>
-      </div>
-
       <ReportPeriodNavigator
         title="Performance Engagement"
         label={model.engagementPeriodLabel}
