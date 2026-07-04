@@ -95,7 +95,7 @@ test("parseReportingUploadRows maps reporting workbook rows", () => {
     gmv: 1500000,
     products_sold: 12,
     buyers: 10,
-    aov: 150000,
+    aov: 300000,
     views: 100,
     impressions: 200,
     penonton: 150,
@@ -114,4 +114,62 @@ test("parseReportingUploadRows maps reporting workbook rows", () => {
     coinsClaimed: 3,
     hasFunnelInFile: true,
   });
+});
+
+test("parseReportingUploadRows computes TikTok live duration and AOV from raw columns", () => {
+  const rows = [
+    [
+      "Room ID",
+      "Room Title",
+      "Start Time",
+      "End Time",
+      "Attributed GMV",
+      "Attributed items sold",
+      "Attributed orders",
+      "Customers",
+      "AOV",
+      "Views",
+      "Impressions",
+      "Avg. viewing duration",
+      "Product clicks",
+      "Likes",
+      "Comments",
+      "Shares",
+      "News followers",
+    ],
+    [
+      "7590640393755052821",
+      "PROMO ISAGO✨💎💍",
+      "2026-01-02 13:01:55",
+      "2026-01-02 15:00:54",
+      "Rp5,4JT",
+      "3",
+      "3",
+      "1",
+      "Rp1,8JT",
+      "547",
+      "7.72K",
+      "45.77s",
+      "294",
+      "1.11K",
+      "55",
+      "0",
+      "3",
+    ],
+  ];
+
+  const parsed = parseReportingUploadRows(rows, [
+    "Shift Pagi (06:00 - 10:00)",
+    "Shift Siang (10:00 - 14:00)",
+    "Shift Sore (14:00 - 18:00)",
+    "Shift Malam (18:00 - 22:00)",
+  ]);
+
+  assert.equal(parsed.length, 1);
+  assert.equal(parsed[0].gmv, 5400000);
+  assert.equal(parsed[0].products_sold, 3);
+  assert.equal(parsed[0].buyers, 1);
+  assert.equal(parsed[0].orders, 3);
+  assert.equal(parsed[0].aov, 1800000);
+  assert.equal(parsed[0].duration, 7139);
 });

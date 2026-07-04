@@ -85,7 +85,7 @@ test("buildReportingUploadSummary aggregates reporting upload metrics", () => {
   assert.equal(summary.totalGmv, 2000000);
   assert.equal(summary.totalProductsSold, 15);
   assert.equal(summary.totalBuyers, 15);
-  assert.equal(summary.averageAov, 133333.33333333334);
+  assert.equal(summary.averageAov, 250000);
   assert.equal(summary.averageViewDuration, 90);
   assert.equal(summary.peakViewers, 20);
   assert.equal(summary.engagementErrRate, 24.761904761904763);

@@ -2655,6 +2655,8 @@ export default function App() {
           }
         }
 
+        const isTiktokUpload = String(platformToSave).toLowerCase().includes("tiktok");
+
         // Simpan ke state lokal (Firebase dihapus)
         setBrandPerformanceLogs((prev) => {
           const existingIds = new Set(prev.map((l) => l.id));
@@ -2677,9 +2679,19 @@ export default function App() {
         };
         setUploadHistory((prev) => [...prev, uploadHistoryRecord]);
 
+        if (isTiktokUpload) {
+          // TikTok live + engagement memakai raw source yang sama.
+          // Setelah upload, tampilkan Semua Waktu agar GMV dan metrik lain
+          // langsung terlihat di panel Live/Engagement.
+          setOperatorDateFilterType("all");
+          setCurrentPage(1);
+        }
+
         addNotification(
           "✅ Tersimpan",
-          `Berhasil menyimpan data TikTok performa live streaming untuk brand "${brandNameToSave}".`,
+          isTiktokUpload
+            ? `Berhasil menyimpan ${dataToSave.length} baris data TikTok untuk brand "${brandNameToSave}". Total GMV: ${formatIDR(totalBatchGmv)}. Panel dibuka ke "Semua Waktu" agar data Live & Engagement langsung terlihat.`
+            : `Berhasil menyimpan ${dataToSave.length} baris data untuk brand "${brandNameToSave}". Total GMV: ${formatIDR(totalBatchGmv)}.`,
           "success",
           "reporting_brand",
         );

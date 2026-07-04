@@ -121,8 +121,18 @@ export function buildLiveReportPanelData(
   const pTotalDbDuration = sum(prevTableLogs, (curr) => getDurationSeconds(curr.duration));
   const gmvPerHour = totalDbDuration > 0 ? totalGmvDb / (totalDbDuration / 3600) : 0;
   const pGmvPerHour = pTotalDbDuration > 0 ? pTotalGmvDb / (pTotalDbDuration / 3600) : 0;
-  const avgAovDb = totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
-  const pAvgAovDb = pTotalBuyersDb > 0 ? pTotalGmvDb / pTotalBuyersDb : 0;
+  const avgAovDb =
+    totalOrdersDb > 0
+      ? totalGmvDb / totalOrdersDb
+      : totalBuyersDb > 0
+        ? totalGmvDb / totalBuyersDb
+        : 0;
+  const pAvgAovDb =
+    pTotalOrdersDb > 0
+      ? pTotalGmvDb / pTotalOrdersDb
+      : pTotalBuyersDb > 0
+        ? pTotalGmvDb / pTotalBuyersDb
+        : 0;
   const conversionRateShopee =
     totalDbImpressions > 0 ? (totalDbOrdersFunnel / totalDbImpressions) * 100 : 0;
   const pConversionRateShopee =

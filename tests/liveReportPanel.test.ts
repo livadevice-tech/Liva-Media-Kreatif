@@ -86,10 +86,13 @@ test("buildLiveReportPanelData aggregates current and previous report stats", ()
 
   assert.equal(result.stats.totalGmvDb, 200);
   assert.equal(result.stats.pTotalGmvDb, 100);
+  assert.equal(result.stats.avgAovDb, 40);
+  assert.equal(result.stats.pAvgAovDb, 33.333333333333336);
   assert.equal(result.stats.totalDbImpressions, 13);
   assert.equal(result.stats.pTotalDbImpressions, 7);
   assert.equal(result.stats.totalDbDuration, 43200);
   assert.equal(result.stats.pTotalDbDuration, 1);
+  assert.equal(result.stats.gmvPerHour, 16.666666666666668);
   assert.equal(result.totalPages, 1);
   assert.equal(result.sortedTableLogs.length, 1);
   assert.equal(result.paginatedLogs.length, 1);

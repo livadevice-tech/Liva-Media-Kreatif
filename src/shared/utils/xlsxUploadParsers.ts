@@ -489,7 +489,25 @@ export function parseReportingUploadRows(
     "periode data",
     "periode",
   ]);
-  const durationIdx = findColIdx(["durasi", "duration", "lama", "waktu streaming"]);
+  const endIdx = findColIdx([
+    "end time",
+    "waktu selesai",
+    "selesai",
+    "finish time",
+    "end",
+    "periode akhir",
+  ]);
+  const durationIdx = headers.findIndex((h) => {
+    if (!h) return false;
+    const matchesDuration =
+      h.includes("durasi") ||
+      h.includes("duration") ||
+      h.includes("lama") ||
+      h.includes("waktu streaming");
+    const looksLikeAvgViewDuration =
+      h.includes("avg") || h.includes("average") || h.includes("viewing");
+    return matchesDuration && !looksLikeAvgViewDuration;
+  });
   const gmvIdx = findColIdx([
     "penjualan(pesanan siap dikirim)",
     "penjualan(pesanan dibuat)",
@@ -703,6 +721,28 @@ export function parseReportingUploadRows(
     shouldSwapExcelDates = false;
   }
 
+  const parseDateTimeToMs = (value: unknown) => {
+    if (value === undefined || value === null || value === "") return 0;
+    if (typeof value === "number") {
+      const dateObj = XLSX.SSF.parse_date_code(value) as
+        | { y: number; m: number; d: number; H: number; M: number; S?: number }
+        | null;
+      if (!dateObj) return 0;
+      return new Date(
+        dateObj.y,
+        dateObj.m - 1,
+        dateObj.d,
+        dateObj.H || 0,
+        dateObj.M || 0,
+        dateObj.S || 0,
+      ).getTime();
+    }
+
+    const normalized = parseDateString(String(value), isMonthFirst).replace(" ", "T");
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+  };
+
   const rows: ReportingRawRow[] = [];
 
   for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
@@ -768,6 +808,20 @@ export function parseReportingUploadRows(
       }
     }
 
+    if (
+      duration <= 0 &&
+      startIdx !== -1 &&
+      endIdx !== -1 &&
+      rowData[startIdx] &&
+      rowData[endIdx]
+    ) {
+      const startMs = parseDateTimeToMs(rowData[startIdx]);
+      const endMs = parseDateTimeToMs(rowData[endIdx]);
+      if (startMs > 0 && endMs > startMs) {
+        duration = Math.round((endMs - startMs) / 1000);
+      }
+    }
+
     const gmv = gmvIdx !== -1 ? parseIndonesianNumber(rowData[gmvIdx]) : 0;
     const products_sold =
       productIdx !== -1 ? parseIndonesianNumber(rowData[productIdx]) : 0;
@@ -785,16 +839,20 @@ export function parseReportingUploadRows(
         : 0;
     const parsedClicks = clicksIdx !== -1 ? parseIndonesianNumber(rowData[clicksIdx]) : 0;
     const parsedOrders = ordersIdx !== -1 ? parseIndonesianNumber(rowData[ordersIdx]) : 0;
+    const orders = parsedOrders || 0;
 
     const buyers =
       buyerIdx !== -1 ? parseIndonesianNumber(rowData[buyerIdx]) : parsedOrders;
 
+    const parsedAov = aovIdx !== -1 ? parseIndonesianNumber(rowData[aovIdx]) : 0;
     const aov =
-      aovIdx !== -1
-        ? parseIndonesianNumber(rowData[aovIdx])
-        : buyers > 0
-          ? gmv / buyers
-          : 0;
+      parsedOrders > 0
+        ? gmv / parsedOrders
+        : parsedAov > 0
+          ? parsedAov
+          : buyers > 0
+            ? gmv / buyers
+            : 0;
 
     const parsedFollowers =
       followersIdx !== -1 ? parseIndonesianNumber(rowData[followersIdx]) : 0;
@@ -836,7 +894,6 @@ export function parseReportingUploadRows(
     const clicks = parsedClicks || 0;
     const liveVisits = parsedLiveVisits || 0;
     const productImpressions = parsedProductImpressions || 0;
-    const orders = parsedOrders || 0;
     const followers = parsedFollowers || 0;
     const likes = parsedLikes || 0;
     const shares = parsedShares || 0;

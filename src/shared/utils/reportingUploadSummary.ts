@@ -63,7 +63,7 @@ export function buildReportingUploadSummary(
   const totalGmv = sum(rows, (row) => row.gmv || 0);
   const totalProductsSold = sum(rows, (row) => row.products_sold || 0);
   const totalBuyers = sum(rows, (row) => row.buyers || 0);
-  const averageAov = totalBuyers > 0 ? totalGmv / totalBuyers : 0;
+  const averageAov = totalOrders > 0 ? totalGmv / totalOrders : totalBuyers > 0 ? totalGmv / totalBuyers : 0;
   const averageViewDuration =
     recordCount > 0
       ? Math.round(sum(rows, (row) => row.avgViewDuration || 0) / recordCount)
