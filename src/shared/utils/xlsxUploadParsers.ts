@@ -21,10 +21,15 @@ export async function readFirstWorksheetRowsFromFile(
   }) as unknown[][];
 }
 
-const normalizeText = (value: unknown) =>
+const normalizeHeaderText = (value: unknown) =>
   String(value ?? "")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const normalizeText = (value: unknown) => normalizeHeaderText(value);
 
 const parseExcelDateCode = (value: number, shouldSwapExcelDates: boolean) => {
   const dateObj = XLSX.SSF.parse_date_code(value) as
@@ -242,12 +247,15 @@ const getDateLikeValue = (headers: string[], row: readonly unknown[]) => {
 };
 
 const getHeaderIndex = (headers: string[], aliases: string[]) => {
-  for (const alias of aliases) {
-    const idx = headers.findIndex((h) => h === alias);
+  const normalizedHeaders = headers.map(normalizeHeaderText);
+  const normalizedAliases = aliases.map(normalizeHeaderText);
+
+  for (const alias of normalizedAliases) {
+    const idx = normalizedHeaders.findIndex((h) => h === alias);
     if (idx !== -1) return idx;
   }
-  for (const alias of aliases) {
-    const idx = headers.findIndex((h) => h.includes(alias));
+  for (const alias of normalizedAliases) {
+    const idx = normalizedHeaders.findIndex((h) => h.includes(alias));
     if (idx !== -1) return idx;
   }
   return -1;
