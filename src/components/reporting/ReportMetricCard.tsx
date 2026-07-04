@@ -1,4 +1,5 @@
-import { PercentBadge } from "../../shared/utils/appUi";
+import { ReactNode } from "react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface ReportMetricCardProps {
   label: string;
@@ -7,6 +8,7 @@ interface ReportMetricCardProps {
   value: string;
   prefix?: string;
   suffix?: string;
+  icon?: ReactNode;
 }
 
 export function ReportMetricCard({
@@ -16,19 +18,50 @@ export function ReportMetricCard({
   value,
   prefix = "",
   suffix = "",
+  icon,
 }: ReportMetricCardProps) {
+  const isTrendAvailable = prev != null && !isNaN(prev) && prev > 0;
+  const diff = cur - prev;
+  const pct = isTrendAvailable ? Math.abs((diff / prev) * 100) : 0;
+  const isUp = diff >= 0;
+
   return (
-    <div className="rounded-[18px] border border-[#dfd8ef] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)]">
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <div className="flex-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+    <div className="rounded-[16px] border border-[#f1eef8] bg-white p-4 shadow-[0_2px_10px_rgba(86,0,224,0.03)] transition-all hover:shadow-[0_4px_16px_rgba(86,0,224,0.06)]">
+      <div className="mb-3 flex items-center gap-2.5">
+        {icon && (
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f4effc] text-[#7148e5]">
+            {icon}
+          </div>
+        )}
+        <div className="text-[12px] font-bold text-slate-700">
           {label}
         </div>
-        <PercentBadge cur={cur} prev={prev} />
       </div>
-      <div className="font-display mt-1 text-[clamp(1.35rem,1.9vw,2.1rem)] font-black tracking-tight text-slate-950 tabular-nums">
+      <div className="font-display mb-1.5 text-2xl font-black tracking-tight text-slate-900 tabular-nums">
         {prefix}
         {value}
         {suffix}
+      </div>
+      <div className="flex items-center gap-1.5 text-[10.5px] font-bold">
+        {isTrendAvailable ? (
+          <>
+            <span
+              className={`flex items-center gap-0.5 ${
+                isUp ? "text-[#10b981]" : "text-[#ef4444]"
+              }`}
+            >
+              {isUp ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : (
+                <TrendingDown className="h-3 w-3" />
+              )}
+              {pct.toFixed(1)}%
+            </span>
+            <span className="text-slate-400">vs prev</span>
+          </>
+        ) : (
+          <span className="text-slate-400">Belum ada data prev</span>
+        )}
       </div>
     </div>
   );

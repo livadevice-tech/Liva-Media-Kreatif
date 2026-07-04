@@ -7,6 +7,7 @@ import { EngagementReportChartSection } from "./EngagementReportChartSection";
 
 interface EngagementReportPanelProps {
   model: EngagementReportViewModel;
+  platform: string;
   chartSelectedMetrics: string[];
   onChartSelectedMetricsChange: (value: string[]) => void;
   onPrev: () => void;
@@ -25,6 +26,7 @@ interface EngagementReportPanelProps {
 
 export function EngagementReportPanel({
   model,
+  platform,
   chartSelectedMetrics,
   onChartSelectedMetricsChange,
   onPrev,
@@ -59,7 +61,7 @@ export function EngagementReportPanel({
         onNext={onNext}
       />
 
-      <EngagementReportMetricsSection model={model} />
+      <EngagementReportMetricsSection model={model} platform={operatorPlatformFilter} />
       <EngagementReportChartSection
         model={model}
         chartSelectedMetrics={chartSelectedMetrics}

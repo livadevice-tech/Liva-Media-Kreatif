@@ -1,11 +1,11 @@
 import {
   CartesianGrid,
-  Line,
+  Area,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  LineChart as RechartsLineChart,
+  AreaChart as RechartsAreaChart,
 } from "recharts";
 import { Sliders, TrendingUp } from "lucide-react";
 import {
@@ -124,13 +124,40 @@ export function EngagementReportChartSection({
 
       <div className="mt-4 h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <RechartsLineChart
+          <RechartsAreaChart
             data={model.chartData}
             margin={{ top: 10, right: 24, left: 6, bottom: 5 }}
           >
+            <defs>
+              <linearGradient id="colorErr" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#5600e0" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#5600e0" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorLikes" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorComments" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ec4899" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorShares" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorFollowers" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f97316" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+              </linearGradient>
+            </defs>
             <CartesianGrid
               strokeDasharray="3 3"
-              vertical={false}
+              vertical={true}
+              horizontal={false}
               stroke="#ece7f7"
             />
             <XAxis
@@ -181,68 +208,74 @@ export function EngagementReportChartSection({
                 name,
               ]}
             />
-            <Line
+            <Area
               yAxisId="left"
               type="monotone"
               name="Tingkat Interaksi (ERR)"
               dataKey="errRateNumeric"
               stroke="#5600e0"
+              fill="url(#colorErr)"
               strokeWidth={3}
               dot={{ r: 4, fill: "#5600e0", strokeWidth: 2, stroke: "#fff" }}
               activeDot={{ r: 6 }}
               hide={!chartSelectedMetrics.includes("errRateNumeric")}
             />
-            <Line
+            <Area
               yAxisId="right"
               type="monotone"
               name="Unique Viewers (Penonton)"
               dataKey="uniqueViewers"
               stroke="#0ea5e9"
+              fill="url(#colorViews)"
               strokeWidth={3}
               dot={{ r: 4, fill: "#0ea5e9", strokeWidth: 2, stroke: "#fff" }}
               hide={!chartSelectedMetrics.includes("uniqueViewers")}
             />
-            <Line
+            <Area
               yAxisId="right"
               type="monotone"
               name="Likes"
               dataKey="likes"
               stroke="#f59e0b"
+              fill="url(#colorLikes)"
               strokeWidth={3}
               dot={{ r: 4, fill: "#f59e0b", strokeWidth: 2, stroke: "#fff" }}
               hide={!chartSelectedMetrics.includes("likes")}
             />
-            <Line
+            <Area
               yAxisId="right"
               type="monotone"
               name="Comments"
               dataKey="comments"
               stroke="#ec4899"
+              fill="url(#colorComments)"
               strokeWidth={3}
               dot={{ r: 4, fill: "#ec4899", strokeWidth: 2, stroke: "#fff" }}
               hide={!chartSelectedMetrics.includes("comments")}
             />
-            <Line
+            <Area
               yAxisId="right"
               type="monotone"
               name="Share"
               dataKey="shares"
               stroke="#10b981"
+              fill="url(#colorShares)"
               strokeWidth={3}
               dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }}
               hide={!chartSelectedMetrics.includes("shares")}
             />
-            <Line
+            <Area
               yAxisId="right"
               type="monotone"
               name="Followers"
               dataKey="followers"
               stroke="#f97316"
+              fill="url(#colorFollowers)"
               strokeWidth={3}
               dot={{ r: 4, fill: "#f97316", strokeWidth: 2, stroke: "#fff" }}
               hide={!chartSelectedMetrics.includes("followers")}
             />
-          </RechartsLineChart>
+          </RechartsAreaChart>
         </ResponsiveContainer>
       </div>
     </div>

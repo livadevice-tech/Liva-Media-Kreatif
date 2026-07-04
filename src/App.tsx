@@ -658,7 +658,8 @@ export default function App() {
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
 
   const [isOperatorLoggedIn, setIsOperatorLoggedIn] = useState(false);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
+  const [globalConfigFetchFailed, setGlobalConfigFetchFailed] = useState<boolean>(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -724,21 +725,21 @@ export default function App() {
 
   // Simpan salarySettings ke localStorage (dengan debounce 1 detik)
   useEffect(() => {
-    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn) return;
+    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn || globalConfigFetchFailed) return;
     const timer = setTimeout(() => {
       saveLocalConfig({ salarySettings });
     }, 1000);
     return () => clearTimeout(timer);
-  }, [salarySettings, isGlobalConfigsLoaded, isOperatorLoggedIn]);
+  }, [salarySettings, isGlobalConfigsLoaded, isOperatorLoggedIn, globalConfigFetchFailed]);
 
   // Simpan spreadsheet settings ke localStorage
   useEffect(() => {
-    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn) return;
+    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn || globalConfigFetchFailed) return;
     const timer = setTimeout(() => {
       saveLocalConfig({ spreadsheetId, spreadsheetUrl, autoSyncSheets });
     }, 1000);
     return () => clearTimeout(timer);
-  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets, isGlobalConfigsLoaded, isOperatorLoggedIn]);
+  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets, isGlobalConfigsLoaded, isOperatorLoggedIn, globalConfigFetchFailed]);
 
 
   useEffect(() => {
@@ -875,12 +876,7 @@ export default function App() {
 
                   if (parsedStoredConfig) {
                     data = parsedStoredConfig;
-                    // Migrasikan ke MySQL agar sinkron
-                    if (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.settings)) {
-                      settingsApi
-                        .save("liva_global_configs", data)
-                        .catch(console.error);
-                    }
+                    // Do NOT aggressively save fallback to MySQL to avoid overwriting during temporary disconnects
                   }
                 } else {
                   // Seed default global configs
@@ -890,11 +886,7 @@ export default function App() {
                     "liva_global_configs",
                     JSON.stringify(defaults),
                   );
-                  if (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.settings)) {
-                    settingsApi
-                      .save("liva_global_configs", defaults)
-                      .catch(console.error);
-                  }
+                  // Do NOT aggressively save defaults to MySQL to avoid overwriting
                 }
               } else {
                 // MySQL has data, save to localStorage for offline cache
@@ -921,6 +913,7 @@ export default function App() {
             })
             .catch((err) => {
               console.error("Error loading global configs:", err);
+              setGlobalConfigFetchFailed(true);
             }),
         );
 
@@ -951,7 +944,6 @@ export default function App() {
         typeof action === "function"
           ? (action as (prevState: HostEmployee[]) => HostEmployee[])(prev)
           : action;
-      syncToFirestore("hosts", prev, next);
       return next;
     });
   }, []);
@@ -962,7 +954,6 @@ export default function App() {
         typeof action === "function"
           ? (action as (prevState: AttendanceLog[]) => AttendanceLog[])(prev)
           : action;
-      syncToFirestore("logs", prev, next);
       return next;
     });
   }, []);
@@ -974,7 +965,6 @@ export default function App() {
         typeof action === "function"
           ? (action as (prevState: ClientBrand[]) => ClientBrand[])(prev)
           : action;
-      syncToFirestore("client_brands", prev, next);
       return next;
     });
   }, []);
@@ -985,7 +975,6 @@ export default function App() {
         typeof action === "function"
           ? (action as (prevState: ClientLead[]) => ClientLead[])(prev)
           : action;
-      syncToFirestore("client_leads", prev, next);
       return next;
     });
   }, []);
@@ -1015,7 +1004,6 @@ export default function App() {
         typeof action === "function"
           ? (action as (prevState: ShiftSchedule[]) => ShiftSchedule[])(prev)
           : action;
-      syncToFirestore("schedules", prev, next);
       return next;
     });
   }, []);
@@ -1208,23 +1196,14 @@ export default function App() {
         typeof action === "function"
           ? (action as (prevState: AdminAccount[]) => AdminAccount[])(prev)
           : action;
-      syncToFirestore("admin_accounts", prev, next);
       return next;
     });
   }, []);
 
   useEffect(() => {
     try {
-      // Seed missing firestore admin accounts from localstorage
-      const local = JSON.parse(
-        localStorage.getItem("mcn_admin_accounts") || "[]",
-      );
-      if (local && local.length > 0) {
-        if (adminAccounts.length === 0) {
-          syncToFirestore("admin_accounts", [], local);
-          localStorage.removeItem("mcn_admin_accounts"); // clear after seeding
-        }
-      }
+      // Admin accounts seeding is handled in the backend now, do not push localstorage
+      localStorage.removeItem("mcn_admin_accounts");
     } catch {}
   }, []);
 
@@ -1835,7 +1814,6 @@ export default function App() {
           typeof action === "function"
             ? (action as (prevState: NotificationItem[]) => NotificationItem[])(prev)
             : action;
-        syncToFirestore("notifications", prev, next);
         return next;
       });
     },
@@ -1892,7 +1870,6 @@ export default function App() {
           typeof action === "function"
             ? (action as (prevState: HostNotificationItem[]) => HostNotificationItem[])(prev)
             : action;
-        syncToFirestore("host_notifications", prev, next);
         return next;
       });
     },
@@ -1950,13 +1927,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn) return;
+    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn || globalConfigFetchFailed) return;
     const timer = setTimeout(() => {
       saveLocalConfig({ adminShiftChecklistObj });
 
     }, 1000); // 1-second debounce
     return () => clearTimeout(timer);
-  }, [adminShiftChecklistObj, isGlobalConfigsLoaded, isOperatorLoggedIn]);
+  }, [adminShiftChecklistObj, isGlobalConfigsLoaded, isOperatorLoggedIn, globalConfigFetchFailed]);
   const [autoDetectNotice, setAutoDetectNotice] = useState("");
   const [isSavingReport, setIsSavingReport] = useState(false);
 
@@ -3752,10 +3729,6 @@ export default function App() {
       "Hapus Semua Data",
       "PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data Host, Log Absen, Daftar Klien, dan Leads dari database cloud? Data tidak dapat dikembalikan.",
       () => {
-        syncToFirestore("hosts", hosts, []);
-        syncToFirestore("logs", logs, []);
-        syncToFirestore("client_brands", clientBrands, []);
-        syncToFirestore("client_leads", clientLeads, []);
         customAlert("Semua data di database cloud berhasil dikosongkan.");
       },
       "danger",
@@ -14334,6 +14307,7 @@ export default function App() {
                               >
                                 <EngagementReportPanel
                                   model={engagementReportView}
+                                  platform={operatorPlatformFilter}
                                   chartSelectedMetrics={
                                     engagementChartSelectedMetrics
                                   }

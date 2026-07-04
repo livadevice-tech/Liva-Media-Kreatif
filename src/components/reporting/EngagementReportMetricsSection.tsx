@@ -1,14 +1,30 @@
-import { Gift, Users } from "lucide-react";
+import {
+  Gift,
+  Users,
+  Eye,
+  Heart,
+  Share2,
+  MessageCircle,
+  UserPlus,
+  Activity,
+  Ticket,
+  Sparkles,
+  Coins,
+} from "lucide-react";
 import { ReportMetricCard } from "./ReportMetricCard";
 import type { EngagementReportViewModel } from "../../shared/utils/engagementReporting";
 
 type EngagementReportMetricsSectionProps = {
   model: EngagementReportViewModel;
+  platform: string;
 };
 
 export function EngagementReportMetricsSection({
   model,
+  platform,
 }: EngagementReportMetricsSectionProps) {
+  const isShopee = platform === "Shopee Live";
+
   return (
     <div className="space-y-6">
       <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
@@ -20,74 +36,87 @@ export function EngagementReportMetricsSection({
           <ReportMetricCard
             label="Views"
             cur={model.totalImpressions}
-            prev={0}
+            prev={model.prevTotalImpressions}
             value={new Intl.NumberFormat("id-ID").format(model.totalImpressions)}
+            icon={<Eye size={16} />}
           />
           <ReportMetricCard
             label="Likes"
             cur={model.totalLikes}
-            prev={0}
+            prev={model.prevTotalLikes}
             value={new Intl.NumberFormat("id-ID").format(model.totalLikes)}
+            icon={<Heart size={16} />}
           />
-          <ReportMetricCard
-            label="Shares"
-            cur={model.totalShares}
-            prev={0}
-            value={new Intl.NumberFormat("id-ID").format(model.totalShares)}
-          />
+          {!isShopee ? (
+            <ReportMetricCard
+              label="Shares"
+              cur={model.totalShares}
+              prev={model.prevTotalShares}
+              value={new Intl.NumberFormat("id-ID").format(model.totalShares)}
+              icon={<Share2 size={16} />}
+            />
+          ) : (
+            <ReportMetricCard
+              label="Voucher Toko"
+              cur={model.totalShopVouchers}
+              prev={0}
+              value={new Intl.NumberFormat("id-ID").format(
+                model.totalShopVouchers,
+              )}
+              icon={<Ticket size={16} />}
+            />
+          )}
           <ReportMetricCard
             label="Comments"
             cur={model.totalComments}
-            prev={0}
+            prev={model.prevTotalComments}
             value={new Intl.NumberFormat("id-ID").format(model.totalComments)}
+            icon={<MessageCircle size={16} />}
           />
           <ReportMetricCard
-            label="New Followers"
+            label="Followers"
             cur={model.totalFollowers}
-            prev={0}
+            prev={model.prevTotalFollowers}
             value={new Intl.NumberFormat("id-ID").format(model.totalFollowers)}
+            icon={<UserPlus size={16} />}
           />
           <ReportMetricCard
             label="ERR %"
             cur={Number(model.formattedErrRate.replace("%", "")) || 0}
-            prev={0}
+            prev={model.prevErrRateNumeric}
             value={model.formattedErrRate}
+            icon={<Activity size={16} />}
           />
         </div>
       </div>
 
-      <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
-        <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
-          <Gift className="h-5 w-5 text-[#5600e0]" /> Promosi (Vouchers &
-          Koin)
-        </h4>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-[18px] border border-[#ece7f7] bg-[#faf8ff] p-4">
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Voucher Toko Diklaim
-            </div>
-            <div className="mt-1 text-xl font-black text-slate-950">
-              {new Intl.NumberFormat("id-ID").format(model.totalShopVouchers)}
-            </div>
-          </div>
-          <div className="rounded-[18px] border border-[#ece7f7] bg-[#faf8ff] p-4">
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Voucher Spesial Live Diklaim
-            </div>
-            <div className="mt-1 text-xl font-black text-slate-950">
-              {new Intl.NumberFormat("id-ID").format(model.totalSpecialVouchers)}
-            </div>
-          </div>
-          <div className="rounded-[18px] border border-amber-100 bg-amber-50/40 p-4">
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-amber-600">
-              Koin Diklaim
-            </div>
-            <div className="text-lg font-black text-amber-700">
-              {new Intl.NumberFormat("id-ID").format(model.totalCoinsClaimed)}
-            </div>
+      {isShopee && (
+        <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
+          <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
+            <Gift className="h-5 w-5 text-[#5600e0]" /> Promosi Tambahan (Koin & Spesial)
+          </h4>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <ReportMetricCard
+              label="Voucher Spesial Live"
+              cur={model.totalSpecialVouchers}
+              prev={0}
+              value={new Intl.NumberFormat("id-ID").format(
+                model.totalSpecialVouchers,
+              )}
+              icon={<Sparkles size={16} />}
+            />
+            <ReportMetricCard
+              label="Koin Diklaim"
+              cur={model.totalCoinsClaimed}
+              prev={0}
+              value={new Intl.NumberFormat("id-ID").format(
+                model.totalCoinsClaimed,
+              )}
+              icon={<Coins size={16} />}
+            />
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
