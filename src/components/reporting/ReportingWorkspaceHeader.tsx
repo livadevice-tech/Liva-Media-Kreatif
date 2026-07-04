@@ -22,7 +22,7 @@ export function ReportingWorkspaceHeader({
   onImportRaw,
 }: ReportingWorkspaceHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 border-b border-slate-200 bg-white px-6 py-5 text-left sm:flex-row sm:items-center sm:justify-between sm:px-8">
+    <div className="flex flex-col gap-4 border-b border-[#e5e2e1] bg-white px-6 py-5 text-left sm:flex-row sm:items-center sm:justify-between sm:px-8">
       <div className="flex items-center gap-4">
         <button
           type="button"
@@ -36,7 +36,7 @@ export function ReportingWorkspaceHeader({
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
             Workspace detail
           </p>
-          <h3 className="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+          <h3 className="font-display text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
             {brandName || "Nama Brand"}
           </h3>
         </div>

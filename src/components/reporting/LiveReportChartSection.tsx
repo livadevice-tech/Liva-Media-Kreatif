@@ -26,22 +26,22 @@ export function LiveReportChartSection({
   onChartSelectedMetricsChange,
 }: LiveReportChartSectionProps) {
   return (
-    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+    <div className="mb-6 rounded-[18px] border border-[#e5e2e1] bg-white p-6 shadow-sm">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-emerald-500" /> Tren Kinerja
+          <h4 className="font-display flex items-center gap-2 text-sm font-black uppercase tracking-[0.22em] text-slate-800">
+            <TrendingUp className="w-5 h-5 text-[#5600e0]" /> Tren Kinerja
             Penjualan Live Harian
           </h4>
-          <p className="text-[11px] text-slate-400 font-bold mt-1">
+          <p className="mt-1 text-[11px] font-semibold text-slate-400">
             Visualisasi harian data penyiaran langsung (Live Streaming) dinamis
             harian.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
+        <div className="flex max-w-full flex-wrap items-center gap-3 rounded-[14px] border border-[#e5e2e1] bg-[#f6f3f2] p-3">
           <div className="flex items-center gap-1 mr-1 select-none">
-            <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
-            <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">
+            <Sliders className="h-3.5 w-3.5 text-[#5600e0]/80" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
               Metrik:
             </span>
           </div>
@@ -67,10 +67,10 @@ export function LiveReportChartSection({
                       ]);
                     }
                   }}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
+                  className={`flex cursor-pointer select-none items-center gap-1 rounded-[10px] border px-2.5 py-1.5 text-[10px] font-bold transition-all ${
                     isSelected
-                      ? `${metric.color} scale-[1.02] shadow-xs font-extrabold`
-                      : "bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50"
+                      ? `${metric.color} scale-[1.02] shadow-sm font-extrabold`
+                      : "border-[#e5e2e1] bg-white text-slate-400 hover:bg-[#fcf9f8] hover:text-slate-600"
                   }`}
                 >
                   <span
@@ -91,19 +91,19 @@ export function LiveReportChartSection({
               );
             })}
           </div>
-          <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
+          <div className="ml-auto flex items-center gap-2 text-[10px] font-bold text-slate-500 sm:border-l sm:border-slate-200 sm:pl-2.5">
             <button
               onClick={() =>
                 onChartSelectedMetricsChange([...liveChartMetricDefaults])
               }
-              className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+              className="cursor-pointer border-0 bg-transparent text-[9px] font-black uppercase tracking-widest text-[#5600e0] hover:underline"
             >
               Semua
             </button>
             <span>|</span>
             <button
               onClick={() => onChartSelectedMetricsChange(["gmv", "orders"])}
-              className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+              className="cursor-pointer border-0 bg-transparent text-[9px] font-black uppercase tracking-widest text-slate-500 hover:underline"
             >
               Reset
             </button>
@@ -111,7 +111,7 @@ export function LiveReportChartSection({
         </div>
       </div>
 
-      <div className="h-72 w-full mt-4">
+      <div className="mt-4 h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <RechartsLineChart
             data={chartData}

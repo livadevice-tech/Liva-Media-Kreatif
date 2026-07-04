@@ -1,5 +1,6 @@
 type ReportingBrandContextBannerProps = {
   brandName: string;
+  brandId: string;
   sessionCount: number;
   batchCount: number;
   platformCount: number;
@@ -17,6 +18,7 @@ function formatCurrency(value: number) {
 
 export function ReportingBrandContextBanner({
   brandName,
+  brandId,
   sessionCount,
   batchCount,
   platformCount,
@@ -24,70 +26,55 @@ export function ReportingBrandContextBanner({
   latestActivity,
 }: ReportingBrandContextBannerProps) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-6">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <section className="rounded-[18px] border border-[#e5e2e1] bg-white px-5 py-5 shadow-sm sm:px-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700">
+            <span className="inline-flex items-center rounded-full bg-[#e8deff] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#5600e0]">
+              Report Live Brand
+            </span>
+            <span className="inline-flex items-center rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#494456]">
               Brand aktif
             </span>
-            <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">
-              Siap dianalisis
-            </span>
           </div>
-          <div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
-              {brandName || "Nama Brand"}
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              Ini adalah ruang kerja detail untuk melihat performa brand
-              terpilih. Fokus utama ada di periode aktif, ringkasan performa,
-              dan riwayat upload supaya navigasi data terasa lebih jelas.
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#5600e0] text-base font-black text-white shadow-[0_8px_18px_rgba(86,0,224,0.18)]">
+              {brandName
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2) || "RB"}
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-display text-[clamp(1.65rem,2.4vw,2.1rem)] font-black tracking-tight text-slate-900">
+                {brandName || "Nama Brand"}
+              </h2>
+              <p className="mt-0.5 text-sm font-medium text-slate-600">
+                ID brand: {brandId || "-"}{"  "}•{"  "}
+                {new Intl.NumberFormat("id-ID").format(batchCount)} batch data
+              </p>
+            </div>
           </div>
+          <p className="max-w-3xl text-sm leading-6 text-slate-500">
+            Ruang kerja ini dibuat untuk membaca performa brand terpilih dengan
+            urutan yang jelas: filter periode, platform, KPI, lalu chart dan
+            tabel detail.
+          </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-              Sesi
-            </div>
-            <div className="mt-1 text-lg font-black text-slate-900">
-              {new Intl.NumberFormat("id-ID").format(sessionCount)}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-              Batch
-            </div>
-            <div className="mt-1 text-lg font-black text-slate-900">
-              {new Intl.NumberFormat("id-ID").format(batchCount)}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-              Platform
-            </div>
-            <div className="mt-1 text-lg font-black text-slate-900">
-              {new Intl.NumberFormat("id-ID").format(platformCount)}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-              GMV
-            </div>
-            <div className="mt-1 text-lg font-black text-slate-900">
-              {formatCurrency(totalGmv)}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 col-span-2 sm:col-span-3 xl:col-span-1">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-              Update terakhir
-            </div>
-            <div className="mt-1 text-sm font-black leading-5 text-slate-900">
-              {latestActivity || "-"}
-            </div>
-          </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center rounded-full border border-[#e5e2e1] bg-[#fcf9f8] px-3 py-1.5 text-[11px] font-bold text-slate-600">
+            {new Intl.NumberFormat("id-ID").format(platformCount)} platform
+          </span>
+          <span className="inline-flex items-center rounded-full border border-[#e5e2e1] bg-[#fcf9f8] px-3 py-1.5 text-[11px] font-bold text-slate-600">
+            {formatCurrency(totalGmv)}
+          </span>
+          <span className="inline-flex items-center rounded-full border border-[#cbc3d9] bg-white px-3 py-1.5 text-[11px] font-bold text-[#494456]">
+            Update {latestActivity || "-"}
+          </span>
         </div>
       </div>
     </section>

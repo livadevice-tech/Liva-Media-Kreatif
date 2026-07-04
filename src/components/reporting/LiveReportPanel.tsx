@@ -67,6 +67,7 @@ interface LiveReportPanelProps {
     fileName: string,
     rowCount: number,
   ) => void;
+  onImportRaw: () => void;
 }
 
 export function LiveReportPanel({
@@ -117,6 +118,7 @@ export function LiveReportPanel({
   brandUploadHistory,
   uploadHistory,
   onDeleteUploadBatch,
+  onImportRaw,
 }: LiveReportPanelProps) {
   const panelData = buildLiveReportPanelData({
     model,
@@ -160,6 +162,7 @@ export function LiveReportPanel({
       </div>
 
       <ReportFiltersBar
+        showSearch={false}
         searchQuery={reportDbSearchQuery}
         onSearchQueryChange={onSearchQueryChange}
         platformFilter={operatorPlatformFilter}
@@ -187,6 +190,8 @@ export function LiveReportPanel({
           setIsOperatorCalendarOpen(false);
         }}
         onCancelCustom={() => setIsOperatorCalendarOpen(false)}
+        primaryActionLabel="Add Raw Data"
+        onPrimaryAction={onImportRaw}
       />
 
       <div className="space-y-6 mb-6">

@@ -15,7 +15,7 @@ export function ReportPeriodNavigator({
 }: ReportPeriodNavigatorProps) {
   return (
     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <h4 className="text-sm font-black uppercase tracking-[0.22em] text-slate-900 md:text-base">
+      <h4 className="font-display text-sm font-black uppercase tracking-[0.22em] text-slate-900 md:text-base">
         {title}
       </h4>
       <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm">

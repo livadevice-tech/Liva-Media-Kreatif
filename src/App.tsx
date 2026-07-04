@@ -13742,6 +13742,7 @@ export default function App() {
                             <div className="px-6 pt-6 sm:px-8">
                               <ReportingBrandContextBanner
                                 brandName={activeReportBrandSummary.brandName}
+                                brandId={activeReportBrandId}
                                 sessionCount={
                                   activeReportBrandSummary.sessionCount
                                 }
@@ -14346,6 +14347,15 @@ export default function App() {
                                 brandUploadHistory={brandUploadHistory}
                                 uploadHistory={uploadHistory}
                                 onDeleteUploadBatch={handleDeleteUploadBatch}
+                                onImportRaw={() => {
+                                  setSaveTargetBrandId(activeReportBrandId || "");
+                                  setUploadTargetTab(
+                                    operatorReportingTab === "engagement"
+                                      ? "engagement"
+                                      : "live",
+                                  );
+                                  setIsUploadModalOpen(true);
+                                }}
                               />
                             </React.Suspense>
                           )}

@@ -76,10 +76,10 @@ function renderMetricCard(metric: ShopeeLiveMetric) {
   const comparison = buildComparison(metric.current, metric.previous);
 
 	return (
-	    <article className="flex min-h-44 min-w-0 flex-col rounded-[28px] border border-slate-200 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:min-h-48 sm:p-5">
+	    <article className="flex min-h-44 min-w-0 flex-col rounded-[14px] border border-[#e5e2e1] bg-white p-4 shadow-sm sm:min-h-48 sm:p-5">
 	      <div className="flex min-w-0 items-center gap-3">
 	        <div
-	          className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ring-1 sm:size-12 ${tone.iconWrap}`}
+	          className={`flex size-11 shrink-0 items-center justify-center rounded-[12px] ring-1 sm:size-12 ${tone.iconWrap}`}
 	          aria-hidden="true"
 	        >
 	          {metric.icon}
@@ -91,7 +91,7 @@ function renderMetricCard(metric: ShopeeLiveMetric) {
 	        </div>
 	      </div>
 
-	      <div className="mt-4 whitespace-nowrap text-[clamp(1.5rem,1.9vw,2.15rem)] font-black leading-tight text-slate-950 tabular-nums">
+	      <div className="mt-4 whitespace-nowrap font-display text-[clamp(1.55rem,2vw,2.2rem)] font-black leading-tight tracking-tight text-slate-950 tabular-nums">
 	        {metric.value}
 	      </div>
 

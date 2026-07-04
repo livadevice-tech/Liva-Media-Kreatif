@@ -18,14 +18,14 @@ export function ReportMetricCard({
   suffix = "",
 }: ReportMetricCardProps) {
   return (
-    <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+    <div className="rounded-[14px] border border-[#e5e2e1] bg-white p-4 shadow-sm">
       <div className="flex justify-between items-start mb-1">
-        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
+        <div className="flex-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
           {label}
         </div>
         <PercentBadge cur={cur} prev={prev} />
       </div>
-      <div className="text-xl font-black text-slate-800 mt-1">
+      <div className="font-display mt-1 text-[clamp(1.2rem,1.5vw,1.8rem)] font-black tracking-tight text-slate-800 tabular-nums">
         {prefix}
         {value}
         {suffix}
