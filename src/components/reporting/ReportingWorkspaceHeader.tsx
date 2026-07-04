@@ -410,7 +410,6 @@ export function ReportingWorkspaceHeader({
               )}
             </div>
 
-            </div>
           </div>
 
           <div className="relative mt-1 lg:mt-0 w-full sm:w-auto">
@@ -429,41 +428,41 @@ export function ReportingWorkspaceHeader({
             {isRawMenuOpen && (
               <div className="absolute right-0 lg:right-0 left-0 lg:left-auto top-full z-50 mt-2 w-full sm:w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
                 <div className="space-y-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onImportRawLive();
-                        setIsRawMenuOpen(false);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                    >
-                      <Layers3 className="h-4 w-4 text-[#5600e0]" />
-                      Upload Raw Data Live
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onImportRawProduct();
-                        setIsRawMenuOpen(false);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                    >
-                      <ShoppingBag className="h-4 w-4 text-[#ff6a00]" />
-                      Upload Raw Data Product
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onImportRawEngagement();
-                        setIsRawMenuOpen(false);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                    >
-                      <Settings2 className="h-4 w-4 text-[#0f766e]" />
-                      Upload Raw Data Engagement
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onImportRawLive();
+                      setIsRawMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  >
+                    <Layers3 className="h-4 w-4 text-[#5600e0]" />
+                    Upload Raw Data Live
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onImportRawProduct();
+                      setIsRawMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  >
+                    <ShoppingBag className="h-4 w-4 text-[#ff6a00]" />
+                    Upload Raw Data Product
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onImportRawEngagement();
+                      setIsRawMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  >
+                    <Settings2 className="h-4 w-4 text-[#0f766e]" />
+                    Upload Raw Data Engagement
+                  </button>
                 </div>
+              </div>
             )}
           </div>
         </div>
