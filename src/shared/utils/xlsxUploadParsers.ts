@@ -878,23 +878,33 @@ export function parseReportingUploadRows(
       coinsClaimedIdx !== -1 ? parseIndonesianNumber(rowData[coinsClaimedIdx]) : 0;
 
     const rawAvgViewDuration =
-      avgViewDurationIdx !== -1 ? String(rowData[avgViewDurationIdx]) : "";
+      avgViewDurationIdx !== -1 ? rowData[avgViewDurationIdx] : "";
     let parsedAvgViewDuration = 0;
-    if (rawAvgViewDuration.includes(":")) {
-      const parts = rawAvgViewDuration.split(":").map(Number);
-      if (parts.length === 3) {
-        parsedAvgViewDuration = parts[0] * 3600 + parts[1] * 60 + parts[2];
-      } else if (parts.length === 2) {
-        parsedAvgViewDuration = parts[0] * 60 + parts[1];
-      }
+    if (typeof rawAvgViewDuration === "number") {
+      parsedAvgViewDuration =
+        rawAvgViewDuration > 0 && rawAvgViewDuration < 1
+          ? Math.round(rawAvgViewDuration * 86400)
+          : Math.round(rawAvgViewDuration);
     } else {
-      parsedAvgViewDuration = parseFloat(rawAvgViewDuration.replace(/[^0-9.]/g, "")) || 0;
+      const rawAvgViewDurationStr = String(rawAvgViewDuration || "");
+      if (rawAvgViewDurationStr.includes(":")) {
+        const parts = rawAvgViewDurationStr.split(":").map(Number);
+        if (parts.length === 3) {
+          parsedAvgViewDuration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+        } else if (parts.length === 2) {
+          parsedAvgViewDuration = parts[0] * 60 + parts[1];
+        }
+      } else {
+        const numericAvgViewDuration =
+          parseFloat(rawAvgViewDurationStr.replace(/[^0-9.]/g, "")) || 0;
+        parsedAvgViewDuration =
+          numericAvgViewDuration > 0 && numericAvgViewDuration < 1
+            ? Math.round(numericAvgViewDuration * 86400)
+            : Math.round(numericAvgViewDuration);
+      }
     }
 
-    let fileLevelAvgView = parsedAvgViewDuration;
-    if (fileLevelAvgView > 0 && fileLevelAvgView < 10) {
-      fileLevelAvgView = Math.floor(fileLevelAvgView * 60);
-    }
+    const fileLevelAvgView = parsedAvgViewDuration;
 
     const impressions = parsedImpressions || 0;
     const views = parsedViews || parsedImpressions || 0;
