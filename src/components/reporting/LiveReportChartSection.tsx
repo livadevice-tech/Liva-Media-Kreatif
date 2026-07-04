@@ -9,12 +9,17 @@ import {
   YAxis,
   LineChart as RechartsLineChart,
 } from "recharts";
-import { ChevronDown, Sliders, TrendingUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   liveChartMetricDefaults,
   liveChartMetricOptions,
 } from "../../shared/utils/liveChartConfig";
 import type { LiveReportChartData } from "./liveReportSummaryTypes";
+import {
+  ChartGranularity,
+  filterChartDataByLatestDays,
+  aggregateChartData,
+} from "../../shared/utils/chartDataAggregation";
 
 type LiveReportChartSectionProps = {
   chartData: LiveReportChartData;
@@ -33,52 +38,45 @@ export function LiveReportChartSection({
   chartSelectedMetrics,
   onChartSelectedMetricsChange,
 }: LiveReportChartSectionProps) {
-  const [windowSize, setWindowSize] = useState<(typeof WINDOW_OPTIONS)[number]["value"]>(7);
+  const [windowSize, setWindowSize] =
+    useState<(typeof WINDOW_OPTIONS)[number]["value"]>(7);
+  const [granularity, setGranularity] = useState<ChartGranularity>("daily");
+  const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
 
   const visibleData = useMemo(() => {
-    if (chartData.length <= windowSize) {
-      return chartData;
-    }
-
-    return chartData.slice(chartData.length - windowSize);
-  }, [chartData, windowSize]);
+    // Filter berdasarkan "hari dari data terakhir"
+    const filtered = filterChartDataByLatestDays(chartData, windowSize);
+    // Agregasi
+    return aggregateChartData(filtered, granularity, [
+      "gmv",
+      "orders",
+      "itemsSold",
+      "clicks",
+      "penonton",
+    ]);
+  }, [chartData, windowSize, granularity]);
 
   const legendItems = [
     { key: "gmv", label: "GMV (Rp)", color: "#5600e0" },
-    { key: "orders", label: "Orders", color: "#60a5fa" },
+    { key: "penonton", label: "Views", color: "#60a5fa" }, // Menggunakan Views/Penonton sesuai request
   ];
 
-  const toggleMetric = (metricKey: string) => {
-    const isSelected = chartSelectedMetrics.includes(metricKey);
-    if (isSelected) {
-      if (chartSelectedMetrics.length > 1) {
-        onChartSelectedMetricsChange(
-          chartSelectedMetrics.filter((item) => item !== metricKey),
-        );
-      }
-      return;
-    }
-
-    onChartSelectedMetricsChange([...chartSelectedMetrics, metricKey]);
-  };
+  const granularityOptions = [
+    { value: "daily", label: "Harian" },
+    { value: "weekly", label: "Mingguan" },
+    { value: "monthly", label: "Bulanan" },
+  ] as const;
 
   return (
-    <section className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
-            <TrendingUp className="h-4 w-4 text-[#5600e0]" />
-            Tren GMV & Orders
-          </div>
-          <p className="max-w-2xl text-sm leading-6 text-slate-500">
-            Tampilan dibuat lebih padat dan fokus, supaya grafik utama langsung
-            terbaca seperti dashboard referensi: period selector di kanan, legend
-            ringan, lalu kurva GMV dan Orders.
-          </p>
-        </div>
+    <section className="rounded-[16px] border border-[#e6dff8] bg-white p-6 shadow-sm">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-[14px] font-semibold text-slate-800">
+          Tren GMV & Views
+        </h3>
 
-        <div className="flex flex-col items-start gap-3 lg:items-end">
-          <div className="flex items-center gap-2 rounded-[16px] border border-[#e4ddf6] bg-[#faf8ff] p-1 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          {/* Segmented Control for Days */}
+          <div className="flex items-center rounded-[8px] bg-slate-50 p-1 border border-slate-200">
             {WINDOW_OPTIONS.map((option) => {
               const isActive = windowSize === option.value;
               return (
@@ -86,139 +84,119 @@ export function LiveReportChartSection({
                   key={option.value}
                   type="button"
                   onClick={() => setWindowSize(option.value)}
-                  className={`rounded-[12px] px-3 py-1.5 text-[11px] font-black transition-colors ${
+                  className={`rounded-[6px] px-3 py-1.5 text-[12px] font-semibold transition-colors ${
                     isActive
-                      ? "bg-white text-[#5600e0] shadow-[0_4px_14px_rgba(86,0,224,0.12)]"
-                      : "text-slate-500 hover:bg-white hover:text-slate-800"
+                      ? "bg-white text-[#5600e0] shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
                   {option.label}
                 </button>
               );
             })}
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-[12px] bg-transparent px-3 py-1.5 text-[11px] font-black text-slate-500 transition-colors hover:bg-white hover:text-slate-800"
-            >
-              Harian
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-3 text-[11px] font-bold text-slate-600">
-            {legendItems.map((item) => (
-              <span key={item.key} className="inline-flex items-center gap-2">
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
-                {item.label}
-              </span>
-            ))}
+          {/* Granularity Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsGranularityMenuOpen(!isGranularityMenuOpen)}
+              className="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            >
+              {granularityOptions.find((o) => o.value === granularity)?.label}
+              <ChevronDown className="h-4 w-4 text-slate-400" />
+            </button>
+
+            {isGranularityMenuOpen && (
+              <div className="absolute right-0 top-full z-10 mt-1 w-32 rounded-[8px] border border-slate-200 bg-white p-1 shadow-lg">
+                {granularityOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setGranularity(option.value);
+                      setIsGranularityMenuOpen(false);
+                    }}
+                    className={`block w-full rounded-[6px] px-3 py-2 text-left text-[12px] font-medium transition-colors ${
+                      granularity === option.value
+                        ? "bg-slate-50 text-[#5600e0]"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2 border-t border-[#f0ebfb] pt-4">
-        <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
-          <Sliders className="h-3.5 w-3.5 text-[#5600e0]" />
-          Metrik
-        </div>
-        {liveChartMetricOptions.map((metric) => {
-          const isSelected = chartSelectedMetrics.includes(metric.key);
-
-          return (
-            <button
-              key={metric.key}
-              type="button"
-              onClick={() => toggleMetric(metric.key)}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black transition-colors ${
-                isSelected
-                  ? `${metric.color} shadow-sm`
-                  : "border-[#e6e0f3] bg-white text-slate-400 hover:bg-[#fcfaff] hover:text-slate-700"
-              }`}
-            >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  metric.key === "gmv"
-                    ? "bg-[#5600e0]"
-                    : metric.key === "orders"
-                      ? "bg-sky-500"
-                      : metric.key === "itemsSold"
-                        ? "bg-amber-500"
-                        : metric.key === "clicks"
-                          ? "bg-pink-500"
-                          : "bg-teal-500"
-                }`}
-              />
-              {metric.label}
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          onClick={() => onChartSelectedMetricsChange([...liveChartMetricDefaults])}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[#e6e0f3] bg-white px-3 py-1.5 text-[10px] font-black text-[#5600e0] transition-colors hover:bg-[#faf8ff]"
-        >
-          Reset semua
-        </button>
+      <div className="mb-6 flex items-center justify-end gap-4 text-[12px] font-medium text-slate-600">
+        {legendItems.map((item) => (
+          <span key={item.key} className="inline-flex items-center gap-2">
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: item.color }}
+            />
+            {item.label}
+          </span>
+        ))}
       </div>
 
-      <div className="h-[320px] w-full">
+      <div className="h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <RechartsLineChart
             data={visibleData}
-            margin={{ top: 18, right: 12, left: 0, bottom: 0 }}
+            margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
           >
             <defs>
-              <linearGradient id="gmvGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#5600e0" stopOpacity={0.22} />
-                <stop offset="95%" stopColor="#5600e0" stopOpacity={0.02} />
+              <linearGradient id="gmvGradientNew" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#5600e0" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#5600e0" stopOpacity={0.0} />
               </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="#ece7f7"
+              stroke="#f1f5f9"
             />
             <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: "#6b7280", fontWeight: 700 }}
-              axisLine={{ stroke: "#e9e4f5" }}
+              dataKey="displayDate"
+              tick={{ fontSize: 11, fill: "#64748b" }}
+              axisLine={{ stroke: "#e2e8f0" }}
               tickLine={false}
-              dy={12}
+              dy={10}
             />
             <YAxis
               yAxisId="left"
-              tick={{ fontSize: 11, fill: "#6b7280", fontWeight: 700 }}
+              tick={{ fontSize: 11, fill: "#64748b" }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(val) =>
-                `Rp${new Intl.NumberFormat("id-ID", { notation: "compact" }).format(val)}`
+                val === 0 ? "0" : `${new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(val).replace('M', 'M')}`
               }
-              hide={!chartSelectedMetrics.includes("gmv")}
             />
             <YAxis
               yAxisId="right"
               orientation="right"
-              tick={{ fontSize: 11, fill: "#6b7280", fontWeight: 700 }}
+              tick={{ fontSize: 11, fill: "#64748b" }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(val: number) =>
-                new Intl.NumberFormat("id-ID", { notation: "compact" }).format(val)
+              tickFormatter={(val) =>
+                val === 0 ? "0" : new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(val)
               }
             />
             <Tooltip
               contentStyle={{
-                borderRadius: "16px",
-                border: "1px solid #e6e0f3",
-                boxShadow: "0 14px 30px rgba(17,24,39,0.12)",
-                fontWeight: 700,
-                fontSize: "11px",
+                borderRadius: "8px",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                fontSize: "12px",
               }}
-              labelStyle={{ color: "#111827", marginBottom: "4px" }}
+              labelStyle={{ color: "#334155", fontWeight: 600, marginBottom: "4px" }}
               formatter={(value: number | string, name: string) => [
-                name === "GMV (Pendapatan)"
+                name === "GMV"
                   ? `Rp${new Intl.NumberFormat("id-ID").format(Number(value))}`
                   : new Intl.NumberFormat("id-ID").format(Number(value)),
                 name,
@@ -227,56 +205,24 @@ export function LiveReportChartSection({
             <Area
               yAxisId="left"
               type="monotone"
-              name="GMV (Pendapatan)"
+              name="GMV"
               dataKey="gmv"
               stroke="#5600e0"
-              strokeWidth={3}
-              fill="url(#gmvGradient)"
-              dot={{ r: 3.5, fill: "#5600e0", strokeWidth: 2, stroke: "#fff" }}
-              activeDot={{ r: 6 }}
-              hide={!chartSelectedMetrics.includes("gmv")}
+              strokeWidth={2}
+              fill="url(#gmvGradientNew)"
+              dot={false}
+              activeDot={{ r: 5, fill: "#5600e0", stroke: "#fff", strokeWidth: 2 }}
             />
             <Line
               yAxisId="right"
               type="monotone"
-              name="Pesanan (Orders)"
-              dataKey="orders"
-              stroke="#60a5fa"
-              strokeWidth={2.5}
-              strokeDasharray="4 4"
-              dot={{ r: 3, fill: "#60a5fa", strokeWidth: 2, stroke: "#fff" }}
-              activeDot={{ r: 5 }}
-              hide={!chartSelectedMetrics.includes("orders")}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              name="Produk Terjual"
-              dataKey="itemsSold"
-              stroke="#f59e0b"
-              strokeWidth={2.5}
-              dot={{ r: 3, fill: "#f59e0b", strokeWidth: 2, stroke: "#fff" }}
-              hide={!chartSelectedMetrics.includes("itemsSold")}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              name="Klik Produk"
-              dataKey="clicks"
-              stroke="#ec4899"
-              strokeWidth={2.5}
-              dot={{ r: 3, fill: "#ec4899", strokeWidth: 2, stroke: "#fff" }}
-              hide={!chartSelectedMetrics.includes("clicks")}
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              name="Penonton (Views)"
+              name="Views"
               dataKey="penonton"
-              stroke="#14b8a6"
-              strokeWidth={2.5}
-              dot={{ r: 3, fill: "#14b8a6", strokeWidth: 2, stroke: "#fff" }}
-              hide={!chartSelectedMetrics.includes("penonton")}
+              stroke="#60a5fa"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
+              activeDot={{ r: 5, fill: "#60a5fa", stroke: "#fff", strokeWidth: 2 }}
             />
           </RechartsLineChart>
         </ResponsiveContainer>
