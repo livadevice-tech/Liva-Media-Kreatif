@@ -7,7 +7,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  LineChart as RechartsLineChart,
+  ComposedChart as RechartsComposedChart,
 } from "recharts";
 import { ChevronDown } from "lucide-react";
 import {
@@ -146,7 +146,7 @@ export function LiveReportChartSection({
 
       <div className="h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <RechartsLineChart
+          <RechartsComposedChart
             data={visibleData}
             margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
           >
@@ -224,7 +224,7 @@ export function LiveReportChartSection({
               dot={false}
               activeDot={{ r: 5, fill: "#60a5fa", stroke: "#fff", strokeWidth: 2 }}
             />
-          </RechartsLineChart>
+          </RechartsComposedChart>
         </ResponsiveContainer>
       </div>
     </section>
