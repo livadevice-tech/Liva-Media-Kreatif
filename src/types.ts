@@ -180,6 +180,7 @@ export interface BrandInvoice {
 export interface ClientBrand {
   id: string;
   name: string;
+  logoUrl?: string;
   sessions: BrandSession[];
   contractStartDate?: string;
   contractEndDate: string;

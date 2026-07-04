@@ -133,7 +133,6 @@ import {
   formatDateUI,
   formatHumanDate,
 } from "./shared/utils/date";
-import { formatDateTimeSafe } from "./shared/utils/dateTime";
 import { formatIDR } from "./shared/utils/currency";
 import { formatContractDate, padLocal } from "./shared/utils/dateFormatting";
 import { getPickerDays } from "./shared/utils/calendar";
@@ -269,7 +268,6 @@ import {
   ReportingWorkspaceTabs,
 } from "./components/reporting/ReportingWorkspaceHeader";
 import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSelectionPanel";
-import { ReportingBrandContextBanner } from "./components/reporting/ReportingBrandContextBanner";
 import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
 import { EngagementReportFilters } from "./components/reporting/EngagementReportFilters";
 import { DeleteByDateModal } from "./components/reporting/DeleteByDateModal";
@@ -1751,50 +1749,6 @@ export default function App() {
     (reportBrandPage - 1) * 9,
     reportBrandPage * 9,
   );
-
-  const activeReportBrandSummary = useMemo(() => {
-    if (!activeReportBrandId) return null;
-
-    const brand = clientBrands.find((item) => item.id === activeReportBrandId);
-    const brandLogs = brandPerformanceLogs.filter(
-      (log) => log.brandId === activeReportBrandId,
-    );
-    const brandBatches = brandUploadHistory.filter(
-      (batch) => batch.brandId === activeReportBrandId,
-    );
-    const latestActivitySource = [...brandLogs, ...brandBatches]
-      .map((item) =>
-        "createdAt" in item
-          ? item.createdAt || item.uploadedAt || item.date || ""
-          : item.uploadedAt || item.date || "",
-      )
-      .filter(Boolean)
-      .sort();
-    const latestActivity =
-      latestActivitySource[latestActivitySource.length - 1] || "";
-
-    return {
-      brandName: brand?.name || "Nama Brand",
-      sessionCount: brandLogs.length,
-      batchCount: brandBatches.length,
-      platformCount: new Set(
-        brandLogs.map((log) => log.platform).filter(Boolean),
-      ).size,
-      totalGmv: brandLogs.reduce((sum, log) => sum + (log.gmv || 0), 0),
-      latestActivity: latestActivity
-        ? formatDateTimeSafe(latestActivity, {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })
-        : "-",
-    };
-  }, [
-    activeReportBrandId,
-    brandPerformanceLogs,
-    brandUploadHistory,
-    clientBrands,
-  ]);
 
   const activeReportBrandUploadHistory = useMemo(
     () =>
@@ -13750,120 +13704,75 @@ export default function App() {
                     ) : (
                       <>
                         <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left">
-                          {activeReportBrandSummary ? (
-                            <div className="px-6 pt-6 sm:px-8">
-                              <ReportingBrandContextBanner
-                                brandName={activeReportBrandSummary.brandName}
-                                brandId={activeReportBrandId || ""}
-                                onBack={() => {
-                                  setActiveReportBrandId(null);
-                                  setReportingRawData([]);
-                                  setAutoDetectNotice("");
-                                }}
-                                sessionCount={
-                                  activeReportBrandSummary.sessionCount
-                                }
-                                batchCount={activeReportBrandSummary.batchCount}
-                                platformCount={
-                                  activeReportBrandSummary.platformCount
-                                }
-                                totalGmv={activeReportBrandSummary.totalGmv}
-                                latestActivity={
-                                  activeReportBrandSummary.latestActivity
-                                }
-                              />
-                            </div>
-                          ) : null}
-
-                          <ReportingWorkspaceHeader
-                            brandName={
-                              clientBrands.find(
-                                (b) => b.id === activeReportBrandId,
-                              )?.name || "Nama Brand"
-                            }
-                            brandId={activeReportBrandId || undefined}
-                            activeTab={operatorReportingTab}
-                            onDeleteRange={() =>
-                              setIsDeleteByDateModalOpen(true)
-                            }
-                            onDeleteAll={() => {
-                              handleDeleteAllBrandRawData(
-                                activeReportBrandId || "",
+                          <div className="px-4 pt-4 sm:px-6">
+                            <ReportingWorkspaceHeader
+                              brandName={
                                 clientBrands.find(
                                   (b) => b.id === activeReportBrandId,
-                                )?.name || "",
-                                operatorReportingTab,
-                              );
-                            }}
-                            onImportSku={() => {
-                              setSaveTargetBrandId(activeReportBrandId || "");
-                              setIsSkuUploadModalOpen(true);
-                            }}
-                            onImportRaw={() => {
-                              setSaveTargetBrandId(activeReportBrandId || "");
-                              setUploadTargetTab(
-                                operatorReportingTab === "engagement"
-                                  ? "engagement"
-                                  : "live",
-                              );
-                              setIsUploadModalOpen(true);
-                            }}
-                          />
-
-                          {operatorReportingTab === "live" && (
-                            <div className="px-6 pt-4 sm:px-8">
-                              <ReportFiltersBar
-                                showSearch={false}
-                                searchQuery={reportDbSearchQuery}
-                                onSearchQueryChange={setReportDbSearchQuery}
-                                platformFilter={operatorPlatformFilter}
-                                onPlatformFilterChange={
-                                  setOperatorPlatformFilter
-                                }
-                                availablePlatforms={availableOperatorPlatforms}
-                                dateFilterType={operatorDateFilterType}
-                                onDateFilterTypeSelect={
-                                  handleOperatorDateFilterSelect
-                                }
-                                monthPickerYear={operatorMonthPickerYear}
-                                setMonthPickerYear={
-                                  setOperatorMonthPickerYear
-                                }
-                                selectedMonth={operatorSelectedMonth}
-                                setSelectedMonth={setOperatorSelectedMonth}
-                                isMonthOpen={isOperatorMonthOpen}
-                                setIsMonthOpen={setIsOperatorMonthOpen}
-                                isCalendarOpen={isOperatorCalendarOpen}
-                                setIsCalendarOpen={
-                                  setIsOperatorCalendarOpen
-                                }
-                                customStartDate={operatorCustomStartDate}
-                                customEndDate={operatorCustomEndDate}
-                                tempStartDate={operatorTempStartDate}
-                                tempEndDate={operatorTempEndDate}
-                                onTempStartDateChange={
-                                  setOperatorTempStartDate
-                                }
-                                onTempEndDateChange={setOperatorTempEndDate}
-                                onApplyCustom={(start, end) => {
-                                  setOperatorCustomStartDate(start);
-                                  setOperatorCustomEndDate(end);
-                                  setIsOperatorCalendarOpen(false);
-                                }}
-                                onCancelCustom={() =>
-                                  setIsOperatorCalendarOpen(false)
-                                }
-                                primaryActionLabel="Add Raw Data"
-                                onPrimaryAction={() => {
-                                  setSaveTargetBrandId(
-                                    activeReportBrandId || "",
-                                  );
-                                  setUploadTargetTab("live");
-                                  setIsUploadModalOpen(true);
-                                }}
-                              />
-                            </div>
-                          )}
+                                )?.name || "Nama Brand"
+                              }
+                              brandId={activeReportBrandId || undefined}
+                              brandLogoUrl={
+                                clientBrands.find(
+                                  (b) => b.id === activeReportBrandId,
+                                )?.logoUrl
+                              }
+                              onBack={() => {
+                                setActiveReportBrandId(null);
+                                setReportingRawData([]);
+                                setAutoDetectNotice("");
+                              }}
+                              activeTab={operatorReportingTab}
+                              platformFilter={operatorPlatformFilter}
+                              onPlatformFilterChange={
+                                setOperatorPlatformFilter
+                              }
+                              availablePlatforms={[
+                                "Shopee Live",
+                                "TikTok Live",
+                              ]}
+                              dateFilterType={operatorDateFilterType}
+                              onDateFilterTypeSelect={
+                                handleOperatorDateFilterSelect
+                              }
+                              monthPickerYear={operatorMonthPickerYear}
+                              setMonthPickerYear={setOperatorMonthPickerYear}
+                              selectedMonth={operatorSelectedMonth}
+                              setSelectedMonth={setOperatorSelectedMonth}
+                              isMonthOpen={isOperatorMonthOpen}
+                              setIsMonthOpen={setIsOperatorMonthOpen}
+                              isCalendarOpen={isOperatorCalendarOpen}
+                              setIsCalendarOpen={setIsOperatorCalendarOpen}
+                              customStartDate={operatorCustomStartDate}
+                              customEndDate={operatorCustomEndDate}
+                              tempStartDate={operatorTempStartDate}
+                              tempEndDate={operatorTempEndDate}
+                              onTempStartDateChange={setOperatorTempStartDate}
+                              onTempEndDateChange={setOperatorTempEndDate}
+                              onApplyCustom={(start, end) => {
+                                setOperatorCustomStartDate(start);
+                                setOperatorCustomEndDate(end);
+                                setIsOperatorCalendarOpen(false);
+                              }}
+                              onCancelCustom={() =>
+                                setIsOperatorCalendarOpen(false)
+                              }
+                              onImportRawLive={() => {
+                                setSaveTargetBrandId(activeReportBrandId || "");
+                                setUploadTargetTab("live");
+                                setIsUploadModalOpen(true);
+                              }}
+                              onImportRawProduct={() => {
+                                setSaveTargetBrandId(activeReportBrandId || "");
+                                setIsSkuUploadModalOpen(true);
+                              }}
+                              onImportRawEngagement={() => {
+                                setSaveTargetBrandId(activeReportBrandId || "");
+                                setUploadTargetTab("engagement");
+                                setIsUploadModalOpen(true);
+                              }}
+                            />
+                          </div>
 
                           <ReportingWorkspaceTabs
                             activeTab={operatorReportingTab}
