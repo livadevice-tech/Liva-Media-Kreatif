@@ -1,37 +1,94 @@
-import { parseISO, startOfWeek, startOfMonth, format, isValid, compareAsc } from "date-fns";
-import { id } from "date-fns/locale";
+export type ChartGranularity = "daily" | "weekly" | "monthly";
 
 type AnyChartPoint = {
-  date: string; // expected format: yyyy-MM-dd
+  date: string; // expected format: yyyy-MM-dd or any parsable date string
   [key: string]: any;
 };
 
-export type ChartGranularity = "daily" | "weekly" | "monthly";
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
 
-export function getLatestDateInChartData<T extends AnyChartPoint>(data: T[]): string | null {
+function formatDateLabel(date: Date, granularity: ChartGranularity): string {
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+    "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+  ];
+
+  if (granularity === "daily") {
+    return `${String(date.getDate()).padStart(2, "0")} ${months[date.getMonth()]}`;
+  } else if (granularity === "weekly") {
+    return `Mggu ${String(date.getDate()).padStart(2, "0")} ${months[date.getMonth()]}`;
+  } else {
+    return `${months[date.getMonth()]} ${date.getFullYear()}`;
+  }
+}
+
+/** Returns the ISO date string of the latest date in the dataset, or null if empty */
+export function getLatestDateInChartData<T extends AnyChartPoint>(
+  data: T[]
+): string | null {
   if (!data || data.length === 0) return null;
-  const validDates = data
-    .map((d) => parseISO(d.date))
-    .filter((d) => isValid(d))
-    .sort(compareAsc);
-  if (validDates.length === 0) return null;
-  return format(validDates[validDates.length - 1], "yyyy-MM-dd");
+  let latest: Date | null = null;
+  let latestStr = "";
+  for (const point of data) {
+    const d = parseDate(point.date);
+    if (d && (!latest || d > latest)) {
+      latest = d;
+      latestStr = point.date;
+    }
+  }
+  return latestStr || null;
 }
 
-export function filterChartDataByLatestDays<T extends AnyChartPoint>(data: T[], days: number): T[] {
-    const latestStr = getLatestDateInChartData(data);
-    if (!latestStr) return data;
-    
-    const latestDate = parseISO(latestStr);
-    const cutoffDate = new Date(latestDate);
-    cutoffDate.setDate(cutoffDate.getDate() - days + 1);
-    
-    return data.filter(d => {
-        const dDate = parseISO(d.date);
-        return isValid(dDate) && dDate >= cutoffDate;
-    });
+/** Slices `data` to only include points within the last `days` days from the latest date present */
+export function filterChartDataByLatestDays<T extends AnyChartPoint>(
+  data: T[],
+  days: number
+): T[] {
+  const latestStr = getLatestDateInChartData(data);
+  if (!latestStr) return data;
+
+  const latestDate = parseDate(latestStr)!;
+  const cutoffDate = new Date(latestDate);
+  cutoffDate.setDate(cutoffDate.getDate() - days + 1);
+  cutoffDate.setHours(0, 0, 0, 0);
+
+  return data.filter((d) => {
+    const dDate = parseDate(d.date);
+    return dDate !== null && dDate >= cutoffDate;
+  });
 }
 
+/** Returns monday of the week that `date` falls in */
+function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=Sun, 1=Mon, ...
+  const diff = (day === 0 ? -6 : 1 - day); // shift to Monday
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Returns first day of the month that `date` falls in */
+function getMonthStart(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function toYMD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** 
+ * Aggregates chart data points by granularity.
+ * For "daily", adds formatted displayDate.
+ * For "weekly" and "monthly", groups by period start and sums the given metrics.
+ */
 export function aggregateChartData<T extends AnyChartPoint>(
   data: T[],
   granularity: ChartGranularity,
@@ -39,62 +96,60 @@ export function aggregateChartData<T extends AnyChartPoint>(
 ): T[] {
   if (!data || data.length === 0) return [];
 
-  // Sort data chronologically first
+  // Sort chronologically
   const sortedData = [...data].sort((a, b) => {
-    const dateA = parseISO(a.date);
-    const dateB = parseISO(b.date);
-    if (!isValid(dateA) || !isValid(dateB)) return 0;
-    return compareAsc(dateA, dateB);
+    const da = parseDate(a.date);
+    const db = parseDate(b.date);
+    if (!da || !db) return 0;
+    return da.getTime() - db.getTime();
   });
 
   if (granularity === "daily") {
-    return sortedData.map(d => {
-       const parsed = parseISO(d.date);
-       return {
-         ...d,
-         displayDate: isValid(parsed) ? format(parsed, "dd MMM", { locale: id }) : d.date
-       };
+    return sortedData.map((d) => {
+      const parsed = parseDate(d.date);
+      return {
+        ...d,
+        displayDate: parsed ? formatDateLabel(parsed, "daily") : d.date,
+      };
     });
   }
 
   const grouped = new Map<string, T>();
 
-  sortedData.forEach((point) => {
-    const parsedDate = parseISO(point.date);
-    if (!isValid(parsedDate)) return;
+  for (const point of sortedData) {
+    const parsedDate = parseDate(point.date);
+    if (!parsedDate) continue;
 
-    let groupKey = "";
-    let displayDate = "";
-
+    let periodStart: Date;
     if (granularity === "weekly") {
-      const weekStart = startOfWeek(parsedDate, { weekStartsOn: 1 }); // Monday start
-      groupKey = format(weekStart, "yyyy-MM-dd");
-      displayDate = `Minggu ${format(weekStart, "dd MMM", { locale: id })}`;
-    } else if (granularity === "monthly") {
-      const monthStart = startOfMonth(parsedDate);
-      groupKey = format(monthStart, "yyyy-MM-dd");
-      displayDate = format(monthStart, "MMM yyyy", { locale: id });
+      periodStart = getWeekStart(parsedDate);
+    } else {
+      periodStart = getMonthStart(parsedDate);
     }
+
+    const groupKey = toYMD(periodStart);
+    const displayDate = formatDateLabel(periodStart, granularity);
 
     if (!grouped.has(groupKey)) {
-      // Initialize new group
       const newPoint = { ...point, date: groupKey, displayDate } as T;
-      metricsToSum.forEach((metric) => {
+      for (const metric of metricsToSum) {
         newPoint[metric as keyof T] = (Number(point[metric]) || 0) as any;
-      });
+      }
       grouped.set(groupKey, newPoint);
     } else {
-      // Aggregate existing group
       const existing = grouped.get(groupKey)!;
-      metricsToSum.forEach((metric) => {
-        const currentVal = Number(existing[metric]) || 0;
-        const addVal = Number(point[metric]) || 0;
-        existing[metric as keyof T] = (currentVal + addVal) as any;
-      });
+      for (const metric of metricsToSum) {
+        const cur = Number(existing[metric]) || 0;
+        const add = Number(point[metric]) || 0;
+        existing[metric as keyof T] = (cur + add) as any;
+      }
     }
-  });
+  }
 
   return Array.from(grouped.values()).sort((a, b) => {
-     return compareAsc(parseISO(a.date), parseISO(b.date));
+    const da = parseDate(a.date);
+    const db = parseDate(b.date);
+    if (!da || !db) return 0;
+    return da.getTime() - db.getTime();
   });
 }
