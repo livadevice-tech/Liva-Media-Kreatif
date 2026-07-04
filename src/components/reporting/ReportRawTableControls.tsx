@@ -24,12 +24,12 @@ export function ReportRawTableControls({
 }: ReportRawTableControlsProps) {
   return (
     <>
-      <div className="flex bg-slate-100 p-1 mb-4 rounded-xl w-fit">
+      <div className="mb-4 flex w-fit rounded-[16px] border border-[#e4ddf6] bg-[#faf8ff] p-1 shadow-sm">
         {RAW_TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setReportingShopeeRawTab(tab.id)}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${reportingShopeeRawTab === tab.id ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            className={`rounded-[12px] px-4 py-2 text-xs font-bold transition-all ${reportingShopeeRawTab === tab.id ? "bg-white text-[#5600e0] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
             {tab.label}
           </button>
@@ -37,18 +37,18 @@ export function ReportRawTableControls({
       </div>
 
       {reportingShopeeRawTab === "shift" && (
-        <div className="mb-4 flex flex-wrap gap-2 items-center p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
-          <span className="text-xs font-bold text-indigo-600 mr-2">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[18px] border border-[#e4ddf6] bg-[#faf8ff] p-3">
+          <span className="mr-2 text-xs font-bold text-[#5600e0]">
             Filter & Grouping Shift:
           </span>
           {shifts.map((sh) => (
             <label
               key={sh}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50"
             >
               <input
                 type="checkbox"
-                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
                 checked={adminShiftChecklist.includes(sh)}
                 onChange={(e) => {
                   if (e.target.checked) {

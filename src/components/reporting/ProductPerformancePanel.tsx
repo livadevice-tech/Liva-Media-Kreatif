@@ -74,14 +74,14 @@ export function ProductPerformancePanel({
   if (currentSkus.length === 0) {
     return (
       <div className="px-6 pb-8 sm:px-8 space-y-6 animate-fadeIn">
-        <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+        <div className="rounded-[22px] border border-[#e6dff8] bg-white px-5 py-4 shadow-[0_1px_0_rgba(17,24,39,0.03)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
             Tab Product
           </p>
-          <h3 className="mt-1 text-lg font-black text-slate-900">
+          <h3 className="mt-1 font-display text-lg font-black tracking-tight text-slate-950">
             Performa SKU per periode
           </h3>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
             Data SKU belum ditemukan untuk kombinasi filter saat ini. Coba
             ubah periode, platform, atau kata kunci pencarian agar daftar
             produk muncul kembali.
@@ -100,21 +100,21 @@ export function ProductPerformancePanel({
 
   return (
     <div className="px-6 pb-8 sm:px-8 space-y-6 animate-fadeIn">
-      <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+      <div className="rounded-[22px] border border-[#e6dff8] bg-white px-5 py-4 shadow-[0_1px_0_rgba(17,24,39,0.03)]">
+        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
           Tab Product
         </p>
-        <h3 className="mt-1 text-lg font-black text-slate-900">
+        <h3 className="mt-1 font-display text-lg font-black tracking-tight text-slate-950">
           Performa SKU per periode
         </h3>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
           Analisis ini menyorot distribusi revenue dan item terjual per SKU
           pada brand aktif. Gunakan navigasi periode untuk membandingkan
           performa harian secara lebih cepat.
         </p>
       </div>
 
-      <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm lg:p-7">
+      <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] lg:p-6">
         <div className="flex flex-col gap-3 mb-6">
           <ReportPeriodNavigator
             title="Product Performance"
@@ -146,21 +146,21 @@ export function ProductPerformancePanel({
             Distribusi revenue dan penjualan per SKU
           </p>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-xs h-[36px] sm:h-[40px] flex items-center">
+            <div className="inline-flex items-center rounded-full border border-[#e6dff8] bg-[#faf8ff] px-3 py-1.5 text-xs font-bold text-[#5600e0]">
               Total Item Sold:{" "}
               {new Intl.NumberFormat("id-ID").format(totalSold)}
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-[500px] overflow-y-auto custom-scrollbar">
+        <div className="overflow-x-auto max-h-[500px] overflow-y-auto rounded-[18px] border border-[#ece7f7] custom-scrollbar">
           <table className="w-full text-left bg-white">
-            <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+            <thead className="sticky top-0 z-10 bg-[#faf8ff] shadow-sm">
               <tr>
-                <th className="px-5 py-4 w-16 text-center text-slate-500 font-semibold text-xs tracking-widest uppercase">
+                <th className="w-16 px-5 py-4 text-center text-xs font-semibold uppercase tracking-widest text-slate-500">
                   No
                 </th>
-                <th className="px-5 py-4 text-slate-500 font-semibold text-xs tracking-widest uppercase">
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
                   SKU
                 </th>
                 <th
@@ -205,7 +205,7 @@ export function ProductPerformancePanel({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
+            <tbody className="divide-y divide-slate-100 bg-white text-sm font-semibold text-slate-700">
               {sortedAggregatedSkus.map((sku, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                   <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">

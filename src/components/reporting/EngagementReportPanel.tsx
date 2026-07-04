@@ -37,15 +37,15 @@ export function EngagementReportPanel({
   onDeleteUploadBatch,
 }: EngagementReportPanelProps) {
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+    <div className="space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
+      <div className="rounded-[22px] border border-[#e6dff8] bg-white px-5 py-4 shadow-[0_1px_0_rgba(17,24,39,0.03)]">
+        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
           Tab Engagement
         </p>
-        <h3 className="mt-1 text-lg font-black text-slate-900">
+        <h3 className="mt-1 font-display text-lg font-black tracking-tight text-slate-950">
           Ringkasan interaksi dan promosi
         </h3>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
           Tab ini dipakai untuk membaca tren interaksi harian dan metrik
           promosi dari raw data yang sudah masuk. Struktur awalnya dibuat agar
           langsung memberi konteks sebelum chart dan metrik dibaca.
@@ -66,8 +66,8 @@ export function EngagementReportPanel({
         onChartSelectedMetricsChange={onChartSelectedMetricsChange}
       />
 
-      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-        <div className="text-xs text-slate-400 font-semibold italic text-center">
+      <div className="rounded-[18px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)]">
+        <div className="text-center text-xs font-semibold italic text-slate-400">
           Menampilkan metrik agregat Engagement dan Promosi dari file Raw Data
           yang diunggah. Filter periode dan platform yang sama seperti di tab
           Live/Product berlaku di data ini.

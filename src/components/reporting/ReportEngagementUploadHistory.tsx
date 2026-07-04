@@ -112,7 +112,7 @@ export function ReportEngagementUploadHistory({
   return (
     <UploadHistoryCard
       title="Riwayat Upload Data Engagement"
-      description="History file CSV raw data performa yang telah berhasil dikonversi & masuk ke database sentral."
+      description="History file CSV raw data performa yang telah berhasil dikonversi dan masuk ke database sentral."
       histories={completeUploadHistory}
       isLoading={isLogsLoading}
       emptyMessage="Belum ada riwayat upload untuk brand ini."

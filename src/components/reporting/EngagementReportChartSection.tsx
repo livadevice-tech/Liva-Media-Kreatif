@@ -26,22 +26,22 @@ export function EngagementReportChartSection({
   onChartSelectedMetricsChange,
 }: EngagementReportChartSectionProps) {
   return (
-    <div className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+    <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h4 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-indigo-500" /> Tren Kinerja
+          <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
+            <TrendingUp className="h-5 w-5 text-[#5600e0]" /> Tren Kinerja
             Interaksi Harian
           </h4>
-          <p className="text-[11px] text-slate-400 font-bold mt-1">
+          <p className="mt-2 text-sm leading-6 text-slate-500">
             Visualisasi harian metrik interaksi terpilih dari data historis
             siaran langsung.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 max-w-full">
-          <div className="flex items-center gap-1 mr-1 select-none">
-            <Sliders className="w-3.5 h-3.5 text-indigo-500/80" />
-            <span className="text-[10px] font-black uppercase text-slate-550 tracking-wider">
+        <div className="flex max-w-full flex-wrap items-center gap-3 rounded-[16px] border border-[#e4ddf6] bg-[#faf8ff] p-3 shadow-sm">
+          <div className="mr-1 flex items-center gap-1 select-none">
+            <Sliders className="h-3.5 w-3.5 text-[#5600e0]/80" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
               Metrik:
             </span>
           </div>
@@ -67,10 +67,10 @@ export function EngagementReportChartSection({
                       ]);
                     }
                   }}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer select-none flex items-center gap-1 ${
+                  className={`flex cursor-pointer select-none items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold transition-all ${
                     isSelected
                       ? `${metric.color} scale-[1.02] shadow-xs font-extrabold`
-                      : "bg-white text-slate-400 border-slate-200 hover:text-slate-650 hover:bg-slate-50"
+                      : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-650"
                   }`}
                 >
                   <span
@@ -93,7 +93,7 @@ export function EngagementReportChartSection({
               );
             })}
           </div>
-          <div className="flex items-center gap-2 text-[10px] sm:border-l sm:border-slate-200 sm:pl-2.5 ml-auto font-bold text-slate-500">
+          <div className="ml-auto flex items-center gap-2 border-l border-slate-200 pl-2.5 text-[10px] font-bold text-slate-500">
             <button
               onClick={() =>
                 onChartSelectedMetricsChange([
@@ -105,7 +105,7 @@ export function EngagementReportChartSection({
                   "followers",
                 ])
               }
-              className="text-indigo-600 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+              className="cursor-pointer border-0 bg-transparent text-[9px] font-black uppercase tracking-widest text-[#5600e0] hover:underline"
             >
               Semua
             </button>
@@ -114,7 +114,7 @@ export function EngagementReportChartSection({
               onClick={() =>
                 onChartSelectedMetricsChange([...engagementChartMetricDefaults])
               }
-              className="text-slate-500 uppercase tracking-widest hover:underline bg-transparent border-0 cursor-pointer text-[9px] font-black"
+              className="cursor-pointer border-0 bg-transparent text-[9px] font-black uppercase tracking-widest text-slate-500 hover:underline"
             >
               Reset
             </button>
@@ -122,26 +122,26 @@ export function EngagementReportChartSection({
         </div>
       </div>
 
-      <div className="h-72 w-full mt-4">
+      <div className="mt-4 h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <RechartsLineChart
             data={model.chartData}
-            margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
+            margin={{ top: 10, right: 24, left: 6, bottom: 5 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="#e2e8f0"
+              stroke="#ece7f7"
             />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 10, fill: "#64748b", fontWeight: "bold" }}
+              tick={{ fontSize: 11, fill: "#64748b", fontWeight: "bold" }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               yAxisId="left"
-              tick={{ fontSize: 10, fill: "#4f46e5", fontWeight: "bold" }}
+              tick={{ fontSize: 11, fill: "#4f46e5", fontWeight: "bold" }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(val) => `${val}%`}
@@ -150,7 +150,7 @@ export function EngagementReportChartSection({
             <YAxis
               yAxisId="right"
               orientation="right"
-              tick={{ fontSize: 10, fill: "#64748b", fontWeight: "bold" }}
+              tick={{ fontSize: 11, fill: "#64748b", fontWeight: "bold" }}
               hide={
                 ![
                   "uniqueViewers",
@@ -169,8 +169,8 @@ export function EngagementReportChartSection({
             <Tooltip
               contentStyle={{
                 borderRadius: "16px",
-                border: "none",
-                boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+                border: "1px solid #e6e0f3",
+                boxShadow: "0 14px 30px rgba(17,24,39,0.12)",
                 fontWeight: "bold",
                 fontSize: "11px",
               }}
@@ -186,9 +186,9 @@ export function EngagementReportChartSection({
               type="monotone"
               name="Tingkat Interaksi (ERR)"
               dataKey="errRateNumeric"
-              stroke="#4f46e5"
+              stroke="#5600e0"
               strokeWidth={3}
-              dot={{ r: 4, fill: "#4f46e5", strokeWidth: 2, stroke: "#fff" }}
+              dot={{ r: 4, fill: "#5600e0", strokeWidth: 2, stroke: "#fff" }}
               activeDot={{ r: 6 }}
               hide={!chartSelectedMetrics.includes("errRateNumeric")}
             />

@@ -25,16 +25,16 @@ export function UploadHistoryCard({
   onDeleteBatch,
 }: UploadHistoryCardProps) {
   return (
-    <div className="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden mt-8">
-      <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+    <div className="mt-8 overflow-hidden rounded-[22px] border border-[#e6dff8] bg-white shadow-[0_1px_0_rgba(17,24,39,0.03)]">
+      <div className="flex items-center justify-between border-b border-[#f0ebfb] px-6 py-5">
         <div>
-          <h4 className="text-base font-black text-slate-800">{title}</h4>
-          <p className="text-[11px] text-slate-500 font-medium">{description}</p>
+          <h4 className="text-base font-black text-slate-950">{title}</h4>
+          <p className="text-[11px] font-medium text-slate-500">{description}</p>
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left whitespace-nowrap">
-          <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
+          <thead className="border-b border-[#f0ebfb] bg-[#faf8ff] uppercase text-[9px] font-bold tracking-wider text-slate-400">
             <tr>
               <th className="px-5 py-3.5">Waktu Upload</th>
               <th className="px-5 py-3.5">Nama File / Tipe</th>
@@ -44,7 +44,7 @@ export function UploadHistoryCard({
               <th className="px-5 py-3.5 text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
+          <tbody className="divide-y divide-slate-50 bg-white text-xs font-semibold text-slate-700">
             {isLoading ? (
               <tr key="loading">
                 <td
@@ -88,7 +88,7 @@ export function UploadHistoryCard({
                     {history.fileName}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded uppercase font-bold">
+                    <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600">
                       {history.platform || "UNKNOWN"}
                     </span>
                   </td>
@@ -110,7 +110,7 @@ export function UploadHistoryCard({
                           history.rowCount || 0,
                         )
                       }
-                      className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-slate-50 hover:bg-red-50 p-1.5 rounded-lg border border-slate-200 hover:border-red-200 text-[10px] font-bold inline-flex items-center gap-1"
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-[10px] font-bold text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500 focus:outline-none"
                       title="Hapus Batch & Semua Data Raw"
                     >
                       Hapus Batch

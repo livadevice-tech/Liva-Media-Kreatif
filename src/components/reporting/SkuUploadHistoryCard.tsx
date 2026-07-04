@@ -29,22 +29,22 @@ export function SkuUploadHistoryCard({
   );
 
   return (
-    <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-6">
-      <div className="bg-[#f8fafc] border-b border-slate-100 px-5 lg:px-7 py-5 flex items-center justify-between gap-4">
+    <div className="mb-6 flex flex-col overflow-hidden rounded-[22px] border border-[#e6dff8] bg-white shadow-[0_1px_0_rgba(17,24,39,0.03)]">
+      <div className="flex items-center justify-between gap-4 border-b border-[#f0ebfb] bg-[#faf8ff] px-5 py-5 lg:px-7">
         <div>
-          <h4 className="text-base font-black text-slate-800 uppercase flex items-center gap-2 tracking-widest">
-            <Database className="w-5 h-5 text-indigo-500" /> History Upload SKU
+          <h4 className="flex items-center gap-2 text-base font-black uppercase tracking-widest text-slate-950">
+            <Database className="h-5 w-5 text-[#5600e0]" /> History Upload SKU
           </h4>
-          <p className="text-xs text-slate-500 font-semibold mt-1.5 flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
             {uploadHistoryList.length} riwayat batch ditemukan
           </p>
         </div>
       </div>
 
       <div className="overflow-x-auto w-full">
-        <table className="w-full text-left whitespace-nowrap min-w-[700px]">
-          <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none border-b border-slate-100">
+        <table className="min-w-[700px] w-full whitespace-nowrap text-left">
+          <thead className="border-b border-[#f0ebfb] bg-[#faf8ff] text-xs font-black uppercase leading-none tracking-widest text-slate-500">
             <tr>
               <th className="px-5 py-4 w-12 text-center">No</th>
               <th className="px-5 py-4 w-40">Tanggal Upload</th>
@@ -54,7 +54,7 @@ export function SkuUploadHistoryCard({
               <th className="px-5 py-4 w-24 text-center">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-[11px] font-semibold text-slate-700 bg-white">
+          <tbody className="divide-y divide-slate-100 bg-white text-[11px] font-semibold text-slate-700">
             {paginatedHistory.length === 0 ? (
               <tr>
                 <td
@@ -98,7 +98,7 @@ export function SkuUploadHistoryCard({
                   <td className="px-5 py-3 text-center">
                     <button
                       onClick={() => onDeleteBatch(batch.batchId)}
-                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
                       title="Hapus History"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -112,7 +112,7 @@ export function SkuUploadHistoryCard({
       </div>
 
       {totalPages > 1 && (
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+        <div className="flex items-center justify-between border-t border-[#f0ebfb] p-4 text-xs font-semibold text-slate-500">
           <div>
             Menampilkan {(currentPage - 1) * itemsPerPage + 1} -{" "}
             {Math.min(currentPage * itemsPerPage, uploadHistoryList.length)}{" "}
