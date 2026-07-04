@@ -14316,34 +14316,6 @@ export default function App() {
                                 onChartSelectedMetricsChange={
                                   setEngagementChartSelectedMetrics
                                 }
-                                onPrev={() =>
-                                  shiftReportPeriodByOneDay({
-                                    direction: -1,
-                                    dateFilterType: operatorDateFilterType,
-                                    targetLatestDate:
-                                      engagementReportView.engagementLatestDate,
-                                    customStartDate: operatorCustomStartDate,
-                                    setDateFilterType:
-                                      setOperatorDateFilterType,
-                                    setCustomStartDate:
-                                      setOperatorCustomStartDate,
-                                    setCustomEndDate: setOperatorCustomEndDate,
-                                  })
-                                }
-                                onNext={() =>
-                                  shiftReportPeriodByOneDay({
-                                    direction: 1,
-                                    dateFilterType: operatorDateFilterType,
-                                    targetLatestDate:
-                                      engagementReportView.engagementLatestDate,
-                                    customStartDate: operatorCustomStartDate,
-                                    setDateFilterType:
-                                      setOperatorDateFilterType,
-                                    setCustomStartDate:
-                                      setOperatorCustomStartDate,
-                                    setCustomEndDate: setOperatorCustomEndDate,
-                                  })
-                                }
                                 activeReportBrandId={activeReportBrandId || ""}
                                 brandPerformanceLogs={brandPerformanceLogs}
                                 brandUploadHistory={brandUploadHistory}

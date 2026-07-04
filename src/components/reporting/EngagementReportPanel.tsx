@@ -1,4 +1,3 @@
-import { ReportPeriodNavigator } from "./ReportPeriodNavigator";
 import { ReportEngagementUploadHistory } from "./ReportEngagementUploadHistory";
 import type { BrandPerformanceLogEntry, UploadHistoryEntry } from "../../shared/types/reporting";
 import type { EngagementReportViewModel } from "../../shared/utils/engagementReporting";
@@ -10,8 +9,6 @@ interface EngagementReportPanelProps {
   platform: string;
   chartSelectedMetrics: string[];
   onChartSelectedMetricsChange: (value: string[]) => void;
-  onPrev: () => void;
-  onNext: () => void;
   activeReportBrandId: string;
   brandPerformanceLogs: BrandPerformanceLogEntry[];
   brandUploadHistory: UploadHistoryEntry[];
@@ -29,8 +26,6 @@ export function EngagementReportPanel({
   platform,
   chartSelectedMetrics,
   onChartSelectedMetricsChange,
-  onPrev,
-  onNext,
   activeReportBrandId,
   brandPerformanceLogs,
   brandUploadHistory,
@@ -40,14 +35,6 @@ export function EngagementReportPanel({
 }: EngagementReportPanelProps) {
   return (
     <div className="space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
-      <ReportPeriodNavigator
-        title="Performance Engagement"
-        label={model.engagementPeriodLabel}
-        onPrev={onPrev}
-        onNext={onNext}
-        showHeaderText={false}
-      />
-
       <EngagementReportMetricsSection model={model} platform={platform} />
       <EngagementReportChartSection
         model={model}
