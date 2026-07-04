@@ -54,14 +54,6 @@ export function EngagementReportPanel({
         onChartSelectedMetricsChange={onChartSelectedMetricsChange}
       />
 
-      <div className="rounded-[18px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)]">
-        <div className="text-center text-xs font-semibold italic text-slate-400">
-          Menampilkan metrik agregat Engagement dan Promosi dari file Raw Data
-          yang diunggah. Filter periode dan platform yang sama seperti di tab
-          Live/Product berlaku di data ini.
-        </div>
-      </div>
-
       <ReportEngagementUploadHistory
         activeReportBrandId={activeReportBrandId}
         brandPerformanceLogs={brandPerformanceLogs}

@@ -14300,60 +14300,58 @@ export default function App() {
                           )}
 
                           {operatorReportingTab === "engagement" && (
-                            <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-                              <React.Suspense
-                                fallback={
-                                  <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
-                                    Memuat panel reporting...
-                                  </div>
+                            <React.Suspense
+                              fallback={
+                                <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
+                                  Memuat panel reporting...
+                                </div>
+                              }
+                            >
+                              <EngagementReportPanel
+                                model={engagementReportView}
+                                platform={operatorPlatformFilter}
+                                chartSelectedMetrics={
+                                  engagementChartSelectedMetrics
                                 }
-                              >
-                                <EngagementReportPanel
-                                  model={engagementReportView}
-                                  platform={operatorPlatformFilter}
-                                  chartSelectedMetrics={
-                                    engagementChartSelectedMetrics
-                                  }
-                                  onChartSelectedMetricsChange={
-                                    setEngagementChartSelectedMetrics
-                                  }
-                                  onPrev={() =>
-                                    shiftReportPeriodByOneDay({
-                                      direction: -1,
-                                      dateFilterType: operatorDateFilterType,
-                                      targetLatestDate:
-                                        engagementReportView.engagementLatestDate,
-                                      customStartDate: operatorCustomStartDate,
-                                      setDateFilterType:
-                                        setOperatorDateFilterType,
-                                      setCustomStartDate:
-                                        setOperatorCustomStartDate,
-                                      setCustomEndDate: setOperatorCustomEndDate,
-                                    })
-                                  }
-                                  onNext={() =>
-                                    shiftReportPeriodByOneDay({
-                                      direction: 1,
-                                      dateFilterType: operatorDateFilterType,
-                                      targetLatestDate:
-                                        engagementReportView.engagementLatestDate,
-                                      customStartDate: operatorCustomStartDate,
-                                      setDateFilterType:
-                                        setOperatorDateFilterType,
-                                      setCustomStartDate:
-                                        setOperatorCustomStartDate,
-                                      setCustomEndDate: setOperatorCustomEndDate,
-                                    })
-                                  }
-                                  activeReportBrandId={activeReportBrandId || ""}
-                                  brandPerformanceLogs={brandPerformanceLogs}
-                                  brandUploadHistory={brandUploadHistory}
-                                  uploadHistory={uploadHistory}
-                                  isLogsLoading={isLogsLoading}
-                                  onDeleteUploadBatch={handleDeleteUploadBatch}
-                                />
-                              </React.Suspense>
-                            </div>
+                                onChartSelectedMetricsChange={
+                                  setEngagementChartSelectedMetrics
+                                }
+                                onPrev={() =>
+                                  shiftReportPeriodByOneDay({
+                                    direction: -1,
+                                    dateFilterType: operatorDateFilterType,
+                                    targetLatestDate:
+                                      engagementReportView.engagementLatestDate,
+                                    customStartDate: operatorCustomStartDate,
+                                    setDateFilterType:
+                                      setOperatorDateFilterType,
+                                    setCustomStartDate:
+                                      setOperatorCustomStartDate,
+                                    setCustomEndDate: setOperatorCustomEndDate,
+                                  })
+                                }
+                                onNext={() =>
+                                  shiftReportPeriodByOneDay({
+                                    direction: 1,
+                                    dateFilterType: operatorDateFilterType,
+                                    targetLatestDate:
+                                      engagementReportView.engagementLatestDate,
+                                    customStartDate: operatorCustomStartDate,
+                                    setDateFilterType:
+                                      setOperatorDateFilterType,
+                                    setCustomStartDate:
+                                      setOperatorCustomStartDate,
+                                    setCustomEndDate: setOperatorCustomEndDate,
+                                  })
+                                }
+                                activeReportBrandId={activeReportBrandId || ""}
+                                brandPerformanceLogs={brandPerformanceLogs}
+                                brandUploadHistory={brandUploadHistory}
+                                uploadHistory={uploadHistory}
+                                isLogsLoading={isLogsLoading}
+                                onDeleteUploadBatch={handleDeleteUploadBatch}
+                              />
+                            </React.Suspense>
                           )}
                         </div>
                       </>
