@@ -155,21 +155,24 @@ export const sortReportLogs = (
     let valA: unknown = a[sortCol] ?? "";
     let valB: unknown = b[sortCol] ?? "";
 
-    if (sortCol === "date") {
+  if (sortCol === "date") {
       valA = normalizeDateStr(a.date || "");
       valB = normalizeDateStr(b.date || "");
     } else if (sortCol === "views") {
-      valA = a.impressions || a.views || 0;
-      valB = b.impressions || b.views || 0;
+      valA = a.impressions || a.views || a.liveVisits || a.penonton || 0;
+      valB = b.impressions || b.views || b.liveVisits || b.penonton || 0;
     } else if (sortCol === "ctr") {
       valA = a.productImpressions ? a.clicks / a.productImpressions : 0;
       valB = b.productImpressions ? b.clicks / b.productImpressions : 0;
     } else if (sortCol === "ctor") {
       valA = a.clicks ? a.orders / a.clicks : 0;
       valB = b.clicks ? b.orders / b.clicks : 0;
-    } else if (sortCol === "customers") {
-      valA = a.buyers || 0;
-      valB = b.buyers || 0;
+  } else if (sortCol === "customers") {
+      valA = a.buyers || a.orders || 0;
+      valB = b.buyers || b.orders || 0;
+    } else if (sortCol === "avgViewDuration") {
+      valA = a.avgViewDuration || 0;
+      valB = b.avgViewDuration || 0;
     }
 
     if (typeof valA === "string" && typeof valB === "string") {

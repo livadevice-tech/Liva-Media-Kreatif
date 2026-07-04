@@ -75,13 +75,13 @@ export function ReportRawSessionsCard({
 
       <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
         <table className="w-full text-left whitespace-nowrap">
-          <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
+          <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-black text-slate-500 tracking-[0.18em]">
             <tr>
-              <th className="px-5 py-3.5">No</th>
+              <th className="w-14 px-5 py-4">No</th>
               {isGroupedView ? (
                 <>
                   <th
-                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                    className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                     onClick={() => onSort("date")}
                   >
                     {reportingShopeeRawTab === "day"
@@ -96,7 +96,7 @@ export function ReportRawSessionsCard({
                       : ""}
                   </th>
                   <th
-                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                    className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                     onClick={() => onSort("duration")}
                   >
                     Durasi{" "}
@@ -110,7 +110,7 @@ export function ReportRawSessionsCard({
               ) : (
                 <>
                   <th
-                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                    className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                     onClick={() => onSort("date")}
                   >
                     Tanggal{" "}
@@ -120,9 +120,8 @@ export function ReportRawSessionsCard({
                         : "↓"
                       : ""}
                   </th>
-                  <th className="px-5 py-3.5">Jam Start Live</th>
                   <th
-                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                    className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                     onClick={() => onSort("duration")}
                   >
                     Durasi{" "}
@@ -135,24 +134,24 @@ export function ReportRawSessionsCard({
                 </>
               )}
               <th
-                className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                 onClick={() => onSort("views")}
               >
-                Viewers{" "}
+                Viewer{" "}
                 {reportDbSortCol === "views" ? (reportDbSortAsc ? "↑" : "↓") : ""}
               </th>
               <th
-                className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                 onClick={() => onSort("gmv")}
               >
-                GMV{" "}
+                GMV (Rp){" "}
                 {reportDbSortCol === "gmv" ? (reportDbSortAsc ? "↑" : "↓") : ""}
               </th>
               <th
-                className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                 onClick={() => onSort("products_sold")}
               >
-                Produk Terjual{" "}
+                Items Sold{" "}
                 {reportDbSortCol === "products_sold"
                   ? reportDbSortAsc
                     ? "↑"
@@ -160,18 +159,29 @@ export function ReportRawSessionsCard({
                   : ""}
               </th>
               <th
-                className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
+                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                onClick={() => onSort("avgViewDuration")}
+              >
+                Avg. View Duration{" "}
+                {reportDbSortCol === "avgViewDuration"
+                  ? reportDbSortAsc
+                    ? "↑"
+                    : "↓"
+                  : ""}
+              </th>
+              <th
+                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                 onClick={() => onSort("customers")}
               >
-                Customer{" "}
+                Customers{" "}
                 {reportDbSortCol === "customers"
                   ? reportDbSortAsc
                     ? "↑"
                     : "↓"
                   : ""}
               </th>
-              <th className="px-5 py-3.5">Convertion Rate</th>
-              <th className="px-5 py-3.5 text-right">Aksi</th>
+              <th className="px-5 py-4">Conversion Rate</th>
+              <th className="px-5 py-4 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
@@ -186,9 +196,7 @@ export function ReportRawSessionsCard({
               reportDbSortAsc={reportDbSortAsc}
               onSort={onSort}
               onDeletePerformanceLog={onDeletePerformanceLog}
-              shifts={shifts}
               adminShiftChecklist={adminShiftChecklist}
-              setAdminShiftChecklist={setAdminShiftChecklist}
             />
           </tbody>
         </table>

@@ -1,4 +1,10 @@
 import { formatDisplayDate } from "../../shared/utils/appUi";
+import {
+  formatLiveSessionAverageDuration,
+  formatLiveSessionDuration,
+  getLiveSessionConversionRate,
+  getLiveSessionMetrics,
+} from "../../shared/utils/liveSessionsTable";
 import { type ReportLogLike } from "../../shared/utils/reportTable";
 
 interface ReportRawSessionsTableProps {
@@ -16,19 +22,18 @@ interface ReportRawSessionsTableProps {
     brandName?: string,
     date?: string,
   ) => void;
-  shifts: string[];
   adminShiftChecklist: string[];
-  setAdminShiftChecklist: (value: string[]) => void;
 }
 
 interface RawSessionGroupRow {
   label: string;
   duration: number;
-  impressions: number;
+  viewer: number;
   gmv: number;
-  products_sold: number;
-  buyers: number;
-  [key: string]: string | number;
+  itemsSold: number;
+  avgViewDuration: number;
+  customers: number;
+  sessionCount: number;
 }
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -44,13 +49,6 @@ const parseGroupDateLabel = (lbl: string) => {
   return lbl;
 };
 
-const formatDuration = (secs: number) => {
-  if (!secs) return "-";
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  return `${h > 0 ? `${h}j ` : ""}${m}m`;
-};
-
 export function ReportRawSessionsTable({
   reportingShopeeRawTab,
   sortedTableLogs,
@@ -62,21 +60,22 @@ export function ReportRawSessionsTable({
   reportDbSortAsc,
   onSort,
   onDeletePerformanceLog,
-  shifts,
   adminShiftChecklist,
-  setAdminShiftChecklist,
 }: ReportRawSessionsTableProps) {
   const renderGroupedRows = () => {
     const groups: Record<string, RawSessionGroupRow> = {};
+
     if (reportingShopeeRawTab === "shift" && adminShiftChecklist.length > 0) {
       adminShiftChecklist.forEach((sh) => {
         groups[sh] = {
           label: sh,
           duration: 0,
-          impressions: 0,
+          viewer: 0,
           gmv: 0,
-          products_sold: 0,
-          buyers: 0,
+          itemsSold: 0,
+          avgViewDuration: 0,
+          customers: 0,
+          sessionCount: 0,
         };
       });
     }
@@ -99,10 +98,7 @@ export function ReportRawSessionsTable({
         }
       } else if (reportingShopeeRawTab === "shift") {
         key = log.shift || "Lainnya";
-        if (
-          adminShiftChecklist.length > 0 &&
-          !adminShiftChecklist.includes(key)
-        ) {
+        if (adminShiftChecklist.length > 0 && !adminShiftChecklist.includes(key)) {
           return;
         }
       } else if (reportingShopeeRawTab === "dayOfWeek") {
@@ -112,7 +108,7 @@ export function ReportRawSessionsTable({
             dSplit[0].length === 4
               ? new Date(dPart)
               : new Date(`${dSplit[2]}-${dSplit[1]}-${dSplit[0]}`);
-          if (!isNaN(dateObj.getTime())) {
+          if (!Number.isNaN(dateObj.getTime())) {
             key = DAYS[dateObj.getDay()];
           } else {
             key = "Unknown";
@@ -126,28 +122,49 @@ export function ReportRawSessionsTable({
         groups[key] = {
           label: key,
           duration: 0,
-          impressions: 0,
+          viewer: 0,
           gmv: 0,
-          products_sold: 0,
-          buyers: 0,
+          itemsSold: 0,
+          avgViewDuration: 0,
+          customers: 0,
+          sessionCount: 0,
         };
       }
-      groups[key].duration = (groups[key].duration || 0) + (log.duration || 0);
-      groups[key].impressions +=
-        log.impressions || log.views || log.liveVisits || log.penonton || 0;
-      groups[key].gmv += log.gmv || 0;
-      groups[key].products_sold += log.products_sold || log.items_sold || 0;
-      groups[key].buyers += log.buyers || log.orders || 0;
+
+      const metrics = getLiveSessionMetrics(log);
+      groups[key].duration += log.duration || 0;
+      groups[key].viewer += metrics.viewer;
+      groups[key].gmv += metrics.gmv;
+      groups[key].itemsSold += metrics.itemsSold;
+      groups[key].avgViewDuration += metrics.avgViewDuration;
+      groups[key].customers += metrics.customers;
+      groups[key].sessionCount += 1;
     });
 
     const idFormatter = new Intl.NumberFormat("id-ID");
     const sortedGroups = Object.values(groups).sort((a, b) => {
-      let valA: number | string = (a as Record<string, number | string>)[
-        reportDbSortCol
-      ] ?? "";
-      let valB: number | string = (b as Record<string, number | string>)[
-        reportDbSortCol
-      ] ?? "";
+      let valA: number | string = "";
+      let valB: number | string = "";
+
+      if (reportDbSortCol === "duration") {
+        valA = a.duration || 0;
+        valB = b.duration || 0;
+      } else if (reportDbSortCol === "views") {
+        valA = a.viewer || 0;
+        valB = b.viewer || 0;
+      } else if (reportDbSortCol === "gmv") {
+        valA = a.gmv || 0;
+        valB = b.gmv || 0;
+      } else if (reportDbSortCol === "products_sold") {
+        valA = a.itemsSold || 0;
+        valB = b.itemsSold || 0;
+      } else if (reportDbSortCol === "customers") {
+        valA = a.customers || 0;
+        valB = b.customers || 0;
+      } else if (reportDbSortCol === "avgViewDuration") {
+        valA = a.sessionCount > 0 ? a.avgViewDuration / a.sessionCount : 0;
+        valB = b.sessionCount > 0 ? b.avgViewDuration / b.sessionCount : 0;
+      }
 
       if (reportDbSortCol === "date") {
         valA = parseGroupDateLabel(a.label);
@@ -155,28 +172,13 @@ export function ReportRawSessionsTable({
         if (
           typeof valA === "number" &&
           typeof valB === "number" &&
-          !isNaN(valA) &&
-          !isNaN(valB)
+          !Number.isNaN(valA) &&
+          !Number.isNaN(valB)
         ) {
           return reportDbSortAsc ? valA - valB : valB - valA;
         }
         valA = a.label;
         valB = b.label;
-      } else if (reportDbSortCol === "views") {
-        valA = a.impressions || 0;
-        valB = b.impressions || 0;
-      } else if (reportDbSortCol === "customers") {
-        valA = a.buyers || 0;
-        valB = b.buyers || 0;
-      } else if (reportDbSortCol === "gmv") {
-        valA = a.gmv || 0;
-        valB = b.gmv || 0;
-      } else if (reportDbSortCol === "products_sold") {
-        valA = a.products_sold || 0;
-        valB = b.products_sold || 0;
-      } else if (reportDbSortCol === "duration") {
-        valA = a.duration || 0;
-        valB = b.duration || 0;
       }
 
       if (valA < valB) return reportDbSortAsc ? -1 : 1;
@@ -191,24 +193,29 @@ export function ReportRawSessionsTable({
           {g.label}
         </td>
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
-          {formatDuration(g.duration || 0)}
+          {formatLiveSessionDuration(g.duration || 0)}
         </td>
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
-          {idFormatter.format(g.impressions)}
+          {idFormatter.format(g.viewer)}
         </td>
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-emerald-600">
           Rp{idFormatter.format(g.gmv)}
         </td>
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
-          {idFormatter.format(g.products_sold)}
+          {idFormatter.format(g.itemsSold)}
+        </td>
+        <td className="px-5 py-3.5 whitespace-nowrap text-xs font-semibold text-slate-500">
+          {formatLiveSessionAverageDuration(
+            g.sessionCount > 0 ? g.avgViewDuration / g.sessionCount : 0,
+          )}
         </td>
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-indigo-600">
-          {idFormatter.format(g.buyers)}
+          {idFormatter.format(g.customers)}
         </td>
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-indigo-600">
-          {g.impressions > 0 ? ((g.buyers / g.impressions) * 100).toFixed(2) : "0.00"}%
+          {getLiveSessionConversionRate(g.viewer, g.customers).toFixed(2)}%
         </td>
-        <td className="px-5 py-3.5" />
+        <td className="px-5 py-3.5 text-right" />
       </tr>
     ));
   };
@@ -218,7 +225,7 @@ export function ReportRawSessionsTable({
       {isLogsLoading ? (
         <tr>
           <td
-            colSpan={8}
+            colSpan={10}
             className="px-5 py-16 text-center text-slate-500 font-bold w-full"
           >
             <div className="flex flex-col items-center justify-center gap-4">
@@ -229,7 +236,7 @@ export function ReportRawSessionsTable({
         </tr>
       ) : sortedTableLogs.length === 0 ? (
         <tr>
-          <td colSpan={9} className="px-5 py-10 text-center text-slate-400">
+          <td colSpan={10} className="px-5 py-10 text-center text-slate-400">
             Tidak ada sesi ditemukan.
           </td>
         </tr>
@@ -238,11 +245,7 @@ export function ReportRawSessionsTable({
           {reportingShopeeRawTab !== "raw"
             ? renderGroupedRows()
             : paginatedLogs.map((log, idx) => {
-                const isLogShopee =
-                  log.platform && log.platform.toLowerCase().includes("shopee");
-                const lViews = isLogShopee
-                  ? log.penonton || log.impressions || log.views || 0
-                  : log.impressions || log.views || log.liveVisits || 0;
+                const metrics = getLiveSessionMetrics(log);
 
                 return (
                   <tr
@@ -253,30 +256,13 @@ export function ReportRawSessionsTable({
                       {(currentPage - 1) * itemsPerPage + idx + 1}
                     </td>
                     <td className="px-5 py-3.5 text-slate-500">
-                      <div className="flex flex-col">
-                        <span>
-                          {formatDisplayDate(
-                            log.dateTime || log.date,
-                            log.platform,
-                          )}
-                        </span>
-                        <span className="text-[9px] text-indigo-500">
-                          {log.platform}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-xs">
-                      {log.dateTime
-                        ? log.dateTime.includes(" ")
-                          ? log.dateTime.split(" ")[1]
-                          : "-"
-                        : "-"}
+                      {formatDisplayDate(log.dateTime || log.date, log.platform)}
                     </td>
                     <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
-                      {formatDuration(log.duration || 0)}
+                      {formatLiveSessionDuration(log.duration || 0)}
                     </td>
                     <td className="px-5 py-3.5">
-                      {new Intl.NumberFormat("id-ID").format(lViews)}
+                      {new Intl.NumberFormat("id-ID").format(metrics.viewer)}
                     </td>
                     <td className="px-5 py-3.5">
                       Rp
@@ -290,18 +276,18 @@ export function ReportRawSessionsTable({
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      {new Intl.NumberFormat("id-ID").format(log.buyers || 0)}
+                      {formatLiveSessionAverageDuration(log.avgViewDuration || 0)}
                     </td>
                     <td className="px-5 py-3.5">
-                      {lViews > 0
-                        ? (
-                            ((log.buyers || log.orders || 0) / lViews) * 100
-                          ).toFixed(2)
-                        : "0.00"}
-                      %
+                      {new Intl.NumberFormat("id-ID").format(metrics.customers)}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {metrics.conversionRate.toFixed(2)}%
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <button
+                        type="button"
+                        aria-label="Hapus log performa live"
                         onClick={() =>
                           onDeletePerformanceLog(log.id, log.brandName, log.date)
                         }
