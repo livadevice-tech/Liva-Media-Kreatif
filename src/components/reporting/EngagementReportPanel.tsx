@@ -61,7 +61,7 @@ export function EngagementReportPanel({
         onNext={onNext}
       />
 
-      <EngagementReportMetricsSection model={model} platform={operatorPlatformFilter} />
+      <EngagementReportMetricsSection model={model} platform={platform} />
       <EngagementReportChartSection
         model={model}
         chartSelectedMetrics={chartSelectedMetrics}
