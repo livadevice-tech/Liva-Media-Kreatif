@@ -6,6 +6,7 @@ import {
   Layers3,
   ShoppingBag,
   Settings2,
+  Upload,
 } from "lucide-react";
 import { DoubleDatePicker } from "../DoubleDatePicker";
 import { getIndonesianMonthLabel } from "../../shared/utils/reporting";
@@ -195,8 +196,8 @@ export function ReportingWorkspaceHeader({
       className="rounded-[24px] border border-[#e7e0f8] bg-[#fbf9ff] px-4 py-4 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:px-6"
       data-active-tab={activeTab}
     >
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col">
+        <div className="flex items-center gap-3 pb-4 border-b border-[#e7e0f8]">
           <button
             type="button"
             onClick={onBack}
@@ -230,21 +231,21 @@ export function ReportingWorkspaceHeader({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex flex-1 flex-wrap gap-3">
+        <div className="flex flex-col gap-4 pt-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
             <div className="relative">
               <button
                 type="button"
                 onClick={openDateMenu}
-                className="inline-flex h-12 min-w-[290px] items-center justify-between gap-3 rounded-[16px] border border-[#d8d0ee] bg-white px-4 text-left text-[15px] font-medium text-slate-800 shadow-[0_1px_0_rgba(17,24,39,0.03)] transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-11 w-full sm:w-auto sm:min-w-[240px] items-center justify-between gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-4 text-left text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
                 aria-haspopup="menu"
                 aria-expanded={isDateMenuOpen}
               >
-                <span className="flex min-w-0 items-center gap-3">
-                  <CalendarDays className="h-5 w-5 shrink-0 text-slate-800" />
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <CalendarDays className="h-4 w-4 shrink-0 text-slate-500" />
                   <span className="truncate">{dateButtonLabel}</span>
                 </span>
-                <ChevronDown className="h-4 w-4 shrink-0 text-slate-600" />
+                <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
               </button>
 
               {isDateMenuOpen && (
@@ -369,15 +370,15 @@ export function ReportingWorkspaceHeader({
               <button
                 type="button"
                 onClick={openPlatformMenu}
-                className="inline-flex h-12 min-w-[220px] items-center justify-between gap-3 rounded-[16px] border border-[#d8d0ee] bg-white px-4 text-left text-[15px] font-medium text-slate-800 shadow-[0_1px_0_rgba(17,24,39,0.03)] transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-11 w-full sm:w-auto sm:min-w-[180px] items-center justify-between gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-4 text-left text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
                 aria-haspopup="menu"
                 aria-expanded={isPlatformMenuOpen}
               >
-                <span className="flex min-w-0 items-center gap-3">
-                  <ShoppingBag className="h-5 w-5 shrink-0 text-[#ff6a00]" />
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <ShoppingBag className="h-4 w-4 shrink-0 text-[#ff6a00]" />
                   <span className="truncate">{selectedPlatform}</span>
                 </span>
-                <ChevronDown className="h-4 w-4 shrink-0 text-slate-600" />
+                <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
               </button>
 
               {isPlatformMenuOpen && (
@@ -409,24 +410,25 @@ export function ReportingWorkspaceHeader({
               )}
             </div>
 
-            <div className="relative">
-              <button
-                type="button"
-                onClick={openRawMenu}
-                className="inline-flex h-12 min-w-[220px] items-center justify-between gap-3 rounded-[16px] border border-[#d8d0ee] bg-white px-4 text-left text-[15px] font-medium text-slate-800 shadow-[0_1px_0_rgba(17,24,39,0.03)] transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
-                aria-haspopup="menu"
-                aria-expanded={isRawMenuOpen}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <Settings2 className="h-5 w-5 shrink-0 text-slate-700" />
-                  <span className="truncate">Add Raw Data</span>
-                </span>
-                <ChevronDown className="h-4 w-4 shrink-0 text-slate-600" />
-              </button>
+            </div>
+          </div>
 
-              {isRawMenuOpen && (
-                <div className="absolute left-0 top-full z-50 mt-2 w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
-                  <div className="space-y-1">
+          <div className="relative mt-1 lg:mt-0 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={openRawMenu}
+              className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2.5 rounded-[12px] bg-[#5600e0] px-5 text-[14px] font-bold text-white shadow-md transition-colors hover:bg-[#4300b3] focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2"
+              aria-haspopup="menu"
+              aria-expanded={isRawMenuOpen}
+            >
+              <Upload className="h-4 w-4 shrink-0" />
+              <span>Upload Data</span>
+              <ChevronDown className="h-4 w-4 shrink-0 opacity-80" />
+            </button>
+
+            {isRawMenuOpen && (
+              <div className="absolute right-0 lg:right-0 left-0 lg:left-auto top-full z-50 mt-2 w-full sm:w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+                <div className="space-y-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -460,10 +462,8 @@ export function ReportingWorkspaceHeader({
                       <Settings2 className="h-4 w-4 text-[#0f766e]" />
                       Upload Raw Data Engagement
                     </button>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
