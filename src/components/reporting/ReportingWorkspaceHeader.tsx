@@ -481,14 +481,14 @@ export function ReportingWorkspaceTabs({
   onTabChange,
 }: ReportingWorkspaceTabsProps) {
   const tabClass = (tab: ReportingTab) =>
-    `relative border-b-2 pb-3 text-sm font-bold transition-colors bg-transparent ${
+    `relative border-b-2 pt-4 pb-3 px-1 text-sm font-bold transition-colors bg-transparent ${
       activeTab === tab
         ? "border-[#5600e0] text-[#5600e0]"
         : "border-transparent text-slate-500 hover:text-slate-900"
     }`;
 
   return (
-    <div className="mb-6 flex gap-6 border-b border-[#e8e1fb] px-1 sm:px-2">
+    <div className="mb-6 mt-2 flex flex-wrap gap-x-8 gap-y-2 border-b border-[#e8e1fb] sm:px-2">
       <button
         type="button"
         onClick={() => onTabChange("live")}
