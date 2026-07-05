@@ -385,7 +385,6 @@ export function ReportingUploadAnalyticsSection({
                     stroke="#4f46e5"
                     strokeWidth={3}
                     dot={false}
-                    activeDot={{ r: 6, stroke: "#fff", strokeWidth: 2 }}
                   />
                   <RechartsLine
                     yAxisId="right"
@@ -395,7 +394,6 @@ export function ReportingUploadAnalyticsSection({
                     stroke="#ec4899"
                     strokeWidth={3}
                     dot={false}
-                    activeDot={{ r: 6, stroke: "#fff", strokeWidth: 2 }}
                   />
                 </RechartsLineChart>
               </ResponsiveContainer>

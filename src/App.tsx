@@ -149,6 +149,7 @@ import {
 import {
   buildMappedUploadRows,
 } from "./shared/utils/mappingUpload";
+import { buildProductPerformanceViewModel } from "./shared/utils/productPerformanceViewModel";
 import {
   parseReportingUploadRows,
   parseSkuUploadRows,
@@ -1755,57 +1756,22 @@ export default function App() {
     ],
   );
 
-  const operatorLiveAvailableDates = useMemo(
-    () =>
-      getAvailableReportDates({
-        logs: liveReportView.filteredDb,
-        platformFilter: operatorPlatformFilter,
-      }),
-    [liveReportView.filteredDb, operatorPlatformFilter],
-  );
-  const operatorLatestAvailableReportDate =
-    operatorLiveAvailableDates[operatorLiveAvailableDates.length - 1] || "";
-
-  useEffect(() => {
-    if (operatorDateFilterType !== "latest") return;
-    if (!operatorLatestAvailableReportDate) {
-      setOperatorSelectedLatestDate("");
-      return;
-    }
-
-    setOperatorSelectedLatestDate((current) =>
-      current && operatorLiveAvailableDates.includes(current)
-        ? current
-        : operatorLatestAvailableReportDate,
-    );
-  }, [
-    operatorDateFilterType,
-    operatorLatestAvailableReportDate,
-    operatorLiveAvailableDates,
-  ]);
-
-  const operatorCurrentLatestDate =
-    operatorDateFilterType === "latest"
-      ? operatorSelectedLatestDate &&
-        operatorLiveAvailableDates.includes(operatorSelectedLatestDate)
-        ? operatorSelectedLatestDate
-        : operatorLatestAvailableReportDate
-      : "";
-  const operatorCurrentLatestDateIndex = operatorCurrentLatestDate
-    ? operatorLiveAvailableDates.indexOf(operatorCurrentLatestDate)
-    : -1;
-  const canPrevOperatorLatestDate =
-    operatorCurrentLatestDateIndex > 0 &&
-    operatorLiveAvailableDates.length > 0;
-  const canNextOperatorLatestDate =
-    operatorCurrentLatestDateIndex >= 0 &&
-    operatorCurrentLatestDateIndex < operatorLiveAvailableDates.length - 1;
-  const handleOperatorLatestDateShift = (direction: -1 | 1) => {
-    if (operatorLiveAvailableDates.length === 0) return;
-    const nextDate = shiftAvailableReportDate({
-      logs: liveReportView.filteredDb,
+  const handleOperatorLatestDateShift = (
+    direction: -1 | 1,
+    logs: readonly { date?: string; platform?: string }[],
+  ) => {
+    const availableDates = getAvailableReportDates({
+      logs,
       platformFilter: operatorPlatformFilter,
-      currentDate: operatorCurrentLatestDate || operatorLatestAvailableReportDate,
+    });
+    if (availableDates.length === 0) return;
+    const nextDate = shiftAvailableReportDate({
+      logs,
+      platformFilter: operatorPlatformFilter,
+      currentDate:
+        operatorSelectedLatestDate ||
+        availableDates[availableDates.length - 1] ||
+        "",
       direction,
     });
     if (!nextDate) return;
@@ -1958,6 +1924,125 @@ export default function App() {
   );
   const [skuRawData, setSkuRawData] = useState<SkuRawRow[]>([]);
   const [shopeeSkuLogs, setShopeeSkuLogs] = useState<SkuLogEntry[]>([]);
+  const productReportView = useMemo(
+    () =>
+      buildProductPerformanceViewModel({
+        shopeeSkuLogs,
+        brandPerformanceLogs,
+        activeReportBrandId: activeReportBrandId || "",
+        operatorDateFilterType,
+        selectedLatestDate: operatorSelectedLatestDate,
+        operatorCustomStartDate,
+        operatorCustomEndDate,
+        operatorSelectedMonth,
+        operatorPlatformFilter,
+        operatorShiftFilters,
+        reportDbSearchQuery,
+      }),
+    [
+      activeReportBrandId,
+      brandPerformanceLogs,
+      operatorCustomEndDate,
+      operatorCustomStartDate,
+      operatorDateFilterType,
+      operatorPlatformFilter,
+      operatorSelectedMonth,
+      operatorSelectedLatestDate,
+      operatorShiftFilters,
+      reportDbSearchQuery,
+      shopeeSkuLogs,
+    ],
+  );
+
+  const operatorWorkspaceDateLogs = useMemo(() => {
+    if (operatorReportingTab === "engagement") {
+      return engagementReportView.logs;
+    }
+    if (operatorReportingTab === "product") {
+      return shopeeSkuLogs.filter(
+        (log) => log.brandId === (activeReportBrandId || ""),
+      );
+    }
+    return liveReportView.filteredDb;
+  }, [
+    activeReportBrandId,
+    engagementReportView.logs,
+    liveReportView.filteredDb,
+    operatorReportingTab,
+    shopeeSkuLogs,
+  ]);
+
+  const operatorWorkspaceAvailableDates = useMemo(
+    () =>
+      getAvailableReportDates({
+        logs: operatorWorkspaceDateLogs,
+        platformFilter: operatorPlatformFilter,
+      }),
+    [operatorPlatformFilter, operatorWorkspaceDateLogs],
+  );
+
+  const operatorWorkspaceTargetLatestDate = useMemo(() => {
+    if (operatorReportingTab === "engagement") {
+      return engagementReportView.engagementLatestDate || "";
+    }
+    if (operatorReportingTab === "product") {
+      return productReportView.targetLatestDate || "";
+    }
+    return liveReportView.targetLatestDate || "";
+  }, [
+    engagementReportView.engagementLatestDate,
+    liveReportView.targetLatestDate,
+    operatorReportingTab,
+    productReportView.targetLatestDate,
+  ]);
+
+  const operatorWorkspacePeriodLabel = useMemo(() => {
+    if (operatorReportingTab === "engagement") {
+      return engagementReportView.engagementPeriodLabel;
+    }
+    if (operatorReportingTab === "product") {
+      return productReportView.productPeriodLabel;
+    }
+    return getReportPeriodLabel({
+      dateFilterType: operatorDateFilterType,
+      latestDateLabel: liveReportView.latestDateLabel,
+      targetLatestDate: liveReportView.targetLatestDate,
+      customStartDate: operatorCustomStartDate,
+    });
+  }, [
+    engagementReportView.engagementPeriodLabel,
+    liveReportView.latestDateLabel,
+    liveReportView.targetLatestDate,
+    operatorCustomStartDate,
+    operatorDateFilterType,
+    operatorReportingTab,
+    productReportView.productPeriodLabel,
+  ]);
+
+  const operatorWorkspaceCurrentDate = useMemo(() => {
+    if (operatorDateFilterType !== "latest") {
+      return "";
+    }
+    return (
+      operatorSelectedLatestDate ||
+      operatorWorkspaceTargetLatestDate ||
+      operatorWorkspaceAvailableDates[operatorWorkspaceAvailableDates.length - 1] ||
+      ""
+    );
+  }, [
+    operatorDateFilterType,
+    operatorSelectedLatestDate,
+    operatorWorkspaceAvailableDates,
+    operatorWorkspaceTargetLatestDate,
+  ]);
+
+  const canPrevOperatorWorkspaceDate =
+    operatorWorkspaceAvailableDates.length > 0 &&
+    operatorWorkspaceAvailableDates.indexOf(operatorWorkspaceCurrentDate) > 0;
+  const canNextOperatorWorkspaceDate =
+    operatorWorkspaceAvailableDates.length > 0 &&
+    operatorWorkspaceAvailableDates.indexOf(operatorWorkspaceCurrentDate) <
+      operatorWorkspaceAvailableDates.length - 1;
   const [isDragOverReporting, setIsDragOverReporting] = useState(false);
   const [saveTargetBrandId, setSaveTargetBrandId] = useState("");
   const [saveTargetPlatform, setSaveTargetPlatform] = useState("TikTok Live");
@@ -13683,38 +13768,36 @@ export default function App() {
                                 setIsOperatorCalendarOpen(false)
                               }
                               periodLabel={
-                                operatorReportingTab === "live" &&
-                                operatorDateFilterType === "latest" &&
-                                liveReportView.targetLatestDate
-                                  ? getReportPeriodLabel({
-                                      dateFilterType: operatorDateFilterType,
-                                      latestDateLabel:
-                                        liveReportView.latestDateLabel,
-                                      targetLatestDate:
-                                        liveReportView.targetLatestDate,
-                                      customStartDate:
-                                        operatorCustomStartDate,
-                                    })
+                                operatorDateFilterType === "latest"
+                                  ? operatorWorkspacePeriodLabel
                                   : undefined
                               }
                               onPrevPeriod={
-                                operatorReportingTab === "live"
-                                  ? () => handleOperatorLatestDateShift(-1)
+                                operatorDateFilterType === "latest"
+                                  ? () =>
+                                      handleOperatorLatestDateShift(
+                                        -1,
+                                        operatorWorkspaceDateLogs,
+                                      )
                                   : undefined
                               }
                               onNextPeriod={
-                                operatorReportingTab === "live"
-                                  ? () => handleOperatorLatestDateShift(1)
+                                operatorDateFilterType === "latest"
+                                  ? () =>
+                                      handleOperatorLatestDateShift(
+                                        1,
+                                        operatorWorkspaceDateLogs,
+                                      )
                                   : undefined
                               }
                               canPrevPeriod={
-                                operatorReportingTab === "live"
-                                  ? canPrevOperatorLatestDate
+                                operatorDateFilterType === "latest"
+                                  ? canPrevOperatorWorkspaceDate
                                   : undefined
                               }
                               canNextPeriod={
-                                operatorReportingTab === "live"
-                                  ? canNextOperatorLatestDate
+                                operatorDateFilterType === "latest"
+                                  ? canNextOperatorWorkspaceDate
                                   : undefined
                               }
                               onImportRawLive={() => {

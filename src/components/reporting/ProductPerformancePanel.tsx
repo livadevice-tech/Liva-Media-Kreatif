@@ -1,7 +1,5 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { SkuUploadHistoryCard } from "./SkuUploadHistoryCard";
-import { ReportPeriodNavigator } from "./ReportPeriodNavigator";
-import { shiftReportPeriodByOneDay } from "../../shared/utils/reportDateFilters";
 import { buildProductPerformanceViewModel } from "../../shared/utils/productPerformanceViewModel";
 import type { BrandPerformanceLogEntry, SkuLogEntry } from "../../shared/types/reporting";
 
@@ -54,13 +52,8 @@ export function ProductPerformancePanel({
   setCurrentPage,
   onDeleteBatch,
 }: ProductPerformancePanelProps) {
-  const {
-    targetLatestDate,
-    productPeriodLabel,
-    currentSkus,
-    aggregatedSkus,
-    totalSold,
-  } = buildProductPerformanceViewModel({
+  const { currentSkus, aggregatedSkus, totalSold } =
+    buildProductPerformanceViewModel({
     shopeeSkuLogs,
     brandPerformanceLogs,
     activeReportBrandId,
@@ -119,32 +112,6 @@ export function ProductPerformancePanel({
 
       <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] lg:p-6">
         <div className="flex flex-col gap-3 mb-6">
-          <ReportPeriodNavigator
-            title="Product Performance"
-            label={productPeriodLabel}
-            onPrev={() => {
-              shiftReportPeriodByOneDay({
-                direction: -1,
-                dateFilterType: operatorDateFilterType,
-                targetLatestDate,
-                customStartDate: operatorCustomStartDate,
-                setDateFilterType: setOperatorDateFilterType,
-                setCustomStartDate: setOperatorCustomStartDate,
-                setCustomEndDate: setOperatorCustomEndDate,
-              });
-            }}
-            onNext={() => {
-              shiftReportPeriodByOneDay({
-                direction: 1,
-                dateFilterType: operatorDateFilterType,
-                targetLatestDate,
-                customStartDate: operatorCustomStartDate,
-                setDateFilterType: setOperatorDateFilterType,
-                setCustomStartDate: setOperatorCustomStartDate,
-                setCustomEndDate: setOperatorCustomEndDate,
-              });
-            }}
-          />
           <p className="text-[10px] sm:text-xs text-slate-500 font-semibold -mt-1">
             Distribusi revenue dan penjualan per SKU
           </p>

@@ -203,7 +203,6 @@ export function LiveReportChartSection({
               stroke="#5600e0"
               strokeWidth={2}
               dot={false}
-              activeDot={{ r: 5, fill: "#5600e0", stroke: "#fff", strokeWidth: 2 }}
             />
             <Line
               yAxisId="right"
@@ -213,7 +212,6 @@ export function LiveReportChartSection({
               stroke="#60a5fa"
               strokeWidth={2}
               dot={false}
-              activeDot={{ r: 5, fill: "#60a5fa", stroke: "#fff", strokeWidth: 2 }}
             />
           </RechartsComposedChart>
         </ResponsiveContainer>
