@@ -6547,56 +6547,53 @@ export default function App() {
                                   </div>
                                 </div>
 
-                                <div className="overflow-x-auto rounded-xl border border-slate-100">
+                                <div className="overflow-x-auto rounded-xl border border-slate-100 hidden sm:block">
                                   <table className="w-full text-left whitespace-nowrap min-w-[700px]">
                                     <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none">
                                       <tr>
-                                        <th className="px-5 py-4 w-12 text-center">
-                                          No
-                                        </th>
-                                        <th className="px-5 py-4">
-                                          Nama Produk
-                                        </th>
+                                        <th className="px-5 py-4 w-12 text-center">No</th>
+                                        <th className="px-5 py-4">Nama Produk</th>
                                         <th className="px-5 py-4 w-32">SKU</th>
-                                        <th className="px-5 py-4 w-32 text-right">
-                                          Items Sold
-                                        </th>
-                                        <th className="px-5 py-4 w-40 text-right">
-                                          Revenue (Rp)
-                                        </th>
+                                        <th className="px-5 py-4 w-32 text-right">Items Sold</th>
+                                        <th className="px-5 py-4 w-40 text-right">Revenue (Rp)</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
                                       {aggregatedSkus.map((sku, idx) => (
-                                        <tr
-                                          key={idx}
-                                          className="hover:bg-slate-50/70 transition-colors"
-                                        >
-                                          <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">
-                                            {idx + 1}
-                                          </td>
+                                        <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                          <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">{idx + 1}</td>
                                           <td className="px-5 py-3 whitespace-normal min-w-[250px]">
-                                            <div className="line-clamp-2 text-slate-800 leading-snug">
-                                              {sku.productName}
-                                            </div>
+                                            <div className="line-clamp-2 text-slate-800 leading-snug">{sku.productName}</div>
                                           </td>
-                                          <td className="px-5 py-3 text-xs tracking-wider text-slate-500">
-                                            {sku.sku}
-                                          </td>
-                                          <td className="px-5 py-3 text-right text-emerald-600 font-black">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(sku.sold)}
-                                          </td>
-                                          <td className="px-5 py-3 text-right text-slate-800 font-black">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(sku.revenue)}
-                                          </td>
+                                          <td className="px-5 py-3 text-xs tracking-wider text-slate-500">{sku.sku}</td>
+                                          <td className="px-5 py-3 text-right text-emerald-600 font-black">{new Intl.NumberFormat("id-ID").format(sku.sold)}</td>
+                                          <td className="px-5 py-3 text-right text-slate-800 font-black">{new Intl.NumberFormat("id-ID").format(sku.revenue)}</td>
                                         </tr>
                                       ))}
                                     </tbody>
                                   </table>
+                                </div>
+                                {/* Mobile Card List for SKU */}
+                                <div className="block sm:hidden space-y-3">
+                                  {aggregatedSkus.map((sku, idx) => (
+                                    <div key={idx} className="bg-white border border-slate-100 rounded-[14px] p-3.5 shadow-sm ring-1 ring-slate-900/5">
+                                      <div className="flex items-start gap-2.5 mb-2.5">
+                                        <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded bg-slate-100 text-[10px] font-black text-slate-500 mt-0.5">{idx + 1}</span>
+                                        <div className="font-bold text-[13px] text-slate-800 leading-snug line-clamp-2">{sku.productName}</div>
+                                      </div>
+                                      <div className="pl-7.5 text-[11px] font-mono text-slate-400 mb-3 ml-7">{sku.sku}</div>
+                                      <div className="pl-7.5 grid grid-cols-2 gap-2 ml-7">
+                                        <div className="bg-slate-50 rounded-[10px] p-2.5">
+                                          <div className="text-[10px] text-slate-400 font-bold mb-1">TERJUAL</div>
+                                          <div className="text-emerald-600 text-sm font-black tabular-nums">{new Intl.NumberFormat("id-ID").format(sku.sold)}</div>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-[10px] p-2.5">
+                                          <div className="text-[10px] text-slate-400 font-bold mb-1">REVENUE (Rp)</div>
+                                          <div className="text-slate-800 text-sm font-black tabular-nums">{new Intl.NumberFormat("id-ID").format(sku.revenue)}</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
                             );
@@ -6609,89 +6606,77 @@ export default function App() {
                               <h4 className="text-[14px] font-bold text-slate-800 mb-4 px-1">
                                 Revenue Based on Time
                               </h4>
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-left whitespace-nowrap">
-                                  <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
-                                    <tr>
-                                      <th className="px-5 py-3 rounded-l-lg w-16 text-center">
-                                        No
-                                      </th>
-                                      <th className="px-5 py-3">Sesi Jam</th>
-                                      <th className="px-5 py-3 rounded-r-lg cursor-pointer">
-                                        Revenue ▾
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
-                                    {(() => {
-                                      const shiftData: Record<string, number> =
-                                        {};
-                                      tableLogs.forEach((log) => {
-                                        let s = "N/A";
-                                        if (log.dateTime) {
-                                          const timeMatch = String(
-                                            log.dateTime,
-                                          ).match(/(\d{1,2}):\d{2}/);
-                                          if (timeMatch) {
-                                            const hour = parseInt(
-                                              timeMatch[1],
-                                              10,
-                                            );
-                                            if (!isNaN(hour)) {
-                                              const matchedShift =
-                                                getShiftFromHour(hour, shifts);
-                                              if (matchedShift)
-                                                s = matchedShift;
-                                            }
-                                          }
-                                        }
-                                        if (s === "N/A") {
-                                          s = log.shift || "Shift Lainnya";
-                                        }
-                                        if (!shiftData[s]) shiftData[s] = 0;
-                                        shiftData[s] += log.gmv || 0;
-                                      });
-                                      const shiftsArray = Object.keys(shiftData)
-                                        .map((k) => ({
-                                          name: k,
-                                          gmv: shiftData[k],
-                                        }))
-                                        .sort((a, b) => b.gmv - a.gmv);
-
-                                      if (shiftsArray.length === 0) {
-                                        return (
-                                          <tr key="empty-data">
-                                            <td
-                                              colSpan={3}
-                                              className="px-5 py-8 text-center text-slate-400"
-                                            >
-                                              Tidak ada data.
-                                            </td>
-                                          </tr>
-                                        );
+                              {(() => {
+                                const shiftData: Record<string, number> = {};
+                                tableLogs.forEach((log) => {
+                                  let s = "N/A";
+                                  if (log.dateTime) {
+                                    const timeMatch = String(log.dateTime).match(/(\d{1,2}):\d{2}/);
+                                    if (timeMatch) {
+                                      const hour = parseInt(timeMatch[1], 10);
+                                      if (!isNaN(hour)) {
+                                        const matchedShift = getShiftFromHour(hour, shifts);
+                                        if (matchedShift) s = matchedShift;
                                       }
-                                      return shiftsArray.map((sh, idx) => (
-                                        <tr
-                                          key={sh.name || idx}
-                                          className="hover:bg-slate-50"
-                                        >
-                                          <td className="px-5 py-3.5 text-center text-slate-500">
-                                            {idx + 1}.
-                                          </td>
-                                          <td className="px-5 py-3.5 text-slate-700 font-mono text-[11px]">
-                                            {sh.name}
-                                          </td>
-                                          <td className="px-5 py-3.5 text-slate-700">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(sh.gmv)}
-                                          </td>
-                                        </tr>
-                                      ));
-                                    })()}
-                                  </tbody>
-                                </table>
-                              </div>
+                                    }
+                                  }
+                                  if (s === "N/A") {
+                                    s = log.shift || "Shift Lainnya";
+                                  }
+                                  if (!shiftData[s]) shiftData[s] = 0;
+                                  shiftData[s] += log.gmv || 0;
+                                });
+                                const shiftsArray = Object.keys(shiftData)
+                                  .map((k) => ({
+                                    name: k,
+                                    gmv: shiftData[k],
+                                  }))
+                                  .sort((a, b) => b.gmv - a.gmv);
+
+                                if (shiftsArray.length === 0) {
+                                  return (
+                                    <div className="px-5 py-8 text-center text-slate-400">
+                                      Tidak ada data.
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <>
+                                    <div className="overflow-x-auto hidden sm:block">
+                                      <table className="w-full text-left whitespace-nowrap">
+                                        <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
+                                          <tr>
+                                            <th className="px-5 py-3 rounded-l-lg w-16 text-center">No</th>
+                                            <th className="px-5 py-3">Sesi Jam</th>
+                                            <th className="px-5 py-3 rounded-r-lg cursor-pointer">Revenue ▾</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
+                                          {shiftsArray.map((sh, idx) => (
+                                            <tr key={sh.name || idx} className="hover:bg-slate-50">
+                                              <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
+                                              <td className="px-5 py-3.5 text-slate-700 font-mono text-[11px]">{sh.name}</td>
+                                              <td className="px-5 py-3.5 text-slate-700 font-black tabular-nums">{new Intl.NumberFormat("id-ID").format(sh.gmv)}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                    <div className="block sm:hidden space-y-2">
+                                      {shiftsArray.map((sh, idx) => (
+                                        <div key={sh.name || idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-[12px]">
+                                          <div className="flex items-center gap-3">
+                                            <span className="text-slate-400 text-xs font-bold w-4">{idx + 1}.</span>
+                                            <span className="text-slate-700 text-xs font-mono font-semibold">{sh.name}</span>
+                                          </div>
+                                          <span className="text-slate-900 text-sm font-black tabular-nums">Rp {new Intl.NumberFormat("id-ID").format(sh.gmv)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </>
+                                );
+                              })()}
                             </div>
 
                             {/* Revenue Based on Day */}

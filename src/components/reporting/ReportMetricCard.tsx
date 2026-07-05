@@ -26,18 +26,18 @@ export function ReportMetricCard({
   const isUp = diff >= 0;
 
   return (
-    <div className="rounded-[16px] border border-[#f1eef8] bg-white p-4 shadow-[0_2px_10px_rgba(86,0,224,0.03)] transition-all hover:shadow-[0_4px_16px_rgba(86,0,224,0.06)]">
-      <div className="mb-3 flex items-center gap-2.5">
+    <div className="flex flex-col justify-between rounded-[16px] border border-slate-100/60 bg-white p-3.5 sm:p-5 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md">
+      <div className="mb-2 sm:mb-3 flex items-center gap-2">
         {icon && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f4effc] text-[#7148e5]">
+          <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-[10px] bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100/50">
             {icon}
           </div>
         )}
-        <div className="text-[12px] font-bold text-slate-700">
+        <div className="text-[11px] sm:text-[12px] font-bold text-slate-500 leading-tight line-clamp-2">
           {label}
         </div>
       </div>
-      <div className="font-display mb-1.5 text-xl sm:text-2xl font-black tracking-tight text-slate-900 tabular-nums truncate">
+      <div className="font-display mb-1 text-lg sm:text-2xl font-black tracking-tight text-slate-900 tabular-nums truncate">
         {prefix}
         {value}
         {suffix}

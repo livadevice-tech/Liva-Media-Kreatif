@@ -213,13 +213,13 @@ export function ReportingWorkspaceHeader({
             type="button"
             onClick={onBack}
             aria-label="Kembali"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#d8d0ee] bg-white text-slate-700 shadow-sm transition-colors hover:bg-[#f7f3ff] focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2"
+            className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full border border-[#d8d0ee] bg-white text-slate-700 shadow-sm transition-colors hover:bg-[#f7f3ff] focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2"
           >
-            <ChevronRight className="h-5 w-5 rotate-180" />
+            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 rotate-180" />
           </button>
 
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#5600e0] text-lg font-black text-white shadow-[0_12px_24px_rgba(86,0,224,0.22)]">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#5600e0] text-base sm:text-lg font-black text-white shadow-[0_12px_24px_rgba(86,0,224,0.22)]">
               {brandLogoUrl ? (
                 <img
                   src={brandLogoUrl}
@@ -231,24 +231,78 @@ export function ReportingWorkspaceHeader({
               )}
             </div>
 
-            <div className="min-w-0">
-              <h2 className="truncate font-display text-[clamp(1.25rem,2vw,1.75rem)] font-black tracking-tight text-slate-950">
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate font-display text-lg sm:text-[clamp(1.25rem,2vw,1.75rem)] font-black tracking-tight text-slate-950 leading-tight">
                 {brandName || "Nama Brand"}
               </h2>
-              <p className="mt-0.5 text-sm font-semibold text-slate-500">
+              <p className="mt-0.5 text-xs sm:text-sm font-semibold text-slate-500">
                 ID: <span className="font-black text-slate-700">{brandCode}</span>
               </p>
             </div>
           </div>
+          
+          {/* Mobile Upload Button (Icon only) - Hidden on sm+ */}
+          <button
+            type="button"
+            onClick={openRawMenu}
+            className="flex sm:hidden h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#5600e0] text-white shadow-md transition-colors hover:bg-[#4300b3] focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2 relative"
+            aria-haspopup="menu"
+            aria-expanded={isRawMenuOpen}
+          >
+            <Upload className="h-4 w-4 shrink-0" />
+            
+            {isRawMenuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-2 w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onImportRawLive();
+                      setIsRawMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  >
+                    <Layers3 className="h-4 w-4 text-[#5600e0]" />
+                    Upload Raw Data Live
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onImportRawProduct();
+                      setIsRawMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  >
+                    <ShoppingBag className="h-4 w-4 text-[#ff6a00]" />
+                    Upload Raw Data Product
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onImportRawEngagement();
+                      setIsRawMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  >
+                    <Settings2 className="h-4 w-4 text-[#0f766e]" />
+                    Upload Raw Data Engagement
+                  </button>
+                </div>
+              </div>
+            )}
+          </button>
         </div>
 
-        <div className="flex flex-col gap-4 pt-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-1 flex-wrap items-center gap-3">
-            <div className="relative">
+        <div className="flex flex-col gap-3 pt-3 sm:pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-1 flex-wrap items-center gap-2 sm:gap-3">
+            <div className="relative flex-1 sm:flex-none">
               <button
                 type="button"
                 onClick={openDateMenu}
-                className="inline-flex h-11 w-full sm:w-auto sm:min-w-[240px] items-center justify-between gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-4 text-left text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-10 sm:h-11 w-full sm:w-auto sm:min-w-[220px] items-center justify-between gap-2 sm:gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-3 sm:px-4 text-left text-[13px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
                 aria-haspopup="menu"
                 aria-expanded={isDateMenuOpen}
               >
@@ -408,11 +462,11 @@ export function ReportingWorkspaceHeader({
               </div>
             ) : null}
 
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <button
                 type="button"
                 onClick={openPlatformMenu}
-                className="inline-flex h-11 w-full sm:w-auto sm:min-w-[180px] items-center justify-between gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-4 text-left text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-10 sm:h-11 w-full sm:w-auto sm:min-w-[180px] items-center justify-between gap-2 sm:gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-3 sm:px-4 text-left text-[13px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
                 aria-haspopup="menu"
                 aria-expanded={isPlatformMenuOpen}
               >
@@ -454,7 +508,7 @@ export function ReportingWorkspaceHeader({
 
           </div>
 
-          <div className="relative mt-1 lg:mt-0 w-full sm:w-auto">
+          <div className="relative mt-1 lg:mt-0 w-full sm:w-auto hidden sm:block">
             <button
               type="button"
               onClick={openRawMenu}
@@ -468,7 +522,7 @@ export function ReportingWorkspaceHeader({
             </button>
 
             {isRawMenuOpen && (
-              <div className="absolute right-0 lg:right-0 left-0 lg:left-auto top-full z-50 mt-2 w-full sm:w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+              <div className="absolute right-0 left-auto top-full z-50 mt-2 w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
                 <div className="space-y-1">
                   <button
                     type="button"
@@ -523,14 +577,15 @@ export function ReportingWorkspaceTabs({
   onTabChange,
 }: ReportingWorkspaceTabsProps) {
   const tabClass = (tab: ReportingTab) =>
-    `relative border-b-2 pt-4 pb-3 px-1 text-sm font-bold transition-colors bg-transparent ${
+    `relative flex-1 sm:flex-none whitespace-nowrap rounded-[10px] px-3 sm:px-4 py-2 sm:py-2.5 text-[13px] sm:text-sm font-bold transition-all ${
       activeTab === tab
-        ? "border-[#5600e0] text-[#5600e0]"
-        : "border-transparent text-slate-500 hover:text-slate-900"
+        ? "bg-white text-[#5600e0] shadow-sm ring-1 ring-slate-900/5"
+        : "text-slate-600 hover:bg-slate-200/50 hover:text-slate-900"
     }`;
 
   return (
-    <div className="mb-6 mt-2 flex gap-x-8 border-b border-[#e8e1fb] px-4 sm:px-8 overflow-x-auto whitespace-nowrap hide-scrollbar">
+    <div className="sticky top-[72px] z-40 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 py-2 sm:py-0 bg-[#f8fafc]/80 backdrop-blur-md sm:bg-transparent sm:backdrop-blur-none">
+      <div className="flex gap-1.5 sm:gap-2 p-1.5 bg-slate-100/80 rounded-[14px] overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto ring-1 ring-slate-900/5">
       <button
         type="button"
         onClick={() => onTabChange("live")}
@@ -552,6 +607,7 @@ export function ReportingWorkspaceTabs({
       >
         Engagement & Promotion
       </button>
+      </div>
     </div>
   );
 }
