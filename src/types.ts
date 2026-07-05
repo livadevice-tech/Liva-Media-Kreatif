@@ -134,13 +134,6 @@ export interface ForecastModel {
   confidenceInterval: [number, number];
 }
 
-export interface ChatMessage {
-  id: string;
-  role: "user" | "model" | "system";
-  content: string;
-  timestamp: string;
-}
-
 export interface BrandSession {
   id: string;
   shift: string;

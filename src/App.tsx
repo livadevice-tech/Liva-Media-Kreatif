@@ -112,7 +112,6 @@ import {
 import {
   HostEmployee,
   AttendanceLog,
-  ChatMessage,
   StudioItem,
   ClientBrand,
   ClientReporting,
@@ -121,12 +120,6 @@ import {
   AdminAccount,
 } from "./types";
 import { INITIAL_HOSTS, INITIAL_LOGS, PLATFORMS, BRANDS, SHIFTS } from "./data";
-import {
-  googleSignIn,
-  sheetsLogout,
-  createNewSpreadsheet,
-  syncSpreadsheetData,
-} from "./sheets";
 import { DoubleDatePicker } from "./components/DoubleDatePicker";
 import {
   formatDateYYYYMMDD,
@@ -142,9 +135,6 @@ import {
   getReportPeriodLabel,
   shiftAvailableReportDate,
 } from "./shared/utils/reportDateFilters";
-import {
-  getIndonesianMockResponse,
-} from "./shared/utils/copilotFallback";
 import {
   buildDatabaseBackupPayload,
   createBackupDownloadHref,
@@ -281,7 +271,6 @@ import { CutoffPeriodSelector } from "./components/reporting/CutoffPeriodSelecto
 import { SettingsMetadataPanels } from "./components/reporting/SettingsMetadataPanels";
 import { AdminPasswordCard } from "./components/reporting/AdminPasswordCard";
 import { AdminMaintenancePanel } from "./components/reporting/AdminMaintenancePanel";
-import { CopilotPanel } from "./components/reporting/CopilotPanel";
 import {
   aggregateSkuLogs,
   filterSkuLogs,
@@ -298,12 +287,6 @@ const EngagementReportPanel = React.lazy(() =>
     default: module.EngagementReportPanel,
   })),
 );
-
-interface GoogleUserProfile {
-  displayName?: string | null;
-  email?: string | null;
-  photoURL?: string | null;
-}
 
 interface NotificationItem {
   id: string;
@@ -364,11 +347,6 @@ export default function App() {
   const [isGlobalConfigsLoaded, setIsGlobalConfigsLoaded] = useState(false);
   const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
   const [isQuotaBannerDismissed, setIsQuotaBannerDismissed] = useState(false);
-
-  // --- GOOGLE SHEETS SYNC SYSTEM STATE ---
-  const [googleUser, setGoogleUser] = useState<GoogleUserProfile | null>(null);
-  const [googleToken, setGoogleToken] = useState<string | null>(null);
-  const [sheetsAuthLoading, setSheetsAuthLoading] = useState(false);
 
   // Checkbox selection states matching the UI Reference
   const [selectedLogIds, setSelectedLogIds] = useState<string[]>([]);
@@ -629,13 +607,6 @@ export default function App() {
     }
   }, [brandReports, uploadHistory.length, clientBrands]);
 
-  // --- GOOGLE SHEETS & PAYROLL GLOBAL SYNCED CONFIGS ---
-  const [spreadsheetId, setSpreadsheetId] = useState<string>("");
-
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>("");
-
-  const [autoSyncSheets, setAutoSyncSheets] = useState<boolean>(false);
-
   const [salarySettings, setSalarySettings] = useState({
     workingDays: 26, // Cycle Hari Kerja Sebulan
     bandarLampungRegulerBase: 4000000, // Gaji Pokok Bulanan Bandar Lampung
@@ -710,21 +681,11 @@ export default function App() {
     setClientLoginPass("");
   }, []);
 
-  // Refs untuk menjaga nilai terbaru tanpa re-render
   const salarySettingsRef = useRef(salarySettings);
-  const spreadsheetIdRef = useRef(spreadsheetId);
-  const spreadsheetUrlRef = useRef(spreadsheetUrl);
-  const autoSyncSheetsRef = useRef(autoSyncSheets);
 
   useEffect(() => {
     salarySettingsRef.current = salarySettings;
   }, [salarySettings]);
-
-  useEffect(() => {
-    spreadsheetIdRef.current = spreadsheetId;
-    spreadsheetUrlRef.current = spreadsheetUrl;
-    autoSyncSheetsRef.current = autoSyncSheets;
-  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets]);
 
   // Simpan salarySettings ke localStorage (dengan debounce 1 detik)
   useEffect(() => {
@@ -734,16 +695,6 @@ export default function App() {
     }, 1000);
     return () => clearTimeout(timer);
   }, [salarySettings, isGlobalConfigsLoaded, isOperatorLoggedIn, globalConfigFetchFailed]);
-
-  // Simpan spreadsheet settings ke localStorage
-  useEffect(() => {
-    if (!isGlobalConfigsLoaded || !isOperatorLoggedIn || globalConfigFetchFailed) return;
-    const timer = setTimeout(() => {
-      saveLocalConfig({ spreadsheetId, spreadsheetUrl, autoSyncSheets });
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [spreadsheetId, spreadsheetUrl, autoSyncSheets, isGlobalConfigsLoaded, isOperatorLoggedIn, globalConfigFetchFailed]);
-
 
   useEffect(() => {
     let cancelled = false;
@@ -1611,13 +1562,11 @@ export default function App() {
     | "absensi"
     | "rekap_gaji"
     | "database"
-    | "sheets"
     | "credentials"
     | "settings"
     | "data_brand"
     | "reporting_brand"
     | "leads"
-    | "copilot"
     | "admin_privacy"
     | "invoice"
   >("dashboard_utama");
@@ -2904,21 +2853,7 @@ export default function App() {
     setSalarySortDir(nextSort.sortAsc ? "asc" : "desc");
   };
 
-  // --- GOOGLE SHEETS SYNC SYSTEM STATE ---
   const [isPayrollConfigOpen, setIsPayrollConfigOpen] = useState(false);
-
-  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
-  const [sheetsSyncMessage, setSheetsSyncMessage] = useState<{
-    text: string;
-    type: "success" | "error" | "info";
-  } | null>(null);
-
-  // Google Sheets auth telah dihapus (Firebase removed)
-  // initAuth tidak lagi tersedia
-  useEffect(() => {
-    // Tidak ada Firebase Auth — Google Sheets sync dinonaktifkan
-    return () => {};
-  }, []);
 
 
   const [salaryRecapLocationTab, setSalaryRecapLocationTab] = useState("Semua Host");
@@ -3146,88 +3081,6 @@ export default function App() {
       ),
     [hosts, logs, salarySettings, isLogDateMatchingMemo],
   );
-
-  // Debounced Auto-Sync Trigger when database records mutate
-  useEffect(() => {
-    if (autoSyncSheets && googleToken && spreadsheetId) {
-      const timer = setTimeout(() => {
-        syncSpreadsheetData(
-          googleToken,
-          spreadsheetId,
-          hostReportList,
-          logs,
-          salarySettings,
-        )
-          .then(() => {
-            console.log("Auto-sync to Google Sheets executed successfully!");
-          })
-          .catch((err) => {
-            console.error("Auto-sync Google Sheets background error:", err);
-          });
-      }, 1500); // 1.5s debounce to protect against hitting Sheets API quotas on fast edits
-      return () => clearTimeout(timer);
-    }
-  }, [
-    logs,
-    hosts,
-    salarySettings,
-    autoSyncSheets,
-    googleToken,
-    spreadsheetId,
-    hostReportList,
-  ]);
-
-  // Handle manual / direct export to Google Sheets call
-  const handleSheetsExport = async (
-    customToken = googleToken,
-    customId = spreadsheetId,
-  ) => {
-    const tokenToUse = customToken || googleToken;
-    const sIdToUse = customId || spreadsheetId;
-
-    if (!tokenToUse) {
-      setSheetsSyncMessage({
-        text: "Silakan hubungkan akun Google Anda terlebih dahulu di bagian panel sinkronisasi.",
-        type: "error",
-      });
-      return;
-    }
-    if (!sIdToUse) {
-      setSheetsSyncMessage({
-        text: "Spreadsheet ID belum diatur. Silakan buat Spreadsheet baru atau masukkan ID yang sudah ada.",
-        type: "error",
-      });
-      return;
-    }
-
-    setIsSyncingSheets(true);
-    setSheetsSyncMessage({
-      text: "Sedang mengunggah data absensi & rekapitulasi gaji ke Google Sheets...",
-      type: "info",
-    });
-
-    try {
-      await syncSpreadsheetData(
-        tokenToUse,
-        sIdToUse,
-        hostReportList,
-        logs,
-        salarySettings,
-      );
-      setSheetsSyncMessage({
-        text: "Data absensi & rekap gaji Liva Agency telah sukses direkam ke Google Sheets!",
-        type: "success",
-      });
-    } catch (err: unknown) {
-      console.error("Manual Sheets Export error:", err);
-      setSheetsSyncMessage({
-        text: `Gagal sinkronisasi data: ${getErrorMessage(err)}`,
-        type: "error",
-      });
-    } finally {
-      setIsSyncingSheets(false);
-    }
-  };
 
   // Filtered and sorted salary report list
   const filteredHostReportList = useMemo(() => {
@@ -3773,96 +3626,6 @@ export default function App() {
         setConfirmModal(null);
       },
     });
-  };
-
-  // --- OPERATOR AI COPILOT INTERACTIVE ASSISTANT ---
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "model",
-      content: `Halo! Saya **AI Asisten Operasional Liva Agency**. Saya siap membantu Anda menganalisis performa kehadiran para Live Host, mencatat pola keterlambatan, dan memandu rekapitulasi gaji bulanan mereka berdasarkan data absensi real-time. Silakan tanya pertanyaan seperti:
-
-- *Siapa saja host yang paling banyak datang tepat waktu?*
-- *Adakah host yang memiliki masalah keterlambatan atau alpa?*
-- *Berikan ringkasan performa kehadiran tim minggu ini.*`,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    },
-  ]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-
-  const handleSendChatMessage = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || chatLoading) return;
-
-    const userMsg: ChatMessage = {
-      id: `chat_${Date.now()}`,
-      role: "user",
-      content: chatInput,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-
-    // Append user message
-    setChatMessages((prev) => [...prev, userMsg]);
-    setChatInput("");
-    setChatLoading(true);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...chatMessages, userMsg],
-          hosts: hosts,
-          logs: logs,
-        }),
-      });
-
-      const data = await response.json();
-
-      const assistantMsg: ChatMessage = {
-        id: `chat_resp_${Date.now()}`,
-        role: "model",
-        content:
-          data.content ||
-          "Maaf, terjadi kesalahan sewaktu mengolah jawaban Anda.",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-
-      setChatMessages((prev) => [...prev, assistantMsg]);
-    } catch (err) {
-      console.error("Failed to query API chat:", err);
-      // Mock Fallback responses optimized in Indonesian
-      const fallbackMsg = getIndonesianMockResponse(chatInput, hostReportList, {
-        timelyIncentive: salarySettings.timelyIncentive,
-        latePenalty: salarySettings.latePenalty,
-        punctualityRate: agencyOverviewStats.punctualityRate,
-        totalLogs: logs.length,
-      });
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: `chat_resp_err_${Date.now()}`,
-          role: "model",
-          content: fallbackMsg,
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        },
-      ]);
-    } finally {
-      setChatLoading(false);
-    }
   };
 
   const handleClearAllData = () => {
@@ -7342,21 +7105,9 @@ export default function App() {
                         key: "cat-system",
                       },
                       {
-                        tabId: "copilot",
-                        label: "Asisten AI Copilot",
-                        icon: Sparkles,
-                        category: "cat-system",
-                      },
-                      {
                         tabId: "settings",
                         label: "Platform & Shift",
                         icon: Sliders,
-                        category: "cat-system",
-                      },
-                      {
-                        tabId: "sheets",
-                        label: "Spreadsheet Sync",
-                        icon: FileSpreadsheet,
                         category: "cat-system",
                       },
                       {
@@ -7569,17 +7320,11 @@ export default function App() {
                     {operatorTab === "leads" && (
                       <span>Leads & Calon Klien</span>
                     )}
-                    {operatorTab === "copilot" && (
-                      <span>Asisten AI Agency Copilot</span>
-                    )}
                     {operatorTab === "settings" && (
                       <span>Pengaturan Platform & Shift Siaran</span>
                     )}
                     {operatorTab === "credentials" && (
                       <span>Kredensial Login Streamer</span>
-                    )}
-                    {operatorTab === "sheets" && (
-                      <span>Sinkronisasi Google Sheets</span>
                     )}
                     {operatorTab === "admin_privacy" && (
                       <span>Privasi Akun Master Admin</span>
@@ -11713,40 +11458,13 @@ export default function App() {
                           </h4>
                           <p className="text-[11px] text-purple-900/60 mt-0.5 font-medium">
                             Draf dokumen penggajian bulanan ini didasarkan dari
-                            kalkulasi kehadiran real-time. Anda bisa langsung
-                            mengunggahnya ke Google Sheets agar sinkron ke
-                            Google Drive.
+                            kalkulasi kehadiran real-time. Unduh data ini bila
+                            perlu untuk dibagikan ke tim internal.
                           </p>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap gap-2 items-center w-full md:w-auto justify-end">
-                        {/* Google Sheets Sync Quick Button */}
-                        {googleToken ? (
-                          <button
-                            onClick={() =>
-                              handleSheetsExport(googleToken, spreadsheetId)
-                            }
-                            disabled={isSyncingSheets}
-                            className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-purple-100 disabled:text-purple-400 text-white font-black py-3 px-6 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center gap-2 flex-shrink-0 cursor-pointer"
-                            id="export_salary_sheets_button"
-                          >
-                            <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
-                            {isSyncingSheets
-                              ? "Sedang Menyinkron..."
-                              : "Kirim Ke Google Sheets"}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setOperatorTab("sheets")}
-                            className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-black py-3 px-6 rounded-xl border border-purple-100 text-xs uppercase tracking-wider transition-all flex items-center gap-2 flex-shrink-0 cursor-pointer shadow-2xs"
-                            id="redirect_to_sheets_tab"
-                          >
-                            <FileSpreadsheet className="w-4 h-4 text-purple-500" />
-                            Hubungkan Google Sheets
-                          </button>
-                        )}
-
                         <button
                           onClick={() => {
                             const headers = [
@@ -11811,41 +11529,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Sync notification message */}
-                    {sheetsSyncMessage && (
-                      <div
-                        className={`mt-4 p-3.5 rounded-xl border text-xs flex justify-between items-center ${
-                          sheetsSyncMessage.type === "success"
-                            ? "bg-emerald-950/80 border-emerald-800 text-emerald-200"
-                            : sheetsSyncMessage.type === "error"
-                              ? "bg-red-950/80 border-red-800 text-red-200"
-                              : "bg-neutral-900 border-neutral-800 text-neutral-300"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">
-                            {sheetsSyncMessage.type === "success"
-                              ? "✅"
-                              : sheetsSyncMessage.type === "error"
-                                ? "❌"
-                                : "ℹ"}
-                          </span>
-                          <span>{sheetsSyncMessage.text}</span>
-                        </div>
-                        {spreadsheetUrl &&
-                          sheetsSyncMessage.type === "success" && (
-                            <a
-                              href={spreadsheetUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-emerald-400 font-bold underline hover:text-emerald-300 flex items-center gap-1 text-[11px]"
-                            >
-                              Buka Google Sheets{" "}
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -13024,18 +12707,6 @@ export default function App() {
                             className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold px-3 py-1.5 rounded-full text-[10px] flex items-center gap-1 transition-all cursor-pointer border-0"
                           >
                             <span className="text-[10px]">📋</span> Set Izin
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOperatorTab("sheets");
-                            }}
-                            className="bg-[#2563eb] hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-full text-[10px] flex items-center gap-1 transition-all cursor-pointer border-0"
-                            title="Ekspor massal asisten sheets"
-                          >
-                            <FileSpreadsheet className="w-3 h-3" /> Ekspor
-                            Sheets
                           </button>
 
                           <button
@@ -14657,17 +14328,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* ==================== SUBTAB: AI AGENCY COPILOT CHAT ==================== */}
-                {operatorTab === "copilot" && (
-                  <CopilotPanel
-                    chatMessages={chatMessages}
-                    chatLoading={chatLoading}
-                    chatInput={chatInput}
-                    onChatInputChange={setChatInput}
-                    onSendChatMessage={handleSendChatMessage}
-                  />
-                )}
-
                 {/* ==================== SUBTAB: SETTINGS CONFIGURATION ⚙️ ==================== */}
                 {operatorTab === "settings" && (
                   <div
@@ -14743,443 +14403,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* ==================== SUBTAB: GOOGLE SHEETS SYNC CONTROL ==================== */}
-                {operatorTab === "sheets" && (
-                  <div className="space-y-6" id="operator_sheets_content">
-                    {/* Introduction Banner */}
-                    <div className="bg-gradient-to-r from-purple-50 to-white border border-purple-100 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xs">
-                      <div className="space-y-2 z-10 font-sans">
-                        <div className="flex items-center gap-2 text-purple-700 font-black text-sm">
-                          <FileSpreadsheet className="w-5 h-5 text-purple-600" />
-                          SINKRONISASI CO-WORK GOOGLE SHEETS
-                        </div>
-                        <p className="text-xs text-purple-800 font-semibold max-w-2xl leading-relaxed">
-                          Ekspor rekapitulasi gaji, statistik presensi, dan
-                          database logs live streaming host Liva Agency secara
-                          real-time ke akun spreadsheet eksternal. Sempurna
-                          untuk berbagi akses dengan tim Accounting, Finance,
-                          atau Owner Agency.
-                        </p>
-                      </div>
-
-                      {googleUser ? (
-                        <button
-                          onClick={async () => {
-                            setSheetsAuthLoading(true);
-                            try {
-                              await sheetsLogout();
-                              setGoogleUser(null);
-                              setGoogleToken(null);
-                              // Simpan ke localStorage (Firebase dihapus)
-                              saveLocalConfig({
-                                googleToken: null,
-                                googleUser: null,
-                              });
-
-                              setSheetsSyncMessage({
-                                text: "Berhasil memutuskan tautan akun Google.",
-                                type: "info",
-                              });
-                            } catch (err: unknown) {
-                              console.error("Logout error:", err);
-                            } finally {
-                              setSheetsAuthLoading(false);
-                            }
-                          }}
-                          className="bg-[#f8f6fc] hover:bg-purple-100 text-xs text-purple-705 border border-purple-200 py-2.5 px-4 rounded-xl transition-all self-stretch md:self-auto flex items-center justify-center gap-2 font-black cursor-pointer"
-                        >
-                          Putuskan Akun Google
-                        </button>
-                      ) : null}
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                      {/* Left Column: Authorisation and File Configuration */}
-                      <div className="lg:col-span-5 space-y-6">
-                        {/* Auth Status Panel */}
-                        <div className="bg-white border border-purple-100 rounded-2xl p-5 shadow-xs space-y-4 font-sans">
-                          <h3 className="text-xs font-black uppercase tracking-wider text-purple-950 border-b border-purple-100 pb-2">
-                            Hubungkan Google Account
-                          </h3>
-
-                          {!googleUser ? (
-                            <div className="py-4 flex flex-col items-center justify-center text-center space-y-4">
-                              <div className="w-14 h-14 rounded-full bg-purple-50 border border-purple-200 flex items-center justify-center">
-                                <FileSpreadsheet className="w-7 h-7 text-purple-600 animate-pulse" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold text-purple-950">
-                                  Google Sheets belum terhubung
-                                </p>
-                                <p className="text-[10.5px] text-purple-500 mt-1 max-w-[250px] font-semibold leading-normal">
-                                  Otorisasikan akun Google untuk membuat
-                                  lembaran kalkulasi gaji dan absen.
-                                </p>
-                              </div>
-
-                              <button
-                                onClick={async () => {
-                                  setSheetsAuthLoading(true);
-                                  setSheetsSyncMessage(null);
-                                  try {
-                                    const authResult = await googleSignIn();
-                                    if (authResult) {
-                                      const u = {
-                                        displayName: authResult.user.displayName,
-                                        email: authResult.user.email,
-                                        photoURL: authResult.user.photoURL,
-                                      };
-                                      setGoogleUser(u);
-                                      setGoogleToken(authResult.accessToken);
-                                      // Simpan ke localStorage (Firebase dihapus)
-                                      saveLocalConfig({
-                                        googleToken: authResult.accessToken,
-                                        googleUser: u,
-                                      });
-
-                                      setSheetsSyncMessage({
-                                        text: `Koneksi berhasil! Selamat datang, ${authResult.user.displayName}`,
-                                        type: "success",
-                                      });
-                                    }
-                                  } catch (err: unknown) {
-                                    setSheetsSyncMessage({
-                                      text: `Gagal masuk: ${getErrorMessage(err)}`,
-                                      type: "error",
-                                    });
-                                  } finally {
-                                    setSheetsAuthLoading(false);
-                                  }
-                                }}
-                                disabled={sheetsAuthLoading}
-                                className="bg-white hover:bg-purple-50 hover:border-purple-300 disabled:bg-purple-100 text-purple-950 font-black py-2.5 px-5 rounded-xl text-xs flex items-center gap-2.5 shadow-sm transition-all border border-purple-200 cursor-pointer text-gray-900"
-                              >
-                                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                                  <path
-                                    fill="#EA4335"
-                                    d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.579-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l3.245-3.12C18.28 1.845 15.54 1 12.24 1c-6.075 0-11 4.925-11 11s4.925 11 11 11c6.345 0 10.56-4.435 10.56-10.715 0-.725-.075-1.28-.175-1.71h-10.385z"
-                                  />
-                                </svg>
-                                {sheetsAuthLoading
-                                  ? "Menghubungkan..."
-                                  : "Masuk dengan Google"}
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-3 p-3 bg-[#fafafc] border border-purple-100 rounded-xl">
-                                {googleUser.photoURL ? (
-                                  <img
-                                    src={googleUser.photoURL}
-                                    alt={googleUser.displayName}
-                                    referrerPolicy="no-referrer"
-                                    className="w-10 h-10 rounded-full border border-purple-200 hover:scale-105 transition-all"
-                                  />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center font-bold text-white">
-                                    {googleUser.displayName?.[0] || "U"}
-                                  </div>
-                                )}
-                                <div>
-                                  <p className="text-xs font-black text-purple-950">
-                                    {googleUser.displayName}
-                                  </p>
-                                  <p className="text-[10px] text-purple-500 mt-0.5 font-bold">
-                                    {googleUser.email}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="text-[11px] text-purple-700 flex items-center gap-1.5 px-1 font-bold">
-                                <div className="w-2 h-2 rounded-full bg-purple-650 animate-pulse"></div>
-                                Sesi Otoritas Google Drive & Sheets Aktif
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Spreadsheet Settings Panel */}
-                        <div className="bg-white border border-purple-100 rounded-2xl p-5 shadow-xs space-y-4">
-                          <h3 className="text-xs font-black uppercase tracking-wider text-purple-950 border-b border-purple-100 pb-2">
-                            Konfigurasi Spreadsheet ID
-                          </h3>
-
-                          <div className="space-y-3.5">
-                            <div className="text-xs">
-                              <label className="block text-[#4c3968] mb-1.5 font-bold">
-                                Tautkan ID Spreadsheet Google target:
-                              </label>
-                              <input
-                                type="text"
-                                value={spreadsheetId}
-                                onChange={(e) =>
-                                  setSpreadsheetId(e.target.value)
-                                }
-                                placeholder="Masukkan Google Spreadsheet ID..."
-                                className="w-full bg-[#fdfbfe] border border-purple-150 rounded-lg px-3 py-2 text-purple-950 text-xs font-mono font-bold focus:outline-none focus:border-purple-400 focus:bg-white"
-                              />
-                              <p className="text-[9.5px] text-purple-500 mt-1 font-semibold leading-normal">
-                                Masukkan ID spreadsheet yang sudah Anda miliki,
-                                atau buat lembaran baru secara otomatis
-                                menggunakan tombol di bawah ini.
-                              </p>
-                            </div>
-
-                            {googleToken && (
-                              <button
-                                onClick={async () => {
-                                  setIsSyncingSheets(true);
-                                  setSheetsSyncMessage({
-                                    text: "Sedang merancang struktur lembar Google Sheets baru...",
-                                    type: "info",
-                                  });
-                                  try {
-                                    const newIdUrl = await createNewSpreadsheet(
-                                      googleToken,
-                                      `Liva Agency - Rekap Absen & Gaji (${new Date().toLocaleDateString("id-ID")})`,
-                                    );
-                                    setSpreadsheetId(newIdUrl.id);
-                                    setSpreadsheetUrl(newIdUrl.url);
-                                    setSheetsSyncMessage({
-                                      text: "Spreadsheet baru berhasil dibuat! Data siap disinkronkan sekarang.",
-                                      type: "success",
-                                    });
-                                  } catch (err: unknown) {
-                                    console.error(
-                                      "Create spreadsheet error:",
-                                      err,
-                                    );
-                                    setSheetsSyncMessage({
-                                      text: `Gagal membuat spreadsheet: ${getErrorMessage(err)}`,
-                                      type: "error",
-                                    });
-                                  } finally {
-                                    setIsSyncingSheets(false);
-                                  }
-                                }}
-                                disabled={isSyncingSheets}
-                                className="w-full bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-extrabold py-2.5 rounded-lg text-xs uppercase transition-all cursor-pointer shadow-xs"
-                              >
-                                ✨ Buat Spreadsheet Baru di Google Drive
-                              </button>
-                            )}
-
-                            {spreadsheetUrl && (
-                              <a
-                                href={spreadsheetUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="w-full bg-[#faf9fe] hover:bg-purple-100 text-purple-700 border border-purple-250 hover:border-purple-300 py-2.5 px-4 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 uppercase"
-                              >
-                                Buka Spreadsheet di Google Sheets ↗
-                              </a>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Options Panel */}
-                        <div className="bg-white border border-purple-100 rounded-2xl p-5 shadow-xs space-y-3">
-                          <h3 className="text-xs font-black uppercase tracking-wider text-purple-950 border-b border-purple-100 pb-2">
-                            Opsi & Otomatisasi
-                          </h3>
-
-                          <div className="flex items-start gap-3 p-1">
-                            <input
-                              type="checkbox"
-                              id="checkbox_auto_sync"
-                              checked={autoSyncSheets}
-                              onChange={(e) =>
-                                setAutoSyncSheets(e.target.checked)
-                              }
-                              className="mt-0.5 rounded border-purple-200 bg-purple-50 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"
-                            />
-                            <div
-                              className="text-xs cursor-pointer select-none"
-                              onClick={() => setAutoSyncSheets(!autoSyncSheets)}
-                            >
-                              <label className="font-extrabold text-purple-950 block mb-0.5 cursor-pointer">
-                                Otomatis Sinkronisasi (Auto-Sync)
-                              </label>
-                              <p className="text-[10px] text-purple-500 leading-normal font-semibold">
-                                Saat diaktifkan, setiap kali operator mengubah
-                                status absensi host atau menambahkan logs baru,
-                                data summary & logs akan langsung diperbarui ke
-                                lembar Google Sheets Anda dalam latar belakang.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right Column: Execution Panel and Checklist Actions */}
-                      <div className="lg:col-span-7 space-y-6">
-                        {/* Synchronise Action Cards */}
-                        <div className="bg-white border border-purple-100 rounded-2xl p-6 shadow-xs space-y-6">
-                          <div className="border-b border-purple-100 pb-3 font-sans">
-                            <h4 className="text-xs font-black uppercase text-purple-950">
-                              Panel Eksekusi Data Sync
-                            </h4>
-                            <p className="text-[10.5px] text-purple-500 mt-0.5 font-semibold">
-                              Unggah data host, kpi kehadiran, rincian hitung
-                              gaji, dan log absensi siaran harian.
-                            </p>
-                          </div>
-
-                          {sheetsSyncMessage && (
-                            <div
-                              className={`p-4 rounded-xl border text-xs flex flex-row items-start gap-3.5 leading-relaxed font-sans ${
-                                sheetsSyncMessage.type === "success"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                                  : sheetsSyncMessage.type === "error"
-                                    ? "bg-red-50 border-red-200 text-red-700"
-                                    : "bg-[#faf9fe] border-purple-100 text-purple-800"
-                              }`}
-                            >
-                              <div className="text-base select-none mt-0.5">
-                                {sheetsSyncMessage.type === "success"
-                                  ? "✅"
-                                  : sheetsSyncMessage.type === "error"
-                                    ? "❌"
-                                    : "ℹ️"}
-                              </div>
-                              <div className="space-y-1 font-bold">
-                                <span
-                                  className={`block ${
-                                    sheetsSyncMessage.type === "success"
-                                      ? "text-emerald-900"
-                                      : sheetsSyncMessage.type === "error"
-                                        ? "text-red-950"
-                                        : "text-purple-950"
-                                  }`}
-                                >
-                                  {sheetsSyncMessage.type === "success"
-                                    ? "Sinkronisasi Berhasil!"
-                                    : sheetsSyncMessage.type === "error"
-                                      ? "Proses Terkendala"
-                                      : "Informasi Sistem"}
-                                </span>
-                                <span className="text-[11px] block">
-                                  {sheetsSyncMessage.text}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="bg-[#fcfbfe] rounded-xl p-4 border border-purple-100 text-xs text-purple-950 font-bold space-y-3">
-                            <div className="text-purple-650 font-black uppercase text-[9.5px] tracking-wider mb-2">
-                              Data Yang Akan Ditransfer:
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-[#fbfafd] p-2.5 rounded border border-purple-100">
-                                <span className="text-[10.5px] text-purple-500 block mb-0.5 font-semibold">
-                                  Lembar Rekap Gaji:
-                                </span>
-                                <strong className="text-purple-700 font-mono text-xs">
-                                  {hostReportList.length} Baris
-                                </strong>
-                              </div>
-                              <div className="bg-[#fbfafd] p-2.5 rounded border border-purple-100">
-                                <span className="text-[10.5px] text-purple-500 block mb-0.5 font-semibold">
-                                  Lembar Database Absen:
-                                </span>
-                                <strong className="text-purple-700 font-mono text-xs">
-                                  {logs.length} Baris
-                                </strong>
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-purple-500 font-semibold leading-normal">
-                              ⚠️{" "}
-                              <em>
-                                Proses sinkronisasi akan menimpa tab 'Rekap Gaji
-                                Host' dan 'Database Absensi Real-time' dengan
-                                data yang ada di platform Liva Agency saat ini.
-                              </em>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-3 justify-end pt-2">
-                            <button
-                              onClick={() => handleSheetsExport()}
-                              disabled={
-                                !googleToken ||
-                                !spreadsheetId ||
-                                isSyncingSheets
-                              }
-                              className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-purple-100 disabled:text-purple-350 font-black py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 w-full sm:w-auto cursor-pointer"
-                            >
-                              <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
-                              {isSyncingSheets
-                                ? "Proses Sinkronisasi..."
-                                : "Sinkronisasikan Sekarang"}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Integration Checklist Actions */}
-                        <div className="bg-white border border-purple-100 rounded-2xl p-5 shadow-xs space-y-5">
-                          <h4 className="text-xs font-black uppercase text-purple-950 border-b border-purple-150 pb-2">
-                            Panduan Langkah Sinkronisasi Google Sheets
-                          </h4>
-
-                          <div className="space-y-4 text-xs text-purple-700 leading-relaxed font-sans font-semibold">
-                            <div className="flex gap-3.5">
-                              <div className="w-5 h-5 rounded-full bg-purple-50 flex items-center justify-center font-black text-[10px] text-purple-600 border border-purple-100 flex-shrink-0">
-                                1
-                              </div>
-                              <div>
-                                <strong className="text-purple-950 block mb-0.5 font-bold">
-                                  Masuk & Otorisasi Akun Google (Google Login):
-                                </strong>
-                                <p className="text-[11px] text-purple-500">
-                                  Hubungkan akun Google milik operator dengan
-                                  mengklik tombol "Masuk dengan Google". Pilih
-                                  akun Google Workspace di popup yang
-                                  disediakan.
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex gap-3.5">
-                              <div className="w-5 h-5 rounded-full bg-purple-50 flex items-center justify-center font-black text-[10px] text-purple-600 border border-purple-100 flex-shrink-0">
-                                2
-                              </div>
-                              <div>
-                                <strong className="text-purple-950 block mb-0.5 font-bold">
-                                  Mempersiapkan File Spreadsheet ID target:
-                                </strong>
-                                <p className="text-[11px] text-purple-500">
-                                  Klik tombol "Buat Spreadsheet Baru" untuk
-                                  merancang lembar baru di Google Drive Anda
-                                  secara instan. Atau salin & tempel ID
-                                  Spreadsheet lama Anda jika ingin menimpa data
-                                  spreadsheet yang sudah ada.
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex gap-3.5">
-                              <div className="w-5 h-5 rounded-full bg-purple-50 flex items-center justify-center font-black text-[10px] text-purple-600 border border-purple-100 flex-shrink-0">
-                                3
-                              </div>
-                              <div>
-                                <strong className="text-purple-950 block mb-0.5 font-bold">
-                                  Sinkronkan atau Nyalakan Fitur Auto-Sync:
-                                </strong>
-                                <p className="text-[11px] text-purple-500">
-                                  Tekan "Sinkronisasikan Sekarang" untuk
-                                  mengunggah laporan pertama kali. Aktifkan
-                                  checkbox "Auto-Sync" agar seluruh rekapitulasi
-                                  gaji terupdate otomatis setiap kali ada
-                                  pergeseran log kehadiran host.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 {/* ==================== SUBTAB: PRIVASI MASTER ADMIN ==================== */}
                 {!loggedInAdminId && operatorTab === "admin_privacy" && (
                   <div
@@ -15398,14 +14621,9 @@ export default function App() {
                                       label: "Leads/Calon Client",
                                     },
                                     {
-                                      id: "copilot",
-                                      label: "Asisten AI Copilot",
-                                    },
-                                    {
                                       id: "settings",
                                       label: "Platform & Shift",
                                     },
-                                    { id: "sheets", label: "Spreadsheet Sync" },
                                   ].map((tab) => (
                                     <label
                                       key={tab.id}
