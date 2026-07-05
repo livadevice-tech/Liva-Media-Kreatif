@@ -8,6 +8,8 @@ import {
   ShoppingBag,
   Settings2,
   Upload,
+  MoreVertical,
+  Filter,
 } from "lucide-react";
 import { DoubleDatePicker } from "../DoubleDatePicker";
 import { getIndonesianMonthLabel } from "../../shared/utils/reporting";
@@ -204,7 +206,7 @@ export function ReportingWorkspaceHeader({
 
   return (
     <section
-      className="rounded-[24px] border border-[#e7e0f8] bg-[#fbf9ff] px-4 py-4 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:px-6"
+      className="bg-white px-4 pt-3 pb-0 sm:px-6 sm:py-4"
       data-active-tab={activeTab}
     >
       <div className="flex flex-col">
@@ -219,7 +221,7 @@ export function ReportingWorkspaceHeader({
           </button>
 
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#5600e0] text-base sm:text-lg font-black text-white shadow-[0_12px_24px_rgba(86,0,224,0.22)]">
+            <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#5600e0] text-base sm:text-lg font-black text-white shadow-sm">
               {brandLogoUrl ? (
                 <img
                   src={brandLogoUrl}
@@ -232,24 +234,24 @@ export function ReportingWorkspaceHeader({
             </div>
 
             <div className="min-w-0 flex-1">
-              <h2 className="truncate font-display text-lg sm:text-[clamp(1.25rem,2vw,1.75rem)] font-black tracking-tight text-slate-950 leading-tight">
+              <h2 className="truncate font-display text-[17px] sm:text-[clamp(1.25rem,2vw,1.75rem)] font-black tracking-tight text-slate-950 leading-tight">
                 {brandName || "Nama Brand"}
               </h2>
-              <p className="mt-0.5 text-xs sm:text-sm font-semibold text-slate-500">
-                ID: <span className="font-black text-slate-700">{brandCode}</span>
+              <p className="mt-0.5 text-[11px] sm:text-sm font-semibold text-slate-500">
+                ID: <span className="text-slate-500">{brandCode}</span>
               </p>
             </div>
           </div>
           
-          {/* Mobile Upload Button (Icon only) - Hidden on sm+ */}
+          {/* Mobile Menu Button (Kebab) - Hidden on sm+ */}
           <button
             type="button"
             onClick={openRawMenu}
-            className="flex sm:hidden h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#5600e0] text-white shadow-md transition-colors hover:bg-[#4300b3] focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2 relative"
+            className="flex sm:hidden h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-transparent text-slate-400 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2 relative"
             aria-haspopup="menu"
             aria-expanded={isRawMenuOpen}
           >
-            <Upload className="h-4 w-4 shrink-0" />
+            <MoreVertical className="h-5 w-5 shrink-0" />
             
             {isRawMenuOpen && (
               <div className="absolute right-0 top-full z-50 mt-2 w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
@@ -296,9 +298,9 @@ export function ReportingWorkspaceHeader({
           </button>
         </div>
 
-        <div className="flex flex-col gap-3 pt-3 sm:pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 flex-wrap items-center gap-2 sm:gap-3">
-            <div className="relative flex-1 sm:flex-none">
+        <div className="flex flex-col gap-3 pt-3 sm:pt-4 sm:flex-row sm:items-center sm:justify-between pb-3">
+          <div className="flex flex-row items-center gap-2 sm:gap-3 w-full">
+            <div className="relative flex-[2] sm:flex-none">
               <button
                 type="button"
                 onClick={openDateMenu}
@@ -462,7 +464,7 @@ export function ReportingWorkspaceHeader({
               </div>
             ) : null}
 
-            <div className="relative flex-1 sm:flex-none">
+            <div className="relative flex-[1] sm:flex-none">
               <button
                 type="button"
                 onClick={openPlatformMenu}
@@ -577,15 +579,15 @@ export function ReportingWorkspaceTabs({
   onTabChange,
 }: ReportingWorkspaceTabsProps) {
   const tabClass = (tab: ReportingTab) =>
-    `relative flex-1 sm:flex-none whitespace-nowrap rounded-[10px] px-3 sm:px-4 py-2 sm:py-2.5 text-[13px] sm:text-sm font-bold transition-all ${
+    `relative whitespace-nowrap px-1 py-3 text-[14px] font-bold transition-all border-b-[3px] ${
       activeTab === tab
-        ? "bg-white text-[#5600e0] shadow-sm ring-1 ring-slate-900/5"
-        : "text-slate-600 hover:bg-slate-200/50 hover:text-slate-900"
+        ? "border-[#5600e0] text-[#5600e0]"
+        : "border-transparent text-slate-500 hover:text-slate-900"
     }`;
 
   return (
-    <div className="sticky top-[72px] z-40 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 py-2 sm:py-0 bg-[#f8fafc]/80 backdrop-blur-md sm:bg-transparent sm:backdrop-blur-none">
-      <div className="flex gap-1.5 sm:gap-2 p-1.5 bg-slate-100/80 rounded-[14px] overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto ring-1 ring-slate-900/5">
+    <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 px-4 sm:px-6 bg-white border-b border-slate-100">
+      <div className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto">
       <button
         type="button"
         onClick={() => onTabChange("live")}
@@ -608,6 +610,20 @@ export function ReportingWorkspaceTabs({
         Engagement & Promotion
       </button>
       </div>
+    </div>
+  );
+}
+
+export function ReportingWorkspaceFilterLanjutan() {
+  return (
+    <div className="px-4 mb-4 sm:hidden">
+      <button
+        type="button"
+        className="inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 shadow-sm"
+      >
+        <Filter className="h-3.5 w-3.5 text-slate-500" />
+        Filter lanjutan
+      </button>
     </div>
   );
 }
