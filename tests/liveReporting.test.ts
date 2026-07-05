@@ -112,6 +112,38 @@ test("buildLiveReportViewModel aggregates live GMV from gmv fields", () => {
   assert.equal(result.liveChartData[0].penonton, 30);
 });
 
+test("buildLiveReportViewModel picks the latest date from the active platform", () => {
+  const result = buildLiveReportViewModel({
+    brandPerformanceLogs: [
+      {
+        id: "20",
+        brandId: "brand-a",
+        reportType: "live",
+        date: "2024-05-01",
+        platform: "Shopee Live",
+        gmv: 100,
+      },
+      {
+        id: "21",
+        brandId: "brand-a",
+        reportType: "live",
+        date: "2024-05-05",
+        platform: "TikTok Live",
+        gmv: 200,
+      },
+    ],
+    activeReportBrandId: "brand-a",
+    dateFilterType: "latest",
+    searchQuery: "",
+    platformFilter: "Shopee Live",
+    shiftFilters: [],
+  });
+
+  assert.equal(result.targetLatestDate, "2024-05-01");
+  assert.equal(result.tableLogs.length, 1);
+  assert.equal(result.tableLogs[0].platform, "Shopee Live");
+});
+
 test("buildLiveReportViewModel builds month comparison windows", () => {
   const result = buildLiveReportViewModel({
     brandPerformanceLogs: baseLogs,

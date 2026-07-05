@@ -1,10 +1,9 @@
-import { normalizeDateYMD } from "./appUi";
-// Removed unused reporting imports
 import {
   filterReportLogs,
   type ReportDateFilterType,
   type ReportLogLike,
 } from "./reportTable";
+import { getAvailableReportDates } from "./reportDateFilters";
 import type { BrandPerformanceLogEntry } from "../types/reporting";
 
 export type LiveReportChartPoint = {
@@ -40,8 +39,6 @@ export interface LiveReportViewModel {
   liveChartData: LiveReportChartPoint[];
 }
 
-const toYmd = (date: string) => normalizeDateYMD(date);
-
 export const hasTikTokLiveLogs = (
   logs: readonly BrandPerformanceLogEntry[],
 ) =>
@@ -63,18 +60,14 @@ export function buildLiveReportViewModel(
   let latestDateLabel = "";
   let prevStartDate = "";
   let prevEndDate = "";
+  const availableReportDates = getAvailableReportDates({
+    logs: filteredDb,
+    platformFilter: input.platformFilter,
+  });
 
   if (effectiveFilter === "latest") {
-    const allDates = Array.from(
-      new Set(
-        filteredDb
-          .map((log) => toYmd(log.date || ""))
-          .filter(Boolean) as string[],
-      ),
-    ).sort();
-
-    if (allDates.length > 0) {
-      targetLatestDate = allDates[allDates.length - 1];
+    if (availableReportDates.length > 0) {
+      targetLatestDate = availableReportDates[availableReportDates.length - 1];
       latestDateLabel = targetLatestDate;
       const date = new Date(targetLatestDate);
       date.setDate(date.getDate() - 1);

@@ -199,22 +199,22 @@ export function LiveReportMetricsSection({
               subtitle=""
               steps={[
                 {
-                  label: "Viewer",
+                  label: "Viewer Reach",
                   value: new Intl.NumberFormat("id-ID").format(totalDbImpressions),
                   raw: totalDbImpressions,
                 },
                 {
-                  label: "Viewer Enganged",
+                  label: "Active Viewers",
                   value: new Intl.NumberFormat("id-ID").format(totalDbLiveVisits),
                   raw: totalDbLiveVisits,
                 },
                 {
-                  label: "Add To Card",
+                  label: "Product Clicks",
                   value: new Intl.NumberFormat("id-ID").format(totalDbClicks),
                   raw: totalDbClicks,
                 },
                 {
-                  label: "Purchase",
+                  label: "Paid Buyers",
                   value: new Intl.NumberFormat("id-ID").format(totalDbOrdersFunnel),
                   raw: totalDbOrdersFunnel,
                 },

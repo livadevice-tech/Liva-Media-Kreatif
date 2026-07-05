@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   applyDateFilterSelection,
+  getAvailableReportDates,
   getReportPeriodLabel,
+  shiftAvailableReportDate,
   shiftReportPeriodByOneDay,
 } from "../src/shared/utils/reportDateFilters";
 
@@ -98,4 +100,44 @@ test("shiftReportPeriodByOneDay keeps custom mode and moves the date", () => {
   assert.equal(filterType, "custom");
   assert.equal(customStart, "2026-07-03");
   assert.equal(customEnd, "2026-07-03");
+});
+
+test("getAvailableReportDates returns sorted platform-scoped dates", () => {
+  const dates = getAvailableReportDates({
+    logs: [
+      { date: "2026-04-29", platform: "Shopee Live" } as const,
+      { date: "2026-04-30", platform: "Shopee Live" } as const,
+      { date: "2026-05-01", platform: "TikTok Live" } as const,
+    ],
+    platformFilter: "Shopee Live",
+  });
+
+  assert.deepEqual(dates, ["2026-04-29", "2026-04-30"]);
+});
+
+test("shiftAvailableReportDate moves through available dates and clamps", () => {
+  const logs = [
+    { date: "2026-04-29", platform: "Shopee Live" } as const,
+    { date: "2026-04-30", platform: "Shopee Live" } as const,
+    { date: "2026-05-02", platform: "Shopee Live" } as const,
+  ];
+
+  assert.equal(
+    shiftAvailableReportDate({
+      logs,
+      platformFilter: "Shopee Live",
+      currentDate: "2026-04-30",
+      direction: 1,
+    }),
+    "2026-05-02",
+  );
+  assert.equal(
+    shiftAvailableReportDate({
+      logs,
+      platformFilter: "Shopee Live",
+      currentDate: "2026-04-29",
+      direction: -1,
+    }),
+    "2026-04-29",
+  );
 });

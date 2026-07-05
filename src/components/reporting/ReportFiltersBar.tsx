@@ -1,4 +1,4 @@
-import { Calendar, Plus, Search } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 
 import { DoubleDatePicker } from "../DoubleDatePicker";
 import { getIndonesianMonthLabel } from "../../shared/utils/reporting";
@@ -32,6 +32,11 @@ interface ReportFiltersBarProps {
   onTempEndDateChange: (value: string) => void;
   onApplyCustom: (start: string, end: string) => void;
   onCancelCustom: () => void;
+  periodLabel?: string;
+  onPrevPeriod?: () => void;
+  onNextPeriod?: () => void;
+  canPrevPeriod?: boolean;
+  canNextPeriod?: boolean;
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
 }
@@ -86,6 +91,11 @@ export function ReportFiltersBar({
   onTempEndDateChange,
   onApplyCustom,
   onCancelCustom,
+  periodLabel,
+  onPrevPeriod,
+  onNextPeriod,
+  canPrevPeriod = true,
+  canNextPeriod = true,
   primaryActionLabel,
   onPrimaryAction,
 }: ReportFiltersBarProps) {
@@ -147,6 +157,37 @@ export function ReportFiltersBar({
             </span>
           </div>
         )}
+
+        {dateFilterType === "latest" && periodLabel && onPrevPeriod && onNextPeriod ? (
+          <div className="flex items-center gap-1.5 rounded-[14px] border border-[#ddd7ef] bg-white px-2 py-1.5 shadow-sm">
+            <button
+              type="button"
+              onClick={onPrevPeriod}
+              disabled={!canPrevPeriod}
+              aria-label="Lihat tanggal sebelumnya"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="min-w-[150px] px-2 text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#7f6ea8]">
+                Tanggal Data
+              </p>
+              <p className="mt-0.5 text-xs font-black text-[#5600e0]">
+                {periodLabel}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onNextPeriod}
+              disabled={!canNextPeriod}
+              aria-label="Lihat tanggal berikutnya"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
 
         {primaryActionLabel && onPrimaryAction ? (
           <button

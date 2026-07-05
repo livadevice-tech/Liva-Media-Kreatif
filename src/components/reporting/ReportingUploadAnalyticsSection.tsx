@@ -384,13 +384,8 @@ export function ReportingUploadAnalyticsSection({
                     dataKey="gmv"
                     stroke="#4f46e5"
                     strokeWidth={3}
-                    dot={{
-                      r: 4,
-                      fill: "#4f46e5",
-                      strokeWidth: 2,
-                      stroke: "#fff",
-                    }}
-                    activeDot={{ r: 6 }}
+                    dot={false}
+                    activeDot={{ r: 6, stroke: "#fff", strokeWidth: 2 }}
                   />
                   <RechartsLine
                     yAxisId="right"
@@ -399,12 +394,8 @@ export function ReportingUploadAnalyticsSection({
                     dataKey="products_sold"
                     stroke="#ec4899"
                     strokeWidth={3}
-                    dot={{
-                      r: 4,
-                      fill: "#ec4899",
-                      strokeWidth: 2,
-                      stroke: "#fff",
-                    }}
+                    dot={false}
+                    activeDot={{ r: 6, stroke: "#fff", strokeWidth: 2 }}
                   />
                 </RechartsLineChart>
               </ResponsiveContainer>
@@ -412,11 +403,11 @@ export function ReportingUploadAnalyticsSection({
           </div>
         </div>
 
-        <HorizontalFunnel
-          title="Corong Konversi Live (Funnel)"
-          subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
-          tag={
-            reportingRawData?.some((r) => r.hasFunnelInFile)
+          <HorizontalFunnel
+            title="Corong Konversi Live (Funnel)"
+            subtitle={`${saveTargetPlatform || activeReportPlatform || "Live"} Performance`}
+            tag={
+              reportingRawData?.some((r) => r.hasFunnelInFile)
               ? "Parsed Excel"
               : "Benchmark Estimate"
           }
@@ -425,33 +416,33 @@ export function ReportingUploadAnalyticsSection({
             activeReportPlatform === "TikTok Live"
               ? [
                   {
-                    label: "LIVE impressions",
+                    label: "Viewer Reach",
                     value: idFormat.format(reportingUploadSummary.totalViewerReach),
                     raw: reportingUploadSummary.totalViewerReach,
                   },
                   {
-                    label: "LIVE visits",
+                    label: "Active Viewers",
                     value: idFormat.format(reportingUploadSummary.totalLiveVisits),
                     raw: reportingUploadSummary.totalLiveVisits,
                   },
                   {
-                    label: "Product impressions",
+                    label: "Product Views",
                     value: idFormat.format(
                       reportingUploadSummary.totalProductImpressions,
                     ),
                     raw: reportingUploadSummary.totalProductImpressions,
                   },
                   {
-                    label: "Product clicks",
+                    label: "Product Clicks",
                     value: idFormat.format(reportingUploadSummary.totalClicks),
                     raw: reportingUploadSummary.totalClicks,
                   },
                   {
-                    label: "Orders paid for",
+                    label: "Paid Buyers",
                     value: idFormat.format(reportingUploadSummary.totalBuyerConversions),
                     raw: reportingUploadSummary.totalBuyerConversions,
                   },
-                ]
+              ]
               : [
                   {
                     label: "Total Viewers",

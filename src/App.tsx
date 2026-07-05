@@ -138,8 +138,9 @@ import { formatContractDate, padLocal } from "./shared/utils/dateFormatting";
 import { getPickerDays } from "./shared/utils/calendar";
 import {
   applyDateFilterSelection,
+  getAvailableReportDates,
   getReportPeriodLabel,
-  shiftReportPeriodByOneDay,
+  shiftAvailableReportDate,
 } from "./shared/utils/reportDateFilters";
 import {
   getIndonesianMockResponse,
@@ -260,7 +261,6 @@ import {
   LivaLogo,
 } from "./components/branding/BrandGraphics";
 import { ShopeeLiveMetricsGrid } from "./components/reporting/ShopeeLiveMetricsGrid";
-import { ReportPeriodNavigator } from "./components/reporting/ReportPeriodNavigator";
 import { ReportMetricCard } from "./components/reporting/ReportMetricCard";
 import { ReportFiltersBar } from "./components/reporting/ReportFiltersBar";
 import { ReportRawSessionsCard } from "./components/reporting/ReportRawSessionsCard";
@@ -1074,7 +1074,9 @@ export default function App() {
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [clientDateFilterType, setClientDateFilterType] = useState<
     "latest" | "all" | "month" | "weekly" | "custom"
-  >("all");
+  >("latest");
+  const [clientSelectedLatestDate, setClientSelectedLatestDate] =
+    useState("");
   const [clientCustomStartDate, setClientCustomStartDate] = useState("");
   const [clientCustomEndDate, setClientCustomEndDate] = useState("");
   const [clientTempStartDate, setClientTempStartDate] = useState("");
@@ -1124,7 +1126,8 @@ export default function App() {
 
   const handleClientDateFilterSelect = (
     value: "latest" | "all" | "month" | "custom",
-  ) =>
+  ) => {
+    setClientSelectedLatestDate("");
     applyDateFilterSelection({
       value,
       setFilterType: setClientDateFilterType,
@@ -1135,6 +1138,7 @@ export default function App() {
       currentStartDate: clientCustomStartDate,
       currentEndDate: clientCustomEndDate,
     });
+  };
 
   const handleOperatorDateFilterSelect = (
     value: "latest" | "all" | "month" | "custom",
@@ -4373,129 +4377,127 @@ export default function App() {
       {/* --- MAIN PAGE VIEWPORTS CONTROLLER --- */}
       {loggedInHostId && (
         <main
-          className="flex-1 p-3 md:p-6 lg:p-8 max-w-md w-full mx-auto"
+          className="flex-1 w-full px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 md:px-6 md:pt-6 lg:px-8"
           id="system-main-viewport"
         >
-          <div className="flex flex-col py-2" id="view_host_wrapper">
-            <div className="bg-[#fcfbfe] min-h-[85vh] rounded-[32px] pt-4 pb-6 px-1 flex flex-col text-[#4c3e6b] shadow-sm border border-purple-50">
+          <div
+            className="mx-auto flex w-full max-w-[460px] flex-col py-1"
+            id="view_host_wrapper"
+          >
+            <div className="flex min-h-[100dvh] flex-col rounded-[28px] border border-slate-200 bg-slate-50/95 px-3 pb-4 pt-4 text-slate-700 shadow-sm sm:px-4">
               {/* Host Authenticated Profile */}
               <div
-                className="bg-white border border-purple-100/85 p-3.5 rounded-2xl mb-4 shadow-sm animate-fadeIn"
+                className="mb-3 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm animate-fadeIn"
                 id="auth_host_profile_card"
               >
-                <div className="flex items-center gap-3 justify-between">
-                  <div className="flex items-center gap-3">
-                    <label className="relative cursor-pointer group block">
-                      <img
-                        src={
-                          activeHostObj?.avatar ||
-                          getAvatarUrl(activeHostObj?.name || "Host")
-                        }
-                        alt={activeHostObj?.name}
-                        referrerPolicy="no-referrer"
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500/30 group-hover:opacity-75 transition-opacity"
-                      />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file && activeHostObj)
-                            handleAvatarUpload(activeHostObj.id, file);
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                    <div>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-purple-600 block">
-                        Host Terhubung
-                      </span>
-                      <h4 className="text-xs font-black text-purple-950 pr-2 leading-tight">
-                        {activeHostObj?.name}
-                      </h4>
-                      <div className="flex flex-col gap-0.5 mt-0.5">
-                        <span className="text-[9px] text-purple-400 font-mono font-bold font-semibold">
-                          ID: {activeHostObj?.employeeId}
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <label className="relative block cursor-pointer group">
+                        <img
+                          src={
+                            activeHostObj?.avatar ||
+                            getAvatarUrl(activeHostObj?.name || "Host")
+                          }
+                          alt={activeHostObj?.name}
+                          referrerPolicy="no-referrer"
+                          className="size-12 rounded-full object-cover ring-2 ring-violet-100 transition-opacity group-hover:opacity-80"
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file && activeHostObj)
+                              handleAvatarUpload(activeHostObj.id, file);
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      <div className="min-w-0">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-100 bg-violet-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-violet-700">
+                          Host Connect
                         </span>
-                        <span className="text-[9px] text-indigo-700 font-extrabold flex items-center gap-1">
-                          {activeHostObj?.studio || "Studio Bandar Lampung"}
-                        </span>
+                        <h4 className="mt-2 truncate text-base font-black leading-tight text-slate-950">
+                          {activeHostObj?.name}
+                        </h4>
+                        <div className="mt-1 space-y-0.5">
+                          <p className="text-[11px] font-semibold text-slate-500">
+                            ID: {activeHostObj?.employeeId}
+                          </p>
+                          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                            <MapPin className="h-3.5 w-3.5 text-violet-600" />
+                            <span className="truncate">
+                              {activeHostObj?.studio || "Studio Bandar Lampung"}
+                            </span>
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 relative">
-                    {/* Notifications Dropdown */}
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsHostNotificationOpen(!isHostNotificationOpen);
-                          if (!isHostNotificationOpen && activeHostObj) {
-                            markHostNotificationsAsRead(activeHostObj.id);
-                          }
-                        }}
-                        className="relative p-2 rounded-xl hover:bg-purple-50 text-purple-700 transition-all cursor-pointer border border-transparent hover:border-purple-100 flex items-center justify-center bg-transparent active:scale-95"
-                      >
-                        <Bell className="w-5 h-5 text-purple-600" />
-                        {hostNotifications.filter(
-                          (n) => n.hostId === activeHostObj?.id && !n.read,
-                        ).length > 0 && (
-                          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white shadow-sm animate-pulse"></span>
-                        )}
-                      </button>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-label="Buka notifikasi jadwal host"
+                          onClick={() => {
+                            setIsHostNotificationOpen(
+                              !isHostNotificationOpen,
+                            );
+                            if (!isHostNotificationOpen && activeHostObj) {
+                              markHostNotificationsAsRead(activeHostObj.id);
+                            }
+                          }}
+                          className="relative inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50"
+                        >
+                          <Bell className="h-4.5 w-4.5 text-violet-600" />
+                          {hostNotifications.filter(
+                            (n) => n.hostId === activeHostObj?.id && !n.read,
+                          ).length > 0 && (
+                            <span className="absolute right-2 top-2 size-2 rounded-full border-2 border-white bg-rose-500" />
+                          )}
+                        </button>
 
-                      {isHostNotificationOpen && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setIsHostNotificationOpen(false)}
-                          ></div>
-                          <div className="absolute right-0 top-[120%] w-[280px] bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-purple-100 z-50 overflow-hidden transform opacity-100 scale-100 transition-all origin-top-right">
-                            <div className="p-3.5 border-b border-purple-50 flex justify-between items-center bg-purple-50/40">
-                              <h4 className="text-xs font-black text-purple-900 flex items-center gap-1.5">
-                                <Bell className="w-3.5 h-3.5 text-purple-600 font-bold" />{" "}
-                                Notifikasi Jadwal
-                              </h4>
-                            </div>
-                            <div className="max-h-[300px] overflow-y-auto bg-white">
-                              {hostNotifications.filter(
-                                (n) => n.hostId === activeHostObj?.id,
-                              ).length === 0 ? (
-                                <div className="p-8 flex flex-col items-center text-center text-purple-900/40">
-                                  <Bell className="w-8 h-8 mb-3 opacity-30" />
-                                  <span className="text-[11px] font-bold block text-purple-900/60 leading-snug">
-                                    Tidak Ada Perubahan
-                                  </span>
-                                  <span className="text-[10px] font-medium mt-1">
-                                    Belum ada update jadwal terbaru untuk Anda.
-                                  </span>
-                                </div>
-                              ) : (
-                                hostNotifications
-                                  .filter((n) => n.hostId === activeHostObj?.id)
-                                  .map((notif) => (
-                                    <div
-                                      key={notif.id}
-                                      className="p-3.5 border-b border-purple-50/60 hover:bg-purple-50/40 transition-colors text-left flex items-start gap-3 relative"
-                                    >
-                                      {!notif.read && (
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>
-                                      )}
+                        {isHostNotificationOpen && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-30"
+                              onClick={() => setIsHostNotificationOpen(false)}
+                            />
+                            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-[280px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+                              <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-3">
+                                <h4 className="text-xs font-black text-slate-900">
+                                  Notifikasi Jadwal
+                                </h4>
+                              </div>
+                              <div className="max-h-[280px] overflow-y-auto">
+                                {hostNotifications.filter(
+                                  (n) => n.hostId === activeHostObj?.id,
+                                ).length === 0 ? (
+                                  <div className="px-4 py-8 text-center">
+                                    <Bell className="mx-auto mb-3 h-8 w-8 text-slate-300" />
+                                    <p className="text-xs font-bold text-slate-500">
+                                      Tidak ada update.
+                                    </p>
+                                    <p className="mt-1 text-[11px] text-slate-400">
+                                      Semua jadwal Anda sudah aman.
+                                    </p>
+                                  </div>
+                                ) : (
+                                  hostNotifications
+                                    .filter((n) => n.hostId === activeHostObj?.id)
+                                    .map((notif) => (
                                       <div
-                                        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${notif.title.includes("Dihapus") ? "bg-red-50 text-red-500" : "bg-purple-100 text-purple-600"}`}
+                                        key={notif.id}
+                                        className="border-b border-slate-100 px-4 py-3 text-left last:border-b-0"
                                       >
-                                        <Bell className="w-3.5 h-3.5" />
-                                      </div>
-                                      <div className="flex-1 pr-2">
-                                        <div className="text-[11px] font-black text-slate-800 leading-tight">
+                                        <div className="text-[11px] font-black text-slate-800">
                                           {notif.title}
                                         </div>
-                                        <div className="text-[10px] text-slate-600 mt-1 leading-snug font-medium">
+                                        <div className="mt-1 text-[10px] leading-relaxed text-slate-600">
                                           {notif.message}
                                         </div>
-                                        <div className="text-[8px] font-bold text-slate-400 mt-1.5 flex items-center gap-1">
-                                          <Clock className="w-3 h-3 text-slate-300" />
+                                        <div className="mt-1.5 text-[8px] font-bold text-slate-400">
                                           {new Date(
                                             notif.createdAt,
                                           ).toLocaleDateString("id-ID", {
@@ -4506,23 +4508,52 @@ export default function App() {
                                           })}
                                         </div>
                                       </div>
-                                    </div>
-                                  ))
-                              )}
+                                    ))
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                          </>
+                        )}
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="text-[9.5px] font-black text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-3 py-2 rounded-xl cursor-pointer transition-colors"
-                      id="host_logout_button"
-                    >
-                      LOG OUT
-                    </button>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[9px] font-black uppercase tracking-wide text-red-600 transition-colors hover:bg-red-100"
+                        id="host_logout_button"
+                      >
+                        LOG OUT
+                      </button>
+
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                        <span className="size-1.5 rounded-full bg-emerald-500" />
+                        Aktif
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      Panduan singkat
+                    </p>
+                    <p className="mt-1 text-sm font-semibold leading-6 text-slate-600 text-pretty">
+                      Pilih tab, isi form absen, lalu kirim. Riwayat dan
+                      kalender membantu kamu cek jadwal tanpa harus tanya admin.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[
+                        "1. Absen masuk",
+                        "2. Cek rekap",
+                        "3. Lihat kalender",
+                      ].map((step) => (
+                        <span
+                          key={step}
+                          className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-bold text-slate-600"
+                        >
+                          {step}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -4534,40 +4565,46 @@ export default function App() {
                 <>
                   {/* TAB SWITCHER WITHIN MOBILE VIEW (FORM vs HISTORY COUTERS vs CALENDAR) */}
                   <div
-                    className="flex bg-purple-50/80 rounded-xl p-1 mb-5 border border-purple-100"
+                    className="mb-5 grid grid-cols-3 rounded-2xl border border-slate-200 bg-slate-100 p-1"
                     id="host_sub_tab_switcher"
                   >
                     <button
                       onClick={() => setHostActiveSubTab("form")}
-                      className={`flex-1 text-center py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                      aria-pressed={hostActiveSubTab === "form"}
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[11px] font-black transition-colors cursor-pointer ${
                         hostActiveSubTab === "form"
-                          ? "bg-white text-purple-700 border border-purple-100 shadow-sm"
-                          : "text-purple-600/70 hover:text-purple-900"
+                          ? "bg-white text-violet-700 shadow-sm"
+                          : "text-slate-500 hover:text-slate-800"
                       }`}
                       id="host_sub_tab_form_trigger"
                     >
+                      <UserCheck className="h-3.5 w-3.5" />
                       Absen
                     </button>
                     <button
                       onClick={() => setHostActiveSubTab("history")}
-                      className={`flex-1 text-center py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                      aria-pressed={hostActiveSubTab === "history"}
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[11px] font-black transition-colors cursor-pointer ${
                         hostActiveSubTab === "history"
-                          ? "bg-white text-purple-700 border border-purple-100 shadow-sm"
-                          : "text-purple-600/70 hover:text-purple-900"
+                          ? "bg-white text-violet-700 shadow-sm"
+                          : "text-slate-500 hover:text-slate-800"
                       }`}
                       id="host_sub_tab_history_trigger"
                     >
+                      <ClipboardList className="h-3.5 w-3.5" />
                       Rekap
                     </button>
                     <button
                       onClick={() => setHostActiveSubTab("calendar")}
-                      className={`flex-1 text-center py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                      aria-pressed={hostActiveSubTab === "calendar"}
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[11px] font-black transition-colors cursor-pointer ${
                         hostActiveSubTab === "calendar"
-                          ? "bg-white text-purple-700 border border-purple-100 shadow-sm"
-                          : "text-purple-600/70 hover:text-purple-900"
+                          ? "bg-white text-violet-700 shadow-sm"
+                          : "text-slate-500 hover:text-slate-800"
                       }`}
                       id="host_sub_tab_calendar_trigger"
                     >
+                      <CalendarDays className="h-3.5 w-3.5" />
                       Kalender
                     </button>
                   </div>
@@ -4581,6 +4618,48 @@ export default function App() {
                         : "hidden"
                     }
                   >
+                    <div className="mb-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                        Form absensi hari ini
+                      </p>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-slate-600 text-pretty">
+                        Isi data di bawah sesuai jadwal yang sedang kamu jalani.
+                        Kalau ada yang belum terisi, pilih dulu sebelum submit.
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-bold sm:grid-cols-4">
+                        {[
+                          {
+                            label: "Brand",
+                            value: hostForm.brand || "Pilih brand",
+                          },
+                          {
+                            label: "Platform",
+                            value: hostForm.platform || "Pilih platform",
+                          },
+                          {
+                            label: "Shift",
+                            value: hostForm.shift || "Pilih shift",
+                          },
+                          {
+                            label: "Studio",
+                            value: hostForm.studio || "Pilih studio",
+                          },
+                        ].map((item) => (
+                          <div
+                            key={item.label}
+                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                          >
+                            <div className="text-[9px] uppercase tracking-[0.18em] text-slate-400">
+                              {item.label}
+                            </div>
+                            <div className="mt-1 truncate text-slate-700">
+                              {item.value}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* LATE CHECK-IN SPECIFIC DETAILED NOTIFICATION ALERT */}
                     <AnimatePresence>
                       {showLateAlert && lateCheckInDetails && (
@@ -4588,46 +4667,46 @@ export default function App() {
                           initial={{ opacity: 0, scale: 0.95, y: -15 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: -15 }}
-                          className="mb-4 bg-gradient-to-r from-amber-500 to-red-650 border border-amber-400 text-white p-4 rounded-2xl shadow-md relative overflow-hidden"
+                          className="relative mb-4 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 shadow-sm"
                           id="host_late_alert_notification"
                         >
-                          <div className="absolute -top-3 -right-3 opacity-20">
-                            <Clock className="w-20 h-20 text-white animate-spin-slow" />
+                          <div className="absolute -right-4 -top-4 opacity-10">
+                            <Clock className="h-20 w-20 text-amber-700 animate-spin-slow" />
                           </div>
                           <div className="flex gap-3 items-start relative z-10">
-                            <div className="bg-white/20 text-white p-1.5 rounded-lg flex-shrink-0 animate-bounce">
+                            <div className="flex-shrink-0 rounded-lg bg-white p-1.5 text-amber-600 shadow-sm">
                               <AlertTriangle className="w-4.5 h-4.5" />
                             </div>
                             <div className="flex-1 text-left">
-                              <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-250">
+                              <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-700">
                                 SYSTEM ALARM: TERLAMBAT!
                               </h4>
-                              <p className="text-[11px] font-bold mt-0.5 leading-snug">
+                              <p className="mt-0.5 text-[11px] font-bold leading-snug text-pretty">
                                 Absensi Anda terhitung terlambat melewati batas
                                 jam mulai shift kerja.
                               </p>
-                              <div className="mt-2.5 bg-black/20 rounded-xl p-2 font-mono text-[9px] border border-white/5 space-y-0.5">
+                              <div className="mt-2.5 space-y-0.5 rounded-xl border border-amber-200 bg-white p-2 font-mono text-[9px]">
                                 <div className="flex justify-between">
-                                  <span className="text-white/70">
+                                  <span className="text-amber-700/70">
                                     Waktu Absen:
                                   </span>
-                                  <span className="font-extrabold text-white">
+                                  <span className="font-extrabold text-amber-950">
                                     {lateCheckInDetails.time} WIB
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-white/70">
+                                  <span className="text-amber-700/70">
                                     Shift Terpilih:
                                   </span>
-                                  <span className="font-extrabold text-amber-200">
+                                  <span className="font-extrabold text-amber-900">
                                     {lateCheckInDetails.shift}
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-white/70">
+                                  <span className="text-amber-700/70">
                                     Terlambat:
                                   </span>
-                                  <span className="font-extrabold text-red-200">
+                                  <span className="font-extrabold text-rose-600">
                                     ⏱ +{lateCheckInDetails.diffMinutes} menit
                                   </span>
                                 </div>
@@ -4669,13 +4748,13 @@ export default function App() {
 
                     <form
                       onSubmit={handleHostAttendanceSubmit}
-                      className="space-y-4 flex-1 flex flex-col justify-between"
+                      className="flex flex-1 flex-col justify-between space-y-4"
                       id="host-attendance-form"
                     >
                       <div className="space-y-3.5">
                         {/* BRAND MATCH SELECTION */}
                         <div>
-                          <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans flex justify-between">
+                          <label className="mb-1.5 flex justify-between text-xs font-bold text-slate-700">
                             <span>Brand Besutan:</span>
                             {!hostForm.brand && (
                               <span className="text-[10px] text-red-500 font-bold">
@@ -4694,7 +4773,7 @@ export default function App() {
                                 brand: e.target.value,
                               }));
                             }}
-                            className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:border-purple-500 font-sans transition-all shadow-sm ${!hostForm.brand ? "border-red-200 text-purple-300" : "border-purple-100 text-purple-950"}`}
+                            className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-xs font-black transition-all shadow-sm focus:border-violet-500 focus:outline-none ${!hostForm.brand ? "border-red-200 text-slate-400" : "border-slate-200 text-slate-900"}`}
                           >
                             <option
                               value=""
@@ -4724,7 +4803,7 @@ export default function App() {
 
                         {/* PLATFORM MATCH SELECTION */}
                         <div>
-                          <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans flex justify-between">
+                          <label className="mb-1.5 flex justify-between text-xs font-bold text-slate-700">
                             <span>Platform Streaming:</span>
                             {!hostForm.platform && (
                               <span className="text-[10px] text-red-500 font-bold">
@@ -4743,7 +4822,7 @@ export default function App() {
                                 platform: e.target.value,
                               }));
                             }}
-                            className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:border-purple-500 transition-all shadow-sm ${!hostForm.platform ? "border-red-200 text-purple-300" : "border-purple-100 text-purple-950"}`}
+                            className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-xs font-black transition-all shadow-sm focus:border-violet-500 focus:outline-none ${!hostForm.platform ? "border-red-200 text-slate-400" : "border-slate-200 text-slate-900"}`}
                           >
                             <option
                               value=""
@@ -4766,7 +4845,7 @@ export default function App() {
 
                         {/* SHIFT SELECTION */}
                         <div>
-                          <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans flex justify-between">
+                          <label className="mb-1.5 flex justify-between text-xs font-bold text-slate-700">
                             <span>Shift Kerja Live:</span>
                             {!hostForm.shift && (
                               <span className="text-[10px] text-red-500 font-bold">
@@ -4785,7 +4864,7 @@ export default function App() {
                                 shift: e.target.value,
                               }));
                             }}
-                            className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:border-purple-500 transition-all shadow-sm ${!hostForm.shift ? "border-red-200 text-purple-300" : "border-purple-100 text-purple-950"}`}
+                            className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-xs font-black transition-all shadow-sm focus:border-violet-500 focus:outline-none ${!hostForm.shift ? "border-red-200 text-slate-400" : "border-slate-200 text-slate-900"}`}
                           >
                             <option
                               value=""
@@ -4808,7 +4887,7 @@ export default function App() {
 
                         {/* STUDIO SELECTION */}
                         <div>
-                          <label className="block text-xs font-bold text-purple-950/80 mb-1.5 font-sans flex justify-between">
+                          <label className="mb-1.5 flex justify-between text-xs font-bold text-slate-700">
                             <span>Studio & Lokasi:</span>
                             {!hostForm.studio && (
                               <span className="text-[10px] text-red-500 font-bold">
@@ -4827,7 +4906,7 @@ export default function App() {
                                 studio: e.target.value,
                               }));
                             }}
-                            className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:border-purple-500 transition-all shadow-sm ${!hostForm.studio ? "border-red-200 text-purple-300" : "border-purple-100 text-purple-950"}`}
+                            className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-xs font-black transition-all shadow-sm focus:border-violet-500 focus:outline-none ${!hostForm.studio ? "border-red-200 text-slate-400" : "border-slate-200 text-slate-900"}`}
                           >
                             <option
                               value=""
@@ -4853,7 +4932,7 @@ export default function App() {
                       <button
                         type="submit"
                         id="host_submit_button"
-                        className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-95 text-white py-3.5 rounded-xl text-xs font-bold tracking-wider uppercase transition-all shadow-md shadow-purple-200 mt-4 flex items-center justify-center gap-2 cursor-pointer"
+                        className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-violet-600 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-violet-700 active:scale-[0.99]"
                       >
                         <UserCheck className="w-4 h-4" />
                         SUBMIT ABSEN MASUK
@@ -5487,16 +5566,45 @@ export default function App() {
           const clientBrand = clientBrands.find(
             (b) => b.id === loggedInClientBrandId,
           );
+          const clientAvailableReportDates = getAvailableReportDates(
+            {
+              logs: brandPerformanceLogs.filter(
+                (log) =>
+                  log.brandId === loggedInClientBrandId &&
+                  log.reportType !== "engagement",
+              ),
+              platformFilter: clientPlatformFilter,
+            },
+          );
+          const clientLatestAvailableReportDate =
+            clientAvailableReportDates[
+              clientAvailableReportDates.length - 1
+            ] || "";
+          const clientActiveLatestReportDate =
+            clientDateFilterType === "latest"
+              ? clientSelectedLatestDate &&
+                clientAvailableReportDates.includes(clientSelectedLatestDate)
+                ? clientSelectedLatestDate
+                : clientLatestAvailableReportDate
+              : "";
 
           // Filter the performance logs based on client settings
           const filteredLogs = brandPerformanceLogs.filter((log) => {
-            if (log.brandId !== loggedInClientBrandId) return false;
+            if (
+              log.brandId !== loggedInClientBrandId ||
+              log.reportType === "engagement"
+            )
+              return false;
             if (
               clientPlatformFilter &&
               !isPlatformMatch(log.platform, clientPlatformFilter)
             )
               return false;
             if (log.date) {
+              if (clientDateFilterType === "latest") {
+                if (!clientActiveLatestReportDate) return false;
+                return normalizeDateYMD(log.date) === clientActiveLatestReportDate;
+              }
               if (clientDateFilterType === "month") {
                 const limitDate = new Date();
                 limitDate.setDate(limitDate.getDate() - 30);
@@ -5643,8 +5751,19 @@ export default function App() {
                   <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
                     {(() => {
                       const filteredDb = brandPerformanceLogs.filter(
-                        (log) => log.brandId === loggedInClientBrandId,
+                        (log) =>
+                          log.brandId === loggedInClientBrandId &&
+                          log.reportType !== "engagement",
                       );
+                      const availableReportDates = getAvailableReportDates(
+                        {
+                          logs: filteredDb,
+                          platformFilter: clientPlatformFilter,
+                        },
+                      );
+                      const latestAvailableReportDate =
+                        availableReportDates[availableReportDates.length - 1] ||
+                        "";
                       let effectiveFilter = clientDateFilterType;
                       let targetLatestDate = "";
                       let latestDateLabel = "";
@@ -5652,17 +5771,16 @@ export default function App() {
                       let prevStartDate = "";
                       let prevEndDate = "";
                       if (effectiveFilter === "latest") {
-                        const allDates = Array.from<string>(
-                          new Set(
-                            filteredDb
-                              .map((l) => normalizeDateYMD(l.date))
-                              .filter(Boolean) as string[],
-                          ),
-                        );
-                        allDates.sort();
-                        if (allDates.length > 0) {
-                          targetLatestDate = allDates[allDates.length - 1];
-                          latestDateLabel = targetLatestDate;
+                        if (latestAvailableReportDate) {
+                          const selectedLatestDate =
+                            clientSelectedLatestDate &&
+                            availableReportDates.includes(
+                              clientSelectedLatestDate,
+                            )
+                              ? clientSelectedLatestDate
+                              : latestAvailableReportDate;
+                          targetLatestDate = selectedLatestDate;
+                          latestDateLabel = selectedLatestDate;
                           const d = new Date(targetLatestDate);
                           d.setDate(d.getDate() - 1);
                           prevStartDate =
@@ -5710,6 +5828,30 @@ export default function App() {
                       } else {
                         latestDateLabel = "Semua Waktu";
                       }
+                      const currentLatestDateIndex = targetLatestDate
+                        ? availableReportDates.indexOf(targetLatestDate)
+                        : -1;
+                      const canPrevLatestDate =
+                        currentLatestDateIndex > 0 &&
+                        availableReportDates.length > 0;
+                      const canNextLatestDate =
+                        currentLatestDateIndex >= 0 &&
+                        currentLatestDateIndex <
+                          availableReportDates.length - 1;
+                      const handleClientLatestDateShift = (
+                        direction: -1 | 1,
+                      ) => {
+                        if (availableReportDates.length === 0) return;
+                        const nextDate = shiftAvailableReportDate({
+                          logs: filteredDb,
+                          platformFilter: clientPlatformFilter,
+                          currentDate: targetLatestDate || latestAvailableReportDate,
+                          direction,
+                        });
+                        if (!nextDate) return;
+                        setClientSelectedLatestDate(nextDate);
+                        setClientDateFilterType("latest");
+                      };
                       const tableLogs = filterReportLogs(filteredDb, {
                         filterType: effectiveFilter,
                         latestDate: targetLatestDate,
@@ -5995,6 +6137,25 @@ export default function App() {
                               setIsClientCalendarOpen(false);
                             }}
                             onCancelCustom={() => setIsClientCalendarOpen(false)}
+                            periodLabel={
+                              effectiveFilter === "latest" && targetLatestDate
+                                ? getReportPeriodLabel({
+                                    dateFilterType: clientDateFilterType,
+                                    latestDateLabel,
+                                    targetLatestDate,
+                                    customStartDate:
+                                      clientCustomStartDate,
+                                  })
+                                : undefined
+                            }
+                            onPrevPeriod={() =>
+                              handleClientLatestDateShift(-1)
+                            }
+                            onNextPeriod={() =>
+                              handleClientLatestDateShift(1)
+                            }
+                            canPrevPeriod={canPrevLatestDate}
+                            canNextPeriod={canNextLatestDate}
                           />
 
                           {/* Summary Cards */}
@@ -6014,45 +6175,6 @@ export default function App() {
                               return (
                                 <div className="space-y-6 mb-6">
                                   <div>
-                                    <ReportPeriodNavigator
-                                      title="Performance live"
-                                      label={getReportPeriodLabel({
-                                        dateFilterType: clientDateFilterType,
-                                        latestDateLabel,
-                                        targetLatestDate,
-                                        customStartDate: clientCustomStartDate,
-                                      })}
-                                      onPrev={() =>
-                                        shiftReportPeriodByOneDay({
-                                          direction: -1,
-                                          dateFilterType: clientDateFilterType,
-                                          targetLatestDate,
-                                          customStartDate:
-                                            clientCustomStartDate,
-                                          setDateFilterType:
-                                            setClientDateFilterType,
-                                          setCustomStartDate:
-                                            setClientCustomStartDate,
-                                          setCustomEndDate:
-                                            setClientCustomEndDate,
-                                        })
-                                      }
-                                      onNext={() =>
-                                        shiftReportPeriodByOneDay({
-                                          direction: 1,
-                                          dateFilterType: clientDateFilterType,
-                                          targetLatestDate,
-                                          customStartDate:
-                                            clientCustomStartDate,
-                                          setDateFilterType:
-                                            setClientDateFilterType,
-                                          setCustomStartDate:
-                                            setClientCustomStartDate,
-                                          setCustomEndDate:
-                                            setClientCustomEndDate,
-                                        })
-                                      }
-                                    />
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                                       <ReportMetricCard
                                         label="GMV"

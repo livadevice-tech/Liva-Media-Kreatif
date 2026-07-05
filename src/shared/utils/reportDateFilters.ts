@@ -1,10 +1,22 @@
+import { isPlatformMatch, normalizeDateYMD } from "./appUi";
 import { formatDateYYYYMMDD } from "./date";
+import type { ReportLogLike } from "./reportTable";
 
 type DateFilterType = "latest" | "all" | "month" | "custom" | "weekly";
 
 type BooleanSetter = (value: boolean) => void;
 type StringSetter = (value: string) => void;
 type FilterSetter = (value: "latest" | "all" | "month" | "custom") => void;
+
+interface GetAvailableReportDatesArgs {
+  logs: readonly { date?: string; platform?: string }[];
+  platformFilter?: string;
+}
+
+interface ShiftAvailableReportDateArgs extends GetAvailableReportDatesArgs {
+  currentDate: string;
+  direction: -1 | 1;
+}
 
 interface ApplyDateFilterSelectionArgs {
   value: "latest" | "all" | "month" | "custom";
@@ -57,6 +69,49 @@ export function applyDateFilterSelection({
     setTempStartDate(currentStartDate || formatDateYYYYMMDD(new Date()));
     setTempEndDate(currentEndDate || formatDateYYYYMMDD(new Date()));
   }
+}
+
+export function getAvailableReportDates({
+  logs,
+  platformFilter,
+}: GetAvailableReportDatesArgs) {
+  return Array.from(
+    new Set(
+      logs
+        .filter((log) => isPlatformMatch(log.platform, platformFilter || ""))
+        .map((log) => normalizeDateYMD(log.date || ""))
+        .filter(Boolean) as string[],
+    ),
+  ).sort();
+}
+
+export function getLatestAvailableReportDate(
+  args: GetAvailableReportDatesArgs,
+) {
+  const availableDates = getAvailableReportDates(args);
+  return availableDates[availableDates.length - 1] || "";
+}
+
+export function shiftAvailableReportDate({
+  logs,
+  platformFilter,
+  currentDate,
+  direction,
+}: ShiftAvailableReportDateArgs) {
+  const availableDates = getAvailableReportDates({ logs, platformFilter });
+  if (availableDates.length === 0) {
+    return "";
+  }
+
+  const currentIndex = currentDate
+    ? availableDates.indexOf(currentDate)
+    : availableDates.length - 1;
+  const baseIndex = currentIndex >= 0 ? currentIndex : availableDates.length - 1;
+  const nextIndex = Math.min(
+    Math.max(baseIndex + direction, 0),
+    availableDates.length - 1,
+  );
+  return availableDates[nextIndex];
 }
 
 export function getReportPeriodLabel({

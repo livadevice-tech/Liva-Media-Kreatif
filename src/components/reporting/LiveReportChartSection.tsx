@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  Area,
   CartesianGrid,
   Line,
   ResponsiveContainer,
@@ -146,16 +145,10 @@ export function LiveReportChartSection({
 
       <div className="h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <RechartsComposedChart
-            data={visibleData}
-            margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="gmvGradientNew" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#5600e0" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#5600e0" stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
+        <RechartsComposedChart
+          data={visibleData}
+          margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+        >
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
@@ -202,14 +195,13 @@ export function LiveReportChartSection({
                 name,
               ]}
             />
-            <Area
+            <Line
               yAxisId="left"
               type="monotone"
               name="GMV"
               dataKey="gmv"
               stroke="#5600e0"
               strokeWidth={2}
-              fill="url(#gmvGradientNew)"
               dot={false}
               activeDot={{ r: 5, fill: "#5600e0", stroke: "#fff", strokeWidth: 2 }}
             />
@@ -220,7 +212,6 @@ export function LiveReportChartSection({
               dataKey="penonton"
               stroke="#60a5fa"
               strokeWidth={2}
-              strokeDasharray="4 4"
               dot={false}
               activeDot={{ r: 5, fill: "#60a5fa", stroke: "#fff", strokeWidth: 2 }}
             />
