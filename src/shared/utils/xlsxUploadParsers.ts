@@ -370,7 +370,9 @@ export function parseSkuUploadRows(
         header.includes("sku") ||
         header.includes("induk") ||
         header.includes("product id") ||
-        header.includes("item id")
+        header.includes("item id") ||
+        header.includes("id produk") ||
+        header.includes("id barang")
       ) {
         sku = String(val);
       } else if (
@@ -382,7 +384,9 @@ export function parseSkuUploadRows(
         header.includes("items sold") ||
         header.includes("attributed items sold") ||
         header.includes("barang terjual") ||
-        header.includes("units sold")
+        header.includes("units sold") ||
+        header.includes("unit terjual") ||
+        header.includes("item terjual")
       ) {
         sold = parseSkuNumber(val);
       } else if (
