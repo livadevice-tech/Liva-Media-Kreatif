@@ -1233,7 +1233,7 @@ export default function App() {
   const [newHostWorkingDaysTarget, setNewHostWorkingDaysTarget] =
     useState<number>(26);
 
-  const handleUpdateHost = (
+  const handleUpdateHost = async (
     hostId: string,
     updatedFields: Partial<HostEmployee>,
   ) => {
@@ -1245,16 +1245,28 @@ export default function App() {
           }
         : updatedFields;
 
-    setHosts((prev) =>
-      prev.map((h) => {
-        if (h.id === hostId) {
-          return { ...h, ...normalizedFields };
-        }
-        return h;
-      }),
-    );
-    customAlert("Data host berhasil diperbarui di database!");
-    setTimeout(() => {}, 4000);
+    const hostToUpdate = hosts.find((h) => h.id === hostId);
+    if (!hostToUpdate) return;
+
+    const finalHost = { ...hostToUpdate, ...normalizedFields };
+
+    try {
+      if (typeof hostsApi !== "undefined" && hostsApi.update) {
+        await hostsApi.update(hostId, finalHost);
+      }
+      setHosts((prev) =>
+        prev.map((h) => {
+          if (h.id === hostId) {
+            return finalHost;
+          }
+          return h;
+        }),
+      );
+      customAlert("Data host berhasil diperbarui di database!");
+    } catch (error) {
+      console.error("Gagal update host:", error);
+      customAlert("Gagal memperbarui data host ke server.");
+    }
   };
 
   const handleAvatarUpload = (hostId: string, file: File) => {
@@ -1289,7 +1301,7 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
-  const handleAddHost = (newHostData: {
+  const handleAddHost = async (newHostData: {
     name: string;
     role: string;
     phone: string;
@@ -1340,25 +1352,42 @@ export default function App() {
       customWorkingDaysTarget: newHostData.customWorkingDaysTarget,
     };
 
-    setHosts((prev) => [...prev, newHost]);
-    customAlert(`Host "${newHost.name}" berhasil didaftarkan ke sistem!`);
-    setTimeout(() => {}, 4000);
+    try {
+      if (typeof hostsApi !== "undefined" && hostsApi.create) {
+        const res = await hostsApi.create(newHost);
+        if (res && res.id && res.id !== id) {
+          newHost.id = res.id;
+        }
+      }
+      setHosts((prev) => [...prev, newHost]);
+      customAlert(`Host "${newHost.name}" berhasil didaftarkan ke sistem!`);
+    } catch (error) {
+      console.error("Gagal mendaftarkan host:", error);
+      customAlert("Gagal mendaftarkan host ke server.");
+    }
   };
 
-  const handleDeleteHost = (hostId: string) => {
+  const handleDeleteHost = async (hostId: string) => {
     if (hosts.length <= 1) {
       customAlert("Gagal! Harus ada minimal 1 Host di sistem.");
-
       return;
     }
     const hostToDelete = hosts.find((h) => h.id === hostId);
-    setHosts((prev) => prev.filter((h) => h.id !== hostId));
-    customAlert(`Host "${hostToDelete?.name || hostId}" berhasil dihapus.`);
-    setTimeout(() => {}, 4000);
 
-    // Safety check: if host logged in, logout
-    if (loggedInHostId === hostId) {
-      handleLogout();
+    try {
+      if (typeof hostsApi !== "undefined" && hostsApi.delete) {
+        await hostsApi.delete(hostId);
+      }
+      setHosts((prev) => prev.filter((h) => h.id !== hostId));
+      customAlert(`Host "${hostToDelete?.name || hostId}" berhasil dihapus.`);
+
+      // Safety check: if host logged in, logout
+      if (loggedInHostId === hostId) {
+        handleLogout();
+      }
+    } catch (error) {
+      console.error("Gagal menghapus host:", error);
+      customAlert("Gagal menghapus host dari server.");
     }
   };
 
