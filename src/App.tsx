@@ -3724,7 +3724,7 @@ export default function App() {
     }
   };
 
-  const handleConfirmMapping = () => {
+  const handleConfirmMapping = async () => {
     if (!uploadBrand || !uploadPlatform) return;
     const rb = clientBrands.find((b) => b.name === uploadBrand);
     const targetId = rb ? rb.id : uploadBrand;
@@ -3737,56 +3737,121 @@ export default function App() {
     if (parsedData.length > 0) {
       const newUploadId = "upl-" + Date.now();
 
-      setBrandReports((prev) => {
-        const existingData = prev[targetId] || [];
-        const merged = [...existingData];
-        parsedData.forEach((pd) => {
-          const rowWithUploadId: BrandReportRow = {
-            ...pd,
-            uploadId: newUploadId,
-          };
-          const idx = merged.findIndex(
-            (m) => m.name === rowWithUploadId.name && m.platform === rowWithUploadId.platform,
-          );
-          if (idx >= 0) merged[idx] = rowWithUploadId;
-          else merged.push(rowWithUploadId);
-        });
-        merged.sort(
-          (a, b) =>
-            new Date(a.name).getTime() - new Date(b.name).getTime() || 0,
-        );
-        return { ...prev, [targetId]: merged };
+      // Bangun batch record untuk API (format UploadHistoryEntry)
+      const batchRecord: UploadHistoryEntry = {
+        id: newUploadId,
+        brandId: rb?.id,
+        brandName: uploadBrand,
+        platform: uploadPlatform,
+        fileName: selectedFile?.name || "Mapped File",
+        uploadedAt: new Date().toISOString(),
+        rowCount: parsedData.length,
+        gmv: parsedData.reduce((sum, r) => sum + (r.gmv || 0), 0),
+        reportType: "live",
+      };
+
+      // Konversi MappingUploadRow[] ke BrandPerformanceLogEntry[] untuk API
+      // MappingUploadRow is a minimal type; cast via unknown to access optional fields
+      const apiRows: BrandPerformanceLogEntry[] = parsedData.map((rawPd) => {
+        const pd = rawPd as unknown as BrandReportRow;
+        return {
+          id: `${newUploadId}_${rawPd.name}_${rawPd.platform}`.replace(/\s+/g, "_"),
+          batchId: newUploadId,
+          brandId: targetId,
+          brandName: uploadBrand,
+          platform: uploadPlatform,
+          title: rawPd.name,
+          date: pd.date || rawPd.name,
+          dateTime: pd.dateTime,
+          reportType: "live",
+          shift: pd.shift,
+          gmv: rawPd.gmv,
+          products_sold: rawPd.items_sold,
+          buyers: pd.buyers,
+          aov: pd.aov,
+          views: rawPd.views,
+          impressions: rawPd.impressions,
+          penonton: rawPd.viewers,
+          liveVisits: pd.liveVisits,
+          productImpressions: pd.productImpressions,
+          clicks: rawPd.clicks,
+          orders: rawPd.orders,
+          followers: pd.followers,
+          likes: pd.likes,
+          shares: pd.shares,
+          comments: pd.comments,
+          avgViewDuration: pd.avgViewDuration,
+          peakViewers: pd.peakViewers,
+          shopVouchers: pd.shopVouchers,
+          specialVouchers: pd.specialVouchers,
+          coinsClaimed: pd.coinsClaimed,
+          hasFunnelInFile: pd.hasFunnelInFile,
+        };
       });
 
-      if (rb) {
-        setActiveReportBrandId(rb.id);
+      try {
+        // Simpan ke MySQL terlebih dahulu (agar data tidak hilang saat refresh)
+        await reportingBrandApi.createBatch({
+          batch: batchRecord,
+          rows: apiRows,
+        });
+
+        // Setelah berhasil disimpan, update state lokal
+        setBrandReports((prev) => {
+          const existingData = prev[targetId] || [];
+          const merged = [...existingData];
+          parsedData.forEach((pd) => {
+            const rowWithUploadId: BrandReportRow = {
+              ...pd,
+              uploadId: newUploadId,
+            };
+            const idx = merged.findIndex(
+              (m) => m.name === rowWithUploadId.name && m.platform === rowWithUploadId.platform,
+            );
+            if (idx >= 0) merged[idx] = rowWithUploadId;
+            else merged.push(rowWithUploadId);
+          });
+          merged.sort(
+            (a, b) =>
+              new Date(a.name).getTime() - new Date(b.name).getTime() || 0,
+          );
+          return { ...prev, [targetId]: merged };
+        });
+
+        setBrandUploadHistory((prev) => [...prev, batchRecord]);
+        setUploadHistory((prev) => [
+          {
+            ...batchRecord,
+            brand: uploadBrand,
+            filename: selectedFile?.name || "Mapped File",
+            date: new Date().toISOString(),
+            rowsAdded: parsedData.length,
+          },
+          ...prev,
+        ]);
+
+        if (rb) {
+          setActiveReportBrandId(rb.id);
+        }
+
+        setIsUploadModalOpen(false);
+        setShowMappingModal(false);
+        setMappingRawData([]);
+        setMappingHeaders([]);
+        customAlert(
+          `File ${selectedFile?.name} untuk brand ${uploadBrand} berhasil disinkronisasi! (${parsedData.length} baris)`,
+        );
+      } catch (error) {
+        console.error("Gagal menyimpan mapping upload ke MySQL:", error);
+        customAlert("Gagal menyimpan data mapping ke server. Coba lagi.");
       }
-
-      setUploadHistory((prev) => [
-        {
-          id: newUploadId,
-          brand: uploadBrand,
-          platform: uploadPlatform,
-          filename: selectedFile?.name || "Mapped File",
-          date: new Date().toISOString(),
-          rowsAdded: parsedData.length,
-        },
-        ...prev,
-      ]);
-
-      setIsUploadModalOpen(false);
-      setShowMappingModal(false);
-      setMappingRawData([]);
-      setMappingHeaders([]);
-      customAlert(
-        `File ${selectedFile?.name} untuk brand ${uploadBrand} berhasil disinkronisasi! (${parsedData.length} baris)`,
-      );
     } else {
       customAlert(
         "Tidak ada data valid yang bisa disinkronkan dari hasil pemetaan ini.",
       );
     }
   };
+
 
   const handleBulkDelete = () => {
     if (selectedLogIds.length === 0) return;
