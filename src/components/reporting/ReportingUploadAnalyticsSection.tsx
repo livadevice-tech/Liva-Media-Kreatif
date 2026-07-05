@@ -157,43 +157,43 @@ export function ReportingUploadAnalyticsSection({
               Penonton Sesi (Views)
             </p>
             <h3 className="text-lg sm:text-xl font-black text-white font-mono mt-0.5">
-              {idFormat.format(reportingUploadSummary.totalViewerReach)}
+              {idFormat.format(reportingUploadSummary.totalViews || reportingUploadSummary.totalViewerReach)}
             </h3>
             <p className="text-[8px] text-slate-500 font-semibold mt-0.5">
-              Unique Impressions
+              Views
             </p>
           </div>
           <div>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-green-300">
-              Pengikut Baru (Fans)
+              Product Clicks
             </p>
             <h3 className="text-lg sm:text-xl font-black text-green-400 font-mono mt-0.5">
-              +{idFormat.format(reportingUploadSummary.totalFollowers)}
+              {idFormat.format(reportingUploadSummary.totalClicks)}
             </h3>
             <p className="text-[8px] text-green-300 font-semibold mt-0.5">
-              Followers Gained
+              Klik produk
             </p>
           </div>
           <div>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-rose-300">
-              Total Likes
+              Attributed Orders
             </p>
             <h3 className="text-lg sm:text-xl font-black text-pink-400 font-mono mt-0.5">
-              {idFormat.format(reportingUploadSummary.totalLikes)}
+              {idFormat.format(reportingUploadSummary.totalBuyerConversions)}
             </h3>
             <p className="text-[8px] text-pink-300 font-semibold mt-0.5">
-              Stream Likes
+              Pesanan teratribusi
             </p>
           </div>
           <div>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-cyan-300">
-              Dibagikan (Shares)
+              Convertion Rate
             </p>
             <h3 className="text-lg sm:text-xl font-black text-cyan-400 font-mono mt-0.5">
-              {idFormat.format(reportingUploadSummary.totalShares)}
+              {reportingUploadSummary.overallCvr.toFixed(2)}%
             </h3>
             <p className="text-[8px] text-cyan-300 font-semibold mt-0.5 max-w-full truncate">
-              Session Shared
+              Views to Orders
             </p>
           </div>
         </div>
@@ -414,31 +414,31 @@ export function ReportingUploadAnalyticsSection({
             activeReportPlatform === "TikTok Live"
               ? [
                   {
-                    label: "Viewer Reach",
-                    value: idFormat.format(reportingUploadSummary.totalViewerReach),
-                    raw: reportingUploadSummary.totalViewerReach,
-                  },
-                  {
-                    label: "Active Viewers",
-                    value: idFormat.format(reportingUploadSummary.totalLiveVisits),
-                    raw: reportingUploadSummary.totalLiveVisits,
-                  },
-                  {
-                    label: "Product Views",
+                    label: "Views",
                     value: idFormat.format(
-                      reportingUploadSummary.totalProductImpressions,
+                      reportingUploadSummary.totalViews ||
+                        reportingUploadSummary.totalViewerReach,
                     ),
-                    raw: reportingUploadSummary.totalProductImpressions,
+                    raw:
+                      reportingUploadSummary.totalViews ||
+                      reportingUploadSummary.totalViewerReach,
                   },
                   {
-                    label: "Product Clicks",
+                    label: "Product clicks",
                     value: idFormat.format(reportingUploadSummary.totalClicks),
                     raw: reportingUploadSummary.totalClicks,
                   },
                   {
-                    label: "Paid Buyers",
-                    value: idFormat.format(reportingUploadSummary.totalBuyerConversions),
+                    label: "Attributed orders",
+                    value: idFormat.format(
+                      reportingUploadSummary.totalBuyerConversions,
+                    ),
                     raw: reportingUploadSummary.totalBuyerConversions,
+                  },
+                  {
+                    label: "Convertion Rate",
+                    value: `${reportingUploadSummary.overallCvr.toFixed(2)}%`,
+                    raw: reportingUploadSummary.overallCvr,
                   },
               ]
               : [

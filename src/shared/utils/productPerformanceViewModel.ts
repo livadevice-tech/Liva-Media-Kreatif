@@ -42,10 +42,15 @@ export function buildProductPerformanceViewModel({
   operatorShiftFilters,
   reportDbSearchQuery,
 }: BuildProductPerformanceViewModelInput): BuildProductPerformanceViewModelResult {
-  const targetLatestDate = getLatestDateForBrand(
+  const brandLatestDate = getLatestDateForBrand(
     brandPerformanceLogs,
     activeReportBrandId,
   );
+  const skuLatestDate = getLatestDateForBrand(
+    shopeeSkuLogs,
+    activeReportBrandId,
+  );
+  const targetLatestDate = brandLatestDate || skuLatestDate;
   const effectiveLatestDate =
     operatorDateFilterType === "latest" && selectedLatestDate
       ? selectedLatestDate
