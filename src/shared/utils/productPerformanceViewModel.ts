@@ -5,7 +5,10 @@ import {
   getLatestDateForBrand,
 } from "./skuReporting";
 import { getIndonesianMonthLabel } from "./reporting";
-import { getReportPeriodLabel } from "./reportDateFilters";
+import {
+  getAvailableReportDates,
+  getReportPeriodLabel,
+} from "./reportDateFilters";
 
 export interface BuildProductPerformanceViewModelInput {
   shopeeSkuLogs: readonly SkuLogEntry[];
@@ -51,8 +54,14 @@ export function buildProductPerformanceViewModel({
     activeReportBrandId,
   );
   const targetLatestDate = brandLatestDate || skuLatestDate;
+  const skuAvailableDates = getAvailableReportDates({
+    logs: shopeeSkuLogs,
+    platformFilter: operatorPlatformFilter,
+  });
   const effectiveLatestDate =
-    operatorDateFilterType === "latest" && selectedLatestDate
+    operatorDateFilterType === "latest" &&
+    selectedLatestDate &&
+    skuAvailableDates.includes(selectedLatestDate)
       ? selectedLatestDate
       : targetLatestDate;
 
