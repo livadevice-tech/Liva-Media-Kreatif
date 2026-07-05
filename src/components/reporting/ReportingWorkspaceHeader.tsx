@@ -392,9 +392,6 @@ export function ReportingWorkspaceHeader({
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <div className="min-w-[150px] px-2 text-center">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#7f6ea8]">
-                    Tanggal Data
-                  </p>
                   <p className="mt-0.5 text-xs font-black text-[#5600e0]">
                     {periodLabel}
                   </p>
