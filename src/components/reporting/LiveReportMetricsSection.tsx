@@ -46,7 +46,6 @@ export function LiveReportMetricsSection({
     pTotalClicksDb,
     pAvgViewDurationDb,
     totalDbImpressions,
-    totalDbLiveVisits,
     totalDbClicks,
     totalDbOrdersFunnel,
     gmvPerHour,
@@ -199,24 +198,30 @@ export function LiveReportMetricsSection({
               subtitle=""
               steps={[
                 {
-                  label: "Viewer Reach",
+                  label: "Views",
                   value: new Intl.NumberFormat("id-ID").format(totalDbImpressions),
                   raw: totalDbImpressions,
                 },
                 {
-                  label: "Active Viewers",
-                  value: new Intl.NumberFormat("id-ID").format(totalDbLiveVisits),
-                  raw: totalDbLiveVisits,
-                },
-                {
-                  label: "Product Clicks",
+                  label: "Product clicks",
                   value: new Intl.NumberFormat("id-ID").format(totalDbClicks),
                   raw: totalDbClicks,
                 },
                 {
-                  label: "Paid Buyers",
+                  label: "Attributed orders",
                   value: new Intl.NumberFormat("id-ID").format(totalDbOrdersFunnel),
                   raw: totalDbOrdersFunnel,
+                },
+                {
+                  label: "Convertion Rate",
+                  value:
+                    totalDbImpressions > 0
+                      ? `${((totalDbOrdersFunnel / totalDbImpressions) * 100).toFixed(2)}%`
+                      : "0.00%",
+                  raw:
+                    totalDbImpressions > 0
+                      ? (totalDbOrdersFunnel / totalDbImpressions) * 100
+                      : 0,
                 },
               ]}
             />
