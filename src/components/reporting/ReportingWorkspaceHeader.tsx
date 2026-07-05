@@ -243,18 +243,28 @@ export function ReportingWorkspaceHeader({
             </div>
           </div>
           
-          {/* Mobile Menu Button (Kebab) - Hidden on sm+ */}
-          <button
-            type="button"
-            onClick={openRawMenu}
-            className="flex sm:hidden h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-transparent text-slate-400 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2 relative"
-            aria-haspopup="menu"
-            aria-expanded={isRawMenuOpen}
-          >
-            <MoreVertical className="h-5 w-5 shrink-0" />
+          <div className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={openRawMenu}
+              className="inline-flex h-[42px] sm:h-[48px] items-center justify-center gap-2 sm:gap-3 rounded-[16px] sm:rounded-[20px] bg-[#5200ff] px-3 sm:px-5 shadow-[0_8px_16px_-6px_rgba(82,0,255,0.4)] transition-all hover:bg-[#4300cc] focus:outline-none focus:ring-2 focus:ring-[#5200ff] focus:ring-offset-2 active:scale-95"
+              aria-haspopup="menu"
+              aria-expanded={isRawMenuOpen}
+            >
+              <Upload className="h-4 w-4 sm:h-[18px] sm:w-[18px] shrink-0 text-white" strokeWidth={2.5} />
+              <div className="flex flex-col items-start leading-[1.1] text-left hidden sm:flex">
+                <span className="text-[13px] sm:text-[14px] font-bold text-white">Upload</span>
+                <span className="text-[13px] sm:text-[14px] font-bold text-white">Data</span>
+              </div>
+              <div className="flex flex-col items-start leading-[1.1] text-left sm:hidden">
+                <span className="text-[12px] font-bold text-white">Upload</span>
+                <span className="text-[12px] font-bold text-white">Data</span>
+              </div>
+              <ChevronDown className="h-4 w-4 sm:h-[18px] sm:w-[18px] shrink-0 text-white opacity-80" strokeWidth={2.5} />
+            </button>
             
             {isRawMenuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+              <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
                 <div className="space-y-1">
                   <button
                     type="button"
@@ -295,7 +305,7 @@ export function ReportingWorkspaceHeader({
                 </div>
               </div>
             )}
-          </button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3 pt-3 sm:pt-4 sm:flex-row sm:items-center sm:justify-between pb-3">
@@ -510,59 +520,7 @@ export function ReportingWorkspaceHeader({
 
           </div>
 
-          <div className="relative mt-1 lg:mt-0 w-full sm:w-auto hidden sm:block">
-            <button
-              type="button"
-              onClick={openRawMenu}
-              className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2.5 rounded-[12px] bg-[#5600e0] px-5 text-[14px] font-bold text-white shadow-md transition-colors hover:bg-[#4300b3] focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2"
-              aria-haspopup="menu"
-              aria-expanded={isRawMenuOpen}
-            >
-              <Upload className="h-4 w-4 shrink-0" />
-              <span>Upload Data</span>
-              <ChevronDown className="h-4 w-4 shrink-0 opacity-80" />
-            </button>
 
-            {isRawMenuOpen && (
-              <div className="absolute right-0 left-auto top-full z-50 mt-2 w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
-                <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onImportRawLive();
-                      setIsRawMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  >
-                    <Layers3 className="h-4 w-4 text-[#5600e0]" />
-                    Upload Raw Data Live
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onImportRawProduct();
-                      setIsRawMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  >
-                    <ShoppingBag className="h-4 w-4 text-[#ff6a00]" />
-                    Upload Raw Data Product
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onImportRawEngagement();
-                      setIsRawMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  >
-                    <Settings2 className="h-4 w-4 text-[#0f766e]" />
-                    Upload Raw Data Engagement
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </section>
@@ -614,16 +572,4 @@ export function ReportingWorkspaceTabs({
   );
 }
 
-export function ReportingWorkspaceFilterLanjutan() {
-  return (
-    <div className="px-4 mb-4 sm:hidden">
-      <button
-        type="button"
-        className="inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 shadow-sm"
-      >
-        <Filter className="h-3.5 w-3.5 text-slate-500" />
-        Filter lanjutan
-      </button>
-    </div>
-  );
-}
+

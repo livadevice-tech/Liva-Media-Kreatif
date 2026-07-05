@@ -261,7 +261,6 @@ import { LeadFormModal } from "./components/reporting/LeadFormModal";
 import {
   ReportingWorkspaceHeader,
   ReportingWorkspaceTabs,
-  ReportingWorkspaceFilterLanjutan,
 } from "./components/reporting/ReportingWorkspaceHeader";
 import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSelectionPanel";
 import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
@@ -13883,7 +13882,6 @@ export default function App() {
                             activeTab={operatorReportingTab}
                             onTabChange={setOperatorReportingTab}
                           />
-                          <ReportingWorkspaceFilterLanjutan />
 
                           <DeleteByDateModal
                             isOpen={isDeleteByDateModalOpen}
