@@ -374,23 +374,24 @@ export function parseSkuUploadRows(
       ) {
         sku = String(val);
       } else if (
-        header.includes("produk terjual(pesanan dibayar)") ||
-        header.includes("produk terjual (pesanan dibayar)") ||
+        (header.includes("produk terjual") &&
+          (header.includes("pesanan dibayar") ||
+            header.includes("pesanan dibuat") ||
+            header.includes("siap dikirim"))) ||
         header.includes("jumlah terjual") ||
         header.includes("items sold") ||
-        header.includes("produk terjual(pesanan dibuat)") ||
         header.includes("attributed items sold") ||
         header.includes("barang terjual") ||
         header.includes("units sold")
       ) {
         sold = parseSkuNumber(val);
       } else if (
-        header.includes("penjualan(pesanan dibayar)") ||
-        header.includes("penjualan (pesanan dibayar)") ||
+        (header.includes("penjualan") &&
+          (header.includes("pesanan dibayar") ||
+            header.includes("pesanan dibuat") ||
+            header.includes("siap dikirim"))) ||
         header.includes("revenue") ||
         header.includes("gmv") ||
-        header.includes("penjualan(pesanan dibuat)") ||
-        header.includes("penjualan (idr)") ||
         header.includes("attributed gmv") ||
         header.includes("pendapatan") ||
         header.includes("sales")
