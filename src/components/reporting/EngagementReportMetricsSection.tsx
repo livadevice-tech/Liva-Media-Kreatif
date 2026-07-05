@@ -32,7 +32,7 @@ export function EngagementReportMetricsSection({
           <Users className="h-5 w-5 text-[#5600e0]" /> Interaksi (Engagement)
         </h4>
 
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
           <ReportMetricCard
             label="Views"
             cur={model.totalImpressions}

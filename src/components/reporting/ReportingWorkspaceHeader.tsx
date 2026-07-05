@@ -530,7 +530,7 @@ export function ReportingWorkspaceTabs({
     }`;
 
   return (
-    <div className="mb-6 mt-2 flex flex-wrap gap-x-8 gap-y-2 border-b border-[#e8e1fb] px-6 sm:px-8">
+    <div className="mb-6 mt-2 flex gap-x-8 border-b border-[#e8e1fb] px-4 sm:px-8 overflow-x-auto whitespace-nowrap hide-scrollbar">
       <button
         type="button"
         onClick={() => onTabChange("live")}

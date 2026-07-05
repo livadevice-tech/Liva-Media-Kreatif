@@ -37,7 +37,7 @@ export function ReportMetricCard({
           {label}
         </div>
       </div>
-      <div className="font-display mb-1.5 text-2xl font-black tracking-tight text-slate-900 tabular-nums">
+      <div className="font-display mb-1.5 text-xl sm:text-2xl font-black tracking-tight text-slate-900 tabular-nums truncate">
         {prefix}
         {value}
         {suffix}
