@@ -327,6 +327,7 @@ const mapReportingRow = (row: any) => ({
   date: row.report_date,
   dateTime: row.report_datetime,
   shift: row.shift,
+  duration: Number(row.duration || 0),
   gmv: Number(row.gmv || 0),
   products_sold: Number(row.products_sold || 0),
   buyers: Number(row.buyers || 0),
@@ -383,7 +384,7 @@ app.get("/api/reporting/brand", asyncHandler(async (req, res) => {
   // diperlukan sebagai arsip impor dan dapat membuat response menjadi sangat besar.
   let rowSql = `
     SELECT id, batch_id, brand_id, brand_name, platform, source_kind, report_type,
-           title, report_date, report_datetime, shift, gmv, products_sold, buyers,
+           title, report_date, report_datetime, shift, duration, gmv, products_sold, buyers,
            aov, views, impressions, penonton, live_visits, product_impressions,
            clicks, orders, followers, likes, shares, comments, avg_view_duration,
            peak_viewers, shop_vouchers, special_vouchers, coins_claimed,
@@ -456,13 +457,14 @@ app.post("/api/reporting/brand/batch", asyncHandler(async (req, res) => {
 
     const rowsArray = Array.isArray(rows) ? rows : [];
     if (rowsArray.length > 0) {
+      const rowPlaceholder = `(${Array.from({ length: 34 }, () => "?").join(",")})`;
       const rowSql = `
         INSERT INTO reporting_upload_rows (
           id, batch_id, brand_id, brand_name, platform, source_kind, report_type, title, report_date, report_datetime, shift,
-          gmv, products_sold, buyers, aov, views, impressions, penonton, live_visits, product_impressions, clicks, orders,
+          duration, gmv, products_sold, buyers, aov, views, impressions, penonton, live_visits, product_impressions, clicks, orders,
           followers, likes, shares, comments, avg_view_duration, peak_viewers, shop_vouchers, special_vouchers, coins_claimed,
           has_funnel_in_file, raw_payload
-        ) VALUES ${rowsArray.map(() => "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").join(",")}
+        ) VALUES ${rowsArray.map(() => rowPlaceholder).join(",")}
       `;
       const params: any[] = [];
       for (const row of rowsArray) {
@@ -478,6 +480,7 @@ app.post("/api/reporting/brand/batch", asyncHandler(async (req, res) => {
           row.date || null,
           row.dateTime || null,
           row.shift || null,
+          Number(row.duration || 0),
           Number(row.gmv || 0),
           Number(row.products_sold || 0),
           Number(row.buyers || 0),
@@ -836,6 +839,7 @@ async function runMigrations() {
         report_date        DATE          DEFAULT NULL,
         report_datetime    DATETIME      DEFAULT NULL,
         shift              VARCHAR(100)  DEFAULT NULL,
+        duration           INT           DEFAULT 0,
         gmv                DECIMAL(18,2) DEFAULT 0,
         products_sold      DECIMAL(18,2) DEFAULT 0,
         buyers             DECIMAL(18,2) DEFAULT 0,
@@ -872,6 +876,35 @@ async function runMigrations() {
     console.log('✅ Migration: tabel reporting_upload_rows dipastikan ada.');
   } catch (e: any) {
     console.warn('Migration reporting_upload_rows warning:', e?.message);
+  }
+
+  try {
+    await execute(`ALTER TABLE reporting_upload_rows ADD COLUMN duration INT DEFAULT 0`, []);
+    console.log('✅ Migration: kolom duration ditambahkan ke reporting_upload_rows.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom duration sudah ada di reporting_upload_rows.');
+    } else {
+      console.warn('Migration duration column warning:', e?.message);
+    }
+  }
+
+  try {
+    await execute(
+      `
+        UPDATE reporting_upload_rows
+        SET duration = COALESCE(
+          NULLIF(duration, 0),
+          CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(raw_payload, '$.duration')), '') AS UNSIGNED),
+          0
+        )
+        WHERE (duration IS NULL OR duration = 0) AND raw_payload IS NOT NULL
+      `,
+      [],
+    );
+    console.log('✅ Migration: duration reporting_upload_rows diisi dari raw_payload bila ada.');
+  } catch (e: any) {
+    console.warn('Migration duration backfill warning:', e?.message);
   }
 }
 
