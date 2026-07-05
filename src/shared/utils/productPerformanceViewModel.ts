@@ -12,6 +12,7 @@ export interface BuildProductPerformanceViewModelInput {
   brandPerformanceLogs: readonly BrandPerformanceLogEntry[];
   activeReportBrandId: string;
   operatorDateFilterType: "all" | "latest" | "month" | "custom";
+  selectedLatestDate?: string;
   operatorCustomStartDate: string;
   operatorCustomEndDate: string;
   operatorSelectedMonth: string;
@@ -33,6 +34,7 @@ export function buildProductPerformanceViewModel({
   brandPerformanceLogs,
   activeReportBrandId,
   operatorDateFilterType,
+  selectedLatestDate,
   operatorCustomStartDate,
   operatorCustomEndDate,
   operatorSelectedMonth,
@@ -44,11 +46,15 @@ export function buildProductPerformanceViewModel({
     brandPerformanceLogs,
     activeReportBrandId,
   );
+  const effectiveLatestDate =
+    operatorDateFilterType === "latest" && selectedLatestDate
+      ? selectedLatestDate
+      : targetLatestDate;
 
   const currentSkus = filterSkuLogs(shopeeSkuLogs, {
     brandId: activeReportBrandId,
     dateFilterType: operatorDateFilterType,
-    latestDate: targetLatestDate,
+    latestDate: effectiveLatestDate,
     customStartDate: operatorCustomStartDate,
     customEndDate: operatorCustomEndDate,
     selectedMonth: operatorSelectedMonth,
@@ -64,8 +70,8 @@ export function buildProductPerformanceViewModel({
         ? operatorSelectedMonth
           ? getIndonesianMonthLabel(operatorSelectedMonth)
           : "Semua Waktu"
-        : "Semua Waktu",
-    targetLatestDate,
+        : effectiveLatestDate || "Semua Waktu",
+    targetLatestDate: effectiveLatestDate,
     customStartDate: operatorCustomStartDate,
   });
 
@@ -73,7 +79,7 @@ export function buildProductPerformanceViewModel({
   const totalSold = aggregatedSkus.reduce((sum, item) => sum + item.sold, 0);
 
   return {
-    targetLatestDate,
+    targetLatestDate: effectiveLatestDate,
     productPeriodLabel,
     currentSkus,
     aggregatedSkus,

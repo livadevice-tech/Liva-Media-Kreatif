@@ -19,6 +19,7 @@ export interface BuildLiveReportViewModelInput {
   brandPerformanceLogs: readonly BrandPerformanceLogEntry[];
   activeReportBrandId: string;
   dateFilterType: ReportDateFilterType;
+  selectedLatestDate?: string;
   selectedMonth?: string;
   customStartDate?: string;
   customEndDate?: string;
@@ -64,10 +65,17 @@ export function buildLiveReportViewModel(
     logs: filteredDb,
     platformFilter: input.platformFilter,
   });
+  const latestAvailableReportDate =
+    availableReportDates[availableReportDates.length - 1] || "";
 
   if (effectiveFilter === "latest") {
-    if (availableReportDates.length > 0) {
-      targetLatestDate = availableReportDates[availableReportDates.length - 1];
+    if (latestAvailableReportDate) {
+      const selectedLatestDate =
+        input.selectedLatestDate &&
+        availableReportDates.includes(input.selectedLatestDate)
+          ? input.selectedLatestDate
+          : latestAvailableReportDate;
+      targetLatestDate = selectedLatestDate;
       latestDateLabel = targetLatestDate;
       const date = new Date(targetLatestDate);
       date.setDate(date.getDate() - 1);

@@ -10,6 +10,7 @@ type ProductPerformancePanelProps = {
   brandPerformanceLogs: BrandPerformanceLogEntry[];
   activeReportBrandId: string;
   operatorDateFilterType: "all" | "latest" | "month" | "custom";
+  selectedLatestDate: string;
   operatorCustomStartDate: string;
   operatorCustomEndDate: string;
   operatorSelectedMonth: string;
@@ -34,6 +35,7 @@ export function ProductPerformancePanel({
   brandPerformanceLogs,
   activeReportBrandId,
   operatorDateFilterType,
+  selectedLatestDate,
   operatorCustomStartDate,
   operatorCustomEndDate,
   operatorSelectedMonth,
@@ -63,6 +65,7 @@ export function ProductPerformancePanel({
     brandPerformanceLogs,
     activeReportBrandId,
     operatorDateFilterType,
+    selectedLatestDate,
     operatorCustomStartDate,
     operatorCustomEndDate,
     operatorSelectedMonth,

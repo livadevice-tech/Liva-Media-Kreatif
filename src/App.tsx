@@ -1094,7 +1094,9 @@ export default function App() {
   );
   const [operatorDateFilterType, setOperatorDateFilterType] = useState<
     "latest" | "all" | "month" | "custom"
-  >("all");
+  >("latest");
+  const [operatorSelectedLatestDate, setOperatorSelectedLatestDate] =
+    useState("");
   const [operatorPlatformFilter, setOperatorPlatformFilter] =
     useState("TikTok Live");
   const [operatorShiftFilters, setOperatorShiftFilters] = useState<string[]>(
@@ -1142,7 +1144,10 @@ export default function App() {
 
   const handleOperatorDateFilterSelect = (
     value: "latest" | "all" | "month" | "custom",
-  ) =>
+  ) => {
+    if (value !== "latest") {
+      setOperatorSelectedLatestDate("");
+    }
     applyDateFilterSelection({
       value,
       setFilterType: setOperatorDateFilterType,
@@ -1153,6 +1158,7 @@ export default function App() {
       currentStartDate: operatorCustomStartDate,
       currentEndDate: operatorCustomEndDate,
     });
+  };
 
   useEffect(() => {
     if (operatorDateFilterType === "month") {
@@ -1778,6 +1784,7 @@ export default function App() {
         brandPerformanceLogs,
         activeReportBrandId: activeReportBrandId || "",
         dateFilterType: operatorDateFilterType,
+        selectedLatestDate: operatorSelectedLatestDate,
         selectedMonth: operatorSelectedMonth,
         customStartDate: operatorCustomStartDate,
         customEndDate: operatorCustomEndDate,
@@ -1793,10 +1800,69 @@ export default function App() {
       operatorDateFilterType,
       operatorPlatformFilter,
       operatorSelectedMonth,
+      operatorSelectedLatestDate,
       operatorShiftFilters,
       reportDbSearchQuery,
-      ],
+    ],
   );
+
+  const operatorLiveAvailableDates = useMemo(
+    () =>
+      getAvailableReportDates({
+        logs: liveReportView.filteredDb,
+        platformFilter: operatorPlatformFilter,
+      }),
+    [liveReportView.filteredDb, operatorPlatformFilter],
+  );
+  const operatorLatestAvailableReportDate =
+    operatorLiveAvailableDates[operatorLiveAvailableDates.length - 1] || "";
+
+  useEffect(() => {
+    if (operatorDateFilterType !== "latest") return;
+    if (!operatorLatestAvailableReportDate) {
+      setOperatorSelectedLatestDate("");
+      return;
+    }
+
+    setOperatorSelectedLatestDate((current) =>
+      current && operatorLiveAvailableDates.includes(current)
+        ? current
+        : operatorLatestAvailableReportDate,
+    );
+  }, [
+    operatorDateFilterType,
+    operatorLatestAvailableReportDate,
+    operatorLiveAvailableDates,
+  ]);
+
+  const operatorCurrentLatestDate =
+    operatorDateFilterType === "latest"
+      ? operatorSelectedLatestDate &&
+        operatorLiveAvailableDates.includes(operatorSelectedLatestDate)
+        ? operatorSelectedLatestDate
+        : operatorLatestAvailableReportDate
+      : "";
+  const operatorCurrentLatestDateIndex = operatorCurrentLatestDate
+    ? operatorLiveAvailableDates.indexOf(operatorCurrentLatestDate)
+    : -1;
+  const canPrevOperatorLatestDate =
+    operatorCurrentLatestDateIndex > 0 &&
+    operatorLiveAvailableDates.length > 0;
+  const canNextOperatorLatestDate =
+    operatorCurrentLatestDateIndex >= 0 &&
+    operatorCurrentLatestDateIndex < operatorLiveAvailableDates.length - 1;
+  const handleOperatorLatestDateShift = (direction: -1 | 1) => {
+    if (operatorLiveAvailableDates.length === 0) return;
+    const nextDate = shiftAvailableReportDate({
+      logs: liveReportView.filteredDb,
+      platformFilter: operatorPlatformFilter,
+      currentDate: operatorCurrentLatestDate || operatorLatestAvailableReportDate,
+      direction,
+    });
+    if (!nextDate) return;
+    setOperatorSelectedLatestDate(nextDate);
+    setOperatorDateFilterType("latest");
+  };
 
   const engagementReportView = useMemo(
     () =>
@@ -1804,6 +1870,7 @@ export default function App() {
         brandPerformanceLogs,
         activeReportBrandId: activeReportBrandId || "",
         operatorDateFilterType,
+        selectedLatestDate: operatorSelectedLatestDate,
         operatorPlatformFilter,
         operatorShiftFilters,
         operatorSelectedMonth,
@@ -1818,6 +1885,7 @@ export default function App() {
       operatorDateFilterType,
       operatorPlatformFilter,
       operatorSelectedMonth,
+      operatorSelectedLatestDate,
       operatorShiftFilters,
     ],
   );
@@ -2685,16 +2753,16 @@ export default function App() {
 
         if (isTiktokUpload) {
           // TikTok live + engagement memakai raw source yang sama.
-          // Setelah upload, tampilkan Semua Waktu agar GMV dan metrik lain
-          // langsung terlihat di panel Live/Engagement.
-          setOperatorDateFilterType("all");
+          // Setelah upload, tetap di tanggal terbaru agar panel Live/Engagement
+          // langsung menyorot data hari terakhir yang tersedia.
+          setOperatorDateFilterType("latest");
           setCurrentPage(1);
         }
 
         addNotification(
           "✅ Tersimpan",
           isTiktokUpload
-            ? `Berhasil menyimpan ${dataToSave.length} baris data TikTok untuk brand "${brandNameToSave}". Total GMV: ${formatIDR(totalBatchGmv)}. Panel dibuka ke "Semua Waktu" agar data Live & Engagement langsung terlihat.`
+            ? `Berhasil menyimpan ${dataToSave.length} baris data TikTok untuk brand "${brandNameToSave}". Total GMV: ${formatIDR(totalBatchGmv)}. Panel dibuka ke data terbaru agar data Live & Engagement langsung terlihat.`
             : `Berhasil menyimpan ${dataToSave.length} baris data untuk brand "${brandNameToSave}". Total GMV: ${formatIDR(totalBatchGmv)}.`,
           "success",
           "reporting_brand",
@@ -13943,6 +14011,41 @@ export default function App() {
                               onCancelCustom={() =>
                                 setIsOperatorCalendarOpen(false)
                               }
+                              periodLabel={
+                                operatorReportingTab === "live" &&
+                                operatorDateFilterType === "latest" &&
+                                liveReportView.targetLatestDate
+                                  ? getReportPeriodLabel({
+                                      dateFilterType: operatorDateFilterType,
+                                      latestDateLabel:
+                                        liveReportView.latestDateLabel,
+                                      targetLatestDate:
+                                        liveReportView.targetLatestDate,
+                                      customStartDate:
+                                        operatorCustomStartDate,
+                                    })
+                                  : undefined
+                              }
+                              onPrevPeriod={
+                                operatorReportingTab === "live"
+                                  ? () => handleOperatorLatestDateShift(-1)
+                                  : undefined
+                              }
+                              onNextPeriod={
+                                operatorReportingTab === "live"
+                                  ? () => handleOperatorLatestDateShift(1)
+                                  : undefined
+                              }
+                              canPrevPeriod={
+                                operatorReportingTab === "live"
+                                  ? canPrevOperatorLatestDate
+                                  : undefined
+                              }
+                              canNextPeriod={
+                                operatorReportingTab === "live"
+                                  ? canNextOperatorLatestDate
+                                  : undefined
+                              }
                               onImportRawLive={() => {
                                 setSaveTargetBrandId(activeReportBrandId || "");
                                 setUploadTargetTab("live");
@@ -14427,6 +14530,7 @@ export default function App() {
                               brandPerformanceLogs={brandPerformanceLogs}
                               activeReportBrandId={activeReportBrandId || ""}
                               operatorDateFilterType={operatorDateFilterType}
+                              selectedLatestDate={operatorSelectedLatestDate}
                               operatorCustomStartDate={
                                 operatorCustomStartDate
                               }

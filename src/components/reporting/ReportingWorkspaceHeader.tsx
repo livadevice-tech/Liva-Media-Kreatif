@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   CalendarDays,
+  ChevronLeft,
   ChevronDown,
   ChevronRight,
   Layers3,
@@ -46,6 +47,11 @@ type ReportingWorkspaceHeaderProps = {
   onImportRawLive: () => void;
   onImportRawProduct: () => void;
   onImportRawEngagement: () => void;
+  periodLabel?: string;
+  onPrevPeriod?: () => void;
+  onNextPeriod?: () => void;
+  canPrevPeriod?: boolean;
+  canNextPeriod?: boolean;
 };
 
 const DATE_FILTER_OPTIONS: Array<{
@@ -140,6 +146,11 @@ export function ReportingWorkspaceHeader({
   onImportRawLive,
   onImportRawProduct,
   onImportRawEngagement,
+  periodLabel,
+  onPrevPeriod,
+  onNextPeriod,
+  canPrevPeriod = true,
+  canNextPeriod = true,
 }: ReportingWorkspaceHeaderProps) {
   const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
   const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
@@ -365,6 +376,40 @@ export function ReportingWorkspaceHeader({
                 </div>
               )}
             </div>
+
+            {dateFilterType === "latest" &&
+            periodLabel &&
+            onPrevPeriod &&
+            onNextPeriod ? (
+              <div className="flex items-center gap-1.5 rounded-[12px] border border-[#ddd7ef] bg-white px-2 py-1.5 shadow-sm">
+                <button
+                  type="button"
+                  onClick={onPrevPeriod}
+                  disabled={!canPrevPeriod}
+                  aria-label="Lihat tanggal sebelumnya"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <div className="min-w-[150px] px-2 text-center">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#7f6ea8]">
+                    Tanggal Data
+                  </p>
+                  <p className="mt-0.5 text-xs font-black text-[#5600e0]">
+                    {periodLabel}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onNextPeriod}
+                  disabled={!canNextPeriod}
+                  aria-label="Lihat tanggal berikutnya"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            ) : null}
 
             <div className="relative">
               <button

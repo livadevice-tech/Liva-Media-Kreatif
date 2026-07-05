@@ -1,4 +1,5 @@
 import { getIndonesianMonthLabel } from "./reporting";
+import { getAvailableReportDates } from "./reportDateFilters";
 import type { BrandPerformanceLogEntry } from "../types/reporting";
 
 export interface DailyEngagementPoint {
@@ -41,6 +42,7 @@ interface BuildEngagementReportViewModelInput {
   brandPerformanceLogs: readonly BrandPerformanceLogEntry[];
   activeReportBrandId: string;
   operatorDateFilterType: "all" | "latest" | "month" | "custom";
+  selectedLatestDate?: string;
   operatorPlatformFilter: string;
   operatorShiftFilters: readonly string[];
   operatorSelectedMonth?: string;
@@ -58,16 +60,23 @@ export function buildEngagementReportViewModel(
   );
 
   const engagementLatestDate =
-    engagementLogsForBrand
-      .slice()
-      .sort(
-        (a, b) =>
-          new Date(b.date || "0").getTime() - new Date(a.date || "0").getTime(),
-      )[0]?.date || "";
+    getAvailableReportDates({
+      logs: engagementLogsForBrand,
+      platformFilter: input.operatorPlatformFilter,
+    }).slice(-1)[0] || "";
+  const engagementAvailableDates = getAvailableReportDates({
+    logs: engagementLogsForBrand,
+    platformFilter: input.operatorPlatformFilter,
+  });
+  const selectedLatestDate =
+    input.selectedLatestDate &&
+    engagementAvailableDates.includes(input.selectedLatestDate)
+      ? input.selectedLatestDate
+      : engagementLatestDate;
 
   let engagementDateLabel = "Semua Waktu";
-  if (input.operatorDateFilterType === "latest" && engagementLatestDate) {
-    engagementDateLabel = engagementLatestDate.split(" ")[0];
+  if (input.operatorDateFilterType === "latest" && selectedLatestDate) {
+    engagementDateLabel = selectedLatestDate.split(" ")[0];
   } else if (
     input.operatorDateFilterType === "custom" &&
     input.operatorCustomStartDate
@@ -111,7 +120,7 @@ export function buildEngagementReportViewModel(
 
   let logs = engagementLogsForBrand;
   if (input.operatorDateFilterType === "latest" && logs.length > 0) {
-    logs = logs.filter((r) => r.date === engagementLatestDate);
+    logs = logs.filter((r) => r.date === selectedLatestDate);
   } else if (
     input.operatorDateFilterType === "custom" &&
     input.operatorCustomStartDate
@@ -233,7 +242,7 @@ export function buildEngagementReportViewModel(
 
   return {
     engagementLogsForBrand,
-    engagementLatestDate,
+    engagementLatestDate: selectedLatestDate || engagementLatestDate,
     engagementDateLabel,
     engagementPeriodLabel,
     logs,
