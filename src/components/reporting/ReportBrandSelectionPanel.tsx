@@ -1,5 +1,5 @@
 import { ArrowRight, MoreHorizontal, Search, Sparkles } from "lucide-react";
-import { Fragment, type KeyboardEvent } from "react";
+import { Fragment, type KeyboardEvent, useState } from "react";
 
 import { formatDateTimeSafe } from "../../shared/utils/dateTime";
 import type {
@@ -81,6 +81,8 @@ function ReportBrandCard({
   const brandPlatforms = row.platforms;
   const isBrandActive = row.hasData;
   const isActionsOpen = openBrandCardActionsId === brand.id;
+  const [isPasswordCopied, setIsPasswordCopied] = useState(false);
+  const portalPassword = brand.clientPassword || "liva123";
 
   return (
     <div
@@ -205,6 +207,36 @@ function ReportBrandCard({
           </div>
           <div className="text-right">
             <span className="block text-[8px] font-black uppercase tracking-widest text-slate-400">
+              Portal
+            </span>
+            <div className="mt-1 flex items-center justify-end gap-2">
+              <span className="max-w-[7.5rem] truncate rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[10px] font-black text-slate-400">
+                ••••••••
+              </span>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void navigator.clipboard.writeText(portalPassword).then(
+                    () => {
+                      setIsPasswordCopied(true);
+                      window.setTimeout(() => setIsPasswordCopied(false), 1500);
+                    },
+                    () => setIsPasswordCopied(false),
+                  );
+                }}
+                aria-label={`Salin password portal brand ${brand.name}`}
+                className={`rounded-lg border px-2 py-1 text-[10px] font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20 ${
+                  isPasswordCopied
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                }`}
+                title="Salin password portal"
+              >
+                {isPasswordCopied ? "Tersalin" : "Salin"}
+              </button>
+            </div>
+            <span className="mt-2 block text-[9px] font-semibold uppercase tracking-widest text-slate-400">
               Terakhir update
             </span>
             <span className="block text-[11px] font-black text-slate-700">
@@ -324,7 +356,7 @@ export function ReportBrandSelectionPanel({
               placeholder="Cari brand klien berdasarkan nama atau ID..."
               value={searchQuery}
               onChange={(event) => onSearchQueryChange(event.target.value)}
-              className="w-full rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] py-3 pl-10 pr-4 text-sm font-medium text-[#1b1c1c] placeholder:text-[#7a7488] outline-none transition-colors focus:border-[#5600e0] focus:bg-white"
+              className="w-full rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] py-3 pl-10 pr-4 text-sm font-medium text-[#1b1c1c] placeholder:text-[#7a7488] outline-none transition-colors focus:border-[#5600e0] focus:bg-white focus-visible:ring-2 focus-visible:ring-[#5600e0]/15"
             />
           </div>
 
@@ -332,7 +364,8 @@ export function ReportBrandSelectionPanel({
             <select
               value={platformFilter}
               onChange={(event) => onPlatformFilterChange(event.target.value)}
-              className="rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none transition-colors focus:border-[#5600e0]"
+              aria-label="Filter platform brand"
+              className="rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none transition-colors focus:border-[#5600e0] focus-visible:ring-2 focus-visible:ring-[#5600e0]/15"
             >
               <option value="Semua Platform">Semua Platform</option>
               {availablePlatforms.map((platform) => (
@@ -351,7 +384,8 @@ export function ReportBrandSelectionPanel({
                     | "Semua Status",
                 )
               }
-              className="rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none transition-colors focus:border-[#5600e0]"
+              aria-label="Filter status brand"
+              className="rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none transition-colors focus:border-[#5600e0] focus-visible:ring-2 focus-visible:ring-[#5600e0]/15"
             >
               <option value="Semua Status">Semua Status</option>
               <option value="Aktif">Aktif</option>
@@ -362,7 +396,8 @@ export function ReportBrandSelectionPanel({
               onChange={(event) =>
                 onSortKeyChange(event.target.value as ReportBrandSortKey)
               }
-              className="rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none transition-colors focus:border-[#5600e0]"
+              aria-label="Urutkan brand"
+              className="rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-3 text-xs font-semibold text-[#1b1c1c] outline-none transition-colors focus:border-[#5600e0] focus-visible:ring-2 focus-visible:ring-[#5600e0]/15"
             >
               <option value="latest_activity">Urutkan: Terbaru</option>
               <option value="gmv">Urutkan: GMV Tertinggi</option>
@@ -375,7 +410,7 @@ export function ReportBrandSelectionPanel({
               <button
                 type="button"
                 onClick={onResetSearch}
-                className="cursor-pointer rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-xs font-black text-[#5600e0] transition-colors hover:bg-[#f6f3f2]"
+                className="cursor-pointer rounded-xl border border-[#cbc3d9] bg-white px-4 py-3 text-xs font-black text-[#5600e0] transition-colors hover:bg-[#f6f3f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5600e0]/15"
               >
                 Reset
               </button>
@@ -394,13 +429,13 @@ export function ReportBrandSelectionPanel({
           </p>
         </div>
         {searchQuery ? (
-          <button
-            type="button"
-            onClick={onResetSearch}
-            className="text-xs font-black text-[#5600e0] hover:text-[#4f00d0]"
-          >
-            Hapus kata kunci
-          </button>
+            <button
+              type="button"
+              onClick={onResetSearch}
+              className="text-xs font-black text-[#5600e0] hover:text-[#4f00d0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5600e0]/15"
+            >
+              Hapus kata kunci
+            </button>
         ) : null}
       </div>
 
@@ -429,7 +464,7 @@ export function ReportBrandSelectionPanel({
             <button
               type="button"
               onClick={onResetFilters}
-              className="rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0] transition-colors hover:bg-white"
+              className="rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0] transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5600e0]/15"
             >
               Reset Semua Filter
             </button>

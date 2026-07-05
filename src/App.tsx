@@ -12847,8 +12847,10 @@ export default function App() {
                       {brandFormEditor && (
                         <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-5 relative">
                           <button
+                            type="button"
                             onClick={() => setBrandFormEditor(null)}
-                            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600"
+                            aria-label="Tutup form brand"
+                            className="absolute top-3 right-3 rounded-full p-1 text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -12858,6 +12860,11 @@ export default function App() {
                               ? "Edit Data Brand"
                               : "Tambah Brand Klien"}
                           </h4>
+                          <p className="mb-5 text-[11px] font-medium leading-relaxed text-slate-500">
+                            Isi data inti brand, jadwal kerja, lalu detail sesi
+                            dan akun seller. Susunan dibuat supaya operator
+                            lebih cepat cek bagian yang penting.
+                          </p>
                           <form
                             onSubmit={(e) => {
                               e.preventDefault();
@@ -12923,113 +12930,142 @@ export default function App() {
                             }}
                             className="space-y-4 text-xs"
                           >
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Nama Brand
-                                </label>
-                                <input
-                                  required
-                                  name="name"
-                                  defaultValue={brandFormEditor.name}
-                                  type="text"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
+                                <div>
+                                  <h5 className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-700">
+                                    Data Brand
+                                  </h5>
+                                  <p className="mt-1 text-[11px] font-medium text-slate-500">
+                                    Identitas dan periode kontrak.
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Start Kontrak
-                                </label>
-                                <input
-                                  name="contractStartDate"
-                                  defaultValue={
-                                    brandFormEditor.contractStartDate ||
-                                    new Date().toISOString().split("T")[0]
-                                  }
-                                  type="date"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  End Kontrak
-                                </label>
-                                <input
-                                  name="contractEndDate"
-                                  defaultValue={
-                                    brandFormEditor.contractEndDate ||
-                                    new Date().toISOString().split("T")[0]
-                                  }
-                                  type="date"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Tanggal Invoice (Setiap Bulan)
-                                </label>
-                                <input
-                                  name="invoiceDate"
-                                  defaultValue={brandFormEditor.invoiceDate}
-                                  type="number"
-                                  min="1"
-                                  max="31"
-                                  placeholder="Contoh: 5"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Tgl Monthly Meeting (Setiap Bulan)
-                                </label>
-                                <input
-                                  name="monthlyMeetingDate"
-                                  defaultValue={
-                                    brandFormEditor.monthlyMeetingDate
-                                  }
-                                  type="number"
-                                  min="1"
-                                  max="31"
-                                  placeholder="Contoh: 10"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Username Portal Klien
-                                </label>
-                                <input
-                                  name="clientUsername"
-                                  defaultValue={brandFormEditor.clientUsername}
-                                  type="text"
-                                  placeholder="Kosongkan utk default (huruf kecil)"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
-                                  Password Portal Klien
-                                </label>
-                                <input
-                                  name="clientPassword"
-                                  defaultValue={
-                                    brandFormEditor.clientPassword || "liva123"
-                                  }
-                                  type="text"
-                                  placeholder="Default: liva123"
-                                  className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                />
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Nama Brand
+                                  </label>
+                                  <input
+                                    required
+                                    name="name"
+                                    defaultValue={brandFormEditor.name}
+                                    type="text"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Start Kontrak
+                                  </label>
+                                  <input
+                                    name="contractStartDate"
+                                    defaultValue={
+                                      brandFormEditor.contractStartDate ||
+                                      new Date().toISOString().split("T")[0]
+                                    }
+                                    type="date"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    End Kontrak
+                                  </label>
+                                  <input
+                                    name="contractEndDate"
+                                    defaultValue={
+                                      brandFormEditor.contractEndDate ||
+                                      new Date().toISOString().split("T")[0]
+                                    }
+                                    type="date"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
                               </div>
                             </div>
 
-                            <div className="bg-white p-4 rounded-xl border border-slate-200">
-                              <div className="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                                <h5 className="font-bold text-slate-800">
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
+                                <div>
+                                  <h5 className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-700">
+                                    Jadwal & Akses
+                                  </h5>
+                                  <p className="mt-1 text-[11px] font-medium text-slate-500">
+                                    Tanggal penagihan, meeting, dan kredensial portal.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Tanggal Invoice (Setiap Bulan)
+                                  </label>
+                                  <input
+                                    name="invoiceDate"
+                                    defaultValue={brandFormEditor.invoiceDate}
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    placeholder="Contoh: 5"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Tgl Monthly Meeting (Setiap Bulan)
+                                  </label>
+                                  <input
+                                    name="monthlyMeetingDate"
+                                    defaultValue={
+                                      brandFormEditor.monthlyMeetingDate
+                                    }
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    placeholder="Contoh: 10"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Username Portal Klien
+                                  </label>
+                                  <input
+                                    name="clientUsername"
+                                    defaultValue={brandFormEditor.clientUsername}
+                                    type="text"
+                                    placeholder="Kosongkan utk default (huruf kecil)"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Password Portal Klien
+                                  </label>
+                                  <input
+                                    name="clientPassword"
+                                    defaultValue={
+                                      brandFormEditor.clientPassword || "liva123"
+                                    }
+                                    type="text"
+                                    placeholder="Default: liva123"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                              <div className="flex justify-between items-center gap-3 border-b border-slate-100 pb-2">
+                                <div>
+                                  <h5 className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-700">
                                   Detail Sesi (Platform, Shift, Studio, Host)
-                                </h5>
+                                  </h5>
+                                  <p className="mt-1 text-[11px] font-medium text-slate-500">
+                                    Setiap sesi live brand yang aktif.
+                                  </p>
+                                </div>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -13214,11 +13250,16 @@ export default function App() {
                               </div>
                             </div>
 
-                            <div className="bg-white p-4 rounded-xl border border-slate-200">
-                              <div className="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                                <h5 className="font-bold text-slate-800">
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                              <div className="flex justify-between items-center gap-3 border-b border-slate-100 pb-2">
+                                <div>
+                                  <h5 className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-700">
                                   Informasi Akun (Seller Center, dll)
-                                </h5>
+                                  </h5>
+                                  <p className="mt-1 text-[11px] font-medium text-slate-500">
+                                    Platform seller, username, password, dan PIC OTP.
+                                  </p>
+                                </div>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -13551,6 +13592,7 @@ export default function App() {
                                   {/* Action Buttons */}
                                   <div className="flex items-center gap-1.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
                                     <button
+                                      type="button"
                                       onClick={() => {
                                         setOperatorTab("invoice");
                                         setTimeout(() => {
@@ -13558,21 +13600,26 @@ export default function App() {
                                           window.dispatchEvent(e);
                                         }, 300);
                                       }}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[11px] font-bold transition-all border-0 cursor-pointer"
+                                      aria-label={`Buat invoice untuk ${brand.name}`}
+                                      className="flex items-center gap-1.5 rounded-lg border-0 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 transition-all hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:ring-offset-2"
                                       title="Buat Invoice"
                                     >
                                       <Receipt className="w-3.5 h-3.5" /> Invoice
                                     </button>
                                     <button
+                                      type="button"
                                       onClick={() => handleEditBrand(brand)}
-                                      className="w-8 h-8 flex items-center justify-center bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all border-0 cursor-pointer"
+                                      aria-label={`Edit data brand ${brand.name}`}
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg border-0 bg-indigo-50 text-indigo-600 transition-all hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:ring-offset-2"
                                       title="Edit Data"
                                     >
                                       <Edit3 className="w-3.5 h-3.5" />
                                     </button>
                                     <button
+                                      type="button"
                                       onClick={() => handleDeleteBrand(brand.id)}
-                                      className="w-8 h-8 flex items-center justify-center bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg transition-all border-0 cursor-pointer"
+                                      aria-label={`Hapus data brand ${brand.name}`}
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg border-0 bg-rose-50 text-rose-500 transition-all hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/30 focus-visible:ring-offset-2"
                                       title="Hapus Data"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
