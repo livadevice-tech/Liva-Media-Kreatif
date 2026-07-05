@@ -8204,7 +8204,7 @@ export default function App() {
                                                           timeSlot: sess.shift,
                                                           platform: sess.platform || "",
                                                           brand: brand.name,
-                                                          status: "Assigned",
+                                                          status: "Assigned" as ShiftSchedule["status"],
                                                           studio:
                                                             sess.studio ||
                                                             "Studio Bandar Lampung",
@@ -8233,6 +8233,10 @@ export default function App() {
                                                 });
                                                 return [...filtered, ...newSchedules];
                                               });
+                                              // Persist Auto Generate ke database
+                                              Promise.allSettled(
+                                                newSchedules.map((s) => schedulesApi.create(s))
+                                              ).catch(console.error);
 
                                               addNotification(
                                                 "Jadwal Berhasil Dibuat",
@@ -8257,15 +8261,26 @@ export default function App() {
                                             `Reset Jadwal (${scheduleActionStartDate} s.d. ${scheduleActionEndDate})`,
                                             `Apakah Anda yakin ingin menghapus SELURUH jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}? Tindakan ini tidak dapat dibatalkan.`,
                                             () => {
-                                              setSchedules((prev) =>
-                                                prev.filter((s) => {
+                                              setSchedules((prev) => {
+                                                const toRemove = prev.filter((s) => {
+                                                  if (!s.date) return false;
+                                                  return (
+                                                    s.date >= scheduleActionStartDate &&
+                                                    s.date <= scheduleActionEndDate
+                                                  );
+                                                });
+                                                // Persist Reset ke database
+                                                Promise.allSettled(
+                                                  toRemove.map((s) => schedulesApi.delete(s.id))
+                                                ).catch(console.error);
+                                                return prev.filter((s) => {
                                                   if (!s.date) return true;
                                                   return (
                                                     s.date < scheduleActionStartDate ||
                                                     s.date > scheduleActionEndDate
                                                   );
-                                                }),
-                                              );
+                                                });
+                                              });
                                               addNotification(
                                                 "Jadwal Direset",
                                                 `Seluruh jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} berhasil dihapus.`,
@@ -8964,6 +8979,8 @@ export default function App() {
                                                                       sch.id,
                                                                   ),
                                                               );
+                                                              // Persist Delete ke database
+                                                              schedulesApi.delete(sch.id).catch(console.error);
                                                               if (sch.hostId) {
                                                                 addHostNotification(
                                                                   sch.hostId,
@@ -9529,7 +9546,7 @@ export default function App() {
                                       scheduleForm.brand ||
                                       brands[0] ||
                                       "Somethinc",
-                                    status: "Assigned",
+                                    status: "Assigned" as ShiftSchedule["status"],
                                     studio:
                                       scheduleForm.studio ||
                                       (studios[0]
@@ -9554,6 +9571,8 @@ export default function App() {
                                       ...prev,
                                       newSchedule,
                                     ]);
+                                    // Persist Create ke database
+                                    schedulesApi.create(newSchedule).catch(console.error);
                                     addHostNotification(
                                       selectedHost.id,
                                       "Jadwal Baru",
@@ -9587,6 +9606,8 @@ export default function App() {
                                           : s,
                                       ),
                                     );
+                                    // Persist Update ke database
+                                    schedulesApi.update(scheduleForm.id, newSchedule).catch(console.error);
                                     addHostNotification(
                                       selectedHost.id,
                                       "Jadwal Diperbarui",
