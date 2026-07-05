@@ -147,6 +147,14 @@ export const logsApi = {
 
   /** Hapus semua log berdasarkan array ID */
   deleteMany: (ids: string[]) => request<void>('POST', '/logs/delete-many', { ids }),
+
+  /** Helper functions for frontend bulk mutations (using Promise.all on single endpoints) */
+  createMany: async (logs: AttendanceLog[]) => {
+    return Promise.all(logs.map(log => logsApi.create(log)));
+  },
+  updateMany: async (logs: AttendanceLog[]) => {
+    return Promise.all(logs.map(log => logsApi.update(log.id, log)));
+  },
 };
 
 // ==================================================================

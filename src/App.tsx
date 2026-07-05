@@ -1451,7 +1451,7 @@ export default function App() {
   const [showFormSuccess, setShowFormSuccess] = useState(false);
   const [submittedMessage, setSubmittedMessage] = useState("");
 
-  const handleHostAttendanceSubmit = (e: FormEvent) => {
+  const handleHostAttendanceSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!activeHostObj) return;
 
@@ -1557,7 +1557,17 @@ export default function App() {
       orders: randomOrders,
     };
 
-    setLogs((prev) => [newLog, ...prev]);
+    try {
+      if (typeof logsApi !== "undefined" && logsApi.create) {
+        await logsApi.create(newLog);
+      }
+      setLogs((prev) => [newLog, ...prev]);
+    } catch (error) {
+      console.error("Gagal menyimpan log:", error);
+      customAlert("Gagal menyimpan data absensi ke server.");
+      return;
+    }
+    
     addNotification(
       `⏰ Absensi Streamer: ${newLog.hostName}`,
       `Host "${newLog.hostName}" melakukan absen siaran di "${newLog.studio}" untuk brand "${newLog.brandHandled}" (${status === "Present" ? "Tepat Waktu" : "Terlambat"} - pukul ${exactCheckInTime}).`,
@@ -3488,7 +3498,7 @@ export default function App() {
     }
   };
 
-  const handleManualLogSubmit = (e: FormEvent) => {
+  const handleManualLogSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
       let targetHostIds = manualForm.isBulkHost
@@ -3562,6 +3572,9 @@ export default function App() {
       });
 
       if (newLogs.length > 0) {
+        if (typeof logsApi !== "undefined" && logsApi.createMany) {
+          await logsApi.createMany(newLogs);
+        }
         setLogs((prev: AttendanceLog[]) => [...newLogs, ...prev]);
         customAlert(
           `✅ Berhasil menyimpan ${newLogs.length} data absensi manual.`,
@@ -3586,77 +3599,129 @@ export default function App() {
     requestConfirm(
       "Hapus Data Absensi",
       "Apakah Anda yakin ingin menghapus data absensi ini?",
-      () => {
-        setLogs((prev) => prev.filter((l) => l.id !== id));
+      async () => {
+        try {
+          if (typeof logsApi !== "undefined" && logsApi.delete) {
+            await logsApi.delete(id);
+          }
+          setLogs((prev) => prev.filter((l) => l.id !== id));
+        } catch (error) {
+          console.error("Gagal menghapus log:", error);
+          customAlert("Gagal menghapus data log dari server.");
+        }
       },
       "danger",
     );
   };
 
-  const handleUpdateLogStatus = (
+  const handleUpdateLogStatus = async (
     id: string,
     newStatus: "Present" | "Late" | "Absent" | "Excused",
   ) => {
-    setLogs((prev) =>
-      prev.map((l) => {
-        if (l.id === id) {
-          return { ...l, status: newStatus };
-        }
-        return l;
-      }),
-    );
+    const logToUpdate = logs.find((l) => l.id === id);
+    if (!logToUpdate) return;
+    
+    const updatedLog = { ...logToUpdate, status: newStatus };
+    
+    try {
+      if (typeof logsApi !== "undefined" && logsApi.update) {
+        await logsApi.update(id, updatedLog);
+      }
+      setLogs((prev) =>
+        prev.map((l) => (l.id === id ? updatedLog : l)),
+      );
+    } catch (error) {
+      console.error("Gagal update status log:", error);
+      customAlert("Gagal mengupdate status ke server.");
+    }
   };
 
-  const handleBulkMarkPresent = () => {
+  const handleBulkMarkPresent = async () => {
     if (selectedLogIds.length === 0) return;
-    setLogs((prev) =>
-      prev.map((log) => {
-        if (selectedLogIds.includes(log.id)) {
-          return { ...log, status: "Present" };
-        }
-        return log;
-      }),
-    );
-    setSelectedLogIds([]);
+    try {
+      const logsToUpdate = logs.filter(l => selectedLogIds.includes(l.id)).map(l => ({ ...l, status: "Present" as const }));
+      if (typeof logsApi !== "undefined" && logsApi.updateMany) {
+        await logsApi.updateMany(logsToUpdate);
+      }
+      setLogs((prev) =>
+        prev.map((log) => {
+          if (selectedLogIds.includes(log.id)) {
+            return { ...log, status: "Present" };
+          }
+          return log;
+        }),
+      );
+      setSelectedLogIds([]);
+    } catch (error) {
+      console.error("Gagal bulk update status:", error);
+      customAlert("Gagal mengupdate status secara massal.");
+    }
   };
 
-  const handleBulkMarkLate = () => {
+  const handleBulkMarkLate = async () => {
     if (selectedLogIds.length === 0) return;
-    setLogs((prev) =>
-      prev.map((log) => {
-        if (selectedLogIds.includes(log.id)) {
-          return { ...log, status: "Late" };
-        }
-        return log;
-      }),
-    );
-    setSelectedLogIds([]);
+    try {
+      const logsToUpdate = logs.filter(l => selectedLogIds.includes(l.id)).map(l => ({ ...l, status: "Late" as const }));
+      if (typeof logsApi !== "undefined" && logsApi.updateMany) {
+        await logsApi.updateMany(logsToUpdate);
+      }
+      setLogs((prev) =>
+        prev.map((log) => {
+          if (selectedLogIds.includes(log.id)) {
+            return { ...log, status: "Late" };
+          }
+          return log;
+        }),
+      );
+      setSelectedLogIds([]);
+    } catch (error) {
+      console.error("Gagal bulk update status:", error);
+      customAlert("Gagal mengupdate status secara massal.");
+    }
   };
 
-  const handleBulkMarkAbsent = () => {
+  const handleBulkMarkAbsent = async () => {
     if (selectedLogIds.length === 0) return;
-    setLogs((prev) =>
-      prev.map((log) => {
-        if (selectedLogIds.includes(log.id)) {
-          return { ...log, status: "Absent" };
-        }
-        return log;
-      }),
-    );
-    setSelectedLogIds([]);
+    try {
+      const logsToUpdate = logs.filter(l => selectedLogIds.includes(l.id)).map(l => ({ ...l, status: "Absent" as const }));
+      if (typeof logsApi !== "undefined" && logsApi.updateMany) {
+        await logsApi.updateMany(logsToUpdate);
+      }
+      setLogs((prev) =>
+        prev.map((log) => {
+          if (selectedLogIds.includes(log.id)) {
+            return { ...log, status: "Absent" };
+          }
+          return log;
+        }),
+      );
+      setSelectedLogIds([]);
+    } catch (error) {
+      console.error("Gagal bulk update status:", error);
+      customAlert("Gagal mengupdate status secara massal.");
+    }
   };
 
-  const handleBulkMarkExcused = () => {
+  const handleBulkMarkExcused = async () => {
     if (selectedLogIds.length === 0) return;
-    setLogs((prev) =>
-      prev.map((log) => {
-        if (selectedLogIds.includes(log.id)) {
-          return { ...log, status: "Excused" };
-        }
-        return log;
-      }),
-    );
-    setSelectedLogIds([]);
+    try {
+      const logsToUpdate = logs.filter(l => selectedLogIds.includes(l.id)).map(l => ({ ...l, status: "Excused" as const }));
+      if (typeof logsApi !== "undefined" && logsApi.updateMany) {
+        await logsApi.updateMany(logsToUpdate);
+      }
+      setLogs((prev) =>
+        prev.map((log) => {
+          if (selectedLogIds.includes(log.id)) {
+            return { ...log, status: "Excused" };
+          }
+          return log;
+        }),
+      );
+      setSelectedLogIds([]);
+    } catch (error) {
+      console.error("Gagal bulk update status:", error);
+      customAlert("Gagal mengupdate status secara massal.");
+    }
   };
 
   const handleConfirmMapping = () => {
@@ -3732,12 +3797,20 @@ export default function App() {
       confirmText: "Hapus Permanen",
       cancelText: "Batal",
       type: "danger",
-      onConfirm: () => {
-        setLogs((prev) =>
-          prev.filter((log) => !selectedLogIds.includes(log.id)),
-        );
-        setSelectedLogIds([]);
-        setConfirmModal(null);
+      onConfirm: async () => {
+        try {
+          if (typeof logsApi !== "undefined" && logsApi.deleteMany) {
+            await logsApi.deleteMany(selectedLogIds);
+          }
+          setLogs((prev) =>
+            prev.filter((log) => !selectedLogIds.includes(log.id)),
+          );
+          setSelectedLogIds([]);
+          setConfirmModal(null);
+        } catch (error) {
+          console.error("Gagal hapus massal:", error);
+          customAlert("Gagal menghapus log secara massal dari server.");
+        }
       },
     });
   };
@@ -12005,11 +12078,19 @@ export default function App() {
                                 overtimeHours: manualForm.overtimeHours,
                                 isBackupShift: manualForm.isBackupShift
                               }}
-                              onSave={(newLogs) => {
+                              onSave={async (newLogs) => {
                                 if (newLogs.length > 0) {
-                                  setLogs((prev) => [...newLogs, ...prev]);
-                                  customAlert(`✅ Berhasil menyimpan ${newLogs.length} data absensi dari Rekap Cepat.`);
-                                  setManualFormMode("standard");
+                                  try {
+                                    if (typeof logsApi !== "undefined" && logsApi.createMany) {
+                                      await logsApi.createMany(newLogs);
+                                    }
+                                    setLogs((prev) => [...newLogs, ...prev]);
+                                    customAlert(`✅ Berhasil menyimpan ${newLogs.length} data absensi dari Rekap Cepat.`);
+                                    setManualFormMode("standard");
+                                  } catch (error) {
+                                    console.error("Gagal menyimpan grid logs:", error);
+                                    customAlert("Gagal menyimpan data rekap cepat ke server.");
+                                  }
                                 }
                               }}
                               onCancel={() => setManualFormMode("standard")}
@@ -12901,7 +12982,7 @@ export default function App() {
                             lebih cepat cek bagian yang penting.
                           </p>
                           <form
-                            onSubmit={(e) => {
+                            onSubmit={async (e) => {
                               e.preventDefault();
                               const fd = new FormData(e.currentTarget);
                               const nameVal = fd.get("name") as string;
@@ -12940,28 +13021,42 @@ export default function App() {
                                   "liva123",
                               };
 
-                              if (brandFormEditor.id) {
-                                setClientBrands((prev) =>
-                                  prev.map((b) =>
-                                    b.id === newBrand.id ? newBrand : b,
-                                  ),
-                                );
-                                addNotification(
-                                  "💼 Brand Diperbarui",
-                                  `Data brand "${newBrand.name}" berhasil diperbarui oleh admin.`,
-                                  "info",
-                                  "data_brand",
-                                );
-                              } else {
-                                setClientBrands((prev) => [...prev, newBrand]);
-                                addNotification(
-                                  "🎉 Brand Klien Baru",
-                                  `Brand "${newBrand.name}" baru saja didaftarkan ke sistem Liva Agency.`,
-                                  "success",
-                                  "data_brand",
-                                );
+                              try {
+                                if (brandFormEditor.id) {
+                                  if (typeof clientBrandsApi !== "undefined" && clientBrandsApi.update) {
+                                    await clientBrandsApi.update(newBrand.id, newBrand);
+                                  }
+                                  setClientBrands((prev) =>
+                                    prev.map((b) =>
+                                      b.id === newBrand.id ? newBrand : b,
+                                    ),
+                                  );
+                                  addNotification(
+                                    "💼 Brand Diperbarui",
+                                    `Data brand "${newBrand.name}" berhasil diperbarui oleh admin.`,
+                                    "info",
+                                    "data_brand",
+                                  );
+                                } else {
+                                  if (typeof clientBrandsApi !== "undefined" && clientBrandsApi.create) {
+                                    const res = await clientBrandsApi.create(newBrand);
+                                    if (res && res.id && res.id !== newBrand.id) {
+                                      newBrand.id = res.id;
+                                    }
+                                  }
+                                  setClientBrands((prev) => [...prev, newBrand]);
+                                  addNotification(
+                                    "🎉 Brand Klien Baru",
+                                    `Brand "${newBrand.name}" baru saja didaftarkan ke sistem Liva Agency.`,
+                                    "success",
+                                    "data_brand",
+                                  );
+                                }
+                                setBrandFormEditor(null);
+                              } catch (error) {
+                                console.error("Gagal simpan brand:", error);
+                                customAlert("Gagal menyimpan data brand ke server.");
                               }
-                              setBrandFormEditor(null);
                             }}
                             className="space-y-4 text-xs"
                           >
@@ -14442,24 +14537,44 @@ export default function App() {
                       onEditLead={(lead) =>
                         setLeadFormModal({ isOpen: true, data: lead })
                       }
-                      onDeleteLead={(lead) => {
+                      onDeleteLead={async (lead) => {
                         requestConfirm(
                           "Hapus Lead Klien?",
                           `Data pipeline calon klien ini akan dihapus permanen. Lanjutkan?`,
-                          () =>
-                            setClientLeads((prev) =>
-                              prev.filter((b) => b.id !== lead.id),
-                            ),
+                          async () => {
+                            try {
+                              if (typeof clientLeadsApi !== "undefined" && clientLeadsApi.delete) {
+                                await clientLeadsApi.delete(lead.id);
+                              }
+                              setClientLeads((prev) =>
+                                prev.filter((b) => b.id !== lead.id),
+                              );
+                            } catch (error) {
+                              console.error("Gagal hapus lead:", error);
+                              customAlert("Gagal menghapus lead dari server.");
+                            }
+                          },
                           "danger",
                         );
                       }}
-                      onStatusChange={(leadId, status) =>
-                        setClientLeads((p) =>
-                          p.map((x) =>
-                            x.id === leadId ? { ...x, status } : x,
-                          ),
-                        )
-                      }
+                      onStatusChange={async (leadId, status) => {
+                        try {
+                          const updatedLead = clientLeads.find((l) => l.id === leadId);
+                          if (updatedLead) {
+                            if (typeof clientLeadsApi !== "undefined" && clientLeadsApi.update) {
+                              await clientLeadsApi.update(leadId, { ...updatedLead, status });
+                            }
+                            setClientLeads((p) =>
+                              p.map((x) =>
+                                x.id === leadId ? { ...x, status } : x,
+                              ),
+                            );
+                          }
+                        } catch (error) {
+                          console.error("Gagal update status lead:", error);
+                          customAlert("Gagal mengupdate status lead ke server.");
+                        }
+                      }}
                     />
 
                     <LeadFormModal
@@ -14467,27 +14582,41 @@ export default function App() {
                       lead={leadFormModal.data}
                       platforms={platforms}
                       onClose={() => setLeadFormModal({ isOpen: false, data: {} })}
-                      onSubmit={(newLead) => {
-                        if (leadFormModal.data.id) {
-                          setClientLeads((prev) =>
-                            prev.map((l) => (l.id === newLead.id ? newLead : l)),
-                          );
-                          addNotification(
-                            "💼 Informasi Lead Diupdate",
-                            `Data lead "${newLead.name}" telah diupdate oleh admin.`,
-                            "info",
-                            "leads",
-                          );
-                        } else {
-                          setClientLeads((prev) => [...prev, newLead]);
-                          addNotification(
-                            "🔥 Leads Calon Klien Baru",
-                            `Ada registrasi lead prospek baru masuk untuk "${newLead.name}" via platform "${newLead.platformInterest}".`,
-                            "warning",
-                            "leads",
-                          );
+                      onSubmit={async (newLead) => {
+                        try {
+                          if (leadFormModal.data.id) {
+                            if (typeof clientLeadsApi !== "undefined" && clientLeadsApi.update) {
+                              await clientLeadsApi.update(newLead.id, newLead);
+                            }
+                            setClientLeads((prev) =>
+                              prev.map((l) => (l.id === newLead.id ? newLead : l)),
+                            );
+                            addNotification(
+                              "💼 Informasi Lead Diupdate",
+                              `Data lead "${newLead.name}" telah diupdate oleh admin.`,
+                              "info",
+                              "leads",
+                            );
+                          } else {
+                            if (typeof clientLeadsApi !== "undefined" && clientLeadsApi.create) {
+                              const res = await clientLeadsApi.create(newLead);
+                              if (res && res.id && res.id !== newLead.id) {
+                                newLead.id = res.id;
+                              }
+                            }
+                            setClientLeads((prev) => [...prev, newLead]);
+                            addNotification(
+                              "🔥 Leads Calon Klien Baru",
+                              `Ada registrasi lead prospek baru masuk untuk "${newLead.name}" via platform "${newLead.platformInterest}".`,
+                              "warning",
+                              "leads",
+                            );
+                          }
+                          setLeadFormModal({ isOpen: false, data: {} });
+                        } catch (error) {
+                          console.error("Gagal simpan lead:", error);
+                          customAlert("Gagal menyimpan data lead ke server.");
                         }
-                        setLeadFormModal({ isOpen: false, data: {} });
                       }}
                     />
                   </div>
@@ -14656,7 +14785,7 @@ export default function App() {
                         {showAdminAccountForm && (
                           <div className="bg-indigo-50/50 rounded-2xl p-6 border border-indigo-100 mb-6 animate-fadeIn">
                             <form
-                              onSubmit={(e) => {
+                              onSubmit={async (e) => {
                                 e.preventDefault();
                                 if (
                                   !newAdminName ||
@@ -14665,39 +14794,54 @@ export default function App() {
                                 )
                                   return;
 
-                                if (editingAdminId) {
-                                  setAdminAccounts(
-                                    adminAccounts.map((a) =>
-                                      a.id === editingAdminId
-                                        ? {
-                                            ...a,
-                                            name: newAdminName,
-                                            username: newAdminUser,
-                                            password: newAdminPass,
-                                            accessTabs: newAdminAccess,
-                                          }
-                                        : a,
-                                    ),
-                                  );
-                                } else {
-                                  const newAdmin: AdminAccount = {
-                                    id: Date.now().toString(),
-                                    name: newAdminName,
-                                    username: newAdminUser,
-                                    password: newAdminPass,
-                                    accessTabs: newAdminAccess,
-                                  };
-                                  setAdminAccounts([
-                                    ...adminAccounts,
-                                    newAdmin,
-                                  ]);
+                                try {
+                                  if (editingAdminId) {
+                                    const updatedAdmin = {
+                                      id: editingAdminId,
+                                      name: newAdminName,
+                                      username: newAdminUser,
+                                      password: newAdminPass,
+                                      accessTabs: newAdminAccess,
+                                    };
+                                    if (typeof adminAccountsApi !== "undefined" && adminAccountsApi.update) {
+                                      await adminAccountsApi.update(editingAdminId, updatedAdmin);
+                                    }
+                                    setAdminAccounts(
+                                      adminAccounts.map((a) =>
+                                        a.id === editingAdminId
+                                          ? updatedAdmin
+                                          : a,
+                                      ),
+                                    );
+                                  } else {
+                                    const newAdmin: AdminAccount = {
+                                      id: Date.now().toString(),
+                                      name: newAdminName,
+                                      username: newAdminUser,
+                                      password: newAdminPass,
+                                      accessTabs: newAdminAccess,
+                                    };
+                                    if (typeof adminAccountsApi !== "undefined" && adminAccountsApi.create) {
+                                      const res = await adminAccountsApi.create(newAdmin);
+                                      if (res && res.id && res.id !== newAdmin.id) {
+                                        newAdmin.id = res.id;
+                                      }
+                                    }
+                                    setAdminAccounts([
+                                      ...adminAccounts,
+                                      newAdmin,
+                                    ]);
+                                  }
+                                  setNewAdminName("");
+                                  setNewAdminUser("");
+                                  setNewAdminPass("");
+                                  setNewAdminAccess([]);
+                                  setEditingAdminId(null);
+                                  setShowAdminAccountForm(false);
+                                } catch (error) {
+                                  console.error("Gagal simpan admin:", error);
+                                  customAlert("Gagal menyimpan akun admin ke server.");
                                 }
-                                setNewAdminName("");
-                                setNewAdminUser("");
-                                setNewAdminPass("");
-                                setNewAdminAccess([]);
-                                setEditingAdminId(null);
-                                setShowAdminAccountForm(false);
                               }}
                             >
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
@@ -14858,15 +15002,23 @@ export default function App() {
                                     <Edit2 className="w-4 h-4" />
                                   </button>
                                   <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                       if (
                                         window.confirm("Hapus akun admin ini?")
                                       ) {
-                                        setAdminAccounts(
-                                          adminAccounts.filter(
-                                            (a) => a.id !== ad.id,
-                                          ),
-                                        );
+                                        try {
+                                          if (typeof adminAccountsApi !== "undefined" && adminAccountsApi.delete) {
+                                            await adminAccountsApi.delete(ad.id);
+                                          }
+                                          setAdminAccounts(
+                                            adminAccounts.filter(
+                                              (a) => a.id !== ad.id,
+                                            ),
+                                          );
+                                        } catch (error) {
+                                          console.error("Gagal hapus admin:", error);
+                                          customAlert("Gagal menghapus admin dari server.");
+                                        }
                                       }
                                     }}
                                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer transition-colors bg-transparent border-0"
