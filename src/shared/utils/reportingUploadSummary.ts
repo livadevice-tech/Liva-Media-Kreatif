@@ -87,7 +87,8 @@ export function buildReportingUploadSummary(
     totalClicks > 0 ? (totalOrders / totalClicks) * 100 : 0;
   const checkoutRate =
     totalOrders > 0 ? (totalBuyerConversions / totalOrders) * 100 : 0;
-  const overallCvr = totalViews > 0 ? (totalBuyerConversions / totalViews) * 100 : 0;
+  const overallCvr =
+    totalClicks > 0 ? (totalBuyerConversions / totalClicks) * 100 : 0;
   const clickWidth = totalViews > 0 ? Math.max((totalClicks / totalViews) * 100, 30) : 75;
   const orderWidth = totalViews > 0 ? Math.max((totalOrders / totalViews) * 100, 15) : 40;
   const buyerWidth =
