@@ -215,13 +215,17 @@ export function LiveReportMetricsSection({
                 {
                   label: "Convertion Rate",
                   value:
-                    totalDbImpressions > 0
-                      ? `${((totalDbOrdersFunnel / totalDbImpressions) * 100).toFixed(2)}%`
-                      : "0.00%",
+                    totalDbClicks > 0
+                      ? `${((totalDbOrdersFunnel / totalDbClicks) * 100).toFixed(2)}%`
+                      : totalDbImpressions > 0
+                        ? `${((totalDbOrdersFunnel / totalDbImpressions) * 100).toFixed(4)}%`
+                        : "0.00%",
                   raw:
-                    totalDbImpressions > 0
-                      ? (totalDbOrdersFunnel / totalDbImpressions) * 100
-                      : 0,
+                    totalDbClicks > 0
+                      ? (totalDbOrdersFunnel / totalDbClicks) * 100
+                      : totalDbImpressions > 0
+                        ? (totalDbOrdersFunnel / totalDbImpressions) * 100
+                        : 0,
                 },
               ]}
             />
