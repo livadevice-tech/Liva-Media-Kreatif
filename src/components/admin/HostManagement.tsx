@@ -210,6 +210,7 @@ export function HostCredentialRow({
   );
   const [phone, setPhone] = useState(host.phone || "");
   const [bankAccount, setBankAccount] = useState(host.bankAccount || "");
+  const [bankName, setBankName] = useState(host.bankName || "");
   const [username, setUsername] = useState(host.username || "");
   const [password, setPassword] = useState("");
   const [customWorkingDaysTarget, setCustomWorkingDaysTarget] = useState<number>(
@@ -223,6 +224,7 @@ export function HostCredentialRow({
     setStudio(normalizeHostStudioLocation(host.studio) || "Bandar Lampung");
     setPhone(host.phone || "");
     setBankAccount(host.bankAccount || "");
+    setBankName(host.bankName || "");
     setUsername(host.username || "");
     setPassword("");
     setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
@@ -236,6 +238,7 @@ export function HostCredentialRow({
       studio: normalizeHostStudioLocation(studio),
       phone,
       bankAccount,
+      bankName,
       username,
       ...(password.trim() ? { password: password.trim() } : {}),
       customWorkingDaysTarget: role.toLowerCase().includes("back up")
@@ -251,6 +254,7 @@ export function HostCredentialRow({
     setStudio(normalizeHostStudioLocation(host.studio) || "Bandar Lampung");
     setPhone(host.phone || "");
     setBankAccount(host.bankAccount || "");
+    setBankName(host.bankName || "");
     setUsername(host.username || "");
     setPassword("");
     setCustomWorkingDaysTarget(host.customWorkingDaysTarget || 26);
@@ -329,6 +333,50 @@ export function HostCredentialRow({
           <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/45 font-extrabold text-[9.5px] uppercase">
             {normalizeHostStudioLocation(host.studio) || "Bandar Lampung"}
           </span>
+        )}
+      </td>
+
+      <td className="px-6 py-4">
+        {isEditing ? (
+          <div className="space-y-2">
+            <div>
+              <label className="text-[9px] text-purple-900 font-bold block mb-0.5">Nama Bank:</label>
+              <input
+                type="text"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-[10px] font-bold text-purple-950 w-full focus:outline-none focus:border-purple-500"
+                placeholder="BCA"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] text-purple-900 font-bold block mb-0.5">No Rekening:</label>
+              <input
+                type="text"
+                value={bankAccount}
+                onChange={(e) => setBankAccount(e.target.value)}
+                className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-[10px] font-bold text-purple-950 w-full focus:outline-none focus:border-purple-500"
+                placeholder="123456"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <div className="text-[10px] text-[#3c2f56] font-bold">
+              {host.bankName ? (
+                <>
+                  <span className="font-black text-purple-700">{host.bankName}</span> - {host.bankAccount || "-"}
+                </>
+              ) : (
+                <span className="text-slate-400 italic">Belum diset</span>
+              )}
+            </div>
+            {host.phone && (
+              <div className="text-[9px] text-slate-500 font-mono font-semibold">
+                📱 {host.phone}
+              </div>
+            )}
+          </div>
         )}
       </td>
 

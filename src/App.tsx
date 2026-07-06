@@ -1228,6 +1228,7 @@ export default function App() {
   const [newHostStudio, setNewHostStudio] = useState("Bandar Lampung");
   const [newHostPhone, setNewHostPhone] = useState("");
   const [newHostBank, setNewHostBank] = useState("");
+  const [newHostBankName, setNewHostBankName] = useState("");
   const [newHostUser, setNewHostUser] = useState("");
   const [newHostPass, setNewHostPass] = useState("");
   const [newHostWorkingDaysTarget, setNewHostWorkingDaysTarget] =
@@ -1306,6 +1307,7 @@ export default function App() {
     role: string;
     phone: string;
     bankAccount: string;
+    bankName: string;
     studio?: string;
     username?: string;
     password?: string;
@@ -15376,13 +15378,26 @@ export default function App() {
 
                           <div>
                             <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              Rekening Bank:
+                              Nama Bank:
+                            </label>
+                            <input
+                              type="text"
+                              value={newHostBankName}
+                              onChange={(e) => setNewHostBankName(e.target.value)}
+                              placeholder="Opsional, misal: BCA"
+                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
+                              No Rekening:
                             </label>
                             <input
                               type="text"
                               value={newHostBank}
                               onChange={(e) => setNewHostBank(e.target.value)}
-                              placeholder="Opsional, misal: BCA 12345"
+                              placeholder="Opsional, misal: 123456789"
                               className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
                             />
                           </div>
@@ -15412,6 +15427,7 @@ export default function App() {
                                 studio: newHostStudio,
                                 phone: newHostPhone.trim() || "-",
                                 bankAccount: newHostBank.trim() || "-",
+                                bankName: newHostBankName.trim() || "-",
                                 username: newHostUser,
                                 password: newHostPass,
                                 customWorkingDaysTarget: undefined,
@@ -15422,6 +15438,7 @@ export default function App() {
                               setNewHostStudio("Bandar Lampung");
                               setNewHostPhone("");
                               setNewHostBank("");
+                              setNewHostBankName("");
                               setNewHostUser("");
                               setNewHostPass("");
                               setShowAddForm(false);
@@ -15445,6 +15462,9 @@ export default function App() {
                             <th className="px-6 py-4 font-sans">Grup / Role</th>
                             <th className="px-6 py-4 font-sans">
                               Lokasi Studio
+                            </th>
+                            <th className="px-6 py-4 font-sans">
+                              Kontak & Bank
                             </th>
                             <th className="px-6 py-4 font-sans">
                               Username Login
