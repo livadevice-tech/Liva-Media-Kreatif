@@ -13779,7 +13779,6 @@ export default function App() {
                               <button
                                 type="submit"
                                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer border-0 shadow-sm disabled:opacity-50"
-                                disabled={!brandFormEditor.sessions?.length}
                               >
                                 <Check className="w-4 h-4" /> Simpan Data Brand
                               </button>
