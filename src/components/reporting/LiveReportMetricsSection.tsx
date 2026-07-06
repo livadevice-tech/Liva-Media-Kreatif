@@ -64,7 +64,7 @@ export function LiveReportMetricsSection({
       <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
         <DollarSign className="h-5 w-5 text-[#5600e0]" /> Sale Metrics
       </h4>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <ReportMetricCard
           label="GMV"
           cur={totalGmvDb}
