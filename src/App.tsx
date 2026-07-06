@@ -8792,40 +8792,81 @@ export default function App() {
                               (h) => !activeHostIds.has(h.id),
                             );
 
+                            // Brands currently active/assigned on this day in any studio
+                            const activeBrandNames = new Set(
+                              dayScheds.map((s) => s.brand?.trim().toLowerCase()).filter(Boolean)
+                            );
+                            
+                            // Filter those brands who are NOT active
+                            const idleBrands = clientBrands.filter(
+                              (b) => !activeBrandNames.has(b.name.toLowerCase())
+                            );
+
                             return (
-                              <div className="mb-5 p-3.5 bg-emerald-50/30 border border-emerald-100/50 rounded-xl">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-md">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                    Host Tersedia (Idle)
-                                  </span>
-                                  <span className="text-xs text-slate-500 font-medium">
-                                    Host reguler yang belum dijadwalkan hari ini ({idleHosts.length} orang):
-                                  </span>
-                                </div>
-                                {idleHosts.length > 0 ? (
-                                  <div className="flex flex-wrap gap-2 mt-2.5">
-                                    {idleHosts.map((h) => (
-                                      <span
-                                        key={h.id}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-emerald-100/60 shadow-3xs text-xs font-bold text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/20 transition-all cursor-default"
-                                      >
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        {h.name}
-                                        {h.studio && (
-                                          <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 px-1 py-0.2 rounded">
-                                            {h.studio.replace(/^Studio\s+/, "")}
-                                          </span>
-                                        )}
-                                      </span>
-                                    ))}
+                              <div className="mb-5 space-y-3">
+                                <div className="p-3.5 bg-emerald-50/30 border border-emerald-100/50 rounded-xl">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-md">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                      Host Tersedia (Idle)
+                                    </span>
+                                    <span className="text-xs text-slate-500 font-medium">
+                                      Host reguler yang belum dijadwalkan hari ini ({idleHosts.length} orang):
+                                    </span>
                                   </div>
-                                ) : (
-                                  <p className="text-xs text-slate-500 italic mt-2">
-                                    Semua host reguler telah terdaftar di jadwal
-                                    siaran studio hari ini.
-                                  </p>
-                                )}
+                                  {idleHosts.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2 mt-2.5">
+                                      {idleHosts.map((h) => (
+                                        <span
+                                          key={h.id}
+                                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-emerald-100/60 shadow-3xs text-xs font-bold text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/20 transition-all cursor-default"
+                                        >
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                          {h.name}
+                                          {h.studio && (
+                                            <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 px-1 py-0.2 rounded">
+                                              {h.studio.replace(/^Studio\s+/, "")}
+                                            </span>
+                                          )}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-slate-500 italic mt-2">
+                                      Semua host reguler telah terdaftar di jadwal
+                                      siaran studio hari ini.
+                                    </p>
+                                  )}
+                                </div>
+                                
+                                <div className="p-3.5 bg-amber-50/30 border border-amber-100/50 rounded-xl">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100/80 px-2.5 py-1 rounded-md">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+                                      Brand Tersedia (Idle)
+                                    </span>
+                                    <span className="text-xs text-slate-500 font-medium">
+                                      Brand yang belum memiliki jadwal siaran hari ini ({idleBrands.length} brand):
+                                    </span>
+                                  </div>
+                                  {idleBrands.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2 mt-2.5">
+                                      {idleBrands.map((b) => (
+                                        <span
+                                          key={b.id}
+                                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-amber-100/60 shadow-3xs text-xs font-bold text-slate-700 hover:border-amber-200 hover:bg-amber-50/20 transition-all cursor-default"
+                                        >
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                          {b.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-slate-500 italic mt-2">
+                                      Semua brand klien telah memiliki jadwal siaran hari ini.
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             );
                           })()}
@@ -12773,9 +12814,11 @@ export default function App() {
                                   
                                   <td className="py-3 px-4 font-black text-slate-900 flex items-center gap-2">
                                     <span>{item.hostName}</span>
-                                    <span className="text-[9px] text-[#2563eb] font-mono font-bold">
-                                      ({item.employeeId})
-                                    </span>
+                                    {(item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId) && (
+                                      <span className="text-[9px] text-[#2563eb] font-mono font-bold">
+                                        ({item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId})
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="py-3 px-4 font-mono text-slate-600 font-bold">
                                     <div>{formatDateUI(item.date)}</div>
