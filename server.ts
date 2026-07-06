@@ -879,6 +879,28 @@ async function runMigrations() {
   }
 
   try {
+    await execute(`ALTER TABLE client_brands ADD COLUMN logo_url VARCHAR(255) NULL`, []);
+    console.log('✅ Migration: kolom logo_url ditambahkan ke client_brands.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom logo_url sudah ada di client_brands.');
+    } else {
+      console.warn('Migration logo_url column warning:', e?.message);
+    }
+  }
+
+  try {
+    await execute(`ALTER TABLE client_brands ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`, []);
+    console.log('✅ Migration: kolom is_active ditambahkan ke client_brands.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom is_active sudah ada di client_brands.');
+    } else {
+      console.warn('Migration is_active column warning:', e?.message);
+    }
+  }
+
+  try {
     await execute(`ALTER TABLE reporting_upload_rows ADD COLUMN duration INT DEFAULT 0`, []);
     console.log('✅ Migration: kolom duration ditambahkan ke reporting_upload_rows.');
   } catch (e: any) {

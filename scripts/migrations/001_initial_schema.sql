@@ -155,6 +155,8 @@ CREATE TABLE IF NOT EXISTS client_brands (
   pic_phone             VARCHAR(40),
   pic_email             VARCHAR(150),
   company_address       TEXT,
+  logo_url              VARCHAR(255),
+  is_active             TINYINT(1)    NOT NULL DEFAULT 1,
   created_at            TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
   updated_at            TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
