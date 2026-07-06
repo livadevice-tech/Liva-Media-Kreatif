@@ -34,6 +34,9 @@ interface RawSessionGroupRow {
   avgViewDuration: number;
   customers: number;
   sessionCount: number;
+  clicks: number;
+  orders: number;
+  platform?: string;
 }
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -76,6 +79,9 @@ export function ReportRawSessionsTable({
           avgViewDuration: 0,
           customers: 0,
           sessionCount: 0,
+          clicks: 0,
+          orders: 0,
+          platform: undefined,
         };
       });
     }
@@ -128,6 +134,9 @@ export function ReportRawSessionsTable({
           avgViewDuration: 0,
           customers: 0,
           sessionCount: 0,
+          clicks: 0,
+          orders: 0,
+          platform: log.platform,
         };
       }
 
@@ -138,6 +147,8 @@ export function ReportRawSessionsTable({
       groups[key].itemsSold += metrics.itemsSold;
       groups[key].avgViewDuration += metrics.avgViewDuration;
       groups[key].customers += metrics.customers;
+      groups[key].clicks += metrics.clicks;
+      groups[key].orders += metrics.orders;
       groups[key].sessionCount += 1;
     });
 
@@ -213,7 +224,14 @@ export function ReportRawSessionsTable({
           {idFormatter.format(g.customers)}
         </td>
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-indigo-600">
-          {getLiveSessionConversionRate(g.viewer, g.customers).toFixed(2)}%
+          {(() => {
+            const platform = String(g.platform || "").toLowerCase();
+            const isTikTok = platform.includes("tiktok");
+            const cr = isTikTok
+              ? g.clicks > 0 ? (g.orders / g.clicks) * 100 : 0
+              : g.viewer > 0 ? (g.customers / g.viewer) * 100 : 0;
+            return `${cr.toFixed(2)}%`;
+          })()}
         </td>
         <td className="px-5 py-3.5 text-right" />
       </tr>

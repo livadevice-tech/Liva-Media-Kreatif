@@ -9,6 +9,8 @@ export type LiveSessionRowMetrics = {
   avgViewDuration: number;
   customers: number;
   conversionRate: number;
+  clicks: number;
+  orders: number;
 };
 
 const asNonNegativeNumber = (value: unknown) => {
@@ -51,7 +53,17 @@ export const getLiveSessionMetrics = (
   const itemsSold = asNonNegativeNumber(log.products_sold || log.items_sold);
   const avgViewDuration = asNonNegativeNumber(log.avgViewDuration);
   const customers = asNonNegativeNumber(log.buyers || log.orders);
-  const conversionRate = viewer > 0 ? (customers / viewer) * 100 : 0;
+  const clicks = asNonNegativeNumber(log.clicks);
+  const orders = asNonNegativeNumber(log.orders);
+
+  // TikTok: CR = orders / clicks (click-to-order rate)
+  // Shopee/other: CR = customers / viewer (view-to-buyer rate)
+  let conversionRate: number;
+  if (kind === "tiktok") {
+    conversionRate = clicks > 0 ? (orders / clicks) * 100 : 0;
+  } else {
+    conversionRate = viewer > 0 ? (customers / viewer) * 100 : 0;
+  }
 
   return {
     viewer,
@@ -60,6 +72,8 @@ export const getLiveSessionMetrics = (
     avgViewDuration,
     customers,
     conversionRate,
+    clicks,
+    orders,
   };
 };
 
@@ -73,7 +87,9 @@ export const sumLiveSessionMetrics = (rows: readonly ReportLogLike[]) =>
         itemsSold: acc.itemsSold + metrics.itemsSold,
         avgViewDuration: acc.avgViewDuration + metrics.avgViewDuration,
         customers: acc.customers + metrics.customers,
-        conversionRate: 0,
+        clicks: acc.clicks + metrics.clicks,
+        orders: acc.orders + metrics.orders,
+        conversionRate: 0, // computed after reduction
       };
     },
     {
@@ -82,6 +98,8 @@ export const sumLiveSessionMetrics = (rows: readonly ReportLogLike[]) =>
       itemsSold: 0,
       avgViewDuration: 0,
       customers: 0,
+      clicks: 0,
+      orders: 0,
       conversionRate: 0,
     },
   );

@@ -821,8 +821,12 @@ export function parseReportingUploadRows(
       }
     }
 
+    // Fallback: compute from Start Time - End Time when:
+    // 1. duration is zero, OR
+    // 2. duration is suspiciously small (< 60s) — TikTok Excel sometimes stores a tiny fraction
+    const durationSeemsUnreliable = duration <= 0 || duration < 60;
     if (
-      duration <= 0 &&
+      durationSeemsUnreliable &&
       startIdx !== -1 &&
       endIdx !== -1 &&
       rowData[startIdx] &&
@@ -831,9 +835,14 @@ export function parseReportingUploadRows(
       const startMs = parseDateTimeToMs(rowData[startIdx]);
       const endMs = parseDateTimeToMs(rowData[endIdx]);
       if (startMs > 0 && endMs > startMs) {
-        duration = Math.round((endMs - startMs) / 1000);
+        const derivedDuration = Math.round((endMs - startMs) / 1000);
+        // Only override if derived is meaningfully larger (at least 60s) than what was parsed
+        if (derivedDuration >= 60) {
+          duration = derivedDuration;
+        }
       }
     }
+
 
     const gmv = gmvIdx !== -1 ? parseIndonesianNumber(rowData[gmvIdx]) : 0;
     const products_sold =
