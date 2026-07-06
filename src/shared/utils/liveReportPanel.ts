@@ -133,10 +133,21 @@ export function buildLiveReportPanelData(
       : pTotalBuyersDb > 0
         ? pTotalGmvDb / pTotalBuyersDb
         : 0;
-  const conversionRateShopee =
-    totalDbImpressions > 0 ? (totalDbOrdersFunnel / totalDbImpressions) * 100 : 0;
-  const pConversionRateShopee =
-    pTotalDbImpressions > 0 ? (pTotalOrdersDb / pTotalDbImpressions) * 100 : 0;
+  const conversionRateShopee = isShopee
+    ? totalDbImpressions > 0
+      ? (totalDbOrdersFunnel / totalDbImpressions) * 100
+      : 0
+    : totalDbClicks > 0
+      ? (totalDbOrdersFunnel / totalDbClicks) * 100
+      : 0;
+
+  const pConversionRateShopee = isShopee
+    ? pTotalDbImpressions > 0
+      ? (pTotalOrdersDb / pTotalDbImpressions) * 100
+      : 0
+    : pTotalClicksDb > 0
+      ? (pTotalOrdersDb / pTotalClicksDb) * 100
+      : 0;
 
   const stats: LiveReportPanelStats = {
     totalSessionsDb,
