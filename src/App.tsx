@@ -10732,15 +10732,15 @@ export default function App() {
                                 <div className="flex flex-col gap-1.5">
                                   <button
                                     onClick={() => toggleSalarySort("name")}
-                                    className="flex items-center gap-1.5 hover:text-purple-700 text-left uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer w-full transition-colors"
+                                    className="flex items-center gap-1.5 hover:text-purple-700 text-left uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer w-full transition-colors group"
                                   >
                                     <span>Host & Info</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "name"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
+                                    <span className="text-purple-600">
+                                      {salarySortKey === "name" ? (
+                                        salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                      ) : (
+                                        <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      )}
                                     </span>
                                   </button>
                                   </div>
@@ -10751,15 +10751,15 @@ export default function App() {
                                 <div className="flex flex-col gap-1.5 items-center">
                                   <button
                                     onClick={() => toggleSalarySort("hostType")}
-                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Tipe</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "hostType"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
+                                    <span className="text-purple-600">
+                                      {salarySortKey === "hostType" ? (
+                                        salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                      ) : (
+                                        <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      )}
                                     </span>
                                   </button>
                                   </div>
@@ -10772,15 +10772,15 @@ export default function App() {
                                     onClick={() =>
                                       toggleSalarySort("attendance")
                                     }
-                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                    className="flex items-center justify-center gap-1.5 hover:text-purple-700 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Hadir</span>
-                                    <span className="text-[10px] text-purple-600 font-extrabold font-sans">
-                                      {salarySortKey === "attendance"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
+                                    <span className="text-purple-600">
+                                      {salarySortKey === "attendance" ? (
+                                        salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                      ) : (
+                                        <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      )}
                                     </span>
                                   </button>
                                   </div>
@@ -10791,34 +10791,34 @@ export default function App() {
                                 <div className="flex flex-col gap-1.5 items-center">
                                   <button
                                     onClick={() => toggleSalarySort("late")}
-                                    className="flex items-center justify-center gap-1.5 hover:text-amber-700 text-amber-600 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                    className="flex items-center justify-center gap-1.5 hover:text-amber-700 text-amber-600 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Telat</span>
-                                    <span className="text-[10px] text-amber-600 font-extrabold font-sans">
-                                      {salarySortKey === "late"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
+                                    <span className="text-amber-600">
+                                      {salarySortKey === "late" ? (
+                                        salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                      ) : (
+                                        <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      )}
                                     </span>
                                   </button>
                                   </div>
                               </th>
 
                               {/* Tidak Hadir */}
-                              <th className="py-4 px-3 align-middle text-center text-red-650">
+                              <th className="py-4 px-3 align-middle text-center text-rose-600">
                                 <div className="flex flex-col gap-1.5 items-center">
                                   <button
                                     onClick={() => toggleSalarySort("excused")}
-                                    className="flex items-center justify-center gap-1.5 hover:text-red-700 text-red-650 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors"
+                                    className="flex items-center justify-center gap-1.5 hover:text-rose-700 text-rose-600 uppercase text-[10px] font-mono font-bold tracking-wider cursor-pointer transition-colors group"
                                   >
                                     <span>Tidak Hadir</span>
-                                    <span className="text-[10px] text-red-600 font-extrabold font-sans">
-                                      {salarySortKey === "excused"
-                                        ? salarySortDir === "asc"
-                                          ? " ▲"
-                                          : " ▼"
-                                        : " ↕️"}
+                                    <span className="text-rose-600">
+                                      {salarySortKey === "excused" ? (
+                                        salarySortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                      ) : (
+                                        <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      )}
                                     </span>
                                   </button>
                                   </div>
@@ -11188,56 +11188,77 @@ export default function App() {
                                     </td>
 
                                     <td className="text-right py-4 px-6 pr-8 whitespace-nowrap">
-                                      <div className="inline-block z-10" onClick={(e) => e.stopPropagation()}>
-                                        <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 shadow-3xs">
-                                          {/* Klik untuk Salin nominal angka saja */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              navigator.clipboard.writeText(String(item.netSalary));
-                                              setCopiedSalaryHostId(item.id);
-                                              setTimeout(() => {
-                                                setCopiedSalaryHostId(null);
-                                              }, 1500);
-                                            }}
-                                            title="Klik untuk menyalin nominal angka saja (untuk bank transfer)"
-                                            className={`text-xs font-black font-mono px-4 py-2 transition-all duration-155 flex items-center gap-1.5 cursor-pointer select-none active:scale-95 ${
-                                              copiedSalaryHostId === item.id
-                                                ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                                                : "text-slate-900 hover:text-blue-650 hover:bg-blue-50/40"
-                                            }`}
-                                          >
-                                            {copiedSalaryHostId === item.id ? (
-                                              <>
-                                                <span>Tersalin!</span>
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-blue-600 transition-colors" />
-                                                <span>{formatIDR(item.netSalary)}</span>
-                                              </>
-                                            )}
-                                          </button>
+                                      <div className="inline-block z-10 text-right min-w-[130px]" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigator.clipboard.writeText(String(item.netSalary));
+                                            setCopiedSalaryHostId(item.id + "_salary");
+                                            setTimeout(() => setCopiedSalaryHostId(null), 1500);
+                                          }}
+                                          title="Salin nominal gaji bersih"
+                                          className={`inline-flex items-center justify-between gap-3 overflow-hidden rounded-lg border transition-all duration-200 px-3 py-1.5 shadow-3xs active:scale-95 w-full ${
+                                            copiedSalaryHostId === item.id + "_salary"
+                                              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                              : "border-slate-200 bg-white text-slate-900 hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-700"
+                                          }`}
+                                        >
+                                          <span className="text-xs font-black font-mono">{formatIDR(item.netSalary)}</span>
+                                          {copiedSalaryHostId === item.id + "_salary" ? (
+                                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                          ) : (
+                                            <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                          )}
+                                        </button>
+
+                                        <div className="mt-1.5">
+                                          {(item.bankName && item.bankAccount && item.bankAccount !== "-") ? (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigator.clipboard.writeText(String(item.bankAccount));
+                                                setCopiedSalaryHostId(item.id + "_bank");
+                                                setTimeout(() => setCopiedSalaryHostId(null), 1500);
+                                              }}
+                                              title={`Salin rekening ${item.bankName} - ${item.bankAccount}`}
+                                              className={`inline-flex items-center justify-between gap-2 rounded border px-2 py-1 transition-all duration-200 text-left w-full active:scale-95 shadow-3xs ${
+                                                copiedSalaryHostId === item.id + "_bank"
+                                                  ? "bg-purple-50 border-purple-200 text-purple-700"
+                                                  : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300"
+                                              }`}
+                                            >
+                                              <div className="flex flex-col overflow-hidden min-w-0">
+                                                <span className="text-[8px] font-black uppercase text-slate-400">{item.bankName}</span>
+                                                <span className="text-[10px] font-mono font-bold truncate text-slate-700">{item.bankAccount}</span>
+                                              </div>
+                                              {copiedSalaryHostId === item.id + "_bank" ? (
+                                                <Check className="w-3 h-3 text-purple-500 flex-shrink-0" />
+                                              ) : (
+                                                <CreditCard className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                                              )}
+                                            </button>
+                                          ) : (
+                                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider pr-1 block text-right mt-1">
+                                              Belum ada Rek
+                                            </div>
+                                          )}
                                         </div>
-                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-1 pr-1">
-                                          Transfer Bank
-                                        </span>
                                       </div>
                                     </td>
                                   </tr>
                                   {/* ACCORDION EXPANDED ROW */}
                                   {expandedHostSalaryId === item.id && (
-                                    <tr className="bg-slate-950 border-b border-slate-800">
+                                    <tr className="bg-purple-50/40 border-b border-purple-100/60 shadow-inner">
                                       <td colSpan={7} className="p-0">
-                                        <div className="p-6 px-6 lg:px-8 border-l-4 border-l-purple-500 text-white animate-in slide-in-from-top-2 duration-200 overflow-hidden">
+                                        <div className="p-6 px-6 lg:px-8 border-l-4 border-l-purple-500 text-slate-800 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
                                           <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
                                             
 <div className="space-y-3 font-sans">
-                                            <div className="border-b border-slate-800 pb-2">
-                                              <div className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest leading-none">
+                                            <div className="border-b border-slate-200 pb-2">
+                                              <div className="text-[9px] text-slate-500 font-extrabold uppercase tracking-widest leading-none">
                                                 Rincian Perhitungan Gaji
                                               </div>
-                                              <div className="text-xs font-black text-blue-400 mt-1 flex items-center gap-1.5">
+                                              <div className="text-xs font-black text-blue-700 mt-1 flex items-center gap-1.5">
                                                 {item.name}
                                                 <span className="text-[8.5px] bg-blue-500/10 text-blue-300 font-extrabold border border-blue-500/25 px-1 py-0.2 rounded uppercase">
                                                   {hostType}
@@ -11247,16 +11268,16 @@ export default function App() {
 
                                             {hostType === "Reguler" ? (
                                               <div className="space-y-2.5">
-                                                <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg space-y-1">
-                                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                                                <div className="bg-white border border-slate-200 p-2.5 rounded-lg space-y-1 shadow-3xs">
+                                                  <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
                                                     Rumus Gaji Pokok Regulasi
                                                   </div>
-                                                  <div className="text-[10px] text-slate-200 italic font-mono leading-tight">
+                                                  <div className="text-[10px] text-slate-700 italic font-mono leading-tight">
                                                     (Gaji Pokok Penempatan /
                                                     Hari Standar Kerja) &times;
                                                     Kehadiran Host Masuk
                                                   </div>
-                                                  <div className="pt-1.5 border-t border-slate-800/80 mt-1.5 font-mono text-[9px] text-blue-300 font-semibold leading-relaxed">
+                                                  <div className="pt-1.5 border-t border-slate-100 mt-1.5 font-mono text-[9px] text-blue-600 font-semibold leading-relaxed">
                                                     (
                                                     {formatIDR(
                                                       item.basePayRate,
@@ -11265,7 +11286,7 @@ export default function App() {
                                                     Hari) &times;{" "}
                                                     {item.totalHadir} Hari
                                                   </div>
-                                                  <div className="text-xs font-bold font-mono text-emerald-400 flex justify-between items-center pt-1">
+                                                  <div className="text-xs font-bold font-mono text-emerald-700 flex justify-between items-center pt-1">
                                                     <span>Gaji Pokok:</span>
                                                     <span>
                                                       {formatIDR(
@@ -11279,13 +11300,13 @@ export default function App() {
                                                   </div>
                                                 </div>
 
-                                                <div className="border-t border-slate-800 pt-2 space-y-1.5">
-                                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                                                <div className="border-t border-slate-200 pt-2 space-y-1.5">
+                                                  <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
                                                     Syarat Bonus Kehadiran
                                                   </div>
 
                                                   <div className="space-y-1 text-[10px]">
-                                                    <div className="flex items-center gap-1.5 text-slate-200">
+                                                    <div className="flex items-center gap-1.5 text-slate-700">
                                                       <span>
                                                         {item.totalHadir >=
                                                         item.requiredWorkingDays
@@ -11305,7 +11326,7 @@ export default function App() {
                                                         Hari)
                                                       </span>
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 text-slate-200">
+                                                    <div className="flex items-center gap-1.5 text-slate-700">
                                                       <span>
                                                         {item.countTerlambat <=
                                                         3
@@ -11320,8 +11341,8 @@ export default function App() {
                                                   </div>
 
                                                   {item.isEligibleForBonus ? (
-                                                    <div className="bg-emerald-555 bg-emerald-500/10 border border-emerald-500/25 rounded-lg p-2 text-[10px]">
-                                                      <div className="text-emerald-400 font-extrabold flex justify-between items-center">
+                                                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[10px] shadow-3xs">
+                                                      <div className="text-emerald-700 font-extrabold flex justify-between items-center">
                                                         <span>
                                                           Bonus +100% Hadir:
                                                         </span>
@@ -11332,14 +11353,14 @@ export default function App() {
                                                           )}
                                                         </span>
                                                       </div>
-                                                      <p className="text-[9px] text-slate-400 mt-1">
+                                                      <p className="text-[9px] text-emerald-600/80 mt-1">
                                                         Status: Memenuhi
                                                         kualifikasi & berhak
                                                         menerima bonus
                                                       </p>
                                                     </div>
                                                   ) : (
-                                                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-[9.5px] text-slate-400">
+                                                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-[9.5px] text-slate-500 shadow-3xs">
                                                       <p className="italic leading-relaxed">
                                                         *Syarat bonus: Kehadiran
                                                         penuh & terlambat ≤ 3x
@@ -11358,8 +11379,8 @@ export default function App() {
 
                                                 {item.totalBackupShiftsAsReguler >
                                                   0 && (
-                                                  <div className="bg-amber-900/30 border border-amber-800/50 rounded-lg p-2 text-[10px] space-y-1">
-                                                    <div className="text-amber-400 font-extrabold flex justify-between items-center">
+                                                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] space-y-1 shadow-3xs">
+                                                    <div className="text-amber-700 font-extrabold flex justify-between items-center">
                                                       <span>
                                                         Shift Backup Ekstra (
                                                         {
@@ -11379,8 +11400,8 @@ export default function App() {
 
                                                 {item.totalOvertimeHours >
                                                   0 && (
-                                                  <div className="bg-indigo-900/40 border border-indigo-800/60 rounded-lg p-2 text-[10px] space-y-1">
-                                                    <div className="text-indigo-400 font-extrabold flex justify-between items-center">
+                                                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-[10px] space-y-1 shadow-3xs">
+                                                    <div className="text-indigo-700 font-extrabold flex justify-between items-center">
                                                       <span>
                                                         Lembur (
                                                         {
@@ -11398,26 +11419,26 @@ export default function App() {
                                                   </div>
                                                 )}
 
-                                                <div className="border-t border-slate-800 pt-2.5 flex justify-between items-center text-xs font-black">
-                                                  <span className="text-slate-300">
+                                                <div className="border-t border-slate-200 pt-2.5 flex justify-between items-center text-xs font-black">
+                                                  <span className="text-slate-800">
                                                     Estimasi Gaji Bersih:
                                                   </span>
-                                                  <span className="text-yellow-400 font-mono text-sm">
+                                                  <span className="text-emerald-600 font-mono text-sm">
                                                     {formatIDR(item.netSalary)}
                                                   </span>
                                                 </div>
                                               </div>
                                             ) : (
                                               <div className="space-y-2.5">
-                                                <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg space-y-1">
-                                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                                                <div className="bg-white border border-slate-200 p-2.5 rounded-lg space-y-1 shadow-3xs">
+                                                  <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
                                                     Rumus Gaji Backup
                                                   </div>
-                                                  <div className="text-[10px] text-slate-200 italic font-mono leading-tight">
+                                                  <div className="text-[10px] text-slate-700 italic font-mono leading-tight">
                                                     Siklus Kehadiran Shift
                                                     &times; Tarif Per Shift
                                                   </div>
-                                                  <div className="pt-1.5 border-t border-slate-800/80 mt-1.5 font-mono text-[9.5px] text-blue-300 font-semibold flex justify-between">
+                                                  <div className="pt-1.5 border-t border-slate-100 mt-1.5 font-mono text-[9.5px] text-blue-600 font-semibold flex justify-between">
                                                     <span>Detail:</span>
                                                     <span>
                                                       {item.totalHadir} Shift
@@ -11431,8 +11452,8 @@ export default function App() {
 
                                                 {item.totalOvertimeHours >
                                                   0 && (
-                                                  <div className="bg-indigo-900 border border-indigo-800 rounded-lg p-2 text-[10px] space-y-1">
-                                                    <div className="text-indigo-400 font-extrabold flex justify-between items-center">
+                                                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-[10px] space-y-1 shadow-3xs">
+                                                    <div className="text-indigo-700 font-extrabold flex justify-between items-center">
                                                       <span>
                                                         Lembur (
                                                         {
@@ -11450,11 +11471,11 @@ export default function App() {
                                                   </div>
                                                 )}
 
-                                                <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-xs font-black">
-                                                  <span className="text-slate-300">
+                                                <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-xs font-black">
+                                                  <span className="text-slate-800">
                                                     Estimasi Gaji Bersih:
                                                   </span>
-                                                  <span className="text-yellow-400 font-mono text-sm">
+                                                  <span className="text-emerald-600 font-mono text-sm">
                                                     {formatIDR(item.netSalary)}
                                                   </span>
                                                 </div>
@@ -11462,9 +11483,9 @@ export default function App() {
                                             )}
                                           </div>
 
-                                            <div className="flex flex-col justify-center border-l border-slate-800 pl-8 space-y-4">
-                                              <div className="text-slate-400 text-xs font-medium">Rekapitulasi Final</div>
-                                              <div className="text-3xl font-mono font-black text-emerald-400">{formatIDR(item.netSalary)}</div>
+                                            <div className="flex flex-col justify-center border-l border-slate-200 pl-8 space-y-4">
+                                              <div className="text-slate-500 text-xs font-medium">Rekapitulasi Final</div>
+                                              <div className="text-3xl font-mono font-black text-emerald-600">{formatIDR(item.netSalary)}</div>
                                               <div className="text-[10px] text-slate-500 max-w-xs">Gaji bersih yang akan ditransfer ke rekening host. Pastikan kehadiran dan potongan telah dikalkulasi dengan benar.</div>
                                             </div>
                                           </div>
@@ -11699,43 +11720,91 @@ export default function App() {
                                   )}
 
                                   {/* Gaji Bersih Transfer Block */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigator.clipboard.writeText(String(item.netSalary));
-                                      setCopiedSalaryHostId(item.id);
-                                      setTimeout(() => {
-                                        setCopiedSalaryHostId(null);
-                                      }, 1500);
-                                    }}
-                                    className={`w-full flex justify-between items-center p-2.5 rounded-lg border transition-all duration-150 mt-1.5 active:scale-98 cursor-pointer text-left ${
-                                      copiedSalaryHostId === item.id
-                                        ? "bg-emerald-50 border-emerald-250 text-emerald-800"
-                                        : "bg-purple-50/50 border-purple-100/30 text-slate-900 hover:bg-purple-50"
-                                    }`}
-                                  >
-                                    <div>
-                                      <span className="text-[8px] text-slate-400 uppercase font-black block">
-                                        {copiedSalaryHostId === item.id ? "Berhasil Disalin" : "Estimasi Transfer Bersih (Klik untuk Salin)"}
-                                      </span>
-                                      <strong className="text-purple-950 font-bold text-xs flex items-center gap-1.5 mt-0.5">
-                                        {copiedSalaryHostId === item.id ? (
-                                          <span className="text-emerald-700 flex items-center gap-1">
-                                            <Check className="w-3 h-3 text-emerald-600 animate-bounce" />
-                                            <span>Tersalin ke Clipboard!</span>
+                                  <div className="space-y-1.5 mt-1.5">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(String(item.netSalary));
+                                        setCopiedSalaryHostId(item.id + "_salary");
+                                        setTimeout(() => {
+                                          setCopiedSalaryHostId(null);
+                                        }, 1500);
+                                      }}
+                                      className={`w-full flex justify-between items-center p-2.5 rounded-lg border transition-all duration-150 active:scale-98 cursor-pointer text-left ${
+                                        copiedSalaryHostId === item.id + "_salary"
+                                          ? "bg-emerald-50 border-emerald-250 text-emerald-800"
+                                          : "bg-purple-50/50 border-purple-100/30 text-slate-900 hover:bg-purple-50"
+                                      }`}
+                                    >
+                                      <div>
+                                        <span className="text-[8px] text-slate-400 uppercase font-black block">
+                                          {copiedSalaryHostId === item.id + "_salary" ? "Berhasil Disalin" : "Estimasi Transfer Bersih (Klik untuk Salin)"}
+                                        </span>
+                                        <strong className="text-purple-950 font-bold text-xs flex items-center gap-1.5 mt-0.5">
+                                          {copiedSalaryHostId === item.id + "_salary" ? (
+                                            <span className="text-emerald-700 flex items-center gap-1">
+                                              <Check className="w-3 h-3 text-emerald-600 animate-bounce" />
+                                              <span>Tersalin ke Clipboard!</span>
+                                            </span>
+                                          ) : (
+                                            <>
+                                              <span>Transfer Gaji</span>
+                                              <Copy className="w-3 h-3 text-slate-400 inline" />
+                                            </>
+                                          )}
+                                        </strong>
+                                      </div>
+                                      <div className={`text-sm font-black font-mono ${copiedSalaryHostId === item.id + "_salary" ? "text-emerald-700 font-extrabold" : "text-blue-700"}`}>
+                                        {formatIDR(item.netSalary)}
+                                      </div>
+                                    </button>
+
+                                    {(item.bankName && item.bankAccount && item.bankAccount !== "-") ? (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigator.clipboard.writeText(String(item.bankAccount));
+                                          setCopiedSalaryHostId(item.id + "_bank");
+                                          setTimeout(() => setCopiedSalaryHostId(null), 1500);
+                                        }}
+                                        className={`w-full flex justify-between items-center p-2 rounded-lg border transition-all duration-150 active:scale-98 cursor-pointer text-left ${
+                                          copiedSalaryHostId === item.id + "_bank"
+                                            ? "bg-purple-100 border-purple-300 text-purple-800"
+                                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <div className="p-1.5 bg-white rounded-md shadow-3xs">
+                                            {copiedSalaryHostId === item.id + "_bank" ? (
+                                              <Check className="w-3.5 h-3.5 text-purple-600" />
+                                            ) : (
+                                              <CreditCard className="w-3.5 h-3.5 text-slate-500" />
+                                            )}
+                                          </div>
+                                          <div>
+                                            <span className="text-[8px] text-slate-400 uppercase font-black block leading-none">
+                                              Bank Tujuan
+                                            </span>
+                                            <span className="text-[11px] font-bold mt-0.5 block truncate max-w-[120px]">
+                                              {item.bankName}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
+                                          <div className={`text-xs font-black font-mono ${copiedSalaryHostId === item.id + "_bank" ? "text-purple-700" : "text-slate-800"}`}>
+                                            {item.bankAccount}
+                                          </div>
+                                          <span className="text-[8px] text-slate-400 uppercase font-black">
+                                            {copiedSalaryHostId === item.id + "_bank" ? "Tersalin!" : "Klik Salin Rekening"}
                                           </span>
-                                        ) : (
-                                          <>
-                                            <span>Transfer Bank</span>
-                                            <Copy className="w-3 h-3 text-slate-400 inline" />
-                                          </>
-                                        )}
-                                      </strong>
-                                    </div>
-                                    <div className={`text-sm font-black font-mono ${copiedSalaryHostId === item.id ? "text-emerald-700 font-extrabold" : "text-blue-700"}`}>
-                                      {formatIDR(item.netSalary)}
-                                    </div>
-                                  </button>
+                                        </div>
+                                      </button>
+                                    ) : (
+                                      <div className="w-full text-center p-2 rounded-lg border border-dashed border-slate-200 bg-slate-50">
+                                        <span className="text-[9px] text-slate-400 uppercase font-black">Belum Ada Rekening Bank</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             );
