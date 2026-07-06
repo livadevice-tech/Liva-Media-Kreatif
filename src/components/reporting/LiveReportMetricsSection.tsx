@@ -9,7 +9,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { HorizontalFunnel } from "../branding/BrandGraphics";
-import { ShopeeLiveMetricsGrid } from "./ShopeeLiveMetricsGrid";
 import { ReportMetricCard } from "./ReportMetricCard";
 import type { LiveReportSummaryStats } from "./liveReportSummaryTypes";
 
@@ -58,140 +57,85 @@ export function LiveReportMetricsSection({
   } = stats;
 
   const useShopeeStyle = isShopee || useShopeeLiveLayout;
-  const liveMetrics = useShopeeStyle
-    ? [
-        {
-          title: "GMV",
-          value: `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalGmvDb)}`,
-          current: totalGmvDb,
-          previous: pTotalGmvDb,
-          periodLabel,
-          icon: <DollarSign className="h-5 w-5" />,
-          tone: "emerald" as const,
-        },
-        {
-          title: "Items Sold",
-          value: new Intl.NumberFormat("id-ID").format(totalItemsSoldDb),
-          current: totalItemsSoldDb,
-          previous: pTotalItemsSoldDb,
-          periodLabel,
-          icon: <Package className="h-5 w-5" />,
-          tone: "amber" as const,
-        },
-        {
-          title: "Customers",
-          value: new Intl.NumberFormat("id-ID").format(totalBuyersDb),
-          current: totalBuyersDb,
-          previous: pTotalBuyersDb,
-          periodLabel,
-          icon: <Users className="h-5 w-5" />,
-          tone: "violet" as const,
-        },
-        {
-          title: "Orders",
-          value: new Intl.NumberFormat("id-ID").format(totalOrdersDb),
-          current: totalOrdersDb,
-          previous: pTotalOrdersDb,
-          periodLabel,
-          icon: <ClipboardList className="h-5 w-5" />,
-          tone: "indigo" as const,
-        },
-        {
-          title: "GMV/Hours",
-          value: `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(gmvPerHour)}`,
-          current: gmvPerHour,
-          previous: pGmvPerHour,
-          periodLabel,
-          icon: <Clock className="h-5 w-5" />,
-          tone: "blue" as const,
-        },
-        {
-          title: "AOV",
-          value: `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}`,
-          current: avgAovDb,
-          previous: pAvgAovDb,
-          periodLabel,
-          icon: <Calculator className="h-5 w-5" />,
-          tone: "green" as const,
-        },
-      ]
-    : [];
+
+  // ── Compact metric card grid (same look as Engagement tab) ─────────────────
+  const CompactSaleMetrics = () => (
+    <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
+      <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
+        <DollarSign className="h-5 w-5 text-[#5600e0]" /> Sale Metrics
+      </h4>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+        <ReportMetricCard
+          label="GMV"
+          cur={totalGmvDb}
+          prev={pTotalGmvDb}
+          prefix="Rp"
+          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalGmvDb)}
+          icon={<DollarSign size={16} />}
+        />
+        <ReportMetricCard
+          label="Item Sold"
+          cur={totalItemsSoldDb}
+          prev={pTotalItemsSoldDb}
+          value={new Intl.NumberFormat("id-ID").format(totalItemsSoldDb)}
+          icon={<Package size={16} />}
+        />
+        <ReportMetricCard
+          label="Customers"
+          cur={totalBuyersDb}
+          prev={pTotalBuyersDb}
+          value={new Intl.NumberFormat("id-ID").format(totalBuyersDb)}
+          icon={<Users size={16} />}
+        />
+        <ReportMetricCard
+          label="Orders"
+          cur={totalOrdersDb}
+          prev={pTotalOrdersDb}
+          value={new Intl.NumberFormat("id-ID").format(totalOrdersDb)}
+          icon={<ClipboardList size={16} />}
+        />
+        <ReportMetricCard
+          label="GMV/Hours"
+          cur={gmvPerHour}
+          prev={pGmvPerHour}
+          prefix="Rp"
+          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(gmvPerHour)}
+          icon={<Clock size={16} />}
+        />
+        <ReportMetricCard
+          label="Conversion %"
+          cur={conversionRateShopee}
+          prev={pConversionRateShopee}
+          value={`${conversionRateShopee.toFixed(2)}%`}
+          icon={<Percent size={16} />}
+        />
+        <ReportMetricCard
+          label="AOV"
+          cur={avgAovDb}
+          prev={pAvgAovDb}
+          prefix="Rp"
+          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}
+          icon={<Calculator size={16} />}
+        />
+        <ReportMetricCard
+          label="Avg. View Duration"
+          cur={avgViewDurationDb}
+          prev={pAvgViewDurationDb}
+          value={`${avgViewDurationDb.toFixed(1)}s`}
+          icon={<TrendingUp size={16} />}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       {useShopeeStyle ? (
         <>
-          <ShopeeLiveMetricsGrid
-            metrics={
-              isShopee
-                ? [
-                    {
-                      title: "GMV",
-                      value: `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalGmvDb)}`,
-                      current: totalGmvDb,
-                      previous: pTotalGmvDb,
-                      periodLabel,
-                      icon: <DollarSign className="h-5 w-5" />,
-                      tone: "emerald" as const,
-                    },
-                    {
-                      title: "Item Solds",
-                      value: new Intl.NumberFormat("id-ID").format(totalItemsSoldDb),
-                      current: totalItemsSoldDb,
-                      previous: pTotalItemsSoldDb,
-                      periodLabel,
-                      icon: <Package className="h-5 w-5" />,
-                      tone: "amber" as const,
-                    },
-                    {
-                      title: "GMV/Hours",
-                      value: `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(gmvPerHour)}`,
-                      current: gmvPerHour,
-                      previous: pGmvPerHour,
-                      periodLabel,
-                      icon: <Clock className="h-5 w-5" />,
-                      tone: "blue" as const,
-                    },
-                    {
-                      title: "Conversion Rate %",
-                      value: `${conversionRateShopee.toFixed(2)}%`,
-                      current: conversionRateShopee,
-                      previous: pConversionRateShopee,
-                      periodLabel,
-                      icon: <Percent className="h-5 w-5" />,
-                      tone: "indigo" as const,
-                    },
-                    {
-                      title: "Orders",
-                      value: new Intl.NumberFormat("id-ID").format(totalOrdersDb),
-                      current: totalOrdersDb,
-                      previous: pTotalOrdersDb,
-                      periodLabel,
-                      icon: <ClipboardList className="h-5 w-5" />,
-                      tone: "violet" as const,
-                    },
-                    {
-                      title: "Avg. Viewer Duration",
-                      value: `${avgViewDurationDb.toFixed(2)}s`,
-                      current: avgViewDurationDb,
-                      previous: pAvgViewDurationDb,
-                      periodLabel,
-                      icon: <TrendingUp className="h-5 w-5" />,
-                      tone: "rose" as const,
-                    },
-                    {
-                      title: "AOV",
-                      value: `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}`,
-                      current: avgAovDb,
-                      previous: pAvgAovDb,
-                      periodLabel,
-                      icon: <Calculator className="h-5 w-5" />,
-                      tone: "green" as const,
-                    },
-                  ]
-                : liveMetrics
-            }
-          />
+          {/* Shopee Live: Sale Metrics compact grid */}
+          <CompactSaleMetrics />
+
+          {/* Funnel visualization */}
           {totalDbImpressions > 0 && (
             <HorizontalFunnel
               title=""
@@ -233,60 +177,29 @@ export function LiveReportMetricsSection({
         </>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-            <ReportMetricCard
-              label="GMV"
-              cur={totalGmvDb}
-              prev={pTotalGmvDb}
-              prefix="Rp "
-              value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalGmvDb)}
-            />
-            <ReportMetricCard
-              label="Item Sold"
-              cur={totalItemsSoldDb}
-              prev={pTotalItemsSoldDb}
-              value={new Intl.NumberFormat("id-ID").format(totalItemsSoldDb)}
-            />
-            <ReportMetricCard
-              label="Customers"
-              cur={totalBuyersDb}
-              prev={pTotalBuyersDb}
-              value={new Intl.NumberFormat("id-ID").format(totalBuyersDb)}
-            />
-            <ReportMetricCard
-              label="SKU Orders"
-              cur={totalOrdersDb}
-              prev={pTotalOrdersDb}
-              value={new Intl.NumberFormat("id-ID").format(totalOrdersDb)}
-            />
-            <ReportMetricCard
-              label="AOV"
-              cur={avgAovDb}
-              prev={pAvgAovDb}
-              prefix="Rp "
-              value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}
-            />
-          </div>
+          {/* TikTok / non-Shopee: compact grid, same style */}
+          <CompactSaleMetrics />
+
           {!hideEngagementMetrics && (
-            <div>
-              <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">
-                Engagement Metrics
+            <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
+              <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
+                <Users className="h-5 w-5 text-[#5600e0]" /> Engagement Metrics
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
                 <ReportMetricCard
-                  label="Like"
+                  label="Likes"
                   cur={totalLikesDb}
                   prev={pTotalLikesDb}
                   value={new Intl.NumberFormat("id-ID").format(totalLikesDb)}
                 />
                 <ReportMetricCard
-                  label="Comment"
+                  label="Comments"
                   cur={totalCommentsDb}
                   prev={pTotalCommentsDb}
                   value={new Intl.NumberFormat("id-ID").format(totalCommentsDb)}
                 />
                 <ReportMetricCard
-                  label="Share"
+                  label="Shares"
                   cur={totalSharesDb}
                   prev={pTotalSharesDb}
                   value={new Intl.NumberFormat("id-ID").format(totalSharesDb)}
@@ -298,11 +211,10 @@ export function LiveReportMetricsSection({
                   value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
                 />
                 <ReportMetricCard
-                  label="AVG TIME/VIEWER"
+                  label="Avg. View Duration"
                   cur={avgViewDurationDb}
                   prev={pAvgViewDurationDb}
-                  value={Math.round(avgViewDurationDb).toString()}
-                  suffix=" detik"
+                  value={`${Math.round(avgViewDurationDb)} detik`}
                 />
               </div>
             </div>
