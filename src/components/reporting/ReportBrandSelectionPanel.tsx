@@ -286,65 +286,6 @@ export function ReportBrandSelectionPanel({
 }: ReportBrandSelectionPanelProps) {
   return (
     <div className="space-y-6" id="operator_reporting_brand_content">
-      <section className="overflow-hidden rounded-2xl border border-[#e5e2e1] bg-white shadow-[0_8px_28px_rgba(27,28,28,0.04)]">
-        <div className="flex flex-col gap-6 p-6 sm:p-8 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cbc3d9] bg-[#f6f3f2] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#5600e0]">
-              <Sparkles className="size-3 text-[#5600e0]" />
-              Reporting Brand Workspace
-            </span>
-            <h2 className="mt-3 text-2xl font-black tracking-tight text-[#1b1c1c] sm:text-[30px]">
-              Pilih brand untuk membuka dashboard detail
-            </h2>
-            <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-[#494456] sm:text-[15px]">
-              Cari brand, filter daftar, lalu klik satu kartu untuk masuk ke
-              workspace brand. Detail performa akan muncul setelah brand
-              dipilih.
-            </p>
-          </div>
-
-          <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-3 xl:w-auto xl:min-w-[32rem]">
-            <div className="rounded-xl border border-[#cbc3d9] bg-[#ffffff] p-4">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                Brand
-              </div>
-              <div className="mt-1 text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums">
-                {overviewStats.totalBrands}
-              </div>
-            </div>
-            <div className="rounded-xl border border-[#cbc3d9] bg-[#f6f3f2] p-4">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                Aktif
-              </div>
-              <div className="mt-1 text-[22px] font-black tracking-tight text-[#5600e0] tabular-nums">
-                {overviewStats.activeBrands}
-              </div>
-              <div className="mt-1 text-[11px] font-semibold text-[#494456]">
-                {overviewStats.totalSessions} sesi live terkumpul.
-              </div>
-            </div>
-            <div className="rounded-xl border border-[#cbc3d9] bg-[#ffffff] p-4">
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-[#494456]">
-                Total GMV
-              </div>
-              <div
-                className="mt-1 truncate whitespace-nowrap text-[22px] font-black tracking-tight text-[#1b1c1c] tabular-nums"
-                title={new Intl.NumberFormat("id-ID", {
-                  style: "currency",
-                  currency: "IDR",
-                  maximumFractionDigits: 0,
-                }).format(overviewStats.totalGmv)}
-              >
-                {new Intl.NumberFormat("id-ID", {
-                  style: "currency",
-                  currency: "IDR",
-                  maximumFractionDigits: 0,
-                }).format(overviewStats.totalGmv)}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <section className="rounded-2xl border border-[#cbc3d9] bg-white p-4 shadow-[0_8px_24px_rgba(27,28,28,0.03)] sm:p-5">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">

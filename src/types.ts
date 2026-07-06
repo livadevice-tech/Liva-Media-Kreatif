@@ -175,6 +175,7 @@ export interface ClientBrand {
   id: string;
   name: string;
   logoUrl?: string;
+  isActive?: boolean;
   sessions: BrandSession[];
   contractStartDate?: string;
   contractEndDate: string;

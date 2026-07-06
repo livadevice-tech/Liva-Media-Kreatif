@@ -3398,11 +3398,10 @@ export default function App() {
   }, [logs]);
 
   const filteredAndSortedBrands = useMemo(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
     let result = clientBrands.filter((b) => {
-      const isExpired = b.contractEndDate && b.contractEndDate < todayStr;
-      if (brandDataTab === "active") return !isExpired;
-      return isExpired;
+      const active = b.isActive !== false; // default true if undefined
+      if (brandDataTab === "active") return active;
+      return !active;
     });
 
     if (brandDataSearch.trim()) {
@@ -8798,9 +8797,10 @@ export default function App() {
                             );
                             
                             // Filter those brands who are NOT active
-                            const idleBrands = clientBrands.filter(
-                              (b) => !activeBrandNames.has(b.name.toLowerCase())
-                            );
+                            const idleBrands = clientBrands.filter((b) => {
+                              const isActive = b.isActive !== false;
+                              return isActive && !activeBrandNames.has(b.name.toLowerCase());
+                            });
 
                             return (
                               <div className="mb-5 space-y-3">
@@ -13128,6 +13128,7 @@ export default function App() {
                                   (fd.get("clientPassword") as string) ||
                                   "liva123",
                                 logoUrl: brandFormEditor.logoUrl,
+                                isActive: brandFormEditor.isActive !== false,
                               };
 
                               try {
@@ -13272,6 +13273,28 @@ export default function App() {
                                     type="date"
                                     className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
                                   />
+                                </div>
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Status Brand
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => setBrandFormEditor((prev) => prev ? { ...prev, isActive: !(prev.isActive !== false) } : prev)}
+                                    className={`inline-flex items-center gap-2.5 px-4 py-3 rounded-xl border font-bold text-xs transition-all w-full justify-between ${
+                                      brandFormEditor.isActive !== false
+                                        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                                        : "bg-rose-50 border-rose-200 text-rose-800"
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-2">
+                                      <span className={`w-2 h-2 rounded-full ${brandFormEditor.isActive !== false ? "bg-emerald-500 animate-pulse" : "bg-rose-400"}`}></span>
+                                      {brandFormEditor.isActive !== false ? "Aktif" : "Tidak Aktif"}
+                                    </span>
+                                    <span className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${brandFormEditor.isActive !== false ? "bg-emerald-500" : "bg-slate-300"}`}>
+                                      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${brandFormEditor.isActive !== false ? "translate-x-4" : "translate-x-1"}`}></span>
+                                    </span>
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -13812,46 +13835,35 @@ export default function App() {
                           </div>
                         ) : (
                           filteredAndSortedBrands.map((brand, i) => {
-                            const today = new Date();
-                            const endDate = brand.contractEndDate ? new Date(brand.contractEndDate) : null;
-                            const startDate = brand.contractStartDate ? new Date(brand.contractStartDate) : null;
-                            const isExpired = endDate ? endDate < today : false;
-                            const daysLeft = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
-                            const isNearExpiry = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
+                            const isActive = brand.isActive !== false;
 
                             return (
                               <div
                                 key={brand.id || i}
                                 className={`bg-white rounded-2xl border transition-all duration-200 hover:shadow-md group ${
-                                  isExpired
-                                    ? "border-l-4 border-l-rose-400 border-slate-100"
-                                    : isNearExpiry
-                                    ? "border-l-4 border-l-amber-400 border-slate-100"
-                                    : "border-l-4 border-l-indigo-400 border-slate-100"
+                                  isActive
+                                    ? "border-l-4 border-l-indigo-400 border-slate-100"
+                                    : "border-l-4 border-l-rose-400 border-slate-100"
                                 }`}
                               >
                                 {/* Card Header */}
                                 <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-50">
                                   <div className="flex items-start gap-3 flex-1 min-w-0">
                                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${
-                                      isExpired ? "bg-rose-50 text-rose-500" : "bg-indigo-50 text-indigo-600"
+                                      isActive ? "bg-indigo-50 text-indigo-600" : "bg-rose-50 text-rose-500"
                                     }`}>
                                       {(brand.name || "?").charAt(0).toUpperCase()}
                                     </div>
                                     <div className="min-w-0">
                                       <div className="flex flex-wrap items-center gap-2 mb-1">
                                         <h4 className="font-black text-slate-800 text-[15px] leading-tight truncate">{brand.name}</h4>
-                                        {isExpired ? (
-                                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span> Selesai
-                                          </span>
-                                        ) : isNearExpiry ? (
-                                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span> {daysLeft}h lagi
-                                          </span>
-                                        ) : (
+                                        {isActive ? (
                                           <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black px-2 py-0.5 rounded-full">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span> Aktif
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span> Tidak Aktif
                                           </span>
                                         )}
                                         {brand.monthlyMeetingDate && (

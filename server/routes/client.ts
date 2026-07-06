@@ -63,6 +63,7 @@ interface ClientBrandRow {
   pic_email?: string | null;
   company_address?: string | null;
   logo_url?: string | null;
+  is_active?: number | null;
 }
 
 interface ClientLeadRow {
@@ -113,6 +114,7 @@ interface BrandViewModel {
   picEmail?: string | null;
   companyAddress?: string | null;
   logoUrl?: string | null;
+  isActive?: boolean;
   sessions: { id: string; shift?: string | null; platform?: string | null; studio?: string | null; host?: string | null }[];
   accounts: { id: string; type?: string | null; username?: string | null; password?: string | null; picOtp?: string | null }[];
   invoices: Array<BrandInvoiceRow & {
@@ -182,6 +184,7 @@ async function buildBrand(brand: ClientBrandRow): Promise<BrandViewModel> {
     picEmail: brand.pic_email,
     companyAddress: brand.company_address,
     logoUrl: brand.logo_url,
+    isActive: brand.is_active === null || brand.is_active === undefined ? true : Boolean(brand.is_active),
     sessions: sessions.map((session) => ({
       id: session.id,
       shift: session.shift,
@@ -219,9 +222,9 @@ export function registerClientRoutes(app: Express) {
     const id = b.id || genId("brand");
 
     await execute(`
-      INSERT INTO client_brands (id, name, contract_start_date, contract_end_date, invoice_date, monthly_meeting_date, client_password, client_username, pic_name, pic_phone, pic_email, company_address, logo_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [id, b.name, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null]);
+      INSERT INTO client_brands (id, name, contract_start_date, contract_end_date, invoice_date, monthly_meeting_date, client_password, client_username, pic_name, pic_phone, pic_email, company_address, logo_url, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [id, b.name, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0]);
 
     if (Array.isArray(b.sessions)) {
       for (const s of b.sessions) {
@@ -264,9 +267,9 @@ export function registerClientRoutes(app: Express) {
     const b = req.body;
 
     await execute(`
-      UPDATE client_brands SET name=?, contract_start_date=?, contract_end_date=?, invoice_date=?, monthly_meeting_date=?, client_password=?, client_username=?, pic_name=?, pic_phone=?, pic_email=?, company_address=?, logo_url=?
+      UPDATE client_brands SET name=?, contract_start_date=?, contract_end_date=?, invoice_date=?, monthly_meeting_date=?, client_password=?, client_username=?, pic_name=?, pic_phone=?, pic_email=?, company_address=?, logo_url=?, is_active=?
       WHERE id=?
-    `, [b.name, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, id]);
+    `, [b.name, b.contractStartDate || null, b.contractEndDate || null, b.invoiceDate || null, b.monthlyMeetingDate || null, b.clientPassword || null, b.clientUsername || null, b.picName || null, b.picPhone || null, b.picEmail || null, b.companyAddress || null, b.logoUrl || null, b.isActive !== false ? 1 : 0, id]);
 
     if (Array.isArray(b.sessions)) {
       await execute(`DELETE FROM brand_sessions WHERE brand_id = ?`, [id]);
