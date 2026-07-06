@@ -13084,6 +13084,7 @@ export default function App() {
                                 clientPassword:
                                   (fd.get("clientPassword") as string) ||
                                   "liva123",
+                                logoUrl: brandFormEditor.logoUrl,
                               };
 
                               try {
@@ -13137,6 +13138,58 @@ export default function App() {
                                 </div>
                               </div>
                               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Upload Logo Brand
+                                  </label>
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center">
+                                      {brandFormEditor.logoUrl ? (
+                                        <img src={brandFormEditor.logoUrl} className="h-full w-full object-cover" alt="Logo" />
+                                      ) : (
+                                        <span className="text-slate-400 text-xs font-bold">RB</span>
+                                      )}
+                                    </div>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                          const img = new Image();
+                                          img.onload = () => {
+                                            const canvas = document.createElement("canvas");
+                                            let w = img.width;
+                                            let h = img.height;
+                                            const maxDim = 150;
+                                            if (w > maxDim || h > maxDim) {
+                                              if (w > h) {
+                                                h = Math.round((h * maxDim) / w);
+                                                w = maxDim;
+                                              } else {
+                                                w = Math.round((w * maxDim) / h);
+                                                h = maxDim;
+                                              }
+                                            }
+                                            canvas.width = w;
+                                            canvas.height = h;
+                                            const ctx = canvas.getContext("2d");
+                                            if (ctx) {
+                                              ctx.drawImage(img, 0, 0, w, h);
+                                              const base64 = canvas.toDataURL("image/jpeg", 0.8);
+                                              setBrandFormEditor(prev => prev ? { ...prev, logoUrl: base64 } : null);
+                                            }
+                                          };
+                                          img.src = event.target?.result as string;
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }}
+                                      className="block w-full text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 transition-colors"
+                                    />
+                                  </div>
+                                </div>
                                 <div>
                                   <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
                                     Nama Brand
