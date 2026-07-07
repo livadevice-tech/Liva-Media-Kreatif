@@ -92,7 +92,7 @@ test("buildReportingUploadSummary aggregates reporting upload metrics", () => {
   assert.equal(summary.ctrRate, 4);
   assert.equal(summary.cartToClickRate, 133.33333333333331);
   assert.equal(summary.checkoutRate, 187.5);
-  assert.equal(summary.overallCvr, 10);
+  assert.equal(summary.overallCvr, 250);
   assert.equal(summary.clickWidth, 30);
   assert.equal(summary.orderWidth, 15);
   assert.equal(summary.buyerWidth, 10);

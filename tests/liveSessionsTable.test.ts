@@ -36,6 +36,7 @@ test("live session helpers map TikTok fields correctly", () => {
     impressions: 900,
     buyers: 18,
     orders: 18,
+    clicks: 900,
     items_sold: 19,
     gmv: 12345678,
     avgViewDuration: 12.5,
