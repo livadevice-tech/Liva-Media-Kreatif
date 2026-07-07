@@ -7,7 +7,7 @@ import { InvoiceCreatePanel } from './invoice/InvoiceCreatePanel';
 import { InvoiceEditorModal } from './invoice/InvoiceEditorModal';
 import { InvoiceRemindersPanel } from './invoice/InvoiceRemindersPanel';
 import { InvoiceSettingsPanel, type InvoiceSettings } from './invoice/InvoiceSettingsPanel';
-import { settingsApi } from '../api';
+import { settingsApi, clientBrandsApi } from '../api';
 import { formatDateUILocal as formatDateUI } from '../shared/utils/date';
 import { buildInvoiceQuotationEmail } from '../shared/utils/invoiceEmail';
 import { buildNextInvoiceNumber } from '../shared/utils/invoiceNumber';
@@ -55,6 +55,23 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   const [emailTestStatus, setEmailTestStatus] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [generatedEmail, setGeneratedEmail] = useState<{ to: string; subject: string; body: string; } | null>(null);
+
+  const handleUpdateBrands = (updatedBrands: ClientBrand[]) => {
+    // Optimistically update UI state
+    onUpdateBrands(updatedBrands);
+    
+    // Check which brands changed and save to API
+    updatedBrands.forEach(newBrand => {
+      const oldBrand = clientBrands.find(b => b.id === newBrand.id);
+      if (!oldBrand || JSON.stringify(oldBrand) !== JSON.stringify(newBrand)) {
+        if (typeof clientBrandsApi !== "undefined" && clientBrandsApi.update) {
+          clientBrandsApi.update(newBrand.id, newBrand).catch(err => {
+             console.error("Failed to update brand in DB", err);
+          });
+        }
+      }
+    });
+  };
   
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>({
     logoUrl: "",
@@ -261,7 +278,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       handleShowEmailCopy(finalInvoice, brand.name, brand.picEmail);
     }
 
-    onUpdateBrands(updatedBrands);
+    handleUpdateBrands(updatedBrands);
     setActiveTab("overview");
     setSelectedBrandId("");
     setDraftInvoice({});
@@ -292,7 +309,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       }
       return b;
     });
-    onUpdateBrands(updatedBrands);
+    handleUpdateBrands(updatedBrands);
   };
 
   const confirmDeleteInvoice = () => {
@@ -307,7 +324,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       }
       return b;
     });
-    onUpdateBrands(updatedBrands);
+    handleUpdateBrands(updatedBrands);
     setInvoiceToDelete(null);
   };
 
@@ -629,7 +646,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       {activeTab === "berkas" && (
         <BerkasManager 
           clientBrands={clientBrands} 
-          onUpdateBrands={onUpdateBrands} 
+          onUpdateBrands={handleUpdateBrands} 
           onBack={() => setActiveTab("overview")} 
         />
       )}
@@ -640,7 +657,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           clientBrands={clientBrands}
           setInvoiceEditor={setInvoiceEditor}
           onClose={() => setInvoiceEditor(null)}
-          onUpdateBrands={onUpdateBrands}
+          onUpdateBrands={handleUpdateBrands}
         />
       )}
 
