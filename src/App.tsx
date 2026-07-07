@@ -266,6 +266,7 @@ import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSel
 import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
 import { DeleteByDateModal } from "./components/reporting/DeleteByDateModal";
 import { SkuUploadModal } from "./components/reporting/SkuUploadModal";
+import { DownloadReportModal } from "./components/reporting/DownloadReportModal";
 import { ReportingUploadAnalyticsSection } from "./components/reporting/ReportingUploadAnalyticsSection";
 import { ReportingUploadPreviewTable } from "./components/reporting/ReportingUploadPreviewTable";
 import { CutoffPeriodSelector } from "./components/reporting/CutoffPeriodSelector";
@@ -1040,6 +1041,7 @@ export default function App() {
   const [clientReportingTab, setClientReportingTab] = useState<
     "live" | "engagement" | "product"
   >("live");
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [clientSelectedMonth, setClientSelectedMonth] = useState<string>(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -1708,6 +1710,38 @@ export default function App() {
     ],
   );
 
+  const [shopeeSkuLogs, setShopeeSkuLogs] = useState<SkuLogEntry[]>([]);
+
+  const clientProductReportView = useMemo(
+    () =>
+      buildProductPerformanceViewModel({
+        shopeeSkuLogs,
+        brandPerformanceLogs,
+        activeReportBrandId: loggedInClientBrandId || "",
+        operatorDateFilterType: clientDateFilterType,
+        selectedLatestDate: clientSelectedLatestDate,
+        operatorCustomStartDate: clientCustomStartDate,
+        operatorCustomEndDate: clientCustomEndDate,
+        operatorSelectedMonth: clientSelectedMonth,
+        operatorPlatformFilter: clientPlatformFilter,
+        operatorShiftFilters: operatorShiftFilters,
+        reportDbSearchQuery,
+      }),
+    [
+      shopeeSkuLogs,
+      brandPerformanceLogs,
+      loggedInClientBrandId,
+      clientDateFilterType,
+      clientSelectedLatestDate,
+      clientCustomStartDate,
+      clientCustomEndDate,
+      clientSelectedMonth,
+      clientPlatformFilter,
+      operatorShiftFilters,
+      reportDbSearchQuery,
+    ],
+  );
+
   const [reportDbSortCol, setReportDbSortCol] = useState("date");
   const [reportDbSortAsc, setReportDbSortAsc] = useState(false);
   const [skuSortCol, setSkuSortCol] = useState<"sold" | "revenue">("sold");
@@ -2024,7 +2058,6 @@ export default function App() {
     [reportingRawData],
   );
   const [skuRawData, setSkuRawData] = useState<SkuRawRow[]>([]);
-  const [shopeeSkuLogs, setShopeeSkuLogs] = useState<SkuLogEntry[]>([]);
   const productReportView = useMemo(
     () =>
       buildProductPerformanceViewModel({
@@ -5884,7 +5917,10 @@ export default function App() {
                       >
                         <LogOut className="w-4 h-4" />
                       </button>
-                      <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all shadow-sm border-0 cursor-pointer flex items-center gap-2">
+                      <button 
+                        onClick={() => setIsDownloadModalOpen(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all shadow-sm border-0 cursor-pointer flex items-center gap-2"
+                      >
                         <Download className="w-4 h-4" /> Unduh Laporan
                       </button>
                     </div>
@@ -6132,10 +6168,116 @@ export default function App() {
                       </React.Suspense>
                     )}
 
-
                   </div>
                 </div>
               </main>
+
+              {/* DOWNLOAD EXCEL MODAL */}
+              <DownloadReportModal
+                isOpen={isDownloadModalOpen}
+                onClose={() => setIsDownloadModalOpen(false)}
+                reportType={clientReportingTab}
+                onDownload={(selectedMetrics) => {
+                  let dataToExport: any[] = [];
+
+                  if (clientReportingTab === "live") {
+                    dataToExport = clientLiveReportView.filteredDb.map((log) => {
+                      const row: any = {};
+                      if (selectedMetrics.includes("date"))
+                        row["Tanggal"] = log.date || log.dateTime?.split(" ")[0];
+                      if (selectedMetrics.includes("time"))
+                        row["Jam (Waktu Mulai)"] = log.dateTime?.includes(" ") ? log.dateTime.split(" ")[1] : "-";
+                      if (selectedMetrics.includes("platform"))
+                        row["Platform"] = log.platform;
+                      if (selectedMetrics.includes("viewers"))
+                        row["Viewers (Penonton)"] = Math.max(
+                          log.impressions || 0,
+                          log.views || 0,
+                          log.liveVisits || 0,
+                          log.penonton || 0
+                        );
+                      if (selectedMetrics.includes("gmv"))
+                        row["GMV (Revenue)"] = log.gmv || 0;
+                      if (selectedMetrics.includes("products_sold"))
+                        row["Produk Terjual"] = log.products_sold || log.items_sold || 0;
+                      if (selectedMetrics.includes("buyers"))
+                        row["Total Pembeli"] = log.buyers || log.orders || 0;
+                      if (selectedMetrics.includes("conversion_rate")) {
+                        const v = Math.max(
+                          log.impressions || 0,
+                          log.views || 0,
+                          log.liveVisits || 0,
+                          log.penonton || 0
+                        );
+                        const b = log.buyers || log.orders || 0;
+                        row["Conversion Rate (%)"] = v > 0 ? ((b / v) * 100).toFixed(2) : "0.00";
+                      }
+                      if (selectedMetrics.includes("avg_view_duration"))
+                        row["Rata-rata Waktu Tonton (detik)"] = log.avgViewDuration || 0;
+                      if (selectedMetrics.includes("peak_viewers"))
+                        row["Peak Viewers"] = log.peakViewers || 0;
+                      if (selectedMetrics.includes("clicks"))
+                        row["Total Clicks"] = log.clicks || 0;
+                      if (selectedMetrics.includes("shares"))
+                        row["Total Shares"] = log.shares || 0;
+                      return row;
+                    });
+                  } else if (clientReportingTab === "product") {
+                    dataToExport = clientProductReportView.aggregatedSkus.map((sku) => {
+                      const row: any = {};
+                      if (selectedMetrics.includes("date")) {
+                        row["Tanggal"] = clientDateFilterType === "latest" ? clientSelectedLatestDate : "-";
+                      }
+                      if (selectedMetrics.includes("platform")) {
+                        row["Platform"] = clientPlatformFilter === "all" ? "Semua Platform" : clientPlatformFilter;
+                      }
+                      if (selectedMetrics.includes("sku"))
+                        row["SKU"] = sku.sku;
+                      if (selectedMetrics.includes("product_name"))
+                        row["Nama Produk"] = sku.name;
+                      if (selectedMetrics.includes("sold"))
+                        row["Jumlah Terjual"] = sku.sold;
+                      if (selectedMetrics.includes("revenue"))
+                        row["GMV / Revenue (Rp)"] = sku.revenue;
+                      return row;
+                    });
+                  } else if (clientReportingTab === "engagement") {
+                    dataToExport = clientEngagementReportView.filteredDb.map((log) => {
+                      const row: any = {};
+                      if (selectedMetrics.includes("date"))
+                        row["Tanggal"] = log.date || log.dateTime?.split(" ")[0];
+                      if (selectedMetrics.includes("time"))
+                        row["Jam (Waktu Mulai)"] = log.dateTime?.includes(" ") ? log.dateTime.split(" ")[1] : "-";
+                      if (selectedMetrics.includes("platform"))
+                        row["Platform"] = log.platform;
+                      if (selectedMetrics.includes("viewers"))
+                        row["Viewers (Penonton)"] = Math.max(
+                          log.impressions || 0,
+                          log.views || 0,
+                          log.liveVisits || 0,
+                          log.penonton || 0
+                        );
+                      if (selectedMetrics.includes("new_followers"))
+                        row["Pengikut Baru"] = log.newFollowers || 0;
+                      if (selectedMetrics.includes("comments"))
+                        row["Komentar"] = log.comments || 0;
+                      if (selectedMetrics.includes("shares"))
+                        row["Total Shares"] = log.shares || 0;
+                      if (selectedMetrics.includes("likes"))
+                        row["Total Likes"] = log.likes || 0;
+                      return row;
+                    });
+                  }
+
+                  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+                  const workbook = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan");
+                  XLSX.writeFile(
+                    workbook,
+                    `Laporan_${clientBrand?.name || "Mitra"}_${clientReportingTab}.xlsx`
+                  );
+                }}
+              />
             </div>
           );
         })()}
