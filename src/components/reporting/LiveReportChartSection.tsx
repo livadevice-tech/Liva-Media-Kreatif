@@ -17,6 +17,7 @@ import type { LiveReportChartData } from "./liveReportSummaryTypes";
 import {
   ChartGranularity,
   filterChartDataByLatestDays,
+  filterChartDataByDateRange,
   aggregateChartData,
 } from "../../shared/utils/chartDataAggregation";
 
@@ -30,6 +31,7 @@ const WINDOW_OPTIONS = [
   { value: 7, label: "7 Hari" },
   { value: 30, label: "30 Hari" },
   { value: 90, label: "90 Hari" },
+  { value: "custom", label: "Custom" },
 ] as const;
 
 export function LiveReportChartSection({
@@ -41,10 +43,19 @@ export function LiveReportChartSection({
     useState<(typeof WINDOW_OPTIONS)[number]["value"]>(7);
   const [granularity, setGranularity] = useState<ChartGranularity>("daily");
   const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
 
   const visibleData = useMemo(() => {
-    // Filter berdasarkan "hari dari data terakhir"
-    const filtered = filterChartDataByLatestDays(chartData, windowSize);
+    let filtered = chartData;
+    if (windowSize === "custom") {
+      if (customStartDate && customEndDate) {
+        filtered = filterChartDataByDateRange(chartData, customStartDate, customEndDate);
+      }
+    } else {
+      // Filter berdasarkan "hari dari data terakhir"
+      filtered = filterChartDataByLatestDays(chartData, windowSize);
+    }
     // Agregasi
     return aggregateChartData(filtered, granularity, [
       "gmv",
@@ -53,7 +64,7 @@ export function LiveReportChartSection({
       "clicks",
       "penonton",
     ]);
-  }, [chartData, windowSize, granularity]);
+  }, [chartData, windowSize, granularity, customStartDate, customEndDate]);
 
   const legendItems = [
     { key: "gmv", label: "GMV (Rp)", color: "#5600e0" },
@@ -94,6 +105,24 @@ export function LiveReportChartSection({
               );
             })}
           </div>
+
+          {windowSize === "custom" && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="rounded-[8px] border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 outline-none transition-colors focus:border-indigo-500"
+              />
+              <span className="text-slate-400 text-xs font-semibold">-</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="rounded-[8px] border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 outline-none transition-colors focus:border-indigo-500"
+              />
+            </div>
+          )}
 
           {/* Granularity Dropdown */}
           <div className="relative">

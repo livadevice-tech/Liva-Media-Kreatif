@@ -62,6 +62,27 @@ export function filterChartDataByLatestDays<T extends AnyChartPoint>(
   });
 }
 
+/** Slices `data` to only include points within the specific custom date range */
+export function filterChartDataByDateRange<T extends AnyChartPoint>(
+  data: T[],
+  startDateStr: string,
+  endDateStr: string
+): T[] {
+  const startDate = parseDate(startDateStr);
+  const endDate = parseDate(endDateStr);
+
+  if (!startDate || !endDate) return data;
+
+  // Make sure end date includes the full day
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+
+  return data.filter((d) => {
+    const dDate = parseDate(d.date);
+    return dDate !== null && dDate >= startDate && dDate <= end;
+  });
+}
+
 /** Returns monday of the week that `date` falls in */
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
