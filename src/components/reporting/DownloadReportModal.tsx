@@ -45,6 +45,7 @@ const METRIC_OPTIONS = {
     { id: "comments", label: "Komentar" },
     { id: "shares", label: "Total Shares" },
     { id: "likes", label: "Total Likes" },
+    { id: "peak_viewers", label: "Peak Viewers" },
   ],
   pipeline: [
     { id: "date", label: "Tanggal" },

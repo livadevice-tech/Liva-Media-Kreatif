@@ -108,6 +108,8 @@ export function exportReportToExcel({
       if (selectedMetrics.includes("shares"))
         row["Total Shares"] = log.shares || 0;
       if (selectedMetrics.includes("likes")) row["Total Likes"] = log.likes || 0;
+      if (selectedMetrics.includes("peak_viewers"))
+        row["Peak Viewers"] = log.peakViewers || 0;
       return row;
     });
   }

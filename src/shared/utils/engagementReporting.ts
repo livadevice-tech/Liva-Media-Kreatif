@@ -22,6 +22,7 @@ export interface EngagementReportViewModel {
   prevTotalImpressions: number;
   totalPenonton: number;
   avgPeakViewers: number;
+  maxPeakViewers: number;
   totalLikes: number;
   prevTotalLikes: number;
   totalShares: number;
@@ -172,6 +173,7 @@ export function buildEngagementReportViewModel(
           logs.reduce((sum, l) => sum + (l.peakViewers || 0), 0) / logs.length,
         )
       : 0;
+  const maxPeakViewers = logs.reduce((max, l) => Math.max(max, l.peakViewers || 0), 0);
   const totalLikes = logs.reduce((sum, l) => sum + (l.likes || 0), 0);
   const totalShares = logs.reduce((sum, l) => sum + (l.shares || 0), 0);
   const totalComments = logs.reduce((sum, l) => sum + (l.comments || 0), 0);
@@ -250,6 +252,7 @@ export function buildEngagementReportViewModel(
     prevTotalImpressions: Math.floor(totalImpressions * 0.85),
     totalPenonton,
     avgPeakViewers,
+    maxPeakViewers,
     totalLikes,
     prevTotalLikes: Math.floor(totalLikes * 0.8),
     totalShares,

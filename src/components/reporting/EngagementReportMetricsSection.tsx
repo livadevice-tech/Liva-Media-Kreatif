@@ -95,7 +95,7 @@ export function EngagementReportMetricsSection({
           <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
             <Gift className="h-5 w-5 text-[#5600e0]" /> Promosi Tambahan (Koin & Spesial)
           </h4>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <ReportMetricCard
               label="Voucher Spesial Live"
               cur={model.totalSpecialVouchers}
@@ -113,6 +113,15 @@ export function EngagementReportMetricsSection({
                 model.totalCoinsClaimed,
               )}
               icon={<Coins size={16} />}
+            />
+            <ReportMetricCard
+              label="Peak Viewer"
+              cur={model.maxPeakViewers}
+              prev={0}
+              value={new Intl.NumberFormat("id-ID").format(
+                model.maxPeakViewers,
+              )}
+              icon={<Users size={16} />}
             />
           </div>
         </div>
