@@ -1037,6 +1037,9 @@ export default function App() {
   const [isClientCalendarOpen, setIsClientCalendarOpen] = useState(false);
   const [clientPlatformFilter, setClientPlatformFilter] =
     useState("TikTok Live");
+  const [clientReportingTab, setClientReportingTab] = useState<
+    "live" | "engagement" | "product"
+  >("live");
   const [clientSelectedMonth, setClientSelectedMonth] = useState<string>(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -1044,6 +1047,8 @@ export default function App() {
   const [clientMonthPickerYear, setClientMonthPickerYear] = useState<number>(
     () => new Date().getFullYear(),
   );
+
+
   const [operatorDateFilterType, setOperatorDateFilterType] = useState<
     "latest" | "all" | "month" | "custom"
   >("latest");
@@ -1648,6 +1653,61 @@ export default function App() {
     setOpenBrandCardActionsId((prev) => (prev === brandId ? null : brandId));
   };
   const [reportDbSearchQuery, setReportDbSearchQuery] = useState("");
+
+  const clientLiveReportView = useMemo(
+    () =>
+      buildLiveReportViewModel({
+        brandPerformanceLogs,
+        activeReportBrandId: loggedInClientBrandId || "",
+        dateFilterType: clientDateFilterType,
+        selectedLatestDate: clientSelectedLatestDate,
+        selectedMonth: clientSelectedMonth,
+        customStartDate: clientCustomStartDate,
+        customEndDate: clientCustomEndDate,
+        searchQuery: reportDbSearchQuery,
+        platformFilter: clientPlatformFilter,
+        shiftFilters: operatorShiftFilters,
+      }),
+    [
+      loggedInClientBrandId,
+      brandPerformanceLogs,
+      clientCustomEndDate,
+      clientCustomStartDate,
+      clientDateFilterType,
+      clientPlatformFilter,
+      clientSelectedMonth,
+      clientSelectedLatestDate,
+      operatorShiftFilters,
+      reportDbSearchQuery,
+    ],
+  );
+
+  const clientEngagementReportView = useMemo(
+    () =>
+      buildEngagementReportViewModel({
+        brandPerformanceLogs,
+        activeReportBrandId: loggedInClientBrandId || "",
+        operatorDateFilterType: clientDateFilterType,
+        selectedLatestDate: clientSelectedLatestDate,
+        operatorPlatformFilter: clientPlatformFilter,
+        operatorShiftFilters: operatorShiftFilters,
+        operatorSelectedMonth: clientSelectedMonth,
+        operatorCustomStartDate: clientCustomStartDate,
+        operatorCustomEndDate: clientCustomEndDate,
+      }),
+    [
+      loggedInClientBrandId,
+      brandPerformanceLogs,
+      clientCustomEndDate,
+      clientCustomStartDate,
+      clientDateFilterType,
+      clientPlatformFilter,
+      clientSelectedMonth,
+      clientSelectedLatestDate,
+      operatorShiftFilters,
+    ],
+  );
+
   const [reportDbSortCol, setReportDbSortCol] = useState("date");
   const [reportDbSortAsc, setReportDbSortAsc] = useState(false);
   const [skuSortCol, setSkuSortCol] = useState<"sold" | "revenue">("sold");
@@ -5830,1397 +5890,249 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* THE ADMIN DB VIEWER PORTED TO CLIENT */}
-                  {/* STORED DATABASE VIEWER - NEW DESIGN */}
-                  <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8">
-                    {(() => {
-                      const filteredDb = brandPerformanceLogs.filter(
-                        (log) =>
-                          log.brandId === loggedInClientBrandId &&
-                          log.reportType !== "engagement",
-                      );
-                      const availableReportDates = getAvailableReportDates(
-                        {
-                          logs: filteredDb,
-                          platformFilter: clientPlatformFilter,
-                        },
-                      );
-                      const latestAvailableReportDate =
-                        availableReportDates[availableReportDates.length - 1] ||
-                        "";
-                      let effectiveFilter = clientDateFilterType;
-                      let targetLatestDate = "";
-                      let latestDateLabel = "";
-
-                      let prevStartDate = "";
-                      let prevEndDate = "";
-                      if (effectiveFilter === "latest") {
-                        if (latestAvailableReportDate) {
-                          const selectedLatestDate =
-                            clientSelectedLatestDate &&
-                            availableReportDates.includes(
-                              clientSelectedLatestDate,
-                            )
-                              ? clientSelectedLatestDate
-                              : latestAvailableReportDate;
-                          targetLatestDate = selectedLatestDate;
-                          latestDateLabel = selectedLatestDate;
-                          const d = new Date(targetLatestDate);
-                          d.setDate(d.getDate() - 1);
-                          prevStartDate =
-                            prevEndDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                        } else {
-                          effectiveFilter = "all";
-                        }
-                      } else if (
-                        effectiveFilter === "month" &&
-                        clientSelectedMonth
-                      ) {
-                        latestDateLabel =
-                          getIndonesianMonthLabel(clientSelectedMonth);
-                        const partsVal = clientSelectedMonth.split("-");
-                        const y = partsVal[0];
-                        const m = partsVal[1];
-                        let ny = parseInt(y, 10);
-                        let nm = parseInt(m, 10) - 1;
-                        if (nm <= 0) {
-                          nm = 12;
-                          ny--;
-                        }
-                        const prevMonth = `${ny}-${String(nm).padStart(2, "0")}`;
-                        prevStartDate = `${prevMonth}-01`;
-                        prevEndDate = `${prevMonth}-31`;
-                      } else if (
-                        effectiveFilter === "custom" &&
-                        clientCustomStartDate &&
-                        clientCustomEndDate
-                      ) {
-                        latestDateLabel = `${clientCustomStartDate} ke ${clientCustomEndDate}`;
-                        const s = new Date(clientCustomStartDate);
-                        const e = new Date(clientCustomEndDate);
-                        const durationDays = Math.round(
-                          (e.getTime() - s.getTime()) / (1000 * 3600 * 24),
-                        );
-                        const pE = new Date(s);
-                        pE.setDate(pE.getDate() - 1);
-                        const pS = new Date(pE);
-                        pS.setDate(pS.getDate() - durationDays);
-                        const fYMD = (date) =>
-                          `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-                        prevStartDate = fYMD(pS);
-                        prevEndDate = fYMD(pE);
-                      } else {
-                        latestDateLabel = "Semua Waktu";
-                      }
-                      const currentLatestDateIndex = targetLatestDate
-                        ? availableReportDates.indexOf(targetLatestDate)
-                        : -1;
-                      const canPrevLatestDate =
-                        currentLatestDateIndex > 0 &&
-                        availableReportDates.length > 0;
-                      const canNextLatestDate =
-                        currentLatestDateIndex >= 0 &&
-                        currentLatestDateIndex <
-                          availableReportDates.length - 1;
-                      const handleClientLatestDateShift = (
-                        direction: -1 | 1,
-                      ) => {
-                        if (availableReportDates.length === 0) return;
-                        const nextDate = shiftAvailableReportDate({
-                          logs: filteredDb,
-                          platformFilter: clientPlatformFilter,
-                          currentDate: targetLatestDate || latestAvailableReportDate,
-                          direction,
-                        });
-                        if (!nextDate) return;
-                        setClientSelectedLatestDate(nextDate);
-                        setClientDateFilterType("latest");
-                      };
-                      const tableLogs = filterReportLogs(filteredDb, {
-                        filterType: effectiveFilter,
-                        latestDate: targetLatestDate,
-                        prevStartDate,
-                        prevEndDate,
-                        selectedMonth: clientSelectedMonth,
-                        customStartDate: clientCustomStartDate,
-                        customEndDate: clientCustomEndDate,
-                        searchQuery: reportDbSearchQuery,
-                        platformFilter: clientPlatformFilter,
-                      });
-                      const prevTableLogs =
-                        effectiveFilter !== "all"
-                          ? filterReportLogs(filteredDb, {
-                              filterType: effectiveFilter,
-                              isPrevPeriod: true,
-                              latestDate: targetLatestDate,
-                              prevStartDate,
-                              prevEndDate,
-                              selectedMonth: clientSelectedMonth,
-                              customStartDate: clientCustomStartDate,
-                              customEndDate: clientCustomEndDate,
-                              searchQuery: reportDbSearchQuery,
-                              platformFilter: clientPlatformFilter,
-                            })
-                          : [];
-                      const totalSessionsDb = tableLogs.length;
-                      const totalGmvDb = tableLogs.reduce(
-                        (sum, item) => sum + (item.gmv || 0),
-                        0,
-                      );
-                      const totalBuyersDb = tableLogs.reduce(
-                        (sum, item) => sum + (item.buyers || 0),
-                        0,
-                      );
-                      const totalOrdersDb = tableLogs.reduce(
-                        (sum, item) => sum + (item.orders || 0),
-                        0,
-                      );
-                      const totalItemsSoldDb = tableLogs.reduce(
-                        (sum, item) => sum + (item.products_sold || 0),
-                        0,
-                      );
-                      let avgAovDb =
-                        totalBuyersDb > 0 ? totalGmvDb / totalBuyersDb : 0;
-                      if (
-                        tableLogs.length > 0 &&
-                        tableLogs[0].platform &&
-                        (tableLogs[0].platform
-                          .toLowerCase()
-                          .includes("shopee") ||
-                          tableLogs[0].platform
-                            .toLowerCase()
-                            .includes("tiktok"))
-                      ) {
-                        avgAovDb =
-                          totalOrdersDb > 0 ? totalGmvDb / totalOrdersDb : 0;
-                      }
-                      const totalLikesDb = tableLogs.reduce(
-                        (sum, item) => sum + (item.likes || 0),
-                        0,
-                      );
-                      const totalCommentsDb = tableLogs.reduce(
-                        (sum, item) => sum + (item.comments || 0),
-                        0,
-                      );
-                      const totalSharesDb = tableLogs.reduce(
-                        (sum, item) => sum + (item.shares || 0),
-                        0,
-                      );
-                      const totalClicksDb = tableLogs.reduce(
-                        (sum, item) => sum + (item.clicks || 0),
-                        0,
-                      );
-                      const avgViewDurationDb =
-                        tableLogs.length > 0
-                          ? tableLogs.reduce(
-                              (sum, item) => sum + (item.avgViewDuration || 0),
-                              0,
-                            ) / tableLogs.length
-                          : 0;
-                      const pTotalGmvDb = prevTableLogs.reduce(
-                        (sum, item) => sum + (item.gmv || 0),
-                        0,
-                      );
-                      const pTotalBuyersDb = prevTableLogs.reduce(
-                        (sum, item) => sum + (item.buyers || 0),
-                        0,
-                      );
-                      const pTotalOrdersDb = prevTableLogs.reduce(
-                        (sum, item) => sum + (item.orders || 0),
-                        0,
-                      );
-                      const pTotalItemsSoldDb = prevTableLogs.reduce(
-                        (sum, item) => sum + (item.products_sold || 0),
-                        0,
-                      );
-                      let pAvgAovDb =
-                        pTotalBuyersDb > 0 ? pTotalGmvDb / pTotalBuyersDb : 0;
-                      if (
-                        prevTableLogs.length > 0 &&
-                        prevTableLogs[0].platform &&
-                        (prevTableLogs[0].platform
-                          .toLowerCase()
-                          .includes("shopee") ||
-                          prevTableLogs[0].platform
-                            .toLowerCase()
-                            .includes("tiktok"))
-                      ) {
-                        pAvgAovDb =
-                          pTotalOrdersDb > 0 ? pTotalGmvDb / pTotalOrdersDb : 0;
-                      }
-                      const pTotalLikesDb = prevTableLogs.reduce(
-                        (sum, item) => sum + (item.likes || 0),
-                        0,
-                      );
-                      const pTotalCommentsDb = prevTableLogs.reduce(
-                        (sum, item) => sum + (item.comments || 0),
-                        0,
-                      );
-                      const pTotalSharesDb = prevTableLogs.reduce(
-                        (sum, item) => sum + (item.shares || 0),
-                        0,
-                      );
-                      const pTotalClicksDb = prevTableLogs.reduce(
-                        (sum, item) => sum + (item.clicks || 0),
-                        0,
-                      );
-                      const pAvgViewDurationDb =
-                        prevTableLogs.length > 0
-                          ? prevTableLogs.reduce(
-                              (sum, item) => sum + (item.avgViewDuration || 0),
-                              0,
-                            ) / prevTableLogs.length
-                          : 0;
-                      const totalDbImpressions = tableLogs.reduce(
-                        (acc, curr) => {
-                          const isShopee = curr.platform && curr.platform.toLowerCase().includes("shopee");
-                          return acc + (isShopee ? (curr.penonton || curr.impressions || curr.views || 0) : (curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0));
-                        },
-                        0,
-                      );
-                      const totalDbLiveVisits = tableLogs.reduce(
-                        (acc, curr) => acc + (curr.liveVisits || 0),
-                        0,
-                      );
-                      const totalDbProductImpressions = tableLogs.reduce(
-                        (acc, curr) => acc + (curr.productImpressions || 0),
-                        0,
-                      );
-                      const totalDbClicks = tableLogs.reduce(
-                        (acc, curr) => acc + (curr.clicks || 0),
-                        0,
-                      );
-                      const totalDbBuyers = tableLogs.reduce(
-                        (acc, curr) => acc + (curr.buyers || curr.orders || 0),
-                        0,
-                      );
-                      const totalDbOrdersFunnel = tableLogs.reduce(
-                        (acc, curr) => acc + (curr.orders || curr.buyers || 0),
-                        0,
-                      );
-                      const funnelCtr =
-                        totalDbProductImpressions > 0
-                          ? (totalDbClicks / totalDbProductImpressions) * 100
-                          : 0;
-                      const funnelCtor =
-                        totalDbClicks > 0
-                          ? (totalDbOrdersFunnel / totalDbClicks) * 100
-                          : 0;
-                      const totalDbDuration = tableLogs.reduce((acc, curr) => {
-                        let dur = curr.duration || 0;
-                        if (dur > 0 && dur < 1.0) {
-                          dur = dur * 86400; // Excel fraction to seconds
-                        }
-                        return acc + dur;
-                      }, 0);
-                      const pTotalDbDuration = prevTableLogs.reduce(
-                        (acc, curr) => {
-                          let dur = curr.duration || 0;
-                          if (dur > 0 && dur < 1.0) {
-                            dur = dur * 86400; // Excel fraction to seconds
-                          }
-                          return acc + dur;
-                        },
-                        0,
-                      );
-                      const gmvPerHour =
-                        totalDbDuration > 0
-                          ? totalGmvDb / (totalDbDuration / 3600)
-                          : 0;
-                      const pGmvPerHour =
-                        pTotalDbDuration > 0
-                          ? pTotalGmvDb / (pTotalDbDuration / 3600)
-                          : 0;
-                      let conversionRateShopee = 0;
-                      let pConversionRateShopee = 0;
-                      const pTotalDbImpressions = prevTableLogs.reduce(
-                        (acc, curr) => {
-                          const isShopee = curr.platform && curr.platform.toLowerCase().includes("shopee");
-                          return acc + (isShopee ? (curr.penonton || curr.impressions || curr.views || 0) : (curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0));
-                        },
-                        0,
-                      );
-                      if (
-                        tableLogs.length > 0 &&
-                        tableLogs[0].platform &&
-                        tableLogs[0].platform.toLowerCase().includes("tiktok")
-                      ) {
-                        conversionRateShopee =
-                          totalDbClicks > 0
-                            ? (totalDbOrdersFunnel / totalDbClicks) * 100
-                            : 0;
-                        pConversionRateShopee =
-                          pTotalClicksDb > 0
-                            ? (pTotalOrdersDb / pTotalClicksDb) * 100
-                            : 0;
-                      } else {
-                        conversionRateShopee =
-                          totalDbImpressions > 0
-                            ? (totalDbOrdersFunnel / totalDbImpressions) * 100
-                            : 0;
-                        pConversionRateShopee =
-                          pTotalDbImpressions > 0
-                            ? (pTotalOrdersDb / pTotalDbImpressions) * 100
-                            : 0;
-                      }
-
-                      const chartData = buildReportChartData(tableLogs);
-
-                      // Apply Sorting for Table
-                      const sortedTableLogs = sortReportLogs(
-                        tableLogs,
-                        reportDbSortCol,
-                        reportDbSortAsc,
-                      );
-
-                      const paginatedLogs = sortedTableLogs.slice(
-                        (currentPage - 1) * ITEMS_PER_PAGE,
-                        currentPage * ITEMS_PER_PAGE,
-                      );
-                      const totalPages = Math.ceil(
-                        sortedTableLogs.length / ITEMS_PER_PAGE,
-                      );
-
-                      const handleSort = (col: string) => {
-                        const nextSort = getNextSortState(
-                          reportDbSortCol,
-                          reportDbSortAsc,
-                          col,
-                        );
-                        setReportDbSortCol(nextSort.sortKey);
-                        setReportDbSortAsc(nextSort.sortAsc);
-                      };
-
-                      return (
-                        <>
-                          <ReportFiltersBar
-                            searchQuery={reportDbSearchQuery}
-                            onSearchQueryChange={setReportDbSearchQuery}
-                            platformFilter={clientPlatformFilter}
-                            onPlatformFilterChange={setClientPlatformFilter}
-                            availablePlatforms={availableClientPlatforms}
-                            dateFilterType={clientDateFilterType}
-                            onDateFilterTypeSelect={handleClientDateFilterSelect}
-                            monthPickerYear={clientMonthPickerYear}
-                            setMonthPickerYear={setClientMonthPickerYear}
-                            selectedMonth={clientSelectedMonth}
-                            setSelectedMonth={setClientSelectedMonth}
-                            isMonthOpen={isClientMonthOpen}
-                            setIsMonthOpen={setIsClientMonthOpen}
-                            isCalendarOpen={isClientCalendarOpen}
-                            setIsCalendarOpen={setIsClientCalendarOpen}
-                            customStartDate={clientCustomStartDate}
-                            customEndDate={clientCustomEndDate}
-                            tempStartDate={clientTempStartDate}
-                            tempEndDate={clientTempEndDate}
-                            onTempStartDateChange={setClientTempStartDate}
-                            onTempEndDateChange={setClientTempEndDate}
-                            onApplyCustom={(start, end) => {
-                              setClientCustomStartDate(start);
-                              setClientCustomEndDate(end);
-                              setIsClientCalendarOpen(false);
-                            }}
-                            onCancelCustom={() => setIsClientCalendarOpen(false)}
-                            periodLabel={
-                              effectiveFilter === "latest" && targetLatestDate
-                                ? getReportPeriodLabel({
-                                    dateFilterType: clientDateFilterType,
-                                    latestDateLabel,
-                                    targetLatestDate,
-                                    customStartDate:
-                                      clientCustomStartDate,
-                                  })
-                                : undefined
-                            }
-                            onPrevPeriod={() =>
-                              handleClientLatestDateShift(-1)
-                            }
-                            onNextPeriod={() =>
-                              handleClientLatestDateShift(1)
-                            }
-                            canPrevPeriod={canPrevLatestDate}
-                            canNextPeriod={canNextLatestDate}
-                          />
-
-                          {/* Summary Cards */}
-                          {(() => {
-                            const isShopee = clientPlatformFilter
-                              ? clientPlatformFilter
-                                  .toLowerCase()
-                                  .includes("shopee")
-                              : filteredDb?.some(
-                                  (log) =>
-                                    log.platform &&
-                                    log.platform
-                                      .toLowerCase()
-                                      .includes("shopee"),
-                                );
-                            if (isShopee) {
-                              return (
-                                <div className="space-y-6 mb-6">
-                                  <div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
-                                      <ReportMetricCard
-                                        label="GMV"
-                                        cur={totalGmvDb}
-                                        prev={pTotalGmvDb}
-                                        prefix="Rp "
-                                        value={new Intl.NumberFormat("id-ID", {
-                                          maximumFractionDigits: 0,
-                                        }).format(totalGmvDb)}
-                                      />
-                                      <ReportMetricCard
-                                        label="Item Solds"
-                                        cur={totalItemsSoldDb}
-                                        prev={pTotalItemsSoldDb}
-                                        value={new Intl.NumberFormat(
-                                          "id-ID",
-                                        ).format(totalItemsSoldDb)}
-                                      />
-                                      <ReportMetricCard
-                                        label="GMV/Hours"
-                                        cur={gmvPerHour}
-                                        prev={pGmvPerHour}
-                                        prefix="Rp "
-                                        value={new Intl.NumberFormat("id-ID", {
-                                          maximumFractionDigits: 0,
-                                        }).format(gmvPerHour)}
-                                      />
-                                      <ReportMetricCard
-                                        label="Conversion Rate %"
-                                        cur={conversionRateShopee}
-                                        prev={pConversionRateShopee}
-                                        value={`${conversionRateShopee.toFixed(2)}%`}
-                                      />
-                                      <ReportMetricCard
-                                        label="Orders"
-                                        cur={totalOrdersDb}
-                                        prev={pTotalOrdersDb}
-                                        value={new Intl.NumberFormat(
-                                          "id-ID",
-                                        ).format(totalOrdersDb)}
-                                      />
-                                      <ReportMetricCard
-                                        label="Avg. Viewer Duration"
-                                        cur={avgViewDurationDb}
-                                        prev={pAvgViewDurationDb}
-                                        value={`${avgViewDurationDb.toFixed(2)}s`}
-                                      />
-                                      <ReportMetricCard
-                                        label="AOV"
-                                        cur={avgAovDb}
-                                        prev={pAvgAovDb}
-                                        prefix="Rp "
-                                        value={new Intl.NumberFormat("id-ID", {
-                                          maximumFractionDigits: 0,
-                                        }).format(avgAovDb)}
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {totalDbImpressions > 0 && (
-                                    <div className="mb-6">
-                                      <HorizontalFunnel
-                                        title=""
-                                        subtitle=""
-                                        steps={[
-                                          {
-                                            label: "Viewer",
-                                            value: new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalDbImpressions),
-                                            raw: totalDbImpressions,
-                                          },
-                                          {
-                                            label: "Viewer Enganged",
-                                            value: new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalDbLiveVisits),
-                                            raw: totalDbLiveVisits,
-                                          },
-                                          {
-                                            label: "Add To Card",
-                                            value: new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalDbClicks),
-                                            raw: totalDbClicks,
-                                          },
-                                          {
-                                            label: "Purchase",
-                                            value: new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(totalDbOrdersFunnel),
-                                            raw: totalDbOrdersFunnel,
-                                          },
-                                        ]}
-                                      />
-                                    </div>
-                                  )}
-                                </div>
+                  {/* CLIENT REPORTING MODULAR COMPONENTS */}
+                  <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8 mt-2">
+                    <ReportingWorkspaceHeader
+                      brandName={clientBrand?.name || "Nama Brand"}
+                      brandId={loggedInClientBrandId || undefined}
+                      brandLogoUrl={clientBrand?.logoUrl}
+                      onBack={handleLogout}
+                      activeTab={clientReportingTab}
+                      platformFilter={clientPlatformFilter}
+                      onPlatformFilterChange={setClientPlatformFilter}
+                      dateFilterType={clientDateFilterType}
+                      onDateFilterTypeSelect={setClientDateFilterType}
+                      monthPickerYear={clientMonthPickerYear}
+                      setMonthPickerYear={setClientMonthPickerYear}
+                      selectedMonth={clientSelectedMonth}
+                      setSelectedMonth={setClientSelectedMonth}
+                      isMonthOpen={isClientMonthOpen}
+                      setIsMonthOpen={setIsClientMonthOpen}
+                      isCalendarOpen={isClientCalendarOpen}
+                      setIsCalendarOpen={setIsClientCalendarOpen}
+                      customStartDate={clientCustomStartDate}
+                      customEndDate={clientCustomEndDate}
+                      tempStartDate={clientTempStartDate}
+                      tempEndDate={clientTempEndDate}
+                      onTempStartDateChange={setClientTempStartDate}
+                      onTempEndDateChange={setClientTempEndDate}
+                      onApplyCustom={(start, end) => {
+                        setClientCustomStartDate(start);
+                        setClientCustomEndDate(end);
+                        setIsClientCalendarOpen(false);
+                      }}
+                      onCancelCustom={() => setIsClientCalendarOpen(false)}
+                      periodLabel={
+                        clientDateFilterType === "latest"
+                          ? (() => {
+                              const filteredDb = brandPerformanceLogs.filter(
+                                (log) =>
+                                  log.brandId === loggedInClientBrandId &&
+                                  log.reportType !== "engagement",
                               );
-                            }
-
-                            return (
-                              <>
-                                <div className="space-y-6 mb-6">
-                                  <div>
-                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-                                      <h4 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-widest">
-                                        Sale Metrics
-                                      </h4>
-                                      <div className="flex items-center gap-3 bg-white border border-slate-200 px-2 py-1.5 rounded-xl shadow-sm">
-                                        <button
-                                          onClick={() => {
-                                            let pd = new Date();
-                                            if (
-                                              clientDateFilterType ===
-                                                "latest" &&
-                                              targetLatestDate
-                                            ) {
-                                              pd = new Date(targetLatestDate);
-                                            } else if (
-                                              clientDateFilterType ===
-                                                "custom" &&
-                                              clientCustomStartDate
-                                            ) {
-                                              pd = new Date(
-                                                clientCustomStartDate,
-                                              );
-                                            }
-                                            pd.setDate(pd.getDate() - 1);
-                                            const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                            setClientDateFilterType("custom");
-                                            setClientCustomStartDate(newD);
-                                            setClientCustomEndDate(newD);
-                                          }}
-                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                        >
-                                          <ChevronLeft className="w-4 h-4" />
-                                        </button>
-                                        <span className="text-xs sm:text-sm font-black text-indigo-950 min-w-[160px] text-center">
-                                          {(() => {
-                                            if (
-                                              clientDateFilterType ===
-                                                "month" ||
-                                              clientDateFilterType === "all"
-                                            )
-                                              return (
-                                                latestDateLabel || "Semua Waktu"
-                                              );
-                                            let curD = new Date();
-                                            if (
-                                              clientDateFilterType ===
-                                                "latest" &&
-                                              targetLatestDate
-                                            ) {
-                                              curD = new Date(targetLatestDate);
-                                            } else if (
-                                              clientDateFilterType ===
-                                                "custom" &&
-                                              clientCustomStartDate
-                                            ) {
-                                              curD = new Date(
-                                                clientCustomStartDate,
-                                              );
-                                            }
-                                            return curD.toLocaleDateString(
-                                              "id-ID",
-                                              {
-                                                weekday: "long",
-                                                day: "numeric",
-                                                month: "long",
-                                                year: "numeric",
-                                              },
-                                            );
-                                          })()}
-                                        </span>
-                                        <button
-                                          onClick={() => {
-                                            let pd = new Date();
-                                            if (
-                                              clientDateFilterType ===
-                                                "latest" &&
-                                              targetLatestDate
-                                            ) {
-                                              pd = new Date(targetLatestDate);
-                                            } else if (
-                                              clientDateFilterType ===
-                                                "custom" &&
-                                              clientCustomStartDate
-                                            ) {
-                                              pd = new Date(
-                                                clientCustomStartDate,
-                                              );
-                                            }
-                                            pd.setDate(pd.getDate() + 1);
-                                            const newD = `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, "0")}-${String(pd.getDate()).padStart(2, "0")}`;
-                                            setClientDateFilterType("custom");
-                                            setClientCustomStartDate(newD);
-                                            setClientCustomEndDate(newD);
-                                          }}
-                                          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
-                                        >
-                                          <ChevronRight className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            GMV
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalGmvDb}
-                                            prev={pTotalGmvDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          Rp
-                                          {new Intl.NumberFormat("id-ID", {
-                                            maximumFractionDigits: 0,
-                                          }).format(totalGmvDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Item Sold
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalItemsSoldDb}
-                                            prev={pTotalItemsSoldDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(totalItemsSoldDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Customers
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalBuyersDb}
-                                            prev={pTotalBuyersDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(totalBuyersDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            SKU Orders
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalOrdersDb}
-                                            prev={pTotalOrdersDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(totalOrdersDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            AOV
-                                          </div>
-                                          <PercentBadge
-                                            cur={avgAovDb}
-                                            prev={pAvgAovDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          Rp
-                                          {new Intl.NumberFormat("id-ID", {
-                                            maximumFractionDigits: 0,
-                                          }).format(avgAovDb)}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <h4 className="text-sm md:text-base font-black text-slate-900 mb-4 uppercase tracking-widest mt-8">
-                                      Engagement Metrics
-                                    </h4>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Like
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalLikesDb}
-                                            prev={pTotalLikesDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(totalLikesDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Comment
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalCommentsDb}
-                                            prev={pTotalCommentsDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(totalCommentsDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Share
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalSharesDb}
-                                            prev={pTotalSharesDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(totalSharesDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            Product Clicks
-                                          </div>
-                                          <PercentBadge
-                                            cur={totalClicksDb}
-                                            prev={pTotalClicksDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(totalClicksDb)}
-                                        </div>
-                                      </div>
-                                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-1">
-                                            AVG TIME/VIEWER
-                                          </div>
-                                          <PercentBadge
-                                            cur={avgViewDurationDb}
-                                            prev={pAvgViewDurationDb}
-                                          />
-                                        </div>
-                                        <div className="text-xl font-black text-slate-800 mt-1">
-                                          {Math.round(avgViewDurationDb)}{" "}
-                                          <span className="text-[10px] text-slate-400 font-bold">
-                                            detik
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </>
-                            );
-                          })()}
-
-                          {/* SKU Analytics */}
-                          {(() => {
-                            const isShopee = clientPlatformFilter
-                              ? clientPlatformFilter
-                                  .toLowerCase()
-                                  .includes("shopee")
-                              : filteredDb?.some(
-                                  (log) =>
-                                    log.platform &&
-                                    log.platform
-                                      .toLowerCase()
-                                      .includes("shopee"),
-                                );
-                            if (!isShopee) return null;
-
-                            const currentSkus = filterSkuLogs(shopeeSkuLogs, {
-                              brandId: loggedInClientBrandId,
-                              dateFilterType: clientDateFilterType,
-                              latestDate: targetLatestDate,
-                              customStartDate: clientCustomStartDate,
-                              customEndDate: clientCustomEndDate,
-                              selectedMonth: clientSelectedMonth,
-                            });
-                            if (currentSkus.length === 0) return null;
-
-                            let aggregatedSkus = aggregateSkuLogs(
-                              currentSkus,
-                            ).sort((a, b) => b.sold - a.sold);
-
-                            return (
-                              <div className="bg-white border border-slate-100 p-5 lg:p-7 rounded-3xl shadow-sm mb-6">
-                                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
-                                  <div>
-                                    <h4 className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-                                      <Package className="w-5 h-5 text-indigo-500" />{" "}
-                                      Top Performing SKUs
-                                    </h4>
-                                    <p className="text-xs text-slate-500 font-semibold mt-1">
-                                      Berdasarkan data Item Export Shopee
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="overflow-x-auto rounded-xl border border-slate-100 hidden sm:block">
-                                  <table className="w-full text-left whitespace-nowrap min-w-[700px]">
-                                    <thead className="bg-[#f8fafc] text-xs font-black text-slate-500 uppercase tracking-widest leading-none">
-                                      <tr>
-                                        <th className="px-5 py-4 w-12 text-center">No</th>
-                                        <th className="px-5 py-4">Nama Produk</th>
-                                        <th className="px-5 py-4 w-32">SKU</th>
-                                        <th className="px-5 py-4 w-32 text-right">Items Sold</th>
-                                        <th className="px-5 py-4 w-40 text-right">Revenue (Rp)</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
-                                      {aggregatedSkus.map((sku, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                                          <td className="px-5 py-3 text-center text-slate-400 font-bold text-xs">{idx + 1}</td>
-                                          <td className="px-5 py-3 whitespace-normal min-w-[250px]">
-                                            <div className="line-clamp-2 text-slate-800 leading-snug">{sku.productName}</div>
-                                          </td>
-                                          <td className="px-5 py-3 text-xs tracking-wider text-slate-500">{sku.sku}</td>
-                                          <td className="px-5 py-3 text-right text-emerald-600 font-black">{new Intl.NumberFormat("id-ID").format(sku.sold)}</td>
-                                          <td className="px-5 py-3 text-right text-slate-800 font-black">{new Intl.NumberFormat("id-ID").format(sku.revenue)}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                                {/* Mobile Card List for SKU */}
-                                <div className="block sm:hidden space-y-3">
-                                  {aggregatedSkus.map((sku, idx) => (
-                                    <div key={idx} className="bg-white border border-slate-100 rounded-[14px] p-3.5 shadow-sm ring-1 ring-slate-900/5">
-                                      <div className="flex items-start gap-2.5 mb-2.5">
-                                        <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded bg-slate-100 text-[10px] font-black text-slate-500 mt-0.5">{idx + 1}</span>
-                                        <div className="font-bold text-[13px] text-slate-800 leading-snug line-clamp-2">{sku.productName}</div>
-                                      </div>
-                                      <div className="pl-7.5 text-[11px] font-mono text-slate-400 mb-3 ml-7">{sku.sku}</div>
-                                      <div className="pl-7.5 grid grid-cols-2 gap-2 ml-7">
-                                        <div className="bg-slate-50 rounded-[10px] p-2.5">
-                                          <div className="text-[10px] text-slate-400 font-bold mb-1">TERJUAL</div>
-                                          <div className="text-emerald-600 text-sm font-black tabular-nums">{new Intl.NumberFormat("id-ID").format(sku.sold)}</div>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-[10px] p-2.5">
-                                          <div className="text-[10px] text-slate-400 font-bold mb-1">REVENUE (Rp)</div>
-                                          <div className="text-slate-800 text-sm font-black tabular-nums">{new Intl.NumberFormat("id-ID").format(sku.revenue)}</div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })()}
-
-                          {/* Time & Day Analytics */}
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                            {/* Revenue Based on Time (Shift) */}
-                            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm flex flex-col">
-                              <h4 className="text-[14px] font-bold text-slate-800 mb-4 px-1">
-                                Revenue Based on Time
-                              </h4>
-                              {(() => {
-                                const shiftData: Record<string, number> = {};
-                                tableLogs.forEach((log) => {
-                                  let s = "N/A";
-                                  if (log.dateTime) {
-                                    const timeMatch = String(log.dateTime).match(/(\d{1,2}):\d{2}/);
-                                    if (timeMatch) {
-                                      const hour = parseInt(timeMatch[1], 10);
-                                      if (!isNaN(hour)) {
-                                        const matchedShift = getShiftFromHour(hour, shifts);
-                                        if (matchedShift) s = matchedShift;
-                                      }
-                                    }
-                                  }
-                                  if (s === "N/A") {
-                                    s = log.shift || "Shift Lainnya";
-                                  }
-                                  if (!shiftData[s]) shiftData[s] = 0;
-                                  shiftData[s] += log.gmv || 0;
+                              const availableReportDates = getAvailableReportDates({
+                                  logs: filteredDb,
+                                  platformFilter: clientPlatformFilter,
                                 });
-                                const shiftsArray = Object.keys(shiftData)
-                                  .map((k) => ({
-                                    name: k,
-                                    gmv: shiftData[k],
-                                  }))
-                                  .sort((a, b) => b.gmv - a.gmv);
+                              const latestDate =
+                                availableReportDates[
+                                  availableReportDates.length - 1
+                                ] || "";
+                              return getReportPeriodLabel({
+                                dateFilterType: clientDateFilterType,
+                                latestDateLabel: clientSelectedLatestDate || latestDate,
+                                targetLatestDate: clientSelectedLatestDate || latestDate,
+                                customStartDate: clientCustomStartDate,
+                              });
+                            })()
+                          : undefined
+                      }
+                      onPrevPeriod={
+                        clientDateFilterType === "latest"
+                          ? () => {
+                              const filteredDb = brandPerformanceLogs.filter(
+                                (log) =>
+                                  log.brandId === loggedInClientBrandId &&
+                                  log.reportType !== "engagement",
+                              );
+                              const availableReportDates = getAvailableReportDates({
+                                logs: filteredDb,
+                                platformFilter: clientPlatformFilter,
+                              });
+                              if(availableReportDates.length === 0) return;
+                              const targetLatestDate = clientSelectedLatestDate || availableReportDates[availableReportDates.length - 1] || "";
+                              const nextDate = shiftAvailableReportDate({
+                                logs: filteredDb,
+                                platformFilter: clientPlatformFilter,
+                                currentDate: targetLatestDate,
+                                direction: -1,
+                              });
+                              if (nextDate) {
+                                setClientSelectedLatestDate(nextDate);
+                              }
+                            }
+                          : undefined
+                      }
+                      onNextPeriod={
+                        clientDateFilterType === "latest"
+                          ? () => {
+                              const filteredDb = brandPerformanceLogs.filter(
+                                (log) =>
+                                  log.brandId === loggedInClientBrandId &&
+                                  log.reportType !== "engagement",
+                              );
+                              const availableReportDates = getAvailableReportDates({
+                                logs: filteredDb,
+                                platformFilter: clientPlatformFilter,
+                              });
+                              if(availableReportDates.length === 0) return;
+                              const targetLatestDate = clientSelectedLatestDate || availableReportDates[availableReportDates.length - 1] || "";
+                              const nextDate = shiftAvailableReportDate({
+                                logs: filteredDb,
+                                platformFilter: clientPlatformFilter,
+                                currentDate: targetLatestDate,
+                                direction: 1,
+                              });
+                              if (nextDate) {
+                                setClientSelectedLatestDate(nextDate);
+                              }
+                            }
+                          : undefined
+                      }
+                      canPrevPeriod={
+                        clientDateFilterType === "latest"
+                          ? (() => {
+                              const filteredDb = brandPerformanceLogs.filter(
+                                (log) =>
+                                  log.brandId === loggedInClientBrandId &&
+                                  log.reportType !== "engagement",
+                              );
+                              const availableReportDates = getAvailableReportDates({
+                                logs: filteredDb,
+                                platformFilter: clientPlatformFilter,
+                              });
+                              const currentLatestDateIndex = availableReportDates.indexOf(clientSelectedLatestDate || availableReportDates[availableReportDates.length - 1] || "");
+                              return currentLatestDateIndex > 0 && availableReportDates.length > 0;
+                            })()
+                          : undefined
+                      }
+                      canNextPeriod={
+                        clientDateFilterType === "latest"
+                          ? (() => {
+                              const filteredDb = brandPerformanceLogs.filter(
+                                (log) =>
+                                  log.brandId === loggedInClientBrandId &&
+                                  log.reportType !== "engagement",
+                              );
+                              const availableReportDates = getAvailableReportDates({
+                                logs: filteredDb,
+                                platformFilter: clientPlatformFilter,
+                              });
+                              const currentLatestDateIndex = availableReportDates.indexOf(clientSelectedLatestDate || availableReportDates[availableReportDates.length - 1] || "");
+                              return currentLatestDateIndex >= 0 && currentLatestDateIndex < availableReportDates.length - 1;
+                            })()
+                          : undefined
+                      }
+                    />
 
-                                if (shiftsArray.length === 0) {
-                                  return (
-                                    <div className="px-5 py-8 text-center text-slate-400">
-                                      Tidak ada data.
-                                    </div>
-                                  );
-                                }
+                    <ReportingWorkspaceTabs
+                      activeTab={clientReportingTab}
+                      onTabChange={setClientReportingTab}
+                    />
 
-                                return (
-                                  <>
-                                    <div className="overflow-x-auto hidden sm:block">
-                                      <table className="w-full text-left whitespace-nowrap">
-                                        <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
-                                          <tr>
-                                            <th className="px-5 py-3 rounded-l-lg w-16 text-center">No</th>
-                                            <th className="px-5 py-3">Sesi Jam</th>
-                                            <th className="px-5 py-3 rounded-r-lg cursor-pointer">Revenue ▾</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
-                                          {shiftsArray.map((sh, idx) => (
-                                            <tr key={sh.name || idx} className="hover:bg-slate-50">
-                                              <td className="px-5 py-3.5 text-center text-slate-500">{idx + 1}.</td>
-                                              <td className="px-5 py-3.5 text-slate-700 font-mono text-[11px]">{sh.name}</td>
-                                              <td className="px-5 py-3.5 text-slate-700 font-black tabular-nums">{new Intl.NumberFormat("id-ID").format(sh.gmv)}</td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                    <div className="block sm:hidden space-y-2">
-                                      {shiftsArray.map((sh, idx) => (
-                                        <div key={sh.name || idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-[12px]">
-                                          <div className="flex items-center gap-3">
-                                            <span className="text-slate-400 text-xs font-bold w-4">{idx + 1}.</span>
-                                            <span className="text-slate-700 text-xs font-mono font-semibold">{sh.name}</span>
-                                          </div>
-                                          <span className="text-slate-900 text-sm font-black tabular-nums">Rp {new Intl.NumberFormat("id-ID").format(sh.gmv)}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </>
-                                );
-                              })()}
-                            </div>
-
-                            {/* Revenue Based on Day */}
-                            <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm flex flex-col">
-                              <h4 className="text-[14px] font-bold text-slate-800 mb-4 px-1">
-                                Revenue Based on Day
-                              </h4>
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-left whitespace-nowrap">
-                                  <thead className="bg-[#f0f4f8] text-[12px] font-bold text-slate-800">
-                                    <tr>
-                                      <th className="px-5 py-3 rounded-l-lg w-16 text-center">
-                                        No
-                                      </th>
-                                      <th
-                                        className="px-5 py-3 cursor-pointer hover:bg-slate-200/50 transition-colors"
-                                        onClick={() => {
-                                          setDayAnalyticsSortCol("name");
-                                          setDayAnalyticsSortAsc((prev) =>
-                                            dayAnalyticsSortCol === "name"
-                                              ? !prev
-                                              : true,
-                                          );
-                                        }}
-                                      >
-                                        Hari{" "}
-                                        {dayAnalyticsSortCol === "name"
-                                          ? dayAnalyticsSortAsc
-                                            ? "↑"
-                                            : "↓"
-                                          : ""}
-                                      </th>
-                                      <th
-                                        className="px-5 py-3 cursor-pointer hover:bg-slate-200/50 transition-colors"
-                                        onClick={() => {
-                                          setDayAnalyticsSortCol("views");
-                                          setDayAnalyticsSortAsc((prev) =>
-                                            dayAnalyticsSortCol === "views"
-                                              ? !prev
-                                              : false,
-                                          );
-                                        }}
-                                      >
-                                        Viewers{" "}
-                                        {dayAnalyticsSortCol === "views"
-                                          ? dayAnalyticsSortAsc
-                                            ? "↑"
-                                            : "↓"
-                                          : ""}
-                                      </th>
-                                      <th
-                                        className="px-5 py-3 rounded-r-lg cursor-pointer hover:bg-slate-200/50 transition-colors"
-                                        onClick={() => {
-                                          setDayAnalyticsSortCol("gmv");
-                                          setDayAnalyticsSortAsc((prev) =>
-                                            dayAnalyticsSortCol === "gmv"
-                                              ? !prev
-                                              : false,
-                                          );
-                                        }}
-                                      >
-                                        Revenue{" "}
-                                        {dayAnalyticsSortCol === "gmv"
-                                          ? dayAnalyticsSortAsc
-                                            ? "↑"
-                                            : "↓"
-                                          : ""}
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-600">
-                                    {(() => {
-                                      const dayNamesId = [
-                                        "Minggu",
-                                        "Senin",
-                                        "Selasa",
-                                        "Rabu",
-                                        "Kamis",
-                                        "Jumat",
-                                        "Sabtu",
-                                      ];
-                                      const dayData: Record<
-                                        string,
-                                        { gmv: number; views: number }
-                                      > = {};
-                                      tableLogs.forEach((log) => {
-                                        if (log.date) {
-                                          const dateParts = String(
-                                            log.date,
-                                          ).split("-");
-                                          const processDay = (d: Date) => {
-                                            if (!isNaN(d.getTime())) {
-                                              const dayName =
-                                                dayNamesId[d.getDay()];
-                                              if (!dayData[dayName])
-                                                dayData[dayName] = {
-                                                  gmv: 0,
-                                                  views: 0,
-                                                };
-                                              dayData[dayName].gmv +=
-                                                log.gmv || 0;
-                                              dayData[dayName].views +=
-                                                log.impressions ||
-                                                log.views ||
-                                                log.liveVisits ||
-                                                0;
-                                            }
-                                          };
-                                          if (dateParts.length === 3) {
-                                            processDay(
-                                              new Date(
-                                                parseInt(dateParts[0]),
-                                                parseInt(dateParts[1]) - 1,
-                                                parseInt(dateParts[2]),
-                                              ),
-                                            );
-                                          } else {
-                                            processDay(new Date(log.date));
-                                          }
-                                        }
-                                      });
-                                      const daysArray = Object.keys(dayData)
-                                        .map((k) => ({
-                                          name: k,
-                                          ...dayData[k],
-                                        }))
-                                        .sort((a, b) => {
-                                          let valA = a[dayAnalyticsSortCol];
-                                          let valB = b[dayAnalyticsSortCol];
-                                          if (valA < valB)
-                                            return dayAnalyticsSortAsc ? -1 : 1;
-                                          if (valA > valB)
-                                            return dayAnalyticsSortAsc ? 1 : -1;
-                                          return 0;
-                                        });
-                                      if (daysArray.length === 0) {
-                                        return (
-                                          <tr key="empty-data">
-                                            <td
-                                              colSpan={3}
-                                              className="px-5 py-8 text-center text-slate-400"
-                                            >
-                                              Tidak ada data.
-                                            </td>
-                                          </tr>
-                                        );
-                                      }
-
-                                      return daysArray.map((dy, idx) => (
-                                        <tr
-                                          key={dy.name || idx}
-                                          className="hover:bg-slate-50"
-                                        >
-                                          <td className="px-5 py-3.5 text-center text-slate-500">
-                                            {idx + 1}.
-                                          </td>
-                                          <td className="px-5 py-3.5 text-slate-700">
-                                            {dy.name}
-                                          </td>
-                                          <td className="px-5 py-3.5 text-slate-700">
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(dy.views)}
-                                          </td>
-                                          <td className="px-5 py-3.5 text-slate-700">
-                                            Rp{" "}
-                                            {new Intl.NumberFormat(
-                                              "id-ID",
-                                            ).format(dy.gmv)}
-                                          </td>
-                                        </tr>
-                                      ));
-                                    })()}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
+                    {clientReportingTab === "live" && (
+                      <React.Suspense
+                        fallback={
+                          <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
+                            Memuat panel reporting...
                           </div>
+                        }
+                      >
+                        <LiveReportPanel
+                          model={clientLiveReportView}
+                          chartSelectedMetrics={liveChartSelectedMetrics}
+                          onChartSelectedMetricsChange={
+                            setLiveChartSelectedMetrics
+                          }
+                          operatorPlatformFilter={clientPlatformFilter}
+                          shifts={shifts}
+                          adminShiftChecklist={adminShiftChecklist}
+                          setAdminShiftChecklist={setAdminShiftChecklist}
+                          reportingShopeeRawTab={reportingShopeeRawTab}
+                          setReportingShopeeRawTab={
+                            setReportingShopeeRawTab
+                          }
+                          reportDbSortCol={reportDbSortCol}
+                          reportDbSortAsc={reportDbSortAsc}
+                          setReportDbSortCol={setReportDbSortCol}
+                          setReportDbSortAsc={setReportDbSortAsc}
+                          currentPage={currentPage}
+                          setCurrentPage={setCurrentPage}
+                          itemsPerPage={ITEMS_PER_PAGE}
+                          isLogsLoading={isLogsLoading}
+                          handleDeletePerformanceLog={
+                            handleDeletePerformanceLog
+                          }
+                          brandPerformanceLogs={brandPerformanceLogs}
+                          activeReportBrandId={loggedInClientBrandId || ""}
+                          brandUploadHistory={brandUploadHistory}
+                          uploadHistory={uploadHistory}
+                          onDeleteUploadBatch={handleDeleteUploadBatch}
+                        />
+                      </React.Suspense>
+                    )}
 
-                          {/* Table */}
-                          <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
-                            <table className="w-full text-left whitespace-nowrap">
-                              <thead className="bg-[#f8fafc] border-b border-slate-100 uppercase text-[9px] font-bold text-slate-400 tracking-wider">
-                                <tr>
-                                  <th className="px-5 py-3.5">No</th>
-                                  <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                    onClick={() => handleSort("date")}
-                                  >
-                                    Tanggal{" "}
-                                    {reportDbSortCol === "date"
-                                      ? reportDbSortAsc
-                                        ? "↑"
-                                        : "↓"
-                                      : ""}
-                                  </th>
-                                  <th className="px-5 py-3.5">
-                                    Jam Start Live
-                                  </th>
-                                  <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                    onClick={() => handleSort("views")}
-                                  >
-                                    Viewers{" "}
-                                    {reportDbSortCol === "views"
-                                      ? reportDbSortAsc
-                                        ? "↑"
-                                        : "↓"
-                                      : ""}
-                                  </th>
-                                  <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                    onClick={() => handleSort("gmv")}
-                                  >
-                                    GMV{" "}
-                                    {reportDbSortCol === "gmv"
-                                      ? reportDbSortAsc
-                                        ? "↑"
-                                        : "↓"
-                                      : ""}
-                                  </th>
-                                  <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                    onClick={() => handleSort("products_sold")}
-                                  >
-                                    Produk Terjual{" "}
-                                    {reportDbSortCol === "products_sold"
-                                      ? reportDbSortAsc
-                                        ? "↑"
-                                        : "↓"
-                                      : ""}
-                                  </th>
-                                  <th
-                                    className="px-5 py-3.5 cursor-pointer hover:bg-slate-100"
-                                    onClick={() => handleSort("customers")}
-                                  >
-                                    Customer{" "}
-                                    {reportDbSortCol === "customers"
-                                      ? reportDbSortAsc
-                                        ? "↑"
-                                        : "↓"
-                                      : ""}
-                                  </th>
-                                  <th className="px-5 py-3.5">
-                                    Convertion Rate
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
-                                {isLogsLoading ? (
-                                  <tr>
-                                    <td
-                                      colSpan={8}
-                                      className="px-5 py-16 text-center text-slate-500 font-bold w-full"
-                                    >
-                                      <div className="flex flex-col items-center justify-center gap-4">
-                                        <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-indigo-600 animate-spin"></div>
-                                        Sedang memuat data dari database...
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ) : sortedTableLogs.length === 0 ? (
-                                  <tr>
-                                    <td
-                                      colSpan={8}
-                                      className="px-5 py-10 text-center text-slate-400"
-                                    >
-                                      Tidak ada sesi ditemukan.
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  paginatedLogs.map((log, idx) => {
-                                    const isLogShopee = log.platform && log.platform.toLowerCase().includes("shopee");
-                                    const lViews = isLogShopee 
-                                      ? (log.penonton || log.impressions || log.views || 0)
-                                      : (log.impressions || log.views || log.liveVisits || 0);
-                                    const lCtr =
-                                      log.productImpressions > 0
-                                        ? (log.clicks /
-                                            log.productImpressions) *
-                                          100
-                                        : 0;
-                                    const lCtor =
-                                      log.clicks > 0
-                                        ? (log.orders / log.clicks) * 100
-                                        : 0;
+                    {clientReportingTab === "product" && (
+                      <ProductPerformancePanel
+                        shopeeSkuLogs={shopeeSkuLogs}
+                        brandPerformanceLogs={brandPerformanceLogs}
+                        activeReportBrandId={loggedInClientBrandId || ""}
+                        operatorDateFilterType={clientDateFilterType}
+                        selectedLatestDate={clientSelectedLatestDate}
+                        operatorCustomStartDate={clientCustomStartDate}
+                        operatorCustomEndDate={clientCustomEndDate}
+                        operatorSelectedMonth={clientSelectedMonth}
+                        operatorPlatformFilter={clientPlatformFilter}
+                        operatorShiftFilters={operatorShiftFilters}
+                        reportDbSearchQuery={reportDbSearchQuery}
+                        skuSortCol={skuSortCol}
+                        skuSortAsc={skuSortAsc}
+                        setSkuSortCol={setSkuSortCol}
+                        setSkuSortAsc={setSkuSortAsc}
+                        setOperatorDateFilterType={setClientDateFilterType}
+                        setOperatorCustomStartDate={setClientCustomStartDate}
+                        setOperatorCustomEndDate={setClientCustomEndDate}
+                        currentPage={currentPage}
+                        itemsPerPage={ITEMS_PER_PAGE}
+                        setCurrentPage={setCurrentPage}
+                        onDeleteBatch={() => {}}
+                      />
+                    )}
 
-                                    return (
-                                      <tr
-                                        key={log.id || idx}
-                                        className="hover:bg-slate-50/50 transition-colors"
-                                      >
-                                        <td className="px-5 py-3.5 text-slate-400">
-                                          {(currentPage - 1) * ITEMS_PER_PAGE +
-                                            idx +
-                                            1}
-                                        </td>
-                                        <td className="px-5 py-3.5 text-slate-500">
-                                          <div className="flex flex-col">
-                                            <span>
-                                              {formatDisplayDate(
-                                                log.dateTime || log.date,
-                                                log.platform,
-                                              )}
-                                            </span>
-                                            <span className="text-[9px] text-indigo-500">
-                                              {log.platform}
-                                            </span>
-                                          </div>
-                                        </td>
-                                        <td className="px-5 py-3.5 font-mono text-xs">
-                                          {log.dateTime
-                                            ? log.dateTime.includes(" ")
-                                              ? log.dateTime.split(" ")[1]
-                                              : "-"
-                                            : "-"}
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(lViews)}
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                          Rp
-                                          {new Intl.NumberFormat("id-ID", {
-                                            maximumFractionDigits: 0,
-                                          }).format(log.gmv || 0)}
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(
-                                            log.products_sold ||
-                                              log.items_sold ||
-                                              0,
-                                          )}
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                          {new Intl.NumberFormat(
-                                            "id-ID",
-                                          ).format(log.buyers || 0)}
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                          {lViews > 0
-                                            ? (
-                                                ((log.buyers ||
-                                                  log.orders ||
-                                                  0) /
-                                                  lViews) *
-                                                100
-                                              ).toFixed(2)
-                                            : "0.00"}
-                                          %
-                                        </td>
-                                      </tr>
-                                    );
-                                  })
-                                )}
-                              </tbody>
-                            </table>
+                    {clientReportingTab === "engagement" && (
+                      <React.Suspense
+                        fallback={
+                          <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
+                            Memuat panel reporting...
                           </div>
+                        }
+                      >
+                        <EngagementReportPanel
+                          model={clientEngagementReportView}
+                          platform={clientPlatformFilter}
+                          chartSelectedMetrics={engagementChartSelectedMetrics}
+                          onChartSelectedMetricsChange={setEngagementChartSelectedMetrics}
+                          activeReportBrandId={loggedInClientBrandId || ""}
+                          brandPerformanceLogs={brandPerformanceLogs}
+                          brandUploadHistory={brandUploadHistory}
+                          uploadHistory={uploadHistory}
+                          isLogsLoading={isLogsLoading}
+                          onDeleteUploadBatch={handleDeleteUploadBatch}
+                        />
+                      </React.Suspense>
+                    )}
 
-                          {totalPages > 1 && (
-                            <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
-                              <div>
-                                Menampilkan{" "}
-                                {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
-                                {Math.min(
-                                  currentPage * ITEMS_PER_PAGE,
-                                  sortedTableLogs.length,
-                                )}{" "}
-                                dari {sortedTableLogs.length} data
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() =>
-                                    setCurrentPage((prev) =>
-                                      Math.max(1, prev - 1),
-                                    )
-                                  }
-                                  disabled={currentPage === 1}
-                                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
-                                >
-                                  Sebelumnya
-                                </button>
-                                <span className="px-3 py-1.5">
-                                  Halaman {currentPage} / {totalPages}
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    setCurrentPage((prev) =>
-                                      Math.min(totalPages, prev + 1),
-                                    )
-                                  }
-                                  disabled={currentPage === totalPages}
-                                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg cursor-pointer disabled:opacity-50"
-                                >
-                                  Selanjutnya
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
+
                   </div>
                 </div>
               </main>
