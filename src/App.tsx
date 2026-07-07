@@ -7795,94 +7795,217 @@ export default function App() {
               {/* WORKSPACE AREA CONTAINER */}
               <div className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 pb-24 relative">
                 {/* ==================== SUBTAB: 1. DASHBOARD UTAMA ⭐ ==================== */}
-                {operatorTab === "dashboard_utama" && (
-                  <div
-                    className="space-y-6 animate-fadeIn"
-                    id="operator_dashboard_utama_content"
-                  >
-                    {/* Executive Summary Cards */}
+                {operatorTab === "dashboard_utama" && (() => {
+                  // --- CALCULATE BRAND PERFORMANCE METRICS ---
+                  const brandPerformances = clientBrands.map((brand) => {
+                    const totalRevenue = (brand.invoices || [])
+                      .filter((inv) => inv.status === "Paid")
+                      .reduce((sum, inv) => sum + inv.totalAmount, 0);
+                    
+                    const openRevenue = (brand.invoices || [])
+                      .filter((inv) => inv.status === "Open Invoice" || inv.status === "Overdue")
+                      .reduce((sum, inv) => sum + inv.totalAmount, 0);
+
+                    const totalSessions = (brand.sessions || []).length;
+                    
+                    return {
+                      ...brand,
+                      totalRevenue,
+                      openRevenue,
+                      totalSessions
+                    };
+                  });
+                  
+                  const topBrandsByRevenue = [...brandPerformances].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 5);
+                  const topBrandsBySessions = [...brandPerformances].sort((a, b) => b.totalSessions - a.totalSessions).slice(0, 5);
+
+                  return (
                     <div
-                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
-                      id="executive_metrics_dashboard"
+                      className="space-y-6 animate-fadeIn"
+                      id="operator_dashboard_utama_content"
                     >
-                      {/* Jadwal Hari Ini */}
-                      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-3xl shadow-lg shadow-purple-500/30 relative overflow-hidden text-white group">
-                        <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
-                          <Calendar className="w-16 h-16 transform rotate-12" />
+                      {/* Executive Summary Cards */}
+                      <div
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+                        id="executive_metrics_dashboard"
+                      >
+                        {/* Jadwal Hari Ini */}
+                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-3xl shadow-lg shadow-purple-500/30 relative overflow-hidden text-white group hover:-translate-y-1 transition-transform duration-300">
+                          <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
+                            <Calendar className="w-16 h-16 transform rotate-12" />
+                          </div>
+                          <span className="text-xs text-white/90 font-bold uppercase tracking-widest block mb-2 relative z-10">
+                            Jadwal Hari Ini
+                          </span>
+                          <div className="text-4xl font-black font-mono mb-1 relative z-10">
+                            {(() => {
+                              const today = new Date();
+                              const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                              return schedules.filter(s => s.date === todayLocal).length;
+                            })()}{" "}
+                            <span className="text-sm font-semibold font-sans opacity-80">Shift</span>
+                          </div>
+                          <div className="text-[11px] font-semibold flex items-center gap-1 mt-3 bg-white/20 w-max px-3 py-1 rounded-full backdrop-blur-md relative z-10 border border-white/20">
+                            <Sparkles className="w-3 h-3" /> Siaran sedang berlangsung
+                          </div>
                         </div>
-                        <span className="text-[11px] text-white/80 font-black uppercase tracking-widest block mb-2 relative z-10">
-                          Jadwal Hari Ini
-                        </span>
-                        <div className="text-4xl font-black font-mono mb-1 relative z-10">
-                          {(() => {
-                            const today = new Date();
-                            const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-                            return schedules.filter(s => s.date === todayLocal).length;
-                          })()}{" "}
-                          <span className="text-sm font-semibold font-sans opacity-80">Shift</span>
+
+                        {/* Total Hosts */}
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md hover:-translate-y-1 transition-all duration-300 animate-fadeIn" style={{ animationDelay: '50ms' }}>
+                          <div className="absolute top-0 right-0 p-4 opacity-5">
+                            <Users className="w-16 h-16 transform -rotate-12" />
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-4 text-blue-600">
+                            <UserCheck className="w-5 h-5" />
+                          </div>
+                          <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block mb-1 relative z-10">
+                            Total Host Aktif
+                          </span>
+                          <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
+                            {hosts.length}
+                          </div>
+                          <div className="text-[11px] text-emerald-500 font-bold flex items-center gap-1 mt-2 relative z-10">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Tersebar di {studios.length} Studio
+                          </div>
                         </div>
-                        <div className="text-[11px] font-semibold flex items-center gap-1 mt-3 bg-white/20 w-max px-3 py-1 rounded-full backdrop-blur-md relative z-10 border border-white/20">
-                          <Sparkles className="w-3 h-3" /> Siaran sedang berlangsung
+
+                        {/* Client Total */}
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md hover:-translate-y-1 transition-all duration-300 animate-fadeIn" style={{ animationDelay: '100ms' }}>
+                          <div className="absolute top-0 right-0 p-4 opacity-5">
+                            <Briefcase className="w-16 h-16 transform -rotate-12" />
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-4 text-emerald-600">
+                            <Building2 className="w-5 h-5" />
+                          </div>
+                          <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block mb-1 relative z-10">
+                            Mitra Brand
+                          </span>
+                          <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
+                            {clientBrands.length}
+                          </div>
+                          <p className="text-[11px] text-slate-400 font-semibold mt-2 relative z-10">
+                            Brand Eksklusif Liva
+                          </p>
+                        </div>
+
+                        {/* Sesi Total */}
+                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md hover:-translate-y-1 transition-all duration-300 animate-fadeIn" style={{ animationDelay: '150ms' }}>
+                          <div className="absolute top-0 right-0 p-4 opacity-5">
+                            <Video className="w-16 h-16 transform rotate-12" />
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-4 text-amber-500">
+                            <PlaySquare className="w-5 h-5" />
+                          </div>
+                          <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block mb-1 relative z-10">
+                            Total Sesi Siaran
+                          </span>
+                          <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
+                            {clientBrands.flatMap((b) => b.sessions || []).length}
+                          </div>
+                          <p className="text-[11px] text-slate-400 font-semibold mt-2 relative z-10">
+                            Terjadwal di seluruh platform
+                          </p>
                         </div>
                       </div>
 
-                      {/* Total Hosts */}
-                      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                        <div className="absolute top-0 right-0 p-4 opacity-5">
-                          <Users className="w-16 h-16 transform -rotate-12" />
+                      {/* BRAND PERFORMANCE LEADERBOARD (NEW) */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn" style={{ animationDelay: '200ms' }}>
+                        {/* Top Brands by Revenue */}
+                        <div className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden flex flex-col">
+                          <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                                <TrendingUp className="w-5 h-5 text-emerald-600" />
+                              </div>
+                              <div>
+                                <h3 className="text-slate-800 font-black text-sm">Top Brand Revenue</h3>
+                                <p className="text-[11px] text-slate-400 font-semibold">Berdasarkan invoice Lunas (Paid)</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex-1 space-y-4">
+                            {topBrandsByRevenue.length > 0 && topBrandsByRevenue.some(b => b.totalRevenue > 0) ? (
+                              topBrandsByRevenue.filter(b => b.totalRevenue > 0).map((brand, idx) => (
+                                <div key={brand.id} className="flex items-center justify-between group">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : idx === 1 ? 'bg-slate-200 text-slate-700' : idx === 2 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-400'}`}>
+                                      {idx + 1}
+                                    </div>
+                                    <div>
+                                      <div className="font-bold text-slate-800 text-xs group-hover:text-emerald-600 transition-colors">{brand.name}</div>
+                                      <div className="text-[10px] text-slate-400 font-semibold">{brand.invoices?.filter(i => i.status === "Paid").length || 0} Invoice lunas</div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-mono font-black text-sm text-emerald-600">
+                                      {formatIDR(brand.totalRevenue)}
+                                    </div>
+                                    {brand.openRevenue > 0 && (
+                                      <div className="text-[9px] text-amber-500 font-bold uppercase tracking-wider">
+                                        + {formatIDR(brand.openRevenue)} Open
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="flex flex-col items-center justify-center h-full text-center py-6">
+                                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                  <DollarSign className="w-6 h-6 text-slate-300" />
+                                </div>
+                                <span className="text-sm font-bold text-slate-500">Belum ada pendapatan terdata</span>
+                                <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">Invoice dengan status lunas akan muncul di sini.</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-4 text-blue-600">
-                          <UserCheck className="w-5 h-5" />
-                        </div>
-                        <span className="text-[11px] text-slate-500 font-extrabold uppercase tracking-widest block mb-1 relative z-10">
-                          Total Host Aktif
-                        </span>
-                        <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
-                          {hosts.length}
-                        </div>
-                        <div className="text-[11px] text-emerald-500 font-bold flex items-center gap-1 mt-2 relative z-10">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Tersebar di {studios.length} Studio
-                        </div>
-                      </div>
 
-                      {/* Client Total */}
-                      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                        <div className="absolute top-0 right-0 p-4 opacity-5">
-                          <Briefcase className="w-16 h-16 transform -rotate-12" />
+                        {/* Top Brands by Activity (Sessions) */}
+                        <div className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden flex flex-col">
+                          <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                                <BarChart2 className="w-5 h-5 text-blue-600" />
+                              </div>
+                              <div>
+                                <h3 className="text-slate-800 font-black text-sm">Brand Paling Aktif</h3>
+                                <p className="text-[11px] text-slate-400 font-semibold">Berdasarkan volume slot siaran</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex-1 space-y-4">
+                            {topBrandsBySessions.length > 0 && topBrandsBySessions.some(b => b.totalSessions > 0) ? (
+                              topBrandsBySessions.filter(b => b.totalSessions > 0).map((brand, idx) => {
+                                const maxSessions = topBrandsBySessions[0].totalSessions;
+                                const widthPercent = Math.max(15, (brand.totalSessions / maxSessions) * 100);
+                                
+                                return (
+                                  <div key={brand.id} className="space-y-1.5">
+                                    <div className="flex justify-between items-end">
+                                      <span className="font-bold text-slate-800 text-xs">{brand.name}</span>
+                                      <span className="font-mono font-bold text-blue-600 text-xs">{brand.totalSessions} Sesi</span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
+                                      <div 
+                                        className="bg-blue-500 rounded-full h-2 transition-all duration-1000 ease-out" 
+                                        style={{ width: `${widthPercent}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                )
+                              })
+                            ) : (
+                              <div className="flex flex-col items-center justify-center h-full text-center py-6">
+                                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                  <Video className="w-6 h-6 text-slate-300" />
+                                </div>
+                                <span className="text-sm font-bold text-slate-500">Belum ada sesi dijadwalkan</span>
+                                <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">Brand dengan sesi siaran aktif akan muncul di sini.</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-4 text-emerald-600">
-                          <Building2 className="w-5 h-5" />
-                        </div>
-                        <span className="text-[11px] text-slate-500 font-extrabold uppercase tracking-widest block mb-1 relative z-10">
-                          Mitra Brand
-                        </span>
-                        <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
-                          {clientBrands.length}
-                        </div>
-                        <p className="text-[11px] text-slate-400 font-semibold mt-2 relative z-10">
-                          Brand Eksklusif Liva
-                        </p>
                       </div>
-
-                      {/* Sesi Total */}
-                      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                        <div className="absolute top-0 right-0 p-4 opacity-5">
-                          <Video className="w-16 h-16 transform rotate-12" />
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-4 text-amber-500">
-                          <PlaySquare className="w-5 h-5" />
-                        </div>
-                        <span className="text-[11px] text-slate-500 font-extrabold uppercase tracking-widest block mb-1 relative z-10">
-                          Total Sesi Siaran
-                        </span>
-                        <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
-                          {clientBrands.flatMap((b) => b.sessions || []).length}
-                        </div>
-                        <p className="text-[11px] text-slate-400 font-semibold mt-2 relative z-10">
-                          Terjadwal di seluruh platform
-                        </p>
-                      </div>
-                    </div>
 
                     {/* SESI BERDASARKAN PLATFORM */}
                     <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
@@ -8178,7 +8301,8 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST ==================== */}
                 {operatorTab === "absensi" && (
