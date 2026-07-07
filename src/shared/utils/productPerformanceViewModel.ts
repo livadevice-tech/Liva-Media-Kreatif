@@ -80,11 +80,13 @@ export function buildProductPerformanceViewModel({
   const productPeriodLabel = getReportPeriodLabel({
     dateFilterType: operatorDateFilterType,
     latestDateLabel:
-      operatorDateFilterType === "month"
-        ? operatorSelectedMonth
-          ? getIndonesianMonthLabel(operatorSelectedMonth)
-          : "Semua Waktu"
-        : effectiveLatestDate || "Semua Waktu",
+      operatorDateFilterType === "all"
+        ? "Semua Waktu"
+        : operatorDateFilterType === "month"
+          ? operatorSelectedMonth
+            ? getIndonesianMonthLabel(operatorSelectedMonth)
+            : "Semua Waktu"
+          : effectiveLatestDate || "Semua Waktu",
     targetLatestDate: effectiveLatestDate,
     customStartDate: operatorCustomStartDate,
   });

@@ -7799,12 +7799,12 @@ export default function App() {
                   // --- CALCULATE BRAND PERFORMANCE METRICS ---
                   const brandPerformances = clientBrands.map((brand) => {
                     // Penjualan sebenarnya dari sesi live (GMV)
-                    const totalPenjualan = logs
-                      .filter(log => log.brandHandled === brand.name)
-                      .reduce((sum, log) => sum + (log.revenueGenerated || 0), 0);
+                    const totalPenjualan = brandPerformanceLogs
+                      .filter(log => log.brandId === brand.id)
+                      .reduce((sum, log) => sum + (log.gmv || 0), 0);
                     
-                    const totalOrders = logs
-                      .filter(log => log.brandHandled === brand.name)
+                    const totalOrders = brandPerformanceLogs
+                      .filter(log => log.brandId === brand.id)
                       .reduce((sum, log) => sum + (log.orders || 0), 0);
 
                     const totalSessions = (brand.sessions || []).length;
