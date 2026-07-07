@@ -360,7 +360,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
         <head>
           <title>Invoice ${invoice.invoiceNumber}</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+            @page { size: A4 portrait; margin: 0; }
             body { 
               font-family: 'Montserrat', sans-serif; 
               margin: 0; 
@@ -369,52 +370,99 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
               background: white; 
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
+              width: 210mm;
+              height: 296mm;
+              box-sizing: border-box;
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
             }
             .header-banner { 
-              background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); 
-              padding: 50px 60px;
+              background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+              padding: 35px 45px;
               display: flex;
               justify-content: space-between;
               color: white;
+              height: 155px;
+              box-sizing: border-box;
             }
             .header-banner .title {
-              font-size: 48px;
+              font-size: 36px;
               font-weight: 800;
-              margin: 0 0 20px 0;
+              margin: 0 0 15px 0;
+              letter-spacing: 1px;
             }
             .header-details {
               display: grid;
-              grid-template-columns: 120px 1fr;
-              font-size: 14px;
-              gap: 8px 10px;
+              grid-template-columns: 100px 1fr;
+              font-size: 11px;
+              gap: 4px 10px;
               font-weight: 600;
             }
             .header-details span { font-weight: 400; }
             .logo-section {
               text-align: right;
             }
-            .content { padding: 40px 60px; }
-            .top-info { display: flex; justify-content: space-between; margin-bottom: 40px; }
-            .invoice-to h3, .payment-method h3 { font-size: 18px; font-weight: 800; margin: 0 0 15px 0; color: #000; }
-            .address-block { margin-top: 15px; font-size: 14px; line-height: 1.5; }
-            .address-details { display: grid; grid-template-columns: 70px 1fr; gap: 4px 10px; margin-top: 15px; }
-            .payment-grid { display: grid; grid-template-columns: 120px 1fr; gap: 4px 10px; font-size: 14px; text-align: right; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #f97316; color: white; padding: 15px 20px; text-align: left; font-weight: 600; }
-            th:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
-            th:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; text-align: right; }
-            td { padding: 20px; border-bottom: 1px solid #f1f5f9; vertical-align: top; font-weight: 600; font-size: 15px; }
+            .content { 
+              padding: 35px 45px; 
+              flex-grow: 1; 
+              display: flex; 
+              flex-direction: column;
+              position: relative;
+              z-index: 1;
+            }
+            .watermark {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              opacity: 0.03;
+              max-width: 60%;
+              max-height: 60%;
+              z-index: -1;
+            }
+            .top-info { display: flex; justify-content: space-between; margin-bottom: 25px; }
+            .invoice-to h3, .payment-method h3 { font-size: 13px; font-weight: 800; margin: 0 0 10px 0; color: #000; text-transform: uppercase; }
+            .invoice-to strong { font-size: 13px; }
+            .address-block { margin-top: 10px; font-size: 11px; line-height: 1.4; color: #1e293b; }
+            .address-details { display: grid; grid-template-columns: 60px 1fr; gap: 4px 10px; margin-top: 5px; }
+            .payment-grid { display: grid; grid-template-columns: 100px 1fr; gap: 4px 10px; font-size: 11px; text-align: left; color: #1e293b; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+            th { background-color: #f97316; color: white; padding: 12px 15px; text-align: left; font-weight: 600; font-size: 12px; }
+            th:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; width: 50px; text-align: center; }
+            th:nth-child(2) { width: 45%; }
+            th:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; text-align: right; }
+            td { padding: 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-weight: 500; font-size: 12px; color: #1e293b;}
+            td:first-child { text-align: center; }
             td:last-child { text-align: right; }
-            .total-row { display: flex; justify-content: space-between; padding: 20px 20px; font-size: 18px; font-weight: 800; border-bottom: 2px solid #a855f7; margin-top: 10px; }
-            .bottom-section { display: flex; justify-content: space-between; margin-top: 40px; }
-            .terms { max-width: 350px; }
-            .terms h4 { font-size: 16px; font-weight: 800; margin: 0 0 10px 0; }
-            .terms p { font-size: 14px; line-height: 1.5; color: #333; margin: 0; }
-            .signature { text-align: right; padding-top: 20px; }
-            .signature h4 { margin: 0; font-size: 18px; font-weight: 800; }
-            .footer { background: linear-gradient(90deg, #f97316, #fb923c); color: white; padding: 25px 60px; display: flex; justify-content: space-between; align-items: center; margin-top: 60px; }
-            .footer-msg { font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-            .footer-contact { text-align: right; font-size: 14px; font-weight: 600; line-height: 1.5; }
+            .total-row { 
+              display: flex; 
+              justify-content: space-between; 
+              padding: 15px 15px 5px; 
+              font-size: 14px; 
+              font-weight: 800; 
+              border-bottom: 2px solid #a855f7; 
+              margin-top: 5px; 
+              color: #000;
+            }
+            .bottom-section { display: flex; justify-content: space-between; margin-top: auto; padding-top: 20px;}
+            .terms { max-width: 300px; }
+            .terms h4 { font-size: 13px; font-weight: 800; margin: 0 0 5px 0; color: #000; text-transform: uppercase; }
+            .terms p { font-size: 11px; line-height: 1.4; color: #333; margin: 0; }
+            .signature { text-align: center; padding-right: 20px; }
+            .signature h4 { margin: 0; font-size: 14px; font-weight: 800; color: #000; }
+            .footer { 
+              background: linear-gradient(90deg, #f97316, #fb923c); 
+              color: white; 
+              padding: 0 45px; 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: center; 
+              height: 60px;
+              box-sizing: border-box;
+            }
+            .footer-msg { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+            .footer-contact { text-align: right; font-size: 11px; font-weight: 500; line-height: 1.4; }
           </style>
         </head>
         <body>
@@ -423,8 +471,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
               <div class="title">INVOICE</div>
               <div class="header-details">
                 <div>No:</div> <span>${invoice.invoiceNumber}</span>
-                <div>Due Date:</div> <span>${dueParts}</span>
                 <div>Invoice Date:</div> <span>${issueParts}</span>
+                <div>Due Date:</div> <span>${dueParts}</span>
               </div>
             </div>
             <div class="logo-section">
@@ -433,15 +481,17 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           </div>
           
           <div class="content">
+            ${invoiceSettings.logoUrl ? `<img src="${invoiceSettings.logoUrl}" class="watermark" />` : ''}
+            
             <div class="top-info">
               <div class="invoice-to">
                 <h3>INVOICE TO:</h3>
                 <strong>${recipient}</strong><br/>
-                <span style="font-size: 14px; font-weight: 600;">UP: ${picName}</span>
+                ${picName && picName !== "-" ? `<span style="font-size: 11px; font-weight: 500;">UP: ${picName}</span>` : ''}
                 <div class="address-block">
                   <div class="address-details">
-                    <strong>Email:</strong> <span>${email}</span><br/>
-                    <strong>Telp:</strong> <span>${phone}</span><br/>
+                    <strong>Phone:</strong> <span>${phone}</span>
+                    <strong>Email:</strong> <span>${email}</span>
                     <strong>Address:</strong> <span style="white-space: pre-wrap;">${address}</span>
                   </div>
                 </div>
@@ -452,7 +502,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                 <div class="payment-grid">
                   <span>Account No:</span> <strong>${invoiceSettings.accountNo || "-"}</strong>
                   <span>Account Name:</span> <strong>${invoiceSettings.accountName || "-"}</strong>
-                  <span>Bank Name:</span> <strong>${invoiceSettings.bankName || "-"}</strong>
+                  <span>Branch Name:</span> <strong>${invoiceSettings.bankName || "-"}</strong>
                 </div>
               </div>
             </div>
@@ -460,10 +510,10 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
             <table>
               <thead>
                 <tr>
-                  <th style="width: 50px;">NO</th>
+                  <th>NO</th>
                   <th>ITEM</th>
                   <th>PRICE</th>
-                  <th>QTY</th>
+                  <th style="text-align: center; width: 60px;">QTY</th>
                   <th>SUB TOTAL</th>
                 </tr>
               </thead>
@@ -501,10 +551,10 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           <div class="footer">
             <div class="footer-msg">THANK YOU FOR YOUR BUSINESS</div>
             <div class="footer-contact">
-              Admin & Billing Support
+              livamediakreatif@gmail.com<br/>
+              +62-811 30 16161
             </div>
           </div>
-          
         </body>
       </html>
     `);
