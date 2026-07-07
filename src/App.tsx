@@ -7798,25 +7798,26 @@ export default function App() {
                 {operatorTab === "dashboard_utama" && (() => {
                   // --- CALCULATE BRAND PERFORMANCE METRICS ---
                   const brandPerformances = clientBrands.map((brand) => {
-                    const totalRevenue = (brand.invoices || [])
-                      .filter((inv) => inv.status === "Paid")
-                      .reduce((sum, inv) => sum + inv.totalAmount, 0);
+                    // Penjualan sebenarnya dari sesi live (GMV)
+                    const totalPenjualan = logs
+                      .filter(log => log.brandHandled === brand.name)
+                      .reduce((sum, log) => sum + (log.revenueGenerated || 0), 0);
                     
-                    const openRevenue = (brand.invoices || [])
-                      .filter((inv) => inv.status === "Open Invoice" || inv.status === "Overdue")
-                      .reduce((sum, inv) => sum + inv.totalAmount, 0);
+                    const totalOrders = logs
+                      .filter(log => log.brandHandled === brand.name)
+                      .reduce((sum, log) => sum + (log.orders || 0), 0);
 
                     const totalSessions = (brand.sessions || []).length;
                     
                     return {
                       ...brand,
-                      totalRevenue,
-                      openRevenue,
+                      totalPenjualan,
+                      totalOrders,
                       totalSessions
                     };
                   });
                   
-                  const topBrandsByRevenue = [...brandPerformances].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 5);
+                  const topBrandsByPenjualan = [...brandPerformances].sort((a, b) => b.totalPenjualan - a.totalPenjualan).slice(0, 5);
                   const topBrandsBySessions = [...brandPerformances].sort((a, b) => b.totalSessions - a.totalSessions).slice(0, 5);
 
                   return (
@@ -7910,7 +7911,7 @@ export default function App() {
 
                       {/* BRAND PERFORMANCE LEADERBOARD (NEW) */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn" style={{ animationDelay: '200ms' }}>
-                        {/* Top Brands by Revenue */}
+                        {/* Top Brands by Sales / Penjualan */}
                         <div className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden flex flex-col">
                           <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
@@ -7918,14 +7919,14 @@ export default function App() {
                                 <TrendingUp className="w-5 h-5 text-emerald-600" />
                               </div>
                               <div>
-                                <h3 className="text-slate-800 font-black text-sm">Top Brand Revenue</h3>
-                                <p className="text-[11px] text-slate-400 font-semibold">Berdasarkan invoice Lunas (Paid)</p>
+                                <h3 className="text-slate-800 font-black text-sm">Top Penjualan Brand</h3>
+                                <p className="text-[11px] text-slate-400 font-semibold">Berdasarkan konversi sesi live (GMV)</p>
                               </div>
                             </div>
                           </div>
                           <div className="flex-1 space-y-4">
-                            {topBrandsByRevenue.length > 0 && topBrandsByRevenue.some(b => b.totalRevenue > 0) ? (
-                              topBrandsByRevenue.filter(b => b.totalRevenue > 0).map((brand, idx) => (
+                            {topBrandsByPenjualan.length > 0 && topBrandsByPenjualan.some(b => b.totalPenjualan > 0) ? (
+                              topBrandsByPenjualan.filter(b => b.totalPenjualan > 0).map((brand, idx) => (
                                 <div key={brand.id} className="flex items-center justify-between group">
                                   <div className="flex items-center gap-3">
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : idx === 1 ? 'bg-slate-200 text-slate-700' : idx === 2 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-400'}`}>
@@ -7933,18 +7934,13 @@ export default function App() {
                                     </div>
                                     <div>
                                       <div className="font-bold text-slate-800 text-xs group-hover:text-emerald-600 transition-colors">{brand.name}</div>
-                                      <div className="text-[10px] text-slate-400 font-semibold">{brand.invoices?.filter(i => i.status === "Paid").length || 0} Invoice lunas</div>
+                                      <div className="text-[10px] text-slate-400 font-semibold">{brand.totalOrders || 0} Total Pesanan</div>
                                     </div>
                                   </div>
                                   <div className="text-right">
                                     <div className="font-mono font-black text-sm text-emerald-600">
-                                      {formatIDR(brand.totalRevenue)}
+                                      {formatIDR(brand.totalPenjualan)}
                                     </div>
-                                    {brand.openRevenue > 0 && (
-                                      <div className="text-[9px] text-amber-500 font-bold uppercase tracking-wider">
-                                        + {formatIDR(brand.openRevenue)} Open
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                               ))
@@ -7953,8 +7949,8 @@ export default function App() {
                                 <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
                                   <DollarSign className="w-6 h-6 text-slate-300" />
                                 </div>
-                                <span className="text-sm font-bold text-slate-500">Belum ada pendapatan terdata</span>
-                                <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">Invoice dengan status lunas akan muncul di sini.</p>
+                                <span className="text-sm font-bold text-slate-500">Belum ada penjualan terdata</span>
+                                <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">Data penjualan dari host (GMV) akan muncul di sini.</p>
                               </div>
                             )}
                           </div>
