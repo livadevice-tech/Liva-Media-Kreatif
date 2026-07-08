@@ -107,6 +107,7 @@ import {
   Settings,
   FolderOpen,
   XCircle,
+  Info,
 } from "lucide-react";
 
 import {
@@ -14552,18 +14553,19 @@ export default function App() {
                     {/* Collapsible Add New Host Form */}
                     {showAddForm && (
                       <div
-                        className="bg-purple-50/40 p-5 rounded-2xl border border-purple-100 space-y-4 animate-fadeIn"
+                        className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200/60 space-y-4 animate-fadeIn"
                         id="add_host_form"
                       >
-                        <div className="text-xs font-black text-purple-950 uppercase tracking-widest flex items-center gap-1.5 border-b border-purple-100 pb-2">
-                          <span>👤 Pendaftaran Host Agency Baru</span>
+                        <div className="text-xs font-bold text-slate-700 flex items-center gap-2 border-b border-slate-200/60 pb-3 mb-4">
+                          <UserPlus className="w-4 h-4" />
+                          <span>Pendaftaran Host Agency Baru</span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-semibold">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-medium">
                           <div>
-                            <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
+                            <label className="block text-[11px] text-slate-600 mb-1.5">
                               Nama Lengkap Host{" "}
-                              <span className="text-red-500">*</span>:
+                              <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
@@ -14571,18 +14573,18 @@ export default function App() {
                               value={newHostName}
                               onChange={(e) => setNewHostName(e.target.value)}
                               placeholder="Misal: Amanda Putri"
-                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-extrabold focus:outline-none focus:border-purple-500"
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-shadow"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              Grup / Role Level:
+                            <label className="block text-[11px] text-slate-600 mb-1.5">
+                              Grup / Role Level
                             </label>
                             <select
                               value={newHostRole}
                               onChange={(e) => setNewHostRole(e.target.value)}
-                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 cursor-pointer"
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-shadow cursor-pointer"
                             >
                               <option value="Reguler Host">Reguler Host</option>
                               <option value="Back Up Host">Back Up Host</option>
@@ -14590,13 +14592,13 @@ export default function App() {
                           </div>
 
                           <div>
-                            <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              Lokasi Studio / Kota:
+                            <label className="block text-[11px] text-slate-600 mb-1.5">
+                              Lokasi Studio / Kota
                             </label>
                             <select
                               value={newHostStudio}
                               onChange={(e) => setNewHostStudio(e.target.value)}
-                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 cursor-pointer"
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-shadow cursor-pointer"
                             >
                               {studios.length > 0 ? (
                                 studios.map((std, i) => (
@@ -14619,84 +14621,84 @@ export default function App() {
                           </div>
 
                           <div>
-                            <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              Username Akun Absen:
+                            <label className="block text-[11px] text-slate-600 mb-1.5">
+                              Username Akun Absen
                             </label>
                             <input
                               type="text"
                               value={newHostUser}
                               onChange={(e) => setNewHostUser(e.target.value)}
                               placeholder="Kosongkan untuk otomatis"
-                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-shadow"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              Password Akun login:
+                            <label className="block text-[11px] text-slate-600 mb-1.5">
+                              Password Akun login
                             </label>
                             <input
                               type="text"
                               value={newHostPass}
                               onChange={(e) => setNewHostPass(e.target.value)}
                               placeholder="Default: liva123"
-                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 font-mono"
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-shadow"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              Nomor HP:
+                            <label className="block text-[11px] text-slate-600 mb-1.5">
+                              Nomor HP
                             </label>
                             <input
                               type="text"
                               value={newHostPhone}
                               onChange={(e) => setNewHostPhone(e.target.value)}
                               placeholder="Opsional, misal: 0812345678"
-                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-shadow"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              Nama Bank:
+                            <label className="block text-[11px] text-slate-600 mb-1.5">
+                              Nama Bank
                             </label>
                             <input
                               type="text"
                               value={newHostBankName}
                               onChange={(e) => setNewHostBankName(e.target.value)}
                               placeholder="Opsional, misal: BCA"
-                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-shadow"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                              No Rekening:
+                            <label className="block text-[11px] text-slate-600 mb-1.5">
+                              No Rekening
                             </label>
                             <input
                               type="text"
                               value={newHostBank}
                               onChange={(e) => setNewHostBank(e.target.value)}
                               placeholder="Opsional, misal: 123456789"
-                              className="w-full bg-white border border-purple-150 rounded-xl px-3 py-2 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+                              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-shadow"
                             />
                           </div>
                         </div>
 
                         {!newHostName.trim() && (
-                          <div className="text-[10px] font-bold text-red-500 px-1 font-mono">
-                            * Nama Lengkap Host wajib diisi untuk didaftarkan.
+                          <div className="text-[11px] text-red-500 px-1 mt-2">
+                            * Nama Lengkap Host wajib diisi
                           </div>
                         )}
 
-                        <div className="flex justify-end gap-3 pt-2">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/60 mt-4">
                           <button
                             type="button"
                             onClick={() => setShowAddForm(false)}
-                            className="bg-white hover:bg-gray-100 text-gray-700 font-bold px-4 py-2 rounded-xl text-xs border border-gray-200 transition-all cursor-pointer select-none"
+                            className="bg-white hover:bg-slate-50 text-slate-600 font-medium px-4 py-2 rounded-lg text-xs border border-slate-200 transition-colors cursor-pointer"
                           >
-                            Batalkan
+                            Batal
                           </button>
                           <button
                             type="button"
@@ -14724,41 +14726,29 @@ export default function App() {
                               setNewHostPass("");
                               setShowAddForm(false);
                             }}
-                            className={`font-black px-5 py-2 rounded-xl text-xs transition-all shadow-xs select-none ${!newHostName.trim() ? "bg-indigo-300 text-white cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"}`}
+                            className={`font-semibold px-5 py-2 rounded-lg text-xs transition-colors shadow-sm cursor-pointer ${!newHostName.trim() ? "bg-indigo-300 text-white cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 text-white"}`}
                             disabled={!newHostName.trim()}
                           >
-                            Daftarkan Host Baru ➜
+                            Simpan Host
                           </button>
                         </div>
                       </div>
                     )}
 
-                    <div className="overflow-x-auto border border-purple-100 rounded-2xl bg-white bg-white">
-                      <table className="min-w-full divide-y divide-purple-100">
-                        <thead className="bg-[#faf9fe]">
-                          <tr className="text-left text-[10px] font-black uppercase text-purple-500/80 tracking-wider">
-                            <th className="px-6 py-4 font-sans">
-                              Nama & ID Host
-                            </th>
-                            <th className="px-6 py-4 font-sans">Grup / Role</th>
-                            <th className="px-6 py-4 font-sans">
-                              Lokasi Studio
-                            </th>
-                            <th className="px-6 py-4 font-sans">
-                              Kontak & Bank
-                            </th>
-                            <th className="px-6 py-4 font-sans">
-                              Username Login
-                            </th>
-                            <th className="px-6 py-4 font-sans">
-                              Password Login
-                            </th>
-                            <th className="px-6 py-4 font-sans text-right">
-                              Aksi Manajemen
-                            </th>
+                    <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm">
+                      <table className="min-w-full divide-y divide-slate-100">
+                        <thead className="bg-slate-50/80">
+                          <tr className="text-left text-xs font-semibold text-slate-500">
+                            <th className="px-6 py-4">Host</th>
+                            <th className="px-6 py-4">Role</th>
+                            <th className="px-6 py-4">Lokasi</th>
+                            <th className="px-6 py-4">Kontak & Bank</th>
+                            <th className="px-6 py-4">Username</th>
+                            <th className="px-6 py-4">Password</th>
+                            <th className="px-6 py-4 text-right">Aksi</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-purple-100">
+                        <tbody className="divide-y divide-slate-100 bg-white">
                           {hosts.map((h) => (
                             <HostCredentialRow
                               key={h.id}
@@ -14772,17 +14762,13 @@ export default function App() {
                       </table>
                     </div>
 
-                    <div className="bg-purple-50/45 p-4 rounded-xl border border-purple-100 text-xs text-[#3c2f56]/80 flex items-start gap-2.5">
-                      <span className="text-lg">💡</span>
-                      <div className="leading-relaxed font-semibold">
-                        <strong className="text-purple-950 font-bold block mb-0.5">
-                          Petunjuk Privasi Kredensial Agency:
+                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 flex items-start gap-3">
+                      <Info className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+                      <div className="text-xs text-slate-600 leading-relaxed">
+                        <strong className="text-slate-800 font-semibold block mb-1">
+                          Petunjuk Privasi Kredensial Agency
                         </strong>
-                        Beritahukan kepada masing-masing host tentang username
-                        dan password yang tercatat di atas agar mereka dapat
-                        melakukan absen masuk secara mandiri melalui Portal
-                        Host. Password bersifat transparan untuk operator guna
-                        pemulihan akun cepat.
+                        Beritahukan username dan password di atas kepada masing-masing host agar mereka dapat melakukan absen masuk secara mandiri. Password bersifat transparan untuk mempermudah operator saat melakukan pemulihan akun.
                       </div>
                     </div>
                   </div>

@@ -262,14 +262,14 @@ export function HostCredentialRow({
   };
 
   return (
-    <tr className="hover:bg-purple-50/40 transition-colors border-b border-purple-100/65 text-xs text-[#3c2f56]">
+    <tr className="hover:bg-slate-50/50 transition-colors border-b border-slate-100 text-xs text-slate-700">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <img
             src={getAvatarUrl(host.name)}
             alt={host.name}
             referrerPolicy="no-referrer"
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500/10 flex-shrink-0"
+            className="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200 flex-shrink-0"
           />
           <div className="flex-1">
             {isEditing ? (
@@ -278,19 +278,19 @@ export function HostCredentialRow({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-xs font-bold text-purple-950 block w-full focus:outline-none focus:border-purple-500"
+                  className="bg-white border border-slate-300 rounded-md px-2 py-1 text-xs font-semibold text-slate-800 block w-full focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   placeholder="Nama Host"
                 />
-                <span className="text-[9px] text-purple-400 font-bold font-mono block">
+                <span className="text-[10px] text-slate-500 font-medium font-mono block">
                   ID: {host.employeeId}
                 </span>
               </div>
             ) : (
               <div>
-                <span className="font-extrabold text-purple-950 text-xs block">
+                <span className="font-bold text-slate-800 text-xs block">
                   {host.name}
                 </span>
-                <span className="text-[9px] text-purple-400 font-bold font-mono block">
+                <span className="text-[10px] text-slate-500 font-medium font-mono block mt-0.5">
                   ID: {host.employeeId}
                 </span>
               </div>
@@ -304,13 +304,14 @@ export function HostCredentialRow({
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500"
+            className="bg-white border border-slate-300 rounded-md px-2 py-1 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           >
             <option value="Reguler Host">Reguler Host</option>
             <option value="Back Up Host">Back Up Host</option>
           </select>
         ) : (
-          <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-extrabold text-[9.5px] uppercase border border-purple-100/40">
+          <span className="text-slate-600 font-medium text-xs flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${host.role.toLowerCase().includes("back up") ? "bg-amber-400" : "bg-emerald-500"}`}></span>
             {host.role}
           </span>
         )}
@@ -321,7 +322,7 @@ export function HostCredentialRow({
           <select
             value={studio}
             onChange={(e) => setStudio(e.target.value)}
-            className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-xs text-[#3c2f56] font-bold focus:outline-none focus:border-purple-500 cursor-pointer"
+            className="bg-white border border-slate-300 rounded-md px-2 py-1 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer"
           >
             {studioOptions.map((location) => (
               <option key={location} value={location}>
@@ -330,7 +331,7 @@ export function HostCredentialRow({
             ))}
           </select>
         ) : (
-          <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/45 font-extrabold text-[9.5px] uppercase">
+          <span className="text-slate-600 font-medium text-xs">
             {normalizeHostStudioLocation(host.studio) || "Bandar Lampung"}
           </span>
         )}
@@ -340,40 +341,40 @@ export function HostCredentialRow({
         {isEditing ? (
           <div className="space-y-2">
             <div>
-              <label className="text-[9px] text-purple-900 font-bold block mb-0.5">Nama Bank:</label>
+              <label className="text-[10px] text-slate-600 font-medium block mb-0.5">Nama Bank:</label>
               <input
                 type="text"
                 value={bankName}
                 onChange={(e) => setBankName(e.target.value)}
-                className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-[10px] font-bold text-purple-950 w-full focus:outline-none focus:border-purple-500"
+                className="bg-white border border-slate-300 rounded-md px-2 py-1 text-[11px] font-medium text-slate-800 w-full focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 placeholder="BCA"
               />
             </div>
             <div>
-              <label className="text-[9px] text-purple-900 font-bold block mb-0.5">No Rekening:</label>
+              <label className="text-[10px] text-slate-600 font-medium block mb-0.5">No Rekening:</label>
               <input
                 type="text"
                 value={bankAccount}
                 onChange={(e) => setBankAccount(e.target.value)}
-                className="bg-[#faf9fe] border border-purple-150 rounded px-2 py-1 text-[10px] font-bold text-purple-950 w-full focus:outline-none focus:border-purple-500"
+                className="bg-white border border-slate-300 rounded-md px-2 py-1 text-[11px] font-medium text-slate-800 w-full focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 placeholder="123456"
               />
             </div>
           </div>
         ) : (
           <div className="space-y-1">
-            <div className="text-[10px] text-[#3c2f56] font-bold">
+            <div className="text-[11px] text-slate-600 font-medium">
               {host.bankName ? (
                 <>
-                  <span className="font-black text-purple-700">{host.bankName}</span> - {host.bankAccount || "-"}
+                  <span className="font-semibold text-slate-800">{host.bankName}</span> - {host.bankAccount || "-"}
                 </>
               ) : (
                 <span className="text-slate-400 italic">Belum diset</span>
               )}
             </div>
             {host.phone && (
-              <div className="text-[9px] text-slate-500 font-mono font-semibold">
-                📱 {host.phone}
+              <div className="text-[10px] text-slate-500 font-mono">
+                {host.phone}
               </div>
             )}
           </div>
@@ -386,13 +387,13 @@ export function HostCredentialRow({
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="bg-[#faf9fe] border border-purple-150 rounded-lg px-2 py-1 focus:outline-none focus:border-purple-500 font-bold text-xs w-28"
+            className="bg-white border border-slate-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium text-xs w-28"
             placeholder="username"
           />
         ) : (
-          <code className="bg-purple-50 px-2 py-1 rounded text-purple-650 font-mono font-bold text-[11px] border border-purple-100/30">
+          <span className="text-slate-600 font-mono text-[11px]">
             {host.username}
-          </code>
+          </span>
         )}
       </td>
 
@@ -402,19 +403,19 @@ export function HostCredentialRow({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="bg-[#faf9fe] border border-purple-150 rounded-lg px-2 py-1 focus:outline-none focus:border-purple-500 font-mono text-xs font-bold w-28"
+            className="bg-white border border-slate-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono text-xs font-medium w-28"
             placeholder={
               host.hasPassword || host.password
-                ? "Kosongkan untuk tetap memakai password lama"
-                : "Masukkan password baru"
+                ? "Kosongkan jika tetap"
+                : "Masukkan password"
             }
           />
         ) : (
-          <code className="bg-purple-50 px-2 py-1 rounded text-purple-650 font-mono font-bold text-[11px] border border-purple-100/30">
+          <span className="text-slate-600 font-mono text-[11px]">
             {host.hasPassword || host.password
-              ? "Password tersimpan"
-              : "Belum di-set"}
-          </code>
+              ? "••••••••"
+              : "Belum diset"}
+          </span>
         )}
       </td>
 
@@ -425,14 +426,14 @@ export function HostCredentialRow({
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-2.5 py-1.5 rounded-lg text-[10px] font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-3xs cursor-pointer transition-all"
+                className="px-3 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
               >
                 Simpan
               </button>
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-gray-100 hover:bg-gray-200 text-gray-750 transition-all cursor-pointer"
+                className="px-3 py-1.5 rounded-md text-xs font-medium bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
               >
                 Batal
               </button>
@@ -442,20 +443,20 @@ export function HostCredentialRow({
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
-                className="p-1.5 text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100/60 rounded-lg border border-purple-100/40 transition-all cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
                 title="Edit Host"
               >
-                <Edit2 className="w-3.5 h-3.5" />
+                <Edit2 className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={() => {
                   onDelete(host.id);
                 }}
-                className="p-1.5 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100/60 rounded-lg border border-red-100/40 transition-all cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                 title="Hapus Host"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             </>
           )}
