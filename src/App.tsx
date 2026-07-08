@@ -7888,7 +7888,10 @@ export default function App() {
                                 if (b.isActive === false) return [];
                                 const brandName = b.name.toLowerCase();
                                 const scheduledShiftsForBrand = dayScheds
-                                  .filter((s) => s.brand?.trim().toLowerCase() === brandName)
+                                  .filter((s) => {
+                                    const sBrand = s.brand?.trim().toLowerCase() || "";
+                                    return sBrand === brandName || sBrand.includes(brandName) || brandName.includes(sBrand);
+                                  })
                                   .map((s) => s.timeSlot);
 
                                 const configuredShifts = (b.sessions || []).map((s) => s.shift).filter(Boolean);
