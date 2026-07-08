@@ -106,6 +106,7 @@ import {
   FileText,
   Settings,
   FolderOpen,
+  XCircle,
 } from "lucide-react";
 
 import {
@@ -11986,119 +11987,117 @@ export default function App() {
                                     />
                                   </td>
                                   
-                                  <td className="py-3 px-4 font-black text-slate-900 flex items-center gap-2">
-                                    <span>{item.hostName}</span>
+                                  <td className="py-3 px-4 font-semibold text-slate-900 flex flex-col justify-center">
+                                    <span className="text-sm">{item.hostName}</span>
                                     {(item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId) && (
-                                      <span className="text-[9px] text-[#2563eb] font-mono font-bold">
-                                        ({item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId})
+                                      <span className="text-xs text-slate-500 font-medium">
+                                        {item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId}
                                       </span>
                                     )}
                                   </td>
-                                  <td className="py-3 px-4 font-mono text-slate-600 font-bold">
-                                    <div>{formatDateUI(item.date)}</div>
+                                  <td className="py-3 px-4">
+                                    <div className="font-medium text-sm text-slate-700">{formatHumanDate(item.date)}</div>
                                     {item.checkInTime && (
-                                      <div className="text-[10px] text-purple-600 font-sans font-extrabold mt-0.5 flex items-center gap-1">
-                                        <span>⏱</span>
+                                      <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                                        <Clock className="w-3 h-3 text-slate-400" />
                                         <span>{item.checkInTime}</span>
                                       </div>
                                     )}
                                   </td>
-                                  <td className="py-3 px-4 text-slate-800 font-bold">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black border uppercase tracking-wider ${getBrandStyle(item.brandHandled)}`}>
+                                  <td className="py-3 px-4">
+                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${getBrandStyle(item.brandHandled)}`}>
                                       {item.brandHandled}
                                     </span>
                                   </td>
-                                  <td className="py-3 px-4 text-slate-550 text-slate-600 font-semibold">
-                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-black border uppercase tracking-wider ${
+                                  <td className="py-3 px-4">
+                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${
                                       item.platform?.toLowerCase().includes("tiktok") 
-                                        ? "bg-stone-900 text-white border-stone-950" 
+                                        ? "bg-stone-50 text-stone-700 border-stone-200" 
                                         : item.platform?.toLowerCase().includes("shopee") 
-                                          ? "bg-amber-600 text-white border-amber-700" 
-                                          : "bg-indigo-50 text-indigo-600 border-indigo-200"
+                                          ? "bg-orange-50 text-orange-700 border-orange-200" 
+                                          : "bg-indigo-50 text-indigo-700 border-indigo-200"
                                     }`}>
                                       {item.platform}
                                     </span>
                                   </td>
-                                  <td className="py-3 px-4 text-indigo-705 text-indigo-700 font-mono text-[11px] font-bold">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-black border leading-none ${getShiftStyle(item.shiftHours)}`}>
-                                      ⏱️ {item.shiftHours}
-                                    </span>
+                                  <td className="py-3 px-4 text-slate-700 text-xs font-medium">
+                                    {item.shiftHours}
                                   </td>
 
                                   <td className="py-3 px-4 text-center">
                                     <span
-                                      className={`px-2.5 py-1 rounded text-[9.5px] font-bold border uppercase border-solid tracking-wider ${
+                                      className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
                                         item.status === "Present"
-                                          ? "bg-emerald-50 text-emerald-700 border-emerald-150"
+                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                           : item.status === "Late"
-                                            ? "bg-amber-50 text-amber-705 border-amber-150"
+                                            ? "bg-amber-50 text-amber-700 border-amber-200"
                                             : item.status === "Excused"
-                                              ? "bg-indigo-50 text-indigo-700 border-indigo-100"
-                                              : "bg-red-50 text-red-700 border-red-100"
+                                              ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                              : "bg-rose-50 text-rose-700 border-rose-200"
                                       }`}
                                     >
                                       {item.status === "Present"
-                                        ? "✅ Hadir"
+                                        ? "Hadir"
                                         : item.status === "Late"
-                                          ? "⏰ Terlambat"
+                                          ? "Terlambat"
                                           : item.status === "Excused"
-                                            ? "📋 Izin/Sakit"
-                                            : "❌ Alpa"}
+                                            ? "Izin/Sakit"
+                                            : "Alpa"}
                                     </span>
                                   </td>
 
                                   <td className="py-3 px-4 text-center">
                                     <div
-                                      className="flex justify-center items-center gap-1"
+                                      className="inline-flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm"
                                       id="fast_status_modifier_buttons_wrapper"
                                     >
                                       <button
                                         id={`btn_mark_present_${item.id}`}
                                         onClick={() => handleUpdateLogStatus(item.id, "Present")}
-                                        className={`px-1.5 py-0.5 rounded text-[9px] border font-bold transition-all cursor-pointer font-sans ${
+                                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
                                           item.status === "Present"
-                                            ? "bg-emerald-50 border-emerald-400 text-emerald-700"
-                                            : "bg-white border-slate-200 hover:border-emerald-500 hover:text-emerald-700 text-slate-700 hover:bg-emerald-50"
+                                            ? "bg-emerald-100 text-emerald-700"
+                                            : "hover:bg-emerald-50 text-slate-400 hover:text-emerald-600"
                                         }`}
-                                        title="Tandai Tepat Waktu"
+                                        title="Tandai Hadir"
                                       >
-                                        ✔ Hadir
+                                        <CheckCircle2 className="w-4 h-4" />
                                       </button>
                                       <button
                                         id={`btn_mark_late_${item.id}`}
                                         onClick={() => handleUpdateLogStatus(item.id, "Late")}
-                                        className={`px-1.5 py-0.5 rounded text-[9px] border font-bold transition-all cursor-pointer font-sans ${
+                                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
                                           item.status === "Late"
-                                            ? "bg-amber-50 border-amber-400 text-amber-700"
-                                            : "bg-white border-slate-200 hover:border-amber-500 hover:text-amber-700 text-slate-700 hover:bg-amber-50"
+                                            ? "bg-amber-100 text-amber-700"
+                                            : "hover:bg-amber-50 text-slate-400 hover:text-amber-600"
                                         }`}
                                         title="Tandai Terlambat"
                                       >
-                                        ⏰ Terlambat
+                                        <Clock className="w-4 h-4" />
                                       </button>
                                       <button
                                         id={`btn_mark_absent_${item.id}`}
                                         onClick={() => handleUpdateLogStatus(item.id, "Absent")}
-                                        className={`px-1.5 py-0.5 rounded text-[9px] border font-bold transition-all cursor-pointer font-sans ${
+                                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
                                           item.status !== "Present" && item.status !== "Late" && item.status !== "Excused"
-                                            ? "bg-red-50 border-red-400 text-red-700"
-                                            : "bg-white border-slate-200 hover:border-red-500 hover:text-red-700 text-slate-700 hover:bg-red-50"
+                                            ? "bg-rose-100 text-rose-700"
+                                            : "hover:bg-rose-50 text-slate-400 hover:text-rose-600"
                                         }`}
                                         title="Tandai Alpa"
                                       >
-                                        ❌ Alpa
+                                        <XCircle className="w-4 h-4" />
                                       </button>
                                       <button
                                         id={`btn_mark_excused_${item.id}`}
                                         onClick={() => handleUpdateLogStatus(item.id, "Excused")}
-                                        className={`px-1.5 py-0.5 rounded text-[9px] border font-bold transition-all cursor-pointer font-sans ${
+                                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
                                           item.status === "Excused"
-                                            ? "bg-indigo-50 border-indigo-400 text-indigo-700"
-                                            : "bg-white border-slate-200 hover:border-indigo-500 hover:text-indigo-700 text-slate-700 hover:bg-indigo-50"
+                                            ? "bg-indigo-100 text-indigo-700"
+                                            : "hover:bg-indigo-50 text-slate-400 hover:text-indigo-600"
                                         }`}
                                         title="Tandai Izin/Sakit"
                                       >
-                                        📋 Izin/Sakit
+                                        <FileText className="w-4 h-4" />
                                       </button>
                                     </div>
                                   </td>
