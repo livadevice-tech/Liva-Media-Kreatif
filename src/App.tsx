@@ -11900,7 +11900,7 @@ export default function App() {
                         clientBrands={clientBrands}
                         platforms={platforms}
                         shifts={shifts}
-                        studios={studios}
+                        studios={studios.map((s) => s.name)}
                         salarySettings={{
                           useCutOff: salarySettings.useCutOff,
                           cutOffStartDay: salarySettings.cutOffStartDay ?? 16,
