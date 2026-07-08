@@ -7881,10 +7881,10 @@ export default function App() {
                               (h) => !activeHostIds.has(h.id),
                             );
 
-                            // Find brands and their unscheduled shifts for this day
-                            const idleBrandInfo = clientBrands
-                              .map((b) => {
-                                if (b.isActive === false) return null;
+                            // Find brands and their unscheduled shifts for this day, flat mapped by shift
+                            const idleBrandShifts = clientBrands
+                              .flatMap((b) => {
+                                if (b.isActive === false) return [];
                                 const brandName = b.name.toLowerCase();
                                 const scheduledShiftsForBrand = dayScheds
                                   .filter((s) => s.brand?.trim().toLowerCase() === brandName)
@@ -7895,18 +7895,14 @@ export default function App() {
                                 );
                                 
                                 // Jika brand tidak memiliki shift yang diatur, anggap tidak perlu masuk idle
-                                if (configuredShifts.length === 0) return null;
+                                if (configuredShifts.length === 0) return [];
 
                                 const unscheduledShifts = configuredShifts.filter(
                                   (sh) => !scheduledShiftsForBrand.includes(sh)
                                 );
 
-                                if (unscheduledShifts.length > 0) {
-                                  return { brand: b, missingShifts: unscheduledShifts };
-                                }
-                                return null;
-                              })
-                              .filter(Boolean) as { brand: any; missingShifts: string[] }[];
+                                return unscheduledShifts.map(sh => ({ brand: b, missingShift: sh }));
+                              });
 
                             return (
                               <div className="mb-5 space-y-3">
@@ -7952,20 +7948,20 @@ export default function App() {
                                       Brand Tersedia (Idle)
                                     </span>
                                     <span className="text-xs text-slate-500 font-medium">
-                                      Brand yang memiliki shift kosong hari ini ({idleBrandInfo.length} brand):
+                                      Brand yang memiliki shift kosong hari ini ({idleBrandShifts.length} jadwal):
                                     </span>
                                   </div>
-                                  {idleBrandInfo.length > 0 ? (
+                                  {idleBrandShifts.length > 0 ? (
                                     <div className="flex flex-wrap gap-2 mt-2.5">
-                                      {idleBrandInfo.map((info) => (
+                                      {idleBrandShifts.map((info) => (
                                         <span
-                                          key={info.brand.id}
+                                          key={`${info.brand.id}-${info.missingShift}`}
                                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-amber-100/60 shadow-3xs text-xs font-bold text-slate-700 hover:border-amber-200 hover:bg-amber-50/20 transition-all cursor-default"
                                         >
                                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                                           {info.brand.name}
                                           <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 px-1 py-0.5 rounded ml-1">
-                                            {info.missingShifts.join(", ")}
+                                            {info.missingShift}
                                           </span>
                                         </span>
                                       ))}
