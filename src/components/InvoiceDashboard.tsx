@@ -539,7 +539,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
             <div class="bottom-section">
               <div class="terms">
                 <h4>TERMS AND CONDITIONS</h4>
-                <p>Please send payment within 7 days of receiving this invoice.</p>
+                <p>${invoiceSettings.termsAndConditions || 'Please send payment within 7 days of receiving this invoice.'}</p>
               </div>
               
               <div class="signature">

@@ -8,6 +8,7 @@ export type InvoiceSettings = {
   accountNo: string;
   accountName: string;
   bankName: string;
+  termsAndConditions?: string;
 };
 
 type InvoiceSettingsPanelProps = {
@@ -85,6 +86,20 @@ export const InvoiceSettingsPanel: React.FC<InvoiceSettingsPanelProps> = ({
             value={invoiceSettings.signatureName}
             onChange={e => onInvoiceSettingsChange({...invoiceSettings, signatureName: e.target.value})}
           />
+        </div>
+
+        <div className="border-t border-slate-100 pt-6">
+          <h4 className="font-black text-slate-800 mb-4">Syarat & Ketentuan (Term of Payment)</h4>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-1">Teks Terms and Conditions</label>
+            <textarea 
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 font-semibold bg-white resize-y" 
+              rows={3}
+              value={invoiceSettings.termsAndConditions || ''} 
+              onChange={e => onInvoiceSettingsChange({...invoiceSettings, termsAndConditions: e.target.value})} 
+              placeholder="Please send payment within 7 days of receiving this invoice." 
+            />
+          </div>
         </div>
 
         <div className="border-t border-slate-100 pt-6">
