@@ -7889,7 +7889,7 @@ export default function App() {
                                 const brandName = b.name.toLowerCase();
                                 const scheduledShiftsForBrand = dayScheds
                                   .filter((s) => s.brand?.trim().toLowerCase() === brandName)
-                                  .map((s) => s.shift);
+                                  .map((s) => s.timeSlot);
 
                                 const configuredShifts = Array.from(
                                   new Set((b.sessions || []).map((s) => s.shift).filter(Boolean))
