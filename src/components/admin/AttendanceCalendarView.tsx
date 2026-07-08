@@ -130,12 +130,16 @@ export function AttendanceCalendarView({
 
   const handleOpenModal = (dateStr: string, existingLog?: AttendanceLog) => {
     setModalDate(dateStr);
+    
+    const defaultStudio = studios[0];
+    const defaultStudioStr = typeof defaultStudio === 'object' && defaultStudio !== null ? (defaultStudio as any).name : defaultStudio;
+
     if (existingLog) {
       setEditingLogId(existingLog.id);
       setFormBrand(existingLog.brandHandled);
       setFormPlatform(existingLog.platform);
       setFormShift(existingLog.shiftHours);
-      setFormStudio(existingLog.studio || (studios[0] || ""));
+      setFormStudio(existingLog.studio || (defaultStudioStr || ""));
       setFormStatus(existingLog.status);
       setFormOvertime(existingLog.overtimeHours || 0);
       setFormIsBackup(existingLog.isBackupShift || false);
@@ -144,7 +148,7 @@ export function AttendanceCalendarView({
       setFormBrand(clientBrands[0]?.name || "");
       setFormPlatform(platforms[0] || "");
       setFormShift(shifts[0] || "");
-      setFormStudio(studios[0] || "");
+      setFormStudio(defaultStudioStr || "");
       setFormStatus("Present");
       setFormOvertime(0);
       setFormIsBackup(false);
@@ -446,9 +450,10 @@ export function AttendanceCalendarView({
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 cursor-pointer"
                     required
                   >
-                    {studios.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
+                    {studios.map(s => {
+                      const val = typeof s === 'object' && s !== null ? (s as any).name : s;
+                      return <option key={val} value={val}>{val}</option>;
+                    })}
                   </select>
                 </div>
                 <div>
