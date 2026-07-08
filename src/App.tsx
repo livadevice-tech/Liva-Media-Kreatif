@@ -7890,7 +7890,14 @@ export default function App() {
                                   .filter((s) => s.brand?.trim().toLowerCase() === brandName)
                                   .map((s) => s.shift);
                                 
-                                const unscheduledShifts = shifts.filter(
+                                const configuredShifts = Array.from(
+                                  new Set((b.sessions || []).map((s) => s.shift).filter(Boolean))
+                                );
+                                
+                                // Jika brand tidak memiliki shift yang diatur, anggap tidak perlu masuk idle
+                                if (configuredShifts.length === 0) return null;
+
+                                const unscheduledShifts = configuredShifts.filter(
                                   (sh) => !scheduledShiftsForBrand.includes(sh)
                                 );
 
