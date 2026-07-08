@@ -10366,19 +10366,19 @@ export default function App() {
                                   </tr>
                                   {/* ACCORDION EXPANDED ROW */}
                                   {expandedHostSalaryId === item.id && (
-                                    <tr className="bg-purple-50/40 border-b border-purple-100/60 shadow-inner">
+                                    <tr className="bg-slate-50/50 border-b border-slate-200 shadow-inner">
                                       <td colSpan={7} className="p-0">
-                                        <div className="p-6 px-6 lg:px-8 border-l-4 border-l-purple-500 text-slate-800 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
+                                        <div className="p-6 px-6 lg:px-8 border-l-4 border-l-indigo-500 text-slate-800 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
                                           <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
                                             
 <div className="space-y-3 font-sans">
                                             <div className="border-b border-slate-200 pb-2">
-                                              <div className="text-[9px] text-slate-500 font-extrabold uppercase tracking-widest leading-none">
+                                              <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest leading-none">
                                                 Rincian Perhitungan Gaji
                                               </div>
-                                              <div className="text-xs font-black text-blue-700 mt-1 flex items-center gap-1.5">
+                                              <div className="text-xs font-bold text-slate-800 mt-1 flex items-center gap-1.5">
                                                 {item.name}
-                                                <span className="text-[8.5px] bg-blue-500/10 text-blue-300 font-extrabold border border-blue-500/25 px-1 py-0.2 rounded uppercase">
+                                                <span className="text-[9px] font-semibold text-slate-500 border border-slate-200 bg-white px-1.5 py-0.5 rounded uppercase">
                                                   {hostType}
                                                 </span>
                                               </div>
@@ -10387,7 +10387,7 @@ export default function App() {
                                             {hostType === "Reguler" ? (
                                               <div className="space-y-2.5">
                                                 <div className="bg-white border border-slate-200 p-2.5 rounded-lg space-y-1 shadow-3xs">
-                                                  <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                                                  <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
                                                     Rumus Gaji Pokok Regulasi
                                                   </div>
                                                   <div className="text-[10px] text-slate-700 italic font-mono leading-tight">
@@ -10395,7 +10395,7 @@ export default function App() {
                                                     Hari Standar Kerja) &times;
                                                     Kehadiran Host Masuk
                                                   </div>
-                                                  <div className="pt-1.5 border-t border-slate-100 mt-1.5 font-mono text-[9px] text-blue-600 font-semibold leading-relaxed">
+                                                  <div className="pt-1.5 border-t border-slate-100 mt-1.5 font-mono text-[10px] text-slate-700 font-medium leading-relaxed">
                                                     (
                                                     {formatIDR(
                                                       item.basePayRate,
@@ -10404,7 +10404,7 @@ export default function App() {
                                                     Hari) &times;{" "}
                                                     {item.totalHadir} Hari
                                                   </div>
-                                                  <div className="text-xs font-bold font-mono text-emerald-700 flex justify-between items-center pt-1">
+                                                  <div className="text-sm font-semibold font-mono text-slate-800 flex justify-between items-center pt-1">
                                                     <span>Gaji Pokok:</span>
                                                     <span>
                                                       {formatIDR(
@@ -10419,7 +10419,7 @@ export default function App() {
                                                 </div>
 
                                                 <div className="border-t border-slate-200 pt-2 space-y-1.5">
-                                                  <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                                                  <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
                                                     Syarat Bonus Kehadiran
                                                   </div>
 
@@ -10428,8 +10428,8 @@ export default function App() {
                                                       <span>
                                                         {item.totalHadir >=
                                                         item.requiredWorkingDays
-                                                          ? "✅"
-                                                          : "❌"}
+                                                          ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                          : <XCircle className="w-3.5 h-3.5 text-red-500" />}
                                                       </span>
                                                       <span className="font-medium">
                                                         Kehadiran{" "}
@@ -10448,8 +10448,8 @@ export default function App() {
                                                       <span>
                                                         {item.countTerlambat <=
                                                         3
-                                                          ? "✅"
-                                                          : "❌"}
+                                                          ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                          : <XCircle className="w-3.5 h-3.5 text-red-500" />}
                                                       </span>
                                                       <span className="font-medium">
                                                         Terlambat ≤ 3x (
@@ -10460,7 +10460,7 @@ export default function App() {
 
                                                   {item.isEligibleForBonus ? (
                                                     <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-[10px] shadow-3xs">
-                                                      <div className="text-emerald-700 font-extrabold flex justify-between items-center">
+                                                      <div className="text-emerald-700 font-semibold flex justify-between items-center">
                                                         <span>
                                                           Bonus +100% Hadir:
                                                         </span>
@@ -10498,7 +10498,7 @@ export default function App() {
                                                 {item.totalBackupShiftsAsReguler >
                                                   0 && (
                                                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] space-y-1 shadow-3xs">
-                                                    <div className="text-amber-700 font-extrabold flex justify-between items-center">
+                                                    <div className="text-amber-700 font-semibold flex justify-between items-center">
                                                       <span>
                                                         Shift Backup Ekstra (
                                                         {
@@ -10519,7 +10519,7 @@ export default function App() {
                                                 {item.totalOvertimeHours >
                                                   0 && (
                                                   <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-[10px] space-y-1 shadow-3xs">
-                                                    <div className="text-indigo-700 font-extrabold flex justify-between items-center">
+                                                    <div className="text-indigo-700 font-semibold flex justify-between items-center">
                                                       <span>
                                                         Lembur (
                                                         {
@@ -10537,11 +10537,11 @@ export default function App() {
                                                   </div>
                                                 )}
 
-                                                <div className="border-t border-slate-200 pt-2.5 flex justify-between items-center text-xs font-black">
+                                                <div className="border-t border-slate-200 pt-2.5 flex justify-between items-center text-xs font-bold">
                                                   <span className="text-slate-800">
                                                     Estimasi Gaji Bersih:
                                                   </span>
-                                                  <span className="text-emerald-600 font-mono text-sm">
+                                                  <span className="text-emerald-700 font-mono text-sm">
                                                     {formatIDR(item.netSalary)}
                                                   </span>
                                                 </div>
@@ -10549,14 +10549,14 @@ export default function App() {
                                             ) : (
                                               <div className="space-y-2.5">
                                                 <div className="bg-white border border-slate-200 p-2.5 rounded-lg space-y-1 shadow-3xs">
-                                                  <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                                                  <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
                                                     Rumus Gaji Backup
                                                   </div>
                                                   <div className="text-[10px] text-slate-700 italic font-mono leading-tight">
                                                     Siklus Kehadiran Shift
                                                     &times; Tarif Per Shift
                                                   </div>
-                                                  <div className="pt-1.5 border-t border-slate-100 mt-1.5 font-mono text-[9.5px] text-blue-600 font-semibold flex justify-between">
+                                                  <div className="pt-1.5 border-t border-slate-100 mt-1.5 font-mono text-[10px] text-slate-700 font-medium flex justify-between">
                                                     <span>Detail:</span>
                                                     <span>
                                                       {item.totalHadir} Shift
@@ -10571,7 +10571,7 @@ export default function App() {
                                                 {item.totalOvertimeHours >
                                                   0 && (
                                                   <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-[10px] space-y-1 shadow-3xs">
-                                                    <div className="text-indigo-700 font-extrabold flex justify-between items-center">
+                                                    <div className="text-indigo-700 font-semibold flex justify-between items-center">
                                                       <span>
                                                         Lembur (
                                                         {
@@ -10589,11 +10589,11 @@ export default function App() {
                                                   </div>
                                                 )}
 
-                                                <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-xs font-black">
+                                                <div className="border-t border-slate-200 pt-2 flex justify-between items-center text-xs font-bold">
                                                   <span className="text-slate-800">
                                                     Estimasi Gaji Bersih:
                                                   </span>
-                                                  <span className="text-emerald-600 font-mono text-sm">
+                                                  <span className="text-emerald-700 font-mono text-sm">
                                                     {formatIDR(item.netSalary)}
                                                   </span>
                                                 </div>
@@ -10603,7 +10603,7 @@ export default function App() {
 
                                             <div className="flex flex-col justify-center border-l border-slate-200 pl-8 space-y-4">
                                               <div className="text-slate-500 text-xs font-medium">Rekapitulasi Final</div>
-                                              <div className="text-3xl font-mono font-black text-emerald-600">{formatIDR(item.netSalary)}</div>
+                                              <div className="text-3xl font-mono font-bold text-emerald-700">{formatIDR(item.netSalary)}</div>
                                               <div className="text-[10px] text-slate-500 max-w-xs">Gaji bersih yang akan ditransfer ke rekening host. Pastikan kehadiran dan potongan telah dikalkulasi dengan benar.</div>
                                             </div>
                                           </div>
