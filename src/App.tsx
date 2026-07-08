@@ -7891,16 +7891,24 @@ export default function App() {
                                   .filter((s) => s.brand?.trim().toLowerCase() === brandName)
                                   .map((s) => s.timeSlot);
 
-                                const configuredShifts = Array.from(
-                                  new Set((b.sessions || []).map((s) => s.shift).filter(Boolean))
-                                );
+                                const configuredShifts = (b.sessions || []).map((s) => s.shift).filter(Boolean);
                                 
                                 // Jika brand tidak memiliki shift yang diatur, anggap tidak perlu masuk idle
                                 if (configuredShifts.length === 0) return [];
 
-                                const unscheduledShifts = configuredShifts.filter(
-                                  (sh) => !scheduledShiftsForBrand.includes(sh)
-                                );
+                                const unscheduledShifts: string[] = [];
+                                const scheduledShiftsCopy = [...scheduledShiftsForBrand];
+
+                                for (const reqShift of configuredShifts) {
+                                  const idx = scheduledShiftsCopy.indexOf(reqShift);
+                                  if (idx !== -1) {
+                                    // Found a match in calendar, remove it so it's not counted again
+                                    scheduledShiftsCopy.splice(idx, 1);
+                                  } else {
+                                    // Not found in calendar, so it's missing
+                                    unscheduledShifts.push(reqShift);
+                                  }
+                                }
 
                                 return unscheduledShifts.map(sh => ({ brand: b, missingShift: sh }));
                               });
