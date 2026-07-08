@@ -225,6 +225,7 @@ export function LiveReportChartSection({
               axisLine={{ stroke: "#e2e8f0" }}
               tickLine={false}
               dy={10}
+              minTickGap={30}
             />
             <YAxis
               yAxisId="left"
