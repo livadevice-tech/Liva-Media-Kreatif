@@ -590,48 +590,48 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
     <div className="space-y-6 animate-fadeIn min-h-screen pb-12" id="operator_invoice_dashboard">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <FileText className="w-6 h-6 text-indigo-600" /> Manajemen Invoice & Tagihan
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <FileText className="w-5 h-5 text-slate-700" /> Manajemen Invoice & Tagihan
           </h2>
-          <p className="text-sm font-semibold text-slate-500 mt-1">Lacak pembayaran client, generate invoice PDF, dan kelola tagihan MCN terpusat.</p>
+          <p className="text-sm text-slate-500 mt-1">Lacak pembayaran client, generate invoice PDF, dan kelola tagihan MCN terpusat.</p>
         </div>
         <button 
           onClick={() => { setActiveTab("create"); handleBrandSelectForDraft(""); }}
-          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
         >
-          <Plus className="w-5 h-5" /> Buat Invoice Baru
+          <Plus className="w-4 h-4" /> Buat Invoice Baru
         </button>
       </div>
 
       <div className="flex gap-6 border-b border-slate-200 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab("overview")}
-          className={`pb-4 font-bold text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap ${
-            activeTab === "overview" || activeTab === "create" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+          className={`pb-4 font-medium text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap ${
+            activeTab === "overview" || activeTab === "create" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
           }`}
         >
           Semua Invoice
         </button>
         <button
           onClick={() => setActiveTab("berkas")}
-          className={`pb-4 font-bold text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "berkas" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+          className={`pb-4 font-medium text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            activeTab === "berkas" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
           }`}
         >
           Kelola Berkas
         </button>
         <button
           onClick={() => setActiveTab("reminders")}
-          className={`pb-4 font-bold text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "reminders" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+          className={`pb-4 font-medium text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            activeTab === "reminders" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
           }`}
         >
           Pengingat Otomatis
         </button>
         <button
           onClick={() => setActiveTab("settings")}
-          className={`pb-4 font-bold text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "settings" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+          className={`pb-4 font-medium text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+            activeTab === "settings" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
           }`}
         >
           Pengaturan Nota
