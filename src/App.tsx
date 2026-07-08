@@ -10072,7 +10072,7 @@ export default function App() {
                                                 });
                                               }}
                                               title="Ubah Target Hari Kerja Khusus Host Ini"
-                                              className="w-8 bg-white border border-slate-300 hover:border-slate-400 focus:border-indigo-500 rounded px-1 py-0.5 text-center font-mono font-medium text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                              className="w-12 bg-white border border-slate-300 hover:border-slate-400 focus:border-indigo-500 rounded px-1.5 py-0.5 text-center font-mono font-medium text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                             />
                                             <span className="text-[10px] text-slate-500 font-medium">
                                               Hari

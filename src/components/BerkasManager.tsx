@@ -25,11 +25,11 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
 
   const getBadgeColor = (type: string) => {
     switch (type) {
-      case "SPK": return "bg-blue-100 text-blue-700";
-      case "SOP": return "bg-amber-100 text-amber-700";
-      case "Script": return "bg-emerald-100 text-emerald-700";
-      case "Rekap": return "bg-indigo-100 text-indigo-700";
-      default: return "bg-slate-100 text-slate-700";
+      case "SPK": return "bg-blue-50 border border-blue-100 text-blue-600";
+      case "SOP": return "bg-amber-50 border border-amber-100 text-amber-600";
+      case "Script": return "bg-emerald-50 border border-emerald-100 text-emerald-600";
+      case "Rekap": return "bg-indigo-50 border border-indigo-100 text-indigo-600";
+      default: return "bg-slate-50 border border-slate-200 text-slate-600";
     }
   };
 
@@ -40,10 +40,10 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
     <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-slate-100 pb-5">
         <div>
-           <h3 className="text-2xl font-black text-slate-800 flex items-center gap-2 tracking-tight">
-             <FolderOpen className="w-7 h-7 text-indigo-600" /> Kelola Berkas & Dokumen
+           <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
+             <FolderOpen className="w-6 h-6 text-slate-700" /> Kelola Berkas & Dokumen
            </h3>
-           <p className="text-sm font-semibold text-slate-500 mt-1">Manajemen SPK, Script, SOP, dan aset digital klien lainnya.</p>
+           <p className="text-sm text-slate-500 mt-1">Manajemen SPK, Script, SOP, dan aset digital klien lainnya.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
           <div className="relative w-full sm:w-64">
@@ -53,31 +53,31 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
               placeholder="Cari nama berkas..." 
               value={berkasSearch}
               onChange={(e) => setBerkasSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 font-bold transition-all text-slate-700"
+              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-100 font-medium transition-all text-slate-800"
             />
           </div>
           <button 
             onClick={() => setBerkasEditor({ brandId: clientBrands[0]?.id || "", id: "b_" + Date.now(), name: "", type: "Dokumen", url: "" })}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 active:scale-95 whitespace-nowrap"
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-95 whitespace-nowrap"
           >
-            <Plus className="w-5 h-5" /> Tambah Berkas
+            <Plus className="w-4 h-4" /> Tambah Berkas
           </button>
         </div>
       </div>
 
       {filteredBerkas.length === 0 ? (
         <div className="py-20 flex flex-col items-center justify-center text-center bg-slate-50 border border-slate-100 rounded-3xl shadow-inner">
-          <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mb-5">
-            <FolderOpen className="w-10 h-10 text-indigo-400" />
+          <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mb-5 border border-slate-100">
+            <FolderOpen className="w-8 h-8 text-slate-400" />
           </div>
-          <h4 className="text-xl font-black text-slate-800 mb-2">{berkasSearch ? "Pencarian Tidak Ditemukan" : "Belum Ada Berkas"}</h4>
-          <p className="text-sm font-semibold text-slate-500 max-w-sm mb-6">
+          <h4 className="text-lg font-bold text-slate-800 mb-2">{berkasSearch ? "Pencarian Tidak Ditemukan" : "Belum Ada Berkas"}</h4>
+          <p className="text-sm text-slate-500 max-w-sm mb-6">
             {berkasSearch ? "Coba gunakan kata kunci lain untuk mencari berkas." : "Simpan dan kelola SPK, Script, SOP, serta dokumen klien lainnya di sini."}
           </p>
           {!berkasSearch && (
             <button 
               onClick={() => setBerkasEditor({ brandId: clientBrands[0]?.id || "", id: "b_" + Date.now(), name: "", type: "Dokumen", url: "" })}
-              className="px-6 py-3 bg-white border border-slate-200 hover:border-indigo-300 text-indigo-600 font-black rounded-xl transition-all cursor-pointer shadow-sm"
+              className="px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-medium rounded-lg transition-all cursor-pointer shadow-sm"
             >
               Mulai Upload Berkas
             </button>
@@ -88,21 +88,21 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
           {filteredBerkas.map((berk) => (
             <div key={berk.id} className="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-hidden">
                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-gradient-to-l from-white via-white to-transparent">
-                  <button onClick={() => setBerkasEditor(berk)} className="p-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-600 rounded-lg cursor-pointer"><Edit2 className="w-4 h-4" /></button>
+                  <button onClick={() => setBerkasEditor(berk)} className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg cursor-pointer"><Edit2 className="w-4 h-4" /></button>
                   <button onClick={() => setBerkasToDelete({ brandId: berk.brandId, berkasId: berk.id })} className="p-1.5 bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 rounded-lg cursor-pointer"><Trash2 className="w-4 h-4" /></button>
                </div>
                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                     {getFileIcon(berk.type)}
                   </div>
-                  <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${getBadgeColor(berk.type)}`}>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${getBadgeColor(berk.type)}`}>
                     {berk.type}
                   </span>
                </div>
-               <h4 className="font-black text-slate-800 text-base mb-1 truncate pr-10" title={berk.name}>{berk.name}</h4>
-               <p className="text-xs font-bold text-slate-500 truncate mb-4">{berk.brandName}</p>
+               <h4 className="font-semibold text-slate-800 text-sm mb-1 truncate pr-10" title={berk.name}>{berk.name}</h4>
+               <p className="text-xs font-medium text-slate-500 truncate mb-4">{berk.brandName}</p>
                <div className="mt-auto pt-4 border-t border-slate-100">
-                 <a href={berk.url} target="_blank" rel="noreferrer" className="w-full block text-center py-2 bg-slate-50 hover:bg-indigo-50 text-indigo-600 font-black text-xs rounded-lg transition-colors border border-slate-200 hover:border-indigo-200">
+                 <a href={berk.url} target="_blank" rel="noreferrer" className="w-full block text-center py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs rounded-lg transition-colors border border-slate-200">
                    Buka Tautan Eksternal
                  </a>
                </div>
@@ -114,16 +114,16 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
       {/* Editor Modal */}
       {berkasEditor && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col animate-fadeIn">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col animate-fadeIn">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-lg font-black text-slate-800">Formulir Berkas</h3>
+              <h3 className="text-lg font-bold text-slate-800">Formulir Berkas</h3>
               <button onClick={() => setBerkasEditor(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-5">
               <div>
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Brand Klien</label>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Brand Klien</label>
                 <select 
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 font-bold bg-slate-50 text-slate-700 focus:bg-white focus:outline-none focus:border-indigo-400" 
+                  className="w-full border border-slate-200 rounded-lg px-4 py-2 font-medium bg-slate-50 text-slate-700 focus:bg-white focus:outline-none focus:border-slate-300" 
                   value={berkasEditor.brandId} 
                   onChange={e => setBerkasEditor({...berkasEditor, brandId: e.target.value})}
                   disabled={!!clientBrands.flatMap(b => b.berkas || []).find(berk => berk.id === berkasEditor.id)}
@@ -135,12 +135,12 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Nama Berkas</label>
-                <input type="text" className="w-full border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-indigo-400" value={berkasEditor.name} onChange={e => setBerkasEditor({...berkasEditor, name: e.target.value})} placeholder="Contoh: SPK Bulan Maret 2024" required />
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Nama Berkas</label>
+                <input type="text" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-300" value={berkasEditor.name} onChange={e => setBerkasEditor({...berkasEditor, name: e.target.value})} placeholder="Contoh: SPK Bulan Maret 2024" required />
               </div>
               <div>
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Jenis Berkas</label>
-                <select className="w-full border border-slate-200 rounded-xl px-4 py-3 font-bold bg-slate-50 text-slate-700 focus:bg-white focus:outline-none focus:border-indigo-400" value={berkasEditor.type} onChange={e => setBerkasEditor({...berkasEditor, type: e.target.value})}>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Jenis Berkas</label>
+                <select className="w-full border border-slate-200 rounded-lg px-4 py-2 font-medium bg-slate-50 text-slate-700 focus:bg-white focus:outline-none focus:border-slate-300" value={berkasEditor.type} onChange={e => setBerkasEditor({...berkasEditor, type: e.target.value})}>
                   <option value="SPK">SPK / Kontrak</option>
                   <option value="SOP">SOP Brand</option>
                   <option value="Script">Script Live</option>
@@ -149,12 +149,12 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Link Tautan (G-Drive / Docs)</label>
-                <input type="url" className="w-full border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-indigo-400" value={berkasEditor.url} onChange={e => setBerkasEditor({...berkasEditor, url: e.target.value})} placeholder="https://docs.google.com/..." required />
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Link Tautan (G-Drive / Docs)</label>
+                <input type="url" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-300" value={berkasEditor.url} onChange={e => setBerkasEditor({...berkasEditor, url: e.target.value})} placeholder="https://docs.google.com/..." required />
               </div>
             </div>
             <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <button onClick={() => setBerkasEditor(null)} className="px-5 py-2.5 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all">Batal</button>
+              <button onClick={() => setBerkasEditor(null)} className="px-5 py-2.5 rounded-lg font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 cursor-pointer transition-all">Batal</button>
               <button 
                 onClick={() => {
                   if (!berkasEditor.name || !berkasEditor.url || !berkasEditor.brandId) return alert("Pilih brand dan lengkapi data!");
@@ -172,7 +172,7 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                   onUpdateBrands(updatedBrands);
                   setBerkasEditor(null);
                 }}
-                className="px-6 py-2.5 rounded-xl font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 cursor-pointer transition-all active:scale-95"
+                className="px-6 py-2.5 rounded-lg font-medium bg-slate-900 text-white hover:bg-slate-800 shadow-sm cursor-pointer transition-all active:scale-95"
               >
                 Simpan Data Berkas
               </button>
@@ -184,12 +184,12 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
       {/* Delete Modal */}
       {berkasToDelete && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-8 text-center animate-fadeIn">
-            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Trash2 className="w-10 h-10" />
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center animate-fadeIn">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
+              <Trash2 className="w-8 h-8" />
             </div>
-            <h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">Hapus Berkas?</h3>
-            <p className="text-sm font-semibold text-slate-500 mb-8 leading-relaxed">Berkas ini akan dihapus permanen dari dashboard Anda dan Klien. Apakah Anda yakin?</p>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Hapus Berkas?</h3>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">Berkas ini akan dihapus permanen dari dashboard Anda dan Klien. Apakah Anda yakin?</p>
             <div className="flex flex-col gap-3">
               <button 
                 onClick={() => {
@@ -203,12 +203,14 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                   onUpdateBrands(updatedBrands);
                   setBerkasToDelete(null);
                 }}
-                className="w-full py-3.5 rounded-xl font-black bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/20 cursor-pointer transition-all active:scale-95"
+                className="w-full py-2.5 rounded-lg font-medium bg-red-600 text-white hover:bg-red-700 shadow-sm cursor-pointer transition-all active:scale-95"
               >
-                Ya, Hapus Permanen
+                Ya, Hapus
               </button>
-              <button onClick={() => setBerkasToDelete(null)} className="w-full py-3.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer transition-all">
-                Batalkan
+              <button 
+                onClick={() => setBerkasToDelete(null)}
+                className="w-full py-2.5 rounded-lg font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 cursor-pointer transition-all"
+              >  Batalkan
               </button>
             </div>
           </div>
