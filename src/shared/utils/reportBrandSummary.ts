@@ -5,7 +5,7 @@ import type {
 } from "../types/reporting";
 
 export interface ReportBrandRowView {
-  brand: Pick<ClientBrand, "id" | "name" | "clientPassword">;
+  brand: Pick<ClientBrand, "id" | "name" | "clientPassword" | "logoUrl">;
   sessionCount: number;
   batchCount: number;
   totalGmv: number;
@@ -22,7 +22,7 @@ export interface ReportBrandOverviewStats {
 }
 
 export interface BuildReportBrandSummaryInput {
-  clientBrands: readonly Pick<ClientBrand, "id" | "name" | "clientPassword">[];
+  clientBrands: readonly Pick<ClientBrand, "id" | "name" | "clientPassword" | "logoUrl">[];
   brandPerformanceLogs: readonly BrandPerformanceLogEntry[];
   brandUploadHistory: readonly UploadHistoryEntry[];
   reportBrandSearchQuery: string;

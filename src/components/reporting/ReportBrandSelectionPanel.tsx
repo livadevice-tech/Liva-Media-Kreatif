@@ -96,8 +96,12 @@ function ReportBrandCard({
       <div>
         <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xs font-black uppercase text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
-              {brand.name.substring(0, 2)}
+            <div className="flex h-10 w-10 shrink-0 overflow-hidden items-center justify-center rounded-xl bg-indigo-50 text-xs font-black uppercase text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+              {brand.logoUrl ? (
+                <img src={brand.logoUrl} alt={brand.name} className="h-full w-full object-cover" />
+              ) : (
+                brand.name.substring(0, 2)
+              )}
             </div>
             <div className="min-w-0">
               <h4 className="truncate text-sm font-black uppercase text-slate-900 transition-colors group-hover:text-indigo-600">

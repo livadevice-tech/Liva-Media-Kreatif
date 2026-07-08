@@ -12328,10 +12328,14 @@ export default function App() {
                                 {/* Card Header */}
                                 <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100">
                                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${
+                                    <div className={`w-9 h-9 overflow-hidden rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${
                                       isActive ? "bg-slate-50 border border-slate-200 text-slate-700" : "bg-slate-50 text-slate-400"
                                     }`}>
-                                      {(brand.name || "?").charAt(0).toUpperCase()}
+                                      {brand.logoUrl ? (
+                                        <img src={brand.logoUrl} alt={brand.name} className="h-full w-full object-cover" />
+                                      ) : (
+                                        (brand.name || "?").charAt(0).toUpperCase()
+                                      )}
                                     </div>
                                     <div className="min-w-0">
                                       <div className="flex flex-wrap items-center gap-2 mb-1">
