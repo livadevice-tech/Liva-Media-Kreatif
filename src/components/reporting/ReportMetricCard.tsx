@@ -46,13 +46,13 @@ export function ReportMetricCard({
         {isTrendAvailable ? (
           <span
             className={`flex items-center gap-0.5 ${
-              isUp ? "text-slate-900" : "text-slate-900"
+              isUp ? "text-emerald-600" : "text-rose-500"
             }`}
           >
             {isUp ? (
-              <TrendingUp className="h-3.5 w-3.5 text-slate-900" />
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
             ) : (
-              <TrendingDown className="h-3.5 w-3.5 text-slate-900" />
+              <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
             )}
             {pct.toFixed(1)}%
           </span>
