@@ -3708,8 +3708,43 @@ export default function App() {
           customAlert("Gagal menghapus data log dari server.");
         }
       },
-      "danger",
     );
+  };
+
+  const handleCalendarSaveLog = async (log: AttendanceLog) => {
+    try {
+      const isExisting = logs.some((l) => l.id === log.id);
+      if (isExisting) {
+        if (typeof logsApi !== "undefined" && logsApi.update) {
+          await logsApi.update(log.id, log);
+        }
+        setLogs((prev) => prev.map((l) => (l.id === log.id ? log : l)));
+      } else {
+        if (typeof logsApi !== "undefined" && logsApi.create) {
+          await logsApi.create(log);
+        }
+        setLogs((prev) => [log, ...prev]);
+      }
+      customAlert("✅ Data absensi kalender berhasil disimpan.");
+    } catch (error) {
+      console.error("Gagal menyimpan log:", error);
+      customAlert("Gagal menyimpan data absensi ke server.");
+      throw error;
+    }
+  };
+
+  const handleCalendarDeleteLog = async (id: string) => {
+    try {
+      if (typeof logsApi !== "undefined" && logsApi.delete) {
+        await logsApi.delete(id);
+      }
+      setLogs((prev) => prev.filter((l) => l.id !== id));
+      customAlert("✅ Data absensi berhasil dihapus.");
+    } catch (error) {
+      console.error("Gagal menghapus log:", error);
+      customAlert("Gagal menghapus data absensi dari server.");
+      throw error;
+    }
   };
 
   const handleUpdateLogStatus = async (
@@ -11859,7 +11894,21 @@ export default function App() {
 
                     {/* RAW LOGS LIST TABLE OR CALENDAR FOR OPERATORS */}
                     {dbTabMode === "calendar" ? (
-                      <AttendanceCalendarView logs={logs} hosts={hosts} />
+                      <AttendanceCalendarView 
+                        logs={logs} 
+                        hosts={hosts} 
+                        clientBrands={clientBrands}
+                        platforms={platforms}
+                        shifts={shifts}
+                        studios={studios}
+                        salarySettings={{
+                          useCutOff: salarySettings.useCutOff,
+                          cutOffStartDay: salarySettings.cutOffStartDay ?? 16,
+                          cutOffEndDay: salarySettings.cutOffEndDay ?? 15,
+                        }}
+                        onSaveLog={handleCalendarSaveLog}
+                        onDeleteLog={handleCalendarDeleteLog}
+                      />
                     ) : (
                       <>
                         <div
