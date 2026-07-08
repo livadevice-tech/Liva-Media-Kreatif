@@ -354,14 +354,25 @@ export function AttendanceCalendarView({
                   <div className="flex flex-col gap-1.5">
                     {log ? (
                       <>
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${badgeBg} ${badgeBorder} transition-transform group-hover:scale-[1.02]`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${badgeDot}`}></div>
-                          <span className={`text-[10px] font-bold ${badgeText}`}>
-                            {label}
-                          </span>
+                        <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${badgeBg} ${badgeBorder} transition-transform group-hover:scale-[1.02]`}>
+                          <div className="flex items-center gap-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${badgeDot}`}></div>
+                            <span className={`text-[10px] font-bold ${badgeText}`}>
+                              {label}
+                            </span>
+                          </div>
+                          {log.isBackupShift && (
+                            <span className="text-[8px] font-black uppercase tracking-wider text-fuchsia-600 bg-fuchsia-100/80 px-1.5 py-0.5 rounded-sm">
+                              Backup
+                            </span>
+                          )}
                         </div>
                         {log.brandHandled && (
-                          <div className="px-2 py-1 bg-slate-100 rounded text-[9px] font-semibold text-slate-500 truncate w-full shadow-sm border border-slate-200">
+                          <div className={`px-2 py-1 rounded text-[9px] font-semibold truncate w-full shadow-sm border ${
+                            log.isBackupShift 
+                              ? 'bg-fuchsia-50/50 text-fuchsia-700 border-fuchsia-100' 
+                              : 'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}>
                             {log.brandHandled}
                           </div>
                         )}
