@@ -7,6 +7,7 @@ import { InvoiceCreatePanel } from './invoice/InvoiceCreatePanel';
 import { InvoiceEditorModal } from './invoice/InvoiceEditorModal';
 import { InvoiceRemindersPanel } from './invoice/InvoiceRemindersPanel';
 import { InvoiceSettingsPanel, type InvoiceSettings } from './invoice/InvoiceSettingsPanel';
+import { InvoiceRecipientSettingsPanel } from './invoice/InvoiceRecipientSettingsPanel';
 import { settingsApi, clientBrandsApi } from '../api';
 import { formatDateUILocal as formatDateUI } from '../shared/utils/date';
 import { buildInvoiceQuotationEmail } from '../shared/utils/invoiceEmail';
@@ -684,12 +685,20 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       )}
 
       {activeTab === "settings" && (
-        <InvoiceSettingsPanel
-          invoiceSettings={invoiceSettings}
-          onInvoiceSettingsChange={setInvoiceSettings}
-          onSaveSettings={saveSettings}
-          onImageUpload={handleImageUpload}
-        />
+        <div className="space-y-8 max-w-3xl mx-auto">
+          <InvoiceSettingsPanel
+            invoiceSettings={invoiceSettings}
+            onInvoiceSettingsChange={setInvoiceSettings}
+            onSaveSettings={saveSettings}
+            onImageUpload={handleImageUpload}
+          />
+          <InvoiceRecipientSettingsPanel
+            clientBrands={clientBrands}
+            onUpdateBrand={(updatedBrand) => {
+              handleUpdateBrands(clientBrands.map(b => b.id === updatedBrand.id ? updatedBrand : b));
+            }}
+          />
+        </div>
       )}
 
       

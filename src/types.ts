@@ -166,6 +166,7 @@ export interface BrandInvoice {
   sessionItems: {
     sessionId: string;
     description: string;
+    qty?: number;
     cost: number;
   }[];
 }
@@ -178,6 +179,7 @@ export interface BrandDashboardSettings {
 export interface ClientBrand {
   id: string;
   name: string;
+  companyName?: string;
   logoUrl?: string;
   isActive?: boolean;
   sessions: BrandSession[];
