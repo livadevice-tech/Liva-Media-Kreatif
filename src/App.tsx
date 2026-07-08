@@ -7881,16 +7881,25 @@ export default function App() {
                               (h) => !activeHostIds.has(h.id),
                             );
 
-                            // Brands currently active/assigned on this day in any studio
-                            const activeBrandNames = new Set(
-                              dayScheds.map((s) => s.brand?.trim().toLowerCase()).filter(Boolean)
-                            );
-                            
-                            // Filter those brands who are NOT active
-                            const idleBrands = clientBrands.filter((b) => {
-                              const isActive = b.isActive !== false;
-                              return isActive && !activeBrandNames.has(b.name.toLowerCase());
-                            });
+                            // Find brands and their unscheduled shifts for this day
+                            const idleBrandInfo = clientBrands
+                              .map((b) => {
+                                if (b.isActive === false) return null;
+                                const brandName = b.name.toLowerCase();
+                                const scheduledShiftsForBrand = dayScheds
+                                  .filter((s) => s.brand?.trim().toLowerCase() === brandName)
+                                  .map((s) => s.shift);
+                                
+                                const unscheduledShifts = shifts.filter(
+                                  (sh) => !scheduledShiftsForBrand.includes(sh)
+                                );
+
+                                if (unscheduledShifts.length > 0) {
+                                  return { brand: b, missingShifts: unscheduledShifts };
+                                }
+                                return null;
+                              })
+                              .filter(Boolean) as { brand: any; missingShifts: string[] }[];
 
                             return (
                               <div className="mb-5 space-y-3">
@@ -7936,24 +7945,27 @@ export default function App() {
                                       Brand Tersedia (Idle)
                                     </span>
                                     <span className="text-xs text-slate-500 font-medium">
-                                      Brand yang belum memiliki jadwal siaran hari ini ({idleBrands.length} brand):
+                                      Brand yang memiliki shift kosong hari ini ({idleBrandInfo.length} brand):
                                     </span>
                                   </div>
-                                  {idleBrands.length > 0 ? (
+                                  {idleBrandInfo.length > 0 ? (
                                     <div className="flex flex-wrap gap-2 mt-2.5">
-                                      {idleBrands.map((b) => (
+                                      {idleBrandInfo.map((info) => (
                                         <span
-                                          key={b.id}
+                                          key={info.brand.id}
                                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-amber-100/60 shadow-3xs text-xs font-bold text-slate-700 hover:border-amber-200 hover:bg-amber-50/20 transition-all cursor-default"
                                         >
                                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                          {b.name}
+                                          {info.brand.name}
+                                          <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 px-1 py-0.5 rounded ml-1">
+                                            {info.missingShifts.join(", ")}
+                                          </span>
                                         </span>
                                       ))}
                                     </div>
                                   ) : (
                                     <p className="text-xs text-slate-500 italic mt-2">
-                                      Semua brand klien telah memiliki jadwal siaran hari ini.
+                                      Semua brand klien telah terisi penuh jadwal siarannya hari ini.
                                     </p>
                                   )}
                                 </div>
