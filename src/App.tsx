@@ -249,6 +249,7 @@ import {
   HostCredentialRow,
   SearchableHostSelect,
 } from "./components/admin/HostManagement";
+import { AttendanceCalendarView } from "./components/admin/AttendanceCalendarView";
 
 import {
   HorizontalFunnel,
@@ -3214,7 +3215,7 @@ export default function App() {
   const [dbDateFilterStart, setDbDateFilterStart] = useState("");
   const [dbDateFilterEnd, setDbDateFilterEnd] = useState("");
   const [dbSortDir, setDbSortDir] = useState<"desc" | "asc">("desc");
-  const [dbTabMode, setDbTabMode] = useState<"today" | "all">("all");
+  const [dbTabMode, setDbTabMode] = useState<"today" | "all" | "calendar">("all");
 
   const availableCutoffMonths = useMemo(
     () => buildAvailableCutoffMonths(logs, filterReferenceDate),
@@ -11065,7 +11066,7 @@ export default function App() {
                       </button>
                     </div>
 
-                    <div className="flex bg-slate-100 p-1 w-full max-w-md rounded-xl shadow-sm">
+                    <div className="flex bg-slate-100 p-1 w-full max-w-xl rounded-xl shadow-sm">
                       <button
                         className={`flex-1 text-center py-2 text-xs font-bold transition-all rounded-lg ${
                           dbTabMode === "today"
@@ -11085,6 +11086,16 @@ export default function App() {
                         onClick={() => setDbTabMode("all")}
                       >
                         Semua Data Absen
+                      </button>
+                      <button
+                        className={`flex-1 text-center py-2 text-xs font-bold transition-all rounded-lg ${
+                          dbTabMode === "calendar"
+                            ? "bg-white text-purple-700 shadow-sm"
+                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                        }`}
+                        onClick={() => setDbTabMode("calendar")}
+                      >
+                        Calendar View
                       </button>
                     </div>
 
@@ -11846,11 +11857,15 @@ export default function App() {
                       </form>
                     )}
 
-                    {/* RAW LOGS LIST TABLE FOR OPERATORS */}
-                    <div
-                      className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden"
-                      id="raw-logs-table-wrapper"
-                    >
+                    {/* RAW LOGS LIST TABLE OR CALENDAR FOR OPERATORS */}
+                    {dbTabMode === "calendar" ? (
+                      <AttendanceCalendarView logs={logs} hosts={hosts} />
+                    ) : (
+                      <>
+                        <div
+                        className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden"
+                        id="raw-logs-table-wrapper"
+                      >
                       <div className="overflow-x-auto relative">
                         <table
                           className="w-full text-left text-xs text-purple-950 border-collapse"
@@ -12226,8 +12241,10 @@ export default function App() {
                         </button>
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
+              </div>
+            )}
 
                 {/* ==================== SUBTAB: DATA BRAND ==================== */}
                 {operatorTab === "data_brand" && (
