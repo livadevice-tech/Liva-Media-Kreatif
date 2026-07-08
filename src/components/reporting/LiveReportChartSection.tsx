@@ -8,7 +8,8 @@ import {
   YAxis,
   ComposedChart as RechartsComposedChart,
 } from "recharts";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, CalendarDays } from "lucide-react";
+import { DoubleDatePicker } from "../DoubleDatePicker";
 import {
   liveChartMetricDefaults,
   liveChartMetricOptions,
@@ -45,6 +46,9 @@ export function LiveReportChartSection({
   const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  const [isCustomMenuOpen, setIsCustomMenuOpen] = useState(false);
+  const [tempStartDate, setTempStartDate] = useState("");
+  const [tempEndDate, setTempEndDate] = useState("");
 
   const visibleData = useMemo(() => {
     let filtered = chartData;
@@ -107,20 +111,52 @@ export function LiveReportChartSection({
           </div>
 
           {windowSize === "custom" && (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="rounded-[8px] border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 outline-none transition-colors focus:border-indigo-500"
-              />
-              <span className="text-slate-400 text-xs font-semibold">-</span>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="rounded-[8px] border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 outline-none transition-colors focus:border-indigo-500"
-              />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsCustomMenuOpen(!isCustomMenuOpen)}
+                className="inline-flex h-8 items-center justify-between gap-2 rounded-[8px] border border-slate-200 bg-white px-3 text-left text-[12px] font-semibold text-slate-700 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <CalendarDays className="h-4 w-4 shrink-0 text-slate-500" />
+                  <span className="truncate">
+                    {customStartDate && customEndDate
+                      ? `${new Intl.DateTimeFormat("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        }).format(new Date(customStartDate))} - ${new Intl.DateTimeFormat(
+                          "en-GB",
+                          { day: "2-digit", month: "short", year: "numeric" }
+                        ).format(new Date(customEndDate))}`
+                      : "Pilih rentang"}
+                  </span>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+              </button>
+
+              {isCustomMenuOpen && (
+                <div className="absolute right-0 top-full z-50 mt-2">
+                  <DoubleDatePicker
+                    startDate={tempStartDate}
+                    endDate={tempEndDate}
+                    onChange={(start, end) => {
+                      setTempStartDate(start);
+                      setTempEndDate(end);
+                    }}
+                    onApply={() => {
+                      setCustomStartDate(tempStartDate);
+                      setCustomEndDate(tempEndDate);
+                      setIsCustomMenuOpen(false);
+                    }}
+                    onCancel={() => {
+                      setTempStartDate(customStartDate);
+                      setTempEndDate(customEndDate);
+                      setIsCustomMenuOpen(false);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
