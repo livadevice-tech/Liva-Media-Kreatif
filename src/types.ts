@@ -166,9 +166,13 @@ export interface BrandInvoice {
   sessionItems: {
     sessionId: string;
     description: string;
-    qty: number;
     cost: number;
   }[];
+}
+
+export interface BrandDashboardSettings {
+  hiddenMetrics: string[];
+  hiddenColumns: string[];
 }
 
 export interface ClientBrand {
@@ -190,6 +194,7 @@ export interface ClientBrand {
   companyAddress?: string;
   invoices?: BrandInvoice[];
   berkas?: {id: string; name: string; type: string; url: string;}[];
+  dashboardSettings?: BrandDashboardSettings;
 }
 
 export interface ClientReporting {

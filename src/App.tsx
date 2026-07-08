@@ -6114,6 +6114,7 @@ export default function App() {
                           brandUploadHistory={brandUploadHistory}
                           uploadHistory={uploadHistory}
                           onDeleteUploadBatch={handleDeleteUploadBatch}
+                          brandDashboardSettings={brands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
                         />
                       </React.Suspense>
                     )}
@@ -12287,6 +12288,7 @@ export default function App() {
                                   "liva123",
                                 logoUrl: brandFormEditor.logoUrl,
                                 isActive: brandFormEditor.isActive !== false,
+                                dashboardSettings: brandFormEditor.dashboardSettings || { hiddenMetrics: [], hiddenColumns: [] },
                               };
 
                               try {
@@ -12930,6 +12932,101 @@ export default function App() {
                                     Belum ada data akun.
                                   </div>
                                 )}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                              <div className="flex justify-between items-center gap-3 border-b border-slate-100 pb-2">
+                                <div>
+                                  <h5 className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-700">
+                                    Pengaturan Tampilan Dashboard Klien
+                                  </h5>
+                                  <p className="mt-1 text-[11px] font-medium text-slate-500">
+                                    Pilih metrik dan kolom yang ingin disembunyikan di dashboard mitra brand.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                  <label className="block text-slate-500 font-bold mb-2 text-[9px] uppercase tracking-wider">
+                                    Sembunyikan Metrik (Summary)
+                                  </label>
+                                  <div className="space-y-2">
+                                    {[
+                                      { id: "gmv", label: "GMV" },
+                                      { id: "orders", label: "Pesanan (Orders)" },
+                                      { id: "items_sold", label: "Produk Terjual" },
+                                      { id: "est_income", label: "Estimasi Pendapatan" },
+                                      { id: "viewers", label: "Total Penonton" },
+                                      { id: "engagement", label: "Engagement (Likes/Share/Komen)" },
+                                    ].map((metric) => (
+                                      <label key={metric.id} className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={brandFormEditor.dashboardSettings?.hiddenMetrics?.includes(metric.id) || false}
+                                          onChange={(e) => {
+                                            setBrandFormEditor((prev) => {
+                                              if (!prev) return prev;
+                                              const hiddenMetrics = prev.dashboardSettings?.hiddenMetrics || [];
+                                              const newMetrics = e.target.checked
+                                                ? [...hiddenMetrics, metric.id]
+                                                : hiddenMetrics.filter((id) => id !== metric.id);
+                                              return {
+                                                ...prev,
+                                                dashboardSettings: {
+                                                  ...(prev.dashboardSettings || { hiddenColumns: [] }),
+                                                  hiddenMetrics: newMetrics,
+                                                },
+                                              };
+                                            });
+                                          }}
+                                          className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                        />
+                                        <span className="text-xs font-semibold text-slate-700">{metric.label}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-slate-500 font-bold mb-2 text-[9px] uppercase tracking-wider">
+                                    Sembunyikan Kolom (Tabel Data Mentah)
+                                  </label>
+                                  <div className="space-y-2">
+                                    {[
+                                      { id: "gmv", label: "GMV" },
+                                      { id: "orders", label: "Pesanan" },
+                                      { id: "items_sold", label: "Item Terjual" },
+                                      { id: "est_income", label: "Est. Pendapatan" },
+                                      { id: "penonton", label: "Penonton" },
+                                      { id: "engagement", label: "Engagement" },
+                                    ].map((col) => (
+                                      <label key={col.id} className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={brandFormEditor.dashboardSettings?.hiddenColumns?.includes(col.id) || false}
+                                          onChange={(e) => {
+                                            setBrandFormEditor((prev) => {
+                                              if (!prev) return prev;
+                                              const hiddenColumns = prev.dashboardSettings?.hiddenColumns || [];
+                                              const newCols = e.target.checked
+                                                ? [...hiddenColumns, col.id]
+                                                : hiddenColumns.filter((id) => id !== col.id);
+                                              return {
+                                                ...prev,
+                                                dashboardSettings: {
+                                                  ...(prev.dashboardSettings || { hiddenMetrics: [] }),
+                                                  hiddenColumns: newCols,
+                                                },
+                                              };
+                                            });
+                                          }}
+                                          className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                        />
+                                        <span className="text-xs font-semibold text-slate-700">{col.label}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
                             </div>
 
@@ -13780,6 +13877,7 @@ export default function App() {
                                 brandUploadHistory={brandUploadHistory}
                                 uploadHistory={uploadHistory}
                                 onDeleteUploadBatch={handleDeleteUploadBatch}
+                                brandDashboardSettings={brands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
                               />
                             </React.Suspense>
                           )}

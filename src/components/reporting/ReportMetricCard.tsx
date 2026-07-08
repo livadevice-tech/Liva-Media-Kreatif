@@ -45,8 +45,8 @@ export function ReportMetricCard({
       <div className="flex items-center gap-1.5 text-[12px] font-bold">
         {isTrendAvailable ? (
           <span
-            className={`flex items-center gap-0.5 ${
-              isUp ? "text-emerald-600" : "text-rose-500"
+            className={`flex w-fit items-center gap-0.5 rounded-md px-1.5 py-0.5 ${
+              isUp ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-500"
             }`}
           >
             {isUp ? (

@@ -4,6 +4,7 @@ import type {
   LiveReportChartData,
   LiveReportSummaryStats,
 } from "./liveReportSummaryTypes";
+import type { BrandDashboardSettings } from "../../types";
 
 type LiveReportSummarySectionProps = {
   stats: LiveReportSummaryStats;
@@ -13,6 +14,7 @@ type LiveReportSummarySectionProps = {
   periodLabel: string;
   hideEngagementMetrics?: boolean;
   useShopeeLiveLayout?: boolean;
+  brandDashboardSettings?: BrandDashboardSettings;
 };
 
 export type { LiveReportSummaryStats } from "./liveReportSummaryTypes";
@@ -25,6 +27,7 @@ export function LiveReportSummarySection({
   periodLabel,
   hideEngagementMetrics = false,
   useShopeeLiveLayout = false,
+  brandDashboardSettings,
 }: LiveReportSummarySectionProps) {
   return (
     <div className="space-y-6 mb-6">
@@ -33,6 +36,7 @@ export function LiveReportSummarySection({
         periodLabel={periodLabel}
         hideEngagementMetrics={hideEngagementMetrics}
         useShopeeLiveLayout={useShopeeLiveLayout}
+        brandDashboardSettings={brandDashboardSettings}
       />
       {chartData.length > 0 && (
         <LiveReportChartSection

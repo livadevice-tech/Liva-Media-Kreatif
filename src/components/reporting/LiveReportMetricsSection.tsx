@@ -11,12 +11,14 @@ import {
 import { HorizontalFunnel } from "../branding/BrandGraphics";
 import { ReportMetricCard } from "./ReportMetricCard";
 import type { LiveReportSummaryStats } from "./liveReportSummaryTypes";
+import type { BrandDashboardSettings } from "../../types";
 
 type LiveReportMetricsSectionProps = {
   stats: LiveReportSummaryStats;
   periodLabel: string;
   hideEngagementMetrics?: boolean;
   useShopeeLiveLayout?: boolean;
+  brandDashboardSettings?: BrandDashboardSettings;
 };
 
 export function LiveReportMetricsSection({
@@ -24,6 +26,7 @@ export function LiveReportMetricsSection({
   periodLabel,
   hideEngagementMetrics = false,
   useShopeeLiveLayout = false,
+  brandDashboardSettings,
 }: LiveReportMetricsSectionProps) {
   const {
     totalGmvDb,
@@ -57,6 +60,7 @@ export function LiveReportMetricsSection({
   } = stats;
 
   const useShopeeStyle = isShopee || useShopeeLiveLayout;
+  const hm = brandDashboardSettings?.hiddenMetrics || [];
 
   // ── Compact metric card grid (same look as Engagement tab) ─────────────────
   const CompactSaleMetrics = () => (
@@ -65,43 +69,53 @@ export function LiveReportMetricsSection({
         <DollarSign className="h-5 w-5 text-[#5600e0]" /> Sale Metrics
       </h4>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <ReportMetricCard
-          label="GMV"
-          cur={totalGmvDb}
-          prev={pTotalGmvDb}
-          prefix="Rp"
-          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalGmvDb)}
-          icon={<DollarSign size={16} />}
-        />
-        <ReportMetricCard
-          label="Item Sold"
-          cur={totalItemsSoldDb}
-          prev={pTotalItemsSoldDb}
-          value={new Intl.NumberFormat("id-ID").format(totalItemsSoldDb)}
-          icon={<Package size={16} />}
-        />
-        <ReportMetricCard
-          label="Customers"
-          cur={totalBuyersDb}
-          prev={pTotalBuyersDb}
-          value={new Intl.NumberFormat("id-ID").format(totalBuyersDb)}
-          icon={<Users size={16} />}
-        />
-        <ReportMetricCard
-          label="Orders"
-          cur={totalOrdersDb}
-          prev={pTotalOrdersDb}
-          value={new Intl.NumberFormat("id-ID").format(totalOrdersDb)}
-          icon={<ClipboardList size={16} />}
-        />
-        <ReportMetricCard
-          label="GMV/Hours"
-          cur={gmvPerHour}
-          prev={pGmvPerHour}
-          prefix="Rp"
-          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(gmvPerHour)}
-          icon={<Clock size={16} />}
-        />
+        {!hm.includes("gmv") && (
+          <ReportMetricCard
+            label="GMV"
+            cur={totalGmvDb}
+            prev={pTotalGmvDb}
+            prefix="Rp"
+            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalGmvDb)}
+            icon={<DollarSign size={16} />}
+          />
+        )}
+        {!hm.includes("items_sold") && (
+          <ReportMetricCard
+            label="Item Sold"
+            cur={totalItemsSoldDb}
+            prev={pTotalItemsSoldDb}
+            value={new Intl.NumberFormat("id-ID").format(totalItemsSoldDb)}
+            icon={<Package size={16} />}
+          />
+        )}
+        {!hm.includes("viewers") && (
+          <ReportMetricCard
+            label="Customers"
+            cur={totalBuyersDb}
+            prev={pTotalBuyersDb}
+            value={new Intl.NumberFormat("id-ID").format(totalBuyersDb)}
+            icon={<Users size={16} />}
+          />
+        )}
+        {!hm.includes("orders") && (
+          <ReportMetricCard
+            label="Orders"
+            cur={totalOrdersDb}
+            prev={pTotalOrdersDb}
+            value={new Intl.NumberFormat("id-ID").format(totalOrdersDb)}
+            icon={<ClipboardList size={16} />}
+          />
+        )}
+        {!hm.includes("est_income") && (
+          <ReportMetricCard
+            label="GMV/Hours"
+            cur={gmvPerHour}
+            prev={pGmvPerHour}
+            prefix="Rp"
+            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(gmvPerHour)}
+            icon={<Clock size={16} />}
+          />
+        )}
         <ReportMetricCard
           label="Conversion %"
           cur={conversionRateShopee}
@@ -180,7 +194,7 @@ export function LiveReportMetricsSection({
           {/* TikTok / non-Shopee: compact grid, same style */}
           <CompactSaleMetrics />
 
-          {!hideEngagementMetrics && (
+          {!hideEngagementMetrics && !hm.includes("engagement") && (
             <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
               <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
                 <Users className="h-5 w-5 text-[#5600e0]" /> Engagement Metrics

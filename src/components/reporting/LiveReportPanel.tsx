@@ -5,6 +5,7 @@ import type { BrandPerformanceLogEntry, UploadHistoryEntry } from "../../shared/
 import type { LiveReportViewModel } from "../../shared/utils/liveReporting";
 import { buildLiveReportPanelData } from "../../shared/utils/liveReportPanel";
 import { LiveReportSummarySection } from "./LiveReportSummarySection";
+import type { BrandDashboardSettings } from "../../types";
 
 interface LiveReportPanelProps {
   model: LiveReportViewModel;
@@ -41,6 +42,7 @@ interface LiveReportPanelProps {
     rowCount: number,
   ) => void;
   onImportRaw: () => void;
+  brandDashboardSettings?: BrandDashboardSettings;
 }
 
 export function LiveReportPanel({
@@ -67,6 +69,7 @@ export function LiveReportPanel({
   brandUploadHistory,
   uploadHistory,
   onDeleteUploadBatch,
+  brandDashboardSettings,
 }: LiveReportPanelProps) {
   const isTikTokLive =
     operatorPlatformFilter.toLowerCase().includes("tiktok");
@@ -101,6 +104,7 @@ export function LiveReportPanel({
         periodLabel={model.latestDateLabel}
         hideEngagementMetrics={isTikTokLive}
         useShopeeLiveLayout={isTikTokLive}
+        brandDashboardSettings={brandDashboardSettings}
       />
 
       <ReportRawSessionsCard
@@ -120,6 +124,7 @@ export function LiveReportPanel({
         onDeletePerformanceLog={handleDeletePerformanceLog}
         totalPages={totalPages}
         setCurrentPage={setCurrentPage}
+        brandDashboardSettings={brandDashboardSettings}
       />
 
       <UploadHistoryCard

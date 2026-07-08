@@ -1,6 +1,7 @@
 import { ReportRawTableControls } from "./ReportRawTableControls";
 import { ReportRawSessionsTable } from "./ReportRawSessionsTable";
 import { type ReportLogLike } from "../../shared/utils/reportTable";
+import type { BrandDashboardSettings } from "../../types";
 
 interface ReportRawSessionsCardProps {
   reportingShopeeRawTab: "day" | "shift" | "dayOfWeek" | "raw";
@@ -27,6 +28,7 @@ interface ReportRawSessionsCardProps {
   ) => void;
   sortedTableLogs: ReportLogLike[];
   paginatedLogs: ReportLogLike[];
+  brandDashboardSettings?: BrandDashboardSettings;
 }
 
 const RAW_TABLE_COLUMNS = {
@@ -60,8 +62,10 @@ export function ReportRawSessionsCard({
   onDeletePerformanceLog,
   totalPages,
   setCurrentPage,
+  brandDashboardSettings,
 }: ReportRawSessionsCardProps) {
   const isGroupedView = reportingShopeeRawTab !== "raw";
+  const hc = brandDashboardSettings?.hiddenColumns || [];
 
   return (
     <>
@@ -133,53 +137,63 @@ export function ReportRawSessionsCard({
                   </th>
                 </>
               )}
-              <th
-                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
-                onClick={() => onSort("views")}
-              >
-                Viewer{" "}
-                {reportDbSortCol === "views" ? (reportDbSortAsc ? "↑" : "↓") : ""}
-              </th>
-              <th
-                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
-                onClick={() => onSort("gmv")}
-              >
-                GMV (Rp){" "}
-                {reportDbSortCol === "gmv" ? (reportDbSortAsc ? "↑" : "↓") : ""}
-              </th>
-              <th
-                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
-                onClick={() => onSort("products_sold")}
-              >
-                Items Sold{" "}
-                {reportDbSortCol === "products_sold"
-                  ? reportDbSortAsc
-                    ? "↑"
-                    : "↓"
-                  : ""}
-              </th>
-              <th
-                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
-                onClick={() => onSort("avgViewDuration")}
-              >
-                Avg. View Duration{" "}
-                {reportDbSortCol === "avgViewDuration"
-                  ? reportDbSortAsc
-                    ? "↑"
-                    : "↓"
-                  : ""}
-              </th>
-              <th
-                className="px-5 py-4 cursor-pointer hover:bg-slate-100"
-                onClick={() => onSort("customers")}
-              >
-                Customers{" "}
-                {reportDbSortCol === "customers"
-                  ? reportDbSortAsc
-                    ? "↑"
-                    : "↓"
-                  : ""}
-              </th>
+              {!hc.includes("penonton") && (
+                <th
+                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  onClick={() => onSort("views")}
+                >
+                  Viewer{" "}
+                  {reportDbSortCol === "views" ? (reportDbSortAsc ? "↑" : "↓") : ""}
+                </th>
+              )}
+              {!hc.includes("gmv") && (
+                <th
+                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  onClick={() => onSort("gmv")}
+                >
+                  GMV (Rp){" "}
+                  {reportDbSortCol === "gmv" ? (reportDbSortAsc ? "↑" : "↓") : ""}
+                </th>
+              )}
+              {!hc.includes("items_sold") && (
+                <th
+                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  onClick={() => onSort("products_sold")}
+                >
+                  Items Sold{" "}
+                  {reportDbSortCol === "products_sold"
+                    ? reportDbSortAsc
+                      ? "↑"
+                      : "↓"
+                    : ""}
+                </th>
+              )}
+              {!hc.includes("engagement") && (
+                <th
+                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  onClick={() => onSort("avgViewDuration")}
+                >
+                  Avg. View Duration{" "}
+                  {reportDbSortCol === "avgViewDuration"
+                    ? reportDbSortAsc
+                      ? "↑"
+                      : "↓"
+                    : ""}
+                </th>
+              )}
+              {!hc.includes("orders") && (
+                <th
+                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  onClick={() => onSort("customers")}
+                >
+                  Customers{" "}
+                  {reportDbSortCol === "customers"
+                    ? reportDbSortAsc
+                      ? "↑"
+                      : "↓"
+                    : ""}
+                </th>
+              )}
               <th className="px-5 py-4">Conversion Rate</th>
               <th className="px-5 py-4 text-right">Aksi</th>
             </tr>
@@ -197,6 +211,7 @@ export function ReportRawSessionsCard({
               onSort={onSort}
               onDeletePerformanceLog={onDeletePerformanceLog}
               adminShiftChecklist={adminShiftChecklist}
+              brandDashboardSettings={brandDashboardSettings}
             />
           </tbody>
         </table>

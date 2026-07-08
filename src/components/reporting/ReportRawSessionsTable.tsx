@@ -6,6 +6,7 @@ import {
   getLiveSessionMetrics,
 } from "../../shared/utils/liveSessionsTable";
 import { type ReportLogLike } from "../../shared/utils/reportTable";
+import type { BrandDashboardSettings } from "../../types";
 
 interface ReportRawSessionsTableProps {
   reportingShopeeRawTab: "day" | "shift" | "dayOfWeek" | "raw";
@@ -23,6 +24,7 @@ interface ReportRawSessionsTableProps {
     date?: string,
   ) => void;
   adminShiftChecklist: string[];
+  brandDashboardSettings?: BrandDashboardSettings;
 }
 
 interface RawSessionGroupRow {
@@ -64,7 +66,9 @@ export function ReportRawSessionsTable({
   onSort,
   onDeletePerformanceLog,
   adminShiftChecklist,
+  brandDashboardSettings,
 }: ReportRawSessionsTableProps) {
+  const hc = brandDashboardSettings?.hiddenColumns || [];
   const renderGroupedRows = () => {
     const groups: Record<string, RawSessionGroupRow> = {};
 
@@ -206,23 +210,33 @@ export function ReportRawSessionsTable({
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
           {formatLiveSessionDuration(g.duration || 0)}
         </td>
-        <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
-          {idFormatter.format(g.viewer)}
-        </td>
-        <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-emerald-600">
-          Rp{idFormatter.format(g.gmv)}
-        </td>
-        <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
-          {idFormatter.format(g.itemsSold)}
-        </td>
-        <td className="px-5 py-3.5 whitespace-nowrap text-xs font-semibold text-slate-500">
-          {formatLiveSessionAverageDuration(
-            g.sessionCount > 0 ? g.avgViewDuration / g.sessionCount : 0,
-          )}
-        </td>
-        <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-indigo-600">
-          {idFormatter.format(g.customers)}
-        </td>
+        {!hc.includes("penonton") && (
+          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
+            {idFormatter.format(g.viewer)}
+          </td>
+        )}
+        {!hc.includes("gmv") && (
+          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-emerald-600">
+            Rp{idFormatter.format(g.gmv)}
+          </td>
+        )}
+        {!hc.includes("items_sold") && (
+          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
+            {idFormatter.format(g.itemsSold)}
+          </td>
+        )}
+        {!hc.includes("engagement") && (
+          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-semibold text-slate-500">
+            {formatLiveSessionAverageDuration(
+              g.sessionCount > 0 ? g.avgViewDuration / g.sessionCount : 0,
+            )}
+          </td>
+        )}
+        {!hc.includes("orders") && (
+          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-indigo-600">
+            {idFormatter.format(g.customers)}
+          </td>
+        )}
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-indigo-600">
           {(() => {
             const platform = String(g.platform || "").toLowerCase();
@@ -279,26 +293,36 @@ export function ReportRawSessionsTable({
                     <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
                       {formatLiveSessionDuration(log.duration || 0)}
                     </td>
-                    <td className="px-5 py-3.5">
-                      {new Intl.NumberFormat("id-ID").format(metrics.viewer)}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      Rp
-                      {new Intl.NumberFormat("id-ID", {
-                        maximumFractionDigits: 0,
-                      }).format(log.gmv || 0)}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {new Intl.NumberFormat("id-ID").format(
-                        log.products_sold || log.items_sold || 0,
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {formatLiveSessionAverageDuration(log.avgViewDuration || 0)}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {new Intl.NumberFormat("id-ID").format(metrics.customers)}
-                    </td>
+                    {!hc.includes("penonton") && (
+                      <td className="px-5 py-3.5">
+                        {new Intl.NumberFormat("id-ID").format(metrics.viewer)}
+                      </td>
+                    )}
+                    {!hc.includes("gmv") && (
+                      <td className="px-5 py-3.5">
+                        Rp
+                        {new Intl.NumberFormat("id-ID", {
+                          maximumFractionDigits: 0,
+                        }).format(log.gmv || 0)}
+                      </td>
+                    )}
+                    {!hc.includes("items_sold") && (
+                      <td className="px-5 py-3.5">
+                        {new Intl.NumberFormat("id-ID").format(
+                          log.products_sold || log.items_sold || 0,
+                        )}
+                      </td>
+                    )}
+                    {!hc.includes("engagement") && (
+                      <td className="px-5 py-3.5">
+                        {formatLiveSessionAverageDuration(log.avgViewDuration || 0)}
+                      </td>
+                    )}
+                    {!hc.includes("orders") && (
+                      <td className="px-5 py-3.5">
+                        {new Intl.NumberFormat("id-ID").format(metrics.customers)}
+                      </td>
+                    )}
                     <td className="px-5 py-3.5">
                       {metrics.conversionRate.toFixed(2)}%
                     </td>
