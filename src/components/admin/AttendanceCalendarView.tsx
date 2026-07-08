@@ -219,26 +219,24 @@ export function AttendanceCalendarView({
   };
 
   return (
-    <div className="bg-white rounded-[24px] border border-slate-200/60 shadow-sm p-6 overflow-hidden mt-6">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-        <div className="w-full lg:w-[350px] flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <SearchableHostSelect
-              hosts={hosts}
-              value={selectedHostId}
-              onChange={setSelectedHostId}
-              placeholder="Pilih Host..."
-            />
-          </div>
+    <div className="bg-white rounded-3xl border border-slate-200/50 shadow-sm p-6 overflow-hidden mt-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div className="w-full lg:w-[350px]">
+          <SearchableHostSelect
+            hosts={hosts}
+            value={selectedHostId}
+            onChange={setSelectedHostId}
+            placeholder="Pilih Host..."
+          />
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50 shadow-inner">
             <button
               onClick={() => setViewMode("monthly")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer border-0 ${
+              className={`px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "monthly"
-                  ? "bg-white text-purple-700 shadow-sm"
+                  ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
                   : "bg-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -246,9 +244,9 @@ export function AttendanceCalendarView({
             </button>
             <button
               onClick={() => setViewMode("cutoff")}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer border-0 ${
+              className={`px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "cutoff"
-                  ? "bg-white text-purple-700 shadow-sm"
+                  ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
                   : "bg-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
@@ -256,14 +254,14 @@ export function AttendanceCalendarView({
             </button>
           </div>
 
-          <div className="flex items-center gap-4 bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-200/60">
-            <button onClick={handlePrevMonth} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
+          <div className="flex items-center justify-between min-w-[200px] bg-white px-2 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+            <button onClick={handlePrevMonth} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <span className="font-bold text-slate-700 min-w-[150px] text-center text-sm">
+            <span className="font-extrabold text-slate-700 text-sm tracking-tight px-3">
               {gridTitle}
             </span>
-            <button onClick={handleNextMonth} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
+            <button onClick={handleNextMonth} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
@@ -278,41 +276,56 @@ export function AttendanceCalendarView({
           <p className="font-medium text-sm">Silakan pilih nama host terlebih dahulu untuk melihat kalender absensi.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
+        <div className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden shadow-sm">
+          <div className="grid grid-cols-7 bg-slate-50/80 border-b border-slate-200/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((d) => (
-              <div key={d} className="py-3 text-center">{d}</div>
+              <div key={d} className="py-4 text-center">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7">
             {Array.from({ length: firstDayOfGrid }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[120px] border-r border-b border-slate-100 bg-slate-50/50"></div>
+              <div key={`empty-${i}`} className="min-h-[130px] border-r border-b border-slate-100 bg-slate-50/30"></div>
             ))}
             
             {calendarDays.map((dayObj) => {
               const log = getLogForDate(dayObj.dateStr);
               const isToday = new Date().toDateString() === dayObj.date.toDateString();
               
-              let badgeColor = "bg-slate-100 text-slate-600 border-slate-200";
+              let badgeBg = "bg-slate-50";
+              let badgeBorder = "border-slate-200";
+              let badgeText = "text-slate-500";
+              let badgeDot = "bg-slate-400";
               let label = "Tidak Ada Data";
 
               if (log) {
                 switch (log.status) {
                   case "Present":
-                    badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                    badgeBg = "bg-emerald-50/50";
+                    badgeBorder = "border-emerald-200";
+                    badgeText = "text-emerald-700";
+                    badgeDot = "bg-emerald-500";
                     label = "Hadir";
                     break;
                   case "Late":
-                    badgeColor = "bg-amber-50 text-amber-700 border-amber-200";
+                    badgeBg = "bg-amber-50/50";
+                    badgeBorder = "border-amber-200";
+                    badgeText = "text-amber-700";
+                    badgeDot = "bg-amber-500";
                     label = "Terlambat";
                     break;
                   case "Absent":
-                    badgeColor = "bg-red-50 text-red-700 border-red-200";
+                    badgeBg = "bg-red-50/50";
+                    badgeBorder = "border-red-200";
+                    badgeText = "text-red-700";
+                    badgeDot = "bg-red-500";
                     label = "Alpa";
                     break;
                   case "Excused":
-                    badgeColor = "bg-indigo-50 text-indigo-700 border-indigo-200";
-                    label = "Izin/Sakit";
+                    badgeBg = "bg-indigo-50/50";
+                    badgeBorder = "border-indigo-200";
+                    badgeText = "text-indigo-700";
+                    badgeDot = "bg-indigo-500";
+                    label = "Izin";
                     break;
                 }
               }
@@ -321,18 +334,18 @@ export function AttendanceCalendarView({
                 <div 
                   key={dayObj.dateStr} 
                   onClick={() => handleOpenModal(dayObj.dateStr, log)}
-                  className={`min-h-[120px] p-2 border-r border-b border-slate-100 group cursor-pointer transition-colors relative
-                    ${isToday ? 'bg-purple-50/40' : ''} 
-                    ${!dayObj.isCurrentMonth && viewMode === "monthly" ? 'opacity-50 bg-slate-50' : 'hover:bg-slate-50'}
+                  className={`min-h-[130px] p-2.5 border-r border-b border-slate-100 group cursor-pointer transition-all relative
+                    ${isToday ? 'bg-purple-50/20' : ''} 
+                    ${!dayObj.isCurrentMonth && viewMode === "monthly" ? 'opacity-40 bg-slate-50' : 'hover:bg-slate-50'}
                   `}
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold ${isToday ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-700'}`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold transition-all ${isToday ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-100' : 'text-slate-600 group-hover:text-slate-900 group-hover:bg-slate-100'}`}>
                       {dayObj.date.getDate()}
                     </div>
                     {/* Month indicator for CutOff mode */}
                     {dayObj.date.getDate() === 1 && viewMode === "cutoff" && (
-                      <span className="text-[9px] font-bold text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-bold text-purple-600 bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-md">
                         {dayObj.date.toLocaleString('id-ID', { month: 'short' })}
                       </span>
                     )}
@@ -340,12 +353,15 @@ export function AttendanceCalendarView({
 
                   <div className="flex flex-col gap-1.5">
                     {log ? (
-                      <div className={`text-[10px] font-bold px-2 py-1.5 rounded-md border text-center ${badgeColor}`}>
-                        {label}
+                      <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${badgeBg} ${badgeBorder} transition-transform group-hover:scale-[1.02]`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${badgeDot}`}></div>
+                        <span className={`text-[10px] font-bold ${badgeText}`}>
+                          {label}
+                        </span>
                       </div>
                     ) : (
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center py-1 mt-1 text-[10px] font-bold text-purple-600 bg-purple-50 rounded-md">
-                        <Plus className="w-3 h-3 mr-1" /> Tambah
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center py-1.5 mt-1 text-[10px] font-bold text-purple-600 bg-purple-50/80 rounded-lg border border-purple-100 border-dashed">
+                        <Plus className="w-3 h-3 mr-1" /> Tambah Data
                       </div>
                     )}
                   </div>
