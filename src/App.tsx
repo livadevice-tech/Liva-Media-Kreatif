@@ -7889,9 +7889,6 @@ export default function App() {
                                 const scheduledShiftsForBrand = dayScheds
                                   .filter((s) => s.brand?.trim().toLowerCase() === brandName)
                                   .map((s) => s.shift);
-                                
-                                // Jika brand sudah memiliki jadwal apapun hari ini, jangan tampilkan di daftar idle
-                                if (scheduledShiftsForBrand.length > 0) return null;
 
                                 const configuredShifts = Array.from(
                                   new Set((b.sessions || []).map((s) => s.shift).filter(Boolean))
@@ -7900,7 +7897,14 @@ export default function App() {
                                 // Jika brand tidak memiliki shift yang diatur, anggap tidak perlu masuk idle
                                 if (configuredShifts.length === 0) return null;
 
-                                return { brand: b, missingShifts: configuredShifts };
+                                const unscheduledShifts = configuredShifts.filter(
+                                  (sh) => !scheduledShiftsForBrand.includes(sh)
+                                );
+
+                                if (unscheduledShifts.length > 0) {
+                                  return { brand: b, missingShifts: unscheduledShifts };
+                                }
+                                return null;
                               })
                               .filter(Boolean) as { brand: any; missingShifts: string[] }[];
 
