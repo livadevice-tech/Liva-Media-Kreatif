@@ -15,7 +15,7 @@ import { DoubleDatePicker } from "../DoubleDatePicker";
 import { getIndonesianMonthLabel } from "../../shared/utils/reporting";
 import { type ReportDateFilterType } from "../../shared/utils/reportTable";
 
-type ReportingTab = "live" | "product" | "engagement";
+type ReportingTab = "live" | "product" | "engagement" | "settings";
 
 type Setter<T> = (value: T | ((prev: T) => T)) => void;
 
@@ -574,6 +574,13 @@ export function ReportingWorkspaceTabs({
         className={tabClass("product")}
       >
         Product Performance
+      </button>
+      <button
+        type="button"
+        onClick={() => onTabChange("settings")}
+        className={tabClass("settings")}
+      >
+        Pengaturan Klien
       </button>
       </div>
     </div>

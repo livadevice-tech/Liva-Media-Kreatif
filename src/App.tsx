@@ -266,6 +266,7 @@ import {
   ReportingWorkspaceHeader,
   ReportingWorkspaceTabs,
 } from "./components/reporting/ReportingWorkspaceHeader";
+import { BrandDashboardSettingsPanel } from "./components/reporting/BrandDashboardSettingsPanel";
 import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSelectionPanel";
 import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
 import { DeleteByDateModal } from "./components/reporting/DeleteByDateModal";
@@ -13253,6 +13254,25 @@ export default function App() {
                                 onDeleteUploadBatch={handleDeleteUploadBatch}
                               />
                             </React.Suspense>
+                          )}
+
+                          {operatorReportingTab === "settings" && activeReportBrandId && (
+                            <BrandDashboardSettingsPanel
+                              brand={clientBrands.find(b => b.id === activeReportBrandId)!}
+                              onUpdateBrand={async (updatedBrand) => {
+                                try {
+                                  if (typeof clientBrandsApi !== "undefined" && clientBrandsApi.update) {
+                                    await clientBrandsApi.update(updatedBrand.id, updatedBrand);
+                                  }
+                                  setClientBrands(prev => 
+                                    prev.map(b => b.id === updatedBrand.id ? updatedBrand : b)
+                                  );
+                                } catch (error) {
+                                  console.error("Gagal menyimpan pengaturan:", error);
+                                  alert("Gagal menyimpan pengaturan brand.");
+                                }
+                              }}
+                            />
                           )}
                         </div>
                       </>
