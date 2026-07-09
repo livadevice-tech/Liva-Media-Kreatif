@@ -1,5 +1,5 @@
-import React from "react";
-import { Building2, CheckSquare, Plus, Trash2 } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Building2, CheckSquare, Plus, Trash2, Search } from "lucide-react";
 import { ClientBrand, BrandInvoice } from "../../types";
 
 type DraftInvoice = Partial<BrandInvoice>;
@@ -14,6 +14,107 @@ type InvoiceCreatePanelProps = {
   onSaveDraft: () => void;
   onCancel: () => void;
 };
+
+const SearchableBrandSelect: React.FC<{
+  brands: ClientBrand[];
+  value: string;
+  onChange: (value: string) => void;
+}> = ({ brands, value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) setSearch("");
+  }, [isOpen]);
+
+  const selectedBrand = brands.find(b => b.id === value);
+  const filteredBrands = brands.filter(b => 
+    b.name.toLowerCase().includes(search.toLowerCase()) || 
+    (b.companyName && b.companyName.toLowerCase().includes(search.toLowerCase())) ||
+    (b.ptName && b.ptName.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm font-black text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer flex justify-between items-center text-left min-h-[46px]"
+      >
+        <span className="truncate">
+          {selectedBrand 
+            ? `${selectedBrand.name} ${selectedBrand.ptName || selectedBrand.companyName ? `- ${selectedBrand.ptName || selectedBrand.companyName}` : ''} (${selectedBrand.sessions?.length || 0} Shift)`
+            : "-- Klik untuk Pilih Brand --"}
+        </span>
+        <span className="text-[10px] text-slate-400 select-none ml-2 shrink-0">▼</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 flex flex-col gap-2 animate-fadeIn origin-top">
+          <div className="relative flex-shrink-0">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari nama brand atau nama PT..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-[250px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
+            {filteredBrands.length > 0 ? (
+              filteredBrands.map((b) => {
+                const isSelected = b.id === value;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(b.id);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full px-3 py-2.5 rounded-xl text-left text-sm font-bold transition-colors cursor-pointer flex flex-col gap-0.5 ${
+                      isSelected ? "bg-indigo-50 border-indigo-100" : "text-slate-700 hover:bg-slate-50 border-transparent"
+                    } border`}
+                  >
+                    <div className="flex justify-between items-center w-full">
+                       <span className={isSelected ? "text-indigo-700" : ""}>{b.name}</span>
+                       <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md ${isSelected ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"}`}>
+                         {b.sessions?.length || 0} Shift
+                       </span>
+                    </div>
+                    {(b.ptName || b.companyName) && (
+                      <span className="text-xs font-semibold text-slate-400">
+                        {b.ptName || b.companyName}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-4 text-center text-sm font-bold text-slate-400">
+                Brand tidak ditemukan
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
   clientBrands,
@@ -36,19 +137,14 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
         <div className="space-y-5">
           <div>
             <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Pilih Brand Klien (Otomatis Deteksi Shift)</label>
-            <select
+            <SearchableBrandSelect 
+              brands={clientBrands}
               value={selectedBrandId}
-              onChange={(e) => {
-                setSelectedBrandId(e.target.value);
-                onSelectBrand(e.target.value);
+              onChange={(val) => {
+                setSelectedBrandId(val);
+                onSelectBrand(val);
               }}
-              className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm font-black text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer"
-            >
-              <option value="" disabled>-- Klik untuk Pilih Brand --</option>
-              {clientBrands.map(b => (
-                <option key={b.id} value={b.id}>{b.name} ({b.sessions?.length || 0} Shift Terkonfigurasi)</option>
-              ))}
-            </select>
+            />
           </div>
 
           {selectedBrandId && draftInvoice && (
