@@ -232,7 +232,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       dueDate: dueDate.toISOString().substring(0, 10),
       status: "Draft",
       recipientName: brand.picName || brand.name,
-      ptName: brand.name,
+      ptName: brand.companyName || brand.name,
       picName: brand.picName || "",
       picPhone: brand.picPhone || "",
       email: brand.picEmail || "",
