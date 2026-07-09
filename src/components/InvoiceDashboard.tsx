@@ -269,7 +269,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       if (b.id === selectedBrandId) {
         return {
           ...b,
-          name: draftInvoice.ptName || b.name,
+          companyName: draftInvoice.ptName || b.companyName,
           picName: draftInvoice.picName || b.picName,
           picPhone: draftInvoice.picPhone || b.picPhone,
           picEmail: draftInvoice.email || b.picEmail,

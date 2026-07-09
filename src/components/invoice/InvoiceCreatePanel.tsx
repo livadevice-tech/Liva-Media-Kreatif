@@ -41,8 +41,7 @@ const SearchableBrandSelect: React.FC<{
   const selectedBrand = brands.find(b => b.id === value);
   const filteredBrands = brands.filter(b => 
     b.name.toLowerCase().includes(search.toLowerCase()) || 
-    (b.companyName && b.companyName.toLowerCase().includes(search.toLowerCase())) ||
-    (b.ptName && b.ptName.toLowerCase().includes(search.toLowerCase()))
+    (b.companyName && b.companyName.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -54,7 +53,7 @@ const SearchableBrandSelect: React.FC<{
       >
         <span className="truncate">
           {selectedBrand 
-            ? `${selectedBrand.name} ${selectedBrand.ptName || selectedBrand.companyName ? `- ${selectedBrand.ptName || selectedBrand.companyName}` : ''} (${selectedBrand.sessions?.length || 0} Shift)`
+            ? `${selectedBrand.name} ${selectedBrand.companyName ? `- ${selectedBrand.companyName}` : ''} (${selectedBrand.sessions?.length || 0} Shift)`
             : "-- Klik untuk Pilih Brand --"}
         </span>
         <span className="text-[10px] text-slate-400 select-none ml-2 shrink-0">▼</span>
@@ -95,9 +94,9 @@ const SearchableBrandSelect: React.FC<{
                          {b.sessions?.length || 0} Shift
                        </span>
                     </div>
-                    {(b.ptName || b.companyName) && (
+                    {b.companyName && (
                       <span className="text-xs font-semibold text-slate-400">
-                        {b.ptName || b.companyName}
+                        {b.companyName}
                       </span>
                     )}
                   </button>
