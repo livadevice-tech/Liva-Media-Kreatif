@@ -353,7 +353,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       : `<div style="font-size: 42px; font-weight: 800; display: flex; align-items: center; justify-content: flex-end; gap: 10px;">LIVE</div>`;
 
     const signHtml = invoiceSettings.signatureUrl 
-      ? `<img src="${invoiceSettings.signatureUrl}" style="width: 120px; max-height: 80px; object-fit: contain; margin-bottom: -10px;" />`
+      ? `<img src="${invoiceSettings.signatureUrl}" style="width: 180px; max-height: 120px; object-fit: contain; margin-bottom: -15px;" />`
       : `<div style="height: 60px;"></div>`;
 
     printDoc.write(`
