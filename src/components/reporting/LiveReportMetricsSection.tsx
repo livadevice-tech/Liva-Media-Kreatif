@@ -48,8 +48,14 @@ export function LiveReportMetricsSection({
     pTotalClicksDb,
     pAvgViewDurationDb,
     totalDbImpressions,
+    totalDbLiveVisits,
     totalDbClicks,
     totalDbOrdersFunnel,
+    pTotalDbImpressions,
+    pTotalDbLiveVisits,
+    totalDbDuration,
+    totalSessionsDb,
+    pTotalSessionsDb,
     gmvPerHour,
     pGmvPerHour,
     avgAovDb,
@@ -229,6 +235,12 @@ export function LiveReportMetricsSection({
                   cur={avgViewDurationDb}
                   prev={pAvgViewDurationDb}
                   value={`${Math.round(avgViewDurationDb)} detik`}
+                />
+                <ReportMetricCard
+                  label="Rata-rata Penonton"
+                  cur={totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0}
+                  prev={pTotalSessionsDb > 0 ? pTotalDbLiveVisits / pTotalSessionsDb : 0}
+                  value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0)}
                 />
               </div>
             </div>

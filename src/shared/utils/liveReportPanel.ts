@@ -3,6 +3,7 @@ import { sortReportLogs, type ReportLogLike } from "./reportTable";
 
 export interface LiveReportPanelStats {
   totalSessionsDb: number;
+  pTotalSessionsDb: number;
   totalGmvDb: number;
   totalBuyersDb: number;
   totalOrdersDb: number;
@@ -26,6 +27,7 @@ export interface LiveReportPanelStats {
   totalDbClicks: number;
   totalDbOrdersFunnel: number;
   pTotalDbImpressions: number;
+  pTotalDbLiveVisits: number;
   totalDbDuration: number;
   pTotalDbDuration: number;
   gmvPerHour: number;
@@ -83,6 +85,7 @@ export function buildLiveReportPanelData(
       ? sum(tableLogs, (item) => item.avgViewDuration || 0) / totalSessionsDb
       : 0;
 
+  const pTotalSessionsDb = prevTableLogs.length;
   const pTotalGmvDb = sum(prevTableLogs, (item) => item.gmv || 0);
   const pTotalBuyersDb = sum(prevTableLogs, (item) => item.buyers || 0);
   const pTotalOrdersDb = sum(prevTableLogs, (item) => item.orders || item.buyers || 0);
@@ -109,6 +112,7 @@ export function buildLiveReportPanelData(
       : curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0;
   });
   const totalDbLiveVisits = sum(tableLogs, (curr) => curr.liveVisits || 0);
+  const pTotalDbLiveVisits = sum(prevTableLogs, (curr) => curr.liveVisits || 0);
   const totalDbClicks = sum(tableLogs, (curr) => curr.clicks || 0);
   const totalDbOrdersFunnel = sum(tableLogs, (curr) => curr.orders || curr.buyers || 0);
   const pTotalDbImpressions = sum(prevTableLogs, (curr) => {
@@ -151,6 +155,7 @@ export function buildLiveReportPanelData(
 
   const stats: LiveReportPanelStats = {
     totalSessionsDb,
+    pTotalSessionsDb,
     totalGmvDb,
     totalBuyersDb,
     totalOrdersDb,
@@ -174,6 +179,7 @@ export function buildLiveReportPanelData(
     totalDbClicks,
     totalDbOrdersFunnel,
     pTotalDbImpressions,
+    pTotalDbLiveVisits,
     totalDbDuration,
     pTotalDbDuration,
     gmvPerHour,

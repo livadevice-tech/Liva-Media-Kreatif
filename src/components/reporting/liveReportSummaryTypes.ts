@@ -1,6 +1,8 @@
 import type { LiveReportViewModel } from "../../shared/utils/liveReporting";
 
 export type LiveReportSummaryStats = {
+  totalSessionsDb: number;
+  pTotalSessionsDb: number;
   totalGmvDb: number;
   totalBuyersDb: number;
   totalOrdersDb: number;
@@ -24,6 +26,7 @@ export type LiveReportSummaryStats = {
   totalDbClicks: number;
   totalDbOrdersFunnel: number;
   pTotalDbImpressions: number;
+  pTotalDbLiveVisits: number;
   totalDbDuration: number;
   pTotalDbDuration: number;
   gmvPerHour: number;
