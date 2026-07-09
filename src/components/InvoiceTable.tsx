@@ -1,5 +1,5 @@
-import React from 'react';
-import { FileText, Calendar, Search, Edit2, Trash2, Download, Mail } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Calendar, Search, Edit2, Trash2, Download, Mail, ArrowUpDown } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
 
 interface InvoiceTableProps {
@@ -22,6 +22,8 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   allInvoices, upcomingBillings, searchQuery, setSearchQuery, filterMonth, setFilterMonth,
   updateInvoiceStatus, setInvoiceEditor, setInvoiceToDelete, handlePrint, handleShowEmailCopy, clientBrands, formatDateUI
 }) => {
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+
   return (
     <div className="space-y-6">
       {upcomingBillings.length > 0 && (
@@ -99,7 +101,15 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
             <table className="w-full text-left">
               <thead className="bg-slate-50 text-slate-500 text-xs font-medium border-b border-slate-200">
                 <tr>
-                  <th className="py-4 px-6">Invoice #</th>
+                  <th className="py-4 px-6">
+                    <button 
+                       onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} 
+                       className="flex items-center gap-1.5 hover:text-slate-700 cursor-pointer transition-colors font-medium outline-none"
+                    >
+                      Invoice #
+                      <ArrowUpDown className={`w-3.5 h-3.5 ${sortOrder === 'asc' ? 'text-indigo-500' : 'text-slate-400'}`} />
+                    </button>
+                  </th>
                   <th className="py-4 px-6">Customer / Brand</th>
                   <th className="py-4 px-6 text-center">Status</th>
                   <th className="py-4 px-6">Tanggal</th>
@@ -108,7 +118,14 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {allInvoices.filter(inv => inv.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) || inv.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || (inv.recipientName && inv.recipientName.toLowerCase().includes(searchQuery.toLowerCase()))).map((inv) => (
+                {allInvoices
+                  .filter(inv => inv.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) || inv.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || (inv.recipientName && inv.recipientName.toLowerCase().includes(searchQuery.toLowerCase())))
+                  .sort((a, b) => {
+                     return sortOrder === 'asc' 
+                       ? a.invoiceNumber.localeCompare(b.invoiceNumber) 
+                       : b.invoiceNumber.localeCompare(a.invoiceNumber);
+                  })
+                  .map((inv) => (
                   <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-4 px-6">
                       <div className="font-semibold text-slate-800">{inv.invoiceNumber}</div>
