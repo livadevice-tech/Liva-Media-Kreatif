@@ -430,12 +430,16 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
             .payment-grid { display: grid; grid-template-columns: 100px 1fr; gap: 4px 10px; font-size: 11px; text-align: left; color: #1e293b; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
             th { background-color: #f97316; color: white; padding: 12px 15px; text-align: left; font-weight: 600; font-size: 12px; }
-            th:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; width: 50px; text-align: center; }
+            th:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; width: 40px; text-align: center; }
             th:nth-child(2) { width: 45%; }
-            th:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; text-align: right; }
+            th:nth-child(3) { width: 130px; text-align: right; white-space: nowrap; }
+            th:nth-child(4) { width: 50px; text-align: center; }
+            th:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; width: 140px; text-align: right; white-space: nowrap; }
             td { padding: 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-weight: 500; font-size: 12px; color: #1e293b;}
             td:first-child { text-align: center; }
-            td:last-child { text-align: right; }
+            td:nth-child(3) { text-align: right; white-space: nowrap; }
+            td:nth-child(4) { text-align: center; }
+            td:last-child { text-align: right; white-space: nowrap; }
             .total-row { 
               display: flex; 
               justify-content: space-between; 
