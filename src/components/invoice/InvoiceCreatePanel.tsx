@@ -89,16 +89,13 @@ const SearchableBrandSelect: React.FC<{
                     } border`}
                   >
                     <div className="flex justify-between items-center w-full">
-                       <span className={isSelected ? "text-indigo-700" : ""}>{b.name}</span>
+                       <span className={isSelected ? "text-indigo-700" : ""}>
+                         {b.name} {b.companyName ? `- ${b.companyName}` : ''}
+                       </span>
                        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md ${isSelected ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"}`}>
                          {b.sessions?.length || 0} Shift
                        </span>
                     </div>
-                    {b.companyName && (
-                      <span className="text-xs font-semibold text-slate-400">
-                        {b.companyName}
-                      </span>
-                    )}
                   </button>
                 );
               })
