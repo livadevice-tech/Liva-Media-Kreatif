@@ -128,16 +128,22 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   }, [clientBrands, filterMonth]);
 
   useEffect(() => {
-    settingsApi.get<GlobalPicEmailSetting>("mcn_global_pic_email").then(storedEmail => {
-      if (storedEmail && typeof storedEmail === "string") {
-        setGlobalPicEmail(storedEmail);
-      } else if (
-        storedEmail &&
-        typeof storedEmail === "object" &&
-        "value" in storedEmail &&
-        storedEmail.value
-      ) {
-        setGlobalPicEmail(storedEmail.value);
+    settingsApi.get<any>("mcn_global_pic_email").then(storedEmail => {
+      let val = storedEmail;
+      
+      // Unwrap any accidentally nested JSON strings
+      while (typeof val === "string" && val.startsWith("{")) {
+        try {
+          val = JSON.parse(val);
+        } catch (e) {
+          break;
+        }
+      }
+
+      if (val && typeof val === "object" && "value" in val) {
+        setGlobalPicEmail(val.value || "");
+      } else if (typeof val === "string") {
+        setGlobalPicEmail(val);
       }
     }).catch(console.error);
   }, []);

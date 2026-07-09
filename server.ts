@@ -207,8 +207,15 @@ app.get("/api/settings/:key", asyncHandler(async (req, res) => {
     return res.json(null);
   }
   let value = row.setting_value;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch (e) {
+      // Keep as string if it's not JSON
+    }
+  }
+
   if (key === "liva_global_configs") {
-    if (typeof value === "string") value = JSON.parse(value);
     if (value && typeof value === "object") delete value.adminCredentials;
   }
   return res.json(value);
