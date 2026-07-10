@@ -79,6 +79,9 @@ export function BrandFormEditor({
                                 ) as string,
                                 picName: fd.get("picName") as string,
                                 picPhone: fd.get("picPhone") as string,
+                                picEmail: fd.get("picEmail") as string,
+                                companyName: fd.get("companyName") as string,
+                                companyAddress: fd.get("companyAddress") as string,
                                 sessions: brandFormEditor.sessions || [],
                                 accounts: brandFormEditor.accounts || [],
                                 clientUsername:
@@ -257,6 +260,83 @@ export function BrandFormEditor({
                                       <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${brandFormEditor.isActive !== false ? "translate-x-4" : "translate-x-1"}`}></span>
                                     </span>
                                   </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
+                                <div>
+                                  <h5 className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-700">
+                                    Detail Penagihan Invoice
+                                  </h5>
+                                  <p className="mt-1 text-[11px] font-medium text-slate-500">
+                                    Informasi penerima dan alamat pengiriman invoice.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Nama Perusahaan (PT)
+                                  </label>
+                                  <input
+                                    name="companyName"
+                                    defaultValue={brandFormEditor.companyName}
+                                    type="text"
+                                    placeholder="Contoh: PT Liva Kreatif"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Alamat Perusahaan
+                                  </label>
+                                  <input
+                                    name="companyAddress"
+                                    defaultValue={brandFormEditor.companyAddress}
+                                    type="text"
+                                    placeholder="Alamat lengkap pengiriman"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                    Nama PIC / Penerima
+                                  </label>
+                                  <input
+                                    name="picName"
+                                    defaultValue={brandFormEditor.picName}
+                                    type="text"
+                                    placeholder="Nama orang yang dituju"
+                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                      No. HP / WA PIC
+                                    </label>
+                                    <input
+                                      name="picPhone"
+                                      defaultValue={brandFormEditor.picPhone}
+                                      type="text"
+                                      placeholder="0812xxxx"
+                                      className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
+                                      Email PIC
+                                    </label>
+                                    <input
+                                      name="picEmail"
+                                      defaultValue={brandFormEditor.picEmail}
+                                      type="email"
+                                      placeholder="email@pt.com"
+                                      className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
+                                    />
+                                  </div>
                                 </div>
                               </div>
                             </div>
