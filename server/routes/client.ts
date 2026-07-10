@@ -105,6 +105,7 @@ interface ClientReportingRow {
 interface BrandViewModel {
   id: string;
   name: string;
+  companyName?: string | null;
   contractStartDate?: string | null;
   contractEndDate?: string | null;
   invoiceDate?: string | null;
@@ -117,6 +118,7 @@ interface BrandViewModel {
   companyAddress?: string | null;
   logoUrl?: string | null;
   isActive?: boolean;
+  dashboardSettings?: { hiddenMetrics?: string[]; hiddenColumns?: string[] } | null;
   sessions: { id: string; shift?: string | null; platform?: string | null; studio?: string | null; host?: string | null }[];
   accounts: { id: string; type?: string | null; username?: string | null; password?: string | null; picOtp?: string | null }[];
   invoices: Array<BrandInvoiceRow & {
