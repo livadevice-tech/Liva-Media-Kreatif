@@ -12,6 +12,9 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
   const [berkasSearch, setBerkasSearch] = useState("");
   const [berkasEditor, setBerkasEditor] = useState<{ brandId: string; id: string; name: string; type: string; url: string; } | null>(null);
   const [berkasToDelete, setBerkasToDelete] = useState<{ brandId: string; berkasId: string; } | null>(null);
+  const [inputMode, setInputMode] = useState<'link' | 'upload'>('link');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -57,7 +60,11 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
             />
           </div>
           <button 
-            onClick={() => setBerkasEditor({ brandId: clientBrands[0]?.id || "", id: "b_" + Date.now(), name: "", type: "Dokumen", url: "" })}
+            onClick={() => {
+              setBerkasEditor({ brandId: clientBrands[0]?.id || "", id: "b_" + Date.now(), name: "", type: "Dokumen", url: "" });
+              setInputMode('link');
+              setSelectedFile(null);
+            }}
             className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-95 whitespace-nowrap"
           >
             <Plus className="w-4 h-4" /> Tambah Berkas
@@ -76,7 +83,11 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
           </p>
           {!berkasSearch && (
             <button 
-              onClick={() => setBerkasEditor({ brandId: clientBrands[0]?.id || "", id: "b_" + Date.now(), name: "", type: "Dokumen", url: "" })}
+              onClick={() => {
+                setBerkasEditor({ brandId: clientBrands[0]?.id || "", id: "b_" + Date.now(), name: "", type: "Dokumen", url: "" });
+                setInputMode('link');
+                setSelectedFile(null);
+              }}
               className="px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-medium rounded-lg transition-all cursor-pointer shadow-sm"
             >
               Mulai Upload Berkas
@@ -88,7 +99,11 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
           {filteredBerkas.map((berk) => (
             <div key={berk.id} className="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-hidden">
                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-gradient-to-l from-white via-white to-transparent">
-                  <button onClick={() => setBerkasEditor(berk)} className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg cursor-pointer"><Edit2 className="w-4 h-4" /></button>
+                  <button onClick={() => { 
+                    setBerkasEditor(berk); 
+                    setInputMode(berk.url.startsWith('http') ? 'link' : 'upload'); 
+                    setSelectedFile(null);
+                  }} className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg cursor-pointer"><Edit2 className="w-4 h-4" /></button>
                   <button onClick={() => setBerkasToDelete({ brandId: berk.brandId, berkasId: berk.id })} className="p-1.5 bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 rounded-lg cursor-pointer"><Trash2 className="w-4 h-4" /></button>
                </div>
                <div className="flex items-start justify-between mb-4">
@@ -117,7 +132,7 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col animate-fadeIn">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="text-lg font-bold text-slate-800">Formulir Berkas</h3>
-              <button onClick={() => setBerkasEditor(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setBerkasEditor(null); setSelectedFile(null); setInputMode('link'); }} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-5">
               <div>
@@ -148,33 +163,89 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                   <option value="Dokumen">Dokumen Lainnya</option>
                 </select>
               </div>
+
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Link Tautan (G-Drive / Docs)</label>
-                <input type="url" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-300" value={berkasEditor.url} onChange={e => setBerkasEditor({...berkasEditor, url: e.target.value})} placeholder="https://docs.google.com/..." required />
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Metode Input</label>
+                <div className="flex gap-4 mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="inputMode" value="link" checked={inputMode === 'link'} onChange={() => setInputMode('link')} className="accent-slate-900" />
+                    <span className="text-sm font-medium text-slate-700">Tautan Link</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="inputMode" value="upload" checked={inputMode === 'upload'} onChange={() => setInputMode('upload')} className="accent-slate-900" />
+                    <span className="text-sm font-medium text-slate-700">Upload File</span>
+                  </label>
+                </div>
+
+                {inputMode === 'link' ? (
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Link Tautan (G-Drive / Docs)</label>
+                    <input type="url" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-300" value={berkasEditor.url} onChange={e => setBerkasEditor({...berkasEditor, url: e.target.value})} placeholder="https://docs.google.com/..." />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Upload File Dokumen</label>
+                    <input type="file" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
+                    {berkasEditor.url && !berkasEditor.url.startsWith('http') && (
+                      <p className="text-xs text-emerald-600 mt-2 font-medium">File saat ini tersimpan: {berkasEditor.url.split('/').pop()}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <button onClick={() => setBerkasEditor(null)} className="px-5 py-2.5 rounded-lg font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 cursor-pointer transition-all">Batal</button>
+              <button onClick={() => setBerkasEditor(null)} disabled={isUploading} className="px-5 py-2.5 rounded-lg font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 cursor-pointer transition-all disabled:opacity-50">Batal</button>
               <button 
-                onClick={() => {
-                  if (!berkasEditor.name || !berkasEditor.url || !berkasEditor.brandId) return alert("Pilih brand dan lengkapi data!");
+                disabled={isUploading}
+                onClick={async () => {
+                  if (!berkasEditor.name || !berkasEditor.brandId) return alert("Pilih brand dan masukkan nama berkas!");
+                  if (inputMode === 'link' && !berkasEditor.url) return alert("Masukkan link tautan!");
+                  if (inputMode === 'upload' && !selectedFile && !berkasEditor.url) return alert("Pilih file yang akan diupload!");
+
+                  let finalUrl = berkasEditor.url;
+                  
+                  if (inputMode === 'upload' && selectedFile) {
+                    setIsUploading(true);
+                    try {
+                      const formData = new FormData();
+                      formData.append('berkas_file', selectedFile);
+                      
+                      const res = await fetch('/api/client-brands/berkas/upload', {
+                        method: 'POST',
+                        body: formData
+                      });
+                      
+                      if (!res.ok) throw new Error("Gagal mengupload file");
+                      
+                      const data = await res.json();
+                      finalUrl = data.url;
+                    } catch (error) {
+                      alert("Terjadi kesalahan saat mengupload file");
+                      setIsUploading(false);
+                      return;
+                    }
+                    setIsUploading(false);
+                  }
+
                   const updatedBrands = clientBrands.map((b) => {
                     if (b.id !== berkasEditor.brandId) return b;
                     let existingBerkas = b.berkas || [];
                     const found = existingBerkas.some(bk => bk.id === berkasEditor.id);
                     if (found) {
-                      existingBerkas = existingBerkas.map(bk => bk.id === berkasEditor.id ? { ...berkasEditor } : bk);
+                      existingBerkas = existingBerkas.map(bk => bk.id === berkasEditor.id ? { ...berkasEditor, url: finalUrl } : bk);
                     } else {
-                      existingBerkas = [...existingBerkas, { ...berkasEditor }];
+                      existingBerkas = [...existingBerkas, { ...berkasEditor, url: finalUrl }];
                     }
                     return { ...b, berkas: existingBerkas };
                   });
                   onUpdateBrands(updatedBrands);
                   setBerkasEditor(null);
+                  setSelectedFile(null);
+                  setInputMode('link');
                 }}
-                className="px-6 py-2.5 rounded-lg font-medium bg-slate-900 text-white hover:bg-slate-800 shadow-sm cursor-pointer transition-all active:scale-95"
+                className="px-6 py-2.5 rounded-lg font-medium bg-slate-900 text-white hover:bg-slate-800 shadow-sm cursor-pointer transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
               >
-                Simpan Data Berkas
+                {isUploading ? "Mengupload..." : "Simpan Data Berkas"}
               </button>
             </div>
           </div>

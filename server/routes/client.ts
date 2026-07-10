@@ -2,6 +2,28 @@ import type { Express, Request, Response } from "express";
 import { execute, queryMany, queryOne } from "../db";
 import { asyncHandler, genId } from "../http";
 import { hashPasswordForStorage } from "../auth";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// Setup Multer Storage for Berkas
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(process.cwd(), 'uploads', 'berkas');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB max file size
+});
 
 interface BrandSessionRow {
   id: string;
@@ -211,6 +233,16 @@ async function buildBrand(brand: ClientBrandRow): Promise<BrandViewModel> {
 }
 
 export function registerClientRoutes(app: Express) {
+  // File Upload Route for Berkas
+  app.post("/api/client-brands/berkas/upload", upload.single('berkas_file'), asyncHandler(async (req: Request, res: Response) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    // Return the URL path to the frontend
+    const fileUrl = `/uploads/berkas/${req.file.filename}`;
+    res.json({ url: fileUrl });
+  }));
+
   app.get("/api/client-brands", asyncHandler(async (req: Request, res: Response) => {
     const brands = await queryMany<ClientBrandRow>(`SELECT * FROM client_brands ORDER BY name ASC`);
     const result = await Promise.all(brands.map(buildBrand));

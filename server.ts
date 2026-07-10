@@ -63,6 +63,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // ==================================================================
 // Authentication
 // ==================================================================
