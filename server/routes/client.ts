@@ -217,6 +217,11 @@ export function registerClientRoutes(app: Express) {
     res.json(result);
   }));
 
+  app.get("/api/client-brands/public", asyncHandler(async (req: Request, res: Response) => {
+    const brands = await queryMany<{name: string}>(`SELECT name FROM client_brands WHERE is_active = 1 ORDER BY name ASC`);
+    res.json(brands.map(b => b.name));
+  }));
+
   app.get("/api/client-brands/:id", asyncHandler(async (req: Request, res: Response) => {
     const brand = await queryOne<ClientBrandRow>(`SELECT * FROM client_brands WHERE id = ?`, [req.params.id]);
     if (!brand) return res.status(404).json({ error: "Brand tidak ditemukan" });

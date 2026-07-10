@@ -769,6 +769,12 @@ export default function App() {
               .then(_setClientBrands)
               .catch((err) => handleQuotaError(err, "client_brands")),
           );
+        } else if (isHost) {
+          loadTasks.push(
+            clientBrandsApi.getPublicNames()
+              .then((names) => _setBrands(names)) // Overwrite global brands list with active client brands
+              .catch((err) => handleQuotaError(err, "client_brands")),
+          );
         }
 
         // 5. client_leads
