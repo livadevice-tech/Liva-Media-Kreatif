@@ -428,7 +428,9 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
               max-height: 60%;
               z-index: -1;
             }
-            .top-info { display: flex; justify-content: space-between; margin-bottom: 25px; }
+            .top-info { display: flex; justify-content: space-between; margin-bottom: 25px; gap: 40px; }
+            .invoice-to { flex: 1; min-width: 0; }
+            .payment-method { flex-shrink: 0; width: 280px; }
             .invoice-to h3, .payment-method h3 { font-size: 13px; font-weight: 800; margin: 0 0 10px 0; color: #000; text-transform: uppercase; }
             .invoice-to strong { font-size: 13px; }
             .address-block { margin-top: 10px; font-size: 11px; line-height: 1.4; color: #1e293b; }
