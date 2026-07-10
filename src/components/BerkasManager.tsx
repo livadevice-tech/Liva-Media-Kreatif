@@ -42,35 +42,27 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 animate-fadeIn">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-slate-100 pb-5">
-        <div>
-           <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
-             <FolderOpen className="w-6 h-6 text-slate-700" /> Kelola Berkas & Dokumen
-           </h3>
-           <p className="text-sm text-slate-500 mt-1">Manajemen SPK, Script, SOP, dan aset digital klien lainnya.</p>
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 border-b border-slate-100 pb-5 w-full">
+        <div className="relative flex-1 w-full">
+          <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input 
+            type="text" 
+            placeholder="Cari nama berkas atau brand..." 
+            value={berkasSearch}
+            onChange={(e) => setBerkasSearch(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50 font-medium transition-all text-slate-800 shadow-sm"
+          />
         </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Cari nama berkas..." 
-              value={berkasSearch}
-              onChange={(e) => setBerkasSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-100 font-medium transition-all text-slate-800"
-            />
-          </div>
-          <button 
-            onClick={() => {
-              setBerkasEditor({ brandId: clientBrands[0]?.id || "", id: "b_" + Date.now(), name: "", type: "Dokumen", url: "" });
-              setInputMode('link');
-              setSelectedFile(null);
-            }}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-95 whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" /> Tambah Berkas
-          </button>
-        </div>
+        <button 
+          onClick={() => {
+            setBerkasEditor({ brandId: clientBrands[0]?.id || "", id: "b_" + Date.now(), name: "", type: "Dokumen", url: "" });
+            setInputMode('link');
+            setSelectedFile(null);
+          }}
+          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-95 whitespace-nowrap"
+        >
+          <Plus className="w-4 h-4" /> Tambah Berkas
+        </button>
       </div>
 
       {filteredBerkas.length === 0 ? (
