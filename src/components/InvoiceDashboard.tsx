@@ -362,10 +362,15 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       ? `<img src="${invoiceSettings.signatureUrl}" style="width: 180px; max-height: 120px; object-fit: contain; margin-bottom: -15px;" />`
       : `<div style="height: 60px;"></div>`;
 
+    const originalTitle = document.title;
+    const safeInvoiceNumber = invoice.invoiceNumber ? invoice.invoiceNumber.replace(/\//g, '-') : 'AUTO';
+    const printTitle = `${brandName} - ${safeInvoiceNumber}`;
+    document.title = printTitle;
+
     printDoc.write(`
       <html>
         <head>
-          <title>Invoice ${invoice.invoiceNumber}</title>
+          <title>${printTitle}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
             @page { size: A4 portrait; margin: 0; }
@@ -577,6 +582,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       iframe.contentWindow?.print();
       setTimeout(() => {
         document.body.removeChild(iframe);
+        document.title = originalTitle;
       }, 3000);
     }, 500);
   };
