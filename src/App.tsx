@@ -5002,8 +5002,7 @@ export default function App() {
                             {Array.from(
                               new Set([
                                 hostForm.brand,
-                                ...brands,
-                                ...clientBrands.map((cb) => cb.name)
+                                ...(clientBrands.length > 0 ? clientBrands.map((cb) => cb.name) : brands)
                               ].map(b => b?.trim()).filter(Boolean)),
                             )
                               .filter(Boolean)
@@ -9114,8 +9113,7 @@ export default function App() {
                                       {Array.from(
                                         new Set([
                                           scheduleForm.brand,
-                                          ...brands,
-                                          ...clientBrands.map((cb) => cb.name),
+                                          ...(clientBrands.length > 0 ? clientBrands.map((cb) => cb.name) : brands)
                                         ].map(b => b?.trim()).filter(Boolean)),
                                       )
                                         .filter(Boolean)
@@ -11305,8 +11303,7 @@ export default function App() {
                           {Array.from(
                             new Set([
                               dbBrandFilter !== "Semua Brand" ? dbBrandFilter : null,
-                              ...brands,
-                              ...clientBrands.map((cb) => cb.name),
+                              ...(clientBrands.length > 0 ? clientBrands.map((cb) => cb.name) : brands)
                             ].map(b => b?.trim()).filter(Boolean)),
                           )
                             .filter(Boolean)
@@ -11603,8 +11600,7 @@ export default function App() {
                               {Array.from(
                                 new Set([
                                   manualForm.brand,
-                                  ...brands,
-                                  ...clientBrands.map((cb) => cb.name),
+                                  ...(clientBrands.length > 0 ? clientBrands.map((cb) => cb.name) : brands)
                                 ].map(b => b?.trim()).filter(Boolean)),
                               )
                                 .filter(Boolean)
