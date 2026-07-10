@@ -11072,300 +11072,141 @@ export default function App() {
                 {/* ==================== SUBTAB: LIVE DATABASE ATTENDANCE ==================== */}
                 {operatorTab === "database" && (
                   <div className="space-y-6" id="operator_database_content">
-                    {/* TOOLBAR FOR MANAGERS (ADD LOG MANUALLY & FILTERS) */}
-                    <div
-                      className="flex justify-between items-center bg-white p-4 rounded-xl border border-purple-100 shadow-sm"
-                      id="database_control_toolbar"
-                    >
-                      <div>
-                        <h3 className="text-xs font-black uppercase tracking-wider text-purple-950">
-                          Database Rekaman Absensi Live Host
-                        </h3>
-                        <p className="text-[10px] text-purple-400 font-bold mt-0.5">
-                          Menampilkan{" "}
-                          <span className="text-purple-700">
-                            {filteredLogsList.length}
-                          </span>{" "}
-                          log dari total {logs.length} data absen
-                        </p>
-                      </div>
-
-                      <button
-                        id="manual_attendance_log_modal_trigger"
-                        onClick={() => setShowManualForm(!showManualForm)}
-                        className={`font-black py-2 px-4 rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
-                          showManualForm
-                            ? "bg-slate-600 hover:bg-slate-700 text-white"
-                            : "bg-purple-600 hover:bg-purple-700 text-white"
-                        }`}
-                      >
-                        {showManualForm ? (
-                          <>
-                            <X className="w-4 h-4 text-slate-200" />
-                            Tutup Form
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-4 h-4 text-purple-100" />
-                            Input Absen Manual
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="flex bg-slate-100 p-1 w-full max-w-xl rounded-xl shadow-sm">
-                      <button
-                        className={`flex-1 text-center py-2 text-xs font-bold transition-all rounded-lg ${
-                          dbTabMode === "today"
-                            ? "bg-white text-purple-700 shadow-sm"
-                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
-                        }`}
-                        onClick={() => setDbTabMode("today")}
-                      >
-                        Kehadiran Hari ini
-                      </button>
-                      <button
-                        className={`flex-1 text-center py-2 text-xs font-bold transition-all rounded-lg ${
-                          dbTabMode === "all"
-                            ? "bg-white text-purple-700 shadow-sm"
-                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
-                        }`}
-                        onClick={() => setDbTabMode("all")}
-                      >
-                        Semua Data Absen
-                      </button>
-                      <button
-                        className={`flex-1 text-center py-2 text-xs font-bold transition-all rounded-lg ${
-                          dbTabMode === "calendar"
-                            ? "bg-white text-purple-700 shadow-sm"
-                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
-                        }`}
-                        onClick={() => setDbTabMode("calendar")}
-                      >
-                        Calendar View
-                      </button>
-                    </div>
-
-                    {/* CATEGORY STATUS PILL FILTERS (Exactly matches user reference layout) */}
-                    <div
-                      className="flex bg-slate-100/75 p-1.5 rounded-2xl gap-1 overflow-x-auto border border-slate-200/40"
-                      id="database_pill_filters"
-                    >
-                      {[
-                        {
-                          id: "All",
-                          label: "Semua Log",
-                          color: "bg-slate-400",
-                          text: "text-slate-600",
-                          activeBg:
-                            "bg-white text-slate-800 shadow-3xs border border-slate-200",
-                        },
-                        {
-                          id: "Present",
-                          label: "Hadir (Tepat Waktu)",
-                          statusChoice: "Present",
-                          color: "bg-emerald-500",
-                          text: "text-emerald-700",
-                          activeBg:
-                            "bg-emerald-50 text-emerald-850 shadow-3xs border border-emerald-250",
-                        },
-                        {
-                          id: "Late",
-                          label: "Terlambat",
-                          statusChoice: "Late",
-                          color: "bg-amber-500",
-                          text: "text-amber-700",
-                          activeBg:
-                            "bg-amber-50 text-amber-850 shadow-3xs border border-amber-250",
-                        },
-                        {
-                          id: "Absent",
-                          label: "Alpa / Mangkir",
-                          statusChoice: "Absent",
-                          color: "bg-red-500",
-                          text: "text-red-700",
-                          activeBg:
-                            "bg-red-50 text-red-850 shadow-3xs border border-red-250",
-                        },
-                        {
-                          id: "Excused",
-                          label: "Izin / Sakit",
-                          statusChoice: "Excused",
-                          color: "bg-[#2563eb]",
-                          text: "text-indigo-750",
-                          activeBg:
-                            "bg-indigo-50 text-indigo-850 shadow-3xs border border-indigo-250",
-                        },
-                      ].map((pill) => {
-                        const isPillActive = dbStatusFilter === pill.id;
-                        const count =
-                          pill.id === "All"
-                            ? dbActiveBaseLogs.length
-                            : pill.id === "Absent"
-                              ? dbActiveBaseLogs.filter(
-                                  (l) =>
-                                    l.status !== "Present" &&
-                                    l.status !== "Late" &&
-                                    l.status !== "Excused",
-                                ).length
-                              : dbActiveBaseLogs.filter(
-                                  (l) => l.status === pill.statusChoice,
-                                ).length;
-
-                        return (
+                    {/* UNIFIED DATABASE TOOLBAR */}
+                    <div className="flex flex-col bg-white border border-slate-200/60 rounded-2xl shadow-sm overflow-hidden mb-6" id="operator_database_unified_toolbar">
+                      {/* Top Header: Title, Segmented Control, Actions */}
+                      <div className="flex flex-col xl:flex-row xl:items-center justify-between p-5 gap-4 border-b border-slate-100">
+                        <div>
+                          <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                            <Database className="w-4 h-4 text-purple-600" />
+                            Database Absensi
+                          </h3>
+                          <p className="text-[11px] text-slate-500 font-medium mt-1">
+                            Menampilkan <span className="font-bold text-slate-700">{filteredLogsList.length}</span> dari {logs.length} data log
+                          </p>
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                          {/* Segmented Control */}
+                          <div className="flex bg-slate-100/80 p-1 w-full sm:w-auto rounded-lg border border-slate-200/50">
+                            {[
+                              { id: "today", label: "Hari Ini" },
+                              { id: "all", label: "Semua Data" },
+                              { id: "calendar", label: "Kalender" }
+                            ].map((tab) => (
+                              <button
+                                key={tab.id}
+                                onClick={() => setDbTabMode(tab.id as "today" | "all" | "calendar")}
+                                className={`flex-1 sm:flex-none px-4 py-1.5 text-[11px] font-bold transition-all rounded-md ${
+                                  dbTabMode === tab.id
+                                    ? "bg-white text-slate-900 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                                }`}
+                              >
+                                {tab.label}
+                              </button>
+                            ))}
+                          </div>
+                          
+                          {/* Action Button */}
                           <button
-                            type="button"
-                            key={pill.id}
-                            onClick={() => {
-                              setDbStatusFilter(
-                                pill.id as
-                                  | "All"
-                                  | "Present"
-                                  | "Late"
-                                  | "Absent"
-                                  | "Excused",
-                              );
-                              setSelectedLogIds([]); // clear selection when switching filters
-                            }}
-                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer border border-transparent select-none shrink-0 ${
-                              isPillActive
-                                ? pill.activeBg
-                                : "text-slate-500 hover:text-slate-800 hover:bg-white/45"
+                            id="manual_attendance_log_modal_trigger"
+                            onClick={() => setShowManualForm(!showManualForm)}
+                            className={`w-full sm:w-auto font-black py-2 px-4 rounded-lg text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm border ${
+                              showManualForm
+                                ? "bg-slate-800 hover:bg-slate-900 text-white border-slate-800"
+                                : "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
                             }`}
                           >
-                            <div
-                              className={`w-1.5 h-1.5 rounded-full ${pill.color}`}
-                            />
-                            <span className="font-sans font-bold">
-                              {pill.label}
-                            </span>
-                            <span
-                              className={`px-1.5 py-0.5 rounded-md font-mono font-bold text-[9px] ${isPillActive ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-600"}`}
-                            >
-                              {count}
-                            </span>
+                            {showManualForm ? (
+                              <>
+                                <X className="w-3.5 h-3.5" />
+                                Tutup Form
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-3.5 h-3.5" />
+                                Input Manual
+                              </>
+                            )}
                           </button>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      </div>
 
-                    {/* ADVANCED FILTERS TOGGLE */}
-                    <div className="flex items-center justify-between mb-2">
-                      <button 
-                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                        className="text-xs font-bold text-slate-500 hover:text-purple-700 flex items-center gap-1.5 transition-colors"
-                      >
-                        <Settings className="w-3.5 h-3.5" />
-                        {showAdvancedFilters ? "Sembunyikan Filter Lanjutan" : "Tampilkan Filter Lanjutan"}
-                        {(globalSearch || dbPlatformFilter !== "Semua Platform" || dbBrandFilter !== "Semua Brand" || dbShiftFilter !== "Semua Shift" || dbDateFilterStart || dbDateFilterEnd) && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 text-[9px] font-black">
-                            Aktif
-                          </span>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* SEARCH & FILTERS SPECIFIC FOR PLATFORM & BRAND */}
-                    {showAdvancedFilters && (
-                    <div
-                      className="flex flex-col gap-3 bg-[#faf9fe]/80 p-4 rounded-xl border border-purple-100 mb-4 animate-in slide-in-from-top-2 duration-200"
-                      id="database_logs_toolbar"
-                    >
-                      <div className="flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center">
-                        {/* Search query input */}
-                        <div
-                          className="relative flex-1"
-                          id="db_search_input_wrapper"
-                        >
-                          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" />
+                      {/* Middle: Search & Dropdown Filters */}
+                      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4 bg-slate-50/50">
+                        {/* Search Input */}
+                        <div className="relative flex-1" id="db_search_input_wrapper">
+                          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                           <input
                             type="text"
-                            id="db_search_host"
-                            placeholder="Cari log absen berdasarkan nama host atau ID..."
+                            placeholder="Cari host atau ID..."
                             value={globalSearch}
                             onChange={(e) => setGlobalSearch(e.target.value)}
-                            className="w-full bg-white border border-purple-150 rounded-xl pl-10 pr-4 py-2.5 text-xs text-purple-950 focus:outline-none focus:border-purple-400 transition-all font-sans font-extrabold shadow-2xs"
+                            className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium placeholder:text-slate-400 shadow-3xs"
                           />
                         </div>
 
-                        {/* Platform option Selector */}
-                        <select
-                          id="db_filter_platform_dropdown"
-                          value={dbPlatformFilter}
-                          onChange={(e) => setDbPlatformFilter(e.target.value)}
-                          className="bg-white border border-purple-150 rounded-xl px-4 py-2 text-xs text-purple-955 focus:outline-none cursor-pointer font-bold shadow-2xs hover:border-purple-300 w-full md:w-auto"
-                        >
-                          <option value="Semua Platform">Semua Platform</option>
-                          {platforms.map((p) => (
-                            <option key={p} value={p}>
-                              {p}
-                            </option>
-                          ))}
-                        </select>
-
-                        {/* Brand option Selector */}
-                        <select
-                          id="db_filter_brand_dropdown"
-                          value={dbBrandFilter}
-                          onChange={(e) => setDbBrandFilter(e.target.value)}
-                          className="bg-white border border-purple-150 rounded-xl px-4 py-2 text-xs text-purple-955 focus:outline-none cursor-pointer font-bold shadow-2xs hover:border-purple-300 w-full md:w-auto"
-                        >
-                          <option value="Semua Brand">Semua Brand</option>
-                          {Array.from(
-                            new Set([
+                        {/* Dropdowns */}
+                        <div className="flex flex-wrap md:flex-nowrap gap-2">
+                          <select
+                            value={dbPlatformFilter}
+                            onChange={(e) => setDbPlatformFilter(e.target.value)}
+                            className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
+                            style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
+                          >
+                            <option value="Semua Platform">Semua Platform</option>
+                            {platforms.map(p => <option key={p} value={p}>{p}</option>)}
+                          </select>
+                          
+                          <select
+                            value={dbBrandFilter}
+                            onChange={(e) => setDbBrandFilter(e.target.value)}
+                            className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
+                            style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
+                          >
+                            <option value="Semua Brand">Semua Brand</option>
+                            {Array.from(new Set([
                               dbBrandFilter !== "Semua Brand" ? dbBrandFilter : null,
                               ...(clientBrands.length > 0 ? clientBrands.map((cb) => cb.name) : brands)
-                            ].map(b => b?.trim()).filter(Boolean)),
-                          )
-                            .filter(Boolean)
-                            .map((b) => (
-                              <option key={b} value={b}>
-                                {b}
-                              </option>
+                            ].map(b => b?.trim()).filter(Boolean))).filter(Boolean).map(b => (
+                              <option key={b} value={b}>{b}</option>
                             ))}
-                        </select>
+                          </select>
 
-                        {/* Shift option Selector */}
-                        <select
-                          id="db_filter_shift_dropdown"
-                          value={dbShiftFilter}
-                          onChange={(e) => setDbShiftFilter(e.target.value)}
-                          className="bg-white border border-purple-150 rounded-xl px-4 py-2 text-xs text-purple-955 focus:outline-none cursor-pointer font-bold shadow-2xs hover:border-purple-300 w-full md:w-auto"
-                        >
-                          <option value="Semua Shift">Semua Shift</option>
-                          {shifts.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                          <select
+                            value={dbShiftFilter}
+                            onChange={(e) => setDbShiftFilter(e.target.value)}
+                            className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
+                            style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
+                          >
+                            <option value="Semua Shift">Semua Shift</option>
+                            {shifts.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
                       </div>
 
-                      <div className="flex flex-col md:flex-row gap-3 items-center mt-1 flex-wrap">
-                        {dbTabMode === "all" && (
-                          <>
-                            <div className="flex items-center gap-2 w-full md:w-auto">
-                              <span className="text-[10px] font-bold text-purple-700 uppercase">
-                                Dari Tgl:
-                              </span>
+                      {/* Date Filters (Only visible in 'all' mode) */}
+                      {dbTabMode === "all" && (
+                        <div className="flex flex-wrap gap-3 items-center px-4 pb-4 bg-slate-50/50">
+                            <div className="flex items-center gap-2 w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-3xs focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="text-[10px] font-bold text-slate-500 uppercase">Dari:</span>
                               <input
                                 type="date"
                                 value={dbDateFilterStart}
-                                onChange={(e) =>
-                                  setDbDateFilterStart(e.target.value)
-                                }
-                                className="flex-1 bg-white border border-purple-150 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-purple-400"
+                                onChange={(e) => setDbDateFilterStart(e.target.value)}
+                                className="bg-transparent text-xs font-medium text-slate-700 outline-none w-full"
                               />
                             </div>
-                            <div className="flex items-center gap-2 w-full md:w-auto">
-                              <span className="text-[10px] font-bold text-purple-700 uppercase">
-                                Sampai Tgl:
-                              </span>
+                            <div className="flex items-center gap-2 w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-3xs focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="text-[10px] font-bold text-slate-500 uppercase">Sampai:</span>
                               <input
                                 type="date"
                                 value={dbDateFilterEnd}
                                 onChange={(e) => setDbDateFilterEnd(e.target.value)}
-                                className="flex-1 bg-white border border-purple-150 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-purple-400"
+                                className="bg-transparent text-xs font-medium text-slate-700 outline-none w-full"
                               />
                             </div>
                             {(dbDateFilterStart || dbDateFilterEnd) && (
@@ -11374,16 +11215,54 @@ export default function App() {
                                   setDbDateFilterStart("");
                                   setDbDateFilterEnd("");
                                 }}
-                                className="text-[10px] font-bold text-red-500 hover:text-red-700 px-3 py-1.5 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer w-full md:w-auto text-center"
+                                className="text-[10px] font-bold text-red-600 hover:text-red-700 px-3 py-1.5 hover:bg-red-50 rounded-lg transition-colors cursor-pointer w-full md:w-auto text-center"
                               >
                                 Reset Tanggal
                               </button>
                             )}
-                          </>
-                        )}
+                        </div>
+                      )}
+
+                      {/* Bottom: Status Pills */}
+                      <div className="flex flex-wrap gap-2 p-4 border-t border-slate-100 bg-white" id="database_pill_filters">
+                        {[
+                          { id: "All", label: "Semua Log", color: "bg-slate-400", text: "text-slate-600", activeBg: "bg-slate-900 text-white shadow-sm ring-1 ring-slate-900/10", activeCount: "bg-white/20 text-white" },
+                          { id: "Present", label: "Hadir", statusChoice: "Present", color: "bg-emerald-500", text: "text-emerald-700", activeBg: "bg-emerald-50 text-emerald-800 shadow-sm ring-1 ring-emerald-500/20", activeCount: "bg-emerald-200/50 text-emerald-900" },
+                          { id: "Late", label: "Terlambat", statusChoice: "Late", color: "bg-amber-500", text: "text-amber-700", activeBg: "bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-500/20", activeCount: "bg-amber-200/50 text-amber-900" },
+                          { id: "Absent", label: "Alpa / Mangkir", statusChoice: "Absent", color: "bg-red-500", text: "text-red-700", activeBg: "bg-red-50 text-red-800 shadow-sm ring-1 ring-red-500/20", activeCount: "bg-red-200/50 text-red-900" },
+                          { id: "Excused", label: "Izin / Sakit", statusChoice: "Excused", color: "bg-blue-500", text: "text-blue-700", activeBg: "bg-blue-50 text-blue-800 shadow-sm ring-1 ring-blue-500/20", activeCount: "bg-blue-200/50 text-blue-900" },
+                        ].map((pill) => {
+                          const isPillActive = dbStatusFilter === pill.id;
+                          const count = pill.id === "All"
+                            ? dbActiveBaseLogs.length
+                            : pill.id === "Absent"
+                              ? dbActiveBaseLogs.filter((l) => l.status !== "Present" && l.status !== "Late" && l.status !== "Excused").length
+                              : dbActiveBaseLogs.filter((l) => l.status === pill.statusChoice).length;
+
+                          return (
+                            <button
+                              type="button"
+                              key={pill.id}
+                              onClick={() => {
+                                setDbStatusFilter(pill.id as any);
+                                setSelectedLogIds([]);
+                              }}
+                              className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                                isPillActive
+                                  ? pill.activeBg
+                                  : "text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200/60"
+                              }`}
+                            >
+                              {!isPillActive && <div className={`w-1.5 h-1.5 rounded-full ${pill.color}`} />}
+                              <span>{pill.label}</span>
+                              <span className={`px-1.5 py-0.5 rounded-md font-mono text-[9px] ${isPillActive ? pill.activeCount : "bg-white border border-slate-200/60"}`}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
-                    )}
 
                     {/* MANUAL LOG INSERTION FORM (EXPANDABLE SECTOINE) */}
                     {showManualForm && (
