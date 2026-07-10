@@ -498,7 +498,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
               <div class="invoice-to">
                 <h3>INVOICE TO:</h3>
                 <strong>${recipient}</strong><br/>
-                ${picName && picName !== "-" ? `<span style="font-size: 11px; font-weight: 500;">UP: ${picName}</span>` : ''}
+                ${picName && picName !== "-" ? `<span style="font-size: 11px; font-weight: 500;">${picName}</span>` : ''}
                 <div class="address-block">
                   <div class="address-details">
                     <strong>Phone:</strong> <span>${phone}</span>
