@@ -766,10 +766,15 @@ export default function App() {
             (isBrand
               ? clientBrandsApi.getById(loggedInClientBrandId).then((brand) => [brand])
               : clientBrandsApi.getAll())
-              .then(_setClientBrands)
+              .then((brandsData) => {
+                _setClientBrands(brandsData);
+                if (!isBrand) {
+                  _setBrands(brandsData.map(b => b.name));
+                }
+              })
               .catch((err) => handleQuotaError(err, "client_brands")),
           );
-        } else if (isHost) {
+        } else {
           loadTasks.push(
             clientBrandsApi.getPublicNames()
               .then((names) => _setBrands(names)) // Overwrite global brands list with active client brands
