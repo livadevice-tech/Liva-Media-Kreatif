@@ -5001,7 +5001,7 @@ export default function App() {
                             </option>
                             {Array.from(
                               new Set([
-                                ...brands,
+                                hostForm.brand,
                                 ...clientBrands.map((cb) => cb.name)
                               ]),
                             )
@@ -9112,7 +9112,7 @@ export default function App() {
                                     >
                                       {Array.from(
                                         new Set([
-                                          ...brands,
+                                          scheduleForm.brand,
                                           ...clientBrands.map((cb) => cb.name),
                                         ]),
                                       )
@@ -11302,7 +11302,7 @@ export default function App() {
                           <option value="Semua Brand">Semua Brand</option>
                           {Array.from(
                             new Set([
-                              ...brands,
+                              dbBrandFilter !== "Semua Brand" ? dbBrandFilter : null,
                               ...clientBrands.map((cb) => cb.name),
                             ]),
                           )
@@ -11599,7 +11599,7 @@ export default function App() {
                             >
                               {Array.from(
                                 new Set([
-                                  ...brands,
+                                  manualForm.brand,
                                   ...clientBrands.map((cb) => cb.name),
                                 ]),
                               )
