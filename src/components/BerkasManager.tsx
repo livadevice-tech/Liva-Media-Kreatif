@@ -96,34 +96,55 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filteredBerkas.map((berk) => (
-            <div key={berk.id} className="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-gradient-to-l from-white via-white to-transparent">
-                  <button onClick={() => { 
-                    setBerkasEditor(berk); 
-                    setInputMode(berk.url.startsWith('http') ? 'link' : 'upload'); 
-                    setSelectedFile(null);
-                  }} className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg cursor-pointer"><Edit2 className="w-4 h-4" /></button>
-                  <button onClick={() => setBerkasToDelete({ brandId: berk.brandId, berkasId: berk.id })} className="p-1.5 bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 rounded-lg cursor-pointer"><Trash2 className="w-4 h-4" /></button>
-               </div>
-               <div className="flex items-start justify-between mb-4">
-                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                    {getFileIcon(berk.type)}
-                  </div>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${getBadgeColor(berk.type)}`}>
-                    {berk.type}
-                  </span>
-               </div>
-               <h4 className="font-semibold text-slate-800 text-sm mb-1 truncate pr-10" title={berk.name}>{berk.name}</h4>
-               <p className="text-xs font-medium text-slate-500 truncate mb-4">{berk.brandName}</p>
-               <div className="mt-auto pt-4 border-t border-slate-100">
-                 <a href={berk.url} target="_blank" rel="noreferrer" className="w-full block text-center py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-xs rounded-lg transition-colors border border-slate-200">
-                   Buka Tautan Eksternal
-                 </a>
-               </div>
-            </div>
-          ))}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[11px] uppercase tracking-wider">
+                <th className="py-4 px-6 font-semibold">Nama Berkas</th>
+                <th className="py-4 px-6 font-semibold hidden md:table-cell">Brand Klien</th>
+                <th className="py-4 px-6 font-semibold">Jenis</th>
+                <th className="py-4 px-6 font-semibold text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredBerkas.map((berk) => (
+                <tr key={berk.id} className="group hover:bg-slate-50 transition-colors">
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-sm">
+                        {React.cloneElement(getFileIcon(berk.type) as React.ReactElement, { className: "w-5 h-5" })}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800 text-sm mb-0.5">{berk.name}</p>
+                        <p className="text-xs font-medium text-slate-500 md:hidden">{berk.brandName}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 hidden md:table-cell">
+                    <p className="text-sm font-medium text-slate-600">{berk.brandName}</p>
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider inline-block ${getBadgeColor(berk.type)}`}>
+                      {berk.type}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6 text-right">
+                    <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <a href={berk.url} target="_blank" rel="noreferrer" className="px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-medium text-xs rounded-lg transition-colors shadow-sm cursor-pointer inline-block">
+                        Buka Tautan
+                      </a>
+                      <button onClick={() => { 
+                        setBerkasEditor(berk); 
+                        setInputMode(berk.url.startsWith('http') ? 'link' : 'upload'); 
+                        setSelectedFile(null);
+                      }} className="p-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 rounded-lg cursor-pointer shadow-sm"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => setBerkasToDelete({ brandId: berk.brandId, berkasId: berk.id })} className="p-1.5 bg-white border border-slate-200 hover:border-red-300 text-slate-600 hover:text-red-600 rounded-lg cursor-pointer shadow-sm"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
