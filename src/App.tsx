@@ -3227,7 +3227,7 @@ export default function App() {
   const [dbDateFilterStart, setDbDateFilterStart] = useState("");
   const [dbDateFilterEnd, setDbDateFilterEnd] = useState("");
   const [dbSortDir, setDbSortDir] = useState<"desc" | "asc">("desc");
-  const [dbTabMode, setDbTabMode] = useState<"today" | "all" | "calendar">("all");
+  const [dbTabMode, setDbTabMode] = useState<"today" | "all" | "calendar">("today");
 
   const availableCutoffMonths = useMemo(
     () => buildAvailableCutoffMonths(logs, filterReferenceDate),
