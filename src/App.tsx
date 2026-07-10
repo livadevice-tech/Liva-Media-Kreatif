@@ -888,7 +888,7 @@ export default function App() {
                   : null;
 
               if (configData) {
-                if (Array.isArray(configData.brands)) _setBrands(configData.brands);
+                // if (Array.isArray(configData.brands)) _setBrands(configData.brands); // Obsolete, replaced by client_brands
                 if (Array.isArray(configData.shifts)) _setShifts(configData.shifts);
                 if (Array.isArray(configData.studios)) _setStudios(configData.studios);
                 if (Array.isArray(configData.platforms)) _setPlatforms(configData.platforms);
