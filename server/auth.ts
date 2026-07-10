@@ -131,6 +131,8 @@ export function isRequestAllowed(
   method: string,
   path: string,
 ): boolean {
+  if (method === "GET" && path === "/client-brands/public") return true;
+
   if (session.role === "master") return true;
 
   if (session.role === "admin") {
