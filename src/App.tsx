@@ -5703,7 +5703,10 @@ export default function App() {
                                     Brand:
                                   </span>
                                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-black border leading-none ${getBrandStyle(sch.brand)}`}>
-                                    {sch.brand}
+                                    {(() => {
+                                      const bObj = clientBrands.find((cb) => cb.name === sch.brand);
+                                      return bObj ? `${bObj.name} ${bObj.companyName ? '- ' + bObj.companyName : ''}` : sch.brand;
+                                    })()}
                                   </span>
                                 </div>
                                 {sch.platform && (
@@ -8012,7 +8015,7 @@ export default function App() {
                                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-amber-100/60 shadow-3xs text-xs font-bold text-slate-700 hover:border-amber-200 hover:bg-amber-50/20 transition-all cursor-default"
                                         >
                                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                          {info.brand.name}
+                                          {info.brand.name} {info.brand.companyName ? `- ${info.brand.companyName}` : ''}
                                           <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 px-1 py-0.5 rounded ml-1">
                                             {info.missingShift}
                                           </span>
@@ -8232,7 +8235,10 @@ export default function App() {
                                                       {/* Session Brand Info */}
                                                       <div className="text-[10px] text-slate-500 border-t border-slate-100/60 pt-1.5 mt-1.5 flex flex-wrap items-center justify-between gap-1">
                                                         <span className={`px-2 py-0.5 rounded-lg text-[9.5px] font-black border uppercase tracking-wider ${getBrandStyle(sch.brand)}`}>
-                                                          {sch.brand}
+                                                          {(() => {
+                                                            const bObj = clientBrands.find((cb) => cb.name === sch.brand);
+                                                            return bObj ? `${bObj.name} ${bObj.companyName ? '- ' + bObj.companyName : ''}` : sch.brand;
+                                                          })()}
                                                         </span>
                                                         <span className={`text-[8.5px] font-extrabold px-1.5 py-0.5 rounded border ${
                                                           sch.platform?.toLowerCase().includes("tiktok") 
