@@ -6848,159 +6848,161 @@ export default function App() {
                         id="executive_metrics_dashboard"
                       >
                         {/* Jadwal Hari Ini */}
-                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-3xl shadow-lg shadow-purple-500/30 relative overflow-hidden text-white group hover:-translate-y-1 transition-transform duration-300">
-                          <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
-                            <Calendar className="w-16 h-16 transform rotate-12" />
+                        <div className="group relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#7B3BF2] to-[#5C14EE] p-6 text-white shadow-xl shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/30">
+                          <div className="absolute right-0 top-0 p-4 opacity-10 transition-opacity duration-500 group-hover:opacity-20 group-hover:rotate-12">
+                            <Calendar className="size-20" />
                           </div>
-                          <span className="text-xs text-white/90 font-bold uppercase tracking-widest block mb-2 relative z-10">
+                          <span className="relative z-10 block mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/80">
                             Jadwal Hari Ini
                           </span>
-                          <div className="text-4xl font-black font-mono mb-1 relative z-10">
-                            {(() => {
-                              const today = new Date();
-                              const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-                              return schedules.filter(s => s.date === todayLocal).length;
-                            })()}{" "}
-                            <span className="text-sm font-semibold font-sans opacity-80">Shift</span>
+                          <div className="relative z-10 mb-2 flex items-baseline gap-2">
+                            <span className="text-5xl font-black tabular-nums tracking-tight">
+                              {(() => {
+                                const today = new Date();
+                                const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                                return schedules.filter(s => s.date === todayLocal).length;
+                              })()}
+                            </span>
+                            <span className="text-sm font-bold text-white/70">Shift</span>
                           </div>
-                          <div className="text-[11px] font-semibold flex items-center gap-1 mt-3 bg-white/20 w-max px-3 py-1 rounded-full backdrop-blur-md relative z-10 border border-white/20">
-                            <Sparkles className="w-3 h-3" /> Siaran sedang berlangsung
+                          <div className="relative z-10 mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold backdrop-blur-md">
+                            <Sparkles className="size-3 text-yellow-300" /> Siaran sedang berlangsung
                           </div>
                         </div>
 
                         {/* Total Hosts */}
-                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md hover:-translate-y-1 transition-all duration-300 animate-fadeIn" style={{ animationDelay: '50ms' }}>
-                          <div className="absolute top-0 right-0 p-4 opacity-5">
-                            <Users className="w-16 h-16 transform -rotate-12" />
+                        <div className="group relative overflow-hidden rounded-[24px] border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-200 hover:shadow-xl hover:shadow-slate-200/50 animate-fadeIn" style={{ animationDelay: '50ms' }}>
+                          <div className="absolute -right-2 -top-2 p-4 opacity-[0.03] transition-all duration-500 group-hover:scale-110 group-hover:opacity-[0.05]">
+                            <Users className="size-24" />
                           </div>
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-4 text-blue-600">
-                            <UserCheck className="w-5 h-5" />
+                          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-500">
+                            <UserCheck className="size-5" />
                           </div>
-                          <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block mb-1 relative z-10">
+                          <span className="block mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                             Total Host Aktif
                           </span>
-                          <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
+                          <div className="mb-2 text-3xl font-black tabular-nums tracking-tight text-slate-800">
                             {hosts.length}
                           </div>
-                          <div className="text-[11px] text-emerald-500 font-bold flex items-center gap-1 mt-2 relative z-10">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Tersebar di {studios.length} Studio
+                          <div className="mt-auto flex items-center gap-1.5 text-[10px] font-bold text-emerald-500">
+                            <CheckCircle2 className="size-3.5" /> Tersebar di {studios.length} Studio
                           </div>
                         </div>
 
                         {/* Client Total */}
-                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md hover:-translate-y-1 transition-all duration-300 animate-fadeIn" style={{ animationDelay: '100ms' }}>
-                          <div className="absolute top-0 right-0 p-4 opacity-5">
-                            <Briefcase className="w-16 h-16 transform -rotate-12" />
+                        <div className="group relative overflow-hidden rounded-[24px] border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-200 hover:shadow-xl hover:shadow-slate-200/50 animate-fadeIn" style={{ animationDelay: '100ms' }}>
+                          <div className="absolute -right-2 -top-2 p-4 opacity-[0.03] transition-all duration-500 group-hover:scale-110 group-hover:opacity-[0.05]">
+                            <Briefcase className="size-24" />
                           </div>
-                          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-4 text-emerald-600">
-                            <Building2 className="w-5 h-5" />
+                          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500">
+                            <Building2 className="size-5" />
                           </div>
-                          <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block mb-1 relative z-10">
+                          <span className="block mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                             Mitra Brand
                           </span>
-                          <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
+                          <div className="mb-2 text-3xl font-black tabular-nums tracking-tight text-slate-800">
                             {clientBrands.length}
                           </div>
-                          <p className="text-[11px] text-slate-400 font-semibold mt-2 relative z-10">
+                          <div className="mt-auto text-[10px] font-bold text-slate-400">
                             Brand Eksklusif Liva
-                          </p>
+                          </div>
                         </div>
 
                         {/* Sesi Total */}
-                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md hover:-translate-y-1 transition-all duration-300 animate-fadeIn" style={{ animationDelay: '150ms' }}>
-                          <div className="absolute top-0 right-0 p-4 opacity-5">
-                            <Video className="w-16 h-16 transform rotate-12" />
+                        <div className="group relative overflow-hidden rounded-[24px] border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-200 hover:shadow-xl hover:shadow-slate-200/50 animate-fadeIn" style={{ animationDelay: '150ms' }}>
+                          <div className="absolute -right-2 -top-2 p-4 opacity-[0.03] transition-all duration-500 group-hover:scale-110 group-hover:opacity-[0.05]">
+                            <Video className="size-24" />
                           </div>
-                          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-4 text-amber-500">
-                            <PlaySquare className="w-5 h-5" />
+                          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
+                            <PlaySquare className="size-5" />
                           </div>
-                          <span className="text-xs text-slate-500 font-bold uppercase tracking-widest block mb-1 relative z-10">
+                          <span className="block mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                             Total Sesi Siaran
                           </span>
-                          <div className="text-3xl font-black font-mono text-slate-800 mb-1 relative z-10">
+                          <div className="mb-2 text-3xl font-black tabular-nums tracking-tight text-slate-800">
                             {clientBrands.flatMap((b) => b.sessions || []).length}
                           </div>
-                          <p className="text-[11px] text-slate-400 font-semibold mt-2 relative z-10">
+                          <div className="mt-auto text-[10px] font-bold text-slate-400">
                             Terjadwal di seluruh platform
-                          </p>
+                          </div>
                         </div>
                       </div>
 
                       {/* BRAND PERFORMANCE LEADERBOARD (NEW) */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn" style={{ animationDelay: '200ms' }}>
                         {/* Top Brands by Sales / Penjualan */}
-                        <div className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden flex flex-col">
-                          <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                                <TrendingUp className="w-5 h-5 text-emerald-600" />
+                        <div className="flex flex-col overflow-hidden rounded-[24px] border border-slate-100 bg-white p-7 shadow-sm">
+                          <div className="mb-6 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50">
+                                <TrendingUp className="size-6 text-emerald-500" />
                               </div>
                               <div>
-                                <h3 className="text-slate-800 font-black text-sm">Top Penjualan Brand</h3>
-                                <p className="text-[11px] text-slate-400 font-semibold">Berdasarkan konversi sesi live (GMV)</p>
+                                <h3 className="text-sm font-black text-slate-800">Top Penjualan Brand</h3>
+                                <p className="text-[11px] font-bold text-slate-400">Berdasarkan konversi sesi live (GMV)</p>
                               </div>
                             </div>
                           </div>
-                          <div className="flex-1 space-y-4">
+                          <div className="flex-1 space-y-5">
                             {topBrandsByPenjualan.length > 0 && topBrandsByPenjualan.some(b => b.totalPenjualan > 0) ? (
                               topBrandsByPenjualan.filter(b => b.totalPenjualan > 0).map((brand, idx) => (
-                                <div key={brand.id} className="flex items-center justify-between group">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : idx === 1 ? 'bg-slate-200 text-slate-700' : idx === 2 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-400'}`}>
+                                <div key={brand.id} className="group flex items-center justify-between transition-colors">
+                                  <div className="flex items-center gap-4">
+                                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black shadow-sm ${idx === 0 ? 'bg-gradient-to-br from-yellow-200 to-amber-300 text-amber-800' : idx === 1 ? 'bg-gradient-to-br from-slate-200 to-slate-300 text-slate-600' : idx === 2 ? 'bg-gradient-to-br from-orange-200 to-orange-300 text-orange-800' : 'bg-slate-50 text-slate-400'}`}>
                                       {idx + 1}
                                     </div>
                                     <div>
-                                      <div className="font-bold text-slate-800 text-xs group-hover:text-emerald-600 transition-colors">{brand.name}</div>
-                                      <div className="text-[10px] text-slate-400 font-semibold">{brand.totalOrders || 0} Total Pesanan</div>
+                                      <div className="text-xs font-bold text-slate-800 transition-colors group-hover:text-emerald-600">{brand.name}</div>
+                                      <div className="text-[10px] font-bold text-slate-400">{brand.totalOrders || 0} Total Pesanan</div>
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <div className="font-mono font-black text-sm text-emerald-600">
+                                    <div className="text-sm font-black tabular-nums tracking-tight text-emerald-600">
                                       {formatIDR(brand.totalPenjualan)}
                                     </div>
                                   </div>
                                 </div>
                               ))
                             ) : (
-                              <div className="flex flex-col items-center justify-center h-full text-center py-6">
-                                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                                  <DollarSign className="w-6 h-6 text-slate-300" />
+                              <div className="flex h-full flex-col items-center justify-center py-6 text-center">
+                                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+                                  <DollarSign className="size-6 text-slate-300" />
                                 </div>
                                 <span className="text-sm font-bold text-slate-500">Belum ada penjualan terdata</span>
-                                <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">Data penjualan dari host (GMV) akan muncul di sini.</p>
+                                <p className="mt-1 max-w-[200px] text-[11px] text-slate-400">Data penjualan dari host (GMV) akan muncul di sini.</p>
                               </div>
                             )}
                           </div>
                         </div>
 
                         {/* Top Brands by Activity (Sessions) */}
-                        <div className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden flex flex-col">
-                          <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                                <BarChart2 className="w-5 h-5 text-blue-600" />
+                        <div className="flex flex-col overflow-hidden rounded-[24px] border border-slate-100 bg-white p-7 shadow-sm">
+                          <div className="mb-6 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50">
+                                <BarChart2 className="size-6 text-blue-500" />
                               </div>
                               <div>
-                                <h3 className="text-slate-800 font-black text-sm">Brand Paling Aktif</h3>
-                                <p className="text-[11px] text-slate-400 font-semibold">Berdasarkan volume slot siaran</p>
+                                <h3 className="text-sm font-black text-slate-800">Brand Paling Aktif</h3>
+                                <p className="text-[11px] font-bold text-slate-400">Berdasarkan volume slot siaran</p>
                               </div>
                             </div>
                           </div>
-                          <div className="flex-1 space-y-4">
+                          <div className="flex-1 space-y-5">
                             {topBrandsBySessions.length > 0 && topBrandsBySessions.some(b => b.totalSessions > 0) ? (
                               topBrandsBySessions.filter(b => b.totalSessions > 0).map((brand, idx) => {
                                 const maxSessions = topBrandsBySessions[0].totalSessions;
-                                const widthPercent = Math.max(15, (brand.totalSessions / maxSessions) * 100);
+                                const widthPercent = Math.max(10, (brand.totalSessions / maxSessions) * 100);
                                 
                                 return (
-                                  <div key={brand.id} className="space-y-1.5">
-                                    <div className="flex justify-between items-end">
-                                      <span className="font-bold text-slate-800 text-xs">{brand.name}</span>
-                                      <span className="font-mono font-bold text-blue-600 text-xs">{brand.totalSessions} Sesi</span>
+                                  <div key={brand.id} className="space-y-2">
+                                    <div className="flex items-end justify-between">
+                                      <span className="text-xs font-bold text-slate-800">{brand.name}</span>
+                                      <span className="text-xs font-black text-blue-600">{brand.totalSessions} Sesi</span>
                                     </div>
-                                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
+                                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
                                       <div 
-                                        className="bg-blue-500 rounded-full h-2 transition-all duration-1000 ease-out" 
+                                        className="h-full rounded-full bg-blue-500 transition-all duration-1000 ease-out" 
                                         style={{ width: `${widthPercent}%` }}
                                       />
                                     </div>
@@ -7008,12 +7010,12 @@ export default function App() {
                                 )
                               })
                             ) : (
-                              <div className="flex flex-col items-center justify-center h-full text-center py-6">
-                                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                                  <Video className="w-6 h-6 text-slate-300" />
+                              <div className="flex h-full flex-col items-center justify-center py-6 text-center">
+                                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+                                  <Video className="size-6 text-slate-300" />
                                 </div>
                                 <span className="text-sm font-bold text-slate-500">Belum ada sesi dijadwalkan</span>
-                                <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">Brand dengan sesi siaran aktif akan muncul di sini.</p>
+                                <p className="mt-1 max-w-[200px] text-[11px] text-slate-400">Brand dengan sesi siaran aktif akan muncul di sini.</p>
                               </div>
                             )}
                           </div>
