@@ -15,6 +15,7 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
   const [inputMode, setInputMode] = useState<'link' | 'upload'>('link');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -185,8 +186,37 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                 ) : (
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Upload File Dokumen</label>
-                    <input type="file" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
-                    {berkasEditor.url && !berkasEditor.url.startsWith('http') && (
+                    <div 
+                      className={`relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center transition-all ${isDragging ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 bg-slate-50 hover:bg-slate-100'}`}
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDragging(false);
+                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                          setSelectedFile(e.dataTransfer.files[0]);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="file" 
+                        id="file-upload"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                        onChange={e => setSelectedFile(e.target.files?.[0] || null)} 
+                      />
+                      <FileText className={`w-10 h-10 mb-3 ${isDragging ? 'text-indigo-500' : 'text-slate-400'}`} />
+                      <p className="text-sm font-medium text-slate-700 text-center">
+                        {selectedFile ? selectedFile.name : (
+                          <>
+                            <span className="text-indigo-600">Klik untuk memilih file</span> atau seret file ke sini
+                          </>
+                        )}
+                      </p>
+                      {!selectedFile && (
+                        <p className="text-xs text-slate-500 mt-1">Mendukung format PDF, gambar, dll. (Maks 50MB)</p>
+                      )}
+                    </div>
+                    {berkasEditor.url && !berkasEditor.url.startsWith('http') && !selectedFile && (
                       <p className="text-xs text-emerald-600 mt-2 font-medium">File saat ini tersimpan: {berkasEditor.url.split('/').pop()}</p>
                     )}
                   </div>
