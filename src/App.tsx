@@ -31,11 +31,11 @@ export default function App() {
     <main className="min-h-screen bg-white font-sans text-slate-800 selection:bg-violet-200 selection:text-violet-900 overflow-x-hidden">
       
       {/* 1. NAVBAR */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-100 py-3' : 'bg-transparent py-5'}`}>
-        <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-sm py-4' : 'bg-white py-5'}`}>
+        <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-2 lg:grid-cols-3 items-center gap-4">
           
-          {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer">
+          {/* Logo (Left) */}
+          <div className="flex items-center gap-2 cursor-pointer justify-start">
             {agencyLogoUrl ? (
                <img src={agencyLogoUrl} className="object-contain h-8 md:h-10 max-w-[180px]" alt="Liva Agency Logo" />
             ) : (
@@ -46,16 +46,24 @@ export default function App() {
             )}
           </div>
 
-          {/* Desktop Menu */}
-          <div className="hidden lg:flex items-center gap-8">
-             <a href="#layanan" className="text-sm font-bold text-slate-600 hover:text-violet-600 transition-colors">Layanan</a>
-             <a href="#tentang" className="text-sm font-bold text-slate-600 hover:text-violet-600 transition-colors">Tentang</a>
-             <a href="#harga" className="text-sm font-bold text-slate-600 hover:text-violet-600 transition-colors">Harga</a>
+          {/* Desktop Menu (Center) */}
+          <div className="hidden lg:flex items-center justify-center gap-8">
+             <a href="#layanan" className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">Layanan</a>
+             <a href="#tentang" className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">Tentang</a>
+             <a href="#harga" className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">Harga</a>
+             <a href="#faq" className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">FAQ</a>
+          </div>
+
+          {/* Desktop CTA (Right) */}
+          <div className="hidden lg:flex items-center justify-end">
+             <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 px-6 py-2.5 rounded-full transition-all shadow-sm">
+                Konsultasi Gratis
+             </a>
           </div>
 
           {/* Mobile Menu Toggle */}
           <button 
-            className="lg:hidden text-slate-600 p-2"
+            className="lg:hidden text-slate-600 p-2 justify-self-end"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle Menu"
           >

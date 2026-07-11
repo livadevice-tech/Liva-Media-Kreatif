@@ -57,26 +57,6 @@ export const AboutSection = () => {
 
   return (
     <>
-      {/* 3. BRANDS */}
-      <section className="py-10 border-t border-slate-100 w-full overflow-hidden flex flex-col items-center bg-white">
-        <p className="text-center text-[11px] font-bold text-slate-400 mb-8 z-10 px-6 uppercase tracking-widest">Telah dipercaya oleh</p>
-        <div className="relative flex overflow-hidden w-full max-w-[1400px] [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-            <div className="flex w-max animate-marquee pb-4 hover:[animation-play-state:paused]">
-               {[1, 2].map((i) => (
-                  <div key={i} className="flex gap-16 md:gap-24 items-center shrink-0 pr-16 md:pr-24 opacity-40 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-500">
-                     <span className="text-xl md:text-2xl font-serif tracking-widest font-bold text-slate-800">SARIAYU</span>
-                     <span className="text-2xl md:text-3xl font-sans tracking-wide font-black italic text-slate-800">Uray</span>
-                     <span className="text-xl md:text-2xl font-serif font-bold text-slate-800">Liva</span>
-                     <span className="text-xl md:text-2xl font-sans font-bold flex items-center text-slate-800"><span className="bg-slate-800 text-white px-1.5 py-0.5 mr-1.5 rounded-sm">R</span> RUDY</span>
-                     <span className="text-xl md:text-2xl font-black tracking-tighter text-slate-800">Barefood</span>
-                     <span className="text-xl md:text-2xl font-serif tracking-widest font-bold text-slate-800">BIOKOS</span>
-                     <span className="text-xl md:text-2xl font-serif font-black leading-none text-slate-800">ISA<br/>GO</span>
-                  </div>
-               ))}
-           </div>
-        </div>
-      </section>
-
       {/* 4. TENTANG LIVA AGENCY */}
       <section id="tentang" className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 lg:gap-20">
          <div className="w-full md:w-[45%] lg:w-[40%] shrink-0 relative flex justify-center items-center min-h-[460px] md:min-h-[500px]">
