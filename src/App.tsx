@@ -4,6 +4,7 @@ import { Video, Menu, X } from 'lucide-react';
 // Import Components
 import { HeroSection } from './components/landing/HeroSection';
 import { AboutSection } from './components/landing/AboutSection';
+import { PortfolioVideoSection } from './components/landing/PortfolioVideoSection';
 import { USPSection } from './components/landing/USPSection';
 import { ComparisonSection } from './components/landing/ComparisonSection';
 import { PricingSection } from './components/landing/PricingSection';
@@ -88,6 +89,8 @@ export default function App() {
       </div>
 
       <AboutSection />
+      
+      <PortfolioVideoSection />
       
       <USPSection />
       
