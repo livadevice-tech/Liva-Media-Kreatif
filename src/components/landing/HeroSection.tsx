@@ -116,26 +116,26 @@ export const HeroSection = () => {
           </div>
         </div>
 
-        {/* Logos Marquee at Bottom of Hero */}
-        <div className="relative z-10 mt-20 md:mt-24 pt-8 border-t border-white/10 flex flex-col items-center">
-          <p className="text-[11px] font-bold text-violet-200 mb-6 uppercase tracking-widest text-center">Telah Dipercaya Oleh Brand Ternama</p>
-          <div className="relative flex overflow-hidden w-full max-w-[1200px] [mask-image:linear-gradient(to_right,transparent,white_10%,white_90%,transparent)]">
-              <div className="flex w-max animate-marquee pb-4 hover:[animation-play-state:paused]">
-                 {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex gap-12 md:gap-20 items-center shrink-0 pr-12 md:pr-20 opacity-60 hover:opacity-100 transition-all duration-500 text-white">
-                       <span className="text-lg md:text-xl font-serif tracking-widest font-bold">SARIAYU</span>
-                       <span className="text-xl md:text-2xl font-sans tracking-wide font-black italic">Uray</span>
-                       <span className="text-lg md:text-xl font-serif font-bold">Liva</span>
-                       <span className="text-lg md:text-xl font-sans font-bold flex items-center"><span className="bg-white text-violet-700 px-1.5 py-0.5 mr-1.5 rounded-sm text-[10px] md:text-xs">R</span> RUDY</span>
-                       <span className="text-lg md:text-xl font-black tracking-tighter">Barefood</span>
-                       <span className="text-lg md:text-xl font-serif tracking-widest font-bold">BIOKOS</span>
-                       <span className="text-lg md:text-xl font-serif font-black leading-none">ISA<br/>GO</span>
-                    </div>
-                 ))}
-             </div>
-          </div>
-        </div>
+      </div>
 
+      {/* Logos Marquee at Bottom of Hero (Outside purple container) */}
+      <div className="relative z-10 mt-12 flex flex-col items-center">
+        <p className="text-[11px] font-bold text-slate-400 mb-8 uppercase tracking-widest text-center">Telah Dipercaya Oleh Brand Ternama</p>
+        <div className="relative flex overflow-hidden w-full max-w-[1200px] [mask-image:linear-gradient(to_right,transparent,white_10%,white_90%,transparent)]">
+            <div className="flex w-max animate-marquee pb-4 hover:[animation-play-state:paused]">
+               {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex gap-12 md:gap-20 items-center shrink-0 pr-12 md:pr-20 opacity-80 hover:opacity-100 transition-all duration-500">
+                     <span className="text-lg md:text-xl font-serif tracking-widest font-bold text-emerald-600">SARIAYU</span>
+                     <span className="text-xl md:text-2xl font-sans tracking-wide font-black italic text-amber-500">Uray</span>
+                     <span className="text-lg md:text-xl font-serif font-bold text-violet-600">Liva</span>
+                     <span className="text-lg md:text-xl font-sans font-bold flex items-center text-slate-800"><span className="bg-slate-800 text-white px-1.5 py-0.5 mr-1.5 rounded-sm text-[10px] md:text-xs">R</span> RUDY</span>
+                     <span className="text-lg md:text-xl font-black tracking-tighter text-orange-500">Barefood</span>
+                     <span className="text-lg md:text-xl font-serif tracking-widest font-bold text-teal-600">BIOKOS</span>
+                     <span className="text-lg md:text-xl font-serif font-black leading-none text-rose-600">ISA<br/>GO</span>
+                  </div>
+               ))}
+           </div>
+        </div>
       </div>
     </div>
   );
