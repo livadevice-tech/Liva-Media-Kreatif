@@ -51,7 +51,7 @@ export const PortfolioVideoSection = () => {
   };
 
   return (
-    <section className="py-10 md:py-16 overflow-hidden bg-white relative">
+    <section className="py-10 md:py-16 overflow-hidden bg-white relative z-10">
       <div className="text-center mb-16 px-6">
         <span className="text-orange-500 font-bold text-sm tracking-wider uppercase mb-2 block">
           Behind the Designs
