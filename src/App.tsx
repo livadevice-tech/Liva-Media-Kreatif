@@ -83,7 +83,7 @@ export default function App() {
       )}
 
       {/* Hero Section */}
-      <div className="pt-24 lg:pt-32">
+      <div className="pt-20 lg:pt-24">
         <HeroSection />
       </div>
 
