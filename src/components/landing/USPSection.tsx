@@ -50,16 +50,7 @@ export const USPSection = () => {
     return () => clearInterval(interval);
   }, [isHovered]);
 
-  // Scroll active item into view
-  useEffect(() => {
-    const activeItem = itemRefs.current[activeIndex];
-    if (activeItem && containerRef.current) {
-      activeItem.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest'
-      });
-    }
-  }, [activeIndex]);
+
 
   return (
     <section id="layanan" className="py-20 md:py-32 px-6 md:px-12 max-w-7xl mx-auto flex flex-col items-center">
