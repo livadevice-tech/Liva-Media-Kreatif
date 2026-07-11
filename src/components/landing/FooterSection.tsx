@@ -33,14 +33,7 @@ export const FooterSection = ({ agencyLogoUrl }: { agencyLogoUrl: string | null 
              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-violet-600 cursor-pointer transition-colors text-white hover:scale-110"><Youtube className="w-4 h-4" /></a>
              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-violet-600 cursor-pointer transition-colors text-white hover:scale-110"><Facebook className="w-4 h-4" /></a>
            </div>
-           <div className="flex flex-col md:flex-row gap-3 mt-4">
-              <a href="/login/admin" className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 text-white font-medium text-sm transition-colors text-center whitespace-nowrap block">
-                 Portal Admin & Host
-              </a>
-              <a href="/login/brand" className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 text-white font-medium text-sm transition-colors text-center whitespace-nowrap block">
-                 Login Brand
-              </a>
-           </div>
+           {/* Removed login links */}
         </div>
         
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-12 lg:pl-12">

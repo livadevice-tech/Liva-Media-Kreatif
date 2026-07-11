@@ -51,14 +51,6 @@ export default function App() {
              <a href="#layanan" className="text-sm font-bold text-slate-600 hover:text-violet-600 transition-colors">Layanan</a>
              <a href="#tentang" className="text-sm font-bold text-slate-600 hover:text-violet-600 transition-colors">Tentang</a>
              <a href="#harga" className="text-sm font-bold text-slate-600 hover:text-violet-600 transition-colors">Harga</a>
-             <div className="flex items-center gap-3 ml-4">
-                <a href="/login/brand" className="text-sm font-bold text-slate-700 hover:text-violet-600 transition-colors px-4 py-2">
-                   Login Partner
-                </a>
-                <a href="/login/admin" className="text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 px-5 py-2.5 rounded-full transition-all shadow-sm">
-                   Portal Internal
-                </a>
-             </div>
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -78,10 +70,6 @@ export default function App() {
             <a href="#layanan" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Layanan</a>
             <a href="#tentang" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Tentang</a>
             <a href="#harga" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Harga</a>
-            <div className="flex flex-col gap-4 mt-4">
-               <a href="/login/brand" className="text-center font-bold text-violet-600 bg-violet-50 py-4 rounded-xl">Login Brand Partner</a>
-               <a href="/login/admin" className="text-center font-bold text-white bg-slate-900 py-4 rounded-xl">Portal Internal</a>
-            </div>
          </div>
       )}
 
