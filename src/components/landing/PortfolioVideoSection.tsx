@@ -48,6 +48,15 @@ export const PortfolioVideoSection = () => {
         // Z-index: center items should be on top
         const zIndex = Math.round(100 - Math.abs(normalizedDistance) * 100);
 
+        // Dynamic Phone Bezel Opacity
+        const phoneOverlay = item.querySelector('.phone-bezel');
+        if (phoneOverlay) {
+           // Fully opaque when perfectly centered (normalizedDistance = 0)
+           // Fades out completely when it moves slightly away (normalizedDistance > 0.15)
+           const opacity = Math.max(0, 1 - Math.abs(normalizedDistance) * 6);
+           (phoneOverlay as HTMLElement).style.opacity = opacity.toString();
+        }
+
         item.style.transformOrigin = "center center";
         item.style.transform = `perspective(1000px) rotateY(${rotateY}deg) scale(${scale})`;
         item.style.zIndex = zIndex.toString();
@@ -95,13 +104,36 @@ export const PortfolioVideoSection = () => {
             <div key={idx} className="shrink-0" style={{ width: '240px', margin: '0 -15px' }}>
               <div 
                 ref={(el) => (itemsRef.current[idx] = el)}
-                className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-300 group cursor-pointer bg-slate-100"
+                className="relative w-full aspect-[9/16] rounded-[40px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-300 group cursor-pointer bg-slate-100"
                 style={{ transformStyle: 'preserve-3d' }}
               >
+                {/* Dynamic Phone Bezel Overlay */}
+                <div 
+                  className="phone-bezel absolute inset-0 border-[10px] border-white rounded-[40px] pointer-events-none z-30 transition-opacity duration-100"
+                  style={{ opacity: 0 }}
+                >
+                  {/* Dynamic Island / Notch */}
+                  <div className="absolute top-1 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full flex items-center justify-center"></div>
+                  
+                  {/* Text Header */}
+                  <div className="absolute top-8 left-0 w-full text-center px-4">
+                     <h3 className="text-slate-800 font-bold text-[11px] tracking-tight bg-white/95 backdrop-blur-md py-1.5 rounded-full w-max mx-auto px-4 shadow-sm">
+                        Liva Live Streaming
+                     </h3>
+                  </div>
+                  
+                  {/* Bottom button */}
+                  <div className="absolute bottom-5 left-5 right-5">
+                     <div className="w-full py-2.5 bg-white/95 backdrop-blur-md rounded-full text-slate-800 font-bold text-[11px] text-center shadow-sm">
+                        Lihat Portfolio
+                     </div>
+                  </div>
+                </div>
+
                 {/* Play Icon Overlay (visible when paused) */}
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity z-10 pointer-events-none">
-                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <div className="absolute inset-0 bg-transparent flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity z-20 pointer-events-none">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+                    <svg className="w-5 h-5 text-slate-700 ml-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </div>
@@ -109,7 +141,7 @@ export const PortfolioVideoSection = () => {
 
                 <video 
                   src={src}
-                  className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-105 rounded-[40px]"
                   muted
                   loop
                   playsInline
