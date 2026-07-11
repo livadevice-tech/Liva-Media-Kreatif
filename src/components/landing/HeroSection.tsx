@@ -37,7 +37,7 @@ export const HeroSection = () => {
           </div>
 
           {/* Right Column: Hero Image */}
-          <div className="relative w-full h-[400px] md:h-[500px] lg:h-[650px] flex items-center justify-center lg:justify-end lg:pr-4 mt-8 lg:mt-0 animate-float animate-shine rounded-3xl">
+          <div className="relative w-full h-[400px] md:h-[500px] lg:h-[650px] flex items-center justify-center lg:justify-end lg:pr-4 mt-8 lg:mt-0 animate-float rounded-3xl">
              <img src="/landing-page/website-new.png" alt="Liva Agency Live Streaming" className="w-full h-full object-contain object-bottom lg:object-right-bottom drop-shadow-2xl hover:scale-105 transition-transform duration-700 origin-bottom" />
           </div>
         </div>
