@@ -48,7 +48,7 @@ export const HeroSection = () => {
 
       {/* Logos Marquee at Bottom of Hero (Outside purple container) */}
       <div className="relative z-10 mt-12 flex flex-col items-center">
-        <p className="text-[11px] font-bold text-slate-400 mb-8 uppercase tracking-widest text-center">Telah Dipercaya Oleh Brand Ternama</p>
+        <p className="text-sm font-bold text-slate-400 mb-8 uppercase tracking-widest text-center">Telah Dipercaya Oleh Brand Ternama</p>
         <div className="relative flex overflow-hidden w-full max-w-[1200px] [mask-image:linear-gradient(to_right,transparent,white_10%,white_90%,transparent)]">
             <div className="flex w-max animate-marquee pb-4 hover:[animation-play-state:paused]">
                {[1, 2, 3].map((i) => (
