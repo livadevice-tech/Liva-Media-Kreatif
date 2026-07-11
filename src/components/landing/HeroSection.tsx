@@ -125,13 +125,13 @@ export const HeroSection = () => {
             <div className="flex w-max animate-marquee pb-4 hover:[animation-play-state:paused]">
                {[1, 2, 3].map((i) => (
                   <div key={i} className="flex gap-12 md:gap-20 items-center shrink-0 pr-12 md:pr-20 opacity-80 hover:opacity-100 transition-all duration-500">
-                     <img src="/brand-logo/logo-sar-ayu.png" alt="Sariayu Martha Tilaar" className="h-10 md:h-14 w-auto object-contain mix-blend-multiply" />
-                     <img src="/brand-logo/logo_uray.png" alt="Uray" className="h-10 md:h-14 w-auto object-contain mix-blend-multiply" />
-                     <span className="text-lg md:text-xl font-serif font-bold text-violet-600">Liva</span>
-                     <img src="/brand-logo/logo_rhc.png" alt="RHC" className="h-10 md:h-14 w-auto object-contain mix-blend-multiply" />
-                     <span className="text-lg md:text-xl font-black tracking-tighter text-orange-500">Barefood</span>
-                     <span className="text-lg md:text-xl font-serif tracking-widest font-bold text-teal-600">BIOKOS</span>
-                     <span className="text-lg md:text-xl font-serif font-black leading-none text-rose-600">ISA<br/>GO</span>
+                     {[
+                        'logo-sar-ayu.png', 'logo_uray.png', 'logo_rhc.png', 
+                        'logo-barefood.png', 'logo-biokos.png', 'logo-isago.png', 
+                        'logo-kloa.png', 'logo-mirael.png', 'logo-soulyu.png', 'logo-sunskrip.png'
+                     ].map((filename, idx) => (
+                        <img key={idx} src={`/brand-logo/${filename}`} alt="Brand Logo" className="h-8 md:h-12 lg:h-14 w-auto object-contain mix-blend-multiply" />
+                     ))}
                   </div>
                ))}
            </div>
