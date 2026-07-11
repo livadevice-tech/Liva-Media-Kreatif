@@ -51,7 +51,7 @@ export const PortfolioVideoSection = () => {
   };
 
   return (
-    <section className="py-10 md:py-16 overflow-hidden bg-gradient-to-br from-violet-900 via-violet-800 to-violet-950 relative z-10">
+    <section id="portfolio" className="py-10 md:py-16 overflow-hidden bg-gradient-to-br from-violet-900 via-violet-800 to-violet-950 relative z-10">
       <div className="text-center mb-16 px-6">
         <span className="text-violet-300 font-bold text-sm tracking-wider uppercase mb-2 block">
           Behind the Designs
@@ -67,7 +67,7 @@ export const PortfolioVideoSection = () => {
       {/* Carousel Wrapper */}
       <div className="w-full relative h-[600px] flex items-center justify-center">
          {/* Prev Button */}
-         <button onClick={handlePrev} className="absolute left-4 md:left-12 z-50 w-12 h-12 md:w-14 md:h-14 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white hidden md:flex">
+         <button aria-label="Previous video" onClick={handlePrev} className="absolute left-4 md:left-12 z-50 w-12 h-12 md:w-14 md:h-14 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white hidden md:flex focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none">
             <ChevronLeft className="w-6 h-6" />
          </button>
         {VIDEOS.map((src, idx) => {
@@ -139,17 +139,17 @@ export const PortfolioVideoSection = () => {
           );
         })}
          {/* Next Button */}
-         <button onClick={handleNext} className="absolute right-4 md:right-12 z-50 w-12 h-12 md:w-14 md:h-14 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white hidden md:flex">
+         <button aria-label="Next video" onClick={handleNext} className="absolute right-4 md:right-12 z-50 w-12 h-12 md:w-14 md:h-14 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white hidden md:flex focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none">
             <ChevronRight className="w-6 h-6" />
          </button>
       </div>
 
       {/* Mobile Controls (visible only on small screens) */}
       <div className="flex md:hidden items-center justify-center gap-6 mt-8 relative z-50">
-         <button onClick={handlePrev} className="w-12 h-12 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white">
+         <button aria-label="Previous video" onClick={handlePrev} className="w-12 h-12 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none">
             <ChevronLeft className="w-5 h-5" />
          </button>
-         <button onClick={handleNext} className="w-12 h-12 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white">
+         <button aria-label="Next video" onClick={handleNext} className="w-12 h-12 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none">
             <ChevronRight className="w-5 h-5" />
          </button>
       </div>

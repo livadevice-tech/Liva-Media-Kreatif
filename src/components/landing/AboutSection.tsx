@@ -68,7 +68,7 @@ export const AboutSection = () => {
 
             {/* Main Woman Image */}
             <div className="relative z-10 w-[260px] md:w-[300px] h-[340px] md:h-[400px] overflow-hidden rounded-[40px] flex justify-center items-end mt-6 shadow-xl border-4 border-white">
-               <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&q=80" alt="Professional Woman" loading="lazy" className="w-[140%] max-w-none h-full object-cover object-top" style={{marginLeft: '-15%'}} />
+               <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&q=80" alt="Liva Agency Professional Live Streaming Host" loading="lazy" className="w-[140%] max-w-none h-full object-cover object-top" style={{marginLeft: '-15%'}} />
             </div>
 
             {/* Arrow Badge (Top Left) */}
@@ -159,7 +159,7 @@ export const AboutSection = () => {
             <div className="flex items-center gap-4 mt-8">
               <button 
                 onClick={prevPortfolio}
-                className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
+                className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
                 aria-label="Previous portfolio"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -169,14 +169,14 @@ export const AboutSection = () => {
                     <button 
                        key={idx} 
                        onClick={() => setCurrentPortfolioSlide(idx)}
-                       className={`h-2 rounded-full transition-all duration-300 ${idx === currentPortfolioSlide ? 'bg-slate-800 w-6' : 'bg-slate-200 w-2 hover:bg-slate-300'}`} 
+                       className={`h-2 rounded-full transition-all duration-300 focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none ${idx === currentPortfolioSlide ? 'bg-slate-800 w-6' : 'bg-slate-200 w-2 hover:bg-slate-300'}`} 
                        aria-label={`Go to slide ${idx + 1}`}
                     />
                  ))}
               </div>
               <button 
                 onClick={nextPortfolio}
-                className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
+                className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none"
                 aria-label="Next portfolio"
               >
                 <ChevronRight className="w-5 h-5" />

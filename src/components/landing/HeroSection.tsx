@@ -29,10 +29,12 @@ export const HeroSection = () => {
             <div className="flex flex-col sm:flex-row items-center bg-white/10 sm:bg-white backdrop-blur-sm sm:backdrop-blur-none p-1.5 md:p-2 rounded-2xl sm:rounded-full w-full max-w-md shadow-2xl gap-2 sm:gap-0">
               <input 
                 type="text" 
+                name="whatsapp"
+                aria-label="Nomor WhatsApp"
                 placeholder="Masukkan nomor WhatsApp" 
-                className="flex-1 bg-white sm:bg-transparent px-5 py-4 text-slate-800 placeholder:text-slate-400 focus:outline-none text-sm md:text-base w-full rounded-xl sm:rounded-l-full font-medium" 
+                className="flex-1 bg-white sm:bg-transparent px-5 py-4 text-slate-800 placeholder:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 text-sm md:text-base w-full rounded-xl sm:rounded-l-full font-medium" 
               />
-              <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto flex justify-center items-center bg-violet-600 hover:bg-violet-700 text-white rounded-xl sm:rounded-full font-bold text-sm md:text-base px-8 py-4 transition-all whitespace-nowrap shadow-md hover:shadow-lg animate-shine">
+              <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto flex justify-center items-center bg-violet-600 hover:bg-violet-700 text-white rounded-xl sm:rounded-full font-bold text-sm md:text-base px-8 py-4 transition-all whitespace-nowrap shadow-md hover:shadow-lg animate-shine focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none focus-visible:ring-offset-2">
                 Go Live Sekarang
               </a>
             </div>
@@ -40,7 +42,7 @@ export const HeroSection = () => {
 
           {/* Right Column: Hero Image */}
           <div className="relative w-full h-[400px] md:h-[500px] lg:h-[650px] flex items-center justify-center lg:justify-end lg:pr-4 mt-8 lg:mt-0 animate-float rounded-3xl">
-             <img src="/landing-page/website-new.png" alt="Liva Agency Live Streaming" className="w-full h-full object-contain object-bottom lg:object-right-bottom drop-shadow-2xl hover:scale-105 transition-transform duration-700 origin-bottom" />
+             <img src="/landing-page/website-new.png" alt="Liva Agency Live Streaming Expert" className="w-full h-full object-contain object-bottom lg:object-right-bottom drop-shadow-2xl hover:scale-105 transition-transform duration-700 origin-bottom" />
           </div>
         </div>
 
@@ -57,9 +59,13 @@ export const HeroSection = () => {
                         'logo-sar-ayu.png', 'logo_uray.png', 'logo_rhc.png', 
                         'logo-barefood.png', 'logo-biokos.png', 'logo-isago.png', 
                         'logo-kloa.png', 'logo-mirael.png', 'logo-soulyu.png', 'logo-sunskrip.png'
-                     ].map((filename, idx) => (
-                        <img key={idx} src={`/brand-logo/${filename}`} alt="Brand Logo" className="h-12 md:h-16 lg:h-20 w-auto object-contain mix-blend-multiply" />
-                     ))}
+                     ].map((filename, idx) => {
+                        const brandName = filename.replace(/^logo[-_]/, '').replace('.png', '').replace(/-/g, ' ');
+                        const altText = `Logo ${brandName.charAt(0).toUpperCase() + brandName.slice(1)}`;
+                        return (
+                           <img key={idx} src={`/brand-logo/${filename}`} alt={altText} className="h-12 md:h-16 lg:h-20 w-auto object-contain mix-blend-multiply" />
+                        );
+                     })}
                   </div>
                ))}
            </div>
