@@ -36,83 +36,9 @@ export const HeroSection = () => {
             </div>
           </div>
 
-          {/* Right Column: Floating Dashboard Cards */}
-          <div className="relative w-full h-[450px] md:h-[550px] flex items-center justify-center lg:justify-end lg:pr-10">
-            
-            {/* Background Card (Total Sales) */}
-            <div className="absolute top-0 md:top-4 right-0 lg:-right-4 w-[280px] md:w-[360px] bg-white rounded-3xl p-6 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500 border border-slate-100">
-              <p className="text-slate-500 font-bold text-xs md:text-sm mb-1 uppercase tracking-wider">Total Penjualan</p>
-              <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-6 flex items-center gap-2">
-                 Rp 45.2M
-                 <span className="text-emerald-500 text-[10px] md:text-xs bg-emerald-50 px-2 py-1 rounded-full font-bold">▲ 85.1%</span>
-              </h3>
-              
-              {/* Fake Tabs */}
-              <div className="flex gap-2 bg-slate-50 p-1 rounded-xl mb-6">
-                 <div className="flex-1 text-center text-xs font-bold bg-white text-slate-800 py-2 rounded-lg shadow-sm border border-slate-100">Harian</div>
-                 <div className="flex-1 text-center text-xs font-bold text-slate-500 py-2 rounded-lg">Mingguan</div>
-                 <div className="flex-1 text-center text-xs font-bold text-slate-500 py-2 rounded-lg">Bulanan</div>
-              </div>
-              
-              {/* Fake List Items */}
-              <div className="space-y-4">
-                 <div className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                    <div className="flex items-center gap-3 md:gap-4">
-                       <div className="w-10 h-10 md:w-12 md:h-12 bg-violet-100 rounded-full flex items-center justify-center text-violet-600">
-                          <Package className="w-5 h-5 md:w-6 md:h-6"/>
-                       </div>
-                       <div>
-                          <p className="text-sm font-bold text-slate-800 leading-tight mb-0.5">Pesanan Baru</p>
-                          <p className="text-[11px] md:text-xs font-medium text-slate-500 leading-tight">Shopee Live</p>
-                       </div>
-                    </div>
-                    <span className="text-emerald-500 font-bold text-sm">+210</span>
-                 </div>
-                 
-                 <div className="flex justify-between items-center p-3 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                    <div className="flex items-center gap-3 md:gap-4">
-                       <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600">
-                          <Package className="w-5 h-5 md:w-6 md:h-6"/>
-                       </div>
-                       <div>
-                          <p className="text-sm font-bold text-slate-800 leading-tight mb-0.5">Pesanan Baru</p>
-                          <p className="text-[11px] md:text-xs font-medium text-slate-500 leading-tight">Tiktok Shop</p>
-                       </div>
-                    </div>
-                    <span className="text-emerald-500 font-bold text-sm">+184</span>
-                 </div>
-              </div>
-            </div>
-
-            {/* Foreground Card (Live Status) */}
-            <div className="absolute bottom-4 lg:bottom-12 left-0 lg:-left-12 w-[260px] md:w-[320px] bg-white rounded-3xl p-6 shadow-[0_30px_60px_rgba(0,0,0,0.12)] -rotate-6 hover:-rotate-2 transition-transform duration-500 z-10 border border-slate-100">
-              <div className="flex justify-between items-center mb-6">
-                <h4 className="font-bold text-slate-800 text-sm">Live Status</h4>
-                <span className="flex items-center gap-1.5 bg-rose-50 text-rose-600 px-2.5 py-1.5 rounded-full text-[10px] md:text-xs font-bold border border-rose-100">
-                   <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-rose-600 animate-pulse"></div> Sedang Live
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center">
-                    <p className="text-[11px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Penonton</p>
-                    <p className="text-xl md:text-2xl font-black text-slate-800">2.4k</p>
-                 </div>
-                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col items-center justify-center text-center">
-                    <p className="text-[11px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Checkout</p>
-                    <p className="text-xl md:text-2xl font-black text-slate-800">142</p>
-                 </div>
-              </div>
-              <div className="flex items-center gap-3 bg-violet-50 p-2.5 rounded-xl border border-violet-100">
-                 <div className="w-8 h-8 rounded-full overflow-hidden bg-violet-200 shrink-0">
-                    <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&q=80" alt="Host" className="w-full h-full object-cover object-top" />
-                 </div>
-                 <div>
-                    <p className="text-xs font-bold text-slate-800 leading-tight">Kak Aisyah</p>
-                    <p className="text-[10px] text-slate-500 font-medium leading-tight">Liva Beauty Official</p>
-                 </div>
-              </div>
-            </div>
-            
+          {/* Right Column: Hero Image */}
+          <div className="relative w-full h-[400px] md:h-[500px] lg:h-[650px] flex items-center justify-center lg:justify-end lg:pr-4 mt-8 lg:mt-0">
+             <img src="/hero-image.png" alt="Liva Agency Live Streaming" className="w-full h-full object-contain object-bottom lg:object-right-bottom drop-shadow-2xl hover:scale-105 transition-transform duration-700 origin-bottom" />
           </div>
         </div>
 
