@@ -108,20 +108,6 @@ export const PortfolioVideoSection = () => {
                 >
                   {/* Dynamic Island / Notch */}
                   <div className="absolute top-1 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full flex items-center justify-center"></div>
-                  
-                  {/* Text Header */}
-                  <div className="absolute top-8 left-0 w-full text-center px-4">
-                     <h3 className="text-slate-800 font-bold text-[11px] tracking-tight bg-white/95 backdrop-blur-md py-1.5 rounded-full w-max mx-auto px-4 shadow-sm">
-                        Liva Live Streaming
-                     </h3>
-                  </div>
-                  
-                  {/* Bottom button */}
-                  <div className="absolute bottom-5 left-5 right-5">
-                     <div className="w-full py-2.5 bg-white/95 backdrop-blur-md rounded-full text-slate-800 font-bold text-[11px] text-center shadow-sm">
-                        Lihat Portfolio
-                     </div>
-                  </div>
                 </div>
 
                 {/* Play Icon Overlay */}
