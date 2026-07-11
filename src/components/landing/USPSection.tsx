@@ -120,17 +120,19 @@ export const USPSection = () => {
         </div>
 
         {/* Right Column (Visual) */}
-        <div className="lg:col-span-7 w-full h-[400px] md:h-[500px] lg:h-[600px] relative rounded-[32px] overflow-hidden bg-slate-50 border border-slate-100 shadow-xl group">
-          {uspData.map((item, idx) => (
-             <img 
-                key={idx}
-                src={item.image} 
-                alt={item.title} 
-                className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${idx === activeIndex ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 z-0'}`}
-             />
-          ))}
-          {/* Subtle gradient overlay to make images look premium */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-violet-900/20 to-transparent z-20 pointer-events-none"></div>
+        <div className="lg:col-span-7 w-full flex justify-center lg:justify-end items-center">
+          <div className="w-full max-w-[500px] aspect-square relative rounded-[40px] overflow-hidden bg-slate-50 border border-slate-100 shadow-xl group">
+            {uspData.map((item, idx) => (
+               <img 
+                  key={idx}
+                  src={item.image} 
+                  alt={item.title} 
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${idx === activeIndex ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 z-0'}`}
+               />
+            ))}
+            {/* Subtle gradient overlay to make images look premium */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-violet-900/10 to-transparent z-20 pointer-events-none"></div>
+          </div>
         </div>
 
       </div>
