@@ -65,7 +65,7 @@ export const FooterSection = ({ agencyLogoUrl }: { agencyLogoUrl: string | null 
               <Video className="w-4 h-4 text-violet-600" />
               <span className="font-bold tracking-tight text-slate-800">LIVA AGENCY</span>
            </div>
-           <span className="ml-4">All rights reserved • ©{new Date().getFullYear()}</span>
+           <span className="ml-4">©{new Date().getFullYear()} PT. Liva Media Kreatif. All rights reserved.</span>
         </div>
         <div className="flex items-center gap-6">
            <a href="#" className="hover:text-violet-600 transition-colors">Privacy policy</a>
