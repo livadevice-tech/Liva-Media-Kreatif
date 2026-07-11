@@ -125,10 +125,10 @@ export const HeroSection = () => {
             <div className="flex w-max animate-marquee pb-4 hover:[animation-play-state:paused]">
                {[1, 2, 3].map((i) => (
                   <div key={i} className="flex gap-12 md:gap-20 items-center shrink-0 pr-12 md:pr-20 opacity-80 hover:opacity-100 transition-all duration-500">
-                     <img src="/sariayu.png" alt="Sariayu Martha Tilaar" className="h-8 md:h-10 object-contain mix-blend-multiply" />
-                     <span className="text-xl md:text-2xl font-sans tracking-wide font-black italic text-amber-500">Uray</span>
+                     <img src="/brand-logo/logo-sar-ayu.png" alt="Sariayu Martha Tilaar" className="h-10 md:h-14 w-auto object-contain mix-blend-multiply" />
+                     <img src="/brand-logo/logo_uray.png" alt="Uray" className="h-10 md:h-14 w-auto object-contain mix-blend-multiply" />
                      <span className="text-lg md:text-xl font-serif font-bold text-violet-600">Liva</span>
-                     <span className="text-lg md:text-xl font-sans font-bold flex items-center text-slate-800"><span className="bg-slate-800 text-white px-1.5 py-0.5 mr-1.5 rounded-sm text-[10px] md:text-xs">R</span> RUDY</span>
+                     <img src="/brand-logo/logo_rhc.png" alt="RHC" className="h-10 md:h-14 w-auto object-contain mix-blend-multiply" />
                      <span className="text-lg md:text-xl font-black tracking-tighter text-orange-500">Barefood</span>
                      <span className="text-lg md:text-xl font-serif tracking-widest font-bold text-teal-600">BIOKOS</span>
                      <span className="text-lg md:text-xl font-serif font-black leading-none text-rose-600">ISA<br/>GO</span>
