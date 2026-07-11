@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const DUMMY_VIDEOS = [
+const VIDEOS = [
   "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4",
   "https://assets.mixkit.co/videos/preview/mixkit-a-girl-blowing-a-bubble-gum-at-an-amusement-park-1226-large.mp4",
   "https://assets.mixkit.co/videos/preview/mixkit-young-woman-taking-a-picture-with-her-smartphone-4081-large.mp4",
@@ -9,79 +10,30 @@ const DUMMY_VIDEOS = [
   "https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-on-a-rooftop-4171-large.mp4",
 ];
 
-// Duplicate for infinite marquee
-const VIDEOS = [...DUMMY_VIDEOS, ...DUMMY_VIDEOS, ...DUMMY_VIDEOS, ...DUMMY_VIDEOS];
-
 export const PortfolioVideoSection = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const itemsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const [activeIndex, setActiveIndex] = useState(2); // start near middle
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  const handlePrev = () => {
+    setActiveIndex((prev) => (prev > 0 ? prev - 1 : VIDEOS.length - 1));
+  };
+
+  const handleNext = () => {
+    setActiveIndex((prev) => (prev < VIDEOS.length - 1 ? prev + 1 : 0));
+  };
 
   useEffect(() => {
-    let animationFrameId: number;
-
-    const update3DEffect = () => {
-      if (!containerRef.current) return;
-      
-      const windowCenter = window.innerWidth / 2;
-      
-      itemsRef.current.forEach((item) => {
-        if (!item) return;
-        
-        const rect = item.getBoundingClientRect();
-        // Get center of the item
-        const itemCenter = rect.left + rect.width / 2;
-        
-        // Calculate distance from screen center
-        const distanceFromCenter = itemCenter - windowCenter;
-        
-        // Normalize distance (0 at center, 1 at screen edge)
-        const normalizedDistance = distanceFromCenter / windowCenter;
-        
-        // Calculate 3D values based on distance
-        // rotateY: items on left rotate right (positive), items on right rotate left (negative)
-        const maxRotation = -40; 
-        const rotateY = normalizedDistance * maxRotation;
-        
-        // Scale: items in center are larger (1), items on edge are smaller (0.85)
-        const scale = 1 - Math.abs(normalizedDistance) * 0.15;
-        
-        // Z-index: center items should be on top
-        const zIndex = Math.round(100 - Math.abs(normalizedDistance) * 100);
-
-        // Dynamic Phone Bezel Opacity
-        const phoneOverlay = item.querySelector('.phone-bezel');
-        if (phoneOverlay) {
-           // Fully opaque when perfectly centered (normalizedDistance = 0)
-           // Fades out completely when it moves slightly away (normalizedDistance > 0.15)
-           const opacity = Math.max(0, 1 - Math.abs(normalizedDistance) * 6);
-           (phoneOverlay as HTMLElement).style.opacity = opacity.toString();
-        }
-
-        item.style.transformOrigin = "center center";
-        item.style.transform = `perspective(1000px) rotateY(${rotateY}deg) scale(${scale})`;
-        item.style.zIndex = zIndex.toString();
-      });
-
-      animationFrameId = requestAnimationFrame(update3DEffect);
-    };
-
-    update3DEffect();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  const handleMouseEnter = (e: React.MouseEvent<HTMLVideoElement>) => {
-    const video = e.currentTarget;
-    video.play().catch(() => {}); // Catch error if autoplay is blocked
-  };
-
-  const handleMouseLeave = (e: React.MouseEvent<HTMLVideoElement>) => {
-    const video = e.currentTarget;
-    video.pause();
-    video.currentTime = 0;
-  };
+    // Autoplay the centered video and pause the rest
+    videoRefs.current.forEach((vid, idx) => {
+      if (!vid) return;
+      if (idx === activeIndex) {
+        vid.play().catch(() => {});
+      } else {
+        vid.pause();
+        vid.currentTime = 0;
+      }
+    });
+  }, [activeIndex]);
 
   return (
     <section className="py-10 md:py-16 overflow-hidden bg-white relative">
@@ -97,20 +49,46 @@ export const PortfolioVideoSection = () => {
         </p>
       </div>
 
-      {/* Marquee Wrapper */}
-      <div className="w-full relative py-16" ref={containerRef}>
-        <div className="flex w-max animate-marquee-horizontal hover:[animation-play-state:paused] items-center">
-          {VIDEOS.map((src, idx) => (
-            <div key={idx} className="shrink-0" style={{ width: '240px', margin: '0 -15px' }}>
+      {/* Carousel Wrapper */}
+      <div className="w-full relative h-[500px] flex items-center justify-center">
+        {VIDEOS.map((src, idx) => {
+          const offset = idx - activeIndex;
+          const absOffset = Math.abs(offset);
+          
+          // Determine 3D transform properties based on distance from center (offset)
+          const sign = Math.sign(offset);
+          const translateX = sign * (absOffset * 180 + (absOffset === 0 ? 0 : 20)); 
+          const rotateY = sign * -40; // right items rotate towards center
+          const scale = 1 - absOffset * 0.15;
+          const zIndex = 100 - absOffset;
+          const opacity = absOffset > 2 ? 0 : 1;
+          const isCenter = absOffset === 0;
+
+          return (
+            <div 
+              key={idx} 
+              className="absolute shrink-0 transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]"
+              style={{ 
+                width: '260px', 
+                transform: `perspective(1000px) translateX(${translateX}px) rotateY(${rotateY}deg) scale(${scale})`,
+                zIndex,
+                opacity,
+                transformOrigin: 'center center',
+                pointerEvents: opacity === 0 ? 'none' : 'auto',
+                visibility: opacity === 0 ? 'hidden' : 'visible'
+              }}
+              onClick={() => {
+                 if (!isCenter) setActiveIndex(idx);
+              }}
+            >
               <div 
-                ref={(el) => (itemsRef.current[idx] = el)}
-                className="relative w-full aspect-[9/16] rounded-[40px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-300 group cursor-pointer bg-slate-100"
+                className="relative w-full aspect-[9/16] rounded-[40px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] group cursor-pointer bg-slate-100 h-full"
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 {/* Dynamic Phone Bezel Overlay */}
                 <div 
-                  className="phone-bezel absolute inset-0 border-[10px] border-white rounded-[40px] pointer-events-none z-30 transition-opacity duration-100"
-                  style={{ opacity: 0 }}
+                  className="phone-bezel absolute inset-0 border-[10px] border-white rounded-[40px] pointer-events-none z-30 transition-opacity duration-500"
+                  style={{ opacity: isCenter ? 1 : 0 }}
                 >
                   {/* Dynamic Island / Notch */}
                   <div className="absolute top-1 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full flex items-center justify-center"></div>
@@ -131,7 +109,7 @@ export const PortfolioVideoSection = () => {
                 </div>
 
                 {/* Play Icon Overlay (visible when paused) */}
-                <div className="absolute inset-0 bg-transparent flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity z-20 pointer-events-none">
+                <div className={`absolute inset-0 bg-transparent flex items-center justify-center transition-opacity duration-500 z-20 pointer-events-none ${isCenter ? 'opacity-0' : 'opacity-100'}`}>
                   <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
                     <svg className="w-5 h-5 text-slate-700 ml-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
@@ -140,18 +118,27 @@ export const PortfolioVideoSection = () => {
                 </div>
 
                 <video 
+                  ref={(el) => (videoRefs.current[idx] = el)}
                   src={src}
-                  className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-105 rounded-[40px]"
+                  className="w-full h-full object-cover rounded-[40px]"
                   muted
                   loop
                   playsInline
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
                 />
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
+      
+      {/* Controls */}
+      <div className="flex items-center justify-center gap-6 mt-12 relative z-50">
+         <button onClick={handlePrev} className="w-12 h-12 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 hover:scale-105 transition-all shadow-sm text-slate-600">
+            <ChevronLeft className="w-5 h-5" />
+         </button>
+         <button onClick={handleNext} className="w-12 h-12 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 hover:scale-105 transition-all shadow-sm text-slate-600">
+            <ChevronRight className="w-5 h-5" />
+         </button>
       </div>
     </section>
   );
