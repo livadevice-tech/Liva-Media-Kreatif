@@ -130,7 +130,7 @@ export const HeroSection = () => {
                         'logo-barefood.png', 'logo-biokos.png', 'logo-isago.png', 
                         'logo-kloa.png', 'logo-mirael.png', 'logo-soulyu.png', 'logo-sunskrip.png'
                      ].map((filename, idx) => (
-                        <img key={idx} src={`/brand-logo/${filename}`} alt="Brand Logo" className="h-8 md:h-12 lg:h-14 w-auto object-contain mix-blend-multiply" />
+                        <img key={idx} src={`/brand-logo/${filename}`} alt="Brand Logo" className="h-12 md:h-16 lg:h-20 w-auto object-contain mix-blend-multiply" />
                      ))}
                   </div>
                ))}
