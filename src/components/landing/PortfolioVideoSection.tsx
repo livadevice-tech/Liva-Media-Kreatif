@@ -56,7 +56,7 @@ export const PortfolioVideoSection = () => {
         <span className="text-orange-500 font-bold text-sm tracking-wider uppercase mb-2 block">
           Behind the Designs
         </span>
-        <h2 className="text-3xl md:text-5xl font-serif font-extrabold text-slate-900 mb-6 max-w-2xl mx-auto leading-tight">
+        <h2 className="text-3xl md:text-5xl font-serif font-extrabold text-slate-900 mb-6 max-w-4xl mx-auto leading-tight">
           Curious What Else We've Created?
         </h2>
         <p className="text-slate-500 max-w-xl mx-auto">
