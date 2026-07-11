@@ -67,7 +67,11 @@ export const PortfolioVideoSection = () => {
       {/* Carousel Wrapper */}
       <div className="w-full relative h-[500px] flex items-center justify-center">
         {VIDEOS.map((src, idx) => {
-          const offset = idx - activeIndex;
+          let rawOffset = (idx - activeIndex) % VIDEOS.length;
+          if (rawOffset > 2) rawOffset -= VIDEOS.length;
+          if (rawOffset < -2) rawOffset += VIDEOS.length;
+          
+          const offset = rawOffset;
           const absOffset = Math.abs(offset);
           
           // Determine 3D transform properties based on distance from center (offset)
