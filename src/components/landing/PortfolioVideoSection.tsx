@@ -7,11 +7,11 @@ const VIDEOS = [
   "https://assets.mixkit.co/videos/preview/mixkit-young-woman-taking-a-picture-with-her-smartphone-4081-large.mp4",
   "https://assets.mixkit.co/videos/preview/mixkit-portrait-of-a-woman-in-a-pool-1259-large.mp4",
   "https://assets.mixkit.co/videos/preview/mixkit-young-woman-with-a-laptop-on-her-bed-4034-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-on-a-rooftop-4171-large.mp4",
 ];
 
 export const PortfolioVideoSection = () => {
   const [activeIndex, setActiveIndex] = useState(2); // start near middle
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   const handlePrev = () => {
@@ -23,17 +23,32 @@ export const PortfolioVideoSection = () => {
   };
 
   useEffect(() => {
-    // Autoplay the centered video and pause the rest
-    videoRefs.current.forEach((vid, idx) => {
-      if (!vid) return;
-      if (idx === activeIndex) {
-        vid.play().catch(() => {});
-      } else {
+    // When active index changes, pause all videos and reset playing state
+    setPlayingIndex(null);
+    videoRefs.current.forEach((vid) => {
+      if (vid) {
         vid.pause();
         vid.currentTime = 0;
       }
     });
   }, [activeIndex]);
+
+  const handleVideoClick = (idx: number, isCenter: boolean) => {
+    if (!isCenter) {
+      setActiveIndex(idx);
+    } else {
+      const vid = videoRefs.current[idx];
+      if (vid) {
+        if (playingIndex === idx) {
+          vid.pause();
+          setPlayingIndex(null);
+        } else {
+          vid.play().catch(() => {});
+          setPlayingIndex(idx);
+        }
+      }
+    }
+  };
 
   return (
     <section className="py-10 md:py-16 overflow-hidden bg-white relative">
@@ -77,9 +92,7 @@ export const PortfolioVideoSection = () => {
                 pointerEvents: opacity === 0 ? 'none' : 'auto',
                 visibility: opacity === 0 ? 'hidden' : 'visible'
               }}
-              onClick={() => {
-                 if (!isCenter) setActiveIndex(idx);
-              }}
+              onClick={() => handleVideoClick(idx, isCenter)}
             >
               <div 
                 className="relative w-full aspect-[9/16] rounded-[40px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] group cursor-pointer bg-slate-100 h-full"
@@ -108,10 +121,14 @@ export const PortfolioVideoSection = () => {
                   </div>
                 </div>
 
-                {/* Play Icon Overlay (visible when paused) */}
-                <div className={`absolute inset-0 bg-transparent flex items-center justify-center transition-opacity duration-500 z-20 pointer-events-none ${isCenter ? 'opacity-0' : 'opacity-100'}`}>
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
-                    <svg className="w-5 h-5 text-slate-700 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                {/* Play Icon Overlay */}
+                <div 
+                  className={`absolute inset-0 bg-black/10 flex items-center justify-center transition-opacity duration-500 z-40 pointer-events-none ${
+                    playingIndex === idx ? 'opacity-0' : 'opacity-100'
+                  }`}
+                >
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110">
+                    <svg className="w-5 h-5 text-slate-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </div>
@@ -121,7 +138,6 @@ export const PortfolioVideoSection = () => {
                   ref={(el) => (videoRefs.current[idx] = el)}
                   src={src}
                   className="w-full h-full object-cover rounded-[40px]"
-                  muted
                   loop
                   playsInline
                 />
