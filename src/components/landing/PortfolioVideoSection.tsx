@@ -75,7 +75,7 @@ export const PortfolioVideoSection = () => {
   };
 
   return (
-    <section className="py-20 md:py-32 overflow-hidden bg-white relative">
+    <section className="py-10 md:py-16 overflow-hidden bg-white relative">
       <div className="text-center mb-16 px-6">
         <span className="text-orange-500 font-bold text-sm tracking-wider uppercase mb-2 block">
           Behind the Designs
@@ -92,7 +92,7 @@ export const PortfolioVideoSection = () => {
       <div className="w-full relative py-16" ref={containerRef}>
         <div className="flex w-max animate-marquee-horizontal hover:[animation-play-state:paused] items-center">
           {VIDEOS.map((src, idx) => (
-            <div key={idx} className="px-1 md:px-2 shrink-0" style={{ width: '280px' }}>
+            <div key={idx} className="shrink-0" style={{ width: '240px', margin: '0 -15px' }}>
               <div 
                 ref={(el) => (itemsRef.current[idx] = el)}
                 className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-300 group cursor-pointer bg-slate-100"

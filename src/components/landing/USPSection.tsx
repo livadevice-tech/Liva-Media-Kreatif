@@ -53,7 +53,7 @@ export const USPSection = () => {
 
 
   return (
-    <section id="layanan" className="py-20 md:py-32 px-6 md:px-12 max-w-7xl mx-auto flex flex-col items-center">
+    <section id="layanan" className="py-12 md:py-16 px-6 md:px-12 max-w-7xl mx-auto flex flex-col items-center">
       
       <div className="text-center max-w-3xl mb-16">
          <div className="px-4 py-1.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 font-bold text-xs mb-6 inline-block uppercase tracking-wider">

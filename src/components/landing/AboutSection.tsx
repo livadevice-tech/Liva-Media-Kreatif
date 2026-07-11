@@ -58,7 +58,7 @@ export const AboutSection = () => {
   return (
     <>
       {/* 4. TENTANG LIVA AGENCY */}
-      <section id="tentang" className="py-16 md:py-24 px-6 md:px-12 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 lg:gap-20">
+      <section id="tentang" className="py-10 md:py-16 px-6 md:px-12 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 lg:gap-20">
          <div className="w-full md:w-[45%] lg:w-[40%] shrink-0 relative flex justify-center items-center min-h-[460px] md:min-h-[500px]">
             {/* Background Shape */}
             <div className="w-[260px] md:w-[300px] h-[340px] md:h-[400px] bg-slate-50 rounded-[40px] absolute top-6 left-1/2 -translate-x-1/2 z-0"></div>
