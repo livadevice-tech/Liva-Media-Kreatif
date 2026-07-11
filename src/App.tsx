@@ -50,10 +50,10 @@ export default function App() {
 
           {/* Desktop Menu (Center) */}
           <div className="hidden lg:flex items-center justify-center gap-8">
-             <a href="#layanan" className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">Layanan</a>
-             <a href="#tentang" className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">Tentang</a>
-             <a href="#harga" className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">Harga</a>
-             <a href="#faq" className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">FAQ</a>
+             <a href="#layanan" className="text-base lg:text-lg font-bold text-slate-500 hover:text-slate-900 transition-colors">Layanan</a>
+             <a href="#tentang" className="text-base lg:text-lg font-bold text-slate-500 hover:text-slate-900 transition-colors">Tentang</a>
+             <a href="#harga" className="text-base lg:text-lg font-bold text-slate-500 hover:text-slate-900 transition-colors">Harga</a>
+             <a href="#faq" className="text-base lg:text-lg font-bold text-slate-500 hover:text-slate-900 transition-colors">FAQ</a>
           </div>
 
           {/* Desktop CTA (Right) */}
