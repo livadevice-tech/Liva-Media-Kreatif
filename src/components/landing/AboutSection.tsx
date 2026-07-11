@@ -123,31 +123,31 @@ export const AboutSection = () => {
                   <span className="font-bold text-slate-800 uppercase tracking-wider">Transaksi Brand Kami</span>
                </div>
                <div 
-                  className="grid grid-cols-2 lg:grid-cols-4 gap-6 transition-all duration-500 ease-in-out"
+                  className="grid grid-cols-2 lg:grid-cols-4 gap-6 animate-[zoomInFade_0.4s_cubic-bezier(0.16,1,0.3,1)_both]"
                   key={currentPortfolioSlide}
                >
-                  <div className="animate-[fadeIn_0.5s_ease-out]">
+                  <div className="animate-[slideUpFade_0.7s_cubic-bezier(0.16,1,0.3,1)_both]">
                      <div className="flex flex-col gap-1">
                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Penjualan</span>
                        <div className="text-base font-black text-slate-900 mt-1 tabular-nums">{portfolioData[currentPortfolioSlide].penjualan}</div>
                        <div className="text-[10px] text-slate-400 mt-1 font-medium">vs bln lalu <span className="text-emerald-500 font-bold">{portfolioData[currentPortfolioSlide].penjualanUp}</span></div>
                      </div>
                   </div>
-                  <div className="animate-[fadeIn_0.5s_ease-out_100ms_both]">
+                  <div className="animate-[slideUpFade_0.7s_cubic-bezier(0.16,1,0.3,1)_100ms_both]">
                      <div className="flex flex-col gap-1">
                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pesanan</span>
                        <div className="text-base font-black text-slate-900 mt-1 tabular-nums">{portfolioData[currentPortfolioSlide].pesanan}</div>
                        <div className="text-[10px] text-slate-400 mt-1 font-medium">vs bln lalu <span className="text-emerald-500 font-bold">{portfolioData[currentPortfolioSlide].pesananUp}</span></div>
                      </div>
                   </div>
-                  <div className="animate-[fadeIn_0.5s_ease-out_200ms_both]">
+                  <div className="animate-[slideUpFade_0.7s_cubic-bezier(0.16,1,0.3,1)_200ms_both]">
                      <div className="flex flex-col gap-1">
                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Produk Terjual</span>
                        <div className="text-base font-black text-slate-900 mt-1 tabular-nums">{portfolioData[currentPortfolioSlide].terjual}</div>
                        <div className="text-[10px] text-slate-400 mt-1 font-medium">vs bln lalu <span className="text-emerald-500 font-bold">{portfolioData[currentPortfolioSlide].terjualUp}</span></div>
                      </div>
                   </div>
-                  <div className="animate-[fadeIn_0.5s_ease-out_300ms_both]">
+                  <div className="animate-[slideUpFade_0.7s_cubic-bezier(0.16,1,0.3,1)_300ms_both]">
                      <div className="flex flex-col gap-1">
                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-tight">Penjualan Pembeli Baru</span>
                        <div className="text-base font-black text-slate-900 mt-1 tabular-nums">{portfolioData[currentPortfolioSlide].pembeliBaru}</div>
