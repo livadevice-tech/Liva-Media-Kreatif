@@ -50,15 +50,15 @@ export default function App() {
 
           {/* Desktop Menu (Center) */}
           <div className="hidden lg:flex items-center justify-center gap-8">
-             <a href="#layanan" className="text-base lg:text-lg font-bold text-slate-500 hover:text-slate-900 transition-colors">Layanan</a>
-             <a href="#tentang" className="text-base lg:text-lg font-bold text-slate-500 hover:text-slate-900 transition-colors">Tentang</a>
-             <a href="#harga" className="text-base lg:text-lg font-bold text-slate-500 hover:text-slate-900 transition-colors">Harga</a>
-             <a href="#faq" className="text-base lg:text-lg font-bold text-slate-500 hover:text-slate-900 transition-colors">FAQ</a>
+             <a href="#layanan" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Layanan</a>
+             <a href="#tentang" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Tentang</a>
+             <a href="#harga" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Harga</a>
+             <a href="#faq" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">FAQ</a>
           </div>
 
           {/* Desktop CTA (Right) */}
           <div className="hidden lg:flex items-center justify-end">
-             <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 px-6 py-2.5 rounded-full transition-all shadow-sm">
+             <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="text-base lg:text-lg font-bold text-white bg-violet-600 hover:bg-violet-700 px-8 py-3.5 rounded-full transition-all shadow-md hover:shadow-lg">
                 Konsultasi Gratis
              </a>
           </div>
