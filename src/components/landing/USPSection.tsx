@@ -77,7 +77,7 @@ export const USPSection = () => {
       </div>
 
       <div 
-         className="w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start"
+         className="w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-16"
          onMouseEnter={() => setIsHovered(true)}
          onMouseLeave={() => setIsHovered(false)}
       >
@@ -85,7 +85,7 @@ export const USPSection = () => {
         {/* Left Column (Points List) - 65% width */}
         <div 
           ref={containerRef}
-          className="lg:col-span-8 flex flex-col w-full max-h-[500px] overflow-y-auto hide-scrollbar pr-4 md:pr-8 py-4 relative"
+          className="lg:w-[65%] flex flex-col w-full max-h-[540px] overflow-y-auto hide-scrollbar pr-4 md:pr-12 py-4 relative"
           style={{ scrollBehavior: 'smooth' }}
         >
           {uspData.map((item, idx) => {
@@ -120,8 +120,9 @@ export const USPSection = () => {
         </div>
 
         {/* Right Column (Visual) - 35% width */}
-        <div className="lg:col-span-4 w-full flex justify-center lg:justify-end items-center">
-          <div className="w-full max-w-[500px] aspect-square relative rounded-[40px] overflow-hidden bg-slate-50 border border-slate-100 shadow-xl group">
+        <div className="lg:w-[35%] w-full flex justify-center items-center">
+          {/* Using min-w to force the image to be 30% larger even inside a 35% column */}
+          <div className="w-full min-w-[380px] xl:min-w-[480px] aspect-square relative rounded-[40px] overflow-hidden bg-slate-50 border border-slate-100 shadow-2xl group transition-all duration-500 hover:scale-[1.02]">
             {uspData.map((item, idx) => (
                <img 
                   key={idx}
