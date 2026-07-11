@@ -50,9 +50,12 @@ export default function App() {
 
           {/* Desktop Menu (Center) */}
           <div className="hidden lg:flex items-center justify-center gap-8">
-             <a href="#layanan" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Layanan</a>
              <a href="#tentang" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Tentang</a>
-             <a href="#harga" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Harga</a>
+             <a href="#layanan" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Layanan</a>
+             <a href="#harga" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Price</a>
+             <a href="#portfolio" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Portfolio</a>
+             <a href="#blog" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Blog</a>
+             <a href="#karir" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">Karir</a>
              <a href="#faq" className="text-base lg:text-lg font-bold text-slate-500 hover:text-violet-600 transition-colors">FAQ</a>
           </div>
 
@@ -77,9 +80,13 @@ export default function App() {
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
          <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-sm pt-24 px-6 flex flex-col gap-6 lg:hidden">
-            <a href="#layanan" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Layanan</a>
             <a href="#tentang" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Tentang</a>
-            <a href="#harga" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Harga</a>
+            <a href="#layanan" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Layanan</a>
+            <a href="#harga" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Price</a>
+            <a href="#portfolio" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Portfolio</a>
+            <a href="#blog" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Blog</a>
+            <a href="#karir" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">Karir</a>
+            <a href="#faq" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-bold text-slate-800 py-2 border-b border-slate-100">FAQ</a>
          </div>
       )}
 
