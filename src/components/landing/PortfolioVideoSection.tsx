@@ -51,15 +51,15 @@ export const PortfolioVideoSection = () => {
   };
 
   return (
-    <section className="py-10 md:py-16 overflow-hidden bg-white relative z-10">
+    <section className="py-10 md:py-16 overflow-hidden bg-gradient-to-br from-violet-900 via-violet-800 to-violet-950 relative z-10">
       <div className="text-center mb-16 px-6">
-        <span className="text-orange-500 font-bold text-sm tracking-wider uppercase mb-2 block">
+        <span className="text-violet-300 font-bold text-sm tracking-wider uppercase mb-2 block">
           Behind the Designs
         </span>
-        <h2 className="text-3xl md:text-5xl font-serif font-extrabold text-slate-900 mb-6 max-w-4xl mx-auto leading-tight">
+        <h2 className="text-3xl md:text-5xl font-serif font-extrabold text-white mb-6 max-w-4xl mx-auto leading-tight">
           Curious What Else We've Created?
         </h2>
-        <p className="text-slate-500 max-w-xl mx-auto">
+        <p className="text-violet-200 max-w-xl mx-auto">
           Explore more brand identities, live shopping, and digital design work in our video portfolio.
         </p>
       </div>
@@ -138,10 +138,10 @@ export const PortfolioVideoSection = () => {
       
       {/* Controls */}
       <div className="flex items-center justify-center gap-6 mt-12 relative z-50">
-         <button onClick={handlePrev} className="w-12 h-12 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 hover:scale-105 transition-all shadow-sm text-slate-600">
+         <button onClick={handlePrev} className="w-12 h-12 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white">
             <ChevronLeft className="w-5 h-5" />
          </button>
-         <button onClick={handleNext} className="w-12 h-12 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 hover:scale-105 transition-all shadow-sm text-slate-600">
+         <button onClick={handleNext} className="w-12 h-12 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white">
             <ChevronRight className="w-5 h-5" />
          </button>
       </div>
