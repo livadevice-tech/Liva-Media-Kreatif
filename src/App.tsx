@@ -9,6 +9,7 @@ import { ComparisonSection } from './components/landing/ComparisonSection';
 import { PricingSection } from './components/landing/PricingSection';
 import { RoadmapSection } from './components/landing/RoadmapSection';
 import { FAQSection } from './components/landing/FAQSection';
+import { CTASection } from './components/landing/CTASection';
 import { FooterSection } from './components/landing/FooterSection';
 
 export default function App() {
@@ -90,14 +91,14 @@ export default function App() {
       
       <USPSection />
       
-      <ComparisonSection />
-      
       <PricingSection />
       
       <RoadmapSection />
       
       <FAQSection />
 
+      <CTASection />
+      
       <FooterSection agencyLogoUrl={agencyLogoUrl} />
 
     </main>
