@@ -68,7 +68,7 @@ export const AboutSection = () => {
 
             {/* Main Woman Image */}
             <div className="relative z-10 w-[260px] md:w-[300px] h-[340px] md:h-[400px] overflow-hidden rounded-[40px] flex justify-center items-end mt-6 shadow-xl border-4 border-white">
-               <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&q=80" alt="Liva Agency Professional Live Streaming Host" loading="lazy" className="w-[140%] max-w-none h-full object-cover object-top" style={{marginLeft: '-15%'}} />
+               <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&q=80" alt="Liva Agency Professional Live Streaming Host" width="400" height="600" loading="lazy" className="w-[140%] max-w-none h-full object-cover object-top" style={{marginLeft: '-15%'}} />
             </div>
 
             {/* Arrow Badge (Top Left) */}

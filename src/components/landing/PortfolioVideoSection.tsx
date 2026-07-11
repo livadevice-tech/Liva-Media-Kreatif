@@ -133,6 +133,7 @@ export const PortfolioVideoSection = () => {
                   className="w-full h-full object-cover rounded-[40px]"
                   loop
                   playsInline
+                  preload="metadata"
                 />
               </div>
             </div>
