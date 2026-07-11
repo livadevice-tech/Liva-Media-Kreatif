@@ -42,16 +42,14 @@ export const PortfolioVideoSection = () => {
         const maxRotation = -40; 
         const rotateY = normalizedDistance * maxRotation;
         
-        // Scale: items in center are larger (1), items on edge are smaller (0.8)
-        const scale = 1 - Math.abs(normalizedDistance) * 0.2;
-        
-        // TranslateY: create an arch effect (items on edge go down instead of up to match image)
-        const translateY = Math.abs(normalizedDistance) * 60; // curve downwards
+        // Scale: items in center are larger (1), items on edge are smaller (0.85)
+        const scale = 1 - Math.abs(normalizedDistance) * 0.15;
         
         // Z-index: center items should be on top
         const zIndex = Math.round(100 - Math.abs(normalizedDistance) * 100);
 
-        item.style.transform = `perspective(1000px) rotateY(${rotateY}deg) scale(${scale}) translateY(${translateY}px)`;
+        item.style.transformOrigin = "center center";
+        item.style.transform = `perspective(1000px) rotateY(${rotateY}deg) scale(${scale})`;
         item.style.zIndex = zIndex.toString();
       });
 
