@@ -4,6 +4,7 @@ import bgHeader from '../../../public/landing-page/bg-header.png';
 
 export const HeroSection = () => {
   return (
+    <>
     <div className="w-full px-4 md:px-6 lg:px-8 max-w-[1440px] mx-auto pb-8 pt-4">
       {/* Main Rounded Container */}
       <div 
@@ -72,5 +73,24 @@ export const HeroSection = () => {
         </div>
       </div>
     </div>
+
+    {/* Running Text Banner */}
+    <div className="w-full bg-violet-600 py-3 md:py-4 overflow-hidden border-y border-violet-500">
+        <div className="flex w-max animate-marquee text-white font-bold tracking-widest text-sm md:text-base uppercase">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="flex gap-8 md:gap-16 items-center shrink-0 pr-8 md:pr-16 opacity-90">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/50"></span>
+                <span>READY 24 JAM LIVE</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-white/50"></span>
+                <span>24 JAM TEKNIKAL SUPPORT</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-white/50"></span>
+                <span>HOST PROFESIONAL</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-white/50"></span>
+                <span>OBS SISTEM</span>
+              </div>
+          ))}
+        </div>
+    </div>
+    </>
   );
 };
