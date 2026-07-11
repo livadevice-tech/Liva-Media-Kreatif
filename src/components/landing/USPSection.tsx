@@ -45,7 +45,7 @@ export const USPSection = () => {
     if (isHovered) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % uspData.length);
-    }, 5000); // rotate every 5 seconds
+    }, 2500); // rotate every 2.5 seconds
 
     return () => clearInterval(interval);
   }, [isHovered]);
@@ -82,10 +82,10 @@ export const USPSection = () => {
          onMouseLeave={() => setIsHovered(false)}
       >
         
-        {/* Left Column (Points List) */}
+        {/* Left Column (Points List) - 65% width */}
         <div 
           ref={containerRef}
-          className="lg:col-span-5 flex flex-col w-full max-h-[500px] overflow-y-auto hide-scrollbar pr-4 md:pr-8 py-4 relative"
+          className="lg:col-span-8 flex flex-col w-full max-h-[500px] overflow-y-auto hide-scrollbar pr-4 md:pr-8 py-4 relative"
           style={{ scrollBehavior: 'smooth' }}
         >
           {uspData.map((item, idx) => {
@@ -95,7 +95,7 @@ export const USPSection = () => {
                 key={idx}
                 ref={(el) => itemRefs.current[idx] = el}
                 onClick={() => setActiveIndex(idx)}
-                className={`flex flex-col gap-3 py-6 pl-6 cursor-pointer relative transition-all duration-500 border-l-[3px] ${
+                className={`flex flex-col gap-3 py-6 pl-6 cursor-pointer relative transition-all duration-500 border-l-[3px] active:scale-[0.98] ${
                   isActive ? 'border-violet-600' : 'border-slate-200 hover:border-violet-300'
                 }`}
               >
@@ -119,15 +119,15 @@ export const USPSection = () => {
           })}
         </div>
 
-        {/* Right Column (Visual) */}
-        <div className="lg:col-span-7 w-full flex justify-center lg:justify-end items-center">
+        {/* Right Column (Visual) - 35% width */}
+        <div className="lg:col-span-4 w-full flex justify-center lg:justify-end items-center">
           <div className="w-full max-w-[500px] aspect-square relative rounded-[40px] overflow-hidden bg-slate-50 border border-slate-100 shadow-xl group">
             {uspData.map((item, idx) => (
                <img 
                   key={idx}
                   src={item.image} 
                   alt={item.title} 
-                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${idx === activeIndex ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 z-0'}`}
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${idx === activeIndex ? 'opacity-100 translate-y-0 scale-100 z-10' : 'opacity-0 translate-y-8 scale-105 z-0'}`}
                />
             ))}
             {/* Subtle gradient overlay to make images look premium */}
