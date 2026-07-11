@@ -42,7 +42,7 @@ export const HeroSection = () => {
 
           {/* Right Column: Hero Image */}
           <div className="relative w-full h-[400px] md:h-[500px] lg:h-[650px] flex items-center justify-center lg:justify-end lg:pr-4 mt-8 lg:mt-0 animate-float rounded-3xl">
-             <img src="/landing-page/website-new.png" alt="Liva Agency Live Streaming Expert" width="600" height="650" fetchpriority="high" className="w-full h-full object-contain object-bottom lg:object-right-bottom drop-shadow-2xl hover:scale-105 transition-transform duration-700 origin-bottom" />
+             <img src="/landing-page/website-new.png" alt="Liva Agency Live Streaming Expert" width="600" height="650" fetchpriority="high" className="w-full h-full object-contain object-bottom md:object-center lg:object-right-bottom drop-shadow-2xl md:scale-110 lg:scale-100 hover:scale-105 md:hover:scale-[1.15] lg:hover:scale-105 transition-transform duration-700 origin-bottom md:origin-center lg:origin-bottom" />
           </div>
         </div>
 
