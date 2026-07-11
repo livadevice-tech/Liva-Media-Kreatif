@@ -5,12 +5,11 @@ export const HeroSection = () => {
   return (
     <div className="w-full px-4 md:px-6 lg:px-8 max-w-[1440px] mx-auto pb-8 pt-4">
       {/* Main Rounded Container */}
-      <div className="relative w-full rounded-[32px] md:rounded-[40px] bg-gradient-to-br from-violet-600 via-violet-600 to-indigo-800 p-8 md:p-12 lg:p-16 overflow-hidden shadow-[0_20px_50px_rgba(124,58,237,0.3)]">
+      <div 
+        className="relative w-full rounded-[32px] md:rounded-[40px] p-8 md:p-12 lg:p-16 overflow-hidden shadow-[0_20px_50px_rgba(124,58,237,0.3)] bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/landing-page/bg-header.png')" }}
+      >
         
-        {/* Background Decorative Blobs */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/30 rounded-full blur-[120px] pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-fuchsia-500/20 rounded-full blur-[100px] pointer-events-none -translate-x-1/3 translate-y-1/3"></div>
-
         {/* Content Grid */}
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center">
           
