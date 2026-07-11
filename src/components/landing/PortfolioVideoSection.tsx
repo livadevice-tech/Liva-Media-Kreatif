@@ -65,7 +65,11 @@ export const PortfolioVideoSection = () => {
       </div>
 
       {/* Carousel Wrapper */}
-      <div className="w-full relative h-[500px] flex items-center justify-center">
+      <div className="w-full relative h-[600px] flex items-center justify-center">
+         {/* Prev Button */}
+         <button onClick={handlePrev} className="absolute left-4 md:left-12 z-50 w-12 h-12 md:w-14 md:h-14 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white hidden md:flex">
+            <ChevronLeft className="w-6 h-6" />
+         </button>
         {VIDEOS.map((src, idx) => {
           let rawOffset = (idx - activeIndex) % VIDEOS.length;
           if (rawOffset > 2) rawOffset -= VIDEOS.length;
@@ -76,7 +80,7 @@ export const PortfolioVideoSection = () => {
           
           // Determine 3D transform properties based on distance from center (offset)
           const sign = Math.sign(offset);
-          const translateX = sign * (absOffset * 180 + (absOffset === 0 ? 0 : 20)); 
+          const translateX = sign * (absOffset * 220 + (absOffset === 0 ? 0 : 30)); 
           const rotateY = sign * -40; // right items rotate towards center
           const scale = 1 - absOffset * 0.15;
           const zIndex = 100 - absOffset;
@@ -88,7 +92,7 @@ export const PortfolioVideoSection = () => {
               key={idx} 
               className="absolute shrink-0 transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]"
               style={{ 
-                width: '260px', 
+                width: '320px', 
                 transform: `perspective(1000px) translateX(${translateX}px) rotateY(${rotateY}deg) scale(${scale})`,
                 zIndex,
                 opacity,
@@ -134,10 +138,14 @@ export const PortfolioVideoSection = () => {
             </div>
           );
         })}
+         {/* Next Button */}
+         <button onClick={handleNext} className="absolute right-4 md:right-12 z-50 w-12 h-12 md:w-14 md:h-14 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white hidden md:flex">
+            <ChevronRight className="w-6 h-6" />
+         </button>
       </div>
-      
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-6 mt-12 relative z-50">
+
+      {/* Mobile Controls (visible only on small screens) */}
+      <div className="flex md:hidden items-center justify-center gap-6 mt-8 relative z-50">
          <button onClick={handlePrev} className="w-12 h-12 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white">
             <ChevronLeft className="w-5 h-5" />
          </button>
