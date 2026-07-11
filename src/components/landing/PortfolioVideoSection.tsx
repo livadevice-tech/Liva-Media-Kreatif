@@ -94,7 +94,7 @@ export const PortfolioVideoSection = () => {
       <div className="w-full relative py-16" ref={containerRef}>
         <div className="flex w-max animate-marquee-horizontal hover:[animation-play-state:paused] items-center">
           {VIDEOS.map((src, idx) => (
-            <div key={idx} className="px-3 md:px-5 shrink-0" style={{ width: '280px' }}>
+            <div key={idx} className="px-1 md:px-2 shrink-0" style={{ width: '280px' }}>
               <div 
                 ref={(el) => (itemsRef.current[idx] = el)}
                 className="relative w-full aspect-[9/16] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-300 group cursor-pointer bg-slate-100"
