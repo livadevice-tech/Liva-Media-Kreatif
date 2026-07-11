@@ -15,7 +15,7 @@ export const FooterSection = ({ agencyLogoUrl }: { agencyLogoUrl: string | null 
         <div className="flex flex-col gap-6 max-w-xs">
            <div className="flex items-center gap-2 text-slate-900 mb-2 cursor-pointer" onClick={scrollToTop}>
               {agencyLogoUrl ? (
-                 <img src={agencyLogoUrl} className="object-contain h-8 md:h-10 max-w-[150px]" alt="Liva Agency Logo" />
+                 <img src={agencyLogoUrl} className="object-contain h-10 md:h-14 lg:h-16 max-w-[240px]" alt="Liva Agency Logo" />
               ) : (
                 <>
                   <Video className="w-8 h-8 text-violet-600" />

@@ -38,7 +38,7 @@ export default function App() {
           {/* Logo (Left) */}
           <div className="flex items-center gap-2 cursor-pointer justify-start">
             {agencyLogoUrl ? (
-               <img src={agencyLogoUrl} className="object-contain h-8 md:h-10 max-w-[180px]" alt="Liva Agency Logo" />
+               <img src={agencyLogoUrl} className="object-contain h-10 md:h-14 lg:h-16 max-w-[240px]" alt="Liva Agency Logo" />
             ) : (
               <>
                  <Video className="w-8 h-8 text-violet-600" />
