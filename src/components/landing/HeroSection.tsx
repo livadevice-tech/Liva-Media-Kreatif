@@ -1,5 +1,6 @@
 import React from 'react';
 import { Package } from 'lucide-react';
+import bgHeader from '../../../public/landing-page/bg-header.png';
 
 export const HeroSection = () => {
   return (
@@ -7,7 +8,7 @@ export const HeroSection = () => {
       {/* Main Rounded Container */}
       <div 
         className="relative w-full rounded-[32px] md:rounded-[40px] p-8 md:p-12 lg:p-16 overflow-hidden shadow-[0_20px_50px_rgba(124,58,237,0.3)] bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/landing-page/bg-header.png')" }}
+        style={{ backgroundImage: `url(${bgHeader})` }}
       >
         
         {/* Content Grid */}
