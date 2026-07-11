@@ -1,158 +1,138 @@
-import React, { useRef, useState } from 'react';
-import { Camera, Zap, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Camera, Zap, FileText, BarChart, ShieldCheck } from 'lucide-react';
+
+const uspData = [
+  {
+    icon: <Camera className="w-5 h-5" />,
+    title: "Peralatan Livestream Terbaik",
+    desc: "Kamera Sony ZV-E10, lighting Godox, dan set audio condenser professional memastikan tampilan brand Anda super jernih dan setara produksi TV.",
+    image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80"
+  },
+  {
+    icon: <Zap className="w-5 h-5" />,
+    title: "Advanced OBS & Visual Assets",
+    desc: "Tidak ada lagi tampilan live yang membosankan. Kami menggunakan OBS dengan floating banner, countdown, dan pop-up interaktif untuk memicu FOMO pembeli.",
+    image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80"
+  },
+  {
+    icon: <FileText className="w-5 h-5" />,
+    title: "Data-Driven Strategy & Report",
+    desc: "Kami tidak asal live. Tim kami menganalisis jam tayang terbaik, winning products, dan script yang terbukti meningkatkan GMV, lengkap dengan report harian.",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80"
+  },
+  {
+    icon: <BarChart className="w-5 h-5" />,
+    title: "Host Tersertifikasi & Interaktif",
+    desc: "Host kami telah melalui pelatihan khusus untuk memastikan penyampaian pesan brand yang tepat sasaran, interaktif, dan mampu memicu closing secara instan.",
+    image: "https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80"
+  },
+  {
+    icon: <ShieldCheck className="w-5 h-5" />,
+    title: "Dukungan Teknis & CS 24/7",
+    desc: "Jangan khawatir soal kendala teknis. Tim support kami standby memantau stabilitas koneksi, audio, dan visual dari awal hingga akhir sesi live Anda.",
+    image: "https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&q=80"
+  }
+];
 
 export const USPSection = () => {
-  const uspSliderRef = useRef<HTMLDivElement>(null);
-  const [activeUsp, setActiveUsp] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const uspData = [
-    {
-      icon: <Camera className="w-6 h-6 text-orange-500" />,
-      title: "Peralatan Livestream Terbaik",
-      desc: "Kamera Sony ZV-E10, lighting Godox, dan set audio condenser professional memastikan tampilan brand Anda super jernih dan setara produksi TV.",
-      image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80"
-    },
-    {
-      icon: <Zap className="w-6 h-6 text-fuchsia-500" />,
-      title: "Advanced OBS & Visual Assets",
-      desc: "Tidak ada lagi tampilan live yang membosankan. Kami menggunakan OBS dengan floating banner, countdown, dan pop-up interaktif untuk memicu FOMO pembeli.",
-      image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80"
-    },
-    {
-      icon: <FileText className="w-6 h-6 text-violet-500" />,
-      title: "Data-Driven Strategy & Report",
-      desc: "Kami tidak asal live. Tim kami menganalisis jam tayang terbaik, winning products, dan script yang terbukti meningkatkan GMV, lengkap dengan report harian.",
-      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80"
-    }
-  ];
+  // Auto-play logic
+  useEffect(() => {
+    if (isHovered) return;
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % uspData.length);
+    }, 5000); // rotate every 5 seconds
 
-  const handleUspScroll = () => {
-    if (uspSliderRef.current) {
-      const scrollLeft = uspSliderRef.current.scrollLeft;
-      const cardWidth = uspSliderRef.current.offsetWidth * 0.85; // approx width of one card
-      const newActive = Math.round(scrollLeft / cardWidth);
-      if (newActive !== activeUsp && newActive < uspData.length) {
-        setActiveUsp(newActive);
-      }
-    }
-  };
+    return () => clearInterval(interval);
+  }, [isHovered]);
 
-  const scrollUspTo = (index: number) => {
-    if (uspSliderRef.current) {
-      const cardWidth = uspSliderRef.current.offsetWidth * 0.85;
-      uspSliderRef.current.scrollTo({
-        left: index * cardWidth,
-        behavior: 'smooth'
+  // Scroll active item into view
+  useEffect(() => {
+    const activeItem = itemRefs.current[activeIndex];
+    if (activeItem && containerRef.current) {
+      activeItem.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
       });
-      setActiveUsp(index);
     }
-  };
+  }, [activeIndex]);
 
   return (
-    <section id="layanan" className="py-16 md:py-24 px-0 max-w-full overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col xl:flex-row gap-12 xl:gap-20">
-        <div className="w-full xl:w-[45%] shrink-0 pt-10">
-          <div className="px-4 py-1.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 font-bold text-xs mb-6 inline-block uppercase tracking-wider">
-             Kenapa Liva Agency?
-          </div>
-          <h2 className="text-3xl md:text-4xl lg:text-[40px] font-serif font-extrabold tracking-tight leading-[1.15] mb-6 text-slate-900">
-             Lebih Dari Sekadar Host, Kami Siapkan Ekosistem Terbaik
-          </h2>
-          <p className="text-slate-500 text-base md:text-lg font-medium leading-relaxed mb-8">
-             Kualitas visual dan audio yang memanjakan mata, digabung dengan interaksi host yang asik adalah kunci konversi tinggi. Liva Agency memfasilitasi semuanya.
-          </p>
-          
-          {/* Desktop Navigation dots for slider */}
-          <div className="hidden xl:flex items-center gap-3 mt-8">
-             {uspData.map((_, idx) => (
-               <button 
-                 key={idx}
-                 onClick={() => scrollUspTo(idx)}
-                 className={`h-2.5 rounded-full transition-all duration-300 ${activeUsp === idx ? 'w-10 bg-violet-600' : 'w-2.5 bg-slate-200 hover:bg-slate-300'}`}
-                 aria-label={`Go to slide ${idx + 1}`}
-               />
-             ))}
-          </div>
+    <section id="layanan" className="py-20 md:py-32 px-6 md:px-12 max-w-7xl mx-auto flex flex-col items-center">
+      
+      <div className="text-center max-w-3xl mb-16">
+         <div className="px-4 py-1.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 font-bold text-xs mb-6 inline-block uppercase tracking-wider">
+            Kenapa Liva Agency?
+         </div>
+         <h2 className="text-3xl md:text-4xl lg:text-[44px] font-serif font-extrabold tracking-tight leading-[1.15] mb-6 text-slate-900">
+            Lebih Dari Sekadar Host, Kami Siapkan Ekosistem Terbaik
+         </h2>
+         <p className="text-slate-500 text-base md:text-lg font-medium leading-relaxed">
+            Kualitas visual dan audio yang memanjakan mata, digabung dengan interaksi host yang asik adalah kunci konversi tinggi. Liva Agency memfasilitasi semuanya.
+         </p>
+      </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 mb-10 mt-10">
-            {[
-              "Host Tersertifikasi", 
-              "Studio Premium Terlengkap", 
-              "Lebih dari 200k+ Review Positif", 
-              "Dukungan CS 24/7"
-            ].map((text, i) => (
-              <div key={i} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-                <div className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0">
-                  <svg className="w-3 h-3 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+      <div 
+         className="w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start"
+         onMouseEnter={() => setIsHovered(true)}
+         onMouseLeave={() => setIsHovered(false)}
+      >
+        
+        {/* Left Column (Points List) */}
+        <div 
+          ref={containerRef}
+          className="lg:col-span-5 flex flex-col w-full max-h-[500px] overflow-y-auto hide-scrollbar pr-4 md:pr-8 py-4 relative"
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          {uspData.map((item, idx) => {
+            const isActive = idx === activeIndex;
+            return (
+              <div 
+                key={idx}
+                ref={(el) => itemRefs.current[idx] = el}
+                onClick={() => setActiveIndex(idx)}
+                className={`flex flex-col gap-3 py-6 pl-6 cursor-pointer relative transition-all duration-500 border-l-[3px] ${
+                  isActive ? 'border-violet-600' : 'border-slate-200 hover:border-violet-300'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`flex items-center justify-center rounded-xl w-10 h-10 transition-colors duration-300 shrink-0 ${isActive ? 'bg-violet-600 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
+                     {item.icon}
+                  </div>
+                  <h3 className={`text-lg md:text-xl transition-all duration-300 ${isActive ? 'font-black text-slate-900 font-serif' : 'font-semibold text-slate-400'}`}>
+                    {item.title}
+                  </h3>
                 </div>
-                {text}
+                
+                {/* Description (Expands when active) */}
+                <div className={`grid transition-all duration-500 ease-in-out ${isActive ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0'}`}>
+                   <p className="overflow-hidden text-slate-500 text-sm md:text-[15px] leading-relaxed font-medium">
+                     {item.desc}
+                   </p>
+                </div>
               </div>
-            ))}
-          </div>
-
-          <button className="bg-slate-900 text-white rounded-lg px-6 py-3.5 font-bold text-sm w-max mb-12 hover:bg-slate-800 transition-colors shadow-lg">
-            Konsultasi Live 7 Hari
-          </button>
-          
-          <div className="flex flex-wrap gap-4 md:gap-6">
-             <div className="bg-white border border-slate-100 shadow-sm rounded-xl py-4 px-6 min-w-[140px] flex-1">
-                <div className="text-xl md:text-2xl font-black text-slate-900 mb-1">1.100+</div>
-                <div className="text-xs font-semibold text-slate-500">Client partner</div>
-             </div>
-             <div className="bg-white border border-slate-100 shadow-sm rounded-xl py-4 px-6 min-w-[140px] flex-1">
-                <div className="text-xl md:text-2xl font-black text-slate-900 mb-1">200K+</div>
-                <div className="text-xs font-semibold text-slate-500">Profesional</div>
-             </div>
-             <div className="bg-white border border-slate-100 shadow-sm rounded-xl py-4 px-6 min-w-[140px] flex-1">
-                <div className="text-xl md:text-2xl font-black text-slate-900 mb-1">300+</div>
-                <div className="text-xs font-semibold text-slate-500">Tech Talent</div>
-             </div>
-          </div>
+            );
+          })}
         </div>
 
-        {/* USP Slider */}
-        <div className="w-full xl:flex-1 relative">
-           <div 
-             ref={uspSliderRef}
-             onScroll={handleUspScroll}
-             className="flex gap-6 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-10 pt-4 px-6 md:px-12 xl:px-0 -mx-6 md:-mx-12 xl:mx-0"
-           >
-              {uspData.map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="snap-center shrink-0 w-[85%] md:w-[60%] xl:w-[340px] bg-white rounded-3xl border border-slate-100 shadow-[0_10px_40px_rgb(0,0,0,0.06)] overflow-hidden group hover:-translate-y-2 transition-all duration-300"
-                >
-                   <div className="h-[220px] w-full overflow-hidden relative">
-                      <img src={item.image} alt={item.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                      <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg border border-white/50">
-                         {item.icon}
-                      </div>
-                   </div>
-                   <div className="p-8">
-                      <h3 className="font-serif font-extrabold text-xl text-slate-900 mb-3 leading-snug group-hover:text-violet-600 transition-colors">{item.title}</h3>
-                      <p className="text-slate-500 text-[15px] font-medium leading-relaxed">
-                         {item.desc}
-                      </p>
-                   </div>
-                </div>
-              ))}
-              
-              {/* Spacer for last item to snap correctly */}
-              <div className="shrink-0 w-[15%] md:w-[40%] xl:hidden"></div>
-           </div>
-           
-           {/* Mobile Navigation dots */}
-           <div className="flex xl:hidden justify-center items-center gap-3 mt-4">
-               {uspData.map((_, idx) => (
-                 <button 
-                   key={idx}
-                   onClick={() => scrollUspTo(idx)}
-                   className={`h-2 rounded-full transition-all duration-300 ${activeUsp === idx ? 'w-8 bg-violet-600' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
-                   aria-label={`Go to slide ${idx + 1}`}
-                 />
-               ))}
-           </div>
+        {/* Right Column (Visual) */}
+        <div className="lg:col-span-7 w-full h-[400px] md:h-[500px] lg:h-[600px] relative rounded-[32px] overflow-hidden bg-slate-50 border border-slate-100 shadow-xl group">
+          {uspData.map((item, idx) => (
+             <img 
+                key={idx}
+                src={item.image} 
+                alt={item.title} 
+                className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${idx === activeIndex ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 z-0'}`}
+             />
+          ))}
+          {/* Subtle gradient overlay to make images look premium */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-violet-900/20 to-transparent z-20 pointer-events-none"></div>
         </div>
+
       </div>
     </section>
   );
