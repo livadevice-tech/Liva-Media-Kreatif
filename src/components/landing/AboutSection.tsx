@@ -88,7 +88,7 @@ export const AboutSection = () => {
 
             {/* Main Woman Image */}
             <div className="relative z-10 w-[260px] md:w-[300px] h-[340px] md:h-[400px] overflow-hidden rounded-[40px] flex justify-center items-end mt-6 shadow-xl border-4 border-white">
-               <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&q=80" alt="Professional Woman" className="w-[140%] max-w-none h-full object-cover object-top" style={{marginLeft: '-15%'}} />
+               <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&q=80" alt="Professional Woman" loading="lazy" className="w-[140%] max-w-none h-full object-cover object-top" style={{marginLeft: '-15%'}} />
             </div>
 
             {/* Arrow Badge (Top Left) */}
@@ -127,7 +127,7 @@ export const AboutSection = () => {
             <div className="px-4 py-1.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 font-bold text-xs mb-6 inline-block uppercase tracking-wider">
                Tentang Liva Agency
             </div>
-            <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold leading-[1.15] mb-6 text-slate-900">
+            <h2 className="text-3xl md:text-4xl lg:text-[40px] font-serif font-extrabold leading-[1.15] mb-6 text-slate-900">
                Kamu Ngga Perlu Mikirin Optimasi Live Shopping, <span className="text-violet-600">Liva Agency Siap Bantu!</span>
             </h2>
             <p className="text-slate-500 mb-8 leading-relaxed text-[16px] max-w-xl font-medium">

@@ -5,8 +5,8 @@ export const RoadmapSection = () => {
   return (
     <section className="py-16 md:py-24 px-6 md:px-12 max-w-[1200px] mx-auto flex flex-col items-center">
       <div className="text-center mb-16">
-         <h3 className="font-bold text-sm md:text-base mb-3 text-violet-600 uppercase tracking-widest">Project Roadmap</h3>
-         <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold text-slate-900 leading-[1.15]">Alur Kerja Sama di Liva Agency</h2>
+         <h3 className="font-serif font-bold text-sm md:text-base mb-3 text-violet-600 uppercase tracking-widest">Project Roadmap</h3>
+         <h2 className="text-3xl md:text-4xl lg:text-[40px] font-serif font-extrabold text-slate-900 leading-[1.15]">Alur Kerja Sama di Liva Agency</h2>
       </div>
       
       {/* Desktop horizontal flow, Mobile vertical flow */}

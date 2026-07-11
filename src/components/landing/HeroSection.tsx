@@ -36,7 +36,7 @@ export const HeroSection = () => {
 
       <section className="relative py-12 md:py-20 px-6 md:px-12 max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-16 z-10">
         <div className="flex-1 flex flex-col items-center text-center lg:items-start lg:text-left z-10">
-          <h1 className="text-4xl md:text-[46px] lg:text-[52px] font-extrabold tracking-tight leading-[1.15] mb-6 text-slate-900">
+          <h1 className="text-4xl md:text-[46px] lg:text-[52px] font-serif font-extrabold tracking-tight leading-[1.15] mb-6 text-slate-900">
             <span className="text-violet-600 block mb-2">Capek Live Sendiri?</span>
             Biar Liva Agency Aja Yang Handle!
           </h1>

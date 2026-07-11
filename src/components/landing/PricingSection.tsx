@@ -23,7 +23,7 @@ export const PricingSection = () => {
        {/* Left text content */}
        <div className="w-full lg:w-[55%] xl:w-[60%] shrink-0">
           <div className="font-bold text-violet-600 text-xs tracking-widest uppercase mb-4">INVESTASI TERBAIK</div>
-          <h2 className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-slate-900 leading-[1.15] tracking-tight mb-6">
+          <h2 className="text-3xl md:text-4xl lg:text-[44px] font-serif font-extrabold text-slate-900 leading-[1.15] tracking-tight mb-6">
              Satu Paket Komplit,<br/>Bebas Pusing
           </h2>
           <p className="text-slate-500 text-base md:text-lg font-medium leading-relaxed mb-10">

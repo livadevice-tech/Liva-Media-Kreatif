@@ -30,7 +30,7 @@ export const FAQSection = () => {
   return (
     <section className="py-16 md:py-24 px-6 md:px-12 max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-24">
       <div className="flex-1 lg:max-w-sm mb-8 lg:mb-0">
-         <h2 className="text-4xl md:text-5xl lg:text-[48px] font-extrabold text-slate-900 mb-6 tracking-tight">FAQ</h2>
+         <h2 className="text-4xl md:text-5xl lg:text-[48px] font-serif font-extrabold text-slate-900 mb-6 tracking-tight">FAQ</h2>
          <p className="text-slate-800 font-medium text-[17px] mb-10 leading-relaxed max-w-[320px]">
            Temukan jawaban tentang bagaimana LIVA AGENCY bekerja dan apa yang bisa kami lakukan untuk Anda
          </p>

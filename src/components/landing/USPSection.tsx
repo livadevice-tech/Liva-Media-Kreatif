@@ -55,7 +55,7 @@ export const USPSection = () => {
           <div className="px-4 py-1.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 font-bold text-xs mb-6 inline-block uppercase tracking-wider">
              Kenapa Liva Agency?
           </div>
-          <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold tracking-tight leading-[1.15] mb-6 text-slate-900">
+          <h2 className="text-3xl md:text-4xl lg:text-[40px] font-serif font-extrabold tracking-tight leading-[1.15] mb-6 text-slate-900">
              Lebih Dari Sekadar Host, Kami Siapkan Ekosistem Terbaik
           </h2>
           <p className="text-slate-500 text-base md:text-lg font-medium leading-relaxed mb-8">
@@ -123,13 +123,13 @@ export const USPSection = () => {
                   className="snap-center shrink-0 w-[85%] md:w-[60%] xl:w-[340px] bg-white rounded-3xl border border-slate-100 shadow-[0_10px_40px_rgb(0,0,0,0.06)] overflow-hidden group hover:-translate-y-2 transition-all duration-300"
                 >
                    <div className="h-[220px] w-full overflow-hidden relative">
-                      <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <img src={item.image} alt={item.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                       <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg border border-white/50">
                          {item.icon}
                       </div>
                    </div>
                    <div className="p-8">
-                      <h3 className="font-extrabold text-xl text-slate-900 mb-3 leading-snug group-hover:text-violet-600 transition-colors">{item.title}</h3>
+                      <h3 className="font-serif font-extrabold text-xl text-slate-900 mb-3 leading-snug group-hover:text-violet-600 transition-colors">{item.title}</h3>
                       <p className="text-slate-500 text-[15px] font-medium leading-relaxed">
                          {item.desc}
                       </p>

@@ -4,7 +4,7 @@ export const ComparisonSection = () => {
   return (
     <section className="py-16 md:py-24 px-6 md:px-12 bg-slate-50 border-t border-slate-100 flex flex-col items-center">
        <div className="text-center mb-16 max-w-4xl mx-auto">
-          <h2 className="text-3xl md:text-4xl lg:text-[40px] font-extrabold tracking-tight leading-[1.15] mb-6 text-slate-900">
+          <h2 className="text-3xl md:text-4xl lg:text-[40px] font-serif font-extrabold tracking-tight leading-[1.15] mb-6 text-slate-900">
              Kenapa Pilih Liva Agency?
           </h2>
           <p className="text-slate-500 text-base md:text-lg font-medium leading-relaxed max-w-2xl mx-auto">
