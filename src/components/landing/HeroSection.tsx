@@ -10,6 +10,8 @@ export const HeroSection = () => {
         className="relative w-full rounded-[32px] md:rounded-[40px] p-8 md:p-12 lg:p-16 overflow-hidden shadow-[0_20px_50px_rgba(124,58,237,0.3)] bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${bgHeader})` }}
       >
+        {/* Dark overlay to make the background a bit darker purple */}
+        <div className="absolute inset-0 bg-violet-950/40 pointer-events-none"></div>
         
         {/* Content Grid */}
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center">
