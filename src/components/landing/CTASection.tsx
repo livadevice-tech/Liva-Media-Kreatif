@@ -25,7 +25,7 @@ export const CTASection = () => {
         {/* Right Content: Phone Mockup */}
         <div className="lg:w-1/2 flex justify-center lg:justify-end relative z-10 w-full h-[350px] lg:h-auto">
            {/* Phone Frame */}
-           <div className="absolute top-0 w-[260px] md:w-[300px] h-[550px] bg-slate-900 rounded-[44px] border-[6px] border-slate-900 shadow-2xl overflow-hidden -translate-y-12 lg:-translate-y-20 group-hover:-translate-y-24 transition-transform duration-700 ease-out">
+           <div className="absolute top-0 w-[260px] md:w-[300px] h-[550px] bg-slate-900 rounded-[44px] border-[6px] border-slate-900 shadow-2xl overflow-hidden -translate-y-20 lg:-translate-y-32 group-hover:-translate-y-36 transition-transform duration-700 ease-out">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900 rounded-b-xl z-20"></div> {/* Notch */}
               
               <div className="w-full h-full bg-slate-50 flex flex-col relative">
