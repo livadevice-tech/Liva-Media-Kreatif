@@ -14,7 +14,7 @@ import { FooterSection } from './components/landing/FooterSection';
 export default function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [agencyLogoUrl, setAgencyLogoUrl] = useState<string | null>(null);
+  const [agencyLogoUrl, setAgencyLogoUrl] = useState<string | null>('/logo.png');
 
   // Navbar Scroll Effect
   useEffect(() => {
