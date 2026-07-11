@@ -19,7 +19,7 @@ export const PricingSection = () => {
   };
 
   return (
-    <section id="harga" className="py-12 md:py-16 px-6 md:px-12 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
+    <section id="harga" className="py-12 md:py-16 px-6 md:px-12 max-w-7xl mx-auto flex flex-col lg:flex-row-reverse items-center gap-16 lg:gap-20">
        {/* Left text content */}
        <div className="w-full lg:w-[55%] xl:w-[60%] shrink-0">
           <div className="font-bold text-violet-600 text-xs tracking-widest uppercase mb-4">INVESTASI TERBAIK</div>
