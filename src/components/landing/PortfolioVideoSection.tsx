@@ -100,7 +100,6 @@ export const PortfolioVideoSection = () => {
             >
               <div 
                 className="relative w-full aspect-[9/16] rounded-[40px] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] group cursor-pointer bg-slate-100 h-full"
-                style={{ transformStyle: 'preserve-3d' }}
               >
                 {/* Dynamic Phone Bezel Overlay */}
                 <div 
