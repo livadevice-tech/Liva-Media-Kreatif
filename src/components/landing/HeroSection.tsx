@@ -30,7 +30,7 @@ export const HeroSection = () => {
                 placeholder="Masukkan nomor WhatsApp" 
                 className="flex-1 bg-white sm:bg-transparent px-5 py-4 text-slate-800 placeholder:text-slate-400 focus:outline-none text-sm md:text-base w-full rounded-xl sm:rounded-l-full font-medium" 
               />
-              <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto flex justify-center items-center bg-violet-600 hover:bg-violet-700 text-white rounded-xl sm:rounded-full font-bold text-sm md:text-base px-8 py-4 transition-all whitespace-nowrap shadow-md hover:shadow-lg">
+              <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto flex justify-center items-center bg-violet-600 hover:bg-violet-700 text-white rounded-xl sm:rounded-full font-bold text-sm md:text-base px-8 py-4 transition-all whitespace-nowrap shadow-md hover:shadow-lg animate-shine">
                 Go Live Sekarang
               </a>
             </div>
