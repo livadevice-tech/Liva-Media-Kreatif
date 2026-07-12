@@ -86,10 +86,10 @@ export default function App() {
              <div className="relative" ref={langDropdownRef}>
                <button 
                  onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
-                 className="flex items-center gap-1.5 px-3 py-2 text-slate-600 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                 className="flex items-center gap-1.5 text-base lg:text-lg font-normal text-slate-500 hover:text-violet-600 hover:font-bold transition-all"
                >
                  <Globe className="w-5 h-5" />
-                 <span className="font-semibold text-sm">{i18n.language.toUpperCase()}</span>
+                 <span>{i18n.language.toUpperCase()}</span>
                  <ChevronDown className={`w-4 h-4 transition-transform ${isLangDropdownOpen ? 'rotate-180' : ''}`} />
                </button>
                
