@@ -17,14 +17,19 @@ export default function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
+  const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
   const [agencyLogoUrl, setAgencyLogoUrl] = useState<string | null>('/logo.png');
   const langDropdownRef = useRef<HTMLDivElement>(null);
+  const serviceDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close language dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (langDropdownRef.current && !langDropdownRef.current.contains(event.target as Node)) {
         setIsLangDropdownOpen(false);
+      }
+      if (serviceDropdownRef.current && !serviceDropdownRef.current.contains(event.target as Node)) {
+        setIsServiceDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -70,7 +75,32 @@ export default function App() {
           {/* Desktop Menu (Center) */}
           <div className="hidden lg:flex items-center justify-center gap-8">
              <a href="/#tentang" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.tentang')}</a>
-             <a href="/#layanan" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.layanan')}</a>
+             
+             {/* Layanan Dropdown */}
+             <div className="relative group" ref={serviceDropdownRef}>
+               <button 
+                 onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
+                 className="flex items-center gap-1 text-base lg:text-lg font-normal text-slate-500 hover:text-violet-600 hover:font-bold transition-all"
+               >
+                 {t('nav.layanan')}
+                 <ChevronDown className={`w-4 h-4 transition-transform ${isServiceDropdownOpen ? 'rotate-180' : ''}`} />
+               </button>
+               
+               {isServiceDropdownOpen && (
+                 <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
+                   <a href="/#layanan" onClick={() => setIsServiceDropdownOpen(false)} className="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 transition-colors">
+                     End to end Live Streaming Service
+                   </a>
+                   <a href="/#layanan" onClick={() => setIsServiceDropdownOpen(false)} className="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 transition-colors border-t border-slate-50">
+                     Live Equipment Setup & Training
+                   </a>
+                   <a href="/#layanan" onClick={() => setIsServiceDropdownOpen(false)} className="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 transition-colors border-t border-slate-50">
+                     Live Commerce Playbook
+                   </a>
+                 </div>
+               )}
+             </div>
+
              <a href="/#harga" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.harga')}</a>
              <a href="/#portfolio" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.portfolio')}</a>
              <Link to="/blog" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.blog')}</Link>
@@ -129,7 +159,21 @@ export default function App() {
       {isMobileMenuOpen && (
          <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-sm pt-24 px-6 flex flex-col gap-6 lg:hidden overflow-y-auto pb-8">
             <a href="/#tentang" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.tentang')}</a>
-            <a href="/#layanan" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.layanan')}</a>
+            
+            <div className="py-2 border-b border-slate-100">
+               <button onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)} className="flex items-center justify-between w-full text-xl font-normal hover:font-bold text-slate-800 transition-all">
+                 {t('nav.layanan')}
+                 <ChevronDown className={`w-5 h-5 transition-transform ${isServiceDropdownOpen ? 'rotate-180' : ''}`} />
+               </button>
+               {isServiceDropdownOpen && (
+                 <div className="mt-3 pl-4 flex flex-col gap-3 border-l-2 border-violet-100">
+                   <a href="/#layanan" onClick={() => {setIsMobileMenuOpen(false); setIsServiceDropdownOpen(false);}} className="text-base text-slate-600 hover:text-violet-600">End to end Live Streaming Service</a>
+                   <a href="/#layanan" onClick={() => {setIsMobileMenuOpen(false); setIsServiceDropdownOpen(false);}} className="text-base text-slate-600 hover:text-violet-600">Live Equipment Setup & Training</a>
+                   <a href="/#layanan" onClick={() => {setIsMobileMenuOpen(false); setIsServiceDropdownOpen(false);}} className="text-base text-slate-600 hover:text-violet-600">Live Commerce Playbook</a>
+                 </div>
+               )}
+            </div>
+
             <a href="/#harga" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.harga')}</a>
             <a href="/#portfolio" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.portfolio')}</a>
             <Link to="/blog" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.blog')}</Link>
