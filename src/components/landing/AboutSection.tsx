@@ -59,16 +59,13 @@ export const AboutSection = () => {
     <>
       {/* 4. TENTANG LIVA AGENCY */}
       <section id="tentang" className="py-10 md:py-16 px-6 md:px-12 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 lg:gap-20">
-         <div className="w-full md:w-[45%] lg:w-[40%] shrink-0 relative flex justify-center items-center min-h-[460px] md:min-h-[500px]">
-            {/* Background Shape */}
-            <div className="w-[260px] md:w-[300px] h-[340px] md:h-[400px] bg-slate-50 rounded-[40px] absolute top-6 left-1/2 -translate-x-1/2 z-0"></div>
-            
+          <div className="w-full md:w-[45%] lg:w-[40%] shrink-0 relative flex justify-center items-center min-h-[460px] md:min-h-[500px]">
             {/* Outline Top Right */}
             <div className="absolute top-2 right-6 md:right-12 w-20 h-20 border-t-[3px] border-r-[3px] border-slate-200 rounded-tr-[40px] z-0"></div>
 
-            {/* Main Woman Image */}
-            <div className="relative z-10 w-[260px] md:w-[300px] h-[340px] md:h-[400px] overflow-hidden rounded-[40px] flex justify-center items-end mt-6 shadow-xl border-4 border-white">
-               <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&q=80" alt="Liva Agency Professional Live Streaming Host" width="400" height="600" loading="lazy" className="w-[140%] max-w-none h-full object-cover object-top" style={{marginLeft: '-15%'}} />
+            {/* Main Image (No Frame) */}
+            <div className="relative z-10 w-[280px] md:w-[340px] h-[360px] md:h-[440px] flex justify-center items-center mt-6">
+               <img src="/landing-page/asset2.png" alt="Liva Agency Professional Live Streaming Host" loading="lazy" className="w-full h-full object-contain drop-shadow-xl" />
             </div>
 
             {/* Arrow Badge (Top Left) */}
