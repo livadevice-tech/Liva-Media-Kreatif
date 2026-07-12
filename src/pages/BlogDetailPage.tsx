@@ -37,7 +37,7 @@ export default function BlogDetailPage() {
   // For now, we use the dummy article.
 
   return (
-    <main className="pt-24 lg:pt-32 pb-20 max-w-4xl mx-auto px-6 md:px-12">
+    <main className="pt-24 lg:pt-32 pb-20 max-w-5xl mx-auto px-6 md:px-12">
       
       {/* Back Button */}
       <Link to="/blog" className="inline-flex items-center gap-2 text-slate-500 hover:text-violet-600 font-medium mb-8 transition-colors">
