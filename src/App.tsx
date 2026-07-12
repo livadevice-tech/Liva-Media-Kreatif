@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import LandingPage from './pages/LandingPage';
 import BlogIndexPage from './pages/BlogIndexPage';
 import BlogDetailPage from './pages/BlogDetailPage';
+import CareerPage from './pages/CareerPage';
 
 import { FooterSection } from './components/landing/FooterSection';
 import { FooterSection } from './components/landing/FooterSection';
@@ -73,7 +74,7 @@ export default function App() {
              <a href="/#harga" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.harga')}</a>
              <a href="/#portfolio" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.portfolio')}</a>
              <Link to="/blog" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.blog')}</Link>
-             <a href="/#karir" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.karir')}</a>
+             <Link to="/karir" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.karir')}</Link>
              <a href="/#faq" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.faq')}</a>
           </div>
 
@@ -132,7 +133,7 @@ export default function App() {
             <a href="/#harga" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.harga')}</a>
             <a href="/#portfolio" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.portfolio')}</a>
             <Link to="/blog" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.blog')}</Link>
-            <a href="/#karir" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.karir')}</a>
+            <Link to="/karir" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.karir')}</Link>
             <a href="/#faq" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.faq')}</a>
             
             {/* Mobile Language Selector */}
@@ -161,6 +162,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/blog" element={<BlogIndexPage />} />
         <Route path="/blog/:id" element={<BlogDetailPage />} />
+        <Route path="/karir" element={<CareerPage />} />
       </Routes>
       
       <FooterSection agencyLogoUrl={agencyLogoUrl} />
