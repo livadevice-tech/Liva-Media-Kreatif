@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Video, Menu, X, Globe, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-// Import Components
-import { HeroSection } from './components/landing/HeroSection';
-import { AboutSection } from './components/landing/AboutSection';
-import { PortfolioVideoSection } from './components/landing/PortfolioVideoSection';
-import { USPSection } from './components/landing/USPSection';
-import { ComparisonSection } from './components/landing/ComparisonSection';
-import { PricingSection } from './components/landing/PricingSection';
-import { RoadmapSection } from './components/landing/RoadmapSection';
-import { FAQSection } from './components/landing/FAQSection';
-import { CTASection } from './components/landing/CTASection';
+// Import Pages
+import LandingPage from './pages/LandingPage';
+import BlogIndexPage from './pages/BlogIndexPage';
+import BlogDetailPage from './pages/BlogDetailPage';
+
+import { FooterSection } from './components/landing/FooterSection';
 import { FooterSection } from './components/landing/FooterSection';
 
 export default function App() {
@@ -71,13 +68,13 @@ export default function App() {
 
           {/* Desktop Menu (Center) */}
           <div className="hidden lg:flex items-center justify-center gap-8">
-             <a href="#tentang" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.tentang')}</a>
-             <a href="#layanan" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.layanan')}</a>
-             <a href="#harga" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.harga')}</a>
-             <a href="#portfolio" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.portfolio')}</a>
-             <a href="#blog" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.blog')}</a>
-             <a href="#karir" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.karir')}</a>
-             <a href="#faq" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.faq')}</a>
+             <a href="/#tentang" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.tentang')}</a>
+             <a href="/#layanan" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.layanan')}</a>
+             <a href="/#harga" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.harga')}</a>
+             <a href="/#portfolio" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.portfolio')}</a>
+             <Link to="/blog" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.blog')}</Link>
+             <a href="/#karir" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.karir')}</a>
+             <a href="/#faq" className="text-base lg:text-lg font-normal hover:font-bold text-slate-500 hover:text-violet-600 transition-all">{t('nav.faq')}</a>
           </div>
 
           {/* Desktop CTA & Lang Selector (Right) */}
@@ -130,13 +127,13 @@ export default function App() {
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
          <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-sm pt-24 px-6 flex flex-col gap-6 lg:hidden overflow-y-auto pb-8">
-            <a href="#tentang" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.tentang')}</a>
-            <a href="#layanan" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.layanan')}</a>
-            <a href="#harga" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.harga')}</a>
-            <a href="#portfolio" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.portfolio')}</a>
-            <a href="#blog" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.blog')}</a>
-            <a href="#karir" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.karir')}</a>
-            <a href="#faq" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.faq')}</a>
+            <a href="/#tentang" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.tentang')}</a>
+            <a href="/#layanan" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.layanan')}</a>
+            <a href="/#harga" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.harga')}</a>
+            <a href="/#portfolio" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.portfolio')}</a>
+            <Link to="/blog" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.blog')}</Link>
+            <a href="/#karir" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.karir')}</a>
+            <a href="/#faq" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-normal hover:font-bold text-slate-800 py-2 border-b border-slate-100 transition-all">{t('nav.faq')}</a>
             
             {/* Mobile Language Selector */}
             <div className="mt-4 pt-4 border-t border-slate-100">
@@ -159,24 +156,12 @@ export default function App() {
          </div>
       )}
 
-      {/* Hero Section */}
-      <div className="pt-20 lg:pt-24">
-        <HeroSection />
-      </div>
-
-      <AboutSection />
-      
-      <PortfolioVideoSection />
-      
-      <USPSection />
-      
-      <PricingSection />
-      
-      <RoadmapSection />
-      
-      <FAQSection />
-
-      <CTASection />
+      {/* Pages Content */}
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/blog" element={<BlogIndexPage />} />
+        <Route path="/blog/:id" element={<BlogDetailPage />} />
+      </Routes>
       
       <FooterSection agencyLogoUrl={agencyLogoUrl} />
 
