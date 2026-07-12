@@ -62,7 +62,7 @@ export const PricingSection = () => {
                 <div>
                    <div className="text-slate-500 font-bold mb-1 text-xs md:text-sm uppercase tracking-wide">Paket Reguler</div>
                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl md:text-4xl font-black text-slate-900">60K</span>
+                      <span className="text-3xl md:text-4xl font-black text-slate-900">65K</span>
                       <span className="text-sm font-bold text-slate-500">/Jam</span>
                    </div>
                 </div>
