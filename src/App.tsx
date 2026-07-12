@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Video, Menu, X, Globe, ChevronDown } from 'lucide-react';
+import { Video, Menu, X, Globe, ChevronDown, MonitorPlay, Settings, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 // Import Pages
@@ -87,16 +87,36 @@ export default function App() {
                </button>
                
                {isServiceDropdownOpen && (
-                 <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
-                   <a href="/#layanan" onClick={() => setIsServiceDropdownOpen(false)} className="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 transition-colors">
-                     End to end Live Streaming Service
-                   </a>
-                   <a href="/#layanan" onClick={() => setIsServiceDropdownOpen(false)} className="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 transition-colors border-t border-slate-50">
-                     Live Equipment Setup & Training
-                   </a>
-                   <a href="/#layanan" onClick={() => setIsServiceDropdownOpen(false)} className="block w-full text-left px-4 py-3 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 transition-colors border-t border-slate-50">
-                     Live Commerce Playbook
-                   </a>
+                 <div className="absolute left-0 mt-3 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                   <div className="p-2">
+                     <a href="/#layanan" onClick={() => setIsServiceDropdownOpen(false)} className="flex items-start gap-3 w-full text-left px-4 py-3 rounded-xl hover:bg-violet-50 transition-colors group">
+                       <div className="mt-0.5 bg-violet-100 text-violet-600 p-2 rounded-lg group-hover:bg-violet-600 group-hover:text-white transition-colors">
+                         <MonitorPlay className="w-5 h-5" />
+                       </div>
+                       <div>
+                         <div className="text-sm font-bold text-slate-800 group-hover:text-violet-700 transition-colors mb-0.5">End to end Live Streaming Service</div>
+                         <div className="text-xs text-slate-500">Layanan streaming komprehensif</div>
+                       </div>
+                     </a>
+                     <a href="/#layanan" onClick={() => setIsServiceDropdownOpen(false)} className="flex items-start gap-3 w-full text-left px-4 py-3 rounded-xl hover:bg-violet-50 transition-colors group mt-1">
+                       <div className="mt-0.5 bg-orange-100 text-orange-600 p-2 rounded-lg group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                         <Settings className="w-5 h-5" />
+                       </div>
+                       <div>
+                         <div className="text-sm font-bold text-slate-800 group-hover:text-violet-700 transition-colors mb-0.5">Live Equipment Setup & Training</div>
+                         <div className="text-xs text-slate-500">Pemasangan alat & pelatihan host</div>
+                       </div>
+                     </a>
+                     <a href="/#layanan" onClick={() => setIsServiceDropdownOpen(false)} className="flex items-start gap-3 w-full text-left px-4 py-3 rounded-xl hover:bg-violet-50 transition-colors group mt-1">
+                       <div className="mt-0.5 bg-blue-100 text-blue-600 p-2 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                         <BookOpen className="w-5 h-5" />
+                       </div>
+                       <div>
+                         <div className="text-sm font-bold text-slate-800 group-hover:text-violet-700 transition-colors mb-0.5">Live Commerce Playbook</div>
+                         <div className="text-xs text-slate-500">Strategi jualan live yang efektif</div>
+                       </div>
+                     </a>
+                   </div>
                  </div>
                )}
              </div>
@@ -166,10 +186,31 @@ export default function App() {
                  <ChevronDown className={`w-5 h-5 transition-transform ${isServiceDropdownOpen ? 'rotate-180' : ''}`} />
                </button>
                {isServiceDropdownOpen && (
-                 <div className="mt-3 pl-4 flex flex-col gap-3 border-l-2 border-violet-100">
-                   <a href="/#layanan" onClick={() => {setIsMobileMenuOpen(false); setIsServiceDropdownOpen(false);}} className="text-base text-slate-600 hover:text-violet-600">End to end Live Streaming Service</a>
-                   <a href="/#layanan" onClick={() => {setIsMobileMenuOpen(false); setIsServiceDropdownOpen(false);}} className="text-base text-slate-600 hover:text-violet-600">Live Equipment Setup & Training</a>
-                   <a href="/#layanan" onClick={() => {setIsMobileMenuOpen(false); setIsServiceDropdownOpen(false);}} className="text-base text-slate-600 hover:text-violet-600">Live Commerce Playbook</a>
+                 <div className="mt-3 flex flex-col gap-2">
+                   <a href="/#layanan" onClick={() => {setIsMobileMenuOpen(false); setIsServiceDropdownOpen(false);}} className="flex items-start gap-3 bg-slate-50 p-3 rounded-xl hover:bg-violet-50 transition-colors">
+                     <div className="bg-violet-100 text-violet-600 p-1.5 rounded-lg">
+                       <MonitorPlay className="w-4 h-4" />
+                     </div>
+                     <div className="flex flex-col">
+                       <span className="text-sm font-bold text-slate-800">End to end Live Streaming</span>
+                     </div>
+                   </a>
+                   <a href="/#layanan" onClick={() => {setIsMobileMenuOpen(false); setIsServiceDropdownOpen(false);}} className="flex items-start gap-3 bg-slate-50 p-3 rounded-xl hover:bg-orange-50 transition-colors">
+                     <div className="bg-orange-100 text-orange-600 p-1.5 rounded-lg">
+                       <Settings className="w-4 h-4" />
+                     </div>
+                     <div className="flex flex-col">
+                       <span className="text-sm font-bold text-slate-800">Equipment Setup & Training</span>
+                     </div>
+                   </a>
+                   <a href="/#layanan" onClick={() => {setIsMobileMenuOpen(false); setIsServiceDropdownOpen(false);}} className="flex items-start gap-3 bg-slate-50 p-3 rounded-xl hover:bg-blue-50 transition-colors">
+                     <div className="bg-blue-100 text-blue-600 p-1.5 rounded-lg">
+                       <BookOpen className="w-4 h-4" />
+                     </div>
+                     <div className="flex flex-col">
+                       <span className="text-sm font-bold text-slate-800">Commerce Playbook</span>
+                     </div>
+                   </a>
                  </div>
                )}
             </div>
