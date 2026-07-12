@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, Activity, TrendingUp, Headphones, Camera, Video, CheckCircle, Tag } from 'lucide-react';
 
 const VIDEOS = [
   "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4",
@@ -51,6 +51,7 @@ export const PortfolioVideoSection = () => {
   };
 
   return (
+    <>
     <section id="portfolio" className="py-10 md:py-16 overflow-hidden bg-gradient-to-br from-violet-900 via-violet-800 to-violet-950 relative z-10">
       <div className="text-center mb-16 px-6">
         <span className="text-violet-300 font-bold text-sm tracking-wider uppercase mb-2 block">
@@ -155,5 +156,34 @@ export const PortfolioVideoSection = () => {
          </button>
       </div>
     </section>
+
+      {/* Running Text Marquee */}
+      <div className="w-full bg-white py-4 overflow-hidden flex relative z-20 border-b border-slate-100 shadow-sm whitespace-nowrap">
+        <div className="flex items-center animate-marquee">
+          {/* First set */}
+          <div className="flex items-center gap-12 px-6">
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Star className="w-5 h-5"/> Support Creative Decoration</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Activity className="w-5 h-5"/> Dashboard Performance Live</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><TrendingUp className="w-5 h-5"/> Analysis Performance</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Headphones className="w-5 h-5"/> 24 Hours Support</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Camera className="w-5 h-5"/> Equipment Profesional</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Video className="w-5 h-5"/> 4K Camera</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><CheckCircle className="w-5 h-5"/> Ready 24 Hours</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Tag className="w-5 h-5"/> Start 45K</div>
+          </div>
+          {/* Second set for infinite scroll (duplicated) */}
+          <div className="flex items-center gap-12 px-6">
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Star className="w-5 h-5"/> Support Creative Decoration</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Activity className="w-5 h-5"/> Dashboard Performance Live</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><TrendingUp className="w-5 h-5"/> Analysis Performance</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Headphones className="w-5 h-5"/> 24 Hours Support</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Camera className="w-5 h-5"/> Equipment Profesional</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Video className="w-5 h-5"/> 4K Camera</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><CheckCircle className="w-5 h-5"/> Ready 24 Hours</div>
+             <div className="flex items-center gap-2 text-violet-600 font-bold"><Tag className="w-5 h-5"/> Start 45K</div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
