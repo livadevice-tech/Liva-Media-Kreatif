@@ -58,7 +58,7 @@ export const PricingSection = () => {
           </div>
           
           <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col lg:flex-row lg:items-center gap-6 justify-between">
-             <div className="flex flex-row gap-6 md:gap-10 items-center">
+             <div className="flex flex-row gap-4 md:gap-6 lg:gap-8 items-center flex-wrap">
                 <div>
                    <div className="text-slate-500 font-bold mb-1 text-xs md:text-sm uppercase tracking-wide">Paket Reguler</div>
                    <div className="flex items-baseline gap-1">
@@ -66,7 +66,15 @@ export const PricingSection = () => {
                       <span className="text-sm font-bold text-slate-500">/Jam</span>
                    </div>
                 </div>
-                <div className="w-px h-12 bg-slate-200"></div>
+                <div className="w-px h-12 bg-slate-200 hidden sm:block"></div>
+                <div>
+                   <div className="text-slate-500 font-bold mb-1 text-xs md:text-sm uppercase tracking-wide">Paket 12 Jam</div>
+                   <div className="flex items-baseline gap-1">
+                      <span className="text-3xl md:text-4xl font-black text-slate-900">53K</span>
+                      <span className="text-sm font-bold text-slate-500">/Jam</span>
+                   </div>
+                </div>
+                <div className="w-px h-12 bg-slate-200 hidden sm:block"></div>
                 <div>
                    <div className="text-violet-600 font-bold mb-1 text-xs md:text-sm uppercase tracking-wide">Paket 24 Jam</div>
                    <div className="flex items-baseline gap-1">
