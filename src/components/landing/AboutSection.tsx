@@ -61,26 +61,26 @@ export const AboutSection = () => {
       <section id="tentang" className="py-10 md:py-16 px-6 md:px-12 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 lg:gap-20">
           <div className="w-full md:w-[45%] lg:w-[40%] shrink-0 relative flex justify-center items-center min-h-[460px] md:min-h-[500px]">
             {/* Outline Top Right */}
-            <div className="absolute top-2 right-6 md:right-12 w-20 h-20 border-t-[3px] border-r-[3px] border-slate-200 rounded-tr-[40px] z-0"></div>
+            <div className="absolute top-0 right-4 md:right-8 w-20 h-20 border-t-[3px] border-r-[3px] border-slate-200 rounded-tr-[40px] z-0"></div>
 
             {/* Main Image (No Frame) */}
-            <div className="relative z-10 w-[280px] md:w-[340px] h-[360px] md:h-[440px] flex justify-center items-center mt-6">
+            <div className="relative z-10 w-[240px] md:w-[280px] lg:w-[320px] h-[320px] md:h-[380px] lg:h-[420px] flex justify-center items-center mt-6">
                <img src="/landing-page/asset2.png" alt="Liva Agency Professional Live Streaming Host" loading="lazy" className="w-full h-full object-contain drop-shadow-xl" />
             </div>
 
             {/* Arrow Badge (Top Left) */}
-            <div className="absolute top-10 md:top-14 left-8 md:left-6 w-12 h-12 md:w-14 md:h-14 bg-black rounded-full flex items-center justify-center shadow-lg border-[4px] border-white z-20 animate-float-delayed">
+            <div className="absolute top-8 md:top-10 left-4 md:-left-2 lg:-left-6 w-12 h-12 md:w-14 md:h-14 bg-black rounded-full flex items-center justify-center shadow-lg border-[4px] border-white z-20 animate-float-delayed">
                <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-white transform -rotate-45" />
             </div>
 
-            {/* Audience Badge (Middle Right) */}
-            <div className="absolute top-[40%] right-2 md:-right-6 bg-yellow-400 text-black px-4 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-[3px] border-white z-20 animate-float">
+            {/* Audience Badge (Top Right) */}
+            <div className="absolute top-[20%] md:top-[15%] right-0 md:-right-8 lg:-right-12 bg-yellow-400 text-black px-4 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-[3px] border-white z-20 animate-float">
                <div className="w-5 h-5 bg-black rounded flex items-center justify-center"><User className="w-3.5 h-3.5 text-white" /></div>
                Audience
             </div>
 
             {/* Total Revenue Card (Bottom Right) */}
-            <div className="absolute bottom-6 md:bottom-10 right-0 md:-right-10 bg-white p-4.5 rounded-[24px] shadow-[0_15px_40px_rgb(0,0,0,0.1)] border border-slate-50 z-20 animate-float-fast w-48 md:w-52">
+            <div className="absolute bottom-2 md:-bottom-4 right-2 md:-right-6 lg:-right-10 bg-white p-4.5 rounded-[24px] shadow-[0_15px_40px_rgb(0,0,0,0.1)] border border-slate-50 z-20 animate-float-fast w-48 md:w-52">
                <div className="flex justify-between items-start mb-2 px-4 pt-4">
                   <span className="text-[11px] font-bold text-slate-500 tracking-tight">Total Revenue</span>
                   <div className="text-slate-300 text-xs bg-slate-100 rounded-full w-4 h-4 flex justify-center items-center font-bold">?</div>
