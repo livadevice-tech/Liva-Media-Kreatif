@@ -57,15 +57,25 @@ export const PricingSection = () => {
              </div>
           </div>
           
-          <div className="mt-12 pt-10 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end gap-6">
-             <div>
-                <div className="text-slate-400 text-sm line-through font-bold mb-1">Rp 14.000.000 / bulan</div>
-                <div className="flex items-baseline gap-1">
-                   <span className="text-4xl md:text-5xl font-black text-slate-900">Rp 10</span>
-                   <span className="text-lg font-bold text-slate-500">Jt /bln</span>
+          <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col lg:flex-row lg:items-center gap-6 justify-between">
+             <div className="flex flex-row gap-6 md:gap-10 items-center">
+                <div>
+                   <div className="text-slate-500 font-bold mb-1 text-xs md:text-sm uppercase tracking-wide">Paket Reguler</div>
+                   <div className="flex items-baseline gap-1">
+                      <span className="text-3xl md:text-4xl font-black text-slate-900">60K</span>
+                      <span className="text-sm font-bold text-slate-500">/Jam</span>
+                   </div>
+                </div>
+                <div className="w-px h-12 bg-slate-200"></div>
+                <div>
+                   <div className="text-violet-600 font-bold mb-1 text-xs md:text-sm uppercase tracking-wide">Paket 24 Jam</div>
+                   <div className="flex items-baseline gap-1">
+                      <span className="text-3xl md:text-4xl font-black text-slate-900">45K</span>
+                      <span className="text-sm font-bold text-slate-500">/Jam</span>
+                   </div>
                 </div>
              </div>
-             <button className="bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl px-8 py-4 transition-colors">
+             <button className="bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl px-8 py-4 transition-colors w-full lg:w-auto text-center shrink-0">
                 Konsultasi Sekarang
              </button>
           </div>
