@@ -19,7 +19,7 @@ export const PortfolioVideoSection = () => {
     if (isHovered || playingIndex !== null) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev < VIDEOS.length - 1 ? prev + 1 : 0));
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
   }, [isHovered, playingIndex]);
 
@@ -104,7 +104,7 @@ export const PortfolioVideoSection = () => {
           return (
             <div 
               key={idx} 
-              className="absolute shrink-0 transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]"
+              className="absolute shrink-0 transition-all duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)]"
               style={{ 
                 width: '320px', 
                 transform: `perspective(1000px) translateX(${translateX}px) rotateY(${rotateY}deg) scale(${scale})`,
