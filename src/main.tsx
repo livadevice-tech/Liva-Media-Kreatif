@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './i18n';
 
 // Intercept and suppress benign Firestore WebChannel/network transport reconnection warnings and error logs in developer overlays
 const originalWarn = console.warn;
