@@ -79,15 +79,14 @@ export const AboutSection = () => {
                Audience
             </div>
 
-            {/* Total Revenue Card (Bottom Right) */}
-            <div className="absolute bottom-2 md:-bottom-4 right-2 md:-right-6 lg:-right-10 bg-white p-4.5 rounded-[24px] shadow-[0_15px_40px_rgb(0,0,0,0.1)] border border-slate-50 z-20 animate-float-fast w-48 md:w-52">
-               <div className="flex justify-between items-start mb-2 px-4 pt-4">
-                  <span className="text-[11px] font-bold text-slate-500 tracking-tight">Total Revenue</span>
-                  <div className="text-slate-300 text-xs bg-slate-100 rounded-full w-4 h-4 flex justify-center items-center font-bold">?</div>
+            <div className="absolute bottom-2 md:-bottom-4 right-2 md:-right-6 lg:-right-10 bg-white p-3 rounded-[20px] shadow-[0_15px_40px_rgb(0,0,0,0.1)] border border-slate-50 z-20 animate-float-fast w-36 md:w-40">
+               <div className="flex justify-between items-start mb-1 px-3 pt-3">
+                  <span className="text-[9px] font-bold text-slate-500 tracking-tight">Total Revenue</span>
+                  <div className="text-slate-300 text-[9px] bg-slate-100 rounded-full w-3 h-3 flex justify-center items-center font-bold">?</div>
                </div>
-               <div className="flex items-center gap-2 mb-4 px-4">
-                  <span className="text-[22px] md:text-2xl font-black text-slate-800 tracking-tight">$64,58k</span>
-                  <span className="text-[9px] font-bold text-white bg-black px-2 py-0.5 rounded-full">-14.4%</span>
+               <div className="flex items-center gap-2 mb-3 px-3">
+                  <span className="text-lg md:text-xl font-black text-slate-800 tracking-tight">200JT</span>
+                  <span className="text-[8px] font-bold text-white bg-emerald-500 px-1.5 py-0.5 rounded-full">+27%</span>
                </div>
                <div className="flex items-end gap-[6px] h-16 w-full px-4 mb-3">
                   <div className="w-full bg-violet-500 rounded-sm hover:opacity-80 transition-opacity" style={{height: '35%'}}></div>
