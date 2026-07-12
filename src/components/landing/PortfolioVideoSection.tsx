@@ -12,7 +12,16 @@ const VIDEOS = [
 export const PortfolioVideoSection = () => {
   const [activeIndex, setActiveIndex] = useState(2); // start near middle
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  useEffect(() => {
+    if (isHovered || playingIndex !== null) return;
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev < VIDEOS.length - 1 ? prev + 1 : 0));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isHovered, playingIndex]);
 
   const handlePrev = () => {
     setActiveIndex((prev) => (prev > 0 ? prev - 1 : VIDEOS.length - 1));
@@ -66,7 +75,11 @@ export const PortfolioVideoSection = () => {
       </div>
 
       {/* Carousel Wrapper */}
-      <div className="w-full relative h-[600px] flex items-center justify-center">
+      <div 
+        className="w-full relative h-[600px] flex items-center justify-center"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
          {/* Prev Button */}
          <button aria-label="Previous video" onClick={handlePrev} className="absolute left-4 md:left-12 z-50 w-12 h-12 md:w-14 md:h-14 rounded-full border border-violet-700/50 bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-sm text-white hidden md:flex focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:outline-none">
             <ChevronLeft className="w-6 h-6" />
