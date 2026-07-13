@@ -62,6 +62,10 @@ export function LiveReportMetricsSection({
     pAvgAovDb,
     conversionRateShopee,
     pConversionRateShopee,
+    totalPeakViewersDb,
+    pTotalPeakViewersDb,
+    totalShopVouchersDb,
+    pTotalShopVouchersDb,
     isShopee,
   } = stats;
 
@@ -148,6 +152,82 @@ export function LiveReportMetricsSection({
     </div>
   );
 
+  const CompactSaleMetricsShopee = () => (
+    <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
+      <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
+        <DollarSign className="h-5 w-5 text-[#5600e0]" /> Sale Metrics
+      </h4>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {!hm.includes("gmv") && (
+          <ReportMetricCard
+            label="GMV"
+            cur={totalGmvDb}
+            prev={pTotalGmvDb}
+            prefix="Rp"
+            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalGmvDb)}
+            icon={<DollarSign size={16} />}
+          />
+        )}
+        {!hm.includes("items_sold") && (
+          <ReportMetricCard
+            label="Item Sold"
+            cur={totalItemsSoldDb}
+            prev={pTotalItemsSoldDb}
+            value={new Intl.NumberFormat("id-ID").format(totalItemsSoldDb)}
+            icon={<Package size={16} />}
+          />
+        )}
+        {!hm.includes("orders") && (
+          <ReportMetricCard
+            label="Orders"
+            cur={totalOrdersDb}
+            prev={pTotalOrdersDb}
+            value={new Intl.NumberFormat("id-ID").format(totalOrdersDb)}
+            icon={<ClipboardList size={16} />}
+          />
+        )}
+        <ReportMetricCard
+          label="AOV"
+          cur={avgAovDb}
+          prev={pAvgAovDb}
+          prefix="Rp"
+          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}
+          icon={<Calculator size={16} />}
+        />
+        <ReportMetricCard
+          label="Add to Cart"
+          cur={totalClicksDb}
+          prev={pTotalClicksDb}
+          value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
+        />
+        <ReportMetricCard
+          label="Avg. View Duration"
+          cur={avgViewDurationDb}
+          prev={pAvgViewDurationDb}
+          value={`${avgViewDurationDb.toFixed(1)}s`}
+          icon={<TrendingUp size={16} />}
+        />
+        <ReportMetricCard
+          label="Viewer Active"
+          cur={totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0}
+          prev={pTotalSessionsDb > 0 ? pTotalDbLiveVisits / pTotalSessionsDb : 0}
+          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0)}
+          icon={<Users size={16} />}
+        />
+        {!hm.includes("est_income") && (
+          <ReportMetricCard
+            label="GMV/Hours"
+            cur={gmvPerHour}
+            prev={pGmvPerHour}
+            prefix="Rp"
+            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(gmvPerHour)}
+            icon={<Clock size={16} />}
+          />
+        )}
+      </div>
+    </div>
+  );
+
   const EngagementMetricsBlock = () => {
     if (hideEngagementMetrics || hm.includes("engagement")) return null;
     return (
@@ -197,12 +277,77 @@ export function LiveReportMetricsSection({
     );
   };
 
+  const EngagementMetricsBlockShopee = () => {
+    if (hideEngagementMetrics || hm.includes("engagement")) return null;
+    
+    const errCur = totalDbImpressions > 0 ? ((totalLikesDb + totalCommentsDb + totalSharesDb) / totalDbImpressions) * 100 : 0;
+    const pErrCur = pTotalDbImpressions > 0 ? ((pTotalLikesDb + pTotalCommentsDb + pTotalSharesDb) / pTotalDbImpressions) * 100 : 0;
+
+    return (
+      <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6 mt-6">
+        <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
+          <Users className="h-5 w-5 text-[#5600e0]" /> Engagement & Customer Metrics
+        </h4>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <ReportMetricCard
+            label="View"
+            cur={totalDbImpressions}
+            prev={pTotalDbImpressions}
+            value={new Intl.NumberFormat("id-ID").format(totalDbImpressions)}
+          />
+          <ReportMetricCard
+            label="Peak Viewer"
+            cur={totalPeakViewersDb}
+            prev={pTotalPeakViewersDb}
+            value={new Intl.NumberFormat("id-ID").format(totalPeakViewersDb)}
+          />
+          <ReportMetricCard
+            label="Voucher Claim"
+            cur={totalShopVouchersDb}
+            prev={pTotalShopVouchersDb}
+            value={new Intl.NumberFormat("id-ID").format(totalShopVouchersDb)}
+          />
+          <ReportMetricCard
+            label="Customer"
+            cur={totalBuyersDb}
+            prev={pTotalBuyersDb}
+            value={new Intl.NumberFormat("id-ID").format(totalBuyersDb)}
+          />
+          <ReportMetricCard
+            label="Likes"
+            cur={totalLikesDb}
+            prev={pTotalLikesDb}
+            value={new Intl.NumberFormat("id-ID").format(totalLikesDb)}
+          />
+          <ReportMetricCard
+            label="Comments"
+            cur={totalCommentsDb}
+            prev={pTotalCommentsDb}
+            value={new Intl.NumberFormat("id-ID").format(totalCommentsDb)}
+          />
+          <ReportMetricCard
+            label="Shares"
+            cur={totalSharesDb}
+            prev={pTotalSharesDb}
+            value={new Intl.NumberFormat("id-ID").format(totalSharesDb)}
+          />
+          <ReportMetricCard
+            label="ERR %"
+            cur={errCur}
+            prev={pErrCur}
+            value={`${errCur.toFixed(2)}%`}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {useShopeeStyle ? (
         <>
           {/* Shopee Live: Sale Metrics compact grid */}
-          <CompactSaleMetrics />
+          <CompactSaleMetricsShopee />
 
           {/* Funnel visualization */}
           {totalDbImpressions > 0 && (
@@ -244,7 +389,7 @@ export function LiveReportMetricsSection({
             />
           )}
 
-          <EngagementMetricsBlock />
+          <EngagementMetricsBlockShopee />
         </>
       ) : (
         <>

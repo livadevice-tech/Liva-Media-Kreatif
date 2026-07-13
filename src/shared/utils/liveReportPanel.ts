@@ -36,6 +36,10 @@ export interface LiveReportPanelStats {
   pAvgAovDb: number;
   conversionRateShopee: number;
   pConversionRateShopee: number;
+  totalPeakViewersDb: number;
+  pTotalPeakViewersDb: number;
+  totalShopVouchersDb: number;
+  pTotalShopVouchersDb: number;
   isShopee: boolean;
 }
 
@@ -80,6 +84,8 @@ export function buildLiveReportPanelData(
   const totalCommentsDb = sum(tableLogs, (item) => item.comments || 0);
   const totalSharesDb = sum(tableLogs, (item) => item.shares || 0);
   const totalClicksDb = sum(tableLogs, (item) => item.clicks || 0);
+  const totalPeakViewersDb = sum(tableLogs, (item) => item.peakViewers || 0);
+  const totalShopVouchersDb = sum(tableLogs, (item) => item.shopVouchers || 0);
   const avgViewDurationDb =
     totalSessionsDb > 0
       ? sum(tableLogs, (item) => item.avgViewDuration || 0) / totalSessionsDb
@@ -94,6 +100,8 @@ export function buildLiveReportPanelData(
   const pTotalCommentsDb = sum(prevTableLogs, (item) => item.comments || 0);
   const pTotalSharesDb = sum(prevTableLogs, (item) => item.shares || 0);
   const pTotalClicksDb = sum(prevTableLogs, (item) => item.clicks || 0);
+  const pTotalPeakViewersDb = sum(prevTableLogs, (item) => item.peakViewers || 0);
+  const pTotalShopVouchersDb = sum(prevTableLogs, (item) => item.shopVouchers || 0);
   const pAvgViewDurationDb =
     prevTableLogs.length > 0
       ? sum(prevTableLogs, (item) => item.avgViewDuration || 0) / prevTableLogs.length
@@ -188,6 +196,10 @@ export function buildLiveReportPanelData(
     pAvgAovDb,
     conversionRateShopee,
     pConversionRateShopee,
+    totalPeakViewersDb,
+    pTotalPeakViewersDb,
+    totalShopVouchersDb,
+    pTotalShopVouchersDb,
     isShopee,
   };
 
