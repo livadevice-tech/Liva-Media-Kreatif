@@ -563,13 +563,6 @@ export function ReportingWorkspaceTabs({
       </button>
       <button
         type="button"
-        onClick={() => onTabChange("engagement")}
-        className={tabClass("engagement")}
-      >
-        Engagement & Promotion
-      </button>
-      <button
-        type="button"
         onClick={() => onTabChange("product")}
         className={tabClass("product")}
       >
