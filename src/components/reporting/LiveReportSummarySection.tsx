@@ -29,8 +29,18 @@ export function LiveReportSummarySection({
   useShopeeLiveLayout = false,
   brandDashboardSettings,
 }: LiveReportSummarySectionProps) {
+  const isShopeeStyle = stats.isShopee || useShopeeLiveLayout;
+
   return (
     <div className="space-y-6 mb-6">
+      {isShopeeStyle && chartData.length > 0 && (
+        <LiveReportChartSection
+          chartData={chartData}
+          chartSelectedMetrics={chartSelectedMetrics}
+          onChartSelectedMetricsChange={onChartSelectedMetricsChange}
+        />
+      )}
+
       <LiveReportMetricsSection
         stats={stats}
         periodLabel={periodLabel}
@@ -38,7 +48,8 @@ export function LiveReportSummarySection({
         useShopeeLiveLayout={useShopeeLiveLayout}
         brandDashboardSettings={brandDashboardSettings}
       />
-      {chartData.length > 0 && (
+
+      {!isShopeeStyle && chartData.length > 0 && (
         <LiveReportChartSection
           chartData={chartData}
           chartSelectedMetrics={chartSelectedMetrics}
