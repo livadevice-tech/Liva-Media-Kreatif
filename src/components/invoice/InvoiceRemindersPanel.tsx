@@ -98,11 +98,11 @@ export const InvoiceRemindersPanel: React.FC<InvoiceRemindersPanelProps> = ({
                   ) : (
                     <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-2">
                       <p className="text-[11px] text-amber-800 font-medium">
-                        <strong>Menunggu Hari H.</strong> Sistem akan otomatis mengirim pada tgl {b.invoiceDate} (Atau jika ada invoice yang jatuh tempo hari ini).
+                        <strong>Menunggu Hari H.</strong> Sistem akan otomatis mengirim notifikasi ke tim internal pada tgl {b.invoiceDate} (Atau jika ada invoice yang jatuh tempo hari ini).
                       </p>
                     </div>
                   )}
-                  <p className="text-xs text-slate-500 mb-2">Penerima: <span className="font-mono font-bold">{b.picEmail || globalPicEmail || "admin1@liva-agency.com, admin2@liva.com"}</span></p>
+                  <p className="text-xs text-slate-500 mb-2">Penerima (Internal): <span className="font-mono font-bold">{globalPicEmail || "admin1@liva-agency.com, admin2@liva.com"}</span></p>
                   <button
                     type="button"
                     onClick={async (e) => {
@@ -115,12 +115,12 @@ export const InvoiceRemindersPanel: React.FC<InvoiceRemindersPanelProps> = ({
                         const data = await onSendReminder({
                           brandName: b.name,
                           invoiceDate: b.invoiceDate,
-                          toEmails: b.picEmail || globalPicEmail || "admin1@liva-agency.com, admin2@liva.com",
+                          toEmails: globalPicEmail || "admin1@liva-agency.com, admin2@liva.com",
                           amount: b.amount || 0,
                           invoiceNumber: "AUTO-TEST",
                         });
                         if (data.success) {
-                          alert("✅ Sukses! Bukti sistem otomatis berhasil mengirimkan ke: " + (b.picEmail || globalPicEmail || "admin1@liva-agency.com"));
+                          alert("✅ Sukses! Bukti sistem otomatis berhasil mengirimkan ke (Internal): " + (globalPicEmail || "admin1@liva-agency.com"));
                         } else {
                           alert("❌ Gagal: " + (data.details || data.error));
                         }
