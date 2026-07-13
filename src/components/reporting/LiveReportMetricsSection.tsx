@@ -148,6 +148,55 @@ export function LiveReportMetricsSection({
     </div>
   );
 
+  const EngagementMetricsBlock = () => {
+    if (hideEngagementMetrics || hm.includes("engagement")) return null;
+    return (
+      <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6 mt-6">
+        <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
+          <Users className="h-5 w-5 text-[#5600e0]" /> Engagement Metrics
+        </h4>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+          <ReportMetricCard
+            label="Likes"
+            cur={totalLikesDb}
+            prev={pTotalLikesDb}
+            value={new Intl.NumberFormat("id-ID").format(totalLikesDb)}
+          />
+          <ReportMetricCard
+            label="Comments"
+            cur={totalCommentsDb}
+            prev={pTotalCommentsDb}
+            value={new Intl.NumberFormat("id-ID").format(totalCommentsDb)}
+          />
+          <ReportMetricCard
+            label="Shares"
+            cur={totalSharesDb}
+            prev={pTotalSharesDb}
+            value={new Intl.NumberFormat("id-ID").format(totalSharesDb)}
+          />
+          <ReportMetricCard
+            label="Product Clicks"
+            cur={totalClicksDb}
+            prev={pTotalClicksDb}
+            value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
+          />
+          <ReportMetricCard
+            label="Avg. View Duration"
+            cur={avgViewDurationDb}
+            prev={pAvgViewDurationDb}
+            value={`${Math.round(avgViewDurationDb)} detik`}
+          />
+          <ReportMetricCard
+            label="Rata-rata Penonton"
+            cur={totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0}
+            prev={pTotalSessionsDb > 0 ? pTotalDbLiveVisits / pTotalSessionsDb : 0}
+            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0)}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {useShopeeStyle ? (
@@ -194,57 +243,15 @@ export function LiveReportMetricsSection({
               ]}
             />
           )}
+
+          <EngagementMetricsBlock />
         </>
       ) : (
         <>
           {/* TikTok / non-Shopee: compact grid, same style */}
           <CompactSaleMetrics />
 
-          {!hideEngagementMetrics && !hm.includes("engagement") && (
-            <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
-              <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
-                <Users className="h-5 w-5 text-[#5600e0]" /> Engagement Metrics
-              </h4>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
-                <ReportMetricCard
-                  label="Likes"
-                  cur={totalLikesDb}
-                  prev={pTotalLikesDb}
-                  value={new Intl.NumberFormat("id-ID").format(totalLikesDb)}
-                />
-                <ReportMetricCard
-                  label="Comments"
-                  cur={totalCommentsDb}
-                  prev={pTotalCommentsDb}
-                  value={new Intl.NumberFormat("id-ID").format(totalCommentsDb)}
-                />
-                <ReportMetricCard
-                  label="Shares"
-                  cur={totalSharesDb}
-                  prev={pTotalSharesDb}
-                  value={new Intl.NumberFormat("id-ID").format(totalSharesDb)}
-                />
-                <ReportMetricCard
-                  label="Product Clicks"
-                  cur={totalClicksDb}
-                  prev={pTotalClicksDb}
-                  value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
-                />
-                <ReportMetricCard
-                  label="Avg. View Duration"
-                  cur={avgViewDurationDb}
-                  prev={pAvgViewDurationDb}
-                  value={`${Math.round(avgViewDurationDb)} detik`}
-                />
-                <ReportMetricCard
-                  label="Rata-rata Penonton"
-                  cur={totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0}
-                  prev={pTotalSessionsDb > 0 ? pTotalDbLiveVisits / pTotalSessionsDb : 0}
-                  value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0)}
-                />
-              </div>
-            </div>
-          )}
+          <EngagementMetricsBlock />
         </>
       )}
     </div>
