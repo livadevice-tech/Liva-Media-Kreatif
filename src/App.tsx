@@ -2860,7 +2860,7 @@ export default function App() {
               date: row.date,
               dateTime: row.dateTime || row.date,
               uploadedAt: new Date().toISOString(),
-              reportType: uploadTargetTab,
+              reportType: "live", // Always save as live so it shows in Live Dashboard
             };
 
             if (isEngagement) {
@@ -2875,6 +2875,7 @@ export default function App() {
               record.shopVouchers = Number(row.shopVouchers || 0);
               record.specialVouchers = Number(row.specialVouchers || 0);
               record.coinsClaimed = Number(row.coinsClaimed || 0);
+              record.buyers = Number(row.buyers || 0); // Customer mapping
             } else {
               record.shift = row.shift || "Shift Lainnya";
               record.duration = Number(row.duration || 0);
