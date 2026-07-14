@@ -99,15 +99,6 @@ export function LiveReportMetricsSection({
             icon={<Package size={16} />}
           />
         )}
-        {!isMetricHidden("viewers") && (
-          <ReportMetricCard
-            label="Customers"
-            cur={totalBuyersDb}
-            prev={pTotalBuyersDb}
-            value={new Intl.NumberFormat("id-ID").format(totalBuyersDb)}
-            icon={<Users size={16} />}
-          />
-        )}
         {!isMetricHidden("orders") && (
           <ReportMetricCard
             label="Orders"
@@ -117,6 +108,35 @@ export function LiveReportMetricsSection({
             icon={<ClipboardList size={16} />}
           />
         )}
+        <ReportMetricCard
+          label="AOV"
+          cur={avgAovDb}
+          prev={pAvgAovDb}
+          prefix="Rp"
+          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}
+          icon={<Calculator size={16} />}
+        />
+        {!isMetricHidden("viewers") && (
+          <ReportMetricCard
+            label="Customer"
+            cur={totalBuyersDb}
+            prev={pTotalBuyersDb}
+            value={new Intl.NumberFormat("id-ID").format(totalBuyersDb)}
+            icon={<Users size={16} />}
+          />
+        )}
+        <ReportMetricCard
+          label="Product Impressions"
+          cur={stats.totalProductImpressions || 0}
+          prev={stats.pTotalProductImpressions || 0}
+          value={new Intl.NumberFormat("id-ID").format(stats.totalProductImpressions || 0)}
+        />
+        <ReportMetricCard
+          label="Product clicks"
+          cur={totalClicksDb}
+          prev={pTotalClicksDb}
+          value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
+        />
         {!isMetricHidden("est_income") && (
           <ReportMetricCard
             label="GMV/Hours"
@@ -127,28 +147,6 @@ export function LiveReportMetricsSection({
             icon={<Clock size={16} />}
           />
         )}
-        <ReportMetricCard
-          label="Conversion %"
-          cur={conversionRateShopee}
-          prev={pConversionRateShopee}
-          value={`${conversionRateShopee.toFixed(2)}%`}
-          icon={<Percent size={16} />}
-        />
-        <ReportMetricCard
-          label="AOV"
-          cur={avgAovDb}
-          prev={pAvgAovDb}
-          prefix="Rp"
-          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}
-          icon={<Calculator size={16} />}
-        />
-        <ReportMetricCard
-          label="Avg. View Duration"
-          cur={avgViewDurationDb}
-          prev={pAvgViewDurationDb}
-          value={`${avgViewDurationDb.toFixed(1)}s`}
-          icon={<TrendingUp size={16} />}
-        />
       </div>
     </div>
   );
@@ -231,12 +229,27 @@ export function LiveReportMetricsSection({
 
   const EngagementMetricsBlock = () => {
     if (hideEngagementMetrics || isMetricHidden("engagement")) return null;
+    const errCur = totalDbImpressions > 0 ? ((totalLikesDb + totalCommentsDb + totalSharesDb) / totalDbImpressions) * 100 : 0;
+    const pErrCur = pTotalDbImpressions > 0 ? ((pTotalLikesDb + pTotalCommentsDb + pTotalSharesDb) / pTotalDbImpressions) * 100 : 0;
+
     return (
       <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6 mt-6">
         <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
           <Users className="h-5 w-5 text-[#5600e0]" /> Engagement Metrics
         </h4>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <ReportMetricCard
+            label="Live Impressions"
+            cur={totalDbImpressions}
+            prev={pTotalDbImpressions}
+            value={new Intl.NumberFormat("id-ID").format(totalDbImpressions)}
+          />
+          <ReportMetricCard
+            label="Viewer"
+            cur={stats.totalPenontonDb || 0}
+            prev={stats.pTotalPenontonDb || 0}
+            value={new Intl.NumberFormat("id-ID").format(stats.totalPenontonDb || 0)}
+          />
           <ReportMetricCard
             label="Likes"
             cur={totalLikesDb}
@@ -256,22 +269,22 @@ export function LiveReportMetricsSection({
             value={new Intl.NumberFormat("id-ID").format(totalSharesDb)}
           />
           <ReportMetricCard
-            label="Product Clicks"
-            cur={totalClicksDb}
-            prev={pTotalClicksDb}
-            value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
+            label="New followers"
+            cur={stats.totalFollowersDb || 0}
+            prev={stats.pTotalFollowersDb || 0}
+            value={new Intl.NumberFormat("id-ID").format(stats.totalFollowersDb || 0)}
           />
           <ReportMetricCard
             label="Avg. View Duration"
             cur={avgViewDurationDb}
             prev={pAvgViewDurationDb}
-            value={`${Math.round(avgViewDurationDb)} detik`}
+            value={`${avgViewDurationDb.toFixed(1)}s`}
           />
           <ReportMetricCard
-            label="Rata-rata Penonton"
-            cur={totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0}
-            prev={pTotalSessionsDb > 0 ? pTotalDbLiveVisits / pTotalSessionsDb : 0}
-            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0)}
+            label="ERR %"
+            cur={errCur}
+            prev={pErrCur}
+            value={`${errCur.toFixed(2)}%`}
           />
         </div>
       </div>
@@ -396,6 +409,46 @@ export function LiveReportMetricsSection({
         <>
           {/* TikTok / non-Shopee: compact grid, same style */}
           <CompactSaleMetrics />
+
+          {/* Funnel visualization */}
+          {totalDbImpressions > 0 && (
+            <HorizontalFunnel
+              title=""
+              subtitle=""
+              steps={[
+                {
+                  label: "Views",
+                  value: new Intl.NumberFormat("id-ID").format(totalDbImpressions),
+                  raw: totalDbImpressions,
+                },
+                {
+                  label: "Product clicks",
+                  value: new Intl.NumberFormat("id-ID").format(totalDbClicks),
+                  raw: totalDbClicks,
+                },
+                {
+                  label: "Attributed orders",
+                  value: new Intl.NumberFormat("id-ID").format(totalDbOrdersFunnel),
+                  raw: totalDbOrdersFunnel,
+                },
+                {
+                  label: "Convertion Rate",
+                  value:
+                    totalDbClicks > 0
+                      ? `${((totalDbOrdersFunnel / totalDbClicks) * 100).toFixed(2)}%`
+                      : totalDbImpressions > 0
+                        ? `${((totalDbOrdersFunnel / totalDbImpressions) * 100).toFixed(4)}%`
+                        : "0.00%",
+                  raw:
+                    totalDbClicks > 0
+                      ? (totalDbOrdersFunnel / totalDbClicks) * 100
+                      : totalDbImpressions > 0
+                        ? (totalDbOrdersFunnel / totalDbImpressions) * 100
+                        : 0,
+                },
+              ]}
+            />
+          )}
 
           <EngagementMetricsBlock />
         </>

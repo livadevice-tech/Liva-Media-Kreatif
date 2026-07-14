@@ -94,6 +94,13 @@ export function LiveReportPanel({
     setReportDbSortAsc(nextSort.sortAsc);
   };
 
+  const hasAnyData = brandPerformanceLogs.some(
+    (log) =>
+      log.brandId === activeReportBrandId &&
+      log.platform === operatorPlatformFilter &&
+      log.reportType !== "engagement"
+  );
+
   return (
     <div className="space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
       <LiveReportSummarySection
@@ -106,6 +113,7 @@ export function LiveReportPanel({
         useShopeeLiveLayout={isTikTokLive}
         brandDashboardSettings={brandDashboardSettings}
         isShopee={!isTikTokLive}
+        hasData={hasAnyData}
       />
 
       <ReportRawSessionsCard
