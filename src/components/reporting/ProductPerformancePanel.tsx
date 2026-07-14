@@ -2,6 +2,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { SkuUploadHistoryCard } from "./SkuUploadHistoryCard";
 import { buildProductPerformanceViewModel } from "../../shared/utils/productPerformanceViewModel";
 import type { BrandPerformanceLogEntry, SkuLogEntry } from "../../shared/types/reporting";
+import type { BrandDashboardSettings } from "../../types";
 
 type ProductPerformancePanelProps = {
   shopeeSkuLogs: SkuLogEntry[];
@@ -26,6 +27,7 @@ type ProductPerformancePanelProps = {
   itemsPerPage: number;
   setCurrentPage: (value: number | ((prev: number) => number)) => void;
   onDeleteBatch: (batchId: string) => void;
+  brandDashboardSettings?: BrandDashboardSettings;
 };
 
 export function ProductPerformancePanel({
@@ -51,6 +53,7 @@ export function ProductPerformancePanel({
   itemsPerPage,
   setCurrentPage,
   onDeleteBatch,
+  brandDashboardSettings,
 }: ProductPerformancePanelProps) {
   const { currentSkus, aggregatedSkus, totalSold } =
     buildProductPerformanceViewModel({
@@ -66,6 +69,12 @@ export function ProductPerformancePanel({
     operatorShiftFilters,
     reportDbSearchQuery,
   });
+
+  const isShopee = operatorPlatformFilter.toLowerCase() !== "tiktok";
+  const hm = brandDashboardSettings?.hiddenMetrics || [];
+  const hc = brandDashboardSettings?.hiddenColumns || [];
+  const isMetricHidden = (id: string) => hm.includes(isShopee ? `shopee_product_${id}` : `tiktok_product_${id}`);
+  const isColumnHidden = (id: string) => hc.includes(isShopee ? `shopee_product_${id}` : `tiktok_product_${id}`);
 
   if (currentSkus.length === 0) {
     return (
@@ -115,12 +124,14 @@ export function ProductPerformancePanel({
           <p className="text-[10px] sm:text-xs text-slate-500 font-semibold -mt-1">
             Distribusi revenue dan penjualan per SKU
           </p>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="inline-flex items-center rounded-full border border-[#e6dff8] bg-[#faf8ff] px-3 py-1.5 text-xs font-bold text-[#5600e0]">
-              Total Item Sold:{" "}
-              {new Intl.NumberFormat("id-ID").format(totalSold)}
+          {!isMetricHidden("items_sold") && (
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="inline-flex items-center rounded-full border border-[#e6dff8] bg-[#faf8ff] px-3 py-1.5 text-xs font-bold text-[#5600e0]">
+                Total Item Sold:{" "}
+                {new Intl.NumberFormat("id-ID").format(totalSold)}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="overflow-x-auto max-h-[500px] overflow-y-auto rounded-[18px] border border-[#ece7f7] custom-scrollbar">
@@ -133,27 +144,30 @@ export function ProductPerformancePanel({
                 <th className="px-5 py-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
                   SKU
                 </th>
-                <th
-                  className="px-5 py-4 w-32 cursor-pointer hover:bg-slate-100 transition-colors"
-                  onClick={() => {
-                    if (skuSortCol === "sold") setSkuSortAsc(!skuSortAsc);
-                    else {
-                      setSkuSortCol("sold");
-                      setSkuSortAsc(false);
-                    }
-                  }}
-                >
-                  <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
-                    Sold
-                    {skuSortCol === "sold" &&
-                      (skuSortAsc ? (
-                        <ChevronUp className="w-3 h-3" />
-                      ) : (
-                        <ChevronDown className="w-3 h-3" />
-                      ))}
-                  </div>
-                </th>
-                <th
+                {!isColumnHidden("items_sold") && (
+                  <th
+                    className="px-5 py-4 w-32 cursor-pointer hover:bg-slate-100 transition-colors"
+                    onClick={() => {
+                      if (skuSortCol === "sold") setSkuSortAsc(!skuSortAsc);
+                      else {
+                        setSkuSortCol("sold");
+                        setSkuSortAsc(false);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center justify-end gap-1 text-slate-500 font-semibold text-xs tracking-widest uppercase">
+                      Sold
+                      {skuSortCol === "sold" &&
+                        (skuSortAsc ? (
+                          <ChevronUp className="w-3 h-3" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3" />
+                        ))}
+                    </div>
+                  </th>
+                )}
+                {!isColumnHidden("revenue") && (
+                  <th
                   className="px-5 py-4 w-40 cursor-pointer hover:bg-slate-100 transition-colors"
                   onClick={() => {
                     if (skuSortCol === "revenue") setSkuSortAsc(!skuSortAsc);
@@ -173,6 +187,7 @@ export function ProductPerformancePanel({
                       ))}
                   </div>
                 </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white text-sm font-semibold text-slate-700">
@@ -186,12 +201,16 @@ export function ProductPerformancePanel({
                       {sku.productName}
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-right text-emerald-600 font-black">
-                    {new Intl.NumberFormat("id-ID").format(sku.sold)}
-                  </td>
-                  <td className="px-5 py-3 text-right text-slate-800 font-black">
-                    Rp {new Intl.NumberFormat("id-ID").format(sku.revenue)}
-                  </td>
+                  {!isColumnHidden("items_sold") && (
+                    <td className="px-5 py-3 text-right text-emerald-600 font-black">
+                      {new Intl.NumberFormat("id-ID").format(sku.sold)}
+                    </td>
+                  )}
+                  {!isColumnHidden("revenue") && (
+                    <td className="px-5 py-3 text-right text-slate-800 font-black">
+                      Rp {new Intl.NumberFormat("id-ID").format(sku.revenue)}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

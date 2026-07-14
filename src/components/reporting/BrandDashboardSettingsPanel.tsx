@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ClientBrand } from '../../types';
 
 interface BrandDashboardSettingsPanelProps {
@@ -6,14 +6,96 @@ interface BrandDashboardSettingsPanelProps {
   onUpdateBrand: (updatedBrand: ClientBrand) => void;
 }
 
+const CATEGORIES = [
+  { id: 'live', label: 'Live Report' },
+  { id: 'product', label: 'Product / SKU Report' },
+  { id: 'engagement', label: 'Engagement Report' },
+];
+
+const METRICS_BY_CATEGORY = {
+  live: [
+    { id: "gmv", label: "GMV" },
+    { id: "orders", label: "Pesanan (Orders)" },
+    { id: "items_sold", label: "Produk Terjual" },
+    { id: "est_income", label: "Estimasi Pendapatan" },
+    { id: "viewers", label: "Total Penonton" },
+    { id: "engagement", label: "Engagement (Likes/Share/Komen)" },
+  ],
+  product: [
+    { id: "items_sold", label: "Produk Terjual" },
+    { id: "revenue", label: "Revenue" },
+  ],
+  engagement: [
+    { id: "views", label: "Views" },
+    { id: "likes", label: "Likes" },
+    { id: "comments", label: "Comments" },
+    { id: "shares", label: "Shares" },
+    { id: "engagement_rate", label: "Engagement Rate" },
+  ]
+};
+
+const COLUMNS_BY_CATEGORY = {
+  live: [
+    { id: "gmv", label: "GMV" },
+    { id: "orders", label: "Pesanan" },
+    { id: "items_sold", label: "Item Terjual" },
+    { id: "est_income", label: "Est. Pendapatan" },
+    { id: "viewers", label: "Penonton" },
+    { id: "engagement", label: "Engagement" },
+  ],
+  product: [
+    { id: "items_sold", label: "Item Terjual" },
+    { id: "revenue", label: "Revenue" },
+  ],
+  engagement: [
+    { id: "views", label: "Views" },
+    { id: "likes", label: "Likes" },
+    { id: "comments", label: "Comments" },
+    { id: "shares", label: "Shares" },
+    { id: "engagement_rate", label: "Engagement Rate" },
+  ]
+};
+
 export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelProps> = ({
   brand,
   onUpdateBrand
 }) => {
+  const [activePlatform, setActivePlatform] = useState<'shopee' | 'tiktok'>('shopee');
+
+  const toggleMetric = (metricId: string) => {
+    const hiddenMetrics = brand.dashboardSettings?.hiddenMetrics || [];
+    const newMetrics = hiddenMetrics.includes(metricId)
+      ? hiddenMetrics.filter((id) => id !== metricId)
+      : [...hiddenMetrics, metricId];
+    
+    onUpdateBrand({
+      ...brand,
+      dashboardSettings: {
+        ...(brand.dashboardSettings || { hiddenColumns: [] }),
+        hiddenMetrics: newMetrics,
+      },
+    });
+  };
+
+  const toggleColumn = (colId: string) => {
+    const hiddenCols = brand.dashboardSettings?.hiddenColumns || [];
+    const newCols = hiddenCols.includes(colId)
+      ? hiddenCols.filter((id) => id !== colId)
+      : [...hiddenCols, colId];
+    
+    onUpdateBrand({
+      ...brand,
+      dashboardSettings: {
+        ...(brand.dashboardSettings || { hiddenMetrics: [] }),
+        hiddenColumns: newCols,
+      },
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6">
-      <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-        <div className="border-b border-slate-100 pb-4">
+      <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
           <h3 className="text-lg font-black uppercase tracking-wider text-indigo-700">
             Pengaturan Tampilan Dashboard Klien
           </h3>
@@ -22,84 +104,89 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <label className="block text-slate-500 font-bold mb-4 text-[11px] uppercase tracking-wider">
-              Sembunyikan Metrik (Summary)
-            </label>
-            <div className="space-y-3">
-              {[
-                { id: "gmv", label: "GMV" },
-                { id: "orders", label: "Pesanan (Orders)" },
-                { id: "items_sold", label: "Produk Terjual" },
-                { id: "est_income", label: "Estimasi Pendapatan" },
-                { id: "viewers", label: "Total Penonton" },
-                { id: "engagement", label: "Engagement (Likes/Share/Komen)" },
-              ].map((metric) => (
-                <label key={metric.id} className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={brand.dashboardSettings?.hiddenMetrics?.includes(metric.id) || false}
-                    onChange={(e) => {
-                      const hiddenMetrics = brand.dashboardSettings?.hiddenMetrics || [];
-                      const newMetrics = e.target.checked
-                        ? [...hiddenMetrics, metric.id]
-                        : hiddenMetrics.filter((id) => id !== metric.id);
-                      
-                      onUpdateBrand({
-                        ...brand,
-                        dashboardSettings: {
-                          ...(brand.dashboardSettings || { hiddenColumns: [] }),
-                          hiddenMetrics: newMetrics,
-                        },
-                      });
-                    }}
-                    className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                  />
-                  <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">{metric.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+        {/* Platform Tabs */}
+        <div className="flex border-b border-slate-200">
+          <button
+            onClick={() => setActivePlatform('shopee')}
+            className={`flex-1 py-4 text-center font-bold text-sm tracking-wider uppercase transition-colors ${
+              activePlatform === 'shopee'
+                ? 'bg-orange-50 text-orange-600 border-b-2 border-orange-500'
+                : 'text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            Shopee
+          </button>
+          <button
+            onClick={() => setActivePlatform('tiktok')}
+            className={`flex-1 py-4 text-center font-bold text-sm tracking-wider uppercase transition-colors ${
+              activePlatform === 'tiktok'
+                ? 'bg-slate-900 text-white border-b-2 border-black'
+                : 'text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            TikTok
+          </button>
+        </div>
 
-          <div>
-            <label className="block text-slate-500 font-bold mb-4 text-[11px] uppercase tracking-wider">
-              Sembunyikan Kolom (Tabel Data Mentah)
-            </label>
-            <div className="space-y-3">
-              {[
-                { id: "gmv", label: "GMV" },
-                { id: "orders", label: "Pesanan" },
-                { id: "items_sold", label: "Item Terjual" },
-                { id: "est_income", label: "Est. Pendapatan" },
-                { id: "viewers", label: "Penonton" },
-                { id: "engagement", label: "Engagement" },
-              ].map((col) => (
-                <label key={col.id} className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={brand.dashboardSettings?.hiddenColumns?.includes(col.id) || false}
-                    onChange={(e) => {
-                      const hiddenCols = brand.dashboardSettings?.hiddenColumns || [];
-                      const newCols = e.target.checked
-                        ? [...hiddenCols, col.id]
-                        : hiddenCols.filter((id) => id !== col.id);
-                      
-                      onUpdateBrand({
-                        ...brand,
-                        dashboardSettings: {
-                          ...(brand.dashboardSettings || { hiddenMetrics: [] }),
-                          hiddenColumns: newCols,
-                        },
-                      });
-                    }}
-                    className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                  />
-                  <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">{col.label}</span>
-                </label>
-              ))}
+        <div className="p-6 space-y-8">
+          {CATEGORIES.map((category) => (
+            <div key={category.id} className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+              <h4 className="text-md font-bold text-slate-800 mb-6 pb-2 border-b border-slate-200">
+                {category.label}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Metrics */}
+                <div>
+                  <label className="block text-slate-500 font-bold mb-4 text-[11px] uppercase tracking-wider">
+                    Sembunyikan Metrik (Summary)
+                  </label>
+                  <div className="space-y-3">
+                    {(METRICS_BY_CATEGORY as any)[category.id].map((metric: any) => {
+                      const id = `${activePlatform}_${category.id}_${metric.id}`;
+                      return (
+                        <label key={id} className="flex items-center gap-3 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={brand.dashboardSettings?.hiddenMetrics?.includes(id) || false}
+                            onChange={() => toggleMetric(id)}
+                            className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                            {metric.label}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Columns */}
+                <div>
+                  <label className="block text-slate-500 font-bold mb-4 text-[11px] uppercase tracking-wider">
+                    Sembunyikan Kolom (Tabel)
+                  </label>
+                  <div className="space-y-3">
+                    {(COLUMNS_BY_CATEGORY as any)[category.id].map((col: any) => {
+                      const id = `${activePlatform}_${category.id}_${col.id}`;
+                      return (
+                        <label key={id} className="flex items-center gap-3 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={brand.dashboardSettings?.hiddenColumns?.includes(id) || false}
+                            onChange={() => toggleColumn(id)}
+                            className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                            {col.label}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

@@ -29,6 +29,7 @@ interface ReportRawSessionsCardProps {
   sortedTableLogs: ReportLogLike[];
   paginatedLogs: ReportLogLike[];
   brandDashboardSettings?: BrandDashboardSettings;
+  isShopee?: boolean;
 }
 
 const RAW_TABLE_COLUMNS = {
@@ -63,9 +64,11 @@ export function ReportRawSessionsCard({
   totalPages,
   setCurrentPage,
   brandDashboardSettings,
+  isShopee = true,
 }: ReportRawSessionsCardProps) {
   const isGroupedView = reportingShopeeRawTab !== "raw";
   const hc = brandDashboardSettings?.hiddenColumns || [];
+  const isColumnHidden = (id: string) => hc.includes(isShopee ? `shopee_live_${id}` : `tiktok_live_${id}`);
 
   return (
     <>
@@ -137,7 +140,7 @@ export function ReportRawSessionsCard({
                   </th>
                 </>
               )}
-              {!hc.includes("penonton") && (
+              {!isColumnHidden("penonton") && (
                 <th
                   className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("views")}
@@ -146,7 +149,7 @@ export function ReportRawSessionsCard({
                   {reportDbSortCol === "views" ? (reportDbSortAsc ? "↑" : "↓") : ""}
                 </th>
               )}
-              {!hc.includes("gmv") && (
+              {!isColumnHidden("gmv") && (
                 <th
                   className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("gmv")}
@@ -155,7 +158,7 @@ export function ReportRawSessionsCard({
                   {reportDbSortCol === "gmv" ? (reportDbSortAsc ? "↑" : "↓") : ""}
                 </th>
               )}
-              {!hc.includes("items_sold") && (
+              {!isColumnHidden("items_sold") && (
                 <th
                   className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("products_sold")}
@@ -168,7 +171,7 @@ export function ReportRawSessionsCard({
                     : ""}
                 </th>
               )}
-              {!hc.includes("engagement") && (
+              {!isColumnHidden("engagement") && (
                 <th
                   className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("avgViewDuration")}
@@ -181,7 +184,7 @@ export function ReportRawSessionsCard({
                     : ""}
                 </th>
               )}
-              {!hc.includes("orders") && (
+              {!isColumnHidden("orders") && (
                 <th
                   className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("customers")}
@@ -212,6 +215,7 @@ export function ReportRawSessionsCard({
               onDeletePerformanceLog={onDeletePerformanceLog}
               adminShiftChecklist={adminShiftChecklist}
               brandDashboardSettings={brandDashboardSettings}
+            isShopee={isShopee}
             />
           </tbody>
         </table>

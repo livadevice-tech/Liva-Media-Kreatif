@@ -25,6 +25,7 @@ interface ReportRawSessionsTableProps {
   ) => void;
   adminShiftChecklist: string[];
   brandDashboardSettings?: BrandDashboardSettings;
+  isShopee?: boolean;
 }
 
 interface RawSessionGroupRow {
@@ -67,8 +68,10 @@ export function ReportRawSessionsTable({
   onDeletePerformanceLog,
   adminShiftChecklist,
   brandDashboardSettings,
+  isShopee = true,
 }: ReportRawSessionsTableProps) {
   const hc = brandDashboardSettings?.hiddenColumns || [];
+  const isColumnHidden = (id: string) => hc.includes(isShopee ? `shopee_live_${id}` : `tiktok_live_${id}`);
   const renderGroupedRows = () => {
     const groups: Record<string, RawSessionGroupRow> = {};
 
@@ -210,29 +213,29 @@ export function ReportRawSessionsTable({
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
           {formatLiveSessionDuration(g.duration || 0)}
         </td>
-        {!hc.includes("penonton") && (
+        {!isColumnHidden("penonton") && (
           <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
             {idFormatter.format(g.viewer)}
           </td>
         )}
-        {!hc.includes("gmv") && (
+        {!isColumnHidden("gmv") && (
           <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-emerald-600">
             Rp{idFormatter.format(g.gmv)}
           </td>
         )}
-        {!hc.includes("items_sold") && (
+        {!isColumnHidden("items_sold") && (
           <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
             {idFormatter.format(g.itemsSold)}
           </td>
         )}
-        {!hc.includes("engagement") && (
+        {!isColumnHidden("engagement") && (
           <td className="px-5 py-3.5 whitespace-nowrap text-xs font-semibold text-slate-500">
             {formatLiveSessionAverageDuration(
               g.sessionCount > 0 ? g.avgViewDuration / g.sessionCount : 0,
             )}
           </td>
         )}
-        {!hc.includes("orders") && (
+        {!isColumnHidden("orders") && (
           <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-indigo-600">
             {idFormatter.format(g.customers)}
           </td>
@@ -293,12 +296,12 @@ export function ReportRawSessionsTable({
                     <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
                       {formatLiveSessionDuration(log.duration || 0)}
                     </td>
-                    {!hc.includes("penonton") && (
+                    {!isColumnHidden("penonton") && (
                       <td className="px-5 py-3.5">
                         {new Intl.NumberFormat("id-ID").format(metrics.viewer)}
                       </td>
                     )}
-                    {!hc.includes("gmv") && (
+                    {!isColumnHidden("gmv") && (
                       <td className="px-5 py-3.5">
                         Rp
                         {new Intl.NumberFormat("id-ID", {
@@ -306,19 +309,19 @@ export function ReportRawSessionsTable({
                         }).format(log.gmv || 0)}
                       </td>
                     )}
-                    {!hc.includes("items_sold") && (
+                    {!isColumnHidden("items_sold") && (
                       <td className="px-5 py-3.5">
                         {new Intl.NumberFormat("id-ID").format(
                           log.products_sold || log.items_sold || 0,
                         )}
                       </td>
                     )}
-                    {!hc.includes("engagement") && (
+                    {!isColumnHidden("engagement") && (
                       <td className="px-5 py-3.5">
                         {formatLiveSessionAverageDuration(log.avgViewDuration || 0)}
                       </td>
                     )}
-                    {!hc.includes("orders") && (
+                    {!isColumnHidden("orders") && (
                       <td className="px-5 py-3.5">
                         {new Intl.NumberFormat("id-ID").format(metrics.customers)}
                       </td>

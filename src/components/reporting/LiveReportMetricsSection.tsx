@@ -71,6 +71,7 @@ export function LiveReportMetricsSection({
 
   const useShopeeStyle = isShopee || useShopeeLiveLayout;
   const hm = brandDashboardSettings?.hiddenMetrics || [];
+  const isMetricHidden = (id: string) => hm.includes(isShopee ? `shopee_live_${id}` : `tiktok_live_${id}`);
 
   // ── Compact metric card grid (same look as Engagement tab) ─────────────────
   const CompactSaleMetrics = () => (
@@ -79,7 +80,7 @@ export function LiveReportMetricsSection({
         <DollarSign className="h-5 w-5 text-[#5600e0]" /> Sale Metrics
       </h4>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {!hm.includes("gmv") && (
+        {!isMetricHidden("gmv") && (
           <ReportMetricCard
             label="GMV"
             cur={totalGmvDb}
@@ -89,7 +90,7 @@ export function LiveReportMetricsSection({
             icon={<DollarSign size={16} />}
           />
         )}
-        {!hm.includes("items_sold") && (
+        {!isMetricHidden("items_sold") && (
           <ReportMetricCard
             label="Item Sold"
             cur={totalItemsSoldDb}
@@ -98,7 +99,7 @@ export function LiveReportMetricsSection({
             icon={<Package size={16} />}
           />
         )}
-        {!hm.includes("viewers") && (
+        {!isMetricHidden("viewers") && (
           <ReportMetricCard
             label="Customers"
             cur={totalBuyersDb}
@@ -107,7 +108,7 @@ export function LiveReportMetricsSection({
             icon={<Users size={16} />}
           />
         )}
-        {!hm.includes("orders") && (
+        {!isMetricHidden("orders") && (
           <ReportMetricCard
             label="Orders"
             cur={totalOrdersDb}
@@ -116,7 +117,7 @@ export function LiveReportMetricsSection({
             icon={<ClipboardList size={16} />}
           />
         )}
-        {!hm.includes("est_income") && (
+        {!isMetricHidden("est_income") && (
           <ReportMetricCard
             label="GMV/Hours"
             cur={gmvPerHour}
@@ -158,7 +159,7 @@ export function LiveReportMetricsSection({
         <DollarSign className="h-5 w-5 text-[#5600e0]" /> Sale Metrics
       </h4>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {!hm.includes("gmv") && (
+        {!isMetricHidden("gmv") && (
           <ReportMetricCard
             label="GMV"
             cur={totalGmvDb}
@@ -168,7 +169,7 @@ export function LiveReportMetricsSection({
             icon={<DollarSign size={16} />}
           />
         )}
-        {!hm.includes("items_sold") && (
+        {!isMetricHidden("items_sold") && (
           <ReportMetricCard
             label="Item Sold"
             cur={totalItemsSoldDb}
@@ -177,7 +178,7 @@ export function LiveReportMetricsSection({
             icon={<Package size={16} />}
           />
         )}
-        {!hm.includes("orders") && (
+        {!isMetricHidden("orders") && (
           <ReportMetricCard
             label="Orders"
             cur={totalOrdersDb}
@@ -214,7 +215,7 @@ export function LiveReportMetricsSection({
           value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0)}
           icon={<Users size={16} />}
         />
-        {!hm.includes("est_income") && (
+        {!isMetricHidden("est_income") && (
           <ReportMetricCard
             label="GMV/Hours"
             cur={gmvPerHour}
@@ -229,7 +230,7 @@ export function LiveReportMetricsSection({
   );
 
   const EngagementMetricsBlock = () => {
-    if (hideEngagementMetrics || hm.includes("engagement")) return null;
+    if (hideEngagementMetrics || isMetricHidden("engagement")) return null;
     return (
       <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6 mt-6">
         <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
@@ -278,7 +279,7 @@ export function LiveReportMetricsSection({
   };
 
   const EngagementMetricsBlockShopee = () => {
-    if (hideEngagementMetrics || hm.includes("engagement")) return null;
+    if (hideEngagementMetrics || isMetricHidden("engagement")) return null;
     
     const errCur = totalDbImpressions > 0 ? ((totalLikesDb + totalCommentsDb + totalSharesDb) / totalDbImpressions) * 100 : 0;
     const pErrCur = pTotalDbImpressions > 0 ? ((pTotalLikesDb + pTotalCommentsDb + pTotalSharesDb) / pTotalDbImpressions) * 100 : 0;

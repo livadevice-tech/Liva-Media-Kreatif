@@ -6180,6 +6180,7 @@ export default function App() {
                         operatorPlatformFilter={clientPlatformFilter}
                         operatorShiftFilters={operatorShiftFilters}
                         reportDbSearchQuery={reportDbSearchQuery}
+                      brandDashboardSettings={brands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
                         skuSortCol={skuSortCol}
                         skuSortAsc={skuSortAsc}
                         setSkuSortCol={setSkuSortCol}
@@ -6213,6 +6214,7 @@ export default function App() {
                           uploadHistory={uploadHistory}
                           isLogsLoading={isLogsLoading}
                           onDeleteUploadBatch={handleDeleteUploadBatch}
+                          brandDashboardSettings={brands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
                         />
                       </React.Suspense>
                     )}
@@ -12701,7 +12703,7 @@ export default function App() {
                             >
                               {/* Backdrop */}
                               <div
-                                className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+                                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
                                 onClick={() => {
                                   if (isSavingReport) return;
                                   setIsUploadModalOpen(false);
@@ -12709,7 +12711,7 @@ export default function App() {
                                   setAutoDetectNotice("");
                                 }}
                               ></div>
-                              <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-5xl w-full p-6 sm:p-8 text-left relative animate-scaleUp my-auto sm:my-4 z-10">
+                              <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-5xl w-full p-6 sm:p-8 text-left relative animate-scaleUp my-auto sm:my-4 z-10">
                                 {/* Close Button */}
                                 <button
                                   onClick={() => {
@@ -12727,8 +12729,8 @@ export default function App() {
 
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-100">
                                   <div>
-                                    <h3 className="text-xl sm:text-2xl font-black text-slate-850 flex items-center gap-3">
-                                      <LineChart className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 animate-pulse" />{" "}
+                                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+                                      <LineChart className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-500 animate-pulse" />{" "}
                                       {uploadTargetTab === "engagement"
                                         ? "Upload Raw Data Engagement & Promotion"
                                         : "Upload Laporan Eksternal Marketplace"}
@@ -12740,7 +12742,7 @@ export default function App() {
                                         : "penyiaran langsung"}{" "}
                                       dari platform marketplace
                                       (TikTok/Shopee/dll) untuk{" "}
-                                      <strong className="text-indigo-950 uppercase">
+                                      <strong className="text-indigo-600 uppercase">
                                         {
                                           clientBrands.find(
                                             (b) => b.id === activeReportBrandId,
@@ -12753,7 +12755,7 @@ export default function App() {
                                 </div>
 
                                 {/* FORM PENENTU BRAND & PLATFORM (Selalu terlihat sebagai default tujuan) */}
-                                <div className="bg-[#f8fafc] border border-slate-250 p-5 rounded-2xl mb-6 space-y-4">
+                                <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl shadow-sm mb-6 space-y-4">
                                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200/70">
                                     <div>
                                       <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
@@ -12840,7 +12842,7 @@ export default function App() {
                                 {reportingRawData.length === 0 ? (
                                   <div className="space-y-4">
                                     <div
-                                      className={`relative border-2 border-dashed rounded-3xl p-10 sm:p-14 text-center transition-all ${isDragOverReporting ? "border-indigo-500 bg-indigo-50" : "border-slate-200 hover:border-indigo-400 bg-slate-50/50"}`}
+                                      className={`relative border-2 border-dashed rounded-[24px] p-10 sm:p-14 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${isDragOverReporting ? "border-indigo-500 bg-indigo-50/50 scale-[0.99] shadow-inner" : "border-slate-200 hover:border-indigo-300 hover:bg-slate-50/50"}`}
                                       onDragOver={(e) => {
                                         e.preventDefault();
                                         setIsDragOverReporting(true);
@@ -13098,6 +13100,7 @@ export default function App() {
                               operatorPlatformFilter={operatorPlatformFilter}
                               operatorShiftFilters={operatorShiftFilters}
                               reportDbSearchQuery={reportDbSearchQuery}
+                      brandDashboardSettings={brands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
                               skuSortCol={skuSortCol}
                               skuSortAsc={skuSortAsc}
                               setSkuSortCol={setSkuSortCol}
@@ -13141,6 +13144,7 @@ export default function App() {
                                 uploadHistory={uploadHistory}
                                 isLogsLoading={isLogsLoading}
                                 onDeleteUploadBatch={handleDeleteUploadBatch}
+                                brandDashboardSettings={brands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
                               />
                             </React.Suspense>
                           )}

@@ -50,19 +50,19 @@ export function SkuUploadModal({
       id="upload_sku_modal"
     >
       <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
         onClick={() => {
           if (isSavingReport) return;
           onClose();
         }}
       />
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full p-6 sm:p-8 text-left relative animate-scaleUp my-auto sm:my-4 z-10">
+      <div className="bg-white rounded-[24px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] max-w-3xl w-full p-6 sm:p-8 text-left relative animate-scaleUp my-auto sm:my-4 z-10">
         <button
           onClick={() => {
             if (isSavingReport) return;
             onClose();
           }}
-          className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors z-20"
+          className="absolute top-6 right-6 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors z-20"
           disabled={isSavingReport}
         >
           ✕
@@ -81,7 +81,7 @@ export function SkuUploadModal({
 
         {!skuRawData || skuRawData.length === 0 ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
                   1. Tentukan Brand Klien
@@ -118,7 +118,7 @@ export function SkuUploadModal({
               </div>
             </div>
             <div
-              className={`border-2 border-dashed rounded-3xl p-10 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${isDragOverReporting ? "border-indigo-500 bg-indigo-50/50 scale-[0.99] shadow-inner" : "border-slate-200 hover:border-indigo-400 hover:bg-slate-50/50"}`}
+              className={`border-2 border-dashed rounded-3xl p-10 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${isDragOverReporting ? "border-indigo-500 bg-indigo-50/50 scale-[0.99] shadow-inner" : "border-slate-200 hover:border-indigo-300 hover:bg-slate-50/50"}`}
               onDragOver={(e) => {
                 e.preventDefault();
                 onDragOver();

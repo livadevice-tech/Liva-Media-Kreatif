@@ -105,6 +105,7 @@ export function LiveReportPanel({
         hideEngagementMetrics={isTikTokLive}
         useShopeeLiveLayout={isTikTokLive}
         brandDashboardSettings={brandDashboardSettings}
+        isShopee={!isTikTokLive}
       />
 
       <ReportRawSessionsCard
@@ -125,6 +126,7 @@ export function LiveReportPanel({
         totalPages={totalPages}
         setCurrentPage={setCurrentPage}
         brandDashboardSettings={brandDashboardSettings}
+        isShopee={!isTikTokLive}
       />
 
       <UploadHistoryCard

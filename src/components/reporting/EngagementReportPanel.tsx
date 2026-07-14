@@ -4,7 +4,10 @@ import type { EngagementReportViewModel } from "../../shared/utils/engagementRep
 import { EngagementReportMetricsSection } from "./EngagementReportMetricsSection";
 import { EngagementReportChartSection } from "./EngagementReportChartSection";
 
+import type { BrandDashboardSettings } from "../../types";
+
 interface EngagementReportPanelProps {
+  brandDashboardSettings?: BrandDashboardSettings;
   model: EngagementReportViewModel;
   platform: string;
   chartSelectedMetrics: string[];
@@ -32,10 +35,11 @@ export function EngagementReportPanel({
   uploadHistory,
   isLogsLoading,
   onDeleteUploadBatch,
+  brandDashboardSettings,
 }: EngagementReportPanelProps) {
   return (
     <div className="space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
-      <EngagementReportMetricsSection model={model} platform={platform} />
+      <EngagementReportMetricsSection model={model} platform={platform} brandDashboardSettings={brandDashboardSettings} />
       <EngagementReportChartSection
         model={model}
         chartSelectedMetrics={chartSelectedMetrics}
@@ -49,6 +53,7 @@ export function EngagementReportPanel({
         uploadHistory={uploadHistory}
         isLogsLoading={isLogsLoading}
         onDeleteUploadBatch={onDeleteUploadBatch}
+  brandDashboardSettings={brandDashboardSettings}
       />
     </div>
   );

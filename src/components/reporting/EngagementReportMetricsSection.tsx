@@ -13,17 +13,23 @@ import {
 } from "lucide-react";
 import { ReportMetricCard } from "./ReportMetricCard";
 import type { EngagementReportViewModel } from "../../shared/utils/engagementReporting";
+import type { BrandDashboardSettings } from "../../types";
 
 type EngagementReportMetricsSectionProps = {
   model: EngagementReportViewModel;
   platform: string;
+  brandDashboardSettings?: BrandDashboardSettings;
 };
 
 export function EngagementReportMetricsSection({
   model,
   platform,
+  brandDashboardSettings,
 }: EngagementReportMetricsSectionProps) {
   const isShopee = platform === "Shopee Live";
+  
+  const hm = brandDashboardSettings?.hiddenMetrics || [];
+  const isMetricHidden = (id: string) => hm.includes(isShopee ? `shopee_engagement_${id}` : `tiktok_engagement_${id}`);
 
   return (
     <div className="space-y-6">
@@ -33,28 +39,34 @@ export function EngagementReportMetricsSection({
         </h4>
 
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
-          <ReportMetricCard
-            label="Views"
-            cur={model.totalImpressions}
-            prev={model.prevTotalImpressions}
-            value={new Intl.NumberFormat("id-ID").format(model.totalImpressions)}
-            icon={<Eye size={16} />}
-          />
-          <ReportMetricCard
-            label="Likes"
-            cur={model.totalLikes}
-            prev={model.prevTotalLikes}
-            value={new Intl.NumberFormat("id-ID").format(model.totalLikes)}
-            icon={<Heart size={16} />}
-          />
-          {!isShopee ? (
+          {!isMetricHidden("views") && (
             <ReportMetricCard
-              label="Shares"
-              cur={model.totalShares}
-              prev={model.prevTotalShares}
-              value={new Intl.NumberFormat("id-ID").format(model.totalShares)}
-              icon={<Share2 size={16} />}
+              label="Views"
+              cur={model.totalImpressions}
+              prev={model.prevTotalImpressions}
+              value={new Intl.NumberFormat("id-ID").format(model.totalImpressions)}
+              icon={<Eye size={16} />}
             />
+          )}
+          {!isMetricHidden("likes") && (
+            <ReportMetricCard
+              label="Likes"
+              cur={model.totalLikes}
+              prev={model.prevTotalLikes}
+              value={new Intl.NumberFormat("id-ID").format(model.totalLikes)}
+              icon={<Heart size={16} />}
+            />
+          )}
+          {!isShopee ? (
+            !isMetricHidden("shares") && (
+              <ReportMetricCard
+                label="Shares"
+                cur={model.totalShares}
+                prev={model.prevTotalShares}
+                value={new Intl.NumberFormat("id-ID").format(model.totalShares)}
+                icon={<Share2 size={16} />}
+              />
+            )
           ) : (
             <ReportMetricCard
               label="Voucher Toko"
@@ -66,13 +78,15 @@ export function EngagementReportMetricsSection({
               icon={<Ticket size={16} />}
             />
           )}
-          <ReportMetricCard
-            label="Comments"
-            cur={model.totalComments}
-            prev={model.prevTotalComments}
-            value={new Intl.NumberFormat("id-ID").format(model.totalComments)}
-            icon={<MessageCircle size={16} />}
-          />
+          {!isMetricHidden("comments") && (
+            <ReportMetricCard
+              label="Comments"
+              cur={model.totalComments}
+              prev={model.prevTotalComments}
+              value={new Intl.NumberFormat("id-ID").format(model.totalComments)}
+              icon={<MessageCircle size={16} />}
+            />
+          )}
           <ReportMetricCard
             label="Followers"
             cur={model.totalFollowers}
@@ -80,13 +94,15 @@ export function EngagementReportMetricsSection({
             value={new Intl.NumberFormat("id-ID").format(model.totalFollowers)}
             icon={<UserPlus size={16} />}
           />
-          <ReportMetricCard
-            label="ERR %"
-            cur={Number(model.formattedErrRate.replace("%", "")) || 0}
-            prev={model.prevErrRateNumeric}
-            value={model.formattedErrRate}
-            icon={<Activity size={16} />}
-          />
+          {!isMetricHidden("engagement_rate") && (
+            <ReportMetricCard
+              label="ERR %"
+              cur={Number(model.formattedErrRate.replace("%", "")) || 0}
+              prev={model.prevErrRateNumeric}
+              value={model.formattedErrRate}
+              icon={<Activity size={16} />}
+            />
+          )}
         </div>
       </div>
 
