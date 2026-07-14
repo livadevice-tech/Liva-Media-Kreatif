@@ -24,6 +24,31 @@ export const liveChartMetricOptions = [
     label: "Penonton",
     color: "bg-cyan-50 text-cyan-750 border-cyan-200",
   },
+  {
+    key: "buyers",
+    label: "Pembeli",
+    color: "bg-teal-50 text-teal-700 border-teal-200",
+  },
+  {
+    key: "likes",
+    label: "Suka (Likes)",
+    color: "bg-red-50 text-red-700 border-red-200",
+  },
+  {
+    key: "comments",
+    label: "Komentar",
+    color: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  },
+  {
+    key: "shares",
+    label: "Bagikan",
+    color: "bg-violet-50 text-violet-700 border-violet-200",
+  },
+  {
+    key: "followers",
+    label: "Pengikut Baru",
+    color: "bg-sky-50 text-sky-700 border-sky-200",
+  },
 ] as const;
 
 export const liveChartMetricDefaults = [

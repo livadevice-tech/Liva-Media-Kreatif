@@ -44,13 +44,11 @@ export function LiveReportChartSection({
 
   const visibleData = useMemo(() => {
     // Agregasi langsung pada chartData yang sudah terfilter secara global
-    return aggregateChartData(chartData, granularity, [
-      "gmv",
-      "orders",
-      "itemsSold",
-      "clicks",
-      "penonton",
-    ]);
+    return aggregateChartData(
+      chartData,
+      granularity,
+      liveChartMetricOptions.map((opt) => opt.key)
+    );
   }, [chartData, granularity]);
 
   const legendItems = liveChartMetricOptions
@@ -63,6 +61,11 @@ export function LiveReportChartSection({
       if (opt.color.includes("amber")) color = "#d97706";
       if (opt.color.includes("pink")) color = "#db2777";
       if (opt.color.includes("cyan")) color = "#0891b2";
+      if (opt.color.includes("teal")) color = "#0d9488";
+      if (opt.color.includes("red")) color = "#dc2626";
+      if (opt.color.includes("fuchsia")) color = "#c026d3";
+      if (opt.color.includes("violet")) color = "#7c3aed";
+      if (opt.color.includes("sky")) color = "#0284c7";
       if (opt.key === "gmv") color = "#5600e0";
       if (opt.key === "penonton") color = "#60a5fa";
       return { key: opt.key, label: opt.label, color };
