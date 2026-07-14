@@ -109,8 +109,6 @@ export function LiveReportPanel({
         chartSelectedMetrics={chartSelectedMetrics}
         onChartSelectedMetricsChange={onChartSelectedMetricsChange}
         periodLabel={model.latestDateLabel}
-        hideEngagementMetrics={isTikTokLive}
-        useShopeeLiveLayout={isTikTokLive}
         brandDashboardSettings={brandDashboardSettings}
         isShopee={!isTikTokLive}
         hasData={hasAnyData}
