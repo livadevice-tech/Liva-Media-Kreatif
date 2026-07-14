@@ -66,8 +66,12 @@ export function LiveReportChartSection({
       if (opt.color.includes("fuchsia")) color = "#c026d3";
       if (opt.color.includes("violet")) color = "#7c3aed";
       if (opt.color.includes("sky")) color = "#0284c7";
+      if (opt.color.includes("blue")) color = "#2563eb";
+      if (opt.color.includes("orange")) color = "#ea580c";
+      if (opt.color.includes("rose")) color = "#e11d48";
+      if (opt.color.includes("yellow")) color = "#ca8a04";
+      if (opt.color.includes("lime")) color = "#65a30d";
       if (opt.key === "gmv") color = "#5600e0";
-      if (opt.key === "penonton") color = "#60a5fa";
       return { key: opt.key, label: opt.label, color };
     });
 
