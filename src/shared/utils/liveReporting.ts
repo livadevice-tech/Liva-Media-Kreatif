@@ -18,6 +18,14 @@ export type LiveReportChartPoint = {
   comments: number;
   shares: number;
   followers: number;
+  impressions: number;
+  peakViewers: number;
+  shopVouchers: number;
+  liveVisits: number;
+  sessionsCount: number;
+  duration: number;
+  avgViewDurationSum: number;
+  productImpressions: number;
 };
 
 export interface BuildLiveReportViewModelInput {
@@ -187,6 +195,14 @@ export function buildLiveReportViewModel(
         comments: 0,
         shares: 0,
         followers: 0,
+        impressions: 0,
+        peakViewers: 0,
+        shopVouchers: 0,
+        liveVisits: 0,
+        sessionsCount: 0,
+        duration: 0,
+        avgViewDurationSum: 0,
+        productImpressions: 0,
       };
     }
     groupedByDate[d].gmv += log.gmv || 0;
@@ -199,6 +215,14 @@ export function buildLiveReportViewModel(
     groupedByDate[d].comments += log.comments || 0;
     groupedByDate[d].shares += log.shares || 0;
     groupedByDate[d].followers += log.followers || 0;
+    groupedByDate[d].impressions += log.impressions || 0;
+    groupedByDate[d].peakViewers += log.peakViewers || 0;
+    groupedByDate[d].shopVouchers += log.shopVouchers || 0;
+    groupedByDate[d].liveVisits += log.liveVisits || 0;
+    groupedByDate[d].sessionsCount += 1;
+    groupedByDate[d].duration += log.duration || 0;
+    groupedByDate[d].avgViewDurationSum += log.avgViewDuration || 0;
+    groupedByDate[d].productImpressions += log.productImpressions || 0;
   });
 
   const liveChartData = Object.values(groupedByDate).sort((a, b) => {

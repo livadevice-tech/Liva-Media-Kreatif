@@ -43,12 +43,38 @@ export function LiveReportChartSection({
       : (liveChartMetricDefaults as unknown as string[]);
 
   const visibleData = useMemo(() => {
-    // Agregasi langsung pada chartData yang sudah terfilter secara global
-    return aggregateChartData(
+    const aggregated = aggregateChartData(
       chartData,
       granularity,
-      liveChartMetricOptions.map((opt) => opt.key)
+      [
+        "gmv", "orders", "itemsSold", "clicks", "penonton", "buyers",
+        "likes", "comments", "shares", "followers", "impressions",
+        "peakViewers", "shopVouchers", "liveVisits", "sessionsCount",
+        "duration", "avgViewDurationSum", "productImpressions"
+      ]
     );
+
+    return aggregated.map((point: any) => {
+      const impressions = point.impressions || 0;
+      const likes = point.likes || 0;
+      const comments = point.comments || 0;
+      const shares = point.shares || 0;
+      const gmv = point.gmv || 0;
+      const orders = point.orders || 0;
+      const duration = point.duration || 0;
+      const liveVisits = point.liveVisits || 0;
+      const sessionsCount = point.sessionsCount || 0;
+      const avgViewDurationSum = point.avgViewDurationSum || 0;
+
+      return {
+        ...point,
+        err: impressions > 0 ? ((likes + comments + shares) / impressions) * 100 : 0,
+        aov: orders > 0 ? gmv / orders : 0,
+        gmvPerHour: duration > 0 ? gmv / (duration / 3600) : 0,
+        avgViewDuration: sessionsCount > 0 ? avgViewDurationSum / sessionsCount : 0,
+        viewerActive: sessionsCount > 0 ? liveVisits / sessionsCount : 0,
+      };
+    });
   }, [chartData, granularity]);
 
   const legendItems = liveChartMetricOptions

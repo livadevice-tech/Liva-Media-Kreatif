@@ -21,19 +21,19 @@ export const liveChartMetricOptions = [
     color: "bg-pink-50 text-pink-700 border-pink-200",
   },
   {
-    key: "clicks",
-    label: "Add to Cart",
+    key: "buyers",
+    label: "Customer",
+    color: "bg-rose-50 text-rose-700 border-rose-200",
+  },
+  {
+    key: "productImpressions",
+    label: "Product Impressions",
     color: "bg-cyan-50 text-cyan-750 border-cyan-200",
   },
   {
-    key: "avgViewDuration",
-    label: "Avg. View Duration",
+    key: "clicks",
+    label: "Product clicks",
     color: "bg-teal-50 text-teal-700 border-teal-200",
-  },
-  {
-    key: "viewerActive",
-    label: "Viewer Active",
-    color: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
   },
   {
     key: "gmvPerHour",
@@ -41,26 +41,16 @@ export const liveChartMetricOptions = [
     color: "bg-violet-50 text-violet-700 border-violet-200",
   },
 
-  // --- Engagement & Customer Metrics ---
+  // --- Engagement Metrics ---
   {
     key: "impressions",
-    label: "View",
+    label: "Live Impressions",
     color: "bg-sky-50 text-sky-700 border-sky-200",
   },
   {
-    key: "peakViewers",
-    label: "Peak Viewer",
+    key: "penonton",
+    label: "Viewer",
     color: "bg-blue-50 text-blue-700 border-blue-200",
-  },
-  {
-    key: "shopVouchers",
-    label: "Voucher Claim",
-    color: "bg-orange-50 text-orange-700 border-orange-200",
-  },
-  {
-    key: "buyers",
-    label: "Customer",
-    color: "bg-rose-50 text-rose-700 border-rose-200",
   },
   {
     key: "likes",
@@ -76,6 +66,16 @@ export const liveChartMetricOptions = [
     key: "shares",
     label: "Shares",
     color: "bg-lime-50 text-lime-700 border-lime-200",
+  },
+  {
+    key: "followers",
+    label: "New followers",
+    color: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  },
+  {
+    key: "avgViewDuration",
+    label: "Avg. View Duration",
+    color: "bg-orange-50 text-orange-700 border-orange-200",
   },
   {
     key: "err",
