@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   CalendarDays,
   ChevronLeft,
@@ -162,6 +162,27 @@ export function ReportingWorkspaceHeader({
   const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
   const [isRawMenuOpen, setIsRawMenuOpen] = useState(false);
 
+  const rawMenuRef = useRef<HTMLDivElement>(null);
+  const dateMenuRef = useRef<HTMLDivElement>(null);
+  const platformMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (isRawMenuOpen && rawMenuRef.current && !rawMenuRef.current.contains(event.target as Node)) {
+        setIsRawMenuOpen(false);
+      }
+      if (isDateMenuOpen && dateMenuRef.current && !dateMenuRef.current.contains(event.target as Node)) {
+        setIsDateMenuOpen(false);
+      }
+      if (isPlatformMenuOpen && platformMenuRef.current && !platformMenuRef.current.contains(event.target as Node)) {
+        setIsPlatformMenuOpen(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isRawMenuOpen, isDateMenuOpen, isPlatformMenuOpen]);
+
   const dateButtonLabel = useMemo(
     () =>
       getDateButtonLabel({
@@ -248,7 +269,7 @@ export function ReportingWorkspaceHeader({
           </div>
           
           {(onImportRawLive || onImportRawProduct || onImportRawEngagement) && (
-            <div className="relative flex-shrink-0">
+            <div className="relative flex-shrink-0" ref={rawMenuRef}>
               <button
                 type="button"
                 onClick={openRawMenu}
@@ -322,7 +343,7 @@ export function ReportingWorkspaceHeader({
 
         <div className="flex flex-col gap-3 pt-3 sm:pt-4 sm:flex-row sm:items-center sm:justify-between pb-3">
           <div className="flex flex-row items-center gap-2 sm:gap-3 w-full">
-            <div className="relative flex-[2] sm:flex-none">
+            <div className="relative flex-[2] sm:flex-none" ref={dateMenuRef}>
               <button
                 type="button"
                 onClick={openDateMenu}
@@ -394,7 +415,7 @@ export function ReportingWorkspaceHeader({
               </div>
             ) : null}
 
-            <div className="relative flex-[1] sm:flex-none">
+            <div className="relative flex-[1] sm:flex-none" ref={platformMenuRef}>
               <button
                 type="button"
                 onClick={openPlatformMenu}
