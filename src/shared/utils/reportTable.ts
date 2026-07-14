@@ -1,7 +1,7 @@
 import { isPlatformMatch, normalizeDateYMD } from "./appUi";
 import { normalizeDateStr } from "./dateFormatting";
 
-export type ReportDateFilterType = "all" | "latest" | "month" | "custom";
+export type ReportDateFilterType = "latest" | "daily" | "weekly" | "monthly" | "custom" | "all";
 
 export interface ReportLogLike {
   id?: string;
@@ -75,14 +75,14 @@ export const filterReportLogs = (
           if (normalizedLogDate !== (options.prevStartDate || "")) {
             return false;
           }
-        } else if (options.filterType === "month") {
+        } else if (options.filterType === "month" || options.filterType === "monthly") {
           if (
             normalizedLogDate.substring(0, 7) !==
             (options.prevStartDate || "").substring(0, 7)
           ) {
             return false;
           }
-        } else if (options.filterType === "custom") {
+        } else if (options.filterType === "custom" || options.filterType === "daily" || options.filterType === "weekly") {
           if (
             (options.prevStartDate && normalizedLogDate < options.prevStartDate) ||
             (options.prevEndDate && normalizedLogDate > options.prevEndDate)
@@ -95,14 +95,14 @@ export const filterReportLogs = (
           if (normalizedLogDate !== (options.latestDate || "")) {
             return false;
           }
-        } else if (options.filterType === "month") {
+        } else if (options.filterType === "month" || options.filterType === "monthly") {
           if (
             normalizedLogDate.substring(0, 7) !==
             (options.selectedMonth || "")
           ) {
             return false;
           }
-        } else if (options.filterType === "custom") {
+        } else if (options.filterType === "custom" || options.filterType === "daily" || options.filterType === "weekly") {
           if (
             options.customStartDate &&
             normalizedLogDate < options.customStartDate

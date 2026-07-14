@@ -42,7 +42,7 @@ export interface EngagementReportViewModel {
 interface BuildEngagementReportViewModelInput {
   brandPerformanceLogs: readonly BrandPerformanceLogEntry[];
   activeReportBrandId: string;
-  operatorDateFilterType: "all" | "latest" | "month" | "custom";
+  operatorDateFilterType: ReportDateFilterType;
   selectedLatestDate?: string;
   operatorPlatformFilter: string;
   operatorShiftFilters: readonly string[];
@@ -79,12 +79,12 @@ export function buildEngagementReportViewModel(
   if (input.operatorDateFilterType === "latest" && selectedLatestDate) {
     engagementDateLabel = selectedLatestDate.split(" ")[0];
   } else if (
-    input.operatorDateFilterType === "custom" &&
+    (input.operatorDateFilterType === "custom" || input.operatorDateFilterType === "daily" || input.operatorDateFilterType === "weekly") &&
     input.operatorCustomStartDate
   ) {
     engagementDateLabel = `${input.operatorCustomStartDate} to ${input.operatorCustomEndDate}`;
   } else if (
-    input.operatorDateFilterType === "month" &&
+    (input.operatorDateFilterType === "month" || input.operatorDateFilterType === "monthly") &&
     input.operatorSelectedMonth
   ) {
     engagementDateLabel = getIndonesianMonthLabel(input.operatorSelectedMonth);

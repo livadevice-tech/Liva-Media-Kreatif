@@ -84,7 +84,7 @@ export function buildLiveReportViewModel(
     } else {
       effectiveFilter = "all";
     }
-  } else if (effectiveFilter === "month" && input.selectedMonth) {
+  } else if ((effectiveFilter === "month" || effectiveFilter === "monthly") && input.selectedMonth) {
     latestDateLabel = input.selectedMonth;
     const [yearStr, monthStr] = input.selectedMonth.split("-");
     let year = parseInt(yearStr, 10);
@@ -97,7 +97,7 @@ export function buildLiveReportViewModel(
     prevStartDate = `${prevMonth}-01`;
     prevEndDate = `${prevMonth}-31`;
   } else if (
-    effectiveFilter === "custom" &&
+    (effectiveFilter === "custom" || effectiveFilter === "daily" || effectiveFilter === "weekly") &&
     input.customStartDate &&
     input.customEndDate
   ) {

@@ -11,7 +11,7 @@ import {
   MoreVertical,
   Filter,
 } from "lucide-react";
-import { DoubleDatePicker } from "../DoubleDatePicker";
+import { AdvancedDatePicker } from "./AdvancedDatePicker";
 import { getIndonesianMonthLabel } from "../../shared/utils/reporting";
 import { type ReportDateFilterType } from "../../shared/utils/reportTable";
 
@@ -103,14 +103,18 @@ function getDateButtonLabel({
   customStartDate: string;
   customEndDate: string;
 }) {
-  if (dateFilterType === "custom") {
+  if (dateFilterType === "daily") {
+    return customStartDate ? formatDateLabel(customStartDate) : "Pilih Tanggal";
+  }
+
+  if (dateFilterType === "custom" || dateFilterType === "weekly") {
     if (customStartDate && customEndDate) {
       return `${formatDateLabel(customStartDate)} - ${formatDateLabel(customEndDate)}`;
     }
     return "Pilih rentang";
   }
 
-  if (dateFilterType === "month") {
+  if (dateFilterType === "month" || dateFilterType === "monthly") {
     return selectedMonth ? getIndonesianMonthLabel(selectedMonth) : "Pilih bulan";
   }
 
@@ -334,112 +338,19 @@ export function ReportingWorkspaceHeader({
               </button>
 
               {isDateMenuOpen && (
-                <div className="absolute left-0 top-full z-50 mt-2 w-[290px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
-                  <div className="space-y-1">
-                    {DATE_FILTER_OPTIONS.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          onDateFilterTypeSelect(item.id);
-                          if (item.id === "month") {
-                            setIsMonthOpen(true);
-                            setIsCalendarOpen(false);
-                          } else if (item.id === "custom") {
-                            setIsCalendarOpen(true);
-                            setIsMonthOpen(false);
-                          } else {
-                            setIsMonthOpen(false);
-                            setIsCalendarOpen(false);
-                          }
-                          setIsDateMenuOpen(false);
-                        }}
-                        className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
-                          dateFilterType === item.id
-                            ? "bg-[#f7f2ff] text-[#5600e0]"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                        }`}
-                      >
-                        <span>{item.label}</span>
-                        {dateFilterType === item.id ? (
-                          <ChevronRight className="h-4 w-4" />
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {isMonthOpen && dateFilterType === "month" && (
-                <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-[18px] border border-[#ddd7ef] bg-white p-4 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
-                  <div className="mb-4 flex items-center justify-between text-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setMonthPickerYear((year) => year - 1)}
-                      className="rounded-md border-0 bg-transparent p-1 text-slate-400 hover:text-slate-700"
-                    >
-                      &laquo;
-                    </button>
-                    <div className="text-sm font-bold tracking-widest">
-                      {monthPickerYear}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setMonthPickerYear((year) => year + 1)}
-                      className="rounded-md border-0 bg-transparent p-1 text-slate-400 hover:text-slate-700"
-                    >
-                      &raquo;
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-y-2 border-t border-slate-100 pt-3">
-                    {MONTHS.map((month) => {
-                      const monthValue = `${monthPickerYear}-${month.val}`;
-                      const isSelected = selectedMonth === monthValue;
-                      const currentDate = new Date();
-                      const isFuture =
-                        monthPickerYear > currentDate.getFullYear() ||
-                        (monthPickerYear === currentDate.getFullYear() &&
-                          parseInt(month.val, 10) > currentDate.getMonth() + 1);
-
-                      return (
-                        <button
-                          key={month.val}
-                          type="button"
-                          onClick={() => {
-                            if (!isFuture) {
-                              setSelectedMonth(monthValue);
-                              setIsMonthOpen(false);
-                              closeAllMenus();
-                            }
-                          }}
-                          className={`relative flex h-10 flex-col items-center justify-center border-0 py-2 text-[13px] font-semibold ${
-                            isFuture
-                              ? "cursor-not-allowed bg-slate-50 text-slate-400"
-                              : "cursor-pointer bg-white text-slate-800 hover:bg-slate-50"
-                          } ${isSelected ? "bg-slate-50 shadow-sm" : ""}`}
-                        >
-                          {month.label}
-                          {isSelected && !isFuture ? (
-                            <span className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-slate-300" />
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {isCalendarOpen && dateFilterType === "custom" && (
                 <div className="absolute left-0 top-full z-50 mt-2">
-                  <DoubleDatePicker
-                    startDate={tempStartDate}
-                    endDate={tempEndDate}
-                    onChange={(start, end) => {
-                      onTempStartDateChange(start);
-                      onTempEndDateChange(end);
-                    }}
-                    onApply={() => {
-                      onApplyCustom(tempStartDate, tempEndDate);
+                  <AdvancedDatePicker
+                    initialType={dateFilterType}
+                    initialStartDate={customStartDate}
+                    initialEndDate={customEndDate}
+                    initialMonth={selectedMonth}
+                    onApply={(type, startDate, endDate, month) => {
+                      onDateFilterTypeSelect(type);
+                      if (type === 'custom' || type === 'daily' || type === 'weekly') {
+                        onApplyCustom(startDate, endDate);
+                      } else if (type === 'monthly') {
+                        setSelectedMonth(month);
+                      }
                       closeAllMenus();
                     }}
                     onCancel={() => {
@@ -449,6 +360,7 @@ export function ReportingWorkspaceHeader({
                   />
                 </div>
               )}
+
             </div>
 
             {dateFilterType === "latest" &&

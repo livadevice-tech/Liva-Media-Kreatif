@@ -1,12 +1,12 @@
 import { isPlatformMatch, normalizeDateYMD } from "./appUi";
 import { formatDateYYYYMMDD } from "./date";
-import type { ReportLogLike } from "./reportTable";
+import type { ReportDateFilterType, ReportLogLike } from "./reportTable";
 
-type DateFilterType = "latest" | "all" | "month" | "custom" | "weekly";
+type DateFilterType = ReportDateFilterType | "weekly";
 
 type BooleanSetter = (value: boolean) => void;
 type StringSetter = (value: string) => void;
-type FilterSetter = (value: "latest" | "all" | "month" | "custom") => void;
+type FilterSetter = (value: ReportDateFilterType) => void;
 
 interface GetAvailableReportDatesArgs {
   logs: readonly { date?: string; platform?: string }[];
@@ -19,7 +19,7 @@ interface ShiftAvailableReportDateArgs extends GetAvailableReportDatesArgs {
 }
 
 interface ApplyDateFilterSelectionArgs {
-  value: "latest" | "all" | "month" | "custom";
+  value: ReportDateFilterType;
   setFilterType: FilterSetter;
   setMonthOpen: BooleanSetter;
   setCalendarOpen: BooleanSetter;
@@ -38,7 +38,7 @@ interface GetReportPeriodLabelArgs {
 
 interface ShiftReportPeriodByOneDayArgs {
   direction: -1 | 1;
-  dateFilterType: "latest" | "all" | "month" | "custom";
+  dateFilterType: ReportDateFilterType;
   targetLatestDate: string;
   customStartDate: string;
   setDateFilterType: FilterSetter;

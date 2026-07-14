@@ -1067,9 +1067,7 @@ export default function App() {
   );
 
 
-  const [operatorDateFilterType, setOperatorDateFilterType] = useState<
-    "latest" | "all" | "month" | "custom"
-  >("latest");
+  const [operatorDateFilterType, setOperatorDateFilterType] = useState<ReportDateFilterType>("latest");
   const [operatorSelectedLatestDate, setOperatorSelectedLatestDate] =
     useState("");
   const [operatorPlatformFilter, setOperatorPlatformFilter] =
@@ -1102,7 +1100,7 @@ export default function App() {
   const [trendFilters, setTrendFilters] = useState({ gmv: true, views: true });
 
   const handleClientDateFilterSelect = (
-    value: "latest" | "all" | "month" | "custom",
+    value: ReportDateFilterType,
   ) => {
     setClientSelectedLatestDate("");
     applyDateFilterSelection({
@@ -1118,7 +1116,7 @@ export default function App() {
   };
 
   const handleOperatorDateFilterSelect = (
-    value: "latest" | "all" | "month" | "custom",
+    value: ReportDateFilterType,
   ) => {
     if (value !== "latest") {
       setOperatorSelectedLatestDate("");

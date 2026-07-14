@@ -31,7 +31,7 @@ export const filterSkuLogs = (
   logs: readonly SkuLogLike[],
   options: {
     brandId: string;
-    dateFilterType: "latest" | "all" | "month" | "custom";
+    dateFilterType: ReportDateFilterType;
     latestDate?: string;
     customStartDate?: string;
     customEndDate?: string;
@@ -48,7 +48,7 @@ export const filterSkuLogs = (
       (r) => r.date && r.date.startsWith(options.latestDate!.substring(0, 10)),
     );
   } else if (
-    options.dateFilterType === "custom" &&
+    (options.dateFilterType === "custom" || options.dateFilterType === "daily" || options.dateFilterType === "weekly") &&
     options.customStartDate
   ) {
     res = res.filter(
@@ -57,7 +57,7 @@ export const filterSkuLogs = (
         r.date >= options.customStartDate! &&
         r.date <= (options.customEndDate || options.customStartDate || ""),
     );
-  } else if (options.dateFilterType === "month" && options.selectedMonth) {
+  } else if ((options.dateFilterType === "month" || options.dateFilterType === "monthly") && options.selectedMonth) {
     res = res.filter(
       (r) => r.date && r.date.startsWith(options.selectedMonth || ""),
     );

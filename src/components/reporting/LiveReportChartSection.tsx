@@ -8,8 +8,7 @@ import {
   YAxis,
   ComposedChart as RechartsComposedChart,
 } from "recharts";
-import { ChevronDown, CalendarDays } from "lucide-react";
-import { DoubleDatePicker } from "../DoubleDatePicker";
+import { ChevronDown } from "lucide-react";
 import {
   liveChartMetricDefaults,
   liveChartMetricOptions,
@@ -17,8 +16,6 @@ import {
 import type { LiveReportChartData } from "./liveReportSummaryTypes";
 import {
   ChartGranularity,
-  filterChartDataByLatestDays,
-  filterChartDataByDateRange,
   aggregateChartData,
 } from "../../shared/utils/chartDataAggregation";
 
@@ -28,47 +25,26 @@ type LiveReportChartSectionProps = {
   onChartSelectedMetricsChange: (value: string[]) => void;
 };
 
-const WINDOW_OPTIONS = [
-  { value: 7, label: "7 Hari" },
-  { value: 30, label: "30 Hari" },
-  { value: 90, label: "90 Hari" },
-  { value: "custom", label: "Custom" },
-] as const;
+
 
 export function LiveReportChartSection({
   chartData,
   chartSelectedMetrics,
   onChartSelectedMetricsChange,
 }: LiveReportChartSectionProps) {
-  const [windowSize, setWindowSize] =
-    useState<(typeof WINDOW_OPTIONS)[number]["value"]>(7);
   const [granularity, setGranularity] = useState<ChartGranularity>("daily");
   const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
-  const [isCustomMenuOpen, setIsCustomMenuOpen] = useState(false);
-  const [tempStartDate, setTempStartDate] = useState("");
-  const [tempEndDate, setTempEndDate] = useState("");
 
   const visibleData = useMemo(() => {
-    let filtered = chartData;
-    if (windowSize === "custom") {
-      if (customStartDate && customEndDate) {
-        filtered = filterChartDataByDateRange(chartData, customStartDate, customEndDate);
-      }
-    } else {
-      // Filter berdasarkan "hari dari data terakhir"
-      filtered = filterChartDataByLatestDays(chartData, windowSize);
-    }
-    // Agregasi
-    return aggregateChartData(filtered, granularity, [
+    // Agregasi langsung pada chartData yang sudah terfilter secara global
+    return aggregateChartData(chartData, granularity, [
       "gmv",
       "orders",
       "itemsSold",
       "clicks",
       "penonton",
     ]);
-  }, [chartData, windowSize, granularity, customStartDate, customEndDate]);
+  }, [chartData, granularity]);
 
   const legendItems = [
     { key: "gmv", label: "GMV (Rp)", color: "#5600e0" },
@@ -89,76 +65,7 @@ export function LiveReportChartSection({
         </h3>
 
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          {/* Segmented Control for Days */}
-          <div className="flex items-center rounded-[8px] bg-slate-50 p-1 border border-slate-200">
-            {WINDOW_OPTIONS.map((option) => {
-              const isActive = windowSize === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setWindowSize(option.value)}
-                  className={`rounded-[6px] px-3 py-1.5 text-[12px] font-semibold transition-colors ${
-                    isActive
-                      ? "bg-white text-[#5600e0] shadow-sm"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
 
-          {windowSize === "custom" && (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsCustomMenuOpen(!isCustomMenuOpen)}
-                className="inline-flex h-8 items-center justify-between gap-2 rounded-[8px] border border-slate-200 bg-white px-3 text-left text-[12px] font-semibold text-slate-700 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <CalendarDays className="h-4 w-4 shrink-0 text-slate-500" />
-                  <span className="truncate">
-                    {customStartDate && customEndDate
-                      ? `${new Intl.DateTimeFormat("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        }).format(new Date(customStartDate))} - ${new Intl.DateTimeFormat(
-                          "en-GB",
-                          { day: "2-digit", month: "short", year: "numeric" }
-                        ).format(new Date(customEndDate))}`
-                      : "Pilih rentang"}
-                  </span>
-                </span>
-                <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
-              </button>
-
-              {isCustomMenuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2">
-                  <DoubleDatePicker
-                    startDate={tempStartDate}
-                    endDate={tempEndDate}
-                    onChange={(start, end) => {
-                      setTempStartDate(start);
-                      setTempEndDate(end);
-                    }}
-                    onApply={() => {
-                      setCustomStartDate(tempStartDate);
-                      setCustomEndDate(tempEndDate);
-                      setIsCustomMenuOpen(false);
-                    }}
-                    onCancel={() => {
-                      setTempStartDate(customStartDate);
-                      setTempEndDate(customEndDate);
-                      setIsCustomMenuOpen(false);
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Granularity Dropdown */}
           <div className="relative">

@@ -16,7 +16,6 @@ import {
 import type { EngagementReportViewModel } from "../../shared/utils/engagementReporting";
 import {
   ChartGranularity,
-  filterChartDataByLatestDays,
   aggregateChartData,
 } from "../../shared/utils/chartDataAggregation";
 
@@ -26,25 +25,18 @@ type EngagementReportChartSectionProps = {
   onChartSelectedMetricsChange: (value: string[]) => void;
 };
 
-const WINDOW_OPTIONS = [
-  { value: 7, label: "7 Hari" },
-  { value: 30, label: "30 Hari" },
-  { value: 90, label: "90 Hari" },
-] as const;
+
 
 export function EngagementReportChartSection({
   model,
   chartSelectedMetrics,
   onChartSelectedMetricsChange,
 }: EngagementReportChartSectionProps) {
-  const [windowSize, setWindowSize] =
-    useState<(typeof WINDOW_OPTIONS)[number]["value"]>(7);
   const [granularity, setGranularity] = useState<ChartGranularity>("daily");
   const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
 
   const visibleData = useMemo(() => {
-    const filtered = filterChartDataByLatestDays(model.chartData, windowSize);
-    return aggregateChartData(filtered, granularity, [
+    return aggregateChartData(model.chartData, granularity, [
       "uniqueViewers",
       "errRateNumeric",
       "likes",
@@ -52,7 +44,7 @@ export function EngagementReportChartSection({
       "shares",
       "followers",
     ]);
-  }, [model.chartData, windowSize, granularity]);
+  }, [model.chartData, granularity]);
 
   const granularityOptions = [
     { value: "daily", label: "Harian" },
@@ -68,26 +60,7 @@ export function EngagementReportChartSection({
         </h3>
 
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          {/* Segmented Control for Days */}
-          <div className="flex items-center rounded-[8px] bg-slate-50 p-1 border border-slate-200">
-            {WINDOW_OPTIONS.map((option) => {
-              const isActive = windowSize === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setWindowSize(option.value)}
-                  className={`rounded-[6px] px-3 py-1.5 text-[12px] font-semibold transition-colors ${
-                    isActive
-                      ? "bg-white text-[#5600e0] shadow-sm"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
+
 
           {/* Granularity Dropdown */}
           <div className="relative">
