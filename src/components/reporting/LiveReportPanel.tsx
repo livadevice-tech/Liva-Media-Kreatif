@@ -43,6 +43,7 @@ interface LiveReportPanelProps {
   ) => void;
   onImportRaw: () => void;
   brandDashboardSettings?: BrandDashboardSettings;
+  hideUploadHistory?: boolean;
 }
 
 export function LiveReportPanel({
@@ -70,6 +71,7 @@ export function LiveReportPanel({
   uploadHistory,
   onDeleteUploadBatch,
   brandDashboardSettings,
+  hideUploadHistory,
 }: LiveReportPanelProps) {
   const isTikTokLive =
     operatorPlatformFilter.toLowerCase().includes("tiktok");
@@ -135,14 +137,16 @@ export function LiveReportPanel({
         isShopee={!isTikTokLive}
       />
 
-      <UploadHistoryCard
-        title="Riwayat Upload Data Mentah"
-        description="History file CSV raw data performa yang telah berhasil dikonversi & masuk ke database sentral."
-        histories={brandUploadHistory.filter((history) => history.brandId === activeReportBrandId)}
-        isLoading={isLogsLoading}
-        emptyMessage="Belum ada riwayat upload untuk brand ini."
-        onDeleteBatch={onDeleteUploadBatch}
-      />
+      {!hideUploadHistory && (
+        <UploadHistoryCard
+          title="Riwayat Upload Data Mentah"
+          description="History file CSV raw data performa yang telah berhasil dikonversi & masuk ke database sentral."
+          histories={brandUploadHistory.filter((history) => history.brandId === activeReportBrandId)}
+          isLoading={isLogsLoading}
+          emptyMessage="Belum ada riwayat upload untuk brand ini."
+          onDeleteBatch={onDeleteUploadBatch}
+        />
+      )}
     </div>
   );
 }

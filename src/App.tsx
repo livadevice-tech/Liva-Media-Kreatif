@@ -6122,6 +6122,7 @@ export default function App() {
                     <ReportingWorkspaceTabs
                       activeTab={clientReportingTab}
                       onTabChange={setClientReportingTab}
+                      hideSettingsTab={true}
                     />
 
                     {clientReportingTab === "live" && (
@@ -6163,6 +6164,7 @@ export default function App() {
                           uploadHistory={uploadHistory}
                           onDeleteUploadBatch={handleDeleteUploadBatch}
                           brandDashboardSettings={brands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
+                          hideUploadHistory={true}
                         />
                       </React.Suspense>
                     )}
@@ -6192,6 +6194,7 @@ export default function App() {
                         itemsPerPage={ITEMS_PER_PAGE}
                         setCurrentPage={setCurrentPage}
                         onDeleteBatch={() => {}}
+                        hideUploadHistory={true}
                       />
                     )}
 
@@ -6215,6 +6218,7 @@ export default function App() {
                           isLogsLoading={isLogsLoading}
                           onDeleteUploadBatch={handleDeleteUploadBatch}
                           brandDashboardSettings={brands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
+                          hideUploadHistory={true}
                         />
                       </React.Suspense>
                     )}

@@ -22,6 +22,7 @@ interface EngagementReportPanelProps {
     fileName: string,
     rowCount: number,
   ) => void;
+  hideUploadHistory?: boolean;
 }
 
 export function EngagementReportPanel({
@@ -36,6 +37,7 @@ export function EngagementReportPanel({
   isLogsLoading,
   onDeleteUploadBatch,
   brandDashboardSettings,
+  hideUploadHistory,
 }: EngagementReportPanelProps) {
   const hasAnyData = brandPerformanceLogs.some(
     (log) =>
@@ -69,15 +71,17 @@ export function EngagementReportPanel({
         </div>
       )}
 
-      <ReportEngagementUploadHistory
-        activeReportBrandId={activeReportBrandId}
-        brandPerformanceLogs={brandPerformanceLogs}
-        brandUploadHistory={brandUploadHistory}
-        uploadHistory={uploadHistory}
-        isLogsLoading={isLogsLoading}
-        onDeleteUploadBatch={onDeleteUploadBatch}
-  brandDashboardSettings={brandDashboardSettings}
-      />
+      {!hideUploadHistory && (
+        <ReportEngagementUploadHistory
+          activeReportBrandId={activeReportBrandId}
+          brandPerformanceLogs={brandPerformanceLogs}
+          brandUploadHistory={brandUploadHistory}
+          uploadHistory={uploadHistory}
+          isLogsLoading={isLogsLoading}
+          onDeleteUploadBatch={onDeleteUploadBatch}
+          brandDashboardSettings={brandDashboardSettings}
+        />
+      )}
     </div>
   );
 }

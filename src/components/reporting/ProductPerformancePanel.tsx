@@ -26,7 +26,8 @@ type ProductPerformancePanelProps = {
   currentPage: number;
   itemsPerPage: number;
   setCurrentPage: (value: number | ((prev: number) => number)) => void;
-  onDeleteBatch: (batchId: string) => void;
+  onDeleteBatch: (batchId: string, fileName: string, rowCount: number) => void;
+  hideUploadHistory?: boolean;
   brandDashboardSettings?: BrandDashboardSettings;
 };
 
@@ -53,6 +54,7 @@ export function ProductPerformancePanel({
   itemsPerPage,
   setCurrentPage,
   onDeleteBatch,
+  hideUploadHistory,
   brandDashboardSettings,
 }: ProductPerformancePanelProps) {
   const { currentSkus, aggregatedSkus, totalSold } =
@@ -218,15 +220,17 @@ export function ProductPerformancePanel({
         </div>
       </div>
 
-      <SkuUploadHistoryCard
-        brandSkuLogs={shopeeSkuLogs.filter(
-          (r) => r.brandId === activeReportBrandId,
-        )}
-        currentPage={currentPage}
-        itemsPerPage={itemsPerPage}
-        setCurrentPage={setCurrentPage}
-        onDeleteBatch={onDeleteBatch}
-      />
+      {!hideUploadHistory && (
+        <SkuUploadHistoryCard
+          brandSkuLogs={shopeeSkuLogs.filter(
+            (r) => r.brandId === activeReportBrandId,
+          )}
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          setCurrentPage={setCurrentPage}
+          onDeleteBatch={onDeleteBatch}
+        />
+      )}
     </div>
   );
 }

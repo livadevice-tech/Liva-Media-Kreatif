@@ -471,11 +471,13 @@ export function ReportingWorkspaceHeader({
 type ReportingWorkspaceTabsProps = {
   activeTab: ReportingTab;
   onTabChange: (tab: ReportingTab) => void;
+  hideSettingsTab?: boolean;
 };
 
 export function ReportingWorkspaceTabs({
   activeTab,
   onTabChange,
+  hideSettingsTab,
 }: ReportingWorkspaceTabsProps) {
   const tabClass = (tab: ReportingTab) =>
     `relative whitespace-nowrap px-1 py-3 text-[14px] font-bold transition-all border-b-[3px] ${
@@ -501,13 +503,15 @@ export function ReportingWorkspaceTabs({
       >
         Product Performance
       </button>
-      <button
-        type="button"
-        onClick={() => onTabChange("settings")}
-        className={tabClass("settings")}
-      >
-        Pengaturan Klien
-      </button>
+      {!hideSettingsTab && (
+        <button
+          type="button"
+          onClick={() => onTabChange("settings")}
+          className={tabClass("settings")}
+        >
+          Pengaturan Klien
+        </button>
+      )}
       </div>
     </div>
   );
