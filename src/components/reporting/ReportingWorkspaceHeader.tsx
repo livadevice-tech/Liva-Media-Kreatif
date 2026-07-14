@@ -130,7 +130,7 @@ export function ReportingWorkspaceHeader({
   activeTab,
   platformFilter,
   onPlatformFilterChange,
-  availablePlatforms,
+  availablePlatforms = ["Shopee Live", "TikTok Live"],
   dateFilterType,
   onDateFilterTypeSelect,
   monthPickerYear,
