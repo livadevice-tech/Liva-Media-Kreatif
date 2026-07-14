@@ -149,8 +149,25 @@ export function buildLiveReportViewModel(
         })
       : [];
 
+  let chartLogs = tableLogs as BrandPerformanceLogEntry[];
+  if (effectiveFilter === "latest" && targetLatestDate) {
+    const latest = new Date(targetLatestDate);
+    const startObj = new Date(latest);
+    startObj.setDate(startObj.getDate() - 6);
+    const startStr = `${startObj.getFullYear()}-${String(startObj.getMonth() + 1).padStart(2, "0")}-${String(startObj.getDate()).padStart(2, "0")}`;
+
+    chartLogs = filterReportLogs(filteredDb as ReportLogLike[], {
+      filterType: "custom",
+      customStartDate: startStr,
+      customEndDate: targetLatestDate,
+      searchQuery: input.searchQuery,
+      platformFilter: input.platformFilter,
+      shiftFilters: input.shiftFilters,
+    }) as BrandPerformanceLogEntry[];
+  }
+
   const groupedByDate: Record<string, LiveReportChartPoint> = {};
-  filteredDb.forEach((log) => {
+  chartLogs.forEach((log) => {
     const d = log.date || "Tanpa Tanggal";
     if (!groupedByDate[d]) {
       groupedByDate[d] = {

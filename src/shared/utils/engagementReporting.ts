@@ -202,7 +202,32 @@ export function buildEngagementReportViewModel(
   );
 
   const groupedByDate: Record<string, DailyEngagementPoint> = {};
-  logs.forEach((log) => {
+
+  let chartLogs = logs;
+  if (input.operatorDateFilterType === "latest" && engagementLogsForBrand.length > 0 && selectedLatestDate) {
+    const latest = new Date(selectedLatestDate);
+    const startObj = new Date(latest);
+    startObj.setDate(startObj.getDate() - 6);
+    const startStr = `${startObj.getFullYear()}-${String(startObj.getMonth() + 1).padStart(2, "0")}-${String(startObj.getDate()).padStart(2, "0")}`;
+
+    chartLogs = engagementLogsForBrand.filter((r) => {
+      if (!r.date) return false;
+      return r.date >= startStr && r.date <= selectedLatestDate;
+    });
+
+    if (input.operatorPlatformFilter) {
+      chartLogs = chartLogs.filter(
+        (r) =>
+          r.platform &&
+          r.platform.toLowerCase() === input.operatorPlatformFilter!.toLowerCase(),
+      );
+    }
+    if (input.operatorShiftFilters.length > 0) {
+      chartLogs = chartLogs.filter((r) => input.operatorShiftFilters.includes(r.shift || ""));
+    }
+  }
+
+  chartLogs.forEach((log) => {
     const dateStr = log.date || "Tanpa Tanggal";
     if (!groupedByDate[dateStr]) {
       groupedByDate[dateStr] = {
