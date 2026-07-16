@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   CartesianGrid,
   Line,
@@ -38,6 +38,21 @@ export function LiveReportChartSection({
   const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
   const [isSaleMetricsMenuOpen, setIsSaleMetricsMenuOpen] = useState(false);
   const [isEngagementMetricsMenuOpen, setIsEngagementMetricsMenuOpen] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsGranularityMenuOpen(false);
+        setIsSaleMetricsMenuOpen(false);
+        setIsEngagementMetricsMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Default behavior if nothing is selected or if parent doesn't provide it
   const activeMetrics =
@@ -157,7 +172,7 @@ export function LiveReportChartSection({
           Tren GMV & Views
         </h3>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div ref={menuRef} className="flex flex-col sm:flex-row items-center gap-3">
           {/* Sale Metrics Dropdown */}
           <div className="relative">
             <button
