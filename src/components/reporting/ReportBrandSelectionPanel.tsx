@@ -36,6 +36,7 @@ interface ReportBrandSelectionPanelProps {
   onBrandSelect: (brandId: string) => void;
   onToggleBrandCardActions: (brandId: string) => void;
   onDeleteAllBrandRawData: (brandId: string, brandName: string) => void;
+  onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
 }
 
 function getSortLabel(sortKey: ReportBrandSortKey) {
@@ -70,12 +71,14 @@ function ReportBrandCard({
   onBrandSelect,
   onToggleBrandCardActions,
   onDeleteAllBrandRawData,
+  onDeleteBrandDataByDateRange,
 }: {
   row: ReportBrandRowView;
   openBrandCardActionsId: string | null;
   onBrandSelect: (brandId: string) => void;
   onToggleBrandCardActions: (brandId: string) => void;
   onDeleteAllBrandRawData: (brandId: string, brandName: string) => void;
+  onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
 }) {
   const brand = row.brand;
   const brandPlatforms = row.platforms;
@@ -150,6 +153,18 @@ function ReportBrandCard({
                 >
                   Buka Dashboard
                 </button>
+                {onDeleteBrandDataByDateRange && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDeleteBrandDataByDateRange(brand.id, brand.name);
+                    }}
+                    className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50"
+                  >
+                    Hapus Rentang Waktu
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={(event) => {
@@ -271,6 +286,7 @@ export function ReportBrandSelectionPanel({
   onBrandSelect,
   onToggleBrandCardActions,
   onDeleteAllBrandRawData,
+  onDeleteBrandDataByDateRange,
 }: ReportBrandSelectionPanelProps) {
   return (
     <div className="space-y-6" id="operator_reporting_brand_content">
@@ -387,6 +403,7 @@ export function ReportBrandSelectionPanel({
                 onBrandSelect={onBrandSelect}
                 onToggleBrandCardActions={onToggleBrandCardActions}
                 onDeleteAllBrandRawData={onDeleteAllBrandRawData}
+                onDeleteBrandDataByDateRange={onDeleteBrandDataByDateRange}
               />
             </Fragment>
           ))}

@@ -154,8 +154,5 @@ export const liveChartMetricOptions = [
 
 export const liveChartMetricDefaults = [
   "gmv",
-  "orders",
-  "itemsSold",
-  "clicks",
   "impressions",
 ] as const;

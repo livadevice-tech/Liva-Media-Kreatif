@@ -437,6 +437,7 @@ export default function App() {
   const [importSpreadsheetUrl, setImportSpreadsheetUrl] = useState<string>("");
 
   const [isDeleteByDateModalOpen, setIsDeleteByDateModalOpen] = useState(false);
+  const [deleteByDateTargetBrand, setDeleteByDateTargetBrand] = useState<{id: string, name: string} | null>(null);
   const [deleteByDateStart, setDeleteByDateStart] = useState("");
   const [deleteByDateEnd, setDeleteByDateEnd] = useState("");
 
@@ -2596,19 +2597,19 @@ export default function App() {
       customAlert("Silakan pilih tanggal mulai dan selesai.");
       return;
     }
-    if (!activeReportBrandId) return;
+    const targetBrandId = deleteByDateTargetBrand?.id || activeReportBrandId;
+    if (!targetBrandId) return;
 
-    const brandName =
-      clientBrands.find((b) => b.id === activeReportBrandId)?.name || "Brand";
+    const brandName = deleteByDateTargetBrand?.name || clientBrands.find((b) => b.id === targetBrandId)?.name || "Brand";
 
-    const targetType = operatorReportingTab;
+    const targetType = deleteByDateTargetBrand ? "all" : operatorReportingTab;
 
     if (targetType === "product") {
       const logsToDelete = filterItemsWithinDateRange<SkuLogEntry>(
         shopeeSkuLogs,
         deleteByDateStart,
         deleteByDateEnd,
-        (log) => log.brandId === activeReportBrandId,
+        (log) => log.brandId === targetBrandId,
       );
 
       if (logsToDelete.length === 0) {
@@ -2645,16 +2646,23 @@ export default function App() {
       deleteByDateStart,
       deleteByDateEnd,
       (log) => {
-        if (log.brandId !== activeReportBrandId) return false;
+        if (log.brandId !== targetBrandId) return false;
         if (targetType === "live" && log.reportType === "engagement") return false;
         if (targetType === "engagement" && log.reportType !== "engagement") return false;
         return true;
       },
     );
 
-    const displayType = targetType === "live" ? "Live Streaming" : targetType === "engagement" ? "Engagement" : "Live & Engagement";
+    const skuLogsToDelete = targetType === "all" ? filterItemsWithinDateRange<SkuLogEntry>(
+      shopeeSkuLogs,
+      deleteByDateStart,
+      deleteByDateEnd,
+      (log) => log.brandId === targetBrandId,
+    ) : [];
 
-    if (logsToDelete.length === 0) {
+    const displayType = targetType === "all" ? "Semua Raw Data & Product" : targetType === "live" ? "Live Streaming" : targetType === "engagement" ? "Engagement" : "Live & Engagement";
+
+    if (logsToDelete.length === 0 && skuLogsToDelete.length === 0) {
       customAlert(
         `Tidak ada data ${displayType} yang ditemukan untuk brand "${brandName}" pada rentang tanggal tersebut.`,
       );
@@ -2663,18 +2671,23 @@ export default function App() {
 
     requestConfirm(
       `Hapus Data ${displayType} Berdasarkan Tanggal`,
-      `Apakah Anda yakin menghapus ${logsToDelete.length} data ${displayType} untuk brand "${brandName}" dari tanggal ${deleteByDateStart} hingga ${deleteByDateEnd}? TINDAKAN INI BERSIFAT PERMANEN!`,
+      `Apakah Anda yakin menghapus ${logsToDelete.length} data ${displayType} dan ${skuLogsToDelete.length} data Product untuk brand "${brandName}" dari tanggal ${deleteByDateStart} hingga ${deleteByDateEnd}? TINDAKAN INI BERSIFAT PERMANEN!`,
       async () => {
         try {
           setIsSavingReport(true);
           const idsToDelete = new Set(logsToDelete.map((l) => l.id));
-          // Hapus dari MySQL terlebih dahulu
+          const skuIdsToDelete = new Set(skuLogsToDelete.map((l) => l.id));
+          
+          // Hapus dari MySQL terlebih dahulu (asumsi deleteMany API handle logs biasa)
           await reportingBrandApi.deleteMany({
             logIds: [...idsToDelete],
           });
+          
           setBrandPerformanceLogs((prev) => prev.filter((l) => !idsToDelete.has(l.id)));
+          setShopeeSkuLogs((prev) => prev.filter((l) => !skuIdsToDelete.has(l.id)));
+          
           customAlert(
-            `Berhasil menghapus ${logsToDelete.length} data ${displayType} untuk brand "${brandName}"!`,
+            `Berhasil menghapus ${logsToDelete.length} data ${displayType} dan ${skuLogsToDelete.length} data Product untuk brand "${brandName}"!`,
           );
           setIsDeleteByDateModalOpen(false);
           setDeleteByDateStart("");
@@ -12520,6 +12533,11 @@ export default function App() {
                           handleDeleteAllBrandRawData(brandId, brandName);
                           setOpenBrandCardActionsId(null);
                         }}
+                        onDeleteBrandDataByDateRange={(brandId, brandName) => {
+                          setDeleteByDateTargetBrand({ id: brandId, name: brandName });
+                          setIsDeleteByDateModalOpen(true);
+                          setOpenBrandCardActionsId(null);
+                        }}
                       />
                     ) : (
                       <>
@@ -12643,6 +12661,7 @@ export default function App() {
                               setIsDeleteByDateModalOpen(false);
                               setDeleteByDateStart("");
                               setDeleteByDateEnd("");
+                              setDeleteByDateTargetBrand(null);
                             }}
                             onConfirm={handleDeleteBrandRawDataByDateRange}
                           />
