@@ -13,13 +13,39 @@ const CATEGORIES = [
 ];
 
 const METRICS_BY_CATEGORY = {
-  live: [
+  live_shopee: [
     { id: "gmv", label: "GMV" },
-    { id: "orders", label: "Pesanan (Orders)" },
-    { id: "items_sold", label: "Produk Terjual" },
-    { id: "est_income", label: "Estimasi Pendapatan" },
-    { id: "viewers", label: "Total Penonton" },
-    { id: "engagement", label: "Engagement (Likes/Share/Komen)" },
+    { id: "items_sold", label: "Item Sold" },
+    { id: "orders", label: "Orders" },
+    { id: "aov", label: "AOV" },
+    { id: "product_clicks", label: "Add to Cart" },
+    { id: "viewers", label: "Customer" },
+    { id: "est_income", label: "GMV/Hours" },
+    { id: "impressions", label: "View" },
+    { id: "peak_viewers", label: "Peak Viewer" },
+    { id: "shop_vouchers", label: "Voucher Claim" },
+    { id: "likes", label: "Likes" },
+    { id: "comments", label: "Comments" },
+    { id: "shares", label: "Shares" },
+    { id: "err", label: "ERR %" },
+  ],
+  live_tiktok: [
+    { id: "gmv", label: "GMV" },
+    { id: "items_sold", label: "Item Sold" },
+    { id: "orders", label: "Orders" },
+    { id: "aov", label: "AOV" },
+    { id: "viewers", label: "Customer" },
+    { id: "product_impressions", label: "Product Impressions" },
+    { id: "product_clicks", label: "Product clicks" },
+    { id: "est_income", label: "GMV/Hours" },
+    { id: "impressions", label: "Live Impressions" },
+    { id: "live_viewer", label: "Viewer Active" },
+    { id: "likes", label: "Likes" },
+    { id: "comments", label: "Comments" },
+    { id: "shares", label: "Shares" },
+    { id: "new_followers", label: "New followers" },
+    { id: "avg_view_duration", label: "Avg. View Duration" },
+    { id: "err", label: "ERR %" },
   ],
   product: [
     { id: "items_sold", label: "Produk Terjual" },
@@ -141,7 +167,9 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                     Sembunyikan Metrik (Summary)
                   </label>
                   <div className="space-y-3">
-                    {(METRICS_BY_CATEGORY as any)[category.id].map((metric: any) => {
+                    {((category.id === 'live' 
+                        ? (METRICS_BY_CATEGORY as any)[`live_${activePlatform}`] 
+                        : (METRICS_BY_CATEGORY as any)[category.id]) || []).map((metric: any) => {
                       const id = `${activePlatform}_${category.id}_${metric.id}`;
                       return (
                         <label key={id} className="flex items-center gap-3 cursor-pointer group">

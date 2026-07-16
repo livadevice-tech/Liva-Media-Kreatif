@@ -109,14 +109,16 @@ export function LiveReportMetricsSection({
             icon={<ClipboardList size={16} />}
           />
         )}
-        <ReportMetricCard
-          label="AOV"
-          cur={avgAovDb}
-          prev={pAvgAovDb}
-          prefix="Rp"
-          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}
-          icon={<Calculator size={16} />}
-        />
+        {!isMetricHidden("aov") && (
+          <ReportMetricCard
+            label="AOV"
+            cur={avgAovDb}
+            prev={pAvgAovDb}
+            prefix="Rp"
+            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}
+            icon={<Calculator size={16} />}
+          />
+        )}
         {!isMetricHidden("viewers") && (
           <ReportMetricCard
             label="Customer"
@@ -126,18 +128,22 @@ export function LiveReportMetricsSection({
             icon={<Users size={16} />}
           />
         )}
-        <ReportMetricCard
-          label="Product Impressions"
-          cur={stats.totalProductImpressions || 0}
-          prev={stats.pTotalProductImpressions || 0}
-          value={new Intl.NumberFormat("id-ID").format(stats.totalProductImpressions || 0)}
-        />
-        <ReportMetricCard
-          label="Product clicks"
-          cur={totalClicksDb}
-          prev={pTotalClicksDb}
-          value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
-        />
+        {!isMetricHidden("product_impressions") && (
+          <ReportMetricCard
+            label="Product Impressions"
+            cur={stats.totalProductImpressions || 0}
+            prev={stats.pTotalProductImpressions || 0}
+            value={new Intl.NumberFormat("id-ID").format(stats.totalProductImpressions || 0)}
+          />
+        )}
+        {!isMetricHidden("product_clicks") && (
+          <ReportMetricCard
+            label="Product clicks"
+            cur={totalClicksDb}
+            prev={pTotalClicksDb}
+            value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
+          />
+        )}
         {!isMetricHidden("est_income") && (
           <ReportMetricCard
             label="GMV/Hours"
@@ -186,34 +192,42 @@ export function LiveReportMetricsSection({
             icon={<ClipboardList size={16} />}
           />
         )}
-        <ReportMetricCard
-          label="AOV"
-          cur={avgAovDb}
-          prev={pAvgAovDb}
-          prefix="Rp"
-          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}
-          icon={<Calculator size={16} />}
-        />
-        <ReportMetricCard
-          label="Add to Cart"
-          cur={totalClicksDb}
-          prev={pTotalClicksDb}
-          value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
-        />
-        <ReportMetricCard
-          label="Avg. View Duration"
-          cur={avgViewDurationDb}
-          prev={pAvgViewDurationDb}
-          value={`${avgViewDurationDb.toFixed(1)}s`}
-          icon={<TrendingUp size={16} />}
-        />
-        <ReportMetricCard
-          label="Viewer Active"
-          cur={totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0}
-          prev={pTotalSessionsDb > 0 ? pTotalDbLiveVisits / pTotalSessionsDb : 0}
-          value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0)}
-          icon={<Users size={16} />}
-        />
+        {!isMetricHidden("aov") && (
+          <ReportMetricCard
+            label="AOV"
+            cur={avgAovDb}
+            prev={pAvgAovDb}
+            prefix="Rp"
+            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(avgAovDb)}
+            icon={<Calculator size={16} />}
+          />
+        )}
+        {!isMetricHidden("product_clicks") && (
+          <ReportMetricCard
+            label="Add to Cart"
+            cur={totalClicksDb}
+            prev={pTotalClicksDb}
+            value={new Intl.NumberFormat("id-ID").format(totalClicksDb)}
+          />
+        )}
+        {!isMetricHidden("avg_view_duration") && (
+          <ReportMetricCard
+            label="Avg. View Duration"
+            cur={avgViewDurationDb}
+            prev={pAvgViewDurationDb}
+            value={`${avgViewDurationDb.toFixed(1)}s`}
+            icon={<TrendingUp size={16} />}
+          />
+        )}
+        {!isMetricHidden("live_viewer") && (
+          <ReportMetricCard
+            label="Viewer Active"
+            cur={totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0}
+            prev={pTotalSessionsDb > 0 ? pTotalDbLiveVisits / pTotalSessionsDb : 0}
+            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0)}
+            icon={<Users size={16} />}
+          />
+        )}
         {!isMetricHidden("est_income") && (
           <ReportMetricCard
             label="GMV/Hours"
@@ -239,54 +253,70 @@ export function LiveReportMetricsSection({
           <Users className="h-5 w-5 text-[#5600e0]" /> Engagement Metrics
         </h4>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          <ReportMetricCard
-            label="Live Impressions"
-            cur={totalDbImpressions}
-            prev={pTotalDbImpressions}
-            value={new Intl.NumberFormat("id-ID").format(totalDbImpressions)}
-          />
-          <ReportMetricCard
-            label="Viewer"
-            cur={stats.totalPenontonDb || 0}
-            prev={stats.pTotalPenontonDb || 0}
-            value={new Intl.NumberFormat("id-ID").format(stats.totalPenontonDb || 0)}
-          />
-          <ReportMetricCard
-            label="Likes"
-            cur={totalLikesDb}
-            prev={pTotalLikesDb}
-            value={new Intl.NumberFormat("id-ID").format(totalLikesDb)}
-          />
-          <ReportMetricCard
-            label="Comments"
-            cur={totalCommentsDb}
-            prev={pTotalCommentsDb}
-            value={new Intl.NumberFormat("id-ID").format(totalCommentsDb)}
-          />
-          <ReportMetricCard
-            label="Shares"
-            cur={totalSharesDb}
-            prev={pTotalSharesDb}
-            value={new Intl.NumberFormat("id-ID").format(totalSharesDb)}
-          />
-          <ReportMetricCard
-            label="New followers"
-            cur={stats.totalFollowersDb || 0}
-            prev={stats.pTotalFollowersDb || 0}
-            value={new Intl.NumberFormat("id-ID").format(stats.totalFollowersDb || 0)}
-          />
-          <ReportMetricCard
-            label="Avg. View Duration"
-            cur={avgViewDurationDb}
-            prev={pAvgViewDurationDb}
-            value={`${avgViewDurationDb.toFixed(1)}s`}
-          />
-          <ReportMetricCard
-            label="ERR %"
-            cur={errCur}
-            prev={pErrCur}
-            value={`${errCur.toFixed(2)}%`}
-          />
+          {!isMetricHidden("impressions") && (
+            <ReportMetricCard
+              label="Live Impressions"
+              cur={totalDbImpressions}
+              prev={pTotalDbImpressions}
+              value={new Intl.NumberFormat("id-ID").format(totalDbImpressions)}
+            />
+          )}
+          {!isMetricHidden("live_viewer") && (
+            <ReportMetricCard
+              label="Viewer"
+              cur={stats.totalPenontonDb || 0}
+              prev={stats.pTotalPenontonDb || 0}
+              value={new Intl.NumberFormat("id-ID").format(stats.totalPenontonDb || 0)}
+            />
+          )}
+          {!isMetricHidden("likes") && (
+            <ReportMetricCard
+              label="Likes"
+              cur={totalLikesDb}
+              prev={pTotalLikesDb}
+              value={new Intl.NumberFormat("id-ID").format(totalLikesDb)}
+            />
+          )}
+          {!isMetricHidden("comments") && (
+            <ReportMetricCard
+              label="Comments"
+              cur={totalCommentsDb}
+              prev={pTotalCommentsDb}
+              value={new Intl.NumberFormat("id-ID").format(totalCommentsDb)}
+            />
+          )}
+          {!isMetricHidden("shares") && (
+            <ReportMetricCard
+              label="Shares"
+              cur={totalSharesDb}
+              prev={pTotalSharesDb}
+              value={new Intl.NumberFormat("id-ID").format(totalSharesDb)}
+            />
+          )}
+          {!isMetricHidden("new_followers") && (
+            <ReportMetricCard
+              label="New followers"
+              cur={stats.totalFollowersDb || 0}
+              prev={stats.pTotalFollowersDb || 0}
+              value={new Intl.NumberFormat("id-ID").format(stats.totalFollowersDb || 0)}
+            />
+          )}
+          {!isMetricHidden("avg_view_duration") && (
+            <ReportMetricCard
+              label="Avg. View Duration"
+              cur={avgViewDurationDb}
+              prev={pAvgViewDurationDb}
+              value={`${avgViewDurationDb.toFixed(1)}s`}
+            />
+          )}
+          {!isMetricHidden("err") && (
+            <ReportMetricCard
+              label="ERR %"
+              cur={errCur}
+              prev={pErrCur}
+              value={`${errCur.toFixed(2)}%`}
+            />
+          )}
         </div>
       </div>
     );
@@ -304,54 +334,70 @@ export function LiveReportMetricsSection({
           <Users className="h-5 w-5 text-[#5600e0]" /> Engagement & Customer Metrics
         </h4>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          <ReportMetricCard
-            label="View"
-            cur={totalDbImpressions}
-            prev={pTotalDbImpressions}
-            value={new Intl.NumberFormat("id-ID").format(totalDbImpressions)}
-          />
-          <ReportMetricCard
-            label="Peak Viewer"
-            cur={totalPeakViewersDb}
-            prev={pTotalPeakViewersDb}
-            value={new Intl.NumberFormat("id-ID").format(totalPeakViewersDb)}
-          />
-          <ReportMetricCard
-            label="Voucher Claim"
-            cur={totalShopVouchersDb}
-            prev={pTotalShopVouchersDb}
-            value={new Intl.NumberFormat("id-ID").format(totalShopVouchersDb)}
-          />
-          <ReportMetricCard
-            label="Customer"
-            cur={totalBuyersDb}
-            prev={pTotalBuyersDb}
-            value={new Intl.NumberFormat("id-ID").format(totalBuyersDb)}
-          />
-          <ReportMetricCard
-            label="Likes"
-            cur={totalLikesDb}
-            prev={pTotalLikesDb}
-            value={new Intl.NumberFormat("id-ID").format(totalLikesDb)}
-          />
-          <ReportMetricCard
-            label="Comments"
-            cur={totalCommentsDb}
-            prev={pTotalCommentsDb}
-            value={new Intl.NumberFormat("id-ID").format(totalCommentsDb)}
-          />
-          <ReportMetricCard
-            label="Shares"
-            cur={totalSharesDb}
-            prev={pTotalSharesDb}
-            value={new Intl.NumberFormat("id-ID").format(totalSharesDb)}
-          />
-          <ReportMetricCard
-            label="ERR %"
-            cur={errCur}
-            prev={pErrCur}
-            value={`${errCur.toFixed(2)}%`}
-          />
+          {!isMetricHidden("impressions") && (
+            <ReportMetricCard
+              label="View"
+              cur={totalDbImpressions}
+              prev={pTotalDbImpressions}
+              value={new Intl.NumberFormat("id-ID").format(totalDbImpressions)}
+            />
+          )}
+          {!isMetricHidden("peak_viewers") && (
+            <ReportMetricCard
+              label="Peak Viewer"
+              cur={totalPeakViewersDb}
+              prev={pTotalPeakViewersDb}
+              value={new Intl.NumberFormat("id-ID").format(totalPeakViewersDb)}
+            />
+          )}
+          {!isMetricHidden("shop_vouchers") && (
+            <ReportMetricCard
+              label="Voucher Claim"
+              cur={totalShopVouchersDb}
+              prev={pTotalShopVouchersDb}
+              value={new Intl.NumberFormat("id-ID").format(totalShopVouchersDb)}
+            />
+          )}
+          {!isMetricHidden("viewers") && (
+            <ReportMetricCard
+              label="Customer"
+              cur={totalBuyersDb}
+              prev={pTotalBuyersDb}
+              value={new Intl.NumberFormat("id-ID").format(totalBuyersDb)}
+            />
+          )}
+          {!isMetricHidden("likes") && (
+            <ReportMetricCard
+              label="Likes"
+              cur={totalLikesDb}
+              prev={pTotalLikesDb}
+              value={new Intl.NumberFormat("id-ID").format(totalLikesDb)}
+            />
+          )}
+          {!isMetricHidden("comments") && (
+            <ReportMetricCard
+              label="Comments"
+              cur={totalCommentsDb}
+              prev={pTotalCommentsDb}
+              value={new Intl.NumberFormat("id-ID").format(totalCommentsDb)}
+            />
+          )}
+          {!isMetricHidden("shares") && (
+            <ReportMetricCard
+              label="Shares"
+              cur={totalSharesDb}
+              prev={pTotalSharesDb}
+              value={new Intl.NumberFormat("id-ID").format(totalSharesDb)}
+            />
+          )}
+          {!isMetricHidden("err") && (
+            <ReportMetricCard
+              label="ERR %"
+              cur={errCur}
+              prev={pErrCur}
+              value={`${errCur.toFixed(2)}%`}
+            />
+          )}
         </div>
       </div>
     );
