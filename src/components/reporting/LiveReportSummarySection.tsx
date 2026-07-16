@@ -51,7 +51,7 @@ export function LiveReportSummarySection({
         </div>
       ) : (
         <>
-          {isShopeeStyle && chartData.length > 0 && (
+          {chartData.length > 0 && (
             <LiveReportChartSection
               chartData={chartData}
               chartSelectedMetrics={chartSelectedMetrics}
@@ -66,14 +66,6 @@ export function LiveReportSummarySection({
             useShopeeLiveLayout={useShopeeLiveLayout}
             brandDashboardSettings={brandDashboardSettings}
           />
-
-          {!isShopeeStyle && chartData.length > 0 && (
-            <LiveReportChartSection
-              chartData={chartData}
-              chartSelectedMetrics={chartSelectedMetrics}
-              onChartSelectedMetricsChange={onChartSelectedMetricsChange}
-            />
-          )}
         </>
       )}
     </div>
