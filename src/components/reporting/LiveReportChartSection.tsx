@@ -165,12 +165,25 @@ export function LiveReportChartSection({
     { value: "monthly", label: "Bulanan" },
   ] as const;
 
+  const dateRangeLabel = useMemo(() => {
+    if (!visibleData || visibleData.length === 0) return "";
+    if (visibleData.length === 1) return visibleData[0].displayDate;
+    return `${visibleData[0].displayDate} - ${visibleData[visibleData.length - 1].displayDate}`;
+  }, [visibleData]);
+
   return (
     <section className="rounded-[16px] border border-[#e6dff8] bg-white p-6 shadow-sm">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-[14px] font-semibold text-slate-800">
-          Tren GMV & Views
-        </h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-[14px] font-semibold text-slate-800">
+            Tren GMV & Views
+          </h3>
+          {dateRangeLabel && (
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+              {dateRangeLabel}
+            </span>
+          )}
+        </div>
 
         <div ref={menuRef} className="flex flex-col sm:flex-row items-center gap-3">
           {/* Sale Metrics Dropdown */}
