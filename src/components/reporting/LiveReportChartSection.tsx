@@ -124,7 +124,7 @@ export function LiveReportChartSection({
     });
 
   const metricAnalysis = useMemo(() => {
-    const analysis: Record<string, { avg: number; max: number; min: number; label: string }> = {};
+    const analysis: Record<string, { avg: number; max: number; maxDate?: string; min: number; minDate?: string; label: string }> = {};
     
     activeMetrics.forEach((metricKey) => {
       const option = platformFilteredOptions.find(o => o.key === metricKey);
@@ -133,13 +133,21 @@ export function LiveReportChartSection({
       let sum = 0;
       let max = -Infinity;
       let min = Infinity;
+      let maxDate = "";
+      let minDate = "";
       let count = 0;
 
       visibleData.forEach((point: any) => {
         const val = point[metricKey] || 0;
         sum += val;
-        if (val > max) max = val;
-        if (val < min) min = val;
+        if (val > max) {
+          max = val;
+          maxDate = point.displayDate;
+        }
+        if (val < min) {
+          min = val;
+          minDate = point.displayDate;
+        }
         count++;
       });
 
@@ -151,7 +159,9 @@ export function LiveReportChartSection({
       analysis[metricKey] = {
         avg: count > 0 ? sum / count : 0,
         max,
+        maxDate,
         min,
+        minDate,
         label: option.label,
       };
     });
@@ -454,11 +464,11 @@ export function LiveReportChartSection({
                     <span className="font-semibold text-slate-700">{formatValue(analysis.avg)}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-medium uppercase text-slate-400">Peak</span>
+                    <span className="text-[10px] font-medium uppercase text-slate-400">Peak {analysis.maxDate && `• ${analysis.maxDate}`}</span>
                     <span className="font-semibold text-emerald-600">{formatValue(analysis.max)}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-medium uppercase text-slate-400">Low</span>
+                    <span className="text-[10px] font-medium uppercase text-slate-400">Low {analysis.minDate && `• ${analysis.minDate}`}</span>
                     <span className="font-semibold text-rose-600">{formatValue(analysis.min)}</span>
                   </div>
                 </div>
