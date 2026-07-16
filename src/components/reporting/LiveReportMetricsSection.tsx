@@ -370,17 +370,22 @@ export function LiveReportMetricsSection({
               subtitle=""
               steps={[
                 {
-                  label: "Views",
+                  label: "Viewer",
                   value: new Intl.NumberFormat("id-ID").format(totalDbImpressions),
                   raw: totalDbImpressions,
                 },
                 {
-                  label: "Product clicks",
+                  label: "Viewer Active",
+                  value: new Intl.NumberFormat("id-ID").format(totalDbLiveVisits),
+                  raw: totalDbLiveVisits,
+                },
+                {
+                  label: "Add To Cart",
                   value: new Intl.NumberFormat("id-ID").format(totalDbClicks),
                   raw: totalDbClicks,
                 },
                 {
-                  label: "Attributed orders",
+                  label: "Purchase",
                   value: new Intl.NumberFormat("id-ID").format(totalDbOrdersFunnel),
                   raw: totalDbOrdersFunnel,
                 },
@@ -389,13 +394,17 @@ export function LiveReportMetricsSection({
                   value:
                     totalDbClicks > 0
                       ? `${((totalDbOrdersFunnel / totalDbClicks) * 100).toFixed(2)}%`
-                      : totalDbImpressions > 0
-                        ? `${((totalDbOrdersFunnel / totalDbImpressions) * 100).toFixed(4)}%`
+                      : totalDbLiveVisits > 0
+                        ? `${((totalDbOrdersFunnel / totalDbLiveVisits) * 100).toFixed(2)}%`
+                        : totalDbImpressions > 0
+                        ? `${((totalDbOrdersFunnel / totalDbImpressions) * 100).toFixed(2)}%`
                         : "0.00%",
                   raw:
                     totalDbClicks > 0
                       ? (totalDbOrdersFunnel / totalDbClicks) * 100
-                      : totalDbImpressions > 0
+                      : totalDbLiveVisits > 0
+                        ? (totalDbOrdersFunnel / totalDbLiveVisits) * 100
+                        : totalDbImpressions > 0
                         ? (totalDbOrdersFunnel / totalDbImpressions) * 100
                         : 0,
                 },
