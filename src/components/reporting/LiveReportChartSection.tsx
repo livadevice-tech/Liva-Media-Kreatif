@@ -132,53 +132,81 @@ export function LiveReportChartSection({
             {isMetricsMenuOpen && (
               <div className="absolute right-0 top-full z-20 mt-1 w-48 max-h-[300px] overflow-y-auto rounded-[8px] border border-slate-200 bg-white p-2 shadow-lg">
                 <div className="flex flex-col gap-3">
-                  {Object.entries(
-                    liveChartMetricOptions.reduce((acc, option) => {
-                      // @ts-ignore
-                      if (!acc[option.category]) acc[option.category] = [];
-                      // @ts-ignore
-                      acc[option.category].push(option);
-                      return acc;
-                    }, {} as Record<string, typeof liveChartMetricOptions[number][]>)
-                  ).map(([category, options]) => (
-                    <div key={category}>
-                      <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
-                        {category}
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        {options.map((option) => {
-                          const isSelected = activeMetrics.includes(option.key);
-                          return (
-                            <label
-                              key={option.key}
-                              className="flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50"
-                            >
-                              <input
-                                type="checkbox"
-                                className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                checked={isSelected}
-                                onChange={() => {
-                                  if (isSelected) {
-                                    onChartSelectedMetricsChange(
-                                      activeMetrics.filter((m) => m !== option.key)
-                                    );
-                                  } else {
-                                    onChartSelectedMetricsChange([
-                                      ...activeMetrics,
-                                      option.key,
-                                    ]);
-                                  }
-                                }}
-                              />
-                              <span className="text-[12px] font-medium text-slate-700">
-                                {option.label}
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
+                  <div>
+                    <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
+                      Sale Metrics
                     </div>
-                  ))}
+                    <div className="flex flex-col gap-1">
+                      {liveChartMetricOptions.filter(o => o.category === "Sale Metrics" || !o.category).map((option) => {
+                        const isSelected = activeMetrics.includes(option.key);
+                        return (
+                          <label
+                            key={option.key}
+                            className="flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50"
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              checked={isSelected}
+                              onChange={() => {
+                                if (isSelected) {
+                                  onChartSelectedMetricsChange(
+                                    activeMetrics.filter((m) => m !== option.key)
+                                  );
+                                } else {
+                                  onChartSelectedMetricsChange([
+                                    ...activeMetrics,
+                                    option.key,
+                                  ]);
+                                }
+                              }}
+                            />
+                            <span className="text-[12px] font-medium text-slate-700">
+                              {option.label}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
+                      Engagement Metrics
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {liveChartMetricOptions.filter(o => o.category === "Engagement Metrics").map((option) => {
+                        const isSelected = activeMetrics.includes(option.key);
+                        return (
+                          <label
+                            key={option.key}
+                            className="flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50"
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              checked={isSelected}
+                              onChange={() => {
+                                if (isSelected) {
+                                  onChartSelectedMetricsChange(
+                                    activeMetrics.filter((m) => m !== option.key)
+                                  );
+                                } else {
+                                  onChartSelectedMetricsChange([
+                                    ...activeMetrics,
+                                    option.key,
+                                  ]);
+                                }
+                              }}
+                            />
+                            <span className="text-[12px] font-medium text-slate-700">
+                              {option.label}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
