@@ -27,6 +27,8 @@ export interface LiveReportPanelStats {
   totalDbClicks: number;
   totalDbOrdersFunnel: number;
   pTotalDbImpressions: number;
+  totalDbProductImpressions: number;
+  pTotalDbProductImpressions: number;
   pTotalDbLiveVisits: number;
   totalDbDuration: number;
   pTotalDbDuration: number;
@@ -129,6 +131,8 @@ export function buildLiveReportPanelData(
       ? curr.penonton || curr.impressions || curr.views || 0
       : curr.impressions || curr.views || curr.liveVisits || curr.penonton || 0;
   });
+  const totalDbProductImpressions = sum(tableLogs, (curr) => curr.productImpressions || 0);
+  const pTotalDbProductImpressions = sum(prevTableLogs, (curr) => curr.productImpressions || 0);
   const totalDbDuration = sum(tableLogs, (curr) => getDurationSeconds(curr.duration));
   const pTotalDbDuration = sum(prevTableLogs, (curr) => getDurationSeconds(curr.duration));
   const gmvPerHour = totalDbDuration > 0 ? totalGmvDb / (totalDbDuration / 3600) : 0;
@@ -187,6 +191,8 @@ export function buildLiveReportPanelData(
     totalDbClicks,
     totalDbOrdersFunnel,
     pTotalDbImpressions,
+    totalDbProductImpressions,
+    pTotalDbProductImpressions,
     pTotalDbLiveVisits,
     totalDbDuration,
     pTotalDbDuration,

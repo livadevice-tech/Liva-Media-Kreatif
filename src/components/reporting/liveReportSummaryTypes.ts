@@ -26,6 +26,8 @@ export type LiveReportSummaryStats = {
   totalDbClicks: number;
   totalDbOrdersFunnel: number;
   pTotalDbImpressions: number;
+  totalDbProductImpressions: number;
+  pTotalDbProductImpressions: number;
   pTotalDbLiveVisits: number;
   totalDbDuration: number;
   pTotalDbDuration: number;

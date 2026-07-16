@@ -49,6 +49,7 @@ export function LiveReportMetricsSection({
     pAvgViewDurationDb,
     totalDbImpressions,
     totalDbLiveVisits,
+    totalDbProductImpressions,
     totalDbClicks,
     totalDbOrdersFunnel,
     pTotalDbImpressions,
@@ -426,17 +427,27 @@ export function LiveReportMetricsSection({
               subtitle=""
               steps={[
                 {
-                  label: "Views",
+                  label: "Live Impression",
                   value: new Intl.NumberFormat("id-ID").format(totalDbImpressions),
                   raw: totalDbImpressions,
                 },
                 {
-                  label: "Product clicks",
+                  label: "Live Viewer",
+                  value: new Intl.NumberFormat("id-ID").format(totalDbLiveVisits),
+                  raw: totalDbLiveVisits,
+                },
+                {
+                  label: "Product Impression",
+                  value: new Intl.NumberFormat("id-ID").format(totalDbProductImpressions),
+                  raw: totalDbProductImpressions,
+                },
+                {
+                  label: "Product Clicks",
                   value: new Intl.NumberFormat("id-ID").format(totalDbClicks),
                   raw: totalDbClicks,
                 },
                 {
-                  label: "Attributed orders",
+                  label: "Orders",
                   value: new Intl.NumberFormat("id-ID").format(totalDbOrdersFunnel),
                   raw: totalDbOrdersFunnel,
                 },
@@ -445,13 +456,17 @@ export function LiveReportMetricsSection({
                   value:
                     totalDbClicks > 0
                       ? `${((totalDbOrdersFunnel / totalDbClicks) * 100).toFixed(2)}%`
-                      : totalDbImpressions > 0
-                        ? `${((totalDbOrdersFunnel / totalDbImpressions) * 100).toFixed(4)}%`
+                      : totalDbProductImpressions > 0
+                        ? `${((totalDbOrdersFunnel / totalDbProductImpressions) * 100).toFixed(2)}%`
+                        : totalDbImpressions > 0
+                        ? `${((totalDbOrdersFunnel / totalDbImpressions) * 100).toFixed(2)}%`
                         : "0.00%",
                   raw:
                     totalDbClicks > 0
                       ? (totalDbOrdersFunnel / totalDbClicks) * 100
-                      : totalDbImpressions > 0
+                      : totalDbProductImpressions > 0
+                        ? (totalDbOrdersFunnel / totalDbProductImpressions) * 100
+                        : totalDbImpressions > 0
                         ? (totalDbOrdersFunnel / totalDbImpressions) * 100
                         : 0,
                 },
