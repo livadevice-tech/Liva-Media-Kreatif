@@ -5939,10 +5939,10 @@ export default function App() {
 
               {/* MAIN CONTENT AREA */}
               <main
-                className="flex-1 overflow-y-auto w-full p-4 md:p-8 animate-fadeIn bg-[#fafafd]"
+                className="flex-1 overflow-y-auto w-full animate-fadeIn bg-[#fcf9f8] min-h-screen"
                 id="client-main-viewport"
               >
-                <div className="max-w-6xl mx-auto space-y-8">
+                <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 pb-12 sm:px-6 lg:px-8 mt-6">
                   {/* TOP HEADER */}
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-3">
@@ -5970,7 +5970,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* MOBILE CONTROLS */}
+                    {/* MOBILE CONTROLS & DOWNLOAD BUTTON */}
                     <div className="flex items-center gap-3">
                       <button
                         onClick={handleLogout}
@@ -5988,7 +5988,8 @@ export default function App() {
                   </div>
 
                   {/* CLIENT REPORTING MODULAR COMPONENTS */}
-                  <div className="px-6 sm:px-8 space-y-6 animate-fadeIn pb-8 mt-2">
+                  <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left">
+                    <div className="px-4 pt-4 sm:px-6">
                     <ReportingWorkspaceHeader
                       brandName={clientBrand?.name || "Nama Brand"}
                       brandId={loggedInClientBrandId || undefined}
@@ -6236,6 +6237,7 @@ export default function App() {
                       </React.Suspense>
                     )}
 
+                    </div>
                   </div>
                 </div>
               </main>
@@ -6245,14 +6247,40 @@ export default function App() {
                 isOpen={isDownloadModalOpen}
                 onClose={() => setIsDownloadModalOpen(false)}
                 reportType={clientReportingTab}
-                onDownload={(selectedMetrics) => {
+                showAdvancedFilters={true}
+                onDownload={(selectedMetrics, exportPlatform, exportStart, exportEnd) => {
+                  let customLiveView = clientLiveReportView;
+                  let customProductView = clientProductReportView;
+                  let customEngagementView = clientEngagementReportView;
+
+                  // If custom filters are provided, override the views
+                  if (exportPlatform && exportPlatform !== "Semua Platform" || exportStart || exportEnd) {
+                    const filteredLogs = brandPerformanceLogs.filter((log) => {
+                      if (log.brandId !== loggedInClientBrandId) return false;
+                      if (exportPlatform && exportPlatform !== "Semua Platform" && log.platform.toLowerCase() !== exportPlatform.toLowerCase()) return false;
+                      if (exportStart && (log.date || "").split(" ")[0] < exportStart) return false;
+                      if (exportEnd && (log.date || "").split(" ")[0] > exportEnd) return false;
+                      return true;
+                    });
+                    customLiveView = { filteredDb: filteredLogs };
+                    customEngagementView = { filteredDb: filteredLogs };
+
+                    const filteredSkus = shopeeSkuLogs.filter((log) => {
+                      if (log.brandId !== loggedInClientBrandId) return false;
+                      if (exportStart && log.date < exportStart) return false;
+                      if (exportEnd && log.date > exportEnd) return false;
+                      return true;
+                    });
+                    customProductView = { filteredDb: filteredSkus };
+                  }
+
                   exportReportToExcel({
                     reportType: clientReportingTab,
                     selectedMetrics,
                     brandName: clientBrand?.name || "Mitra",
-                    liveReportView: clientLiveReportView,
-                    productReportView: clientProductReportView,
-                    engagementReportView: clientEngagementReportView,
+                    liveReportView: customLiveView,
+                    productReportView: customProductView,
+                    engagementReportView: customEngagementView,
                     dateFilterType: clientDateFilterType,
                     selectedLatestDate: clientSelectedLatestDate,
                     platformFilter: clientPlatformFilter,

@@ -37,7 +37,25 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
     }
   };
 
-  const allBerkas = clientBrands.flatMap(b => (b.berkas || []).map(berk => ({ ...berk, brandId: b.id, brandName: b.name })));
+  const allBerkasMap = new Map();
+  clientBrands.forEach(b => {
+    (b.berkas || []).forEach(berk => {
+      if (!allBerkasMap.has(berk.id)) {
+        allBerkasMap.set(berk.id, { ...berk, brandIds: [b.id], brandNames: [b.name] });
+      } else {
+        const existing = allBerkasMap.get(berk.id);
+        existing.brandIds.push(b.id);
+        existing.brandNames.push(b.name);
+      }
+    });
+  });
+  
+  const allBerkas = Array.from(allBerkasMap.values()).map(berk => ({
+    ...berk,
+    brandId: berk.brandIds.length === clientBrands.length && clientBrands.length > 0 ? 'all' : berk.brandIds[0],
+    brandName: berk.brandIds.length === clientBrands.length && clientBrands.length > 0 ? 'Semua Brand (Global)' : berk.brandNames.join(', ')
+  }));
+
   const filteredBerkas = allBerkas.filter(berk => berk.name.toLowerCase().includes(berkasSearch.toLowerCase()) || berk.brandName.toLowerCase().includes(berkasSearch.toLowerCase()));
 
   return (
@@ -126,7 +144,9 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                         Buka Tautan
                       </a>
                       <button onClick={() => { 
-                        setBerkasEditor(berk); 
+                        // Cek apakah berkas ini ada di semua brand
+                        const isGlobal = clientBrands.length > 0 && clientBrands.every(b => (b.berkas || []).some(bk => bk.id === berk.id));
+                        setBerkasEditor({ ...berk, brandId: isGlobal ? 'all' : berk.brandId }); 
                         setInputMode(berk.url.startsWith('http') ? 'link' : 'upload'); 
                         setSelectedFile(null);
                       }} className="p-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 rounded-lg cursor-pointer shadow-sm"><Edit2 className="w-4 h-4" /></button>
@@ -155,9 +175,9 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                   className="w-full border border-slate-200 rounded-lg px-4 py-2 font-medium bg-slate-50 text-slate-700 focus:bg-white focus:outline-none focus:border-slate-300" 
                   value={berkasEditor.brandId} 
                   onChange={e => setBerkasEditor({...berkasEditor, brandId: e.target.value})}
-                  disabled={!!clientBrands.flatMap(b => b.berkas || []).find(berk => berk.id === berkasEditor.id)}
                 >
                   <option value="" disabled>Pilih Brand Klien</option>
+                  <option value="all">Semua Brand (Global)</option>
                   {clientBrands.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
@@ -271,14 +291,15 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                   }
 
                   const updatedBrands = clientBrands.map((b) => {
-                    if (b.id !== berkasEditor.brandId) return b;
-                    let existingBerkas = b.berkas || [];
-                    const found = existingBerkas.some(bk => bk.id === berkasEditor.id);
-                    if (found) {
-                      existingBerkas = existingBerkas.map(bk => bk.id === berkasEditor.id ? { ...berkasEditor, url: finalUrl } : bk);
-                    } else {
+                    // Selalu hapus file dari brand ini dulu (mencegah duplikat saat pindah brand)
+                    let existingBerkas = (b.berkas || []).filter(bk => bk.id !== berkasEditor.id);
+                    
+                    // Tambahkan ke brand ini jika target brand cocok atau 'all'
+                    const isTargetBrand = berkasEditor.brandId === "all" || b.id === berkasEditor.brandId;
+                    if (isTargetBrand) {
                       existingBerkas = [...existingBerkas, { ...berkasEditor, url: finalUrl }];
                     }
+                    
                     return { ...b, berkas: existingBerkas };
                   });
                   onUpdateBrands(updatedBrands);
@@ -307,8 +328,9 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
             <div className="flex flex-col gap-3">
               <button 
                 onClick={() => {
+                  const isGlobal = berkasToDelete.brandId === 'all';
                   const updatedBrands = clientBrands.map((b) => {
-                    if (b.id !== berkasToDelete.brandId) return b;
+                    if (!isGlobal && b.id !== berkasToDelete.brandId) return b;
                     return {
                       ...b,
                       berkas: (b.berkas || []).filter(bk => bk.id !== berkasToDelete.berkasId)

@@ -472,12 +472,14 @@ type ReportingWorkspaceTabsProps = {
   activeTab: ReportingTab;
   onTabChange: (tab: ReportingTab) => void;
   hideSettingsTab?: boolean;
+  brandDashboardSettings?: any;
 };
 
 export function ReportingWorkspaceTabs({
   activeTab,
   onTabChange,
   hideSettingsTab,
+  brandDashboardSettings,
 }: ReportingWorkspaceTabsProps) {
   const tabClass = (tab: ReportingTab) =>
     `relative whitespace-nowrap px-1 py-3 text-[14px] font-bold transition-all border-b-[3px] ${
@@ -486,23 +488,41 @@ export function ReportingWorkspaceTabs({
         : "border-transparent text-slate-500 hover:text-slate-900"
     }`;
 
+  // Helper to check if a category is hidden
+  const isCategoryHidden = (categoryId: string) => {
+    return brandDashboardSettings?.hiddenCategories?.includes(categoryId) ?? false;
+  };
+
   return (
     <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 px-4 sm:px-6 bg-white border-b border-slate-100">
       <div className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto">
-      <button
-        type="button"
-        onClick={() => onTabChange("live")}
-        className={tabClass("live")}
-      >
-        Live Performance
-      </button>
-      <button
-        type="button"
-        onClick={() => onTabChange("product")}
-        className={tabClass("product")}
-      >
-        Product Performance
-      </button>
+      {!isCategoryHidden("live") && (
+        <button
+          type="button"
+          onClick={() => onTabChange("live")}
+          className={tabClass("live")}
+        >
+          Live Performance
+        </button>
+      )}
+      {!isCategoryHidden("product") && (
+        <button
+          type="button"
+          onClick={() => onTabChange("product")}
+          className={tabClass("product")}
+        >
+          Product Performance
+        </button>
+      )}
+      {!isCategoryHidden("engagement") && (
+        <button
+          type="button"
+          onClick={() => onTabChange("engagement")}
+          className={tabClass("engagement")}
+        >
+          Engagement Report
+        </button>
+      )}
       {!hideSettingsTab && (
         <button
           type="button"
