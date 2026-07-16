@@ -34,7 +34,8 @@ export function LiveReportChartSection({
 }: LiveReportChartSectionProps) {
   const [granularity, setGranularity] = useState<ChartGranularity>("daily");
   const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
-  const [isMetricsMenuOpen, setIsMetricsMenuOpen] = useState(false);
+  const [isSaleMetricsMenuOpen, setIsSaleMetricsMenuOpen] = useState(false);
+  const [isEngagementMetricsMenuOpen, setIsEngagementMetricsMenuOpen] = useState(false);
 
   // Default behavior if nothing is selected or if parent doesn't provide it
   const activeMetrics =
@@ -115,98 +116,107 @@ export function LiveReportChartSection({
         </h3>
 
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          {/* Custom Metrics Dropdown */}
+          {/* Sale Metrics Dropdown */}
           <div className="relative">
             <button
               type="button"
               onClick={() => {
-                setIsMetricsMenuOpen(!isMetricsMenuOpen);
+                setIsSaleMetricsMenuOpen(!isSaleMetricsMenuOpen);
+                setIsEngagementMetricsMenuOpen(false);
                 setIsGranularityMenuOpen(false);
               }}
               className="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
             >
-              Metrics ({activeMetrics.length})
+              Sale Metrics ({activeMetrics.filter(m => liveChartMetricOptions.find(o => o.key === m && (o.category === "Sale Metrics" || !o.category))).length})
               <ChevronDown className="h-4 w-4 text-slate-400" />
             </button>
 
-            {isMetricsMenuOpen && (
+            {isSaleMetricsMenuOpen && (
               <div className="absolute right-0 top-full z-20 mt-1 w-48 max-h-[300px] overflow-y-auto rounded-[8px] border border-slate-200 bg-white p-2 shadow-lg">
-                <div className="flex flex-col gap-3">
-                  <div>
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
-                      Sale Metrics
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      {liveChartMetricOptions.filter(o => o.category === "Sale Metrics" || !o.category).map((option) => {
-                        const isSelected = activeMetrics.includes(option.key);
-                        return (
-                          <label
-                            key={option.key}
-                            className="flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50"
-                          >
-                            <input
-                              type="checkbox"
-                              className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                              checked={isSelected}
-                              onChange={() => {
-                                if (isSelected) {
-                                  onChartSelectedMetricsChange(
-                                    activeMetrics.filter((m) => m !== option.key)
-                                  );
-                                } else {
-                                  onChartSelectedMetricsChange([
-                                    ...activeMetrics,
-                                    option.key,
-                                  ]);
-                                }
-                              }}
-                            />
-                            <span className="text-[12px] font-medium text-slate-700">
-                              {option.label}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
+                <div className="flex flex-col gap-1">
+                  {liveChartMetricOptions.filter(o => o.category === "Sale Metrics" || !o.category).map((option) => {
+                    const isSelected = activeMetrics.includes(option.key);
+                    return (
+                      <label
+                        key={option.key}
+                        className="flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          checked={isSelected}
+                          onChange={() => {
+                            if (isSelected) {
+                              onChartSelectedMetricsChange(
+                                activeMetrics.filter((m) => m !== option.key)
+                              );
+                            } else {
+                              onChartSelectedMetricsChange([
+                                ...activeMetrics,
+                                option.key,
+                              ]);
+                            }
+                          }}
+                        />
+                        <span className="text-[12px] font-medium text-slate-700">
+                          {option.label}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
-                  <div>
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">
-                      Engagement Metrics
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      {liveChartMetricOptions.filter(o => o.category === "Engagement Metrics").map((option) => {
-                        const isSelected = activeMetrics.includes(option.key);
-                        return (
-                          <label
-                            key={option.key}
-                            className="flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50"
-                          >
-                            <input
-                              type="checkbox"
-                              className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                              checked={isSelected}
-                              onChange={() => {
-                                if (isSelected) {
-                                  onChartSelectedMetricsChange(
-                                    activeMetrics.filter((m) => m !== option.key)
-                                  );
-                                } else {
-                                  onChartSelectedMetricsChange([
-                                    ...activeMetrics,
-                                    option.key,
-                                  ]);
-                                }
-                              }}
-                            />
-                            <span className="text-[12px] font-medium text-slate-700">
-                              {option.label}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
+          {/* Engagement Metrics Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsEngagementMetricsMenuOpen(!isEngagementMetricsMenuOpen);
+                setIsSaleMetricsMenuOpen(false);
+                setIsGranularityMenuOpen(false);
+              }}
+              className="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            >
+              Engagement Metrics ({activeMetrics.filter(m => liveChartMetricOptions.find(o => o.key === m && o.category === "Engagement Metrics")).length})
+              <ChevronDown className="h-4 w-4 text-slate-400" />
+            </button>
+
+            {isEngagementMetricsMenuOpen && (
+              <div className="absolute right-0 top-full z-20 mt-1 w-48 max-h-[300px] overflow-y-auto rounded-[8px] border border-slate-200 bg-white p-2 shadow-lg">
+                <div className="flex flex-col gap-1">
+                  {liveChartMetricOptions.filter(o => o.category === "Engagement Metrics").map((option) => {
+                    const isSelected = activeMetrics.includes(option.key);
+                    return (
+                      <label
+                        key={option.key}
+                        className="flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          checked={isSelected}
+                          onChange={() => {
+                            if (isSelected) {
+                              onChartSelectedMetricsChange(
+                                activeMetrics.filter((m) => m !== option.key)
+                              );
+                            } else {
+                              onChartSelectedMetricsChange([
+                                ...activeMetrics,
+                                option.key,
+                              ]);
+                            }
+                          }}
+                        />
+                        <span className="text-[12px] font-medium text-slate-700">
+                          {option.label}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -218,7 +228,8 @@ export function LiveReportChartSection({
               type="button"
               onClick={() => {
                 setIsGranularityMenuOpen(!isGranularityMenuOpen);
-                setIsMetricsMenuOpen(false);
+                setIsSaleMetricsMenuOpen(false);
+                setIsEngagementMetricsMenuOpen(false);
               }}
               className="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
             >
