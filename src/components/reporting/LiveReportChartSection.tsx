@@ -23,6 +23,7 @@ type LiveReportChartSectionProps = {
   chartData: LiveReportChartData;
   chartSelectedMetrics: string[];
   onChartSelectedMetricsChange: (value: string[]) => void;
+  useShopeeLiveLayout?: boolean;
 };
 
 
@@ -31,6 +32,7 @@ export function LiveReportChartSection({
   chartData,
   chartSelectedMetrics,
   onChartSelectedMetricsChange,
+  useShopeeLiveLayout = false,
 }: LiveReportChartSectionProps) {
   const [granularity, setGranularity] = useState<ChartGranularity>("daily");
   const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
@@ -78,7 +80,12 @@ export function LiveReportChartSection({
     });
   }, [chartData, granularity]);
 
-  const legendItems = liveChartMetricOptions
+  const platform = useShopeeLiveLayout ? "shopee" : "tiktok";
+  const platformFilteredOptions = useMemo(() => 
+    liveChartMetricOptions.filter((opt) => (opt.platforms as readonly string[])?.includes(platform)),
+  [platform]);
+
+  const legendItems = platformFilteredOptions
     .filter((opt) => activeMetrics.includes(opt.key))
     .map((opt) => {
       // Map class name text colors to hex for recharts
@@ -102,9 +109,12 @@ export function LiveReportChartSection({
     });
 
   const metricAnalysis = useMemo(() => {
-    const analysis: Record<string, { avg: number; max: number; min: number }> = {};
+    const analysis: Record<string, { avg: number; max: number; min: number; label: string }> = {};
     
     activeMetrics.forEach((metricKey) => {
+      const option = platformFilteredOptions.find(o => o.key === metricKey);
+      if (!option) return;
+
       let sum = 0;
       let max = -Infinity;
       let min = Infinity;
@@ -127,11 +137,12 @@ export function LiveReportChartSection({
         avg: count > 0 ? sum / count : 0,
         max,
         min,
+        label: option.label,
       };
     });
 
     return analysis;
-  }, [visibleData, activeMetrics]);
+  }, [visibleData, activeMetrics, platformFilteredOptions]);
 
   const granularityOptions = [
     { value: "daily", label: "Harian" },
@@ -165,7 +176,9 @@ export function LiveReportChartSection({
             {isSaleMetricsMenuOpen && (
               <div className="absolute right-0 top-full z-20 mt-1 w-48 max-h-[300px] overflow-y-auto rounded-[8px] border border-slate-200 bg-white p-2 shadow-lg">
                 <div className="flex flex-col gap-1">
-                  {liveChartMetricOptions.filter(o => o.category === "Sale Metrics" || !o.category).map((option) => {
+                    {platformFilteredOptions
+                      .filter((opt) => opt.category === "Sale Metrics")
+                      .map((option) => {
                     const isSelected = activeMetrics.includes(option.key);
                     return (
                       <label
@@ -218,7 +231,9 @@ export function LiveReportChartSection({
             {isEngagementMetricsMenuOpen && (
               <div className="absolute right-0 top-full z-20 mt-1 w-48 max-h-[300px] overflow-y-auto rounded-[8px] border border-slate-200 bg-white p-2 shadow-lg">
                 <div className="flex flex-col gap-1">
-                  {liveChartMetricOptions.filter(o => o.category === "Engagement Metrics").map((option) => {
+                    {platformFilteredOptions
+                      .filter((opt) => opt.category === "Engagement Metrics")
+                      .map((option) => {
                     const isSelected = activeMetrics.includes(option.key);
                     return (
                       <label
@@ -400,10 +415,10 @@ export function LiveReportChartSection({
               <div key={item.key} className="flex flex-col gap-3 rounded-[12px] border border-slate-100 bg-slate-50 p-4">
                 <div className="flex items-center gap-2">
                   <span
-                    className="h-2.5 w-2.5 rounded-full"
+                    className="h-2.5 w-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="text-[13px] font-semibold text-slate-700">{item.label}</span>
+                  <span className="text-[13px] font-semibold text-slate-700 truncate">{analysis.label}</span>
                 </div>
                 <div className="flex items-center justify-between text-[12px] text-slate-500">
                   <div className="flex flex-col">
