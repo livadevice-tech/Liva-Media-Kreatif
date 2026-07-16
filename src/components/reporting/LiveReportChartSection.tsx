@@ -98,9 +98,40 @@ export function LiveReportChartSection({
       if (opt.color.includes("rose")) color = "#e11d48";
       if (opt.color.includes("yellow")) color = "#ca8a04";
       if (opt.color.includes("lime")) color = "#65a30d";
-      if (opt.key === "gmv") color = "#5600e0";
-      return { key: opt.key, label: opt.label, color };
+      return { ...opt, color };
     });
+
+  const metricAnalysis = useMemo(() => {
+    const analysis: Record<string, { avg: number; max: number; min: number }> = {};
+    
+    activeMetrics.forEach((metricKey) => {
+      let sum = 0;
+      let max = -Infinity;
+      let min = Infinity;
+      let count = 0;
+
+      visibleData.forEach((point: any) => {
+        const val = point[metricKey] || 0;
+        sum += val;
+        if (val > max) max = val;
+        if (val < min) min = val;
+        count++;
+      });
+
+      if (count === 0) {
+        max = 0;
+        min = 0;
+      }
+
+      analysis[metricKey] = {
+        avg: count > 0 ? sum / count : 0,
+        max,
+        min,
+      };
+    });
+
+    return analysis;
+  }, [visibleData, activeMetrics]);
 
   const granularityOptions = [
     { value: "daily", label: "Harian" },
@@ -348,6 +379,51 @@ export function LiveReportChartSection({
           </RechartsComposedChart>
         </ResponsiveContainer>
       </div>
+
+      {activeMetrics.length > 0 && (
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {legendItems.map((item) => {
+            const analysis = metricAnalysis[item.key];
+            if (!analysis) return null;
+            
+            const formatValue = (val: number) => {
+              if (item.key === "gmv" || item.key === "aov" || item.key === "gmvPerHour") {
+                return `Rp${new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 }).format(val)}`;
+              }
+              if (item.key === "err") {
+                return `${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(val)}%`;
+              }
+              return new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 }).format(val);
+            };
+
+            return (
+              <div key={item.key} className="flex flex-col gap-3 rounded-[12px] border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-[13px] font-semibold text-slate-700">{item.label}</span>
+                </div>
+                <div className="flex items-center justify-between text-[12px] text-slate-500">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-medium uppercase text-slate-400">Avg</span>
+                    <span className="font-semibold text-slate-700">{formatValue(analysis.avg)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-medium uppercase text-slate-400">Peak</span>
+                    <span className="font-semibold text-emerald-600">{formatValue(analysis.max)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-medium uppercase text-slate-400">Low</span>
+                    <span className="font-semibold text-rose-600">{formatValue(analysis.min)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
