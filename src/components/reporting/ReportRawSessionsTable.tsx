@@ -240,16 +240,18 @@ export function ReportRawSessionsTable({
             {idFormatter.format(g.customers)}
           </td>
         )}
-        <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-indigo-600">
-          {(() => {
-            const platform = String(g.platform || "").toLowerCase();
-            const isTikTok = platform.includes("tiktok");
-            const cr = isTikTok
-              ? g.clicks > 0 ? (g.orders / g.clicks) * 100 : 0
-              : g.viewer > 0 ? (g.customers / g.viewer) * 100 : 0;
-            return `${cr.toFixed(2)}%`;
-          })()}
-        </td>
+        {!isColumnHidden("conversion_rate") && (
+          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-indigo-600">
+            {(() => {
+              const platform = String(g.platform || "").toLowerCase();
+              const isTikTok = platform.includes("tiktok");
+              const cr = isTikTok
+                ? g.clicks > 0 ? (g.orders / g.clicks) * 100 : 0
+                : g.viewer > 0 ? (g.customers / g.viewer) * 100 : 0;
+              return `${cr.toFixed(2)}%`;
+            })()}
+          </td>
+        )}
         <td className="px-5 py-3.5 text-right" />
       </tr>
     ));
@@ -326,9 +328,11 @@ export function ReportRawSessionsTable({
                         {new Intl.NumberFormat("id-ID").format(metrics.customers)}
                       </td>
                     )}
-                    <td className="px-5 py-3.5">
-                      {metrics.conversionRate.toFixed(2)}%
-                    </td>
+                    {!isColumnHidden("conversion_rate") && (
+                      <td className="px-5 py-3.5">
+                        {metrics.conversionRate.toFixed(2)}%
+                      </td>
+                    )}
                     <td className="px-5 py-3.5 text-right">
                       <button
                         type="button"

@@ -61,13 +61,21 @@ const METRICS_BY_CATEGORY = {
 };
 
 const COLUMNS_BY_CATEGORY = {
-  live: [
-    { id: "gmv", label: "GMV" },
-    { id: "orders", label: "Pesanan" },
-    { id: "items_sold", label: "Item Terjual" },
-    { id: "est_income", label: "Est. Pendapatan" },
-    { id: "viewers", label: "Penonton" },
-    { id: "engagement", label: "Engagement" },
+  live_shopee: [
+    { id: "penonton", label: "Viewer" },
+    { id: "gmv", label: "GMV (Rp)" },
+    { id: "items_sold", label: "Items Sold" },
+    { id: "engagement", label: "Avg. View Duration" },
+    { id: "orders", label: "Customers" },
+    { id: "conversion_rate", label: "Conversion Rate" },
+  ],
+  live_tiktok: [
+    { id: "penonton", label: "Viewer" },
+    { id: "gmv", label: "GMV (Rp)" },
+    { id: "items_sold", label: "Items Sold" },
+    { id: "engagement", label: "Avg. View Duration" },
+    { id: "orders", label: "Orders" },
+    { id: "conversion_rate", label: "Conversion Rate" },
   ],
   product: [
     { id: "items_sold", label: "Item Terjual" },
@@ -194,7 +202,9 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                     Sembunyikan Kolom (Tabel)
                   </label>
                   <div className="space-y-3">
-                    {(COLUMNS_BY_CATEGORY as any)[category.id].map((col: any) => {
+                    {((category.id === 'live' 
+                        ? (COLUMNS_BY_CATEGORY as any)[`live_${activePlatform}`] 
+                        : (COLUMNS_BY_CATEGORY as any)[category.id]) || []).map((col: any) => {
                       const id = `${activePlatform}_${category.id}_${col.id}`;
                       return (
                         <label key={id} className="flex items-center gap-3 cursor-pointer group">

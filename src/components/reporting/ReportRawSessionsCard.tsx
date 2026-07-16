@@ -189,7 +189,7 @@ export function ReportRawSessionsCard({
                   className="px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("customers")}
                 >
-                  Customers{" "}
+                  {isShopee ? "Customers" : "Orders"}{" "}
                   {reportDbSortCol === "customers"
                     ? reportDbSortAsc
                       ? "↑"
@@ -197,7 +197,9 @@ export function ReportRawSessionsCard({
                     : ""}
                 </th>
               )}
-              <th className="px-5 py-4">Conversion Rate</th>
+              {!isColumnHidden("conversion_rate") && (
+                <th className="px-5 py-4">Conversion Rate</th>
+              )}
               <th className="px-5 py-4 text-right">Aksi</th>
             </tr>
           </thead>
