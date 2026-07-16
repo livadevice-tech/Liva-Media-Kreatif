@@ -102,17 +102,19 @@ export function ReportRawSessionsCard({
                         : "↓"
                       : ""}
                   </th>
-                  <th
-                    className="px-5 py-4 cursor-pointer hover:bg-slate-100"
-                    onClick={() => onSort("duration")}
-                  >
-                    Durasi{" "}
-                    {reportDbSortCol === "duration"
-                      ? reportDbSortAsc
-                        ? "↑"
-                        : "↓"
-                      : ""}
-                  </th>
+                  {!isColumnHidden("duration") && (
+                    <th
+                      className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                      onClick={() => onSort("duration")}
+                    >
+                      Durasi{" "}
+                      {reportDbSortCol === "duration"
+                        ? reportDbSortAsc
+                          ? "↑"
+                          : "↓"
+                        : ""}
+                    </th>
+                  )}
                 </>
               ) : (
                 <>
@@ -127,17 +129,19 @@ export function ReportRawSessionsCard({
                         : "↓"
                       : ""}
                   </th>
-                  <th
-                    className="px-5 py-4 cursor-pointer hover:bg-slate-100"
-                    onClick={() => onSort("duration")}
-                  >
-                    Durasi{" "}
-                    {reportDbSortCol === "duration"
-                      ? reportDbSortAsc
-                        ? "↑"
-                        : "↓"
-                      : ""}
-                  </th>
+                  {!isColumnHidden("duration") && (
+                    <th
+                      className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                      onClick={() => onSort("duration")}
+                    >
+                      Durasi{" "}
+                      {reportDbSortCol === "duration"
+                        ? reportDbSortAsc
+                          ? "↑"
+                          : "↓"
+                        : ""}
+                    </th>
+                  )}
                 </>
               )}
               {!isColumnHidden("penonton") && (

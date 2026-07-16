@@ -210,9 +210,11 @@ export function ReportRawSessionsTable({
         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
           {g.label}
         </td>
-        <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
-          {formatLiveSessionDuration(g.duration || 0)}
-        </td>
+        {!isColumnHidden("duration") && (
+          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
+            {formatLiveSessionDuration(g.duration || 0)}
+          </td>
+        )}
         {!isColumnHidden("penonton") && (
           <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
             {idFormatter.format(g.viewer)}
@@ -295,9 +297,11 @@ export function ReportRawSessionsTable({
                     <td className="px-5 py-3.5 text-slate-500">
                       {formatDisplayDate(log.dateTime || log.date, log.platform)}
                     </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
-                      {formatLiveSessionDuration(log.duration || 0)}
-                    </td>
+                    {!isColumnHidden("duration") && (
+                      <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
+                        {formatLiveSessionDuration(log.duration || 0)}
+                      </td>
+                    )}
                     {!isColumnHidden("penonton") && (
                       <td className="px-5 py-3.5">
                         {new Intl.NumberFormat("id-ID").format(metrics.viewer)}

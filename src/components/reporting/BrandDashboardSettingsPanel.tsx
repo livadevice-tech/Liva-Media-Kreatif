@@ -62,6 +62,7 @@ const METRICS_BY_CATEGORY = {
 
 const COLUMNS_BY_CATEGORY = {
   live_shopee: [
+    { id: "duration", label: "Durasi" },
     { id: "penonton", label: "Viewer" },
     { id: "gmv", label: "GMV (Rp)" },
     { id: "items_sold", label: "Items Sold" },
@@ -70,6 +71,7 @@ const COLUMNS_BY_CATEGORY = {
     { id: "conversion_rate", label: "Conversion Rate" },
   ],
   live_tiktok: [
+    { id: "duration", label: "Durasi" },
     { id: "penonton", label: "Viewer" },
     { id: "gmv", label: "GMV (Rp)" },
     { id: "items_sold", label: "Items Sold" },
