@@ -218,8 +218,11 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({
             left: 0;
             top: 0;
             width: 100%;
-            height: 100%;
+            height: auto;
+            min-height: 100vh;
             background: white !important;
+            display: block !important; /* overrides flex to prevent centering */
+            padding: 0 !important;
           }
           @page {
             size: A4 portrait;

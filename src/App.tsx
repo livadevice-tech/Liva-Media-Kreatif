@@ -10072,7 +10072,7 @@ export default function App() {
                               </th>
 
                               {/* Estimasi Gaji Bersih */}
-                              <th className="py-4 px-6 align-middle text-right pr-8">
+                              <th className="py-4 px-6 align-middle text-right w-48">
                                 <div className="flex flex-col gap-1.5 items-end">
                                   <button
                                     onClick={() =>
@@ -10415,8 +10415,8 @@ export default function App() {
                                       )}
                                     </td>
 
-                                    <td className="text-right py-4 px-6 pr-8 whitespace-nowrap">
-                                      <div className="inline-block z-10 text-right min-w-[130px]" onClick={(e) => e.stopPropagation()}>
+                                    <td className="text-right py-4 px-6 whitespace-nowrap w-52">
+                                      <div className="inline-block z-10 text-right w-full" onClick={(e) => e.stopPropagation()}>
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
