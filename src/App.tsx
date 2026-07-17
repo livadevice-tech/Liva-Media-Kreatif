@@ -200,7 +200,6 @@ import { buildLiveReportViewModel } from "./shared/utils/liveReporting";
 import { buildEngagementReportViewModel } from "./shared/utils/engagementReporting";
 import { buildActiveReportBrandUploadHistory } from "./shared/utils/uploadHistory";
 import { buildHostReportList, HostReportRow } from "./shared/utils/salaryReporting";
-import { SlipGajiModal } from "./components/reporting/SlipGajiModal";
 import {
   buildReportChartData,
   filterReportLogs,
@@ -3242,8 +3241,6 @@ export default function App() {
   const [dbDateFilterEnd, setDbDateFilterEnd] = useState("");
   const [dbSortDir, setDbSortDir] = useState<"desc" | "asc">("desc");
   const [dbTabMode, setDbTabMode] = useState<"today" | "all" | "calendar">("today");
-
-  const [selectedSlipHost, setSelectedSlipHost] = useState<HostReportRow | null>(null);
 
   const availableCutoffMonths = useMemo(
     () => buildAvailableCutoffMonths(logs, filterReferenceDate),
@@ -9262,16 +9259,6 @@ export default function App() {
                     className="space-y-6 animate-fadeIn pb-12"
                   >
                     
-                    {/* MODAL SLIP GAJI */}
-                    <SlipGajiModal 
-                      isOpen={!!selectedSlipHost} 
-                      onClose={() => setSelectedSlipHost(null)} 
-                      hostData={selectedSlipHost}
-                      periode={(() => {
-                        const [, month] = filterReferenceDate.split("-");
-                        return `${getIndonesianMonthLabel(month)} ${filterReferenceDate.split("-")[0]}`;
-                      })()}
-                    />
                     {/* REAL-TIME DYNAMIC INPUT PARAMETERS (REGIONAL SUPPORTED + HOURLY/MONTHLY SHIFTS) */}
                     {/* ================= ACCORDION: SETTING PAYROLL ================= */}
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-xs max-w-5xl overflow-hidden mb-6">
@@ -10715,18 +10702,6 @@ export default function App() {
                                               <div className="text-slate-500 text-xs font-medium">Rekapitulasi Final</div>
                                               <div className="text-3xl font-mono font-bold text-emerald-700">{formatIDR(item.netSalary)}</div>
                                               <div className="text-[10px] text-slate-500 max-w-xs">Gaji bersih yang akan ditransfer ke rekening host. Pastikan kehadiran dan potongan telah dikalkulasi dengan benar.</div>
-                                              
-                                              {/* Download Slip Gaji Button */}
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setSelectedSlipHost(item);
-                                                }}
-                                                className="mt-4 w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 transition-all duration-200 text-white hover:bg-indigo-700 active:scale-95 shadow-md font-semibold text-xs tracking-wide cursor-pointer"
-                                              >
-                                                <Printer className="w-4 h-4" />
-                                                <span>Cetak & Unduh Slip Gaji PDF</span>
-                                              </button>
                                             </div>
                                           </div>
                                         </div>
