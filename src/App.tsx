@@ -109,6 +109,7 @@ import {
   FolderOpen,
   XCircle,
   Info,
+  Printer,
 } from "lucide-react";
 
 import {
