@@ -10470,19 +10470,6 @@ export default function App() {
                                               Belum ada Rek
                                             </div>
                                           )}
-                                          
-                                          {/* Download Slip Gaji Button */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSelectedSlipHost(item);
-                                            }}
-                                            title="Cetak Slip Gaji"
-                                            className="mt-2 w-full inline-flex items-center justify-center gap-1 rounded bg-indigo-50 border border-indigo-200 px-2 py-1 transition-all duration-200 text-indigo-700 hover:bg-indigo-100 active:scale-95 shadow-3xs"
-                                          >
-                                            <Printer className="w-3.5 h-3.5" />
-                                            <span className="text-[10px] font-bold uppercase tracking-wider">Slip Gaji</span>
-                                          </button>
                                         </div>
                                       </div>
                                     </td>
@@ -10728,6 +10715,18 @@ export default function App() {
                                               <div className="text-slate-500 text-xs font-medium">Rekapitulasi Final</div>
                                               <div className="text-3xl font-mono font-bold text-emerald-700">{formatIDR(item.netSalary)}</div>
                                               <div className="text-[10px] text-slate-500 max-w-xs">Gaji bersih yang akan ditransfer ke rekening host. Pastikan kehadiran dan potongan telah dikalkulasi dengan benar.</div>
+                                              
+                                              {/* Download Slip Gaji Button */}
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedSlipHost(item);
+                                                }}
+                                                className="mt-4 w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 transition-all duration-200 text-white hover:bg-indigo-700 active:scale-95 shadow-md font-semibold text-xs tracking-wide cursor-pointer"
+                                              >
+                                                <Printer className="w-4 h-4" />
+                                                <span>Cetak & Unduh Slip Gaji PDF</span>
+                                              </button>
                                             </div>
                                           </div>
                                         </div>
@@ -11045,18 +11044,6 @@ export default function App() {
                                         <span className="text-[9px] text-slate-400 uppercase font-black">Belum Ada Rekening Bank</span>
                                       </div>
                                     )}
-
-                                    {/* Download Slip Button (Mobile) */}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedSlipHost(item);
-                                      }}
-                                      className="mt-2 w-full flex justify-center items-center gap-2 p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-all active:scale-95 cursor-pointer shadow-3xs"
-                                    >
-                                      <Printer className="w-4 h-4" />
-                                      <span className="text-[11px] font-bold uppercase tracking-wider">Unduh Slip Gaji</span>
-                                    </button>
                                   </div>
                                 </div>
                               </div>
