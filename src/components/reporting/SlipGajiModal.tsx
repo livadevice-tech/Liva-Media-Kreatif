@@ -1,5 +1,4 @@
-import React from "react";
-import { X, Printer } from "lucide-react";
+import React, { useEffect } from "react";
 import type { HostReportRow } from "../../shared/utils/salaryReporting";
 
 interface SlipGajiModalProps {
@@ -24,11 +23,17 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({
   hostData,
   periode,
 }) => {
-  if (!isOpen || !hostData) return null;
+  useEffect(() => {
+    if (isOpen && hostData) {
+      const timer = setTimeout(() => {
+        window.print();
+        onClose();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, hostData, onClose]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  if (!isOpen || !hostData) return null;
 
   const isReguler = hostData.hostType === "Reguler" || !hostData.hostType;
   const gajiPokok = isReguler
@@ -41,37 +46,10 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({
   const logoUrl = "https://ui-avatars.com/api/?name=Liva+Agency&background=4f46e5&color=fff&rounded=true&bold=true"; // Dummy logo, using generic for now
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm print:p-0 print:bg-white print:block">
-      {/* Container Modal */}
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:shadow-none print:max-h-none print:w-full print:max-w-none print:rounded-none">
-        
-        {/* Header - Sembunyikan saat print */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 print:hidden">
-          <h2 className="font-bold text-slate-800 flex items-center gap-2">
-            <span className="w-8 h-8 rounded bg-indigo-100 flex items-center justify-center text-indigo-600">
-              📄
-            </span>
-            Slip Gaji Host
-          </h2>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handlePrint}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
-            >
-              <Printer className="w-4 h-4" />
-              Cetak PDF
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-full transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
+    <div className="slip-gaji-wrapper">
+      <div className="bg-white w-full max-w-2xl mx-auto rounded-none">
         {/* Area Print (Kertas Slip Gaji) */}
-        <div className="p-8 overflow-y-auto print:overflow-visible print:p-4 text-slate-800 font-sans">
+        <div className="p-8 text-slate-800 font-sans">
           
           {/* Kop Surat */}
           <div className="flex items-center justify-between border-b-2 border-slate-800 pb-6 mb-6">
@@ -206,14 +184,23 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({
       </div>
       
       <style>{`
+        @media screen {
+          .slip-gaji-wrapper {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            opacity: 0;
+            pointer-events: none;
+          }
+        }
         @media print {
           body * {
             visibility: hidden;
           }
-          .fixed.inset-0, .fixed.inset-0 * {
+          .slip-gaji-wrapper, .slip-gaji-wrapper * {
             visibility: visible;
           }
-          .fixed.inset-0 {
+          .slip-gaji-wrapper {
             position: absolute;
             left: 0;
             top: 0;
@@ -221,7 +208,7 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({
             height: auto;
             min-height: 100vh;
             background: white !important;
-            display: block !important; /* overrides flex to prevent centering */
+            display: block !important;
             padding: 0 !important;
           }
           @page {
