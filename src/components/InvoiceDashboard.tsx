@@ -169,7 +169,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
               sendInvoiceReminder({
                 brandName: b.name,
                 invoiceDate: inv.issueDate || todayStr,
-                toEmails: b.picEmail || globalPicEmail || "admin1@liva-agency.com",
+                toEmails: globalPicEmail || "admin1@liva-agency.com",
                 amount: inv.totalAmount || 0,
                 invoiceNumber: inv.invoiceNumber || "AUTO",
               }).catch(err => console.error('Automated invoice reminder err:', err));
@@ -192,7 +192,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           sendInvoiceReminder({
             brandName: b.name,
             invoiceDate: b.invoiceDate,
-            toEmails: b.picEmail || globalPicEmail || "admin1@liva-agency.com, admin2@liva.com",
+            toEmails: globalPicEmail || "admin1@liva-agency.com, admin2@liva.com",
             amount: b.amount || 0,
             invoiceNumber: "AUTO-" + new Date().getTime().toString().slice(-6),
           }).then(data => {
