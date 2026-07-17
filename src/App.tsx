@@ -198,7 +198,8 @@ import { filterItemsWithinDateRange } from "./shared/utils/reportingDeletion";
 import { buildLiveReportViewModel } from "./shared/utils/liveReporting";
 import { buildEngagementReportViewModel } from "./shared/utils/engagementReporting";
 import { buildActiveReportBrandUploadHistory } from "./shared/utils/uploadHistory";
-import { buildHostReportList } from "./shared/utils/salaryReporting";
+import { buildHostReportList, HostReportRow } from "./shared/utils/salaryReporting";
+import { SlipGajiModal } from "./components/reporting/SlipGajiModal";
 import {
   buildReportChartData,
   filterReportLogs,
@@ -3240,6 +3241,8 @@ export default function App() {
   const [dbDateFilterEnd, setDbDateFilterEnd] = useState("");
   const [dbSortDir, setDbSortDir] = useState<"desc" | "asc">("desc");
   const [dbTabMode, setDbTabMode] = useState<"today" | "all" | "calendar">("today");
+
+  const [selectedSlipHost, setSelectedSlipHost] = useState<HostReportRow | null>(null);
 
   const availableCutoffMonths = useMemo(
     () => buildAvailableCutoffMonths(logs, filterReferenceDate),
@@ -9254,9 +9257,20 @@ export default function App() {
                 {/* ==================== SUBTAB: 3. REKAP & KALKULATOR GAJI ==================== */}
                 {operatorTab === "rekap_gaji" && (
                   <div
-                    className="space-y-6 animate-fadeIn"
                     id="operator_rekap_gaji_content"
+                    className="space-y-6 animate-fadeIn pb-12"
                   >
+                    
+                    {/* MODAL SLIP GAJI */}
+                    <SlipGajiModal 
+                      isOpen={!!selectedSlipHost} 
+                      onClose={() => setSelectedSlipHost(null)} 
+                      hostData={selectedSlipHost}
+                      periode={(() => {
+                        const [, month] = filterReferenceDate.split("-");
+                        return `${getIndonesianMonthLabel(month)} ${filterReferenceDate.split("-")[0]}`;
+                      })()}
+                    />
                     {/* REAL-TIME DYNAMIC INPUT PARAMETERS (REGIONAL SUPPORTED + HOURLY/MONTHLY SHIFTS) */}
                     {/* ================= ACCORDION: SETTING PAYROLL ================= */}
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-xs max-w-5xl overflow-hidden mb-6">
@@ -10455,6 +10469,19 @@ export default function App() {
                                               Belum ada Rek
                                             </div>
                                           )}
+                                          
+                                          {/* Download Slip Gaji Button */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedSlipHost(item);
+                                            }}
+                                            title="Cetak Slip Gaji"
+                                            className="mt-2 w-full inline-flex items-center justify-center gap-1 rounded bg-indigo-50 border border-indigo-200 px-2 py-1 transition-all duration-200 text-indigo-700 hover:bg-indigo-100 active:scale-95 shadow-3xs"
+                                          >
+                                            <Printer className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider">Slip Gaji</span>
+                                          </button>
                                         </div>
                                       </div>
                                     </td>
@@ -11017,6 +11044,18 @@ export default function App() {
                                         <span className="text-[9px] text-slate-400 uppercase font-black">Belum Ada Rekening Bank</span>
                                       </div>
                                     )}
+
+                                    {/* Download Slip Button (Mobile) */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedSlipHost(item);
+                                      }}
+                                      className="mt-2 w-full flex justify-center items-center gap-2 p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-all active:scale-95 cursor-pointer shadow-3xs"
+                                    >
+                                      <Printer className="w-4 h-4" />
+                                      <span className="text-[11px] font-bold uppercase tracking-wider">Unduh Slip Gaji</span>
+                                    </button>
                                   </div>
                                 </div>
                               </div>
