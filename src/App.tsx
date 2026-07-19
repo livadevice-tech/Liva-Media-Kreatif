@@ -124,7 +124,8 @@ import {
 } from "./types";
 import { INITIAL_HOSTS, INITIAL_LOGS, PLATFORMS, BRANDS, SHIFTS } from "./data";
 import { DoubleDatePicker } from "./components/DoubleDatePicker";
-import {
+import { CustomSelect } from "./components/ui/CustomSelect";
+import { CustomDatePicker } from "./components/ui/CustomDatePicker";import {
   formatDateYYYYMMDD,
   formatDateUI,
   formatHumanDate,
@@ -7217,19 +7218,21 @@ export default function App() {
                                         Periode Eksekusi:
                                       </span>
                                       <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 rounded-lg px-2.5 py-1.5">
-                                        <input
-                                          type="date"
-                                          value={scheduleActionStartDate}
-                                          onChange={(e) => setScheduleActionStartDate(e.target.value)}
-                                          className="flex-1 w-full bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none"
-                                        />
-                                        <span className="text-slate-400 text-xs font-semibold">s/d</span>
-                                        <input
-                                          type="date"
-                                          value={scheduleActionEndDate}
-                                          onChange={(e) => setScheduleActionEndDate(e.target.value)}
-                                          className="flex-1 w-full bg-transparent border-0 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none"
-                                        />
+                                        <div className="flex-1">
+                                          <CustomDatePicker
+                                            value={scheduleActionStartDate}
+                                            onChange={(val) => setScheduleActionStartDate(val)}
+                                            className="w-full text-xs"
+                                          />
+                                        </div>
+                                        <span className="text-slate-400 text-xs font-semibold px-1">s/d</span>
+                                        <div className="flex-1">
+                                          <CustomDatePicker
+                                            value={scheduleActionEndDate}
+                                            onChange={(val) => setScheduleActionEndDate(val)}
+                                            className="w-full text-xs"
+                                          />
+                                        </div>
                                       </div>
                                     </div>
                                     
@@ -8832,22 +8835,16 @@ export default function App() {
                                     <label className="block text-slate-500 font-extrabold mb-1.5">
                                       Pilih Studio:
                                     </label>
-                                    <select
+                                    <CustomSelect
                                       value={scheduleForm.studio}
-                                      onChange={(e) =>
+                                      onChange={(val) =>
                                         setScheduleForm((prev) => ({
                                           ...prev,
-                                          studio: e.target.value,
+                                          studio: val,
                                         }))
                                       }
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
-                                    >
-                                      {studios.map((s) => (
-                                        <option key={s.id} value={s.name}>
-                                          {s.name} ({s.location})
-                                        </option>
-                                      ))}
-                                    </select>
+                                      options={studios.map(s => ({ value: s.name, label: `${s.name} (${s.location})` }))}
+                                    />
                                   </div>
                                   <div>
                                     <label className="block text-slate-500 font-extrabold mb-1.5">
@@ -8905,73 +8902,54 @@ export default function App() {
                                     <label className="block text-slate-500 font-extrabold mb-1.5">
                                       Shift:
                                     </label>
-                                    <select
+                                    <CustomSelect
                                       value={scheduleForm.timeSlot}
-                                      onChange={(e) =>
+                                      onChange={(val) =>
                                         setScheduleForm((prev) => ({
                                           ...prev,
-                                          timeSlot: e.target.value,
+                                          timeSlot: val,
                                         }))
                                       }
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
-                                    >
-                                      {shifts.map((sh) => (
-                                        <option key={sh} value={sh}>
-                                          {sh}
-                                        </option>
-                                      ))}
-                                    </select>
+                                      options={shifts.map(sh => ({ value: sh, label: sh }))}
+                                    />
                                   </div>
 
                                   <div>
                                     <label className="block text-slate-500 font-extrabold mb-1.5">
                                       Brand:
                                     </label>
-                                    <select
+                                    <CustomSelect
                                       value={scheduleForm.brand}
-                                      onChange={(e) =>
+                                      onChange={(val) =>
                                         setScheduleForm((prev) => ({
                                           ...prev,
-                                          brand: e.target.value,
+                                          brand: val,
                                         }))
                                       }
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
-                                    >
-                                      {Array.from(
+                                      options={Array.from(
                                         new Set([
                                           scheduleForm.brand,
                                           ...(clientBrands.length > 0 ? clientBrands.map((cb) => cb.name) : brands)
                                         ].map(b => b?.trim()).filter(Boolean)),
                                       )
-                                        .filter(Boolean)
-                                        .map((b) => (
-                                          <option key={b} value={b}>
-                                            {b}
-                                          </option>
-                                        ))}
-                                    </select>
+                                        .filter(Boolean).map(b => ({ value: b, label: b }))}
+                                    />
                                   </div>
 
                                   <div>
                                     <label className="block text-slate-500 font-extrabold mb-1.5">
                                       Platform:
                                     </label>
-                                    <select
+                                    <CustomSelect
                                       value={scheduleForm.platform}
-                                      onChange={(e) =>
+                                      onChange={(val) =>
                                         setScheduleForm((prev) => ({
                                           ...prev,
-                                          platform: e.target.value,
+                                          platform: val,
                                         }))
                                       }
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold focus:bg-white focus:border-blue-500 focus:ring-0 cursor-pointer"
-                                    >
-                                      {platforms.map((p) => (
-                                        <option key={p} value={p}>
-                                          {p}
-                                        </option>
-                                      ))}
-                                    </select>
+                                      options={platforms.map(p => ({ value: p, label: p }))}
+                                    />
                                   </div>
                                 </div>
 
