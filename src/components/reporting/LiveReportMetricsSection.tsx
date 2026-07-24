@@ -336,7 +336,7 @@ export function LiveReportMetricsSection({
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {!isMetricHidden("impressions") && (
             <ReportMetricCard
-              label="View"
+              label="Viewer"
               cur={totalDbImpressions}
               prev={pTotalDbImpressions}
               value={new Intl.NumberFormat("id-ID").format(totalDbImpressions)}

@@ -215,7 +215,8 @@ export function buildLiveReportViewModel(
     groupedByDate[d].comments += log.comments || 0;
     groupedByDate[d].shares += log.shares || 0;
     groupedByDate[d].followers += log.followers || 0;
-    groupedByDate[d].impressions += log.impressions || 0;
+    // Map penonton/views into impressions for chart support
+    groupedByDate[d].impressions += log.impressions || log.views || log.penonton || 0;
     groupedByDate[d].peakViewers += log.peakViewers || 0;
     groupedByDate[d].shopVouchers += log.shopVouchers || 0;
     groupedByDate[d].liveVisits += log.liveVisits || 0;
