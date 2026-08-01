@@ -7684,9 +7684,9 @@ export default function App() {
                                 <h4 className="text-sm font-black text-white">
                                   {(() => {
                                     try {
-                                      const d = new Date(selectedCalendarDate);
+                                      const d = new Date(scheduleForm.date || selectedCalendarDate);
                                       if (isNaN(d.getTime()))
-                                        return selectedCalendarDate;
+                                        return scheduleForm.date || selectedCalendarDate;
                                       return d.toLocaleDateString("id-ID", {
                                         weekday: "long",
                                         year: "numeric",
@@ -7694,7 +7694,7 @@ export default function App() {
                                         day: "numeric",
                                       });
                                     } catch (e) {
-                                      return selectedCalendarDate;
+                                      return scheduleForm.date || selectedCalendarDate;
                                     }
                                   })()}
                                 </h4>
@@ -7803,7 +7803,7 @@ export default function App() {
                                     hostId: selectedHost.id,
                                     hostName: selectedHost.name,
                                     employeeId: selectedHost.employeeId,
-                                    date: selectedCalendarDate,
+                                    date: scheduleForm.date || selectedCalendarDate,
                                     timeSlot:
                                       scheduleForm.timeSlot ||
                                       shifts[0] ||
@@ -7844,8 +7844,8 @@ export default function App() {
                                     addHostNotification(
                                       selectedHost.id,
                                       "Jadwal Baru",
-                                      `Anda ditugaskan siaran pada tanggal ${selectedCalendarDate} untuk sesi ${newSchedule.timeSlot}.`,
-                                      selectedCalendarDate,
+                                      `Anda ditugaskan siaran pada tanggal ${newSchedule.date} untuk sesi ${newSchedule.timeSlot}.`,
+                                      newSchedule.date,
                                     );
                                     // Reset state
                                     setScheduleForm({
@@ -7879,8 +7879,8 @@ export default function App() {
                                     addHostNotification(
                                       selectedHost.id,
                                       "Jadwal Diperbarui",
-                                      `Jadwal Anda pada tanggal ${selectedCalendarDate} telah diperbarui (Sesi: ${newSchedule.timeSlot}).`,
-                                      selectedCalendarDate,
+                                      `Jadwal Anda pada tanggal ${newSchedule.date} telah diperbarui (Sesi: ${newSchedule.timeSlot}).`,
+                                      newSchedule.date,
                                     );
                                     // Reset state
                                     setScheduleForm({
