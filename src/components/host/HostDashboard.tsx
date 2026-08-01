@@ -510,7 +510,9 @@ export default function HostDashboard({
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600">{log.shiftHours}</span>
                   </div>
                   <div className="text-[11px] font-semibold text-slate-600 mb-1">{log.platform} • {log.studio}</div>
-                  <div className="text-[10px] font-bold text-slate-400">Tercatat: {log.checkInTime}</div>
+                  <div className="text-[10px] font-bold text-slate-400">
+                    Tercatat: {new Date(log.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} {log.checkInTime}
+                  </div>
                 </div>
               ))}
             </div>
