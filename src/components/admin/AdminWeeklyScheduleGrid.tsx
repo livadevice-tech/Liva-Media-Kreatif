@@ -332,7 +332,7 @@ export function AdminWeeklyScheduleGrid({
                                 onCellClick(day.date, studio.name, shift);
                               }
                             }}
-                            className={`border-b border-r border-slate-200 p-0.5 cursor-pointer transition-colors align-top relative group h-[40px] ${
+                            className={`border-b border-r border-slate-200 p-0.5 cursor-pointer transition-colors align-top relative group h-[40px] select-none ${
                               dragSelection.has(`${day.date}|${studio.name}|${shift}`) 
                                 ? 'bg-indigo-100 ring-2 ring-inset ring-indigo-400' 
                                 : 'hover:bg-indigo-50'
@@ -341,6 +341,15 @@ export function AdminWeeklyScheduleGrid({
                             <div className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-indigo-100/30 z-0 pointer-events-none">
                               <Plus className="w-4 h-4 text-indigo-400" />
                             </div>
+
+                            {/* Selection Overlay */}
+                            {dragSelection.has(`${day.date}|${studio.name}|${shift}`) && (
+                              <div className="absolute inset-0 bg-indigo-500/20 z-20 pointer-events-none flex items-center justify-center backdrop-blur-[1px]">
+                                <div className="bg-indigo-600 text-white rounded-full p-1 shadow-md">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </div>
+                              </div>
+                            )}
                             
                             <div className="relative z-10 flex flex-col gap-0.5 w-full h-full min-h-[28px]">
                               {cellSchedules.map((sched, idx) => {
@@ -348,6 +357,7 @@ export function AdminWeeklyScheduleGrid({
                                 return (
                                   <div 
                                     key={idx} 
+                                    onDragStart={(e) => e.preventDefault()}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (onScheduleClick) onScheduleClick(sched);
