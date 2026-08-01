@@ -39,7 +39,7 @@ export function AdminWeeklyScheduleGrid({
   
   // State for manual shifts
   const [addedShifts, setAddedShifts] = useState<Record<string, Set<string>>>({});
-  const [studioToAdjust, setStudioToAdjust] = useState<{name: string, x: number, y: number} | null>(null);
+  const [studioToAdjust, setStudioToAdjust] = useState<string | null>(null);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -236,10 +236,7 @@ export function AdminWeeklyScheduleGrid({
                         >
                           <button
                             type="button"
-                            onClick={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setStudioToAdjust({name: studio.name, x: rect.right + 8, y: rect.top});
-                            }}
+                            onClick={() => setStudioToAdjust(studio.name)}
                             className="w-full h-full min-h-[40px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors flex flex-col items-center justify-center p-1 rounded cursor-pointer group-hover/studio:ring-2 group-hover/studio:ring-inset group-hover/studio:ring-indigo-300"
                             title="Klik untuk menambahkan shift"
                           >
@@ -248,6 +245,64 @@ export function AdminWeeklyScheduleGrid({
                               <Plus className="w-3 h-3 mr-0.5" /> Tambah Shift
                             </span>
                           </button>
+                          
+                          {/* INLINE POPOVER */}
+                          {studioToAdjust === studio.name && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-[110]" 
+                                onClick={(e) => { e.stopPropagation(); setStudioToAdjust(null); }} 
+                              />
+                              <div 
+                                className="absolute top-0 left-full ml-1 z-[120] bg-white rounded-xl w-[300px] overflow-hidden shadow-2xl flex flex-col border border-slate-200 animate-fadeIn text-left"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="bg-indigo-600 p-2.5 flex items-center justify-between">
+                                  <h3 className="text-white font-bold flex items-center gap-2 text-xs">
+                                    <span>⚙️</span>
+                                    Tambah Shift - {studio.name}
+                                  </h3>
+                                  <button
+                                    type="button"
+                                    onClick={() => setStudioToAdjust(null)}
+                                    className="text-white hover:bg-white/20 p-1 rounded-md transition-colors cursor-pointer"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                
+                                <div className="p-2 space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
+                                  <div className="space-y-1">
+                                    {masterShifts.map(shift => {
+                                      const isAlreadyVisible = studio.shifts.includes(shift);
+                                      if (isAlreadyVisible) return null;
+                                      
+                                      return (
+                                        <button
+                                          key={shift}
+                                          onClick={() => {
+                                            setAddedShifts(prev => {
+                                               const newSet = new Set(prev[studio.name] || []);
+                                               newSet.add(shift);
+                                               return { ...prev, [studio.name]: newSet };
+                                            });
+                                            setStudioToAdjust(null);
+                                          }}
+                                          className="w-full text-left p-2 rounded-lg border border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all font-medium text-[11px] text-slate-700 flex items-center justify-between"
+                                        >
+                                          <span className="truncate pr-2">{shift}</span>
+                                          <Plus className="w-3 h-3 text-indigo-500 shrink-0" />
+                                        </button>
+                                      );
+                                    })}
+                                    {masterShifts.every(shift => studio.shifts.includes(shift)) && (
+                                      <div className="text-center text-[10px] text-slate-500 p-2">Semua shift master sudah ditampilkan.</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </td>
                       )}
 
