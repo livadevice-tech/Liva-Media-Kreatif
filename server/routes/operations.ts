@@ -294,4 +294,28 @@ export function registerOperationsRoutes(app: Express) {
     await execute(`DELETE FROM kpi_alerts WHERE id = ?`, [req.params.id]);
     res.json({ success: true });
   }));
+
+  app.get("/api/studio-shifts", asyncHandler(async (req: Request, res: Response) => {
+    const rows = await queryMany(`SELECT id, studio_name, shift_name FROM studio_active_shifts`);
+    res.json(rows.map((r: any) => ({ id: r.id, studio: r.studio_name, shift: r.shift_name })));
+  }));
+
+  app.post("/api/studio-shifts", asyncHandler(async (req: Request, res: Response) => {
+    const { studio, shift } = req.body;
+    if (!studio || !shift) return res.status(400).json({ error: "Missing studio or shift" });
+    await execute(`
+      INSERT INTO studio_active_shifts (studio_name, shift_name) 
+      VALUES (?, ?) 
+      ON DUPLICATE KEY UPDATE studio_name=studio_name
+    `, [studio, shift]);
+    res.status(201).json({ success: true });
+  }));
+
+  app.post("/api/studio-shifts/delete", asyncHandler(async (req: Request, res: Response) => {
+    const { studio, shift } = req.body;
+    if (!studio || !shift) return res.status(400).json({ error: "Missing studio or shift" });
+    await execute(`DELETE FROM studio_active_shifts WHERE studio_name = ? AND shift_name = ?`, [studio, shift]);
+    res.json({ success: true });
+  }));
 }
+

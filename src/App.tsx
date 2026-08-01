@@ -8055,6 +8055,30 @@ export default function App() {
 
                                 {/* SUBMIT BUTTON */}
                                 <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 mt-4">
+                                  {scheduleForm.massSlots && scheduleForm.massSlots.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                         if (window.confirm('Hapus semua jadwal pada slot yang dipilih?')) {
+                                            const toDelete = computedSchedules.filter(s => 
+                                                scheduleForm.massSlots?.some(slot => 
+                                                    (s.date || "").split("T")[0] === slot.date && 
+                                                    s.studio === slot.studio && 
+                                                    s.timeSlot === slot.shift
+                                                )
+                                            );
+                                            toDelete.forEach(s => {
+                                                schedulesApi.delete(s.id).catch(console.error);
+                                            });
+                                            setSchedules(prev => prev.filter(s => !toDelete.find(td => td.id === s.id)));
+                                            setIsScheduleModalOpen(false);
+                                         }
+                                      }}
+                                      className="mr-auto px-4 py-2.5 rounded-xl font-bold bg-red-50 hover:bg-red-100 text-red-600 transition-all cursor-pointer border border-red-200"
+                                    >
+                                      Hapus Terpilih
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => {

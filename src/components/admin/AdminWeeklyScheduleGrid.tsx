@@ -42,6 +42,26 @@ export function AdminWeeklyScheduleGrid({
   const [studioToAdjust, setStudioToAdjust] = useState<{name: string, align: 'top' | 'bottom'} | null>(null);
 
   useEffect(() => {
+    fetch('/api/studio-shifts')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setAddedShifts(prev => {
+            const newState = { ...prev };
+            data.forEach(item => {
+              if (!newState[item.studio]) {
+                newState[item.studio] = new Set();
+              }
+              newState[item.studio].add(item.shift);
+            });
+            return newState;
+          });
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
     const handleMouseUp = () => {
       if (isDragging) {
         setIsDragging(false);
@@ -245,7 +265,12 @@ export function AdminWeeklyScheduleGrid({
                             className="w-full h-full min-h-[40px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors flex flex-col items-center justify-center p-1 rounded cursor-pointer group-hover/studio:ring-2 group-hover/studio:ring-inset group-hover/studio:ring-indigo-300"
                             title="Klik untuk menambahkan shift"
                           >
-                            <span className="break-words line-clamp-2 leading-tight">{studio.name}</span>
+                            <span 
+                               className="break-words line-clamp-2 leading-tight" 
+                               title={studio.name}
+                            >
+                               {studio.name.length > 13 ? studio.name.substring(0, 11) + '..' : studio.name}
+                            </span>
                             <span className="opacity-0 group-hover/studio:opacity-100 text-[9px] mt-1 text-indigo-500 font-normal transition-opacity flex items-center">
                               <Plus className="w-3 h-3 mr-0.5" /> Tambah Shift
                             </span>
@@ -286,6 +311,12 @@ export function AdminWeeklyScheduleGrid({
                                         <button
                                           key={shift}
                                           onClick={() => {
+                                            fetch('/api/studio-shifts', {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ studio: studio.name, shift })
+                                            }).catch(console.error);
+
                                             setAddedShifts(prev => {
                                                const newSet = new Set(prev[studio.name] || []);
                                                newSet.add(shift);
@@ -328,6 +359,12 @@ export function AdminWeeklyScheduleGrid({
                                  return;
                               }
                               
+                              fetch('/api/studio-shifts/delete', {
+                                 method: 'POST',
+                                 headers: { 'Content-Type': 'application/json' },
+                                 body: JSON.stringify({ studio: studio.name, shift })
+                              }).catch(console.error);
+
                               setAddedShifts(prev => {
                                  const newSet = new Set(prev[studio.name] || []);
                                  newSet.delete(shift);
