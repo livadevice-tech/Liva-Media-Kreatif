@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
   CheckCircle2, AlertTriangle, X
@@ -64,6 +64,37 @@ export default function HostDashboard({
   computedSchedules,
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'absen' | 'rekap' | 'kalender'>('absen');
+  const [hasAutoFilled, setHasAutoFilled] = useState(false);
+
+  useEffect(() => {
+    if (!activeHostObj || !computedSchedules) return;
+    if (hasAutoFilled) return;
+
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    const todaySchedule = computedSchedules.find(
+      (s) => s.hostId === activeHostObj.id && !s.isDeleted && !s.isOffDay && s.date === todayStr
+    );
+
+    if (todaySchedule) {
+      setHostForm({
+        brand: todaySchedule.brandHandled || todaySchedule.brand || '',
+        platform: todaySchedule.platform || '',
+        shift: todaySchedule.shift || '',
+        studio: todaySchedule.studio || activeHostObj.studio || ''
+      });
+    } else {
+      // Empty the form if there's no schedule for today
+      setHostForm({
+        brand: '',
+        platform: '',
+        shift: '',
+        studio: ''
+      });
+    }
+    setHasAutoFilled(true);
+  }, [activeHostObj, computedSchedules, setHostForm, hasAutoFilled]);
 
   const handlePrevMonth = () => {
     if (hostCalendarMonth === 0) {
