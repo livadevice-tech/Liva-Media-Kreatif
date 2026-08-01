@@ -442,7 +442,14 @@ export function AdminWeeklyScheduleGrid({
                                     onDragStart={(e) => e.preventDefault()}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (onScheduleClick) onScheduleClick(sched);
+                                      if (onScheduleClick) {
+                                        onScheduleClick({
+                                          ...sched,
+                                          date: day.date,
+                                          studio: studio.name,
+                                          timeSlot: shift
+                                        });
+                                      }
                                     }}
                                     className={`group relative ${cardBg} border ${cardBorder} ${cardText} text-[9px] px-1 py-0.5 rounded flex-1 flex flex-col justify-center shadow-sm hover:brightness-95 cursor-pointer transition-all overflow-hidden`}
                                     title={`${sched.brand}${sched.platform ? ` - ${sched.platform.replace(/ live/i, '').trim()}` : ''} - ${sched.hostName}`}
@@ -455,7 +462,12 @@ export function AdminWeeklyScheduleGrid({
                                         title="Hapus Jadwal"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          onDeleteSchedule(sched);
+                                          onDeleteSchedule({
+                                            ...sched,
+                                            date: day.date,
+                                            studio: studio.name,
+                                            timeSlot: shift
+                                          });
                                         }}
                                         className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/50 rounded-full p-0.5 transition-all text-red-500 hover:text-red-700"
                                       >
