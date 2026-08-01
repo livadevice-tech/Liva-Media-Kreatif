@@ -312,8 +312,32 @@ export function AdminWeeklyScheduleGrid({
                       )}
 
                       {/* Shift Cell */}
-                      <td className="border-b border-r border-slate-200 p-1 text-center font-bold text-slate-700 bg-slate-50/30 whitespace-nowrap">
+                      <td className="border-b border-r border-slate-200 p-1 pr-6 text-center font-bold text-slate-700 bg-slate-50/30 whitespace-nowrap group/shiftcell relative">
                         {shift}
+                        <button
+                           type="button"
+                           title="Hapus baris shift ini"
+                           onClick={() => {
+                              const hasSchedules = weekDays.some(day => {
+                                 const cellSchedules = scheduleMap.get(`${day.date}|${studio.name}|${shift}`);
+                                 return cellSchedules && cellSchedules.length > 0;
+                              });
+                              
+                              if (hasSchedules) {
+                                 alert('Tidak bisa menyembunyikan shift yang masih memiliki jadwal di minggu ini. Silakan hapus jadwalnya terlebih dahulu.');
+                                 return;
+                              }
+                              
+                              setAddedShifts(prev => {
+                                 const newSet = new Set(prev[studio.name] || []);
+                                 newSet.delete(shift);
+                                 return { ...prev, [studio.name]: newSet };
+                              });
+                           }}
+                           className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/shiftcell:opacity-100 hover:bg-red-100 text-red-500 rounded p-1 transition-all cursor-pointer"
+                        >
+                           <X className="w-3 h-3" />
+                        </button>
                       </td>
 
                       {/* Days Cells */}
