@@ -83,7 +83,7 @@ export default function HostDashboard({
     }
   };
 
-  const hostSchedules = computedSchedules.filter(s => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay);
+  const hostSchedules = (computedSchedules || []).filter(s => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay);
   
   // Extract unique brands for the legend and assign a color index
   const uniqueBrands = Array.from(new Set(hostSchedules.map(s => s.brandHandled || s.brand)));
