@@ -12620,7 +12620,7 @@ export default function App() {
       )}
 
       {/* --- FOOTER STATUS & SIGNATURE --- */}
-      {!isOperatorLoggedIn && !loggedInClientBrandId && (
+      {!isOperatorLoggedIn && !loggedInClientBrandId && !loggedInHostId && (
         <footer
           className="bg-white border-t border-purple-100 py-6 px-4 md:px-8 mt-auto flex flex-col md:flex-row justify-between w-full items-center gap-4 text-xs text-purple-500"
           id="system-footer-credits"
