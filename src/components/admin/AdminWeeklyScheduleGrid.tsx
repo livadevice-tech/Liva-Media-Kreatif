@@ -236,7 +236,10 @@ export function AdminWeeklyScheduleGrid({
                         >
                           <button
                             type="button"
-                            onClick={(e) => setStudioToAdjust({name: studio.name, x: e.clientX, y: e.clientY})}
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setStudioToAdjust({name: studio.name, x: rect.right + 8, y: rect.top});
+                            }}
                             className="w-full h-full min-h-[40px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors flex flex-col items-center justify-center p-1 rounded cursor-pointer group-hover/studio:ring-2 group-hover/studio:ring-inset group-hover/studio:ring-indigo-300"
                             title="Klik untuk menambahkan shift"
                           >
@@ -338,7 +341,7 @@ export function AdminWeeklyScheduleGrid({
             className="fixed z-[120] bg-white rounded-2xl w-full max-w-[320px] overflow-hidden shadow-2xl flex flex-col border border-slate-200 animate-fadeIn"
             style={{ 
                top: Math.min(studioToAdjust.y, window.innerHeight - 350), 
-               left: Math.min(studioToAdjust.x + 20, window.innerWidth - 340)
+               left: Math.min(studioToAdjust.x, window.innerWidth - 340)
             }}
           >
             <div className="bg-indigo-600 p-3 flex items-center justify-between">
