@@ -3081,6 +3081,7 @@ export default function App() {
     new Date().getFullYear(),
   );
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isMassActionModalOpen, setIsMassActionModalOpen] = useState(false);
   const [scheduleModalSearch, setScheduleModalSearch] = useState("");
   
   // Weekly grid mode for admin
@@ -7582,6 +7583,88 @@ export default function App() {
                     </div>
 
                     {/* MODAL POP-UP: FORM MASUKKAN DATA HOST & BACKUP */}
+                                        {/* MASS ACTION MODAL */}
+                    {isMassActionModalOpen && (
+                      <div className="fixed inset-0 z-[120] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center animate-fadeIn font-sans p-4">
+                        <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col">
+                          <div className="bg-indigo-600 p-4 flex items-center justify-between">
+                            <h3 className="text-white font-bold flex items-center gap-2">
+                              <span className="text-lg">⚙️</span>
+                              Aksi Massal ({scheduleForm.massSlots?.length} slot)
+                            </h3>
+                            <button
+                              type="button"
+                              onClick={() => setIsMassActionModalOpen(false)}
+                              className="text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                          
+                          <div className="p-6 space-y-4">
+                            <p className="text-sm text-slate-600 text-center mb-2">
+                              Pilih aksi yang ingin Anda lakukan pada {scheduleForm.massSlots?.length} slot yang dipilih:
+                            </p>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsMassActionModalOpen(false);
+                                setIsScheduleModalOpen(true);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 py-3 px-4 rounded-xl font-bold transition-all"
+                            >
+                              <Plus className="w-5 h-5" />
+                              Tambah/Edit Jadwal
+                            </button>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                // Find schedules to delete
+                                const slotsToMatch = scheduleForm.massSlots || [];
+                                const toDelete = computedSchedules.filter(s => {
+                                  // match date, studio, shift
+                                  const dStr = (s.date || "").split("T")[0];
+                                  return slotsToMatch.some(slot => slot.date === dStr && slot.studio === s.studio && slot.shift === s.timeSlot);
+                                });
+                                
+                                if (toDelete.length === 0) {
+                                  alert("Tidak ada jadwal yang bisa dihapus di slot yang dipilih.");
+                                  return;
+                                }
+                                
+                                setConfirmModal({
+                                  isOpen: true,
+                                  title: "Hapus Massal",
+                                  message: `Anda yakin ingin menghapus ${toDelete.length} jadwal pada slot yang dipilih? Tindakan ini tidak dapat dibatalkan.`,
+                                  type: 'danger',
+                                  confirmText: 'Ya, Hapus Semua',
+                                  onConfirm: () => {
+                                    // Remove from state
+                                    const deleteIds = toDelete.map(d => d.id);
+                                    setSchedules(prev => prev.filter(p => !deleteIds.includes(p.id)));
+                                    
+                                    // Delete from DB
+                                    deleteIds.forEach(id => {
+                                      schedulesApi.delete(id).catch(console.error);
+                                    });
+                                    
+                                    setIsMassActionModalOpen(false);
+                                    setConfirmModal(null);
+                                  }
+                                });
+                              }}
+                              className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 py-3 px-4 rounded-xl font-bold transition-all"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                              Hapus Jadwal
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     {isScheduleModalOpen && (
                       <div
                         className="fixed inset-0 z-[120] bg-slate-900/40 backdrop-blur-md flex justify-end animate-fadeIn font-sans overflow-hidden"
