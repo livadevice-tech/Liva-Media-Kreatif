@@ -138,11 +138,34 @@ export default function HostDashboard({
     <div className="w-full max-w-[480px] mx-auto min-h-screen bg-[#f8f9fc] p-4 font-sans text-slate-800">
       
       {/* Top Profile Card */}
-      <div className="bg-white rounded-[24px] border border-slate-200 p-5 shadow-sm mb-4 relative">
+      <div className="bg-white rounded-[24px] border border-slate-200 p-6 shadow-sm mb-4 flex justify-between items-start gap-4">
+        
+        {/* Left Side: Avatar & Info */}
+        <div className="flex items-start gap-4 flex-1">
+          <div className="w-[72px] h-[72px] shrink-0 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 text-[28px] font-black">
+            {initials}
+          </div>
+          <div className="flex flex-col items-start pt-1">
+            <span className="inline-block px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black tracking-widest uppercase rounded-full mb-2">
+              HOST CONNECT
+            </span>
+            <h2 className="text-xl font-black text-slate-900 leading-tight mb-1 pr-2">
+              {activeHostObj?.name || 'Nabila Zahratun Sita'}
+            </h2>
+            <div className="text-xs text-slate-500 font-semibold mb-1">
+              ID: {activeHostObj?.employeeId || '-'}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+              <MapPin size={14} className="text-purple-600" />
+              {activeHostObj?.studio || 'Tanggamus'}
+            </div>
+          </div>
+        </div>
+
         {/* Right action buttons */}
-        <div className="absolute top-5 right-5 flex flex-col items-end gap-3">
+        <div className="flex flex-col items-end gap-2.5 shrink-0 pt-1">
           <button className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-purple-600 hover:bg-slate-50 transition-colors">
-            <Bell size={20} />
+            <Bell size={18} />
           </button>
           <button onClick={handleLogout} className="px-3 py-1.5 rounded-full border border-red-200 text-red-600 text-[10px] font-black tracking-wider uppercase hover:bg-red-50 transition-colors">
             LOG OUT
@@ -150,27 +173,6 @@ export default function HostDashboard({
           <div className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
             AKTIF
-          </div>
-        </div>
-
-        <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 text-2xl font-black">
-            {initials}
-          </div>
-          <div className="flex-1 pt-1">
-            <span className="inline-block px-3 py-1 bg-purple-50 text-purple-700 text-[9px] font-black tracking-widest uppercase rounded-full mb-2">
-              HOST CONNECT
-            </span>
-            <h2 className="text-xl font-black text-slate-900 leading-tight mb-1">
-              {activeHostObj?.name || 'Nabila Zahratun Sita'}
-            </h2>
-            <div className="text-xs text-slate-500 font-semibold mb-0.5">
-              ID: {activeHostObj?.employeeId || ''}
-            </div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-              <MapPin size={14} className="text-purple-600" />
-              {activeHostObj?.studio || 'Tanggamus'}
-            </div>
           </div>
         </div>
       </div>
