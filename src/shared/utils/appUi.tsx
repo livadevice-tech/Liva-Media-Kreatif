@@ -270,8 +270,9 @@ export const getBrandColor = (brandName: string) => {
     { bg: "bg-orange-200", text: "text-orange-900", border: "border-orange-400" }
   ];
   let hash = 0;
-  for (let i = 0; i < brandName.length; i++) {
-    hash = brandName.charCodeAt(i) + ((hash << 5) - hash);
+  const normalizedBrand = brandName.trim().toLowerCase();
+  for (let i = 0; i < normalizedBrand.length; i++) {
+    hash = normalizedBrand.charCodeAt(i) + ((hash << 5) - hash);
   }
   return colors[Math.abs(hash) % colors.length];
 };
