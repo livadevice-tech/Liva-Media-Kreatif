@@ -173,19 +173,6 @@ export default function HostDashboard({
             </div>
           </div>
         </div>
-
-        {/* Panduan Singkat Box */}
-        <div className="mt-6 bg-[#f8f9fa] rounded-2xl border border-slate-200 p-4">
-          <h3 className="text-[11px] font-black tracking-widest text-slate-500 mb-2 uppercase">Panduan Singkat</h3>
-          <p className="text-sm font-semibold text-slate-700 leading-relaxed mb-4">
-            Pilih tab, isi form absen, lalu kirim. Riwayat dan kalender membantu kamu cek jadwal tanpa harus tanya admin.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-600">1. Absen masuk</span>
-            <span className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-600">2. Cek rekap</span>
-            <span className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-600">3. Lihat kalender</span>
-          </div>
-        </div>
       </div>
 
       {/* Segmented Control / Tabs */}
