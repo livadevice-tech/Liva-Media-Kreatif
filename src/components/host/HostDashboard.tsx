@@ -277,7 +277,23 @@ export default function HostDashboard({
       {/* --- TAB CONTENT: REKAP (Timeline) --- */}
       {activeTab === 'rekap' && (
         <div className="bg-white rounded-[24px] border border-slate-200 p-5 shadow-sm animate-fadeIn">
-          <h3 className="text-[11px] font-black tracking-widest text-slate-500 mb-4 uppercase">Rekap Hari Ini</h3>
+          
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-2xl font-black text-emerald-700">{hostLogs.filter(l => l.status !== 'Late').length}</span>
+              <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1">Hadir</span>
+            </div>
+            <div className="bg-amber-50 rounded-xl p-3 border border-amber-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-2xl font-black text-amber-700">{hostLogs.filter(l => l.status === 'Late').length}</span>
+              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1">Telat</span>
+            </div>
+            <div className="bg-rose-50 rounded-xl p-3 border border-rose-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-2xl font-black text-rose-700">0</span>
+              <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest mt-1">Mangkir</span>
+            </div>
+          </div>
+
+          <h3 className="text-[11px] font-black tracking-widest text-slate-500 mb-4 uppercase">Riwayat Hari Ini</h3>
           {hostLogs.length === 0 ? (
             <p className="text-sm font-semibold text-slate-400">Belum ada absen hari ini.</p>
           ) : (
