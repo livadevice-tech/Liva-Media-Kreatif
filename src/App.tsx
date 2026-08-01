@@ -6634,7 +6634,22 @@ export default function App() {
                                   isOffDay: false,
                                   isPindahStudio: false,
                                   backupHostId: "",
-                                  isReplacePindahStudio: false,
+                                  
+                                }));
+                                setIsScheduleModalOpen(true);
+                              }}
+                              onMassCellSelect={(slots) => {
+                                setScheduleForm(prev => ({
+                                  ...prev,
+                                  id: "",
+                                  hostId: hosts[0]?.id || "",
+                                  brand: brands[0] || "",
+                                  platform: platforms[0] || "",
+                                  isOffDay: false,
+                                  isPindahStudio: false,
+                                  backupHostId: "",
+                                  
+                                  massSlots: slots,
                                 }));
                                 setIsScheduleModalOpen(true);
                               }}
@@ -6650,7 +6665,7 @@ export default function App() {
                                   isPindahStudio: sched.isPindahStudio || false,
                                   date: sched.date,
                                   backupHostId: sched.backupHostId || "",
-                                  isReplacePindahStudio: sched.isReplacePindahStudio || false,
+                                  
                                 });
                                 setIsScheduleModalOpen(true);
                               }}
@@ -7653,6 +7668,47 @@ export default function App() {
                                     if (repObj) {
                                       repHostName = repObj.name;
                                     }
+                                  }
+
+                                  if (scheduleForm.massSlots && scheduleForm.massSlots.length > 0) {
+                                    const newSchedules = scheduleForm.massSlots.map((slot, idx) => ({
+                                      id: `mass_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 5)}`,
+                                      hostId: selectedHost.id,
+                                      hostName: selectedHost.name,
+                                      employeeId: selectedHost.employeeId,
+                                      date: slot.date,
+                                      timeSlot: slot.shift,
+                                      platform: scheduleForm.platform || "TikTok Live",
+                                      brand: scheduleForm.brand || brands[0] || "Somethinc",
+                                      status: "Assigned" as ShiftSchedule["status"],
+                                      studio: slot.studio,
+                                      isOffDay: scheduleForm.isOffDay,
+                                      isPindahStudio: scheduleForm.isPindahStudio,
+                                      backupHostId: scheduleForm.isOffDay || scheduleForm.isPindahStudio ? scheduleForm.backupHostId : "",
+                                      backupHostName: scheduleForm.isOffDay || scheduleForm.isPindahStudio ? repHostName : "",
+                                    }));
+                                    
+                                    setSchedules(prev => [...prev, ...newSchedules]);
+                                    
+                                    // Save to database
+                                    newSchedules.forEach(s => {
+                                      schedulesApi.create(s).catch(console.error);
+                                    });
+                                    
+                                    addHostNotification(
+                                      selectedHost.id,
+                                      "Jadwal Massal Baru",
+                                      `Anda telah ditugaskan untuk ${newSchedules.length} jadwal baru.`,
+                                      newSchedules[0].date
+                                    );
+                                    
+                                    setScheduleForm({
+                                      id: "", hostId: "", timeSlot: shifts[0] || "", brand: brands[0] || "", platform: platforms[0] || "",
+                                      studio: studios[0] ? studios[0].name : "", isOffDay: false, isPindahStudio: false, backupOption: "none", backupHostId: "",
+                                      massSlots: []
+                                    });
+                                    setIsScheduleModalOpen(false);
+                                    return;
                                   }
 
                                   const newSchedule = {

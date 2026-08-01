@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ShiftSchedule, StudioItem } from '../../types';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { getBrandColor } from '../../shared/utils/appUi';
@@ -13,6 +13,7 @@ interface AdminWeeklyScheduleGridProps {
   onCellClick: (dateStr: string, studio: string, shift: string) => void;
   onScheduleClick?: (sched: ShiftSchedule) => void;
   onDeleteSchedule?: (sched: ShiftSchedule) => void;
+  onMassCellSelect?: (slots: {date: string, studio: string, shift: string}[]) => void;
 }
 
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -26,8 +27,50 @@ export function AdminWeeklyScheduleGrid({
   onCurrentWeek,
   onCellClick,
   onScheduleClick,
-  onDeleteSchedule
+  onDeleteSchedule,
+  onMassCellSelect
 }: AdminWeeklyScheduleGridProps) {
+
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragSelection, setDragSelection] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        if (dragSelection.size > 1 && onMassCellSelect) {
+          const slots = Array.from(dragSelection).map((val: string) => {
+            const [date, studio, shift] = val.split('|');
+            return { date, studio, shift };
+          });
+          onMassCellSelect(slots);
+        } else if (dragSelection.size === 1) {
+            // single click is handled by onClick, but to prevent race conditions or if onClick doesn't fire, we can let onClick handle it.
+            // Wait, onClick handles it natively, so we just reset.
+        }
+        setDragSelection(new Set());
+      }
+    };
+    
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, [isDragging, dragSelection, onMassCellSelect]);
+
+  const handleCellMouseDown = (date: string, studio: string, shift: string) => {
+    setIsDragging(true);
+    setDragSelection(new Set([`${date}|${studio}|${shift}`]));
+  };
+
+  const handleCellMouseEnter = (date: string, studio: string, shift: string) => {
+    if (isDragging) {
+      setDragSelection(prev => {
+        const next = new Set(prev);
+        next.add(`${date}|${studio}|${shift}`);
+        return next;
+      });
+    }
+  };
 
   // Generate 7 days for the current week
     const weekDays = useMemo(() => {
@@ -195,8 +238,19 @@ export function AdminWeeklyScheduleGrid({
                         return (
                           <td 
                             key={`${day.date}-${studio.name}-${shift}`}
-                            onClick={() => onCellClick(day.date, studio.name, shift)}
-                            className="border-b border-r border-slate-200 p-0.5 cursor-pointer hover:bg-indigo-50 transition-colors align-top relative group h-[40px]"
+                            onMouseDown={() => handleCellMouseDown(day.date, studio.name, shift)}
+                            onMouseEnter={() => handleCellMouseEnter(day.date, studio.name, shift)}
+                            onClick={() => {
+                              // If we didn't drag multiple, it's a single click
+                              if (!dragSelection || dragSelection.size <= 1) {
+                                onCellClick(day.date, studio.name, shift);
+                              }
+                            }}
+                            className={`border-b border-r border-slate-200 p-0.5 cursor-pointer transition-colors align-top relative group h-[40px] ${
+                              dragSelection.has(`${day.date}|${studio.name}|${shift}`) 
+                                ? 'bg-indigo-100 ring-2 ring-inset ring-indigo-400' 
+                                : 'hover:bg-indigo-50'
+                            }`}
                           >
                             <div className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-indigo-100/30 z-0 pointer-events-none">
                               <Plus className="w-4 h-4 text-indigo-400" />
