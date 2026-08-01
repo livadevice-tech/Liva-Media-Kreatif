@@ -4,6 +4,7 @@ import {
   CheckCircle2, AlertTriangle, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
 
 type HostDashboardProps = {
   activeHostObj: any;
@@ -28,6 +29,9 @@ type HostDashboardProps = {
   hostCalendarYear: number;
   setHostCalendarMonth: React.Dispatch<React.SetStateAction<number>>;
   setHostCalendarYear: React.Dispatch<React.SetStateAction<number>>;
+  hostCutoffPeriod: string;
+  setHostCutoffPeriod: React.Dispatch<React.SetStateAction<string>>;
+  availableCutoffMonths: string[];
 };
 
 export default function HostDashboard({
@@ -53,6 +57,9 @@ export default function HostDashboard({
   hostCalendarYear,
   setHostCalendarMonth,
   setHostCalendarYear,
+  hostCutoffPeriod,
+  setHostCutoffPeriod,
+  availableCutoffMonths,
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'absen' | 'rekap' | 'kalender'>('absen');
 
@@ -293,7 +300,26 @@ export default function HostDashboard({
             </div>
           </div>
 
-          <h3 className="text-[11px] font-black tracking-widest text-slate-500 mb-4 uppercase">Riwayat Hari Ini</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[11px] font-black tracking-widest text-slate-500 uppercase">Riwayat Hari Ini</h3>
+            <select
+              value={hostCutoffPeriod}
+              onChange={(e) => setHostCutoffPeriod(e.target.value)}
+              className="bg-[#f0f2f5] border border-slate-200 text-[10px] font-bold text-slate-700 rounded-lg px-2 py-1 outline-none appearance-none pr-6 relative"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 6px center',
+                backgroundSize: '12px'
+              }}
+            >
+              <option value="Semua">Semua Waktu</option>
+              {availableCutoffMonths.map((m) => (
+                <option key={m} value={m}>{formatCutoffPeriodOptionLabel(m)}</option>
+              ))}
+            </select>
+          </div>
+
           {hostLogs.length === 0 ? (
             <p className="text-sm font-semibold text-slate-400">Belum ada absen hari ini.</p>
           ) : (

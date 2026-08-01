@@ -4640,6 +4640,9 @@ export default function App() {
           hostCalendarYear={hostCalendarYear}
           setHostCalendarMonth={setHostCalendarMonth}
           setHostCalendarYear={setHostCalendarYear}
+          hostCutoffPeriod={hostCutoffPeriod}
+          setHostCutoffPeriod={setHostCutoffPeriod}
+          availableCutoffMonths={availableCutoffMonths}
         />
       )}
 
