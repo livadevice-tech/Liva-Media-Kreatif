@@ -6603,7 +6603,7 @@ export default function App() {
 
                           {adminScheduleViewMode === 'weekly' && (
                             <AdminWeeklyScheduleGrid
-                              hosts={hosts}
+                              clientBrands={clientBrands}
                               computedSchedules={computedSchedules}
                               studios={studios}
                               weekStartDate={adminWeekStartDate}
