@@ -32,6 +32,7 @@ type HostDashboardProps = {
   hostCutoffPeriod: string;
   setHostCutoffPeriod: React.Dispatch<React.SetStateAction<string>>;
   availableCutoffMonths: string[];
+  computedSchedules: any[];
 };
 
 export default function HostDashboard({
@@ -60,6 +61,7 @@ export default function HostDashboard({
   hostCutoffPeriod,
   setHostCutoffPeriod,
   availableCutoffMonths,
+  computedSchedules,
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'absen' | 'rekap' | 'kalender'>('absen');
 
@@ -81,6 +83,23 @@ export default function HostDashboard({
     }
   };
 
+  const hostSchedules = computedSchedules.filter(s => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay);
+  
+  // Extract unique brands for the legend and assign a color index
+  const uniqueBrands = Array.from(new Set(hostSchedules.map(s => s.brandHandled || s.brand)));
+  const brandColors = [
+    { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-500' },
+    { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300' },
+    { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
+    { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300' },
+    { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-300' },
+  ];
+
+  const getBrandColor = (brand: string) => {
+    const idx = uniqueBrands.indexOf(brand);
+    return brandColors[idx % brandColors.length];
+  };
+
   const renderCalendarDays = () => {
     const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
     const firstDay = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
@@ -91,10 +110,17 @@ export default function HostDashboard({
       }
       
       const day = i - firstDay + 1;
+      
+      // Check if there is a schedule for this date
+      const dateStr = `${hostCalendarYear}-${String(hostCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const daySchedule = hostSchedules.find(s => s.date === dateStr);
+
       let style = 'bg-white text-slate-500 border border-slate-200';
-      // Basic mock highlighting to keep the aesthetic (could be dynamic based on hostLogs)
-      if (day === 1) style = 'bg-purple-100 text-purple-700 border-2 border-purple-500 font-black';
-      if (day === 2) style = 'bg-emerald-100 text-emerald-700 border border-emerald-300 font-black';
+      if (daySchedule) {
+        const brand = daySchedule.brandHandled || daySchedule.brand;
+        const colorObj = getBrandColor(brand);
+        style = `${colorObj.bg} ${colorObj.text} border-2 ${colorObj.border} font-black`;
+      }
       
       return (
         <div key={day} className={`py-1.5 rounded-lg text-xs flex items-center justify-center ${style}`}>
@@ -373,22 +399,25 @@ export default function HostDashboard({
                 <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
               </div>
               <div className="grid grid-cols-7 gap-y-3 gap-x-2 text-center text-sm font-bold text-slate-500">
-                {/* Wrap the render function to add styling if it's returning bare buttons, but since the component is passed in, it relies on App.tsx's logic */}
                 {renderCalendarDays()}
               </div>
             </div>
 
-            <div className="mt-6 bg-[#f8f9fa] rounded-xl p-4">
-              <h3 className="text-[10px] font-black text-purple-900 mb-3">Keterangan Warna Shift Brand:</h3>
-              <div className="flex items-center gap-3 text-[10px] font-bold text-slate-700">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full border border-blue-300 bg-blue-100"></div>
-                  Madu Uray
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full border border-emerald-300 bg-emerald-100"></div>
-                  RHC
-                </div>
+            <div className="bg-slate-50 rounded-xl p-4 mt-6">
+              <h4 className="text-[10px] font-black text-purple-900 mb-3">Keterangan Warna Shift Brand:</h4>
+              <div className="flex flex-wrap gap-4">
+                {uniqueBrands.map((brand) => {
+                  const colorObj = getBrandColor(brand);
+                  return (
+                    <div key={brand} className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${colorObj.bg} border ${colorObj.border}`}></div>
+                      <span className="text-[10px] font-bold text-slate-600">{brand}</span>
+                    </div>
+                  );
+                })}
+                {uniqueBrands.length === 0 && (
+                  <span className="text-[10px] font-bold text-slate-400">Belum ada jadwal yang terdaftar</span>
+                )}
               </div>
             </div>
           </div>
