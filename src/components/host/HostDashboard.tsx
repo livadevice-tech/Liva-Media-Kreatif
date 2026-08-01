@@ -587,7 +587,7 @@ export default function HostDashboard({
                           <div className={`absolute top-0 left-0 bottom-0 w-1 ${getBrandColor(schedule.brandHandled || schedule.brand).bg}`}></div>
                           <div className="flex justify-between items-start pl-2">
                             <span className="text-xs font-black text-slate-900">{schedule.brandHandled || schedule.brand}</span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-600 border border-purple-100">{schedule.shift || schedule.shiftHours}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-600 border border-purple-100">{schedule.timeSlot || schedule.shift}</span>
                           </div>
                           <div className="text-[11px] font-bold text-slate-600 flex flex-wrap gap-x-4 gap-y-2 pl-2 mt-1">
                             <div className="flex items-center gap-1.5"><MapPin size={12} className="text-slate-400"/> {schedule.studio}</div>
