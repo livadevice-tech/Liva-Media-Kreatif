@@ -39,7 +39,7 @@ export function AdminWeeklyScheduleGrid({
   
   // State for manual shifts
   const [addedShifts, setAddedShifts] = useState<Record<string, Set<string>>>({});
-  const [studioToAdjust, setStudioToAdjust] = useState<string | null>(null);
+  const [studioToAdjust, setStudioToAdjust] = useState<{name: string, align: 'top' | 'bottom'} | null>(null);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -236,7 +236,12 @@ export function AdminWeeklyScheduleGrid({
                         >
                           <button
                             type="button"
-                            onClick={() => setStudioToAdjust(studio.name)}
+                            onClick={(e) => {
+                               const rect = e.currentTarget.getBoundingClientRect();
+                               // If the element is in the bottom half of the window, open upwards
+                               const align = rect.top > (window.innerHeight / 2) ? 'bottom' : 'top';
+                               setStudioToAdjust({ name: studio.name, align });
+                            }}
                             className="w-full h-full min-h-[40px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors flex flex-col items-center justify-center p-1 rounded cursor-pointer group-hover/studio:ring-2 group-hover/studio:ring-inset group-hover/studio:ring-indigo-300"
                             title="Klik untuk menambahkan shift"
                           >
@@ -247,14 +252,14 @@ export function AdminWeeklyScheduleGrid({
                           </button>
                           
                           {/* INLINE POPOVER */}
-                          {studioToAdjust === studio.name && (
+                          {studioToAdjust?.name === studio.name && (
                             <>
                               <div 
                                 className="fixed inset-0 z-[110]" 
                                 onClick={(e) => { e.stopPropagation(); setStudioToAdjust(null); }} 
                               />
                               <div 
-                                className="absolute top-0 left-full ml-1 z-[120] bg-white rounded-xl w-[300px] overflow-hidden shadow-2xl flex flex-col border border-slate-200 animate-fadeIn text-left"
+                                className={`absolute ${studioToAdjust.align === 'bottom' ? 'bottom-0' : 'top-0'} left-full ml-1 z-[120] bg-white rounded-xl w-[300px] overflow-hidden shadow-2xl flex flex-col border border-slate-200 animate-fadeIn text-left`}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <div className="bg-indigo-600 p-2.5 flex items-center justify-between">
