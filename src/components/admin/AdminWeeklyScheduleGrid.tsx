@@ -427,6 +427,15 @@ export function AdminWeeklyScheduleGrid({
                             <div className="relative z-10 flex flex-col gap-0.5 w-full h-full min-h-[28px]">
                               {cellSchedules.map((sched, idx) => {
                                 const brandColor = getBrandColor(sched.brand);
+                                const isNotRegularHost = !clientBrands.some(
+                                  b => b.name?.trim().toLowerCase() === sched.brand?.trim().toLowerCase() && 
+                                       b.sessions?.some(s => s.host?.trim().toLowerCase() === sched.hostName?.trim().toLowerCase())
+                                );
+                                
+                                const cardBg = isNotRegularHost ? 'bg-slate-100' : brandColor.bg;
+                                const cardBorder = isNotRegularHost ? 'border-slate-300' : brandColor.border;
+                                const cardText = isNotRegularHost ? 'text-slate-600' : brandColor.text;
+
                                 return (
                                   <div 
                                     key={idx} 
@@ -435,11 +444,11 @@ export function AdminWeeklyScheduleGrid({
                                       e.stopPropagation();
                                       if (onScheduleClick) onScheduleClick(sched);
                                     }}
-                                    className={`group relative ${brandColor.bg} border ${brandColor.border} ${brandColor.text} text-[9px] px-1 py-0.5 rounded flex-1 flex flex-col justify-center shadow-sm hover:brightness-95 cursor-pointer transition-all overflow-hidden`}
+                                    className={`group relative ${cardBg} border ${cardBorder} ${cardText} text-[9px] px-1 py-0.5 rounded flex-1 flex flex-col justify-center shadow-sm hover:brightness-95 cursor-pointer transition-all overflow-hidden`}
                                     title={`${sched.brand} - ${sched.hostName}`}
                                   >
                                     <span className="font-bold truncate pr-3 leading-tight">{sched.brand}</span>
-                                    <span className={`text-[8px] truncate leading-none mt-[1px] opacity-80 pr-3 ${(!clientBrands.some(b => b.name?.trim().toLowerCase() === sched.brand?.trim().toLowerCase() && b.sessions?.some(s => s.host?.trim().toLowerCase() === sched.hostName?.trim().toLowerCase()))) ? '!text-red-500 !font-bold !opacity-100' : ''}`}>{sched.hostName}</span>
+                                    <span className={`text-[8px] truncate leading-none mt-[1px] pr-3 ${isNotRegularHost ? '!text-red-500 !font-bold !opacity-100' : 'opacity-80'}`}>{sched.hostName}</span>
                                     {onDeleteSchedule && (
                                       <button
                                         type="button"
