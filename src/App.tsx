@@ -4643,6 +4643,7 @@ export default function App() {
           hostCutoffPeriod={hostCutoffPeriod}
           setHostCutoffPeriod={setHostCutoffPeriod}
           availableCutoffMonths={availableCutoffMonths}
+          computedSchedules={computedSchedules}
         />
       )}
 
