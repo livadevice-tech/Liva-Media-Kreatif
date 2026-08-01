@@ -1493,9 +1493,9 @@ export default function App() {
       return;
     }
 
-    const todayDateStr = new Date().toISOString().split("T")[0];
     const nowObj = new Date();
     const pad = (num: number) => String(num).padStart(2, "0");
+    const todayDateStr = `${nowObj.getFullYear()}-${pad(nowObj.getMonth() + 1)}-${pad(nowObj.getDate())}`;
     const exactCheckInTime = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
     const currentTimeStr = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
 
