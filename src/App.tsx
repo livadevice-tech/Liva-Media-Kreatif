@@ -4638,9 +4638,8 @@ export default function App() {
           hostLogs={hostLogs}
           hostCalendarMonth={hostCalendarMonth}
           hostCalendarYear={hostCalendarYear}
-          handlePrevMonth={handlePrevMonth}
-          handleNextMonth={handleNextMonth}
-          renderCalendarDays={renderCalendarDays}
+          setHostCalendarMonth={setHostCalendarMonth}
+          setHostCalendarYear={setHostCalendarYear}
         />
       )}
 

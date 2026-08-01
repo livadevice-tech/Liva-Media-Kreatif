@@ -26,9 +26,8 @@ type HostDashboardProps = {
   hostLogs: any[];
   hostCalendarMonth: number;
   hostCalendarYear: number;
-  handlePrevMonth: () => void;
-  handleNextMonth: () => void;
-  renderCalendarDays: () => React.ReactNode;
+  setHostCalendarMonth: React.Dispatch<React.SetStateAction<number>>;
+  setHostCalendarYear: React.Dispatch<React.SetStateAction<number>>;
 };
 
 export default function HostDashboard({
@@ -52,11 +51,42 @@ export default function HostDashboard({
   hostLogs,
   hostCalendarMonth,
   hostCalendarYear,
-  handlePrevMonth,
-  handleNextMonth,
-  renderCalendarDays,
+  setHostCalendarMonth,
+  setHostCalendarYear,
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'absen' | 'rekap' | 'kalender'>('absen');
+
+  const handlePrevMonth = () => {
+    if (hostCalendarMonth === 0) {
+      setHostCalendarMonth(11);
+      setHostCalendarYear((y: number) => y - 1);
+    } else {
+      setHostCalendarMonth((m: number) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (hostCalendarMonth === 11) {
+      setHostCalendarMonth(0);
+      setHostCalendarYear((y: number) => y + 1);
+    } else {
+      setHostCalendarMonth((m: number) => m + 1);
+    }
+  };
+
+  const renderCalendarDays = () => {
+    return Array.from({ length: 31 }).map((_, i) => {
+      const day = i + 1;
+      let style = 'bg-white text-slate-500 border border-slate-200';
+      if (day === 1) style = 'bg-purple-100 text-purple-700 border-2 border-purple-500 font-black';
+      if (day === 2) style = 'bg-emerald-100 text-emerald-700 border border-emerald-300 font-black';
+      return (
+        <div key={day} className={`py-1.5 rounded-lg text-xs flex items-center justify-center ${style}`}>
+          {day}
+        </div>
+      );
+    });
+  };
 
   const initials = activeHostObj?.name 
     ? activeHostObj.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
