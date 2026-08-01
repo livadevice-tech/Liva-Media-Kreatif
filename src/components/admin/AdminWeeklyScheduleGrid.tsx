@@ -23,55 +23,63 @@ export function AdminWeeklyScheduleGrid({
   onCurrentWeek,
   onCellClick
 }: AdminWeeklyScheduleGridProps) {
-  // Default shifts for any studio
-  const DEFAULT_SHIFTS = ["00.00 - 06.00", "06.00 - 12.00", "11.00 - 17.00", "17.00 - 23.00"];
 
-  // Group studios by location dynamically from master data
+  // Generate 7 days for the current week
+    const weekDays = useMemo(() => {
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStartDate);
+        d.setDate(d.getDate() + i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dateStr = String(d.getDate()).padStart(2, '0');
+        days.push({
+          name: DAYS_OF_WEEK[i],
+          date: `${y}-${m}-${dateStr}`,
+          displayDate: `${dateStr}/${m}`
+        });
+      }
+      return days;
+    }, [weekStartDate]);
+
+    // Group studios dynamically from master data, ONLY including shifts that have schedules THIS WEEK
   const studioGroups = useMemo(() => {
     const groupsMap = new Map<string, { name: string; shifts: string[] }[]>();
+    
+    // Get all valid dates for this week
+    const validDates = new Set(weekDays.map(d => d.date));
+
+    // Filter schedules to only this week
+    const thisWeekSchedules = computedSchedules.filter(s => {
+        const d = (s.date || "").split('T')[0];
+        return validDates.has(d);
+    });
+
     studios.forEach(st => {
       const loc = st.location || "Lainnya";
-      if (!groupsMap.has(loc)) {
-        groupsMap.set(loc, []);
+      
+      const studioSchedules = thisWeekSchedules.filter(s => s.studio === st.name);
+      const uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).filter(Boolean).sort();
+      
+      if (uniqueShifts.length > 0) {
+          if (!groupsMap.has(loc)) {
+            groupsMap.set(loc, []);
+          }
+          groupsMap.get(loc)!.push({
+            name: st.name,
+            shifts: uniqueShifts
+          });
       }
-      
-      // Extract unique shifts for this studio from computedSchedules, or use defaults
-      const studioSchedules = computedSchedules.filter(s => s.studio === st.name);
-      const uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).filter(Boolean);
-      
-      // Merge unique shifts with some defaults to ensure grid is always visible
-      const shiftsToUse = Array.from(new Set([...DEFAULT_SHIFTS, ...uniqueShifts])).sort();
-
-      groupsMap.get(loc)!.push({
-        name: st.name,
-        shifts: shiftsToUse.length > 0 ? shiftsToUse : DEFAULT_SHIFTS
-      });
     });
 
     return Array.from(groupsMap.entries()).map(([location, studiosData]) => ({
       location,
       studios: studiosData
     }));
-  }, [studios, computedSchedules]);
+  }, [studios, computedSchedules, weekDays]);
 
 
-  // Generate 7 days for the current week
-  const weekDays = useMemo(() => {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStartDate);
-      d.setDate(d.getDate() + i);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const dateStr = String(d.getDate()).padStart(2, '0');
-      days.push({
-        name: DAYS_OF_WEEK[i],
-        date: `${y}-${m}-${dateStr}`,
-        displayDate: `${dateStr}/${m}`
-      });
-    }
-    return days;
-  }, [weekStartDate]);
+  
 
   // Create a fast lookup map: key = `${date}|${studio}|${shift}`
   const scheduleMap = useMemo(() => {
@@ -136,7 +144,6 @@ export function AdminWeeklyScheduleGrid({
         <table className="w-full text-xs text-left border-collapse min-w-[1000px]">
           <thead>
             <tr>
-              <th className="border-b border-slate-200 p-2 text-center text-slate-700 bg-slate-100 font-bold border-r w-[80px]">Lokasi</th>
               <th className="border-b border-slate-200 p-2 text-center text-slate-700 bg-slate-100 font-bold border-r w-[100px]">Studio</th>
               <th className="border-b border-slate-200 p-2 text-center text-slate-700 bg-slate-100 font-bold border-r w-[110px]">Shift</th>
               {weekDays.map(day => (
@@ -159,17 +166,6 @@ export function AdminWeeklyScheduleGrid({
 
                   return (
                     <tr key={`${group.location}-${studio.name}-${shift}`} className="hover:bg-slate-50/50 transition-colors">
-                      {/* Location Cell (Rowspan) */}
-                      {isFirstRowInLocation && (
-                        <td 
-                          rowSpan={totalLocationRows} 
-                          className="border-b border-r border-slate-200 p-2 text-center align-middle font-bold text-slate-600 bg-white"
-                        >
-                          <div style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }} className="mx-auto whitespace-nowrap">
-                            {group.location}
-                          </div>
-                        </td>
-                      )}
 
                       {/* Studio Cell (Rowspan) */}
                       {isFirstRowInStudio && (

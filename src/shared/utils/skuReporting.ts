@@ -1,3 +1,4 @@
+import { ReportDateFilterType } from '../../types';
 export interface SkuLogLike {
   brandId?: string;
   date?: string;

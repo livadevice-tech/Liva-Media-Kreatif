@@ -218,3 +218,5 @@ export interface ClientLead {
   status: "New" | "Contacted" | "Meeting Scheduled" | "Proposal Sent" | "Negotiation" | "Closed Won" | "Closed Lost";
   notes: string;
 }
+
+export type ReportDateFilterType = "custom" | "daily" | "weekly" | "monthly" | "latest" | "all" | "month";

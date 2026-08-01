@@ -117,6 +117,7 @@ import {
   HostEmployee,
   AttendanceLog,
   StudioItem,
+  ReportDateFilterType,
   ClientBrand,
   ClientReporting,
   ClientLead,
@@ -1073,7 +1074,7 @@ export default function App() {
   );
 
 
-  const [operatorDateFilterType, setOperatorDateFilterType] = useState<ReportDateFilterType>("latest");
+  const [operatorDateFilterType, setOperatorDateFilterType] = useState<any>("latest");
   const [operatorSelectedLatestDate, setOperatorSelectedLatestDate] =
     useState("");
   const [operatorPlatformFilter, setOperatorPlatformFilter] =
@@ -1106,7 +1107,7 @@ export default function App() {
   const [trendFilters, setTrendFilters] = useState({ gmv: true, views: true });
 
   const handleClientDateFilterSelect = (
-    value: ReportDateFilterType,
+    value: any,
   ) => {
     setClientSelectedLatestDate("");
     applyDateFilterSelection({
@@ -1122,7 +1123,7 @@ export default function App() {
   };
 
   const handleOperatorDateFilterSelect = (
-    value: ReportDateFilterType,
+    value: any,
   ) => {
     if (value !== "latest") {
       setOperatorSelectedLatestDate("");
