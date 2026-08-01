@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ShiftSchedule, StudioItem } from '../../types';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { getBrandColor } from '../../shared/utils/appUi';
 
 interface AdminWeeklyScheduleGridProps {
@@ -12,6 +12,7 @@ interface AdminWeeklyScheduleGridProps {
   onCurrentWeek: () => void;
   onCellClick: (dateStr: string, studio: string, shift: string) => void;
   onScheduleClick?: (sched: ShiftSchedule) => void;
+  onDeleteSchedule?: (sched: ShiftSchedule) => void;
 }
 
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -24,7 +25,8 @@ export function AdminWeeklyScheduleGrid({
   onNextWeek,
   onCurrentWeek,
   onCellClick,
-  onScheduleClick
+  onScheduleClick,
+  onDeleteSchedule
 }: AdminWeeklyScheduleGridProps) {
 
   // Generate 7 days for the current week
@@ -210,11 +212,24 @@ export function AdminWeeklyScheduleGrid({
                                       e.stopPropagation();
                                       if (onScheduleClick) onScheduleClick(sched);
                                     }}
-                                    className={`${brandColor.bg} border ${brandColor.border} ${brandColor.text} text-[10px] px-1.5 py-1 rounded truncate flex-1 flex flex-col justify-center min-h-[28px] shadow-sm hover:brightness-95 cursor-pointer transition-all`}
+                                    className={`group relative ${brandColor.bg} border ${brandColor.border} ${brandColor.text} text-[10px] px-1.5 py-1 rounded truncate flex-1 flex flex-col justify-center min-h-[28px] shadow-sm hover:brightness-95 cursor-pointer transition-all`}
                                     title={`${sched.brand} - ${sched.hostName}`}
                                   >
-                                    <span className="font-bold truncate">{sched.brand}</span>
-                                    <span className="text-[9px] truncate leading-none mt-0.5 opacity-80">{sched.hostName}</span>
+                                    <span className="font-bold truncate pr-4">{sched.brand}</span>
+                                    <span className="text-[9px] truncate leading-none mt-0.5 opacity-80 pr-4">{sched.hostName}</span>
+                                    {onDeleteSchedule && (
+                                      <button
+                                        type="button"
+                                        title="Hapus Jadwal"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onDeleteSchedule(sched);
+                                        }}
+                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 hover:bg-white/50 rounded-full p-0.5 transition-all text-red-500 hover:text-red-700"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    )}
                                   </div>
                                 );
                               })}

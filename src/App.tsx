@@ -6654,6 +6654,28 @@ export default function App() {
                                 });
                                 setIsScheduleModalOpen(true);
                               }}
+                              onDeleteSchedule={(sched) => {
+                                setConfirmModal({
+                                  isOpen: true,
+                                  title: "Hapus Jadwal",
+                                  message: `Menghapus jadwal ${sched.hostName} pada tanggal ${sched.date}?`,
+                                  type: "danger",
+                                  confirmText: "Hapus",
+                                  onConfirm: () => {
+                                    setSchedules((prev) => prev.filter((s) => s.id !== sched.id));
+                                    schedulesApi.delete(sched.id).catch(console.error);
+                                    if (sched.hostId) {
+                                      addHostNotification(
+                                        sched.hostId,
+                                        "Jadwal Dihapus",
+                                        `Jadwal siaran Anda pada tanggal ${sched.date} telah dihapus.`,
+                                        sched.date
+                                      );
+                                    }
+                                    setConfirmModal(null);
+                                  },
+                                });
+                              }}
                             />
                           )}
                           
