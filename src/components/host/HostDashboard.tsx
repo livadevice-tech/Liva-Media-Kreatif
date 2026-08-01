@@ -1,10 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
-  CheckCircle2, AlertTriangle, X
+  CheckCircle2, AlertTriangle, X, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
+
+
+function CustomSelect({ value, options, onChange, placeholder, error }: any) {
+  // normalize options to {value, label} format
+  const normalizedOptions = options.map((opt: any) => typeof opt === 'string' ? { value: opt, label: opt } : opt);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full bg-white border ${error ? 'border-red-300 ring-4 ring-red-50' : isOpen ? 'border-purple-500 ring-4 ring-purple-50' : 'border-slate-200'} text-left rounded-xl px-4 py-3 text-xs outline-none transition-all flex items-center justify-between group`}
+      >
+        <span className={`font-bold ${value ? 'text-slate-800' : 'text-slate-400'}`}>
+          {value || placeholder}
+        </span>
+        <ChevronDown size={16} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-200/50 z-50 overflow-hidden"
+          >
+            <div className="max-h-[220px] overflow-y-auto p-1">
+              {normalizedOptions.map((opt: any) => (
+                <div
+                  key={opt.value}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  className={`px-3 py-2.5 rounded-lg text-xs font-bold cursor-pointer transition-colors flex items-center justify-between ${value === opt.value ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                >
+                  {opt.label}
+                  {value === opt.value && <CheckCircle2 size={14} className="text-purple-600" />}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 type HostDashboardProps = {
   activeHostObj: any;
@@ -337,12 +398,13 @@ export default function HostDashboard({
                 <label className="text-xs font-black text-slate-800">Brand Besutan:</label>
                 <span className="text-[10px] font-bold text-red-500">*Wajib diisi</span>
               </div>
-              <select value={hostForm.brand} onChange={(e) => { setHostFormError(""); setHostForm((prev: any) => ({ ...prev, brand: e.target.value })); }} required className="w-full bg-white border border-slate-200 text-slate-500 font-bold rounded-xl px-4 py-3 text-xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all appearance-none cursor-pointer">
-                <option value="" disabled>-- Pilih Brand Besutan --</option>
-                {Array.from(new Set([hostForm.brand, ...(clientBrands?.length > 0 ? clientBrands.map((cb) => cb.name) : brands)].map(b => b?.trim()).filter(Boolean))).map(b => (
-                  <option key={b} value={b} className="text-slate-800">{b}</option>
-                ))}
-              </select>
+              <CustomSelect 
+                value={hostForm.brand} 
+                onChange={(val: string) => { setHostFormError(""); setHostForm((prev: any) => ({ ...prev, brand: val })); }} 
+                options={Array.from(new Set([hostForm.brand, ...(clientBrands?.length > 0 ? clientBrands.map((cb) => cb.name) : brands)].map(b => b?.trim()).filter(Boolean)))} 
+                placeholder="-- Pilih Brand Besutan --" 
+                error={hostFormError && !hostForm.brand} 
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -350,10 +412,13 @@ export default function HostDashboard({
                 <label className="text-xs font-black text-slate-800">Platform Streaming:</label>
                 <span className="text-[10px] font-bold text-red-500">*Wajib diisi</span>
               </div>
-              <select value={hostForm.platform} onChange={(e) => { setHostFormError(""); setHostForm((prev: any) => ({ ...prev, platform: e.target.value })); }} required className="w-full bg-white border border-slate-200 text-slate-500 font-bold rounded-xl px-4 py-3 text-xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all appearance-none cursor-pointer">
-                <option value="" disabled>-- Pilih Platform Streaming --</option>
-                {platforms.map(p => <option key={p} value={p} className="text-slate-800">{p}</option>)}
-              </select>
+              <CustomSelect 
+                value={hostForm.platform} 
+                onChange={(val: string) => { setHostFormError(""); setHostForm((prev: any) => ({ ...prev, platform: val })); }} 
+                options={platforms} 
+                placeholder="-- Pilih Platform Streaming --" 
+                error={hostFormError && !hostForm.platform} 
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -361,10 +426,13 @@ export default function HostDashboard({
                 <label className="text-xs font-black text-slate-800">Shift Kerja Live:</label>
                 <span className="text-[10px] font-bold text-red-500">*Wajib diisi</span>
               </div>
-              <select value={hostForm.shift} onChange={(e) => { setHostFormError(""); setHostForm((prev: any) => ({ ...prev, shift: e.target.value })); }} required className="w-full bg-white border border-slate-200 text-slate-500 font-bold rounded-xl px-4 py-3 text-xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all appearance-none cursor-pointer">
-                <option value="" disabled>-- Pilih Shift Kerja --</option>
-                {shifts.map(s => <option key={s} value={s} className="text-slate-800">{s}</option>)}
-              </select>
+              <CustomSelect 
+                value={hostForm.shift} 
+                onChange={(val: string) => { setHostFormError(""); setHostForm((prev: any) => ({ ...prev, shift: val })); }} 
+                options={shifts} 
+                placeholder="-- Pilih Shift Kerja --" 
+                error={hostFormError && !hostForm.shift} 
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -372,10 +440,13 @@ export default function HostDashboard({
                 <label className="text-xs font-black text-slate-800">Studio Penempatan:</label>
                 <span className="text-[10px] font-bold text-red-500">*Wajib diisi</span>
               </div>
-              <select value={hostForm.studio} onChange={(e) => { setHostFormError(""); setHostForm((prev: any) => ({ ...prev, studio: e.target.value })); }} required className="w-full bg-white border border-slate-200 text-slate-500 font-bold rounded-xl px-4 py-3 text-xs outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all appearance-none cursor-pointer">
-                <option value="" disabled>-- Pilih Studio Penempatan --</option>
-                {studios.map(st => <option key={st.id} value={st.name} className="text-slate-800">{st.name} - {st.location}</option>)}
-              </select>
+              <CustomSelect 
+                value={hostForm.studio} 
+                onChange={(val: string) => { setHostFormError(""); setHostForm((prev: any) => ({ ...prev, studio: val })); }} 
+                options={studios.map(st => ({ value: st.name, label: `${st.name} - ${st.location}` }))} 
+                placeholder="-- Pilih Studio Penempatan --" 
+                error={hostFormError && !hostForm.studio} 
+              />
             </div>
 
             <button type="submit" className="w-full bg-purple-700 text-white rounded-xl py-3.5 text-xs font-black tracking-wider uppercase mt-4 hover:bg-purple-800 transition-colors shadow-md">
