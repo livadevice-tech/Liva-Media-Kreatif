@@ -11,6 +11,7 @@ interface AdminWeeklyScheduleGridProps {
   onNextWeek: () => void;
   onCurrentWeek: () => void;
   onCellClick: (dateStr: string, studio: string, shift: string) => void;
+  onScheduleClick?: (sched: ShiftSchedule) => void;
 }
 
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -22,7 +23,8 @@ export function AdminWeeklyScheduleGrid({
   onPrevWeek,
   onNextWeek,
   onCurrentWeek,
-  onCellClick
+  onCellClick,
+  onScheduleClick
 }: AdminWeeklyScheduleGridProps) {
 
   // Generate 7 days for the current week
@@ -204,7 +206,11 @@ export function AdminWeeklyScheduleGrid({
                                 return (
                                   <div 
                                     key={idx} 
-                                    className={`${brandColor.bg} border ${brandColor.border} ${brandColor.text} text-[10px] px-1.5 py-1 rounded truncate flex-1 flex flex-col justify-center min-h-[28px] shadow-sm`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (onScheduleClick) onScheduleClick(sched);
+                                    }}
+                                    className={`${brandColor.bg} border ${brandColor.border} ${brandColor.text} text-[10px] px-1.5 py-1 rounded truncate flex-1 flex flex-col justify-center min-h-[28px] shadow-sm hover:brightness-95 cursor-pointer transition-all`}
                                     title={`${sched.brand} - ${sched.hostName}`}
                                   >
                                     <span className="font-bold truncate">{sched.brand}</span>
