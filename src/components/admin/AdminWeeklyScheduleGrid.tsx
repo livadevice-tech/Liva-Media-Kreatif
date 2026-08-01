@@ -146,15 +146,15 @@ export function AdminWeeklyScheduleGrid({
 
       {/* Grid Table */}
       <div className="overflow-x-auto w-full pb-2">
-        <table className="w-full text-xs text-left border-collapse min-w-[1000px]">
+        <table className="w-full text-[11px] text-left border-collapse">
           <thead>
             <tr>
-              <th className="border-b border-slate-200 p-2 text-center text-slate-700 bg-slate-100 font-bold border-r w-[100px]">Studio</th>
-              <th className="border-b border-slate-200 p-2 text-center text-slate-700 bg-slate-100 font-bold border-r w-[110px]">Shift</th>
+              <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[60px]">Studio</th>
+              <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[60px]">Shift</th>
               {weekDays.map(day => (
-                <th key={day.date} className="border-b border-slate-200 p-2 text-center text-slate-700 bg-slate-100 font-bold border-r min-w-[120px]">
+                <th key={day.date} className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-auto">
                   <div>{day.name}</div>
-                  <div className="text-[10px] font-medium text-slate-500">{day.displayDate}</div>
+                  <div className="text-[9px] font-medium text-slate-500 leading-tight">{day.displayDate}</div>
                 </th>
               ))}
             </tr>
@@ -176,14 +176,14 @@ export function AdminWeeklyScheduleGrid({
                       {isFirstRowInStudio && (
                         <td 
                           rowSpan={studio.shifts.length} 
-                          className="border-b border-r border-slate-200 p-2 align-middle font-bold text-slate-700 bg-white"
+                          className="border-b border-r border-slate-200 p-1 text-center align-middle font-bold text-slate-700 bg-white"
                         >
-                          {studio.name}
+                          <span className="break-words line-clamp-2 leading-tight">{studio.name}</span>
                         </td>
                       )}
 
                       {/* Shift Cell */}
-                      <td className="border-b border-r border-slate-200 p-2 text-center font-bold text-slate-700 bg-slate-50/30 whitespace-nowrap">
+                      <td className="border-b border-r border-slate-200 p-1 text-center font-bold text-slate-700 bg-slate-50/30 whitespace-nowrap">
                         {shift}
                       </td>
 
@@ -196,13 +196,13 @@ export function AdminWeeklyScheduleGrid({
                           <td 
                             key={`${day.date}-${studio.name}-${shift}`}
                             onClick={() => onCellClick(day.date, studio.name, shift)}
-                            className="border-b border-r border-slate-200 p-1.5 cursor-pointer hover:bg-indigo-50 transition-colors align-top relative group h-[40px] min-h-[40px]"
+                            className="border-b border-r border-slate-200 p-0.5 cursor-pointer hover:bg-indigo-50 transition-colors align-top relative group h-[40px]"
                           >
                             <div className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-indigo-100/30 z-0 pointer-events-none">
                               <Plus className="w-4 h-4 text-indigo-400" />
                             </div>
                             
-                            <div className="relative z-10 flex flex-col gap-1 w-full h-full min-h-[28px]">
+                            <div className="relative z-10 flex flex-col gap-0.5 w-full h-full min-h-[28px]">
                               {cellSchedules.map((sched, idx) => {
                                 const brandColor = getBrandColor(sched.brand);
                                 return (
@@ -212,11 +212,11 @@ export function AdminWeeklyScheduleGrid({
                                       e.stopPropagation();
                                       if (onScheduleClick) onScheduleClick(sched);
                                     }}
-                                    className={`group relative ${brandColor.bg} border ${brandColor.border} ${brandColor.text} text-[10px] px-1.5 py-1 rounded truncate flex-1 flex flex-col justify-center min-h-[28px] shadow-sm hover:brightness-95 cursor-pointer transition-all`}
+                                    className={`group relative ${brandColor.bg} border ${brandColor.border} ${brandColor.text} text-[9px] px-1 py-0.5 rounded flex-1 flex flex-col justify-center shadow-sm hover:brightness-95 cursor-pointer transition-all overflow-hidden`}
                                     title={`${sched.brand} - ${sched.hostName}`}
                                   >
-                                    <span className="font-bold truncate pr-4">{sched.brand}</span>
-                                    <span className="text-[9px] truncate leading-none mt-0.5 opacity-80 pr-4">{sched.hostName}</span>
+                                    <span className="font-bold truncate pr-3 leading-tight">{sched.brand}</span>
+                                    <span className="text-[8px] truncate leading-none mt-[1px] opacity-80 pr-3">{sched.hostName}</span>
                                     {onDeleteSchedule && (
                                       <button
                                         type="button"
@@ -225,9 +225,9 @@ export function AdminWeeklyScheduleGrid({
                                           e.stopPropagation();
                                           onDeleteSchedule(sched);
                                         }}
-                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 hover:bg-white/50 rounded-full p-0.5 transition-all text-red-500 hover:text-red-700"
+                                        className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/50 rounded-full p-0.5 transition-all text-red-500 hover:text-red-700"
                                       >
-                                        <X className="w-3 h-3" />
+                                        <X className="w-2.5 h-2.5" />
                                       </button>
                                     )}
                                   </div>
