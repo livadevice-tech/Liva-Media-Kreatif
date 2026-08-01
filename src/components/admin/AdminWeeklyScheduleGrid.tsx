@@ -432,7 +432,7 @@ export function AdminWeeklyScheduleGrid({
                                        b.sessions?.some(s => s.host?.trim().toLowerCase() === sched.hostName?.trim().toLowerCase())
                                 );
                                 
-                                const cardBg = isNotRegularHost ? 'bg-slate-300' : brandColor.bg;
+                                const cardBg = isNotRegularHost ? 'bg-slate-200' : brandColor.bg;
                                 const cardBorder = brandColor.border;
                                 const cardText = brandColor.text;
 
