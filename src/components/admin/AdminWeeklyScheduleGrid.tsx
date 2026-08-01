@@ -199,16 +199,19 @@ export function AdminWeeklyScheduleGrid({
                             </div>
                             
                             <div className="relative z-10 flex flex-col gap-1 w-full h-full min-h-[28px]">
-                              {cellSchedules.map((sched, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className="bg-indigo-50 border border-indigo-100 text-indigo-800 text-[10px] px-1.5 py-1 rounded truncate flex-1 flex flex-col justify-center min-h-[28px] shadow-sm"
-                                  title={`${sched.brand} - ${sched.hostName}`}
-                                >
-                                  <span className="font-bold truncate">{sched.brand}</span>
-                                  <span className="text-[9px] text-indigo-600 truncate leading-none mt-0.5">{sched.hostName}</span>
-                                </div>
-                              ))}
+                              {cellSchedules.map((sched, idx) => {
+                                const brandColor = getBrandColor(sched.brand);
+                                return (
+                                  <div 
+                                    key={idx} 
+                                    className={`${brandColor.bg} border ${brandColor.border} ${brandColor.text} text-[10px] px-1.5 py-1 rounded truncate flex-1 flex flex-col justify-center min-h-[28px] shadow-sm`}
+                                    title={`${sched.brand} - ${sched.hostName}`}
+                                  >
+                                    <span className="font-bold truncate">{sched.brand}</span>
+                                    <span className="text-[9px] truncate leading-none mt-0.5 opacity-80">{sched.hostName}</span>
+                                  </div>
+                                );
+                              })}
                               
                               {!hasData && (
                                 <div className="w-full h-full text-transparent select-none">-</div>
