@@ -19,6 +19,14 @@ interface AdminWeeklyScheduleGridProps {
 
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
+function getStudioInitials(name: string) {
+    return name.split(/\s+/).map(word => {
+        if (word.match(/\d/)) return word; // keep numbers like A1, B1, 1, 2
+        if (word.toUpperCase() === word && word.length > 1) return word; // keep PSW, TP
+        return word.charAt(0).toUpperCase();
+    }).join('');
+}
+
 export function AdminWeeklyScheduleGrid({
   computedSchedules,
   studios,
@@ -225,10 +233,10 @@ export function AdminWeeklyScheduleGrid({
         <table className="w-full text-[11px] text-left border-collapse">
           <thead>
             <tr>
-              <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[60px]">Studio</th>
-              <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[60px]">Shift</th>
+              <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[80px] min-w-[80px]">Studio</th>
+              <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[160px] min-w-[160px]">Shift</th>
               {weekDays.map(day => (
-                <th key={day.date} className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-auto">
+                <th key={day.date} className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r min-w-[120px] w-[calc((100%-240px)/7)]">
                   <div>{day.name}</div>
                   <div className="text-[9px] font-medium text-slate-500 leading-tight">{day.displayDate}</div>
                 </th>
@@ -244,15 +252,17 @@ export function AdminWeeklyScheduleGrid({
                 return studio.shifts.map((shift, shiftIdx) => {
                   const isFirstRowInLocation = studioIdx === 0 && shiftIdx === 0;
                   const isFirstRowInStudio = shiftIdx === 0;
+                  const isLastRowInStudio = shiftIdx === studio.shifts.length - 1;
+                  const borderClass = isLastRowInStudio ? "border-b-[3px] border-b-slate-300" : "border-b border-slate-200";
 
                   return (
-                    <tr key={`${group.location}-${studio.name}-${shift}`} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={`${group.location}-${studio.name}-${shift}`} className={`hover:bg-slate-50/50 transition-colors`}>
 
                       {/* Studio Cell (Rowspan) */}
                       {isFirstRowInStudio && (
                         <td 
                           rowSpan={studio.shifts.length} 
-                          className="border-b border-r border-slate-200 p-1 text-center align-middle bg-white group/studio relative"
+                          className={`border-r border-slate-200 p-1 text-center align-middle bg-white group/studio relative border-b-[3px] border-b-slate-300`}
                         >
                           <button
                             type="button"
@@ -269,7 +279,7 @@ export function AdminWeeklyScheduleGrid({
                                className="break-words line-clamp-2 leading-tight" 
                                title={studio.name}
                             >
-                               {studio.name.length > 13 ? studio.name.substring(0, 11) + '..' : studio.name}
+                               {getStudioInitials(studio.name)}
                             </span>
                             <span className="opacity-0 group-hover/studio:opacity-100 text-[9px] mt-1 text-indigo-500 font-normal transition-opacity flex items-center">
                               <Plus className="w-3 h-3 mr-0.5" /> Tambah Shift
@@ -343,7 +353,7 @@ export function AdminWeeklyScheduleGrid({
                       )}
 
                       {/* Shift Cell */}
-                      <td className="border-b border-r border-slate-200 p-1 pr-6 text-center font-bold text-slate-700 bg-slate-50/30 whitespace-nowrap group/shiftcell relative">
+                      <td className={`${borderClass} border-r border-slate-200 p-1 pr-6 text-center font-bold text-slate-700 bg-slate-50/30 whitespace-nowrap group/shiftcell relative`}>
                         {shift}
                         <button
                            type="button"
@@ -393,7 +403,7 @@ export function AdminWeeklyScheduleGrid({
                                 onCellClick(day.date, studio.name, shift);
                               }
                             }}
-                            className={`border-b border-r border-slate-200 p-0.5 cursor-pointer transition-colors align-top relative group h-[40px] select-none ${
+                            className={`${borderClass} border-r border-slate-200 p-0.5 cursor-pointer transition-colors align-top relative group h-[40px] select-none ${
                               dragSelection.has(`${day.date}|${studio.name}|${shift}`) 
                                 ? 'bg-indigo-100 ring-2 ring-inset ring-indigo-400' 
                                 : 'hover:bg-indigo-50'
