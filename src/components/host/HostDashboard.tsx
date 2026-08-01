@@ -65,6 +65,14 @@ export default function HostDashboard({
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'absen' | 'rekap' | 'kalender'>('absen');
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!activeHostObj || !computedSchedules) return;
@@ -234,7 +242,12 @@ export default function HostDashboard({
       {activeTab === 'absen' && (
         <div className="bg-white rounded-[24px] border border-slate-200 p-5 shadow-sm animate-fadeIn">
           <div className="mb-6">
-            <h3 className="text-[11px] font-black tracking-widest text-slate-500 mb-2 uppercase">Form Absensi Hari Ini</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-[11px] font-black tracking-widest text-slate-500 uppercase">Form Absensi Hari Ini</h3>
+              <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-[11px] font-black tracking-widest shadow-sm">
+                {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </div>
+            </div>
             <p className="text-[13px] font-bold text-slate-700 leading-relaxed">
               Isi data di bawah sesuai jadwal yang sedang kamu jalani. Kalau ada yang belum terisi, pilih dulu sebelum submit.
             </p>
