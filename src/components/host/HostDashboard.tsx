@@ -82,11 +82,20 @@ export default function HostDashboard({
   };
 
   const renderCalendarDays = () => {
-    return Array.from({ length: 31 }).map((_, i) => {
-      const day = i + 1;
+    const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
+    const firstDay = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
+
+    return Array.from({ length: 42 }).map((_, i) => {
+      if (i < firstDay || i >= firstDay + daysInMonth) {
+        return <div key={`empty-${i}`} className="py-1.5" />;
+      }
+      
+      const day = i - firstDay + 1;
       let style = 'bg-white text-slate-500 border border-slate-200';
+      // Basic mock highlighting to keep the aesthetic (could be dynamic based on hostLogs)
       if (day === 1) style = 'bg-purple-100 text-purple-700 border-2 border-purple-500 font-black';
       if (day === 2) style = 'bg-emerald-100 text-emerald-700 border border-emerald-300 font-black';
+      
       return (
         <div key={day} className={`py-1.5 rounded-lg text-xs flex items-center justify-center ${style}`}>
           {day}
