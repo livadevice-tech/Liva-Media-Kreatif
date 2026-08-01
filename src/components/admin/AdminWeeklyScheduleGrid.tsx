@@ -39,7 +39,7 @@ export function AdminWeeklyScheduleGrid({
   
   // State for manual shifts
   const [addedShifts, setAddedShifts] = useState<Record<string, Set<string>>>({});
-  const [studioToAdjust, setStudioToAdjust] = useState<string | null>(null);
+  const [studioToAdjust, setStudioToAdjust] = useState<{name: string, x: number, y: number} | null>(null);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -236,7 +236,7 @@ export function AdminWeeklyScheduleGrid({
                         >
                           <button
                             type="button"
-                            onClick={() => setStudioToAdjust(studio.name)}
+                            onClick={(e) => setStudioToAdjust({name: studio.name, x: e.clientX, y: e.clientY})}
                             className="w-full h-full min-h-[40px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors flex flex-col items-center justify-center p-1 rounded cursor-pointer group-hover/studio:ring-2 group-hover/studio:ring-inset group-hover/studio:ring-indigo-300"
                             title="Klik untuk menambahkan shift"
                           >
@@ -327,34 +327,44 @@ export function AdminWeeklyScheduleGrid({
         </table>
       </div>
 
-      {/* ADD SHIFT MODAL */}
+      {/* ADD SHIFT POPOVER */}
       {studioToAdjust && (
-        <div className="fixed inset-0 z-[120] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center animate-fadeIn font-sans p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col">
-            <div className="bg-indigo-600 p-4 flex items-center justify-between">
-              <h3 className="text-white font-bold flex items-center gap-2">
-                <span className="text-lg">⚙️</span>
-                Tambah Shift - {studioToAdjust}
+        <>
+          <div 
+            className="fixed inset-0 z-[110]" 
+            onClick={() => setStudioToAdjust(null)} 
+          />
+          <div 
+            className="fixed z-[120] bg-white rounded-2xl w-full max-w-[320px] overflow-hidden shadow-2xl flex flex-col border border-slate-200 animate-fadeIn"
+            style={{ 
+               top: Math.min(studioToAdjust.y, window.innerHeight - 350), 
+               left: Math.min(studioToAdjust.x + 20, window.innerWidth - 340)
+            }}
+          >
+            <div className="bg-indigo-600 p-3 flex items-center justify-between">
+              <h3 className="text-white font-bold flex items-center gap-2 text-sm">
+                <span>⚙️</span>
+                Tambah Shift - {studioToAdjust.name}
               </h3>
               <button
                 type="button"
                 onClick={() => setStudioToAdjust(null)}
-                className="text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                className="text-white hover:bg-white/20 p-1 rounded-md transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-slate-600 mb-2">
-                Pilih shift dari master data yang ingin Anda tampilkan di baris studio ini:
+            <div className="p-3 space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar">
+              <p className="text-[11px] text-slate-500 leading-tight">
+                Pilih shift dari master data yang ingin ditampilkan:
               </p>
               
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {masterShifts.map(shift => {
                   // Check if already in uniqueShifts for this studio
-                  const stGroup = studioGroups.find(g => g.studios.some(s => s.name === studioToAdjust));
-                  const st = stGroup?.studios.find(s => s.name === studioToAdjust);
+                  const stGroup = studioGroups.find(g => g.studios.some(s => s.name === studioToAdjust.name));
+                  const st = stGroup?.studios.find(s => s.name === studioToAdjust.name);
                   const isAlreadyVisible = st?.shifts.includes(shift);
                   
                   if (isAlreadyVisible) return null;
@@ -364,23 +374,23 @@ export function AdminWeeklyScheduleGrid({
                       key={shift}
                       onClick={() => {
                         setAddedShifts(prev => {
-                           const newSet = new Set(prev[studioToAdjust] || []);
+                           const newSet = new Set(prev[studioToAdjust.name] || []);
                            newSet.add(shift);
-                           return { ...prev, [studioToAdjust]: newSet };
+                           return { ...prev, [studioToAdjust.name]: newSet };
                         });
                         setStudioToAdjust(null);
                       }}
-                      className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all font-medium text-sm text-slate-700 flex items-center justify-between"
+                      className="w-full text-left p-2 rounded-lg border border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all font-medium text-[11px] text-slate-700 flex items-center justify-between"
                     >
-                      {shift}
-                      <Plus className="w-4 h-4 text-indigo-500" />
+                      <span className="truncate pr-2">{shift}</span>
+                      <Plus className="w-3 h-3 text-indigo-500 shrink-0" />
                     </button>
                   );
                 })}
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
