@@ -253,6 +253,8 @@ import {
   SearchableHostSelect,
 } from "./components/admin/HostManagement";
 import { AttendanceCalendarView } from "./components/admin/AttendanceCalendarView";
+import { AdminWeeklyScheduleGrid } from "./components/admin/AdminWeeklyScheduleGrid";
+
 
 import {
   HorizontalFunnel,
@@ -3079,6 +3081,16 @@ export default function App() {
   );
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [scheduleModalSearch, setScheduleModalSearch] = useState("");
+  
+  // Weekly grid mode for admin
+  const [adminScheduleViewMode, setAdminScheduleViewMode] = useState<'daily' | 'weekly'>('weekly');
+  const [adminWeekStartDate, setAdminWeekStartDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1)); // Start on Monday
+    return d;
+  });
+
 
   const [scheduleForm, setScheduleForm] = useState({
     id: "",
@@ -6041,6 +6053,23 @@ export default function App() {
                               Jadwal Aktif
                             </button>
 
+                            <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/60 ml-2">
+                              <button
+                                type="button"
+                                onClick={() => setAdminScheduleViewMode('daily')}
+                                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${adminScheduleViewMode === 'daily' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                              >
+                                Harian
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setAdminScheduleViewMode('weekly')}
+                                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${adminScheduleViewMode === 'weekly' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                              >
+                                Mingguan Grid
+                              </button>
+                            </div>
+
                             <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
 
                             {/* Actions Dropdown */}
@@ -6569,6 +6598,42 @@ export default function App() {
                             </div>
                           </div>
 
+
+                          {adminScheduleViewMode === 'weekly' && (
+                            <AdminWeeklyScheduleGrid
+                              computedSchedules={computedSchedules}
+                              studios={studios}
+                              weekStartDate={adminWeekStartDate}
+                              onPrevWeek={() => {
+                                const d = new Date(adminWeekStartDate);
+                                d.setDate(d.getDate() - 7);
+                                setAdminWeekStartDate(d);
+                              }}
+                              onNextWeek={() => {
+                                const d = new Date(adminWeekStartDate);
+                                d.setDate(d.getDate() + 7);
+                                setAdminWeekStartDate(d);
+                              }}
+                              onCurrentWeek={() => {
+                                const d = new Date();
+                                d.setHours(0, 0, 0, 0);
+                                d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
+                                setAdminWeekStartDate(d);
+                              }}
+                              onCellClick={(dateStr, studio, shift) => {
+                                setScheduleForm(prev => ({
+                                  ...prev,
+                                  date: dateStr,
+                                  studio: studio,
+                                  timeSlot: shift
+                                }));
+                                setIsScheduleModalOpen(true);
+                              }}
+                            />
+                          )}
+                          
+                          {adminScheduleViewMode === 'daily' && (
+                            <div className="flex flex-col gap-5 mt-4">
                           {/* IDLE REGULAR HOSTS BANNER */}
                           {(() => {
                             // Get all regular hosts from master list
@@ -7027,6 +7092,8 @@ export default function App() {
                               );
                             })()}
                           </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Calendar Controls */}
