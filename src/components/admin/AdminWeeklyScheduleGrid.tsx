@@ -137,7 +137,7 @@ export function AdminWeeklyScheduleGrid({
       location,
       studios: studiosData
     }));
-  }, [studios, computedSchedules, weekDays]);
+  }, [studios, computedSchedules, weekDays, addedShifts]);
 
 
   
