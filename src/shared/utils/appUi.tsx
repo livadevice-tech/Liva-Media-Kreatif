@@ -269,6 +269,25 @@ export const getBrandColor = (brandName: string) => {
   ];
   let hash = 0;
   const normalizedBrand = brandName.trim().toLowerCase();
+  
+  // Hardcode assignment for known brands to guarantee zero collisions
+  const specificBrandColors: Record<string, number> = {
+    "rhc": 0, // red
+    "safi": 1, // blue
+    "dewi sri spa": 2, // green
+    "kloa pos": 3, // yellow
+    "isago": 4, // purple
+    "mirael": 5, // cyan
+    "sumber ayu": 6, // orange
+    "sari ayu": 7, // pink
+    "soulyu": 8, // teal
+    "madu uray": 9, // indigo
+  };
+
+  if (specificBrandColors[normalizedBrand] !== undefined) {
+    return colors[specificBrandColors[normalizedBrand]];
+  }
+
   for (let i = 0; i < normalizedBrand.length; i++) {
     hash = normalizedBrand.charCodeAt(i) + ((hash << 5) - hash);
   }
