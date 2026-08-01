@@ -14,6 +14,7 @@ interface AdminWeeklyScheduleGridProps {
   onScheduleClick?: (sched: ShiftSchedule) => void;
   onDeleteSchedule?: (sched: ShiftSchedule) => void;
   onMassCellSelect?: (slots: {date: string, studio: string, shift: string}[]) => void;
+  masterShifts?: string[];
 }
 
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -28,12 +29,17 @@ export function AdminWeeklyScheduleGrid({
   onCellClick,
   onScheduleClick,
   onDeleteSchedule,
-  onMassCellSelect
+  onMassCellSelect,
+  masterShifts = []
 }: AdminWeeklyScheduleGridProps) {
 
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragSelection, setDragSelection] = useState<Set<string>>(new Set());
+  
+  // State for manual shifts
+  const [addedShifts, setAddedShifts] = useState<Record<string, Set<string>>>({});
+  const [studioToAdjust, setStudioToAdjust] = useState<string | null>(null);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -107,7 +113,14 @@ export function AdminWeeklyScheduleGrid({
       const loc = st.location || "Lainnya";
       
       const studioSchedules = thisWeekSchedules.filter(s => s.studio === st.name);
-      const uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).filter(Boolean).sort();
+      let uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).filter(Boolean) as string[];
+      
+      // Merge with manually added shifts
+      const manualShifts = addedShifts[st.name];
+      if (manualShifts) {
+        uniqueShifts = Array.from(new Set([...uniqueShifts, ...Array.from(manualShifts)])) as string[];
+      }
+      uniqueShifts.sort();
       
       if (uniqueShifts.length > 0) {
           if (!groupsMap.has(loc)) {
@@ -219,9 +232,19 @@ export function AdminWeeklyScheduleGrid({
                       {isFirstRowInStudio && (
                         <td 
                           rowSpan={studio.shifts.length} 
-                          className="border-b border-r border-slate-200 p-1 text-center align-middle font-bold text-slate-700 bg-white"
+                          className="border-b border-r border-slate-200 p-1 text-center align-middle bg-white group/studio relative"
                         >
-                          <span className="break-words line-clamp-2 leading-tight">{studio.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setStudioToAdjust(studio.name)}
+                            className="w-full h-full min-h-[40px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors flex flex-col items-center justify-center p-1 rounded cursor-pointer group-hover/studio:ring-2 group-hover/studio:ring-inset group-hover/studio:ring-indigo-300"
+                            title="Klik untuk menambahkan shift"
+                          >
+                            <span className="break-words line-clamp-2 leading-tight">{studio.name}</span>
+                            <span className="opacity-0 group-hover/studio:opacity-100 text-[9px] mt-1 text-indigo-500 font-normal transition-opacity flex items-center">
+                              <Plus className="w-3 h-3 mr-0.5" /> Tambah Shift
+                            </span>
+                          </button>
                         </td>
                       )}
 
@@ -303,6 +326,62 @@ export function AdminWeeklyScheduleGrid({
           </tbody>
         </table>
       </div>
+
+      {/* ADD SHIFT MODAL */}
+      {studioToAdjust && (
+        <div className="fixed inset-0 z-[120] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center animate-fadeIn font-sans p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col">
+            <div className="bg-indigo-600 p-4 flex items-center justify-between">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span className="text-lg">⚙️</span>
+                Tambah Shift - {studioToAdjust}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setStudioToAdjust(null)}
+                className="text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600 mb-2">
+                Pilih shift dari master data yang ingin Anda tampilkan di baris studio ini:
+              </p>
+              
+              <div className="space-y-2">
+                {masterShifts.map(shift => {
+                  // Check if already in uniqueShifts for this studio
+                  const stGroup = studioGroups.find(g => g.studios.some(s => s.name === studioToAdjust));
+                  const st = stGroup?.studios.find(s => s.name === studioToAdjust);
+                  const isAlreadyVisible = st?.shifts.includes(shift);
+                  
+                  if (isAlreadyVisible) return null;
+                  
+                  return (
+                    <button
+                      key={shift}
+                      onClick={() => {
+                        setAddedShifts(prev => {
+                           const newSet = new Set(prev[studioToAdjust] || []);
+                           newSet.add(shift);
+                           return { ...prev, [studioToAdjust]: newSet };
+                        });
+                        setStudioToAdjust(null);
+                      }}
+                      className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 transition-all font-medium text-sm text-slate-700 flex items-center justify-between"
+                    >
+                      {shift}
+                      <Plus className="w-4 h-4 text-indigo-500" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

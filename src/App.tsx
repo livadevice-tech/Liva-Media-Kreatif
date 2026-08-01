@@ -6622,6 +6622,7 @@ export default function App() {
                                 d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
                                 setAdminWeekStartDate(d);
                               }}
+                              masterShifts={shifts}
                               onCellClick={(dateStr, studio, shift) => {
                                 setScheduleForm(prev => ({
                                   ...prev,
