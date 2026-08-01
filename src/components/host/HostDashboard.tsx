@@ -173,6 +173,36 @@ export default function HostDashboard({
     ? activeHostObj.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
     : 'NA';
 
+  // Check schedule and attendance for today
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  
+  const hasScheduleToday = computedSchedules?.some(
+    (s) => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay && s.date === todayStr
+  );
+  
+  const hasCheckedInToday = hostLogs?.some(
+    (log) => log.hostId === activeHostObj?.id && log.date === todayStr
+  );
+
+  let statusLabel = '';
+  let statusStyle = '';
+  let StatusIcon = null;
+
+  if (!hasScheduleToday) {
+    statusLabel = 'Kamu tidak ada jadwal hari ini';
+    statusStyle = 'bg-slate-100 text-slate-600 border-slate-200';
+    StatusIcon = CalendarIcon;
+  } else if (hasCheckedInToday) {
+    statusLabel = 'Kamu sudah absen';
+    statusStyle = 'bg-emerald-50 text-emerald-600 border-emerald-200';
+    StatusIcon = CheckCircle2;
+  } else {
+    statusLabel = 'Kamu belum absen hari ini';
+    statusStyle = 'bg-amber-50 text-amber-600 border-amber-200';
+    StatusIcon = AlertTriangle;
+  }
+
   return (
     <div className="w-full max-w-[480px] mx-auto min-h-screen bg-[#f8f9fc] p-4 font-sans text-slate-800">
       
@@ -214,6 +244,12 @@ export default function HostDashboard({
             AKTIF
           </div>
         </div>
+      </div>
+
+      {/* Status Label Banner */}
+      <div className={`mb-4 px-4 py-3 rounded-[20px] border flex items-center justify-center gap-2 text-xs font-bold ${statusStyle} shadow-sm`}>
+        <StatusIcon size={16} />
+        {statusLabel}
       </div>
 
       {/* Segmented Control / Tabs */}
