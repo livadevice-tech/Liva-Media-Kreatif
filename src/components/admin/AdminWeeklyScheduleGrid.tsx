@@ -434,7 +434,7 @@ export function AdminWeeklyScheduleGrid({
                                 
                                 const cardBg = isNotRegularHost ? 'bg-slate-300' : brandColor.bg;
                                 const cardBorder = isNotRegularHost ? 'border-slate-400' : brandColor.border;
-                                const cardText = isNotRegularHost ? 'text-slate-800' : brandColor.text;
+                                const cardText = brandColor.text;
 
                                 return (
                                   <div 
@@ -445,9 +445,9 @@ export function AdminWeeklyScheduleGrid({
                                       if (onScheduleClick) onScheduleClick(sched);
                                     }}
                                     className={`group relative ${cardBg} border ${cardBorder} ${cardText} text-[9px] px-1 py-0.5 rounded flex-1 flex flex-col justify-center shadow-sm hover:brightness-95 cursor-pointer transition-all overflow-hidden`}
-                                    title={`${sched.brand} - ${sched.hostName}`}
+                                    title={`${sched.brand}${sched.platform ? ` - ${sched.platform}` : ''} - ${sched.hostName}`}
                                   >
-                                    <span className="font-bold truncate pr-3 leading-tight">{sched.brand}</span>
+                                    <span className="font-bold truncate pr-3 leading-tight">{sched.brand}{sched.platform ? ` - ${sched.platform}` : ''}</span>
                                     <span className={`text-[8px] truncate leading-none mt-[1px] pr-3 ${isNotRegularHost ? '!text-red-500 !font-bold !opacity-100' : 'opacity-80'}`}>{sched.hostName}</span>
                                     {onDeleteSchedule && (
                                       <button
