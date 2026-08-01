@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ShiftSchedule, StudioItem } from '../../types';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { getBrandColor } from '../../shared/utils/appUi';
 
 interface AdminWeeklyScheduleGridProps {
   computedSchedules: ShiftSchedule[];
