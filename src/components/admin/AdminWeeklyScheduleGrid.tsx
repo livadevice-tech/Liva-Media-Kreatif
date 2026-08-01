@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { ShiftSchedule, StudioItem, HostEmployee } from '../../types';
+import { ShiftSchedule, StudioItem, ClientBrand } from '../../types';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { getBrandColor } from '../../shared/utils/appUi';
 
@@ -15,7 +15,7 @@ interface AdminWeeklyScheduleGridProps {
   onDeleteSchedule?: (sched: ShiftSchedule) => void;
   onMassCellSelect?: (slots: {date: string, studio: string, shift: string}[]) => void;
   masterShifts?: string[];
-  hosts?: HostEmployee[];
+  clientBrands?: ClientBrand[];
 }
 
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -40,7 +40,7 @@ export function AdminWeeklyScheduleGrid({
   onDeleteSchedule,
   onMassCellSelect,
   masterShifts = [],
-  hosts = []
+  clientBrands = []
 }: AdminWeeklyScheduleGridProps) {
 
 
@@ -439,7 +439,7 @@ export function AdminWeeklyScheduleGrid({
                                     title={`${sched.brand} - ${sched.hostName}`}
                                   >
                                     <span className="font-bold truncate pr-3 leading-tight">{sched.brand}</span>
-                                    <span className={`text-[8px] truncate leading-none mt-[1px] opacity-80 pr-3 ${(!hosts.find(h => h.id === sched.hostId)?.brands.includes(sched.brand)) ? '!text-red-500 !font-bold !opacity-100' : ''}`}>{sched.hostName}</span>
+                                    <span className={`text-[8px] truncate leading-none mt-[1px] opacity-80 pr-3 ${(!clientBrands.some(b => b.name?.trim().toLowerCase() === sched.brand?.trim().toLowerCase() && b.sessions?.some(s => s.host?.trim().toLowerCase() === sched.hostName?.trim().toLowerCase()))) ? '!text-red-500 !font-bold !opacity-100' : ''}`}>{sched.hostName}</span>
                                     {onDeleteSchedule && (
                                       <button
                                         type="button"
