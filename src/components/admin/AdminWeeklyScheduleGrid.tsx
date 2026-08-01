@@ -433,7 +433,7 @@ export function AdminWeeklyScheduleGrid({
                                 );
                                 
                                 const cardBg = isNotRegularHost ? 'bg-slate-300' : brandColor.bg;
-                                const cardBorder = isNotRegularHost ? 'border-slate-400' : brandColor.border;
+                                const cardBorder = brandColor.border;
                                 const cardText = brandColor.text;
 
                                 return (
