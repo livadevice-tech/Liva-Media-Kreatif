@@ -250,6 +250,25 @@ export default function HostDashboard({
     (log) => log.hostId === activeHostObj?.id && log.date === todayStr
   );
 
+  // Check schedule for tomorrow
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  
+  const tomorrowSchedules = (computedSchedules || []).filter(
+    (s) => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay && s.date === tomorrowStr
+  );
+  
+  const timeRegex = /\b(\d{2}:\d{2})\b/;
+  const sortedTomorrowSchedules = [...tomorrowSchedules].sort((a, b) => {
+    const matchA = (a.timeSlot || "").match(timeRegex);
+    const matchB = (b.timeSlot || "").match(timeRegex);
+    const timeA = matchA ? matchA[1] : (a.timeSlot || "");
+    const timeB = matchB ? matchB[1] : (b.timeSlot || "");
+    return timeA.localeCompare(timeB);
+  });
+  const nextTomorrowSchedule = sortedTomorrowSchedules[0];
+
   let statusLabel = '';
   let statusStyle = '';
   let StatusIcon = null;
@@ -310,6 +329,53 @@ export default function HostDashboard({
           </div>
         </div>
       </div>
+
+      {/* Tomorrow's Schedule Card */}
+      {nextTomorrowSchedule && (
+        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[24px] border border-indigo-400 p-5 shadow-md shadow-indigo-200/50 mb-4 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-20">
+            <CalendarIcon size={80} />
+          </div>
+          <div className="relative z-10">
+            <div className="text-[10px] font-black tracking-widest uppercase mb-1 opacity-80">Jadwal Besok</div>
+            <h3 className="text-xl font-black mb-3">
+              {nextTomorrowSchedule.brandHandled || nextTomorrowSchedule.brand}
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex flex-col justify-center">
+                <div className="text-[10px] font-bold uppercase opacity-80 mb-0.5">Shift</div>
+                <div className="text-sm font-black">{nextTomorrowSchedule.timeSlot || nextTomorrowSchedule.shift}</div>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex flex-col justify-center">
+                <div className="text-[10px] font-bold uppercase opacity-80 mb-0.5">Studio</div>
+                <div className="text-sm font-black truncate">{nextTomorrowSchedule.studio}</div>
+              </div>
+            </div>
+
+            <div className="bg-white/10 rounded-xl p-3 flex items-center justify-between backdrop-blur-sm">
+              <span className="text-xs font-bold opacity-90">Menuju sesi:</span>
+              <span className="text-lg font-black tracking-wider text-amber-300">
+                {(() => {
+                   const match = (nextTomorrowSchedule.timeSlot || "").match(/\b(\d{2}:\d{2})\b/);
+                   if (!match) return "-";
+                   const targetDate = new Date(`${tomorrowStr}T${match[1]}:00`);
+                   if (isNaN(targetDate.getTime())) return "-";
+                   
+                   const diffMs = targetDate.getTime() - currentTime.getTime();
+                   if (diffMs <= 0) return "Tiba!";
+                   
+                   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                   const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                   const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+                   
+                   return `${diffHours}j ${diffMins}m ${String(diffSecs).padStart(2, '0')}d`;
+                })()}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status Label Banner */}
       <div className={`mb-4 px-4 py-3 rounded-[20px] border flex items-center justify-center gap-2 text-xs font-bold ${statusStyle} shadow-sm`}>
