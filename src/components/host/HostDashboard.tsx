@@ -259,12 +259,12 @@ export default function HostDashboard({
     (s) => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay && s.date === tomorrowStr
   );
   
-  const timeRegex = /\b(\d{2}:\d{2})\b/;
+  const timeRegex = /\b(\d{2}[.:]\d{2})\b/;
   const sortedTomorrowSchedules = [...tomorrowSchedules].sort((a, b) => {
     const matchA = (a.timeSlot || "").match(timeRegex);
     const matchB = (b.timeSlot || "").match(timeRegex);
-    const timeA = matchA ? matchA[1] : (a.timeSlot || "");
-    const timeB = matchB ? matchB[1] : (b.timeSlot || "");
+    const timeA = matchA ? matchA[1].replace('.', ':') : (a.timeSlot || "");
+    const timeB = matchB ? matchB[1].replace('.', ':') : (b.timeSlot || "");
     return timeA.localeCompare(timeB);
   });
   const nextTomorrowSchedule = sortedTomorrowSchedules[0];
@@ -357,9 +357,10 @@ export default function HostDashboard({
               <span className="text-xs font-bold opacity-90">Menuju sesi:</span>
               <span className="text-lg font-black tracking-wider text-amber-300">
                 {(() => {
-                   const match = (nextTomorrowSchedule.timeSlot || "").match(/\b(\d{2}:\d{2})\b/);
+                   const match = (nextTomorrowSchedule.timeSlot || "").match(/\b(\d{2}[.:]\d{2})\b/);
                    if (!match) return "-";
-                   const targetDate = new Date(`${tomorrowStr}T${match[1]}:00`);
+                   const formattedTime = match[1].replace('.', ':');
+                   const targetDate = new Date(`${tomorrowStr}T${formattedTime}:00`);
                    if (isNaN(targetDate.getTime())) return "-";
                    
                    const diffMs = targetDate.getTime() - currentTime.getTime();
