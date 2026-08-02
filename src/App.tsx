@@ -351,6 +351,178 @@ type DailyEngagementAggregate = {
   followers: number;
 };
 
+const ScheduleFilterHostDropdown: React.FC<{
+  hosts: HostEmployee[];
+  value: string;
+  onChange: (value: string) => void;
+}> = ({ hosts, value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) setSearch("");
+  }, [isOpen]);
+
+  const filteredHosts = hosts.filter((h) =>
+    h.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-[180px] bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 focus:bg-white transition-all cursor-pointer flex justify-between items-center text-left"
+      >
+        <span className="truncate">{value || "Semua Host"}</span>
+        <span className="text-[10px] text-slate-400 select-none ml-1 shrink-0">▼</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 flex flex-col gap-2 min-w-[220px]">
+          <div className="relative flex-shrink-0">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari host..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-[200px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => { onChange(""); setIsOpen(false); }}
+              className={`w-full px-3 py-2 rounded-lg text-left text-xs font-bold transition-colors cursor-pointer ${!value ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"}`}
+            >
+              Semua Host
+            </button>
+            {filteredHosts.length > 0 ? (
+              filteredHosts.map((h) => {
+                const isSelected = h.name === value;
+                return (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => { onChange(h.name); setIsOpen(false); }}
+                    className={`w-full px-3 py-2 rounded-lg text-left text-xs font-bold transition-colors cursor-pointer flex justify-between items-center ${isSelected ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"}`}
+                  >
+                    <span className="truncate mr-2">{h.name}</span>
+                    <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 ${h.type === 'Backup' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                      {h.type || 'Reguler'}
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-center text-xs text-slate-400">Host tidak ditemukan</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ScheduleFilterBrandDropdown: React.FC<{
+  clientBrands: ClientBrand[];
+  brands: string[];
+  value: string;
+  onChange: (value: string) => void;
+}> = ({ clientBrands, brands, value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) setSearch("");
+  }, [isOpen]);
+
+  const allBrandNames = clientBrands.length > 0 ? clientBrands.map(b => b.name) : brands;
+  const filteredBrands = allBrandNames.filter((b) =>
+    b.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-[180px] bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 focus:bg-white transition-all cursor-pointer flex justify-between items-center text-left"
+      >
+        <span className="truncate">{value || "Semua Brand"}</span>
+        <span className="text-[10px] text-slate-400 select-none ml-1 shrink-0">▼</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 flex flex-col gap-2 min-w-[220px]">
+          <div className="relative flex-shrink-0">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari brand..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-[200px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => { onChange(""); setIsOpen(false); }}
+              className={`w-full px-3 py-2 rounded-lg text-left text-xs font-bold transition-colors cursor-pointer ${!value ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"}`}
+            >
+              Semua Brand
+            </button>
+            {filteredBrands.length > 0 ? (
+              filteredBrands.map((b, i) => {
+                const isSelected = b === value;
+                return (
+                  <button
+                    key={`${b}-${i}`}
+                    type="button"
+                    onClick={() => { onChange(b); setIsOpen(false); }}
+                    className={`w-full px-3 py-2 rounded-lg text-left text-xs font-bold transition-colors cursor-pointer flex justify-between items-center ${isSelected ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"}`}
+                  >
+                    <span className="truncate">{b}</span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-center text-xs text-slate-400">Brand tidak ditemukan</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 export default function App() {
   const initPath = window.location.pathname;
   const initRoleMatch = initPath.match(/\/login\/(admin|host|brand)/);
@@ -6578,41 +6750,17 @@ export default function App() {
                                 </>
                               )}
                               <div className="flex flex-col sm:flex-row gap-2">
-                                <div className="relative">
-                                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                  <input
-                                    type="text"
-                                    list="host-search-list"
-                                    placeholder="Cari host..."
-                                    value={scheduleHostSearch}
-                                    onChange={(e) =>
-                                      setScheduleHostSearch(e.target.value)
-                                    }
-                                    className="w-[140px] bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-all font-bold"
-                                  />
-                                  <datalist id="host-search-list">
-                                    {hosts.map(h => <option key={`hs-${h.id}`} value={h.name} />)}
-                                  </datalist>
-                                </div>
-                                <div className="relative">
-                                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                  <input
-                                    type="text"
-                                    list="brand-search-list"
-                                    placeholder="Cari brand..."
-                                    value={scheduleBrandSearch}
-                                    onChange={(e) =>
-                                      setScheduleBrandSearch(e.target.value)
-                                    }
-                                    className="w-[140px] bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-all font-bold"
-                                  />
-                                  <datalist id="brand-search-list">
-                                    {clientBrands.length > 0 
-                                      ? clientBrands.map(b => <option key={`bs-${b.id}`} value={b.name} />)
-                                      : brands.map((b, i) => <option key={`bs-${i}`} value={b} />)
-                                    }
-                                  </datalist>
-                                </div>
+                                <ScheduleFilterHostDropdown
+                                  hosts={hosts}
+                                  value={scheduleHostSearch}
+                                  onChange={setScheduleHostSearch}
+                                />
+                                <ScheduleFilterBrandDropdown
+                                  clientBrands={clientBrands}
+                                  brands={brands}
+                                  value={scheduleBrandSearch}
+                                  onChange={setScheduleBrandSearch}
+                                />
                               </div>
                               {/* Terdaftar Badges: Matching exactly the uploaded '0 Terdaftar' image */}
                               <span className="px-4 py-1.5 rounded-full bg-[#eef2ff] text-xs font-black text-[#5642f5] tracking-wide select-none shadow-3xs border border-[#e0e7ff]/60">
