@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ShiftSchedule, StudioItem, ClientBrand } from '../../types';
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle } from 'lucide-react';
 import { getBrandColor } from '../../shared/utils/appUi';
 
 interface AdminWeeklyScheduleGridProps {
@@ -237,12 +237,38 @@ export function AdminWeeklyScheduleGrid({
             <tr>
               <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[80px] min-w-[80px]">Studio</th>
               <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[160px] min-w-[160px]">Shift</th>
-              {weekDays.map(day => (
-                <th key={day.date} className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r min-w-[120px] w-[calc((100%-240px)/7)]">
-                  <div>{day.name}</div>
-                  <div className="text-[9px] font-medium text-slate-500 leading-tight">{day.displayDate}</div>
-                </th>
-              ))}
+              {weekDays.map(day => {
+                const daySchedules = computedSchedules.filter(s => (s.date || "").split('T')[0] === day.date);
+                const hostCounts = new Map<string, number>();
+                let hasDoubleHost = false;
+                let doubleHostNames: string[] = [];
+                
+                daySchedules.forEach(s => {
+                  const host = s.hostName?.trim();
+                  if (host && host.toLowerCase() !== "tba") {
+                    const count = (hostCounts.get(host) || 0) + 1;
+                    hostCounts.set(host, count);
+                    if (count === 2) {
+                       hasDoubleHost = true;
+                       doubleHostNames.push(host);
+                    }
+                  }
+                });
+
+                return (
+                  <th key={day.date} className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r min-w-[120px] w-[calc((100%-240px)/7)]">
+                    <div className="flex items-center justify-center gap-1">
+                      <span>{day.name}</span>
+                      {hasDoubleHost && (
+                        <div title={`Peringatan: Host double (${doubleHostNames.join(', ')})`} className="text-red-500 bg-red-100 rounded-full w-[14px] h-[14px] flex items-center justify-center cursor-help">
+                          <AlertTriangle className="w-[9px] h-[9px] stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-[9px] font-medium text-slate-500 leading-tight">{day.displayDate}</div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
