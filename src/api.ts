@@ -15,6 +15,7 @@ import type {
   ClientLead,
   ClientReporting,
   HostEmployee,
+  HostActivityLog,
   KPIAlert,
   ShiftSchedule,
 } from "./types";
@@ -121,6 +122,15 @@ export const hostsApi = {
   /** Hapus host */
   delete: (id: string) => request<void>('DELETE', `/hosts/${id}`),
 } satisfies CrudApi<HostEmployee>;
+
+// ==================================================================
+// ACTIVITY LOGS
+// ==================================================================
+export const activityLogsApi = {
+  getAll: () => request<HostActivityLog[]>('GET', '/host-activity-logs'),
+  create: (data: { hostId: string; action: string; details?: any }) => 
+    request<{ id: string }>('POST', '/host-activity-logs', data),
+};
 
 // ==================================================================
 // ATTENDANCE LOGS

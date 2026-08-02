@@ -781,6 +781,24 @@ async function runMigrations() {
   }
 
   try {
+    // Create host_activity_logs table
+    await execute(`
+      CREATE TABLE IF NOT EXISTS host_activity_logs (
+        id VARCHAR(100) PRIMARY KEY,
+        host_id VARCHAR(100) NOT NULL,
+        action VARCHAR(100) NOT NULL,
+        details TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_host_id (host_id),
+        INDEX idx_created_at (created_at)
+      )
+    `, []);
+    console.log('✅ Migration: Tabel host_activity_logs dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration host_activity_logs warning:', e?.message);
+  }
+
+  try {
     // Tambah kolom studio ke shift_schedules jika belum ada
     // Tidak pakai IF NOT EXISTS karena MySQL lama (sebelum 8.0) tidak support
     await execute(`ALTER TABLE shift_schedules ADD COLUMN studio VARCHAR(255) NULL`, []);

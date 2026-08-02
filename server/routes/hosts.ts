@@ -25,6 +25,27 @@ function mapHost(host: any) {
 }
 
 export function registerHostRoutes(app: Express) {
+  app.get("/api/host-activity-logs", asyncHandler(async (req, res) => {
+    const logs = await queryMany(`
+      SELECT l.*, h.name as host_name 
+      FROM host_activity_logs l 
+      LEFT JOIN hosts h ON l.host_id = h.id 
+      ORDER BY l.created_at DESC 
+      LIMIT 1000
+    `);
+    res.json(logs);
+  }));
+
+  app.post("/api/host-activity-logs", asyncHandler(async (req, res) => {
+    const { hostId, action, details } = req.body;
+    const id = genId("act");
+    await execute(`
+      INSERT INTO host_activity_logs (id, host_id, action, details)
+      VALUES (?, ?, ?, ?)
+    `, [id, hostId, action, details ? JSON.stringify(details) : null]);
+    res.status(201).json({ id });
+  }));
+
   app.get("/api/hosts", asyncHandler(async (req, res) => {
     const hosts = await queryMany(`SELECT * FROM hosts ORDER BY name ASC`);
 

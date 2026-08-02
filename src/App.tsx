@@ -127,7 +127,8 @@ import {
 import { INITIAL_HOSTS, INITIAL_LOGS, PLATFORMS, BRANDS, SHIFTS } from "./data";
 import { DoubleDatePicker } from "./components/DoubleDatePicker";
 import { CustomSelect } from "./components/ui/CustomSelect";
-import { CustomDatePicker } from "./components/ui/CustomDatePicker";import {
+import { CustomDatePicker } from "./components/ui/CustomDatePicker";
+import { ActivityLogsTable } from "./components/admin/ActivityLogsTable";import {
   formatDateYYYYMMDD,
   formatDateUI,
   formatHumanDate,
@@ -1764,6 +1765,14 @@ export default function App() {
         await logsApi.create(newLog);
       }
       setLogs((prev) => [newLog, ...prev]);
+      
+      // Log activity
+      activityLogsApi.create({
+        hostId: activeHostObj.id,
+        action: "CLOCK_IN",
+        details: { brand: newLog.brandHandled, shift: newLog.shiftHours, status: newLog.status }
+      }).catch(() => {});
+      
     } catch (error) {
       console.error("Gagal menyimpan log:", error);
       customAlert("Gagal menyimpan data absensi ke server.");
@@ -1799,6 +1808,7 @@ export default function App() {
   // (Host personal analytics states relocated after salarySettings declaration to prevent block-scoped reference error)
 
   // --- OPERATOR SYSTEM CONSTANTS & SALARY RECAP ---
+  const [credentialsSubTab, setCredentialsSubTab] = useState<"host_list" | "activity_logs">("host_list");
   const [operatorTab, setOperatorTab] = useState<
     | "dashboard_utama"
     | "absensi"
@@ -4647,6 +4657,14 @@ export default function App() {
                       setHostLoginUser("");
                       setHostLoginPass("");
                       setHostError("");
+                      
+                      // Log activity
+                      activityLogsApi.create({
+                        hostId: session.subjectId,
+                        action: "LOGIN",
+                        details: { message: "Host logged in via portal", ip: "browser" }
+                      }).catch(() => {});
+                      
                     } catch (error) {
                       setHostError(
                         error instanceof Error
@@ -12844,15 +12862,45 @@ export default function App() {
                           secara real-time.
                         </p>
                       </div>
+                    </div>
+
+                    {/* Sub-tabs Navigation */}
+                    <div className="flex space-x-2 border-b border-slate-200">
                       <button
-                        type="button"
-                        onClick={() => setShowAddForm(!showAddForm)}
-                        className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 self-start sm:self-center transition-all shadow-xs cursor-pointer select-none"
+                        onClick={() => setCredentialsSubTab("host_list")}
+                        className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+                          credentialsSubTab === "host_list"
+                            ? "border-purple-600 text-purple-700"
+                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                        }`}
                       >
-                        <Plus className="w-4 h-4" />
-                        {showAddForm ? "Sembunyikan Form" : "Tambah Host Baru"}
+                        Kredensial Host
+                      </button>
+                      <button
+                        onClick={() => setCredentialsSubTab("activity_logs")}
+                        className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+                          credentialsSubTab === "activity_logs"
+                            ? "border-purple-600 text-purple-700"
+                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        Log Aktivitas
                       </button>
                     </div>
+
+                    {credentialsSubTab === "host_list" && (
+                      <div className="space-y-4">
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setShowAddForm(!showAddForm)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 self-start sm:self-center transition-all shadow-xs cursor-pointer select-none"
+                          >
+                            <Plus className="w-4 h-4" />
+                            {showAddForm ? "Sembunyikan Form" : "Tambah Host Baru"}
+                          </button>
+                        </div>
+
 
                     {/* Collapsible Add New Host Form */}
                     {showAddForm && (
@@ -13075,6 +13123,12 @@ export default function App() {
                         Beritahukan username dan password di atas kepada masing-masing host agar mereka dapat melakukan absen masuk secara mandiri. Password bersifat transparan untuk mempermudah operator saat melakukan pemulihan akun.
                       </div>
                     </div>
+                      </div>
+                    )}
+
+                    {credentialsSubTab === "activity_logs" && (
+                      <ActivityLogsTable />
+                    )}
                   </div>
                 )}
               </div>

@@ -220,3 +220,12 @@ export interface ClientLead {
 }
 
 export type ReportDateFilterType = "custom" | "daily" | "weekly" | "monthly" | "latest" | "all" | "month";
+
+export interface HostActivityLog {
+  id: string;
+  host_id: string;
+  host_name?: string;
+  action: string;
+  details?: string;
+  created_at?: string;
+}
