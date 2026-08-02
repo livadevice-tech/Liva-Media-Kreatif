@@ -3082,7 +3082,8 @@ export default function App() {
   );
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isMassActionModalOpen, setIsMassActionModalOpen] = useState(false);
-  const [scheduleModalSearch, setScheduleModalSearch] = useState("");
+  const [scheduleHostSearch, setScheduleHostSearch] = useState("");
+  const [scheduleBrandSearch, setScheduleBrandSearch] = useState("");
   
   // Weekly grid mode for admin
   const [adminScheduleViewMode, setAdminScheduleViewMode] = useState<'daily' | 'weekly'>('weekly');
@@ -6576,17 +6577,42 @@ export default function App() {
                                   </div>
                                 </>
                               )}
-                              <div className="relative">
-                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input
-                                  type="text"
-                                  placeholder="Cari host/brand..."
-                                  value={scheduleModalSearch}
-                                  onChange={(e) =>
-                                    setScheduleModalSearch(e.target.value)
-                                  }
-                                  className="w-[180px] bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-all font-bold"
-                                />
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <div className="relative">
+                                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                  <input
+                                    type="text"
+                                    list="host-search-list"
+                                    placeholder="Cari host..."
+                                    value={scheduleHostSearch}
+                                    onChange={(e) =>
+                                      setScheduleHostSearch(e.target.value)
+                                    }
+                                    className="w-[140px] bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-all font-bold"
+                                  />
+                                  <datalist id="host-search-list">
+                                    {hosts.map(h => <option key={`hs-${h.id}`} value={h.name} />)}
+                                  </datalist>
+                                </div>
+                                <div className="relative">
+                                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                  <input
+                                    type="text"
+                                    list="brand-search-list"
+                                    placeholder="Cari brand..."
+                                    value={scheduleBrandSearch}
+                                    onChange={(e) =>
+                                      setScheduleBrandSearch(e.target.value)
+                                    }
+                                    className="w-[140px] bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-all font-bold"
+                                  />
+                                  <datalist id="brand-search-list">
+                                    {clientBrands.length > 0 
+                                      ? clientBrands.map(b => <option key={`bs-${b.id}`} value={b.name} />)
+                                      : brands.map((b, i) => <option key={`bs-${i}`} value={b} />)
+                                    }
+                                  </datalist>
+                                </div>
                               </div>
                               {/* Terdaftar Badges: Matching exactly the uploaded '0 Terdaftar' image */}
                               <span className="px-4 py-1.5 rounded-full bg-[#eef2ff] text-xs font-black text-[#5642f5] tracking-wide select-none shadow-3xs border border-[#e0e7ff]/60">
@@ -6605,13 +6631,13 @@ export default function App() {
                             <AdminWeeklyScheduleGrid
                               clientBrands={clientBrands}
                               computedSchedules={
-                                scheduleModalSearch.trim()
+                                (scheduleHostSearch.trim() || scheduleBrandSearch.trim())
                                   ? computedSchedules.filter((s) => {
-                                      const q = scheduleModalSearch.toLowerCase();
-                                      return (
-                                        (s.hostName?.toLowerCase() || "").includes(q) ||
-                                        (s.brand?.toLowerCase() || "").includes(q)
-                                      );
+                                      const hq = scheduleHostSearch.toLowerCase();
+                                      const bq = scheduleBrandSearch.toLowerCase();
+                                      const matchHost = hq ? (s.hostName?.toLowerCase() || "").includes(hq) : true;
+                                      const matchBrand = bq ? (s.brand?.toLowerCase() || "").includes(bq) : true;
+                                      return matchHost && matchBrand;
                                     })
                                   : computedSchedules
                               }
@@ -6854,14 +6880,15 @@ export default function App() {
                                     s.hostId === adminCalendarHostFilter),
                               );
 
-                              if (scheduleModalSearch.trim()) {
-                                const q = scheduleModalSearch.toLowerCase();
+                              if (scheduleHostSearch.trim() || scheduleBrandSearch.trim()) {
+                                const hq = scheduleHostSearch.toLowerCase();
+                                const bq = scheduleBrandSearch.toLowerCase();
                                 dayScheds = dayScheds.filter(
-                                  (s) =>
-                                    s.hostName?.toLowerCase().includes(q) ||
-                                    s.brand?.toLowerCase().includes(q) ||
-                                    s.platform?.toLowerCase().includes(q) ||
-                                    s.studio?.toLowerCase().includes(q),
+                                  (s) => {
+                                    const matchHost = hq ? s.hostName?.toLowerCase().includes(hq) : true;
+                                    const matchBrand = bq ? s.brand?.toLowerCase().includes(bq) : true;
+                                    return matchHost && matchBrand;
+                                  }
                                 );
                               }
 
@@ -6883,12 +6910,11 @@ export default function App() {
 
                               if (
                                 dayScheds.length === 0 &&
-                                scheduleModalSearch.trim()
+                                (scheduleHostSearch.trim() || scheduleBrandSearch.trim())
                               ) {
                                 return (
                                   <div className="text-center py-8 text-slate-400 text-sm italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                                    Tidak ada jadwal yang sesuai pencarian "
-                                    {scheduleModalSearch}".
+                                    Tidak ada jadwal yang sesuai pencarian.
                                   </div>
                                 );
                               }
