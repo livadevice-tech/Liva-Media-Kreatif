@@ -6604,7 +6604,17 @@ export default function App() {
                           {adminScheduleViewMode === 'weekly' && (
                             <AdminWeeklyScheduleGrid
                               clientBrands={clientBrands}
-                              computedSchedules={computedSchedules}
+                              computedSchedules={
+                                scheduleModalSearch.trim()
+                                  ? computedSchedules.filter((s) => {
+                                      const q = scheduleModalSearch.toLowerCase();
+                                      return (
+                                        (s.hostName?.toLowerCase() || "").includes(q) ||
+                                        (s.brand?.toLowerCase() || "").includes(q)
+                                      );
+                                    })
+                                  : computedSchedules
+                              }
                               studios={studios}
                               weekStartDate={adminWeekStartDate}
                               onPrevWeek={() => {
