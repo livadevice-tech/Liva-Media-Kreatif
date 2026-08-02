@@ -207,13 +207,14 @@ export default function HostDashboard({
   const renderCalendarDays = () => {
     const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
     const firstDay = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
+    const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
 
     return Array.from({ length: 42 }).map((_, i) => {
-      if (i < firstDay || i >= firstDay + daysInMonth) {
+      if (i < adjustedFirstDay || i >= adjustedFirstDay + daysInMonth) {
         return <div key={`empty-${i}`} className="py-1.5" />;
       }
       
-      const day = i - firstDay + 1;
+      const day = i - adjustedFirstDay + 1;
       
       // Check if there is a schedule for this date
       const dateStr = `${hostCalendarYear}-${String(hostCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -647,7 +648,7 @@ export default function HostDashboard({
 
             <div className="mb-4">
               <div className="grid grid-cols-7 text-center text-[10px] font-black text-purple-500 mb-4 uppercase tracking-widest">
-                <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
+                <div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div><div>Min</div>
               </div>
               <div className="grid grid-cols-7 gap-y-3 gap-x-2 text-center text-sm font-bold text-slate-500">
                 {renderCalendarDays()}
