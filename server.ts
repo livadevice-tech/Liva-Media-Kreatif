@@ -75,9 +75,6 @@ app.post("/api/auth/login", asyncHandler(async (req, res) => {
   const username = String(req.body?.username || "").trim();
   const password = String(req.body?.password || "");
 
-  if (!allowLoginAttempt(req.ip || req.socket.remoteAddress || "unknown")) {
-    return res.status(429).json({ error: "Terlalu banyak percobaan login. Coba lagi dalam 15 menit." });
-  }
   if (!username || !password || username.length > 150 || password.length > 300) {
     return res.status(400).json({ error: "Username atau password tidak valid." });
   }
