@@ -2594,14 +2594,21 @@ export default function App() {
           `- ${missingCols.join("\n- ")}\n\n` +
           `Jika Anda melanjutkan, data untuk metrik tersebut akan otomatis diisi dengan angka 0. Apakah Anda ingin tetap melanjutkan?`,
           () => {
-            const reportingRows = parseReportingUploadRows(jsonData, shifts, detectedPlatform || "");
+            const reportingRows = parseReportingUploadRows(jsonData, shifts, detectedPlatform || "", uploadTargetTab);
             setReportingRawData(reportingRows);
           },
           "warning"
         );
       } else {
-        const reportingRows = parseReportingUploadRows(jsonData, shifts, detectedPlatform || "");
-        setReportingRawData(reportingRows);
+        requestConfirm(
+          "Data Lengkap: Semua Metrik Ditemukan",
+          "Semua metrik wajib berhasil dibaca dari file Excel. Apakah Anda yakin ingin memproses dan menampilkan data ini ke tabel preview?",
+          () => {
+            const reportingRows = parseReportingUploadRows(jsonData, shifts, detectedPlatform || "", uploadTargetTab);
+            setReportingRawData(reportingRows);
+          },
+          "info"
+        );
       }
     } catch (err) {
       console.error("Error parsing workbook:", err);

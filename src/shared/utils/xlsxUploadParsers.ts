@@ -445,6 +445,7 @@ export function parseReportingUploadRows(
   jsonData: WorksheetRows,
   shifts: readonly string[],
   platform: string = "",
+  uploadTargetTab: "live" | "engagement" | "all" = "all"
 ): ReportingRawRow[] {
   if (jsonData.length < 2) return [];
 
@@ -847,22 +848,65 @@ export function parseReportingUploadRows(
 
     const fileLevelAvgView = parsedAvgViewDuration;
 
-    const impressions = parsedImpressions || 0;
-    const views = parsedViews || parsedImpressions || 0;
-    const penonton = parsedPenonton || parsedImpressions || 0;
-    const clicks = parsedClicks || 0;
-    const liveVisits = parsedLiveVisits || 0;
+    
+    const isShopee = platform.toLowerCase().includes("shopee");
+    
+    // Strict parsing based on target tab for Shopee
+    let finalGmv = gmv;
+    let finalProductsSold = products_sold;
+    let finalOrders = parsedOrders || 0;
+    let finalClicks = parsedClicks || 0;
+    let finalAvgViewDuration = fileLevelAvgView || 0;
+    let finalLiveVisits = parsedLiveVisits || 0;
+    
+    let finalViews = parsedViews || parsedImpressions || 0;
+    let finalPeakViewers = parsedPeakViewers || 0;
+    let finalShopVouchers = parsedShopVouchers || 0;
+    let finalBuyers = buyers;
+    let finalLikes = parsedLikes || 0;
+    let finalComments = parsedComments || 0;
+    let finalShares = parsedShares || 0;
+    let finalImpressions = parsedImpressions || 0;
+
+    if (isShopee) {
+      if (uploadTargetTab === "live") {
+        // Only keep Live/Sales metrics, zero out Engagement metrics
+        finalViews = 0;
+        finalPeakViewers = 0;
+        finalShopVouchers = 0;
+        finalBuyers = 0;
+        finalLikes = 0;
+        finalComments = 0;
+        finalShares = 0;
+        finalImpressions = 0;
+      } else if (uploadTargetTab === "engagement") {
+        // Only keep Engagement metrics, zero out Live/Sales metrics
+        finalGmv = 0;
+        finalProductsSold = 0;
+        finalOrders = 0;
+        finalClicks = 0;
+        finalAvgViewDuration = 0;
+        finalLiveVisits = 0;
+      }
+    }
+
+    const finalAov = finalOrders > 0 ? finalGmv / finalOrders : parsedAov > 0 ? parsedAov : finalBuyers > 0 ? finalGmv / finalBuyers : 0;
+    const impressions = finalImpressions;
+    const views = finalViews;
+    const penonton = parsedPenonton || finalImpressions || 0;
+    const clicks = finalClicks;
+    const liveVisits = finalLiveVisits;
     const productImpressions = parsedProductImpressions || 0;
     const followers = parsedFollowers || 0;
-    const likes = parsedLikes || 0;
-    const shares = parsedShares || 0;
-    const comments = parsedComments || 0;
-    const avgViewDuration = fileLevelAvgView || 0;
-    const peakViewers = parsedPeakViewers || 0;
-    const shopVouchers = parsedShopVouchers || 0;
+    const likes = finalLikes;
+    const shares = finalShares;
+    const comments = finalComments;
+    const avgViewDuration = finalAvgViewDuration;
+    const peakViewers = finalPeakViewers;
+    const shopVouchers = finalShopVouchers;
     const specialVouchers = parsedSpecialVouchers || 0;
     const coinsClaimed = parsedCoinsClaimed || 0;
-    const hasFunnelInFile = parsedImpressions > 0 || parsedClicks > 0 || parsedOrders > 0;
+    const hasFunnelInFile = impressions > 0 || clicks > 0 || finalOrders > 0;
 
     rows.push({
       title,
@@ -870,17 +914,17 @@ export function parseReportingUploadRows(
       dateTime: formattedDate,
       shift,
       duration,
-      gmv,
-      products_sold,
-      buyers,
-      aov,
+      gmv: finalGmv,
+      products_sold: finalProductsSold,
+      buyers: finalBuyers,
+      aov: finalAov,
       views,
       impressions,
       penonton,
       liveVisits,
       productImpressions,
       clicks,
-      orders,
+      orders: finalOrders,
       followers,
       likes,
       shares,
@@ -892,6 +936,8 @@ export function parseReportingUploadRows(
       coinsClaimed,
       hasFunnelInFile,
     });
+    continue; // Skip the old rows.push block by continuing the loop
+
   }
 
   return rows;
