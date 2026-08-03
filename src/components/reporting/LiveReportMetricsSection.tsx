@@ -50,6 +50,7 @@ export function LiveReportMetricsSection({
     totalDbImpressions,
     totalDbLiveVisits,
     totalDbProductImpressions,
+    pTotalDbProductImpressions,
     totalDbClicks,
     totalDbOrdersFunnel,
     pTotalDbImpressions,
