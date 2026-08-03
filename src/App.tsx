@@ -2586,7 +2586,7 @@ export default function App() {
         );
       }
 
-      const missingCols = validateReportingHeaders(jsonData, detectedPlatform || "");
+      const missingCols = validateReportingHeaders(jsonData, detectedPlatform || "", uploadTargetTab);
       if (missingCols.length > 0) {
         requestConfirm(
           "Peringatan: Kolom Standar Tidak Lengkap",

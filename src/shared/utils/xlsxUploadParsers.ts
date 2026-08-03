@@ -900,6 +900,7 @@ export function parseReportingUploadRows(
 export function validateReportingHeaders(
   jsonData: WorksheetRows,
   platform: string,
+  uploadTargetTab: "live" | "engagement" | "all" = "all"
 ): string[] {
   if (jsonData.length < 2) return [];
 
@@ -953,20 +954,25 @@ export function validateReportingHeaders(
     if (findColIdx(["shares"]) === -1) missingCols.push("Metrik: Shares (Kolom: Shares)");
     if (findColIdx(["new followers"]) === -1) missingCols.push("Metrik: New followers (Kolom: New followers)");
     if (findColIdx(["avg. viewing duration"]) === -1) missingCols.push("Metrik: Avg View Duration (Kolom: Avg. viewing duration)");
-  } else if (isShopee) {
-    if (findColIdx(["penjualan(pesanan siap dikirim)", "penjualan(pesanan dibuat)"]) === -1) missingCols.push("Metrik: GMV (Kolom: Penjualan(Pesanan Siap Dikirim))");
-    if (findColIdx(["pesanan(pesanan siap dikirim)", "pesanan(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Orders (Kolom: Pesanan(Pesanan Siap Dikirim))");
-    if (findColIdx(["produk terjual(pesanan siap dikirim)", "produk terjual(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Item Sold (Kolom: Produk Terjual(Pesanan Siap Dikirim))");
-    if (findColIdx(["pembeli(pesanan siap dikirim)", "pembeli(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Customer (Kolom: Pembeli(Pesanan Siap Dikirim))");
-    if (findColIdx(["tambah ke keranjang"]) === -1) missingCols.push("Metrik: Add to Cart (Kolom: Tambah ke Keranjang)");
-    if (findColIdx(["durasi rata-rata menonton"]) === -1) missingCols.push("Metrik: Avg View Duration (Kolom: Durasi Rata-Rata Menonton)");
-    if (findColIdx(["penonton aktif"]) === -1) missingCols.push("Metrik: Viewer Active (Kolom: Penonton Aktif)");
-    if (findColIdx(["dilihat"]) === -1) missingCols.push("Metrik: Views (Kolom: Dilihat)");
-    if (findColIdx(["penonton tertinggi"]) === -1) missingCols.push("Metrik: Peak Viewer (Kolom: Penonton Tertinggi)");
-    if (findColIdx(["voucher toko diklaim"]) === -1) missingCols.push("Metrik: Voucher Claim (Kolom: Voucher Toko Diklaim)");
-    if (findColIdx(["suka"]) === -1) missingCols.push("Metrik: Likes (Kolom: Suka)");
-    if (findColIdx(["komentar"]) === -1) missingCols.push("Metrik: Comments (Kolom: Komentar)");
-    if (findColIdx(["share"]) === -1) missingCols.push("Metrik: Shares (Kolom: Share)");
+    } else if (isShopee) {
+    if (uploadTargetTab === "live" || uploadTargetTab === "all") {
+      if (findColIdx(["penjualan(pesanan siap dikirim)", "penjualan(pesanan dibuat)"]) === -1) missingCols.push("Metrik: GMV (Kolom: Penjualan(Pesanan Siap Dikirim))");
+      if (findColIdx(["pesanan(pesanan siap dikirim)", "pesanan(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Orders (Kolom: Pesanan(Pesanan Siap Dikirim))");
+      if (findColIdx(["produk terjual(pesanan siap dikirim)", "produk terjual(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Item Sold (Kolom: Produk Terjual(Pesanan Siap Dikirim))");
+      if (findColIdx(["tambah ke keranjang"]) === -1) missingCols.push("Metrik: Add to Cart (Kolom: Tambah ke Keranjang)");
+      if (findColIdx(["durasi rata-rata menonton"]) === -1) missingCols.push("Metrik: Avg View Duration (Kolom: Durasi Rata-Rata Menonton)");
+      if (findColIdx(["penonton aktif"]) === -1) missingCols.push("Metrik: Viewer Active (Kolom: Penonton Aktif)");
+    }
+    
+    if (uploadTargetTab === "engagement" || uploadTargetTab === "all") {
+      if (findColIdx(["pembeli(pesanan siap dikirim)", "pembeli(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Customer (Kolom: Pembeli(Pesanan Siap Dikirim))");
+      if (findColIdx(["dilihat"]) === -1) missingCols.push("Metrik: Views (Kolom: Dilihat)");
+      if (findColIdx(["penonton tertinggi"]) === -1) missingCols.push("Metrik: Peak Viewer (Kolom: Penonton Tertinggi)");
+      if (findColIdx(["voucher toko diklaim"]) === -1) missingCols.push("Metrik: Voucher Claim (Kolom: Voucher Toko Diklaim)");
+      if (findColIdx(["suka"]) === -1) missingCols.push("Metrik: Likes (Kolom: Suka)");
+      if (findColIdx(["komentar"]) === -1) missingCols.push("Metrik: Comments (Kolom: Komentar)");
+      if (findColIdx(["share"]) === -1) missingCols.push("Metrik: Shares (Kolom: Share)");
+    }
   }
 
   return missingCols;
