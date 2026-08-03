@@ -131,9 +131,9 @@ export function LiveReportMetricsSection({
         {!isMetricHidden("product_impressions") && (
           <ReportMetricCard
             label="Product Impressions"
-            cur={stats.totalProductImpressions || 0}
-            prev={stats.pTotalProductImpressions || 0}
-            value={new Intl.NumberFormat("id-ID").format(stats.totalProductImpressions || 0)}
+            cur={totalDbProductImpressions}
+            prev={pTotalDbProductImpressions}
+            value={new Intl.NumberFormat("id-ID").format(totalDbProductImpressions)}
           />
         )}
         {!isMetricHidden("product_clicks") && (
@@ -479,8 +479,8 @@ export function LiveReportMetricsSection({
                 },
                 {
                   label: "Live Viewer",
-                  value: new Intl.NumberFormat("id-ID").format(totalDbLiveVisits),
-                  raw: totalDbLiveVisits,
+                  value: new Intl.NumberFormat("id-ID").format(stats.totalPenontonDb || 0),
+                  raw: stats.totalPenontonDb || 0,
                 },
                 {
                   label: "Product Impression",
