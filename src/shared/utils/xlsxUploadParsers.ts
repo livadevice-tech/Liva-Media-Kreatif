@@ -875,8 +875,7 @@ export function parseReportingUploadRows(
 
     if (isShopee) {
       if (uploadTargetTab === "live") {
-        // Only keep Live/Sales metrics, zero out everything else
-        finalViews = 0;
+        // Only keep Live/Sales metrics AND Viewer (Views), zero out everything else
         finalPeakViewers = 0;
         finalShopVouchers = 0;
         finalBuyers = 0;
@@ -890,13 +889,14 @@ export function parseReportingUploadRows(
         finalSpecialVouchers = 0;
         finalCoinsClaimed = 0;
       } else if (uploadTargetTab === "engagement") {
-        // Only keep Engagement metrics, zero out everything else
+        // Only keep Engagement metrics, zero out everything else including Viewer
         finalGmv = 0;
         finalProductsSold = 0;
         finalOrders = 0;
         finalClicks = 0;
         finalAvgViewDuration = 0;
         finalLiveVisits = 0;
+        finalViews = 0;
         finalImpressions = 0;
         finalPenonton = 0;
         finalProductImpressions = 0;
@@ -1024,11 +1024,11 @@ export function validateReportingHeaders(
       if (findColIdx(["tambah ke keranjang"]) === -1) missingCols.push("Metrik: Add to Cart (Kolom: Tambah ke Keranjang)");
       if (findColIdx(["durasi rata-rata menonton"]) === -1) missingCols.push("Metrik: Avg View Duration (Kolom: Durasi Rata-Rata Menonton)");
       if (findColIdx(["penonton aktif"]) === -1) missingCols.push("Metrik: Viewer Active (Kolom: Penonton Aktif)");
+      if (findColIdx(["dilihat"]) === -1) missingCols.push("Metrik: Views (Kolom: Dilihat)");
     }
     
     if (uploadTargetTab === "engagement" || uploadTargetTab === "all") {
       if (findColIdx(["pembeli(pesanan siap dikirim)", "pembeli(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Customer (Kolom: Pembeli(Pesanan Siap Dikirim))");
-      if (findColIdx(["dilihat"]) === -1) missingCols.push("Metrik: Views (Kolom: Dilihat)");
       if (findColIdx(["penonton tertinggi"]) === -1) missingCols.push("Metrik: Peak Viewer (Kolom: Penonton Tertinggi)");
       if (findColIdx(["voucher toko diklaim"]) === -1) missingCols.push("Metrik: Voucher Claim (Kolom: Voucher Toko Diklaim)");
       if (findColIdx(["suka"]) === -1) missingCols.push("Metrik: Likes (Kolom: Suka)");
