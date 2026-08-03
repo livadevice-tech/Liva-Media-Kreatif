@@ -223,9 +223,9 @@ export function LiveReportMetricsSection({
         {!isMetricHidden("live_viewer") && (
           <ReportMetricCard
             label="Viewer Active"
-            cur={totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0}
-            prev={pTotalSessionsDb > 0 ? pTotalDbLiveVisits / pTotalSessionsDb : 0}
-            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalSessionsDb > 0 ? totalDbLiveVisits / totalSessionsDb : 0)}
+            cur={totalDbLiveVisits}
+            prev={pTotalDbLiveVisits}
+            value={new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(totalDbLiveVisits)}
             icon={<Users size={16} />}
           />
         )}
