@@ -549,9 +549,9 @@ export function parseReportingUploadRows(
     "order value",
   ]);
 
-  const viewsIdx = isTiktok ? findColIdx(["views", "view"]) :
+  const viewsIdx = isTiktok ? findColIdx(["views", "view", "viewer", "penonton", "tayangan", "total viewers"]) :
                    isShopee ? findColIdx(["dilihat", "views", "view"]) :
-                   findColIdx(["views", "view"]);
+                   findColIdx(["views", "view", "viewer", "penonton"]);
 
   const impressionsIdx = isTiktok ? findColIdx(["impressions", "live impressions", "dilihat", "tayangan"]) :
                          isShopee ? findColIdx(["dilihat", "total viewers", "tayangan", "impressions"]) :
@@ -578,7 +578,7 @@ export function parseReportingUploadRows(
                     isShopee ? findColIdx(["pesanan(pesanan siap dikirim)", "pesanan(pesanan dibuat)", "pesanan"]) :
                     findColIdx(["pesanan(pesanan siap dikirim)", "pesanan(pesanan dibuat)", "orders(orders paid)", "orders(orders created)", "pesanan", "attributed sku orders", "attributed orders", "orders"]);
 
-  const followersIdx = isTiktok ? findColIdx(["new followers", "pengikut baru dari livestream"]) :
+  const followersIdx = isTiktok ? findColIdx(["new followers", "pengikut baru dari livestream", "pengikut baru", "followers"]) :
                        findColIdx(["pengikut baru dari livestream", "pengikut baru", "new followers", "pengikut", "follower", "followers"]);
 
   const likesIdx = isTiktok ? findColIdx(["likes", "suka"]) :
@@ -946,13 +946,13 @@ export function validateReportingHeaders(
     if (findColIdx(["customers"]) === -1) missingCols.push("Metrik: Customer (Kolom: Customers)");
     if (findColIdx(["product impressions"]) === -1) missingCols.push("Metrik: Product Impressions (Kolom: Product Impressions)");
     if (findColIdx(["product clicks"]) === -1) missingCols.push("Metrik: Clicks (Kolom: Product clicks)");
-    if (findColIdx(["impressions"]) === -1) missingCols.push("Metrik: Live Impressions (Kolom: Impressions)");
-    if (findColIdx(["views"]) === -1) missingCols.push("Metrik: Viewer (Kolom: Views)");
-    if (findColIdx(["likes"]) === -1) missingCols.push("Metrik: Likes (Kolom: Likes)");
-    if (findColIdx(["comments"]) === -1) missingCols.push("Metrik: Comments (Kolom: Comments)");
-    if (findColIdx(["shares"]) === -1) missingCols.push("Metrik: Shares (Kolom: Shares)");
-    if (findColIdx(["new followers"]) === -1) missingCols.push("Metrik: New followers (Kolom: New followers)");
-    if (findColIdx(["avg. viewing duration"]) === -1) missingCols.push("Metrik: Avg View Duration (Kolom: Avg. viewing duration)");
+    if (findColIdx(["impressions", "live impressions", "tayangan", "dilihat"]) === -1) missingCols.push("Metrik: Live Impressions (Kolom: Impressions)");
+    if (findColIdx(["views", "view", "viewer", "penonton", "total viewers"]) === -1) missingCols.push("Metrik: Viewer (Kolom: Views)");
+    if (findColIdx(["likes", "suka"]) === -1) missingCols.push("Metrik: Likes (Kolom: Likes)");
+    if (findColIdx(["comments", "komentar"]) === -1) missingCols.push("Metrik: Comments (Kolom: Comments)");
+    if (findColIdx(["shares", "dibagikan", "share"]) === -1) missingCols.push("Metrik: Shares (Kolom: Shares)");
+    if (findColIdx(["new followers", "pengikut baru dari livestream", "pengikut baru", "followers"]) === -1) missingCols.push("Metrik: New followers (Kolom: New followers)");
+    if (findColIdx(["avg. viewing duration", "rata-rata durasi ditonton"]) === -1) missingCols.push("Metrik: Avg View Duration (Kolom: Avg. viewing duration)");
   } else if (isShopee) {
     if (findColIdx(["penjualan(pesanan siap dikirim)", "penjualan(pesanan dibuat)"]) === -1) missingCols.push("Metrik: GMV (Kolom: Penjualan(Pesanan Siap Dikirim))");
     if (findColIdx(["pesanan(pesanan siap dikirim)", "pesanan(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Orders (Kolom: Pesanan(Pesanan Siap Dikirim))");
