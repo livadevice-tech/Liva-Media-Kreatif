@@ -867,10 +867,15 @@ export function parseReportingUploadRows(
     let finalComments = parsedComments || 0;
     let finalShares = parsedShares || 0;
     let finalImpressions = parsedImpressions || 0;
+    let finalPenonton = parsedPenonton || parsedImpressions || 0;
+    let finalProductImpressions = parsedProductImpressions || 0;
+    let finalFollowers = parsedFollowers || 0;
+    let finalSpecialVouchers = parsedSpecialVouchers || 0;
+    let finalCoinsClaimed = parsedCoinsClaimed || 0;
 
     if (isShopee) {
       if (uploadTargetTab === "live") {
-        // Only keep Live/Sales metrics, zero out Engagement metrics
+        // Only keep Live/Sales metrics, zero out everything else
         finalViews = 0;
         finalPeakViewers = 0;
         finalShopVouchers = 0;
@@ -879,33 +884,44 @@ export function parseReportingUploadRows(
         finalComments = 0;
         finalShares = 0;
         finalImpressions = 0;
+        finalPenonton = 0;
+        finalProductImpressions = 0;
+        finalFollowers = 0;
+        finalSpecialVouchers = 0;
+        finalCoinsClaimed = 0;
       } else if (uploadTargetTab === "engagement") {
-        // Only keep Engagement metrics, zero out Live/Sales metrics
+        // Only keep Engagement metrics, zero out everything else
         finalGmv = 0;
         finalProductsSold = 0;
         finalOrders = 0;
         finalClicks = 0;
         finalAvgViewDuration = 0;
         finalLiveVisits = 0;
+        finalImpressions = 0;
+        finalPenonton = 0;
+        finalProductImpressions = 0;
+        finalFollowers = 0;
+        finalSpecialVouchers = 0;
+        finalCoinsClaimed = 0;
       }
     }
 
     const finalAov = finalOrders > 0 ? finalGmv / finalOrders : parsedAov > 0 ? parsedAov : finalBuyers > 0 ? finalGmv / finalBuyers : 0;
     const impressions = finalImpressions;
     const views = finalViews;
-    const penonton = parsedPenonton || finalImpressions || 0;
+    const penonton = finalPenonton;
     const clicks = finalClicks;
     const liveVisits = finalLiveVisits;
-    const productImpressions = parsedProductImpressions || 0;
-    const followers = parsedFollowers || 0;
+    const productImpressions = finalProductImpressions;
+    const followers = finalFollowers;
     const likes = finalLikes;
     const shares = finalShares;
     const comments = finalComments;
     const avgViewDuration = finalAvgViewDuration;
     const peakViewers = finalPeakViewers;
     const shopVouchers = finalShopVouchers;
-    const specialVouchers = parsedSpecialVouchers || 0;
-    const coinsClaimed = parsedCoinsClaimed || 0;
+    const specialVouchers = finalSpecialVouchers;
+    const coinsClaimed = finalCoinsClaimed;
     const hasFunnelInFile = impressions > 0 || clicks > 0 || finalOrders > 0;
 
     rows.push({
