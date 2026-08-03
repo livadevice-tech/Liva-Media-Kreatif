@@ -514,15 +514,7 @@ export function ReportingWorkspaceTabs({
           Product Performance
         </button>
       )}
-      {!isCategoryHidden("engagement") && (
-        <button
-          type="button"
-          onClick={() => onTabChange("engagement")}
-          className={tabClass("engagement")}
-        >
-          Engagement Report
-        </button>
-      )}
+
       {!hideSettingsTab && (
         <button
           type="button"

@@ -5291,30 +5291,6 @@ export default function App() {
                       />
                     )}
 
-                    {clientReportingTab === "engagement" && (
-                      <React.Suspense
-                        fallback={
-                          <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
-                            Memuat panel reporting...
-                          </div>
-                        }
-                      >
-                        <EngagementReportPanel
-                          model={clientEngagementReportView}
-                          platform={clientPlatformFilter}
-                          chartSelectedMetrics={engagementChartSelectedMetrics}
-                          onChartSelectedMetricsChange={setEngagementChartSelectedMetrics}
-                          activeReportBrandId={loggedInClientBrandId || ""}
-                          brandPerformanceLogs={brandPerformanceLogs}
-                          brandUploadHistory={brandUploadHistory}
-                          uploadHistory={uploadHistory}
-                          isLogsLoading={isLogsLoading}
-                          onDeleteUploadBatch={handleDeleteUploadBatch}
-                          brandDashboardSettings={brands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
-                          hideUploadHistory={true}
-                        />
-                      </React.Suspense>
-                    )}
 
                     </div>
                   </div>
@@ -12161,33 +12137,6 @@ export default function App() {
                             />
                           )}
 
-                          {operatorReportingTab === "engagement" && (
-                            <React.Suspense
-                              fallback={
-                                <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
-                                  Memuat panel reporting...
-                                </div>
-                              }
-                            >
-                              <EngagementReportPanel
-                                model={engagementReportView}
-                                platform={operatorPlatformFilter}
-                                chartSelectedMetrics={
-                                  engagementChartSelectedMetrics
-                                }
-                                onChartSelectedMetricsChange={
-                                  setEngagementChartSelectedMetrics
-                                }
-                                activeReportBrandId={activeReportBrandId || ""}
-                                brandPerformanceLogs={brandPerformanceLogs}
-                                brandUploadHistory={brandUploadHistory}
-                                uploadHistory={uploadHistory}
-                                isLogsLoading={isLogsLoading}
-                                onDeleteUploadBatch={handleDeleteUploadBatch}
-                                brandDashboardSettings={brands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
-                              />
-                            </React.Suspense>
-                          )}
 
                           {operatorReportingTab === "settings" && activeReportBrandId && (
                             <BrandDashboardSettingsPanel
