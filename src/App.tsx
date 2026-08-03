@@ -160,6 +160,7 @@ import { exportReportToExcel } from "./shared/utils/excelExportUtils";
 import { buildProductPerformanceViewModel } from "./shared/utils/productPerformanceViewModel";
 import {
   parseReportingUploadRows,
+  validateReportingHeaders,
   parseSkuUploadRows,
   readFirstWorksheetRowsFromFile,
 } from "./shared/utils/xlsxUploadParsers";
@@ -246,6 +247,7 @@ import {
   testDbConnection,
   authApi,
   reportingBrandApi,
+  activityLogsApi,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
@@ -858,6 +860,15 @@ export default function App() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    // If a host is logging out, record it
+    if (loggedInHostId) {
+      activityLogsApi.create({
+        hostId: loggedInHostId,
+        action: "LOGOUT",
+        details: { message: "Host logged out from portal" }
+      }).catch(() => {});
+    }
+
     authApi.logout().catch(console.error);
     setLoggedInClientBrandId(null);
     setLoggedInHostId(null);
@@ -866,7 +877,7 @@ export default function App() {
     setAuthSession(null);
     setClientLoginBrandId("");
     setClientLoginPass("");
-  }, []);
+  }, [loggedInHostId]);
 
   const salarySettingsRef = useRef(salarySettings);
 
@@ -2575,8 +2586,23 @@ export default function App() {
         );
       }
 
-      const reportingRows = parseReportingUploadRows(jsonData, shifts);
-      setReportingRawData(reportingRows);
+      const missingCols = validateReportingHeaders(jsonData, detectedPlatform || "");
+      if (missingCols.length > 0) {
+        requestConfirm(
+          "Peringatan: Kolom Standar Tidak Lengkap",
+          `Beberapa kolom standar metrik ${detectedPlatform || "platform ini"} tidak ditemukan di file Excel Anda:\n\n` + 
+          `- ${missingCols.join("\n- ")}\n\n` +
+          `Jika Anda melanjutkan, data untuk metrik tersebut akan otomatis diisi dengan angka 0. Apakah Anda ingin tetap melanjutkan?`,
+          () => {
+            const reportingRows = parseReportingUploadRows(jsonData, shifts, detectedPlatform || "");
+            setReportingRawData(reportingRows);
+          },
+          "warning"
+        );
+      } else {
+        const reportingRows = parseReportingUploadRows(jsonData, shifts, detectedPlatform || "");
+        setReportingRawData(reportingRows);
+      }
     } catch (err) {
       console.error("Error parsing workbook:", err);
       alert(

@@ -426,7 +426,8 @@ export function LiveReportChartSection({
                 dataKey={item.key}
                 stroke={item.color}
                 strokeWidth={2}
-                dot={false}
+                dot={visibleData.length === 1 ? { r: 4, strokeWidth: 2 } : false}
+                activeDot={{ r: 6, strokeWidth: 0 }}
               />
             ))}
           </RechartsComposedChart>

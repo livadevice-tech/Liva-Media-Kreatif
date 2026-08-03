@@ -444,6 +444,7 @@ export function parseSkuUploadRows(
 export function parseReportingUploadRows(
   jsonData: WorksheetRows,
   shifts: readonly string[],
+  platform: string = "",
 ): ReportingRawRow[] {
   if (jsonData.length < 2) return [];
 
@@ -478,6 +479,9 @@ export function parseReportingUploadRows(
 
   const headers = Array.from(jsonData[headerRowIdx] || []).map(normalizeText);
   const findColIdx = (aliases: string[]) => getHeaderIndex(headers, aliases);
+
+  const isTiktok = platform.toLowerCase().includes("tiktok");
+  const isShopee = platform.toLowerCase().includes("shopee");
 
   const titleIdx = findColIdx([
     "nama livestream",
@@ -521,49 +525,19 @@ export function parseReportingUploadRows(
       h.includes("avg") || h.includes("average") || h.includes("viewing");
     return matchesDuration && !looksLikeAvgViewDuration;
   });
-  const gmvIdx = findColIdx([
-    "penjualan(pesanan siap dikirim)",
-    "penjualan(pesanan dibuat)",
-    "sales(orders paid)",
-    "sales(orders created)",
-    "penjualan",
-    "attributed gmv",
-    "gmv",
-    "perolehan",
-    "omset",
-    "revenue",
-    "pendapatan",
-    "gross profit",
-    "gross revenue",
-    "total sales",
-  ]);
-  const productIdx = findColIdx([
-    "produk terjual(pesanan siap dikirim)",
-    "produk terjual(pesanan dibuat)",
-    "items sold(orders paid)",
-    "items sold(orders created)",
-    "produk terjual",
-    "attributed items sold",
-    "unit terjual",
-    "produk",
-    "product",
-    "terjual",
-    "item",
-    "items sold",
-    "items",
-  ]);
-  const buyerIdx = findColIdx([
-    "pembeli(pesanan siap dikirim)",
-    "pembeli(pesanan dibuat)",
-    "pembeli",
-    "buyers(orders paid)",
-    "buyers(orders created)",
-    "buyers",
-    "customers",
-    "customer",
-    "buyer",
-    "pelanggan",
-  ]);
+
+  const gmvIdx = isTiktok ? findColIdx(["attributed gmv", "gmv", "penjualan"]) :
+                 isShopee ? findColIdx(["penjualan(pesanan siap dikirim)", "penjualan(pesanan dibuat)", "gmv", "omset"]) :
+                 findColIdx(["penjualan(pesanan siap dikirim)", "penjualan(pesanan dibuat)", "sales(orders paid)", "sales(orders created)", "penjualan", "attributed gmv", "gmv", "omset"]);
+
+  const productIdx = isTiktok ? findColIdx(["attributed items sold", "items sold", "produk terjual"]) :
+                     isShopee ? findColIdx(["produk terjual(pesanan siap dikirim)", "produk terjual(pesanan dibuat)", "produk terjual"]) :
+                     findColIdx(["produk terjual(pesanan siap dikirim)", "produk terjual(pesanan dibuat)", "items sold(orders paid)", "items sold(orders created)", "produk terjual", "attributed items sold", "items sold"]);
+
+  const buyerIdx = isTiktok ? findColIdx(["customers", "buyers", "pembeli"]) :
+                   isShopee ? findColIdx(["pembeli(pesanan siap dikirim)", "pembeli(pesanan dibuat)", "pembeli"]) :
+                   findColIdx(["pembeli(pesanan siap dikirim)", "pembeli(pesanan dibuat)", "pembeli", "buyers(orders paid)", "buyers(orders created)", "buyers", "customers"]);
+
   const aovIdx = findColIdx([
     "avg. price",
     "sales per buyer(orders paid)",
@@ -574,104 +548,57 @@ export function parseReportingUploadRows(
     "rata-rata",
     "order value",
   ]);
-  const viewsIdx = findColIdx(["views", "view"]);
-  const impressionsIdx = findColIdx([
-    "dilihat",
-    "total viewers",
-    "live impressions",
-    "tayangan live",
-    "impression",
-    "tayangan",
-    "visitor",
-    "traffic",
-    "pemirsa",
-    "exposure",
-    "viewers",
-  ]);
+
+  const viewsIdx = isTiktok ? findColIdx(["views", "view"]) :
+                   isShopee ? findColIdx(["dilihat", "views", "view"]) :
+                   findColIdx(["views", "view"]);
+
+  const impressionsIdx = isTiktok ? findColIdx(["impressions", "live impressions", "dilihat", "tayangan"]) :
+                         isShopee ? findColIdx(["dilihat", "total viewers", "tayangan", "impressions"]) :
+                         findColIdx(["dilihat", "total viewers", "live impressions", "tayangan live", "impression", "tayangan", "visitor", "traffic", "pemirsa", "exposure", "viewers"]);
+
   const penontonIdx = findColIdx(["penonton", "unique viewers", "viewer"]);
-  const liveVisitsIdx = findColIdx([
-    "penonton aktif",
-    "max concurrent viewers",
-    "viewers(max concurrent)",
-    "viewers(max co-current)",
-    "highest ccu",
-    "penonton serentak tertinggi",
-    "live visits",
-    "kunjungan live",
-    "engaged viewers",
-    "active viewers",
-  ]);
-  const productImpressionsIdx = findColIdx([
-    "tayangan produk",
-    "product views",
-    "product impression",
-    "product impressions",
-  ]);
-  const avgViewDurationIdx = findColIdx([
-    "rata-rata durasi ditonton",
-    "durasi ditonton",
-    "durasi rata-rata menonton",
-    "avg. watch duration",
-    "average watch time",
-    "watch duration",
-    "avg view",
-    "average view",
-    "rata-rata menonton",
-    "rata rata menonton",
-    "waktu menonton",
-    "rata-rata view",
-    "avg. viewing duration",
-    "avg viewing duration",
-    "viewing duration",
-  ]);
-  const clicksIdx = findColIdx([
-    "tambah ke keranjang",
-    "add to cart",
-    "keranjang",
-    "product clicks",
-    "klik produk",
-    "clicks",
-    "click",
-    "klik",
-    "kunjungan",
-    "detail",
-    "buka",
-  ]);
-  const ordersIdx = findColIdx([
-    "pesanan(pesanan siap dikirim)",
-    "pesanan(pesanan dibuat)",
-    "orders(orders paid)",
-    "orders(orders created)",
-    "pesanan",
-    "attributed sku orders",
-    "attributed orders",
-    "orders",
-    "created",
-    "buat pesanan",
-    "order created",
-    "pesanan dibuat",
-  ]);
-  const followersIdx = findColIdx([
-    "pengikut baru dari livestream",
-    "pengikut baru",
-    "new followers",
-    "pengikut",
-    "follower",
-    "followers",
-    "fans",
-  ]);
-  const likesIdx = findColIdx(["suka", "likes", "like", "love"]);
-  const sharesIdx = findColIdx(["dibagikan", "share", "shares", "bagikan", "sebar"]);
-  const commentsIdx = findColIdx(["komentar", "comment", "komen", "comments"]);
-  const peakViewersIdx = findColIdx([
-    "penonton tertinggi",
-    "peak viewers",
-    "highest viewers",
-  ]);
-  const shopVouchersIdx = findColIdx([
-    "voucher toko diklaim",
-    "shop voucher claimed",
-  ]);
+
+  const liveVisitsIdx = isTiktok ? findColIdx(["penonton aktif", "live visits"]) :
+                        isShopee ? findColIdx(["penonton aktif", "max concurrent viewers"]) :
+                        findColIdx(["penonton aktif", "max concurrent viewers", "viewers(max concurrent)", "viewers(max co-current)", "highest ccu", "penonton serentak tertinggi", "live visits"]);
+
+  const productImpressionsIdx = isTiktok ? findColIdx(["product impressions", "tayangan produk"]) :
+                                findColIdx(["tayangan produk", "product views", "product impression", "product impressions"]);
+
+  const avgViewDurationIdx = isTiktok ? findColIdx(["avg. viewing duration", "rata-rata durasi ditonton"]) :
+                             isShopee ? findColIdx(["durasi rata-rata menonton", "avg. watch duration"]) :
+                             findColIdx(["rata-rata durasi ditonton", "durasi ditonton", "durasi rata-rata menonton", "avg. watch duration", "average watch time", "watch duration", "avg view", "average view"]);
+
+  const clicksIdx = isTiktok ? findColIdx(["product clicks", "tambah ke keranjang", "clicks"]) :
+                    isShopee ? findColIdx(["tambah ke keranjang", "product clicks", "clicks"]) :
+                    findColIdx(["tambah ke keranjang", "add to cart", "keranjang", "product clicks", "klik produk", "clicks"]);
+
+  const ordersIdx = isTiktok ? findColIdx(["attributed orders", "orders", "pesanan"]) :
+                    isShopee ? findColIdx(["pesanan(pesanan siap dikirim)", "pesanan(pesanan dibuat)", "pesanan"]) :
+                    findColIdx(["pesanan(pesanan siap dikirim)", "pesanan(pesanan dibuat)", "orders(orders paid)", "orders(orders created)", "pesanan", "attributed sku orders", "attributed orders", "orders"]);
+
+  const followersIdx = isTiktok ? findColIdx(["new followers", "pengikut baru dari livestream"]) :
+                       findColIdx(["pengikut baru dari livestream", "pengikut baru", "new followers", "pengikut", "follower", "followers"]);
+
+  const likesIdx = isTiktok ? findColIdx(["likes", "suka"]) :
+                   isShopee ? findColIdx(["suka", "likes"]) :
+                   findColIdx(["suka", "likes", "like", "love"]);
+
+  const sharesIdx = isTiktok ? findColIdx(["shares", "dibagikan", "share"]) :
+                    isShopee ? findColIdx(["share", "dibagikan", "shares"]) :
+                    findColIdx(["dibagikan", "share", "shares", "bagikan", "sebar"]);
+
+  const commentsIdx = isTiktok ? findColIdx(["comments", "komentar"]) :
+                      isShopee ? findColIdx(["komentar", "comments"]) :
+                      findColIdx(["komentar", "comment", "komen", "comments"]);
+
+  const peakViewersIdx = isShopee ? findColIdx(["penonton tertinggi", "peak viewers"]) :
+                         findColIdx(["penonton tertinggi", "peak viewers", "highest viewers"]);
+
+  const shopVouchersIdx = isShopee ? findColIdx(["voucher toko diklaim", "shop voucher claimed"]) :
+                          findColIdx(["voucher toko diklaim", "shop voucher claimed"]);
+
   const specialVouchersIdx = findColIdx([
     "voucher spesial live diklaim",
     "special live voucher claimed",
@@ -968,4 +895,79 @@ export function parseReportingUploadRows(
   }
 
   return rows;
+}
+
+export function validateReportingHeaders(
+  jsonData: WorksheetRows,
+  platform: string,
+): string[] {
+  if (jsonData.length < 2) return [];
+
+  const headerRowIdx = findHeaderRow(jsonData, (row) =>
+    row.some((cell) => {
+      if (typeof cell !== "string") return false;
+      const cLower = cell.toLowerCase().trim();
+      if (
+        cLower === "interaksi" ||
+        cLower === "promosi" ||
+        cLower === "konversi" ||
+        cLower === "data utama"
+      ) {
+        const nonEmpStrCols = row.filter(
+          (c) => typeof c === "string" && c.trim().length > 0,
+        ).length;
+        if (nonEmpStrCols < 8) return false;
+      }
+      return (
+        cLower.includes("streaming") ||
+        cLower.includes("mulai") ||
+        cLower.includes("gmv") ||
+        cLower.includes("user id") ||
+        cLower === "penonton" ||
+        cLower === "penonton aktif" ||
+        cLower === "suka" ||
+        cLower === "komentar" ||
+        cLower.includes("pembeli(pesanan")
+      );
+    }),
+  );
+
+  const headers = Array.from(jsonData[headerRowIdx] || []).map(normalizeText);
+  const findColIdx = (aliases: string[]) => getHeaderIndex(headers, aliases);
+
+  const missingCols: string[] = [];
+  const isTiktok = platform.toLowerCase().includes("tiktok");
+  const isShopee = platform.toLowerCase().includes("shopee");
+
+  if (isTiktok) {
+    if (findColIdx(["attributed gmv"]) === -1) missingCols.push("Metrik: GMV (Kolom: Attributed GMV)");
+    if (findColIdx(["attributed items sold"]) === -1) missingCols.push("Metrik: Item Sold (Kolom: Attributed items sold)");
+    if (findColIdx(["attributed orders"]) === -1) missingCols.push("Metrik: Orders (Kolom: Attributed orders)");
+    if (findColIdx(["customers"]) === -1) missingCols.push("Metrik: Customer (Kolom: Customers)");
+    if (findColIdx(["product impressions"]) === -1) missingCols.push("Metrik: Product Impressions (Kolom: Product Impressions)");
+    if (findColIdx(["product clicks"]) === -1) missingCols.push("Metrik: Clicks (Kolom: Product clicks)");
+    if (findColIdx(["impressions"]) === -1) missingCols.push("Metrik: Live Impressions (Kolom: Impressions)");
+    if (findColIdx(["views"]) === -1) missingCols.push("Metrik: Viewer (Kolom: Views)");
+    if (findColIdx(["likes"]) === -1) missingCols.push("Metrik: Likes (Kolom: Likes)");
+    if (findColIdx(["comments"]) === -1) missingCols.push("Metrik: Comments (Kolom: Comments)");
+    if (findColIdx(["shares"]) === -1) missingCols.push("Metrik: Shares (Kolom: Shares)");
+    if (findColIdx(["new followers"]) === -1) missingCols.push("Metrik: New followers (Kolom: New followers)");
+    if (findColIdx(["avg. viewing duration"]) === -1) missingCols.push("Metrik: Avg View Duration (Kolom: Avg. viewing duration)");
+  } else if (isShopee) {
+    if (findColIdx(["penjualan(pesanan siap dikirim)", "penjualan(pesanan dibuat)"]) === -1) missingCols.push("Metrik: GMV (Kolom: Penjualan(Pesanan Siap Dikirim))");
+    if (findColIdx(["pesanan(pesanan siap dikirim)", "pesanan(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Orders (Kolom: Pesanan(Pesanan Siap Dikirim))");
+    if (findColIdx(["produk terjual(pesanan siap dikirim)", "produk terjual(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Item Sold (Kolom: Produk Terjual(Pesanan Siap Dikirim))");
+    if (findColIdx(["pembeli(pesanan siap dikirim)", "pembeli(pesanan dibuat)"]) === -1) missingCols.push("Metrik: Customer (Kolom: Pembeli(Pesanan Siap Dikirim))");
+    if (findColIdx(["tambah ke keranjang"]) === -1) missingCols.push("Metrik: Add to Cart (Kolom: Tambah ke Keranjang)");
+    if (findColIdx(["durasi rata-rata menonton"]) === -1) missingCols.push("Metrik: Avg View Duration (Kolom: Durasi Rata-Rata Menonton)");
+    if (findColIdx(["penonton aktif"]) === -1) missingCols.push("Metrik: Viewer Active (Kolom: Penonton Aktif)");
+    if (findColIdx(["dilihat"]) === -1) missingCols.push("Metrik: Views (Kolom: Dilihat)");
+    if (findColIdx(["penonton tertinggi"]) === -1) missingCols.push("Metrik: Peak Viewer (Kolom: Penonton Tertinggi)");
+    if (findColIdx(["voucher toko diklaim"]) === -1) missingCols.push("Metrik: Voucher Claim (Kolom: Voucher Toko Diklaim)");
+    if (findColIdx(["suka"]) === -1) missingCols.push("Metrik: Likes (Kolom: Suka)");
+    if (findColIdx(["komentar"]) === -1) missingCols.push("Metrik: Comments (Kolom: Komentar)");
+    if (findColIdx(["share"]) === -1) missingCols.push("Metrik: Shares (Kolom: Share)");
+  }
+
+  return missingCols;
 }

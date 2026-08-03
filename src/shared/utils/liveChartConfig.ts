@@ -128,7 +128,7 @@ export const liveChartMetricOptions = [
     platforms: ["tiktok"],
   },
   {
-    key: "liveVisits",
+    key: "views",
     label: "Live Viewer",
     color: "bg-blue-50 text-blue-700 border-blue-200",
     category: "Engagement Metrics",

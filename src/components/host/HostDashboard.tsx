@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
+import { activityLogsApi } from '../../api';
 
 
 function CustomSelect({ value, options, onChange, placeholder, error }: any) {
@@ -138,6 +139,16 @@ export default function HostDashboard({
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (activeHostObj) {
+      activityLogsApi.create({
+        hostId: activeHostObj.id,
+        action: "PAGE_LOAD",
+        details: { message: "Host opened/refreshed the dashboard" }
+      }).catch(() => {});
+    }
+  }, [activeHostObj]);
 
   useEffect(() => {
     if (!activeHostObj || !computedSchedules) return;

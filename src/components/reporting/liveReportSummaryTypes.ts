@@ -37,6 +37,10 @@ export type LiveReportSummaryStats = {
   pAvgAovDb: number;
   conversionRateShopee: number;
   pConversionRateShopee: number;
+  totalPenontonDb: number;
+  pTotalPenontonDb: number;
+  totalFollowersDb: number;
+  pTotalFollowersDb: number;
   isShopee: boolean;
 };
 

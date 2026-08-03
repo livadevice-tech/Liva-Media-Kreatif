@@ -107,7 +107,7 @@ export function AttendanceCalendarView({
     return days;
   }, [currentMonth, currentYear, viewMode, salarySettings]);
 
-  const firstDayOfGrid = calendarDays.length > 0 ? calendarDays[0].date.getDay() : 0;
+  const firstDayOfGrid = calendarDays.length > 0 ? (calendarDays[0].date.getDay() + 6) % 7 : 0;
   
   // Format Title
   const monthName = currentDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
@@ -278,7 +278,7 @@ export function AttendanceCalendarView({
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden shadow-sm">
           <div className="grid grid-cols-7 bg-slate-50/80 border-b border-slate-200/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((d) => (
+            {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((d) => (
               <div key={d} className="py-4 text-center">{d}</div>
             ))}
           </div>
