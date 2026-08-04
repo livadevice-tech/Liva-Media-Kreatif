@@ -85,12 +85,12 @@ export function BrandFormEditor({
                                 sessions: brandFormEditor.sessions || [],
                                 accounts: brandFormEditor.accounts || [],
                                 clientUsername:
-                                  enteredUsername ||
+                                  (enteredUsername ||
                                   brandFormEditor.clientUsername ||
-                                  defaultUsername,
+                                  defaultUsername).trim(),
                                 clientPassword:
-                                  (fd.get("clientPassword") as string) ||
-                                  "liva123",
+                                  ((fd.get("clientPassword") as string) ||
+                                  "liva123").trim(),
                                 logoUrl: brandFormEditor.logoUrl,
                                 isActive: brandFormEditor.isActive !== false,
                                 dashboardSettings: brandFormEditor.dashboardSettings || { hiddenMetrics: [], hiddenColumns: [] },

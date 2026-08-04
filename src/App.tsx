@@ -4548,7 +4548,7 @@ export default function App() {
                     const session = await authApi.login(
                       "brand",
                       enteredUser,
-                      clientLoginPass,
+                      clientLoginPass.trim(),
                     );
                     setAuthSession(session);
                     setLoggedInClientBrandId(session.subjectId);
