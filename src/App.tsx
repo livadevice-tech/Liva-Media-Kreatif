@@ -13006,34 +13006,6 @@ export default function App() {
         </main>
       )}
 
-      {/* --- FOOTER STATUS & SIGNATURE --- */}
-      {!isOperatorLoggedIn && !loggedInClientBrandId && !loggedInHostId && (
-        <footer
-          className="bg-white border-t border-purple-100 py-6 px-4 md:px-8 mt-auto flex flex-col md:flex-row justify-between w-full items-center gap-4 text-xs text-purple-500"
-          id="system-footer-credits"
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-            <span className="font-bold font-mono text-purple-700">
-              INTELLIGENCE PLATFORM DEPLOYED (UTC LOCALTIME)
-            </span>
-          </div>
-          <div>
-            {agencyLogoUrl ? (
-              <img
-                src={agencyLogoUrl}
-                className="h-6 object-contain grayscale opacity-50"
-              />
-            ) : (
-              <span className="font-medium">© 2026 Liva Agency.</span>
-            )}{" "}
-            <span className="font-medium">
-              Dikembangkan secara khusus untuk manajemen kehadiran & payroll.
-            </span>
-          </div>
-        </footer>
-      )}
-
       {/* ==================== CUSTOM HIGH-POLISHED STATIC PORTAL CONFIRM MODAL ==================== */}
       {confirmModal && confirmModal.isOpen && (
         <div
