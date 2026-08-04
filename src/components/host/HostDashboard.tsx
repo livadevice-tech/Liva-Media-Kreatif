@@ -233,9 +233,9 @@ export default function HostDashboard({
         pointChange = 0;
         reason = "Izin/Sakit";
       } else if (log.checkInTime && log.shiftHours) {
-        // shiftHours example: "09:00 - 13:00"
-        const shiftStartStr = log.shiftHours.split(' - ')[0];
-        if (shiftStartStr) {
+        const match = log.shiftHours.match(/(\d{1,2}[:.]\d{2})/);
+        if (match) {
+          const shiftStartStr = match[1].replace('.', ':');
           const shiftDate = new Date(`${log.date}T${shiftStartStr}:00`);
           const normalizedCheckInTime = log.checkInTime.replace(/\./g, ':');
           const checkInDate = new Date(`${log.date}T${normalizedCheckInTime}`);
@@ -247,12 +247,12 @@ export default function HostDashboard({
             earlyMinutes = diffMins;
             validShifts++;
             
-            if (diffMins >= 15) {
-              pointChange = 2;
+            if (diffMins >= 30) {
+              pointChange = 1;
               reason = `Early Bird (${diffMins}m awal)`;
               totalEarlyMinutes += diffMins;
               earlyCount++;
-            } else if (diffMins >= 0 && diffMins < 15) {
+            } else if (diffMins >= 0 && diffMins < 30) {
               pointChange = 0;
               reason = `Tepat Waktu`;
               totalEarlyMinutes += diffMins;

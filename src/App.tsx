@@ -5960,18 +5960,19 @@ export default function App() {
                     sortedLogs.forEach(log => {
                       if (log.status === 'Absent') score -= 15;
                       else if (log.checkInTime && log.shiftHours) {
-                        const shiftStartStr = log.shiftHours.split(' - ')[0];
-                        if (shiftStartStr) {
+                        const match = log.shiftHours.match(/(\d{1,2}[:.]\d{2})/);
+                        if (match) {
+                          const shiftStartStr = match[1].replace('.', ':');
                           const shiftDate = new Date(`${log.date}T${shiftStartStr}:00`);
                           const normalizedCheckInTime = log.checkInTime.replace(/\./g, ':');
                           const checkInDate = new Date(`${log.date}T${normalizedCheckInTime}`);
                           if (!isNaN(shiftDate.getTime()) && !isNaN(checkInDate.getTime())) {
                             const diffMins = Math.round((shiftDate.getTime() - checkInDate.getTime()) / 60000);
                             validShifts++;
-                            if (diffMins >= 15) {
-                              score += 2;
+                            if (diffMins >= 30) {
+                              score += 1;
                               totalEarlyMinutes += diffMins;
-                            } else if (diffMins >= 0 && diffMins < 15) {
+                            } else if (diffMins >= 0 && diffMins < 30) {
                               totalEarlyMinutes += diffMins;
                             } else if (diffMins < 0 && diffMins >= -15) {
                               score -= 2;
