@@ -5945,6 +5945,53 @@ export default function App() {
                   const topBrandsByPenjualan = [...brandPerformances].sort((a, b) => b.totalPenjualan - a.totalPenjualan).slice(0, 5);
                   const topBrandsBySessions = [...brandPerformances].sort((a, b) => b.totalSessions - a.totalSessions).slice(0, 5);
 
+                  // --- CALCULATE HOST DISCIPLINE METRICS ---
+                  const hostDisciplineStats = hosts.map((host) => {
+                    const hostLogsForDiscipline = logs.filter(l => l.hostId === host.id);
+                    let score = 100;
+                    let validShifts = 0;
+                    let totalEarlyMinutes = 0;
+
+                    const sortedLogs = [...hostLogsForDiscipline].sort((a, b) => {
+                      return new Date(a.date).getTime() - new Date(b.date).getTime();
+                    });
+
+                    sortedLogs.forEach(log => {
+                      if (log.status === 'Absent') score -= 15;
+                      else if (log.checkInTime && log.shiftHours) {
+                        const shiftStartStr = log.shiftHours.split(' - ')[0];
+                        if (shiftStartStr) {
+                          const shiftDate = new Date(`${log.date}T${shiftStartStr}:00`);
+                          const checkInDate = new Date(`${log.date}T${log.checkInTime}`);
+                          if (!isNaN(shiftDate.getTime()) && !isNaN(checkInDate.getTime())) {
+                            const diffMins = Math.round((shiftDate.getTime() - checkInDate.getTime()) / 60000);
+                            validShifts++;
+                            if (diffMins >= 15) {
+                              score += 2;
+                              totalEarlyMinutes += diffMins;
+                            } else if (diffMins >= 0 && diffMins < 15) {
+                              totalEarlyMinutes += diffMins;
+                            } else if (diffMins < 0 && diffMins >= -15) {
+                              score -= 2;
+                            } else if (diffMins < -15) {
+                              score -= 5;
+                            }
+                          }
+                        }
+                      }
+                    });
+
+                    return {
+                      ...host,
+                      disciplineScore: Math.min(100, Math.max(0, score)),
+                      avgEarlyArrival: validShifts > 0 ? Math.round(totalEarlyMinutes / validShifts) : 0,
+                    };
+                  });
+
+                  const topDisciplinedHosts = [...hostDisciplineStats]
+                    .sort((a, b) => b.disciplineScore - a.disciplineScore || b.avgEarlyArrival - a.avgEarlyArrival)
+                    .slice(0, 5);
+
                   return (
                     <div
                       className="space-y-6 animate-fadeIn"
@@ -6124,6 +6171,61 @@ export default function App() {
                                 </div>
                                 <span className="text-sm font-bold text-slate-500">Belum ada sesi dijadwalkan</span>
                                 <p className="mt-1 max-w-[200px] text-[11px] text-slate-400">Brand dengan sesi siaran aktif akan muncul di sini.</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* HOST DISCIPLINE LEADERBOARD (NEW) */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn" style={{ animationDelay: '300ms' }}>
+                        <div className="flex flex-col overflow-hidden rounded-[24px] border border-slate-100 bg-white p-7 shadow-sm">
+                          <div className="mb-6 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50">
+                                <Award className="size-6 text-purple-500" />
+                              </div>
+                              <div>
+                                <h3 className="text-sm font-black text-slate-800">Top Kedisiplinan Host</h3>
+                                <p className="text-[11px] font-bold text-slate-400">Berdasarkan ketepatan waktu & early arrival</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex-1 space-y-5">
+                            {topDisciplinedHosts.length > 0 ? (
+                              topDisciplinedHosts.map((host, idx) => (
+                                <div key={host.id} className="group flex items-center justify-between transition-colors">
+                                  <div className="flex items-center gap-4">
+                                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black shadow-sm ${idx === 0 ? 'bg-gradient-to-br from-yellow-200 to-amber-300 text-amber-800' : idx === 1 ? 'bg-gradient-to-br from-slate-200 to-slate-300 text-slate-600' : idx === 2 ? 'bg-gradient-to-br from-orange-200 to-orange-300 text-orange-800' : 'bg-slate-50 text-slate-400'}`}>
+                                      {idx + 1}
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      {host.avatar ? (
+                                        <img src={host.avatar} alt={host.name} className="h-8 w-8 rounded-full object-cover" />
+                                      ) : (
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-black text-slate-500">
+                                          {host.name.substring(0, 2).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <div>
+                                        <div className="text-xs font-bold text-slate-800 transition-colors group-hover:text-purple-600">{host.name}</div>
+                                        <div className="text-[10px] font-bold text-slate-400">Avg Early: {host.avgEarlyArrival}m</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className={`text-sm font-black tabular-nums tracking-tight ${host.disciplineScore >= 80 ? 'text-emerald-600' : host.disciplineScore >= 60 ? 'text-amber-600' : 'text-rose-600'}`}>
+                                      {host.disciplineScore} Pts
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="flex h-full flex-col items-center justify-center py-6 text-center">
+                                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+                                  <User className="size-6 text-slate-300" />
+                                </div>
+                                <span className="text-sm font-bold text-slate-500">Belum ada data host</span>
                               </div>
                             )}
                           </div>
