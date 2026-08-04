@@ -16,6 +16,7 @@ export function AdminBrandResources({
   
   const [search, setSearch] = useState('');
   const [filterBrand, setFilterBrand] = useState('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'guideline' | 'script' | 'sop'>('all');
 
   useEffect(() => {
     loadResources();
@@ -41,7 +42,7 @@ export function AdminBrandResources({
       newResources = newResources.map(r => r.id === currentEdit.id ? { ...r, ...currentEdit } as BrandResource : r);
     } else {
       // Create
-      const newId = `res_${Date.now()}`;
+      const newId = `res_${Date.now()}_${Math.random().toString(36).substring(2,9)}`;
       newResources.push({
         ...currentEdit,
         id: newId,
@@ -66,7 +67,8 @@ export function AdminBrandResources({
   const filtered = resources.filter(r => {
     const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) || r.content.toLowerCase().includes(search.toLowerCase());
     const matchBrand = filterBrand === 'all' || r.brandId === filterBrand;
-    return matchSearch && matchBrand;
+    const matchTab = activeTab === 'all' || r.type === activeTab;
+    return matchSearch && matchBrand && matchTab;
   });
 
   return (
@@ -162,6 +164,27 @@ export function AdminBrandResources({
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="border-b border-slate-100 flex overflow-x-auto scrollbar-hide">
+            {[
+              { id: 'all', label: 'Semua' },
+              { id: 'guideline', label: 'Panduan' },
+              { id: 'script', label: 'Script' },
+              { id: 'sop', label: 'SOP' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-6 py-3.5 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          
           <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 bg-slate-50/50">
             <div className="flex-1 relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />

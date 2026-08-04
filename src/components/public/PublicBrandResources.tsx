@@ -15,6 +15,7 @@ export function PublicBrandResources({
   
   const [selectedBrandId, setSelectedBrandId] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'guideline' | 'script' | 'sop'>('all');
   const [selectedResource, setSelectedResource] = useState<BrandResource | null>(null);
 
   useEffect(() => {
@@ -31,7 +32,8 @@ export function PublicBrandResources({
   const filtered = resources.filter(r => {
     const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) || r.content.toLowerCase().includes(search.toLowerCase());
     const matchBrand = selectedBrandId === 'all' || r.brandId === selectedBrandId;
-    return matchSearch && matchBrand;
+    const matchTab = activeTab === 'all' || r.type === activeTab;
+    return matchSearch && matchBrand && matchTab;
   });
 
   return (
@@ -152,6 +154,27 @@ export function PublicBrandResources({
 
             {/* Content List */}
             <div className="lg:col-span-3">
+              <div className="mb-6 flex overflow-x-auto scrollbar-hide border-b border-slate-200">
+                {[
+                  { id: 'all', label: 'Semua' },
+                  { id: 'guideline', label: 'Panduan' },
+                  { id: 'script', label: 'Script' },
+                  { id: 'sop', label: 'SOP' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`px-6 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${
+                      activeTab === tab.id
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="mb-6 relative">
                 <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input 
