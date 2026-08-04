@@ -35,6 +35,13 @@ export const liveChartMetricOptions = [
     category: "Sale Metrics",
     platforms: ["tiktok", "shopee"],
   },
+  {
+    key: "conversionRate",
+    label: "Convertion Rate",
+    color: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+    category: "Sale Metrics",
+    platforms: ["tiktok", "shopee"],
+  },
 
   // --- Sale Metrics (TikTok specific) ---
   {

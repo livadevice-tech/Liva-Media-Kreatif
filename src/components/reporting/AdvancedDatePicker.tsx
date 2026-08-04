@@ -341,6 +341,18 @@ export function AdvancedDatePicker({
             </p>
           </div>
         );
+      case '1_month':
+        return (
+          <div className="flex-1 w-full sm:w-[260px] flex flex-col items-center justify-center text-center p-6 h-full min-h-[280px]">
+            <div className="w-12 h-12 rounded-full bg-[#5200ff]/10 flex items-center justify-center mb-4 text-[#5200ff]">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <h4 className="text-[14px] font-bold text-slate-800 mb-2">1 Bulan Terakhir</h4>
+            <p className="text-[12px] text-slate-500 leading-relaxed">
+              Menampilkan data dari 31 hari terakhir hingga hari ini.
+            </p>
+          </div>
+        );
       case 'all':
         return (
           <div className="flex-1 w-full sm:w-[260px] flex flex-col items-center justify-center text-center p-6 h-full min-h-[280px]">
@@ -371,12 +383,19 @@ export function AdvancedDatePicker({
     if (type === 'custom') return !!(startDate && endDate);
     if (type === 'daily') return !!startDate;
     if (type === 'weekly') return !!(startDate && endDate);
-    return true; // latest, 3_months, all
+    return true; // latest, 1_month, 3_months, all
   }
 
   const handleApply = () => {
     let applyStartDate = startDate;
     let applyEndDate = endDate;
+
+    if (type === '1_month') {
+      const d = new Date();
+      d.setDate(d.getDate() - 31);
+      applyStartDate = d.toISOString().split('T')[0];
+      applyEndDate = new Date().toISOString().split('T')[0];
+    }
 
     if (type === '3_months') {
       const d = new Date();
@@ -393,6 +412,7 @@ export function AdvancedDatePicker({
     { id: 'daily', label: 'Per-Hari' },
     { id: 'weekly', label: 'Per-Minggu' },
     { id: 'monthly', label: 'Per-Bulan' },
+    { id: '1_month', label: '1 Bulan Terakhir' },
     { id: '3_months', label: '3 Bulan Terakhir' },
     { id: 'all', label: 'Semua Rentang Data' },
     { id: 'custom', label: 'Custom' },

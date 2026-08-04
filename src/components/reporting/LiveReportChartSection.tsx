@@ -86,6 +86,15 @@ export function LiveReportChartSection({
       const penonton = point.penonton || 0;
       const views = point.views || 0;
 
+      const clicks = point.clicks || 0;
+      const productImpressions = point.productImpressions || 0;
+
+      let conversionRate = 0;
+      if (clicks > 0) conversionRate = (orders / clicks) * 100;
+      else if (useShopeeLiveLayout && liveVisits > 0) conversionRate = (orders / liveVisits) * 100;
+      else if (!useShopeeLiveLayout && productImpressions > 0) conversionRate = (orders / productImpressions) * 100;
+      else if (impressions > 0) conversionRate = (orders / impressions) * 100;
+
       return {
         ...point,
         views: views + penonton,
@@ -95,6 +104,7 @@ export function LiveReportChartSection({
         avgViewDuration: sessionsCount > 0 ? avgViewDurationSum / sessionsCount : 0,
         viewerActive: sessionsCount > 0 ? liveVisits / sessionsCount : 0,
         durationHours: duration / 3600,
+        conversionRate,
       };
     });
   }, [chartData, granularity]);
@@ -185,12 +195,23 @@ export function LiveReportChartSection({
     return `${visibleData[0].displayDate} - ${visibleData[visibleData.length - 1].displayDate}`;
   }, [visibleData]);
 
+  const dynamicTitle = useMemo(() => {
+    if (activeMetrics.length === 0) return "Tren";
+    const labels = activeMetrics.map(key => {
+      const opt = platformFilteredOptions.find(o => o.key === key);
+      return opt ? opt.label : key;
+    });
+    if (labels.length === 1) return `Tren ${labels[0]}`;
+    if (labels.length === 2) return `Tren ${labels[0]} & ${labels[1]}`;
+    return `Tren ${labels.slice(0, -1).join(', ')} & ${labels[labels.length - 1]}`;
+  }, [activeMetrics, platformFilteredOptions]);
+
   return (
     <section className="rounded-[16px] border border-[#e6dff8] bg-white p-6 shadow-sm">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-[14px] font-semibold text-slate-800">
-            Tren GMV & Views
+            {dynamicTitle}
           </h3>
           {dateRangeLabel && (
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
@@ -414,8 +435,10 @@ export function LiveReportChartSection({
               }}
               labelStyle={{ color: "#334155", fontWeight: 600, marginBottom: "4px" }}
               formatter={(value: number | string, name: string) => {
-                const isRupiah = name === "GMV";
+                const isRupiah = name === "GMV" || name === "GMV/Hours" || name === "AOV";
                 const isDuration = name === "Live Duration";
+                const isPercent = name === "ERR %" || name === "Convertion Rate";
+                
                 if (isDuration) {
                   const hours = Number(value);
                   const h = Math.floor(hours);
@@ -423,8 +446,13 @@ export function LiveReportChartSection({
                   const formatted = h === 0 ? `${m}m` : `${h}h ${m}m`;
                   return [formatted, name];
                 }
+                
+                if (isPercent) {
+                  return [`${Number(value).toFixed(2)}%`, name];
+                }
+                
                 const formattedValue = isRupiah 
-                  ? `Rp${new Intl.NumberFormat("id-ID").format(Number(value))}`
+                  ? `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(Number(value))}`
                   : new Intl.NumberFormat("id-ID").format(Number(value));
                 return [formattedValue, name];
               }}
