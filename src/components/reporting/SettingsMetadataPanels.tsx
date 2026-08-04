@@ -504,6 +504,15 @@ export function SettingsMetadataPanels({
               }
             }} className="space-y-2">
               <div className="flex flex-col gap-1.5">
+                <input type="text" placeholder="Paste Link Gmaps / Koordinat (Otomatis Isi Lat & Lng)" onChange={(e) => {
+                  const val = e.target.value;
+                  const rawMatch = val.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+                  if (rawMatch) { setNewStudioLat(parseFloat(rawMatch[1])); setNewStudioLng(parseFloat(rawMatch[2])); e.target.value = ''; return; }
+                  const urlMatch = val.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || val.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) || val.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                  if (urlMatch) { setNewStudioLat(parseFloat(urlMatch[1])); setNewStudioLng(parseFloat(urlMatch[2])); e.target.value = ''; return; }
+                }} className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-400 w-full min-w-0 text-emerald-800 placeholder-emerald-600/50" />
+              </div>
+              <div className="flex flex-col gap-1.5">
                 <input type="text" placeholder="Nama studio (misal: Studio 01)..." value={newStudioName} onChange={(e) => { setNewStudioName(e.target.value); if (studioError) setStudioError(""); }} className="bg-purple-50/20 border border-purple-150 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-purple-400 font-sans w-full min-w-0 text-purple-950" />
                 <div className="flex gap-2">
                   <select value={newStudioLocation} onChange={(e) => setNewStudioLocation(e.target.value)} className="flex-1 min-w-0 bg-purple-50/25 border border-purple-150 rounded-xl px-2 py-2 text-xs font-bold focus:outline-none text-purple-950 cursor-pointer">
@@ -539,6 +548,13 @@ export function SettingsMetadataPanels({
                           <input type="number" step="any" placeholder="Lat" value={editingStudioLat} onChange={(e) => setEditingStudioLat(e.target.value ? parseFloat(e.target.value) : "")} className="w-full min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs focus:outline-none text-purple-950" />
                           <input type="number" step="any" placeholder="Lng" value={editingStudioLng} onChange={(e) => setEditingStudioLng(e.target.value ? parseFloat(e.target.value) : "")} className="w-full min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs focus:outline-none text-purple-950" />
                           <input type="number" placeholder="Radius (m)" value={editingStudioRadius} onChange={(e) => setEditingStudioRadius(e.target.value ? parseInt(e.target.value, 10) : "")} className="w-24 min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs focus:outline-none text-purple-950" />
+                          <input type="text" placeholder="Paste Link" title="Paste Link Gmaps / Koordinat disini" onChange={(e) => {
+                            const val = e.target.value;
+                            const rawMatch = val.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+                            if (rawMatch) { setEditingStudioLat(parseFloat(rawMatch[1])); setEditingStudioLng(parseFloat(rawMatch[2])); e.target.value = ''; return; }
+                            const urlMatch = val.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || val.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) || val.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                            if (urlMatch) { setEditingStudioLat(parseFloat(urlMatch[1])); setEditingStudioLng(parseFloat(urlMatch[2])); e.target.value = ''; return; }
+                          }} className="w-20 min-w-0 bg-emerald-50 border border-emerald-200 rounded-xl px-2 py-1 text-xs focus:outline-none text-emerald-800 placeholder-emerald-600/50" />
                           
                           <button type="button" onClick={() => {
                             const newValName = editingStudioName.trim();
