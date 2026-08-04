@@ -1,7 +1,7 @@
 import { isPlatformMatch, normalizeDateYMD } from "./appUi";
 import { normalizeDateStr } from "./dateFormatting";
 
-export type ReportDateFilterType = "latest" | "daily" | "weekly" | "monthly" | "custom" | "all";
+export type ReportDateFilterType = "latest" | "daily" | "weekly" | "monthly" | "custom" | "all" | "3_months";
 
 export interface ReportLogLike {
   id?: string;
@@ -82,7 +82,7 @@ export const filterReportLogs = (
           ) {
             return false;
           }
-        } else if (options.filterType === "custom" || options.filterType === "daily" || options.filterType === "weekly") {
+        } else if (options.filterType === "custom" || options.filterType === "daily" || options.filterType === "weekly" || options.filterType === "3_months") {
           if (
             (options.prevStartDate && normalizedLogDate < options.prevStartDate) ||
             (options.prevEndDate && normalizedLogDate > options.prevEndDate)
@@ -102,7 +102,7 @@ export const filterReportLogs = (
           ) {
             return false;
           }
-        } else if (options.filterType === "custom" || options.filterType === "daily" || options.filterType === "weekly") {
+        } else if (options.filterType === "custom" || options.filterType === "daily" || options.filterType === "weekly" || options.filterType === "3_months") {
           if (
             options.customStartDate &&
             normalizedLogDate < options.customStartDate

@@ -118,7 +118,8 @@ function getDateButtonLabel({
     return selectedMonth ? getIndonesianMonthLabel(selectedMonth) : "Pilih bulan";
   }
 
-  if (dateFilterType === "all") return "Semua Waktu";
+  if (dateFilterType === "3_months") return "3 Bulan Terakhir";
+  if (dateFilterType === "all") return "Semua Rentang Data";
   return "Terbaru";
 }
 

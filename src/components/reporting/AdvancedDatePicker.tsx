@@ -329,6 +329,30 @@ export function AdvancedDatePicker({
              {renderCalendar(0, true)}
           </div>
         );
+      case '3_months':
+        return (
+          <div className="flex-1 w-full sm:w-[260px] flex flex-col items-center justify-center text-center p-6 h-full min-h-[280px]">
+            <div className="h-12 w-12 rounded-full bg-[#f2efff] flex items-center justify-center mb-4 text-[#5200ff]">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <h4 className="text-[14px] font-bold text-slate-800 mb-2">3 Bulan Terakhir</h4>
+            <p className="text-[12px] text-slate-500 leading-relaxed">
+              Menampilkan data komulatif dari 3 bulan terakhir.
+            </p>
+          </div>
+        );
+      case 'all':
+        return (
+          <div className="flex-1 w-full sm:w-[260px] flex flex-col items-center justify-center text-center p-6 h-full min-h-[280px]">
+            <div className="h-12 w-12 rounded-full bg-[#f2efff] flex items-center justify-center mb-4 text-[#5200ff]">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <h4 className="text-[14px] font-bold text-slate-800 mb-2">Semua Rentang Data</h4>
+            <p className="text-[12px] text-slate-500 leading-relaxed">
+              Menampilkan seluruh data yang pernah di-upload ke dalam sistem.
+            </p>
+          </div>
+        );
       case 'custom':
         return (
           <div className="flex flex-col sm:flex-row gap-6 relative min-h-[280px]">
@@ -347,11 +371,21 @@ export function AdvancedDatePicker({
     if (type === 'custom') return !!(startDate && endDate);
     if (type === 'daily') return !!startDate;
     if (type === 'weekly') return !!(startDate && endDate);
-    return true; // latest
+    return true; // latest, 3_months, all
   }
 
   const handleApply = () => {
-    onApply(type, startDate, endDate, selectedMonth);
+    let applyStartDate = startDate;
+    let applyEndDate = endDate;
+
+    if (type === '3_months') {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 3);
+      applyStartDate = d.toISOString().split('T')[0];
+      applyEndDate = new Date().toISOString().split('T')[0];
+    }
+    
+    onApply(type, applyStartDate, applyEndDate, selectedMonth);
   }
 
   const filters: { id: ReportDateFilterType, label: string }[] = [
@@ -359,6 +393,8 @@ export function AdvancedDatePicker({
     { id: 'daily', label: 'Per-Hari' },
     { id: 'weekly', label: 'Per-Minggu' },
     { id: 'monthly', label: 'Per-Bulan' },
+    { id: '3_months', label: '3 Bulan Terakhir' },
+    { id: 'all', label: 'Semua Rentang Data' },
     { id: 'custom', label: 'Custom' },
   ];
 

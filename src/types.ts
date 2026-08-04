@@ -219,7 +219,7 @@ export interface ClientLead {
   notes: string;
 }
 
-export type ReportDateFilterType = "custom" | "daily" | "weekly" | "monthly" | "latest" | "all" | "month";
+export type ReportDateFilterType = "custom" | "daily" | "weekly" | "monthly" | "latest" | "all" | "month" | "3_months";
 
 export interface HostActivityLog {
   id: string;
