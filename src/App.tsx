@@ -5080,7 +5080,6 @@ export default function App() {
                       brandName={clientBrand?.name || "Nama Brand"}
                       brandId={loggedInClientBrandId || undefined}
                       brandLogoUrl={clientBrand?.logoUrl}
-                      onBack={handleLogout}
                       activeTab={clientReportingTab}
                       platformFilter={clientPlatformFilter}
                       onPlatformFilterChange={setClientPlatformFilter}

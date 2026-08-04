@@ -23,7 +23,7 @@ type ReportingWorkspaceHeaderProps = {
   brandName: string;
   brandId?: string;
   brandLogoUrl?: string;
-  onBack: () => void;
+  onBack?: () => void;
   activeTab: ReportingTab;
   platformFilter: string;
   onPlatformFilterChange: (value: string) => void;
@@ -238,14 +238,16 @@ export function ReportingWorkspaceHeader({
     >
       <div className="flex flex-col">
         <div className="flex items-center gap-3 pb-4 border-b border-[#e7e0f8]">
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="Kembali"
-            className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full border border-[#d8d0ee] bg-white text-slate-700 shadow-sm transition-colors hover:bg-[#f7f3ff] focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2"
-          >
-            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 rotate-180" />
-          </button>
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Kembali"
+              className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full border border-[#d8d0ee] bg-white text-slate-700 shadow-sm transition-colors hover:bg-[#f7f3ff] focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2"
+            >
+              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 rotate-180" />
+            </button>
+          )}
 
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#5600e0] text-base sm:text-lg font-black text-white shadow-sm">
