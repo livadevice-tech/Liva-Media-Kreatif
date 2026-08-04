@@ -412,6 +412,14 @@ export function LiveReportChartSection({
               labelStyle={{ color: "#334155", fontWeight: 600, marginBottom: "4px" }}
               formatter={(value: number | string, name: string) => {
                 const isRupiah = name === "GMV";
+                const isDuration = name === "Live Duration";
+                if (isDuration) {
+                  const hours = Number(value);
+                  const h = Math.floor(hours);
+                  const m = Math.round((hours % 1) * 60);
+                  const formatted = h === 0 ? `${m}m` : `${h}h ${m}m`;
+                  return [formatted, name];
+                }
                 const formattedValue = isRupiah 
                   ? `Rp${new Intl.NumberFormat("id-ID").format(Number(value))}`
                   : new Intl.NumberFormat("id-ID").format(Number(value));
@@ -442,6 +450,11 @@ export function LiveReportChartSection({
             if (!analysis) return null;
             
             const formatValue = (val: number) => {
+              if (item.key === "durationHours") {
+                const h = Math.floor(val);
+                const m = Math.round((val % 1) * 60);
+                return h === 0 ? `${m}m` : `${h}h ${m}m`;
+              }
               if (item.key === "gmv" || item.key === "aov" || item.key === "gmvPerHour") {
                 return `Rp${new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 }).format(val)}`;
               }
