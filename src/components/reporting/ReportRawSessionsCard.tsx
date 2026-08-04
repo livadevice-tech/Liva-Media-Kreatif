@@ -30,6 +30,7 @@ interface ReportRawSessionsCardProps {
   paginatedLogs: ReportLogLike[];
   brandDashboardSettings?: BrandDashboardSettings;
   isShopee?: boolean;
+  hideControls?: boolean;
 }
 
 const RAW_TABLE_COLUMNS = {
@@ -65,6 +66,7 @@ export function ReportRawSessionsCard({
   setCurrentPage,
   brandDashboardSettings,
   isShopee = true,
+  hideControls = false,
 }: ReportRawSessionsCardProps) {
   const isGroupedView = reportingShopeeRawTab !== "raw";
   const hc = brandDashboardSettings?.hiddenColumns || [];
@@ -72,13 +74,15 @@ export function ReportRawSessionsCard({
 
   return (
     <>
-      <ReportRawTableControls
-        reportingShopeeRawTab={reportingShopeeRawTab}
-        setReportingShopeeRawTab={setReportingShopeeRawTab}
-        shifts={shifts}
-        adminShiftChecklist={adminShiftChecklist}
-        setAdminShiftChecklist={setAdminShiftChecklist}
-      />
+      {!hideControls && (
+        <ReportRawTableControls
+          reportingShopeeRawTab={reportingShopeeRawTab}
+          setReportingShopeeRawTab={setReportingShopeeRawTab}
+          shifts={shifts}
+          adminShiftChecklist={adminShiftChecklist}
+          setAdminShiftChecklist={setAdminShiftChecklist}
+        />
+      )}
 
       <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
         <table className="w-full text-left whitespace-nowrap">

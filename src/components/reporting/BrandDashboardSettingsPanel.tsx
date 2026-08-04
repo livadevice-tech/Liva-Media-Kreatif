@@ -27,6 +27,7 @@ const METRICS_BY_CATEGORY = {
     { id: "likes", label: "Likes" },
     { id: "comments", label: "Comments" },
     { id: "shares", label: "Shares" },
+    { id: "conversion_rate", label: "Convertion Rate" },
     { id: "err", label: "ERR %" },
   ],
   live_tiktok: [
@@ -45,6 +46,7 @@ const METRICS_BY_CATEGORY = {
     { id: "shares", label: "Shares" },
     { id: "new_followers", label: "New followers" },
     { id: "avg_view_duration", label: "Avg. View Duration" },
+    { id: "conversion_rate", label: "Convertion Rate" },
     { id: "err", label: "ERR %" },
   ],
   product: [
@@ -68,7 +70,7 @@ const COLUMNS_BY_CATEGORY = {
     { id: "items_sold", label: "Items Sold" },
     { id: "engagement", label: "Avg. View Duration" },
     { id: "orders", label: "Customers" },
-    { id: "conversion_rate", label: "Conversion Rate" },
+    { id: "conversion_rate", label: "Convertion Rate" },
   ],
   live_tiktok: [
     { id: "duration", label: "Durasi" },
@@ -77,7 +79,7 @@ const COLUMNS_BY_CATEGORY = {
     { id: "items_sold", label: "Items Sold" },
     { id: "engagement", label: "Avg. View Duration" },
     { id: "orders", label: "Orders" },
-    { id: "conversion_rate", label: "Conversion Rate" },
+    { id: "conversion_rate", label: "Convertion Rate" },
   ],
   product: [
     { id: "items_sold", label: "Item Terjual" },

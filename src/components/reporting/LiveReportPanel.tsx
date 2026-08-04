@@ -44,6 +44,7 @@ interface LiveReportPanelProps {
   onImportRaw: () => void;
   brandDashboardSettings?: BrandDashboardSettings;
   hideUploadHistory?: boolean;
+  hideRawTableControls?: boolean;
 }
 
 export function LiveReportPanel({
@@ -72,6 +73,7 @@ export function LiveReportPanel({
   onDeleteUploadBatch,
   brandDashboardSettings,
   hideUploadHistory,
+  hideRawTableControls,
 }: LiveReportPanelProps) {
   const isTikTokLive =
     operatorPlatformFilter.toLowerCase().includes("tiktok");
@@ -135,6 +137,7 @@ export function LiveReportPanel({
         setCurrentPage={setCurrentPage}
         brandDashboardSettings={brandDashboardSettings}
         isShopee={!isTikTokLive}
+        hideControls={hideRawTableControls}
       />
 
       {!hideUploadHistory && (
