@@ -111,8 +111,9 @@ import {
   XCircle,
   Info,
   Printer,
+  Award,
+  User,
 } from "lucide-react";
-
 import {
   HostEmployee,
   AttendanceLog,
