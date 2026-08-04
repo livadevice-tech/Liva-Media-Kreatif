@@ -122,32 +122,16 @@ export function PublicBrandResources({
                   <Filter className="w-4 h-4 text-slate-500" /> Filter Brand
                 </h3>
                 <div className="space-y-2">
-                  <button
-                    onClick={() => setSelectedBrandId('all')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                      selectedBrandId === 'all' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'
-                    }`}
+                  <select
+                    value={selectedBrandId}
+                    onChange={(e) => setSelectedBrandId(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
                   >
-                    Semua Brand
-                  </button>
-                  {brands.map(b => (
-                    <button
-                      key={b.id}
-                      onClick={() => setSelectedBrandId(b.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-3 ${
-                        selectedBrandId === b.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {b.logoUrl ? (
-                        <img src={b.logoUrl} className="w-5 h-5 rounded-full object-cover border" />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-bold">
-                          {b.name?.charAt(0)}
-                        </div>
-                      )}
-                      <span className="truncate">{b.name}</span>
-                    </button>
-                  ))}
+                    <option value="all">Semua Brand</option>
+                    {brands.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
