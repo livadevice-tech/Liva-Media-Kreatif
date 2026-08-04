@@ -237,7 +237,8 @@ export default function HostDashboard({
         const shiftStartStr = log.shiftHours.split(' - ')[0];
         if (shiftStartStr) {
           const shiftDate = new Date(`${log.date}T${shiftStartStr}:00`);
-          const checkInDate = new Date(`${log.date}T${log.checkInTime}`);
+          const normalizedCheckInTime = log.checkInTime.replace(/\./g, ':');
+          const checkInDate = new Date(`${log.date}T${normalizedCheckInTime}`);
           
           if (!isNaN(shiftDate.getTime()) && !isNaN(checkInDate.getTime())) {
             const diffMs = shiftDate.getTime() - checkInDate.getTime();
