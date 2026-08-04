@@ -551,7 +551,7 @@ export function parseReportingUploadRows(
   ]);
 
   const viewsIdx = isTiktok ? findColIdx(["views"]) :
-                   isShopee ? findColIdx(["dilihat", "views", "view"]) :
+                   isShopee ? findColIdx(["penonton", "dilihat", "views", "view"]) :
                    findColIdx(["views", "view", "viewer", "penonton"]);
 
   const impressionsIdx = isTiktok ? findColIdx(["impressions"]) :
@@ -1024,7 +1024,7 @@ export function validateReportingHeaders(
       if (findColIdx(["tambah ke keranjang"]) === -1) missingCols.push("Metrik: Add to Cart (Kolom: Tambah ke Keranjang)");
       if (findColIdx(["durasi rata-rata menonton"]) === -1) missingCols.push("Metrik: Avg View Duration (Kolom: Durasi Rata-Rata Menonton)");
       if (findColIdx(["penonton aktif"]) === -1) missingCols.push("Metrik: Viewer Active (Kolom: Penonton Aktif)");
-      if (findColIdx(["dilihat"]) === -1) missingCols.push("Metrik: Views (Kolom: Dilihat)");
+      if (findColIdx(["penonton"]) === -1) missingCols.push("Metrik: Views (Kolom: Penonton)");
     }
     
     if (uploadTargetTab === "engagement" || uploadTargetTab === "all") {
