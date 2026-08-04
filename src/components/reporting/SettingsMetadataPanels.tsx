@@ -51,6 +51,18 @@ interface SettingsMetadataPanelsProps {
   setEditingStudioName: Setter<string>;
   editingStudioLocation: string;
   setEditingStudioLocation: Setter<string>;
+  newStudioLat: number | "";
+  setNewStudioLat: Setter<number | "">;
+  newStudioLng: number | "";
+  setNewStudioLng: Setter<number | "">;
+  newStudioRadius: number | "";
+  setNewStudioRadius: Setter<number | "">;
+  editingStudioLat: number | "";
+  setEditingStudioLat: Setter<number | "">;
+  editingStudioLng: number | "";
+  setEditingStudioLng: Setter<number | "">;
+  editingStudioRadius: number | "";
+  setEditingStudioRadius: Setter<number | "">;
   onRequestConfirm: (
     title: string,
     message: string,
@@ -106,6 +118,18 @@ export function SettingsMetadataPanels({
   setEditingStudioName,
   editingStudioLocation,
   setEditingStudioLocation,
+  newStudioLat,
+  setNewStudioLat,
+  newStudioLng,
+  setNewStudioLng,
+  newStudioRadius,
+  setNewStudioRadius,
+  editingStudioLat,
+  setEditingStudioLat,
+  editingStudioLng,
+  setEditingStudioLng,
+  editingStudioRadius,
+  setEditingStudioRadius,
   onRequestConfirm,
 }: SettingsMetadataPanelsProps) {
   return (
@@ -467,9 +491,15 @@ export function SettingsMetadataPanels({
                   id: `std_auto_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                   name: trimmedName,
                   location: newStudioLocation,
+                  lat: typeof newStudioLat === "number" ? newStudioLat : undefined,
+                  lng: typeof newStudioLng === "number" ? newStudioLng : undefined,
+                  radius: typeof newStudioRadius === "number" ? newStudioRadius : undefined,
                 };
                 setStudios((prev) => [...prev, newStudio]);
                 setNewStudioName("");
+                setNewStudioLat("");
+                setNewStudioLng("");
+                setNewStudioRadius(100);
                 setStudioError("");
               }
             }} className="space-y-2">
@@ -485,40 +515,53 @@ export function SettingsMetadataPanels({
                   </button>
                 </div>
               </div>
-              {studioError && <p className="text-[10px] text-red-650 font-black pl-1">{studioError}</p>}
+              <div className="flex gap-1.5 mt-2">
+                <input type="number" step="any" value={newStudioLat} onChange={(e) => setNewStudioLat(e.target.value ? parseFloat(e.target.value) : "")} placeholder="Latitude (Cth: -5.39)" className="w-full min-w-0 bg-white border border-purple-150 rounded-xl px-2 py-1 text-xs text-purple-950 focus:outline-none" />
+                <input type="number" step="any" value={newStudioLng} onChange={(e) => setNewStudioLng(e.target.value ? parseFloat(e.target.value) : "")} placeholder="Longitude (Cth: 105.26)" className="w-full min-w-0 bg-white border border-purple-150 rounded-xl px-2 py-1 text-xs text-purple-950 focus:outline-none" />
+                <input type="number" value={newStudioRadius} onChange={(e) => setNewStudioRadius(e.target.value ? parseInt(e.target.value, 10) : "")} placeholder="Radius (m)" className="w-20 min-w-0 bg-white border border-purple-150 rounded-xl px-2 py-1 text-xs text-purple-950 focus:outline-none" />
+              </div>
+              {studioError && <p className="text-[10px] text-red-650 font-black pl-1 mt-1">{studioError}</p>}
             </form>
-            <div className="space-y-2 max-h-[170px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 mt-3">
               {studios.map((studio, idx) => (
-                <div key={studio.id} className="flex justify-between items-center bg-[#faf9fe] p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2">
+                <div key={studio.id} className="flex flex-col bg-[#faf9fe] p-2.5 rounded-xl border border-purple-100/50 hover:bg-purple-50 transition-all gap-2">
+                  <div className="flex justify-between items-center w-full gap-2">
                   {editingStudioIdx === idx ? (
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <input type="text" value={editingStudioName} onChange={(e) => setEditingStudioName(e.target.value)} className="w-full min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs font-bold focus:outline-none text-purple-950" />
-                      <div className="flex gap-1.5 items-center justify-end">
-                        <select value={editingStudioLocation} onChange={(e) => setEditingStudioLocation(e.target.value)} className="bg-white border border-purple-200 rounded px-1 py-0.5 text-xs font-bold text-purple-950">
-                          <option value="Bandar Lampung">Bandar Lampung</option>
-                          <option value="Tanggamus">Tanggamus</option>
-                        </select>
-                        <button type="button" onClick={() => {
-                          const newValName = editingStudioName.trim();
-                          if (newValName) {
-                            const isDuplicate = studios?.some((std, i) => std.name.toLowerCase() === newValName.toLowerCase() && std.location.toLowerCase() === editingStudioLocation.toLowerCase() && i !== idx);
-                            if (isDuplicate) {
-                              setStudioError("Kombinasi nama dan lokasi ini sudah terdaftar!");
-                              return;
+                      <div className="flex flex-col gap-1.5 w-full">
+                        <div className="flex gap-1.5 items-center w-full">
+                          <input type="text" value={editingStudioName} onChange={(e) => setEditingStudioName(e.target.value)} className="w-full min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs font-bold focus:outline-none text-purple-950" />
+                          <select value={editingStudioLocation} onChange={(e) => setEditingStudioLocation(e.target.value)} className="w-32 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs font-bold focus:outline-none text-purple-950">
+                            <option value="Bandar Lampung">B. Lampung</option>
+                            <option value="Tanggamus">Tanggamus</option>
+                          </select>
+                        </div>
+                        <div className="flex gap-1.5 items-center w-full">
+                          <input type="number" step="any" placeholder="Lat" value={editingStudioLat} onChange={(e) => setEditingStudioLat(e.target.value ? parseFloat(e.target.value) : "")} className="w-full min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs focus:outline-none text-purple-950" />
+                          <input type="number" step="any" placeholder="Lng" value={editingStudioLng} onChange={(e) => setEditingStudioLng(e.target.value ? parseFloat(e.target.value) : "")} className="w-full min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs focus:outline-none text-purple-950" />
+                          <input type="number" placeholder="Radius (m)" value={editingStudioRadius} onChange={(e) => setEditingStudioRadius(e.target.value ? parseInt(e.target.value, 10) : "")} className="w-24 min-w-0 bg-white border border-purple-300 rounded-xl px-2 py-1 text-xs focus:outline-none text-purple-950" />
+                          
+                          <button type="button" onClick={() => {
+                            const newValName = editingStudioName.trim();
+                            if (newValName) {
+                              const isDuplicate = studios?.some((std, i) => std.name.toLowerCase() === newValName.toLowerCase() && std.location.toLowerCase() === editingStudioLocation.toLowerCase() && i !== idx);
+                              if (isDuplicate) {
+                                setStudioError("Kombinasi nama dan lokasi ini sudah terdaftar!");
+                                return;
+                              }
+                              setStudios((prev) => (prev || []).map((std, i) => 
+                                i === idx ? {
+                                  ...std,
+                                  name: newValName,
+                                  location: editingStudioLocation,
+                                  lat: typeof editingStudioLat === "number" ? editingStudioLat : undefined,
+                                  lng: typeof editingStudioLng === "number" ? editingStudioLng : undefined,
+                                  radius: typeof editingStudioRadius === "number" ? editingStudioRadius : undefined,
+                                } : std
+                              ));
+                              setEditingStudioIdx(null);
+                              setStudioError("");
                             }
-                            setStudios((prev) => {
-                              const updated = [...prev];
-                              updated[idx] = {
-                                ...updated[idx],
-                                name: newValName,
-                                location: editingStudioLocation,
-                              };
-                              return updated;
-                            });
-                            setEditingStudioIdx(null);
-                            setStudioError("");
-                          }
-                        }} className="flex-shrink-0 p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Simpan">
+                          }} className="flex-shrink-0 p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Simpan">
                           <Check className="w-4 h-4" />
                         </button>
                         <button type="button" onClick={() => { setEditingStudioIdx(null); setStudioError(""); }} className="flex-shrink-0 p-1 text-gray-400 hover:bg-gray-100 rounded-lg transition-all" title="Batal">
@@ -530,13 +573,28 @@ export function SettingsMetadataPanels({
                     <>
                       <div className="flex flex-col min-w-0 flex-1">
                         <span className="text-xs font-bold text-purple-900 truncate font-sans" title={studio.name}>{studio.name}</span>
-                        <span className="text-[9px] text-[#bd9fe4] font-bold font-mono uppercase">{studio.location}</span>
+                        <div className="flex flex-wrap gap-2 text-[9px] mt-0.5">
+                          <span className="text-[#bd9fe4] font-bold font-mono uppercase">LOKASI: {studio.location}</span>
+                          {studio.lat !== undefined && studio.lng !== undefined && (
+                            <span className="text-emerald-600 font-mono">
+                              GPS: {studio.lat}, {studio.lng}
+                            </span>
+                          )}
+                          {studio.radius !== undefined && (
+                            <span className="text-indigo-600 font-bold bg-indigo-50 px-1 rounded">
+                              R: {studio.radius}m
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button type="button" onClick={() => {
                           setEditingStudioIdx(idx);
                           setEditingStudioName(studio.name);
                           setEditingStudioLocation(studio.location);
+                          setEditingStudioLat(studio.lat ?? "");
+                          setEditingStudioLng(studio.lng ?? "");
+                          setEditingStudioRadius(studio.radius ?? "");
                           setStudioError("");
                         }} className="text-purple-400 hover:text-purple-700 p-1 rounded hover:bg-purple-50 transition-all cursor-pointer" title="Edit studio">
                           <Edit2 className="w-3.5 h-3.5" />
@@ -554,6 +612,7 @@ export function SettingsMetadataPanels({
                       </div>
                     </>
                   )}
+                  </div>
                 </div>
               ))}
               {studios.length === 0 && <p className="text-xs text-purple-400 font-bold text-center py-4">Belum ada studio terdaftar.</p>}

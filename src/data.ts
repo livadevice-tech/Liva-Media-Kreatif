@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { HostEmployee, AttendanceLog, ShiftSchedule, KPIAlert, AIHostAnalysis, AISmartRecommendation } from "./types";
+import { HostEmployee, AttendanceLog, ShiftSchedule, KPIAlert, AIHostAnalysis, AISmartRecommendation, BrandResource } from "./types";
 
 export const PLATFORMS = ["TikTok Live", "Shopee Live", "Tokopedia Play", "Lazada In-App"];
 export const BRANDS = ["Wardah", "Somethinc", "Sunsilk", "Samsung", "Asus", "Xiaomi", "Eiger", "Jiniso", "Indomie", "Mayora"];
@@ -540,5 +540,32 @@ export const INITIAL_ANALYSES: AIHostAnalysis[] = [
     growthAreas: ["Tingkatkan interaksi chat agar viewer loyalty naik"],
     recommendedNiche: "Fashion & Lifestyle",
     bestShiftPlatform: "Shopee Live - Afternoon"
+  }
+];
+
+export const INITIAL_BRAND_RESOURCES: BrandResource[] = [
+  {
+    id: 'res_1',
+    brandId: 'b1', // Madu Uray
+    title: 'Script Opening & Closing',
+    type: 'script',
+    content: '1. Halo Kak, selamat datang di Live Madu Uray!\n2. Promo hari ini diskon 20% khusus madu kemasan 330ml.\n3. Jangan lupa tap-tap layar dan share ke teman-teman ya!',
+    createdAt: '2026-08-01T10:00:00Z',
+  },
+  {
+    id: 'res_2',
+    brandId: 'b1', // Madu Uray
+    title: 'SOP Penanganan Komplain',
+    type: 'sop',
+    content: 'Jika ada komplain botol pecah:\n- Minta maaf dengan sopan.\n- Arahkan ke CS di nomor 0812-XXXX-XXXX untuk klaim garansi ganti baru.',
+    createdAt: '2026-08-02T12:00:00Z',
+  },
+  {
+    id: 'res_3',
+    brandId: 'b2', // Erigo
+    title: 'Panduan Ukuran (Size Chart)',
+    type: 'guideline',
+    content: 'S: Lebar 48cm, Panjang 68cm\nM: Lebar 50cm, Panjang 70cm\nL: Lebar 52cm, Panjang 72cm\nXL: Lebar 54cm, Panjang 74cm',
+    createdAt: '2026-08-03T09:30:00Z',
   }
 ];

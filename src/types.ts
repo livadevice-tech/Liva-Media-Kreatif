@@ -72,6 +72,9 @@ export interface StudioItem {
   id: string;
   name: string;
   location: string; // "Bandar Lampung" | "Tanggamus"
+  lat?: number;
+  lng?: number;
+  radius?: number; // in meters
 }
 
 export interface ShiftSchedule {
@@ -228,4 +231,14 @@ export interface HostActivityLog {
   action: string;
   details?: string;
   created_at?: string;
+}
+
+export interface BrandResource {
+  id: string;
+  brandId: string;
+  title: string;
+  type: "script" | "guideline" | "sop" | "other";
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
 }

@@ -25,13 +25,13 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  Pie,
-  Cell,
   BarChart,
   Bar,
+  Legend,
+  ComposedChart,
 } from "recharts";
+import { calculateDistance } from "./shared/utils/location";
 import {
   LayoutDashboard,
   Users,
@@ -113,6 +113,7 @@ import {
   Printer,
   Award,
   User,
+  BookOpen,
 } from "lucide-react";
 import {
   HostEmployee,
@@ -137,6 +138,8 @@ import { ActivityLogsTable } from "./components/admin/ActivityLogsTable";import 
 import { formatIDR } from "./shared/utils/currency";
 import { formatContractDate, padLocal } from "./shared/utils/dateFormatting";
 import { getPickerDays } from "./shared/utils/calendar";
+import { AdminBrandResources } from "./components/admin/AdminBrandResources";
+import { PublicBrandResources } from "./components/public/PublicBrandResources";
 import {
   applyDateFilterSelection,
   getAvailableReportDates,
@@ -1200,6 +1203,7 @@ export default function App() {
   const [activeRole, setActiveRole] = useState<
     "host" | "operator" | "client" | null
   >(defaultRole);
+  const [showPublicBrandResources, setShowPublicBrandResources] = useState(false);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -1687,6 +1691,32 @@ export default function App() {
     const todayDateStr = `${nowObj.getFullYear()}-${pad(nowObj.getMonth() + 1)}-${pad(nowObj.getDate())}`;
     const exactCheckInTime = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
     const currentTimeStr = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
+
+    // Geolocation verification (Hard Block)
+    const selectedStudio = studios.find((s) => s.name === hostForm.studio);
+    if (selectedStudio && selectedStudio.lat !== undefined && selectedStudio.lng !== undefined && selectedStudio.radius !== undefined) {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          });
+        });
+
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        const distance = calculateDistance(userLat, userLng, selectedStudio.lat, selectedStudio.lng);
+
+        if (distance > selectedStudio.radius) {
+          setHostFormError(`Anda berada di luar area ${selectedStudio.name}. Jarak Anda: ${distance}m (Maksimal radius: ${selectedStudio.radius}m).`);
+          return;
+        }
+      } catch (err: any) {
+        setHostFormError("Gagal mendapatkan lokasi GPS Anda. Pastikan izin lokasi (GPS) aktif di perangkat/browser Anda.");
+        return;
+      }
+    }
 
     // Determine attendance status automatically
     let status: "Present" | "Late" = "Present";
@@ -3492,6 +3522,9 @@ export default function App() {
   const [newShiftInput, setNewShiftInput] = useState("");
   const [newStudioName, setNewStudioName] = useState("");
   const [newStudioLocation, setNewStudioLocation] = useState("Bandar Lampung");
+  const [newStudioLat, setNewStudioLat] = useState<number | "">("");
+  const [newStudioLng, setNewStudioLng] = useState<number | "">("");
+  const [newStudioRadius, setNewStudioRadius] = useState<number | "">(100);
 
   const [platformError, setPlatformError] = useState("");
   const [brandError, setBrandError] = useState("");
@@ -3514,6 +3547,9 @@ export default function App() {
   const [editingStudioName, setEditingStudioName] = useState("");
   const [editingStudioLocation, setEditingStudioLocation] =
     useState("Bandar Lampung");
+  const [editingStudioLat, setEditingStudioLat] = useState<number | "">("");
+  const [editingStudioLng, setEditingStudioLng] = useState<number | "">("");
+  const [editingStudioRadius, setEditingStudioRadius] = useState<number | "">("");
 
   // State-based custom modal for confirmations
   const [confirmModal, setConfirmModal] = useState<{
@@ -4474,7 +4510,14 @@ export default function App() {
 
       {!loggedInHostId && !isOperatorLoggedIn && !loggedInClientBrandId && (
         <div className="flex-1 flex flex-col justify-center items-center p-4">
-          {activeRole === null ? (
+          {showPublicBrandResources ? (
+            <div className="w-full h-screen overflow-y-auto bg-slate-50 absolute inset-0 z-[100]">
+              <PublicBrandResources 
+                brands={clientBrands} 
+                onBack={() => setShowPublicBrandResources(false)} 
+              />
+            </div>
+          ) : activeRole === null ? (
             /* ROLE SELECTION SCREEN */
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto text-center">
               <LivaLogo className="mx-auto" url={agencyLogoUrl} />
@@ -4504,6 +4547,16 @@ export default function App() {
               >
                 Brand Partner
               </button>
+              
+              <div className="mt-8 pt-6 border-t border-slate-100">
+                <button
+                  onClick={() => setShowPublicBrandResources(true)}
+                  className="w-full bg-white text-purple-700 border-2 border-purple-100 font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 hover:border-purple-300 transition-colors cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Lihat Panduan & Script Publik
+                </button>
+              </div>
             </div>
           ) : activeRole === "client" ? (
             /* BRAND LOGIN PAGE - COMPLETELY SEPARATED */
@@ -5446,6 +5499,12 @@ export default function App() {
                         category: "cat-client",
                       },
                       {
+                        tabId: "brand_resources",
+                        label: "Panduan & Script",
+                        icon: BookOpen,
+                        category: "cat-client",
+                      },
+                      {
                         tabId: "reporting_brand",
                         label: "Reporting Brand (Upload)",
                         icon: LineChart,
@@ -5674,6 +5733,9 @@ export default function App() {
                     )}
                     {operatorTab === "data_brand" && (
                       <span>Manajemen Data Brand Klien</span>
+                    )}
+                    {operatorTab === "brand_resources" && (
+                      <span>Manajemen Panduan & Script Publik</span>
                     )}
                     {operatorTab === "invoice" && (
                       <span>Invoice & Berkas Klien</span>
@@ -11422,6 +11484,13 @@ export default function App() {
               </div>
             )}
 
+            {/* ==================== SUBTAB: BRAND RESOURCES ==================== */}
+            {operatorTab === "brand_resources" && (
+              <div className="animate-fadeIn">
+                <AdminBrandResources brands={clientBrands} />
+              </div>
+            )}
+
                 {/* ==================== SUBTAB: DATA BRAND ==================== */}
                 {operatorTab === "data_brand" && (
                   <div
@@ -12443,6 +12512,18 @@ export default function App() {
                       setEditingStudioName={setEditingStudioName}
                       editingStudioLocation={editingStudioLocation}
                       setEditingStudioLocation={setEditingStudioLocation}
+                      newStudioLat={newStudioLat}
+                      setNewStudioLat={setNewStudioLat}
+                      newStudioLng={newStudioLng}
+                      setNewStudioLng={setNewStudioLng}
+                      newStudioRadius={newStudioRadius}
+                      setNewStudioRadius={setNewStudioRadius}
+                      editingStudioLat={editingStudioLat}
+                      setEditingStudioLat={setEditingStudioLat}
+                      editingStudioLng={editingStudioLng}
+                      setEditingStudioLng={setEditingStudioLng}
+                      editingStudioRadius={editingStudioRadius}
+                      setEditingStudioRadius={setEditingStudioRadius}
                       onRequestConfirm={requestConfirm}
                     />
 

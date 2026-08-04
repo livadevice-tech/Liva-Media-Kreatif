@@ -385,3 +385,21 @@ export async function syncToMySQL(
 
   await Promise.allSettled(promises);
 }
+
+// ==================================================================
+// BRAND RESOURCES (Stored in global_settings)
+// ==================================================================
+export const brandResourcesApi = {
+  getAll: async () => {
+    try {
+      const data = await settingsApi.get<import('./types').BrandResource[]>('brandResources');
+      // settingsApi.get returns the data inside 'value' if it's the raw row, 
+      // but if the backend already unboxes it, it just returns the array.
+      // Let's assume it returns the array directly or we fallback.
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  },
+  saveAll: (resources: import('./types').BrandResource[]) => settingsApi.save('brandResources', resources),
+};
