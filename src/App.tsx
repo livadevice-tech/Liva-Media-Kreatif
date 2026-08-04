@@ -5262,8 +5262,9 @@ export default function App() {
                           brandUploadHistory={brandUploadHistory}
                           uploadHistory={uploadHistory}
                           onDeleteUploadBatch={handleDeleteUploadBatch}
-                          brandDashboardSettings={brands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
+                          brandDashboardSettings={clientBrands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
                           hideUploadHistory={true}
+                          hideRawTableControls={true}
                         />
                       </React.Suspense>
                     )}
@@ -5281,7 +5282,7 @@ export default function App() {
                         operatorPlatformFilter={clientPlatformFilter}
                         operatorShiftFilters={operatorShiftFilters}
                         reportDbSearchQuery={reportDbSearchQuery}
-                      brandDashboardSettings={brands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
+                      brandDashboardSettings={clientBrands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
                         skuSortCol={skuSortCol}
                         skuSortAsc={skuSortAsc}
                         setSkuSortCol={setSkuSortCol}
@@ -12101,7 +12102,7 @@ export default function App() {
                                 brandUploadHistory={brandUploadHistory}
                                 uploadHistory={uploadHistory}
                                 onDeleteUploadBatch={handleDeleteUploadBatch}
-                                brandDashboardSettings={brands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
+                                brandDashboardSettings={clientBrands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
                               />
                             </React.Suspense>
                           )}
@@ -12122,7 +12123,7 @@ export default function App() {
                               operatorPlatformFilter={operatorPlatformFilter}
                               operatorShiftFilters={operatorShiftFilters}
                               reportDbSearchQuery={reportDbSearchQuery}
-                      brandDashboardSettings={brands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
+                      brandDashboardSettings={clientBrands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
                               skuSortCol={skuSortCol}
                               skuSortAsc={skuSortAsc}
                               setSkuSortCol={setSkuSortCol}

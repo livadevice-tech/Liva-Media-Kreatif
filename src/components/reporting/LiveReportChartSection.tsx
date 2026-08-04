@@ -24,6 +24,7 @@ type LiveReportChartSectionProps = {
   chartSelectedMetrics: string[];
   onChartSelectedMetricsChange: (value: string[]) => void;
   useShopeeLiveLayout?: boolean;
+  brandDashboardSettings?: any;
 };
 
 
@@ -33,6 +34,7 @@ export function LiveReportChartSection({
   chartSelectedMetrics,
   onChartSelectedMetricsChange,
   useShopeeLiveLayout = false,
+  brandDashboardSettings,
 }: LiveReportChartSectionProps) {
   const [granularity, setGranularity] = useState<ChartGranularity>("daily");
   const [isGranularityMenuOpen, setIsGranularityMenuOpen] = useState(false);
@@ -110,9 +112,39 @@ export function LiveReportChartSection({
   }, [chartData, granularity]);
 
   const platform = useShopeeLiveLayout ? "shopee" : "tiktok";
-  const platformFilteredOptions = useMemo(() => 
-    liveChartMetricOptions.filter((opt) => (opt.platforms as readonly string[])?.includes(platform)),
-  [platform]);
+  const platformFilteredOptions = useMemo(() => {
+    const hiddenMetrics = brandDashboardSettings?.hiddenMetrics || [];
+    const metricIdMap: Record<string, string> = {
+      gmv: "gmv",
+      itemsSold: "items_sold",
+      orders: "orders",
+      aov: "aov",
+      buyers: "viewers",
+      productImpressions: "product_impressions",
+      clicks: "product_clicks",
+      gmvPerHour: "est_income",
+      impressions: "impressions",
+      viewerActive: "live_viewer",
+      likes: "likes",
+      comments: "comments",
+      shares: "shares",
+      newFollowers: "new_followers",
+      avgViewDuration: "avg_view_duration",
+      conversionRate: "conversion_rate",
+      err: "err",
+    };
+
+    return liveChartMetricOptions.filter((opt) => {
+      // Platform check
+      if (!(opt.platforms as readonly string[])?.includes(platform)) return false;
+      
+      // Hide if disabled in brand settings
+      const settingId = `${platform}_live_${metricIdMap[opt.key] || opt.key}`;
+      if (hiddenMetrics.includes(settingId)) return false;
+      
+      return true;
+    });
+  }, [platform, brandDashboardSettings]);
 
   const legendItems = platformFilteredOptions
     .filter((opt) => activeMetrics.includes(opt.key))
@@ -489,7 +521,7 @@ export function LiveReportChartSection({
               if (item.key === "gmv" || item.key === "aov" || item.key === "gmvPerHour") {
                 return `Rp${new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 }).format(val)}`;
               }
-              if (item.key === "err") {
+              if (item.key === "err" || item.key === "conversionRate") {
                 return `${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(val)}%`;
               }
               return new Intl.NumberFormat("id-ID", { notation: "compact", maximumFractionDigits: 1 }).format(val);
