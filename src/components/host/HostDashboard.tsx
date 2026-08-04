@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
-  CheckCircle2, AlertTriangle, X, ChevronDown
+  CheckCircle2, AlertTriangle, X, ChevronDown, TrendingUp, Clock, Target, Award
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -197,6 +197,97 @@ export default function HostDashboard({
       setHostCalendarMonth((m: number) => m + 1);
     }
   };
+
+  const { disciplineScore, avgEarlyArrival, readinessRate, attendanceHistory } = useMemo(() => {
+    let score = 100;
+    let totalEarlyMinutes = 0;
+    let earlyCount = 0;
+    let validShifts = 0;
+    
+    // Sort logs from oldest to newest to apply score sequentially
+    const sortedLogs = [...(hostLogs || [])].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateA - dateB;
+    });
+
+    const history: Array<{
+      date: string;
+      brand: string;
+      shift: string;
+      status: string;
+      pointChange: number;
+      reason: string;
+      earlyMinutes: number;
+    }> = [];
+
+    sortedLogs.forEach(log => {
+      let pointChange = 0;
+      let reason = "";
+      let earlyMinutes = 0;
+
+      if (log.status === 'Absent') {
+        pointChange = -15;
+        reason = "Mangkir (Tanpa Keterangan)";
+      } else if (log.status === 'Excused') {
+        pointChange = 0;
+        reason = "Izin/Sakit";
+      } else if (log.checkInTime && log.shiftHours) {
+        // shiftHours example: "09:00 - 13:00"
+        const shiftStartStr = log.shiftHours.split(' - ')[0];
+        if (shiftStartStr) {
+          const shiftDate = new Date(`${log.date}T${shiftStartStr}:00`);
+          const checkInDate = new Date(`${log.date}T${log.checkInTime}`);
+          
+          if (!isNaN(shiftDate.getTime()) && !isNaN(checkInDate.getTime())) {
+            const diffMs = shiftDate.getTime() - checkInDate.getTime();
+            const diffMins = Math.round(diffMs / 60000);
+            
+            earlyMinutes = diffMins;
+            validShifts++;
+            
+            if (diffMins >= 15) {
+              pointChange = 2;
+              reason = `Early Bird (${diffMins}m awal)`;
+              totalEarlyMinutes += diffMins;
+              earlyCount++;
+            } else if (diffMins >= 0 && diffMins < 15) {
+              pointChange = 0;
+              reason = `Tepat Waktu`;
+              totalEarlyMinutes += diffMins;
+            } else if (diffMins < 0 && diffMins >= -15) {
+              pointChange = -2;
+              reason = `Telat Ringan (${Math.abs(diffMins)}m)`;
+            } else if (diffMins < -15) {
+              pointChange = -5;
+              reason = `Telat Parah (${Math.abs(diffMins)}m)`;
+            }
+          }
+        }
+      }
+
+      score += pointChange;
+      
+      history.push({
+        date: log.date,
+        brand: log.brandHandled,
+        shift: log.shiftHours,
+        status: log.status,
+        pointChange,
+        reason,
+        earlyMinutes,
+      });
+    });
+
+    history.reverse();
+
+    return {
+      disciplineScore: Math.min(100, Math.max(0, score)),
+      avgEarlyArrival: validShifts > 0 ? Math.round(totalEarlyMinutes / validShifts) : 0,
+      readinessRate: validShifts > 0 ? Math.round((earlyCount / validShifts) * 100) : 0,
+      attendanceHistory: history,
+    };
+  }, [hostLogs]);
 
   const hostSchedules = (computedSchedules || []).filter(s => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay);
   
@@ -577,27 +668,12 @@ export default function HostDashboard({
         </div>
       )}
 
-      {/* --- TAB CONTENT: REKAP (Timeline) --- */}
+      {/* --- TAB CONTENT: REKAP (Timeline & Analitik) --- */}
       {activeTab === 'rekap' && (
         <div className="bg-white rounded-[24px] border border-slate-200 p-5 shadow-sm animate-fadeIn">
           
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-2xl font-black text-emerald-700">{hostLogs.filter(l => l.status !== 'Late').length}</span>
-              <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1">Hadir</span>
-            </div>
-            <div className="bg-amber-50 rounded-xl p-3 border border-amber-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-2xl font-black text-amber-700">{hostLogs.filter(l => l.status === 'Late').length}</span>
-              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1">Telat</span>
-            </div>
-            <div className="bg-rose-50 rounded-xl p-3 border border-rose-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-2xl font-black text-rose-700">0</span>
-              <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest mt-1">Mangkir</span>
-            </div>
-          </div>
-
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[11px] font-black tracking-widest text-slate-500 uppercase">Riwayat Hari Ini</h3>
+            <h3 className="text-[11px] font-black tracking-widest text-slate-500 uppercase">Analitik Kedisiplinan</h3>
             <select
               value={hostCutoffPeriod}
               onChange={(e) => setHostCutoffPeriod(e.target.value)}
@@ -616,19 +692,72 @@ export default function HostDashboard({
             </select>
           </div>
 
-          {hostLogs.length === 0 ? (
-            <p className="text-sm font-semibold text-slate-400">Belum ada absen hari ini.</p>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className={`rounded-[16px] p-4 border flex flex-col items-center justify-center text-center ${disciplineScore >= 80 ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : disciplineScore >= 60 ? 'bg-amber-50 border-amber-100 text-amber-800' : 'bg-rose-50 border-rose-100 text-rose-800'}`}>
+              <Award className={`w-5 h-5 mb-1 ${disciplineScore >= 80 ? 'text-emerald-500' : disciplineScore >= 60 ? 'text-amber-500' : 'text-rose-500'}`} />
+              <span className="text-3xl font-black">{disciplineScore}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80">Skor Disiplin</span>
+            </div>
+            
+            <div className="flex flex-col gap-3">
+              <div className="bg-indigo-50 border border-indigo-100 rounded-[16px] p-3 flex flex-col items-center justify-center text-center h-full">
+                <Clock className="w-4 h-4 text-indigo-500 mb-1" />
+                <span className="text-lg font-black text-indigo-800">{avgEarlyArrival > 0 ? `+${avgEarlyArrival}` : avgEarlyArrival}m</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-600 mt-1">Avg Early</span>
+              </div>
+              <div className="bg-purple-50 border border-purple-100 rounded-[16px] p-3 flex flex-col items-center justify-center text-center h-full">
+                <Target className="w-4 h-4 text-purple-500 mb-1" />
+                <span className="text-lg font-black text-purple-800">{readinessRate}%</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 mt-1">Readiness</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xl font-black text-emerald-700">{hostLogs.filter(l => l.status !== 'Late' && l.status !== 'Absent' && l.status !== 'Excused').length}</span>
+              <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1">Hadir Tepat</span>
+            </div>
+            <div className="bg-amber-50 rounded-xl p-3 border border-amber-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xl font-black text-amber-700">{hostLogs.filter(l => l.status === 'Late').length}</span>
+              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1">Telat</span>
+            </div>
+            <div className="bg-rose-50 rounded-xl p-3 border border-rose-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-xl font-black text-rose-700">{hostLogs.filter(l => l.status === 'Absent').length}</span>
+              <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest mt-1">Mangkir</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[11px] font-black tracking-widest text-slate-500 uppercase">Riwayat Poin & Absen</h3>
+          </div>
+
+          {attendanceHistory.length === 0 ? (
+            <p className="text-sm font-semibold text-slate-400">Belum ada riwayat absensi pada periode ini.</p>
           ) : (
-            <div className="flex flex-col gap-4">
-              {hostLogs.map(log => (
-                <div key={log.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-black text-slate-900">{log.brandHandled}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600">{log.shiftHours}</span>
+            <div className="flex flex-col gap-3">
+              {attendanceHistory.map((log, idx) => (
+                <div key={idx} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-900">{log.brand}</span>
+                    <span className="text-[10px] font-bold text-slate-500 mt-0.5">
+                      {new Date(log.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} • {log.shift}
+                    </span>
+                    {log.reason && (
+                      <span className={`text-[10px] font-bold mt-1.5 px-2 py-0.5 rounded-full inline-block w-fit ${
+                        log.pointChange > 0 ? 'bg-emerald-100 text-emerald-700' : 
+                        log.pointChange < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {log.reason}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-[11px] font-semibold text-slate-600 mb-1">{log.platform} • {log.studio}</div>
-                  <div className="text-[10px] font-bold text-slate-400">
-                    Tercatat: {new Date(log.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} {log.checkInTime}
+                  <div className={`text-sm font-black flex items-center gap-1 ${
+                    log.pointChange > 0 ? 'text-emerald-600' : 
+                    log.pointChange < 0 ? 'text-rose-600' : 'text-slate-400'
+                  }`}>
+                    {log.pointChange > 0 ? <TrendingUp size={14} /> : log.pointChange < 0 ? <TrendingUp size={14} className="rotate-180" /> : null}
+                    {log.pointChange > 0 ? '+' : ''}{log.pointChange}
                   </div>
                 </div>
               ))}
