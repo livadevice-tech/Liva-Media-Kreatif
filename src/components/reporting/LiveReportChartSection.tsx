@@ -65,7 +65,7 @@ export function LiveReportChartSection({
       chartData,
       granularity,
       [
-        "gmv", "orders", "itemsSold", "clicks", "penonton", "buyers",
+        "gmv", "orders", "itemsSold", "clicks", "penonton", "views", "buyers",
         "likes", "comments", "shares", "followers", "impressions",
         "peakViewers", "shopVouchers", "liveVisits", "sessionsCount",
         "duration", "avgViewDurationSum", "productImpressions"
@@ -83,9 +83,12 @@ export function LiveReportChartSection({
       const liveVisits = point.liveVisits || 0;
       const sessionsCount = point.sessionsCount || 0;
       const avgViewDurationSum = point.avgViewDurationSum || 0;
+      const penonton = point.penonton || 0;
+      const views = point.views || 0;
 
       return {
         ...point,
+        views: views + penonton,
         err: impressions > 0 ? ((likes + comments + shares) / impressions) * 100 : 0,
         aov: orders > 0 ? gmv / orders : 0,
         gmvPerHour: duration > 0 ? gmv / (duration / 3600) : 0,
