@@ -149,6 +149,7 @@ app.post("/api/auth/logout", (req, res) => {
 app.use("/api", (req, res, next) => {
   if (req.path === "/health") return next();
   if (req.method === "GET" && req.path === "/settings/brandResources") return next();
+  if (req.method === "GET" && req.path === "/client-brands/public-list") return next();
 
   const session = getRequestSession(req);
   if (!session) return res.status(401).json({ error: "Autentikasi diperlukan." });

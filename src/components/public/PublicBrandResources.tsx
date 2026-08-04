@@ -11,6 +11,7 @@ export function PublicBrandResources({
   onBack: () => void;
 }) {
   const [resources, setResources] = useState<BrandResource[]>([]);
+  const [publicBrands, setPublicBrands] = useState<{id: string, name: string}[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [selectedBrandId, setSelectedBrandId] = useState<string>('');
@@ -18,14 +19,26 @@ export function PublicBrandResources({
   const [activeTab, setActiveTab] = useState<'all' | 'guideline' | 'script' | 'sop'>('all');
   const [selectedResource, setSelectedResource] = useState<BrandResource | null>(null);
 
+  const displayBrands = brands.length > 0 ? brands : publicBrands;
+
   useEffect(() => {
-    loadResources();
+    loadData();
   }, []);
 
-  const loadResources = async () => {
+  const loadData = async () => {
     setIsLoading(true);
-    const data = await brandResourcesApi.getAll();
-    setResources(data || []);
+    try {
+      const [resData, brandsData] = await Promise.all([
+        brandResourcesApi.getAll(),
+        brands.length === 0 ? clientBrandsApi.getPublicList() : Promise.resolve([])
+      ]);
+      setResources(resData || []);
+      if (brands.length === 0 && brandsData) {
+        setPublicBrands(brandsData);
+      }
+    } catch (e) {
+      console.error(e);
+    }
     setIsLoading(false);
   };
 
@@ -78,7 +91,7 @@ export function PublicBrandResources({
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
                 >
                   <option value="" disabled>-- Pilih Brand --</option>
-                  {brands.map(b => (
+                  {displayBrands.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
@@ -194,9 +207,14 @@ export function PublicBrandResources({
                     <h1 className="text-3xl font-black text-slate-900 mb-3">
                       {selectedResource.title}
                     </h1>
-                    <div className="text-sm font-medium text-slate-500 flex items-center gap-2">
-                      Brand: <span className="text-slate-900">{brands.find(b => b.id === selectedResource.brandId)?.name || 'Unknown'}</span>
-                    </div>
+                    {(() => {
+                      const brand = displayBrands.find(b => b.id === selectedResource.brandId);
+                      return (
+                        <div className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                          Brand: <span className="text-slate-900">{brand?.name || 'Unknown'}</span>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="prose prose-slate max-w-none">

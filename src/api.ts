@@ -221,6 +221,9 @@ export const clientBrandsApi = {
   /** Ambil nama-nama brand saja (publik/host safe) */
   getPublicNames: () => request<string[]>('GET', '/client-brands/public'),
 
+  /** Ambil list brand klien (id dan name) (publik/host safe) */
+  getPublicList: () => request<{id: string, name: string}[]>('GET', '/client-brands/public-list'),
+
   /** Ambil satu brand klien by ID */
   getById: (id: string) => request<ClientBrand>('GET', `/client-brands/${id}`),
 

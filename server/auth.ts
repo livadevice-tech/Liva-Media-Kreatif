@@ -132,6 +132,7 @@ export function isRequestAllowed(
   path: string,
 ): boolean {
   if (method === "GET" && path === "/client-brands/public") return true;
+  if (method === "GET" && path === "/client-brands/public-list") return true;
 
   if (session.role === "master") return true;
 
