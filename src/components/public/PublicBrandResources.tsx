@@ -13,7 +13,7 @@ export function PublicBrandResources({
   const [resources, setResources] = useState<BrandResource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [selectedBrandId, setSelectedBrandId] = useState<string>('all');
+  const [selectedBrandId, setSelectedBrandId] = useState<string>('');
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'guideline' | 'script' | 'sop'>('all');
   const [selectedResource, setSelectedResource] = useState<BrandResource | null>(null);
@@ -77,7 +77,7 @@ export function PublicBrandResources({
                   }}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
                 >
-                  <option value="all">Semua Brand</option>
+                  <option value="" disabled>-- Pilih Brand --</option>
                   {brands.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
@@ -99,6 +99,11 @@ export function PublicBrandResources({
               <div className="space-y-6">
                 {isLoading ? (
                   <div className="text-center py-4 text-sm text-slate-400">Memuat...</div>
+                ) : !selectedBrandId ? (
+                  <div className="text-center py-8 text-sm text-slate-500 bg-slate-50 rounded-lg border border-slate-100">
+                    <Filter className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p>Silakan pilih brand dari dropdown<br/>di atas terlebih dahulu.</p>
+                  </div>
                 ) : filtered.length === 0 ? (
                   <div className="text-center py-4 text-sm text-slate-400">Tidak ada dokumen ditemukan</div>
                 ) : (
