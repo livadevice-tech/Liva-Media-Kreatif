@@ -227,7 +227,7 @@ app.post("/api/settings/:key", asyncHandler(async (req, res) => {
     return res.status(403).json({ error: "Kredensial admin dikelola oleh server." });
   }
   const value = req.body && typeof req.body === "object"
-    ? { ...req.body }
+    ? (Array.isArray(req.body) ? [...req.body] : { ...req.body })
     : req.body;
   if (key === "liva_global_configs" && value) delete value.adminCredentials;
   await execute(`
