@@ -91,7 +91,7 @@ export function buildReportingUploadPreviewGroups(
       };
     }
 
-    groups[key].penonton += row.penonton || 0;
+    groups[key].penonton += row.views || row.penonton || 0;
     groups[key].duration = (groups[key].duration || 0) + (row.duration || 0);
     groups[key].gmv += row.gmv || 0;
     groups[key].products_sold += row.products_sold || 0;

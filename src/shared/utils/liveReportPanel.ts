@@ -84,7 +84,7 @@ export function buildLiveReportPanelData(
   const totalSessionsDb = tableLogs.length;
   const totalGmvDb = sum(tableLogs, (item) => item.gmv || 0);
   const totalBuyersDb = sum(tableLogs, (item) => item.buyers || 0);
-  const totalOrdersDb = sum(tableLogs, (item) => item.orders || item.buyers || 0);
+  const totalOrdersDb = sum(tableLogs, (item) => item.orders || 0);
   const totalItemsSoldDb = sum(tableLogs, (item) => item.products_sold || 0);
   const totalLikesDb = sum(tableLogs, (item) => item.likes || 0);
   const totalCommentsDb = sum(tableLogs, (item) => item.comments || 0);
@@ -102,7 +102,7 @@ export function buildLiveReportPanelData(
   const pTotalSessionsDb = prevTableLogs.length;
   const pTotalGmvDb = sum(prevTableLogs, (item) => item.gmv || 0);
   const pTotalBuyersDb = sum(prevTableLogs, (item) => item.buyers || 0);
-  const pTotalOrdersDb = sum(prevTableLogs, (item) => item.orders || item.buyers || 0);
+  const pTotalOrdersDb = sum(prevTableLogs, (item) => item.orders || 0);
   const pTotalItemsSoldDb = sum(prevTableLogs, (item) => item.products_sold || 0);
   const pTotalLikesDb = sum(prevTableLogs, (item) => item.likes || 0);
   const pTotalCommentsDb = sum(prevTableLogs, (item) => item.comments || 0);
@@ -132,7 +132,7 @@ export function buildLiveReportPanelData(
   const totalDbLiveVisits = sum(tableLogs, (curr) => curr.liveVisits || 0);
   const pTotalDbLiveVisits = sum(prevTableLogs, (curr) => curr.liveVisits || 0);
   const totalDbClicks = sum(tableLogs, (curr) => curr.clicks || 0);
-  const totalDbOrdersFunnel = sum(tableLogs, (curr) => curr.orders || curr.buyers || 0);
+  const totalDbOrdersFunnel = sum(tableLogs, (curr) => curr.orders || 0);
   const pTotalDbImpressions = sum(prevTableLogs, (curr) => {
     const shopee = curr.platform && curr.platform.toLowerCase().includes("shopee");
     return shopee

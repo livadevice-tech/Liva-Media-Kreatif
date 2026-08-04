@@ -50,8 +50,8 @@ export function buildReportingUploadSummary(
   const totalLiveVisits = sum(rows, (row) => row.liveVisits || 0);
   const totalProductImpressions = sum(rows, (row) => row.productImpressions || 0);
   const totalClicks = sum(rows, (row) => row.clicks || 0);
-  const totalOrders = sum(rows, (row) => row.orders || row.buyers || 0);
-  const totalBuyerConversions = sum(rows, (row) => row.buyers || row.orders || 0);
+  const totalOrders = sum(rows, (row) => row.orders || 0);
+  const totalBuyerConversions = sum(rows, (row) => row.buyers || 0);
   const totalLikes = sum(rows, (row) => row.likes || 0);
   const totalComments = sum(rows, (row) => row.comments || 0);
   const totalShares = sum(rows, (row) => row.shares || 0);
