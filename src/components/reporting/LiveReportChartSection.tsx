@@ -91,6 +91,7 @@ export function LiveReportChartSection({
         gmvPerHour: duration > 0 ? gmv / (duration / 3600) : 0,
         avgViewDuration: sessionsCount > 0 ? avgViewDurationSum / sessionsCount : 0,
         viewerActive: sessionsCount > 0 ? liveVisits / sessionsCount : 0,
+        durationHours: duration / 3600,
       };
     });
   }, [chartData, granularity]);

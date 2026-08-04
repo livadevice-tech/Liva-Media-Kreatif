@@ -74,6 +74,13 @@ export const liveChartMetricOptions = [
     category: "Sale Metrics",
     platforms: ["shopee"],
   },
+  {
+    key: "durationHours",
+    label: "Live Duration",
+    color: "bg-purple-50 text-purple-700 border-purple-200",
+    category: "Sale Metrics",
+    platforms: ["tiktok", "shopee"],
+  },
 
   // --- Engagement Metrics (Shared) ---
   {
@@ -132,17 +139,10 @@ export const liveChartMetricOptions = [
     label: "Live Viewer",
     color: "bg-blue-50 text-blue-700 border-blue-200",
     category: "Engagement Metrics",
-    platforms: ["tiktok"],
+    platforms: ["tiktok", "shopee"],
   },
 
   // --- Engagement Metrics (Shopee specific) ---
-  {
-    key: "impressions",
-    label: "Viewer",
-    color: "bg-sky-50 text-sky-700 border-sky-200",
-    category: "Engagement Metrics",
-    platforms: ["shopee"],
-  },
   {
     key: "liveVisits",
     label: "Viewer Active",
