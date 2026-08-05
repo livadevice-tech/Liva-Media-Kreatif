@@ -229,9 +229,34 @@ export function PublicBrandResources({
                     <ArrowLeft className="w-4 h-4" /> Kembali
                   </button>
                   
-                  {/* Desktop Title / Empty Space for mobile */}
-                  <div className="hidden lg:block font-bold truncate pr-4" style={{maxWidth: '300px'}}>
-                     {selectedResource.title}
+                  {/* Desktop Title / Empty Space for mobile & Mobile Title Dropdown */}
+                  <div className="flex-1 min-w-0 px-2 lg:px-4">
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border w-fit max-w-full ${isDarkMode ? 'bg-slate-700/50 border-slate-600' : 'bg-slate-50 border-slate-200'}`}>
+                      <FileText className={`w-4 h-4 shrink-0 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} />
+                      <select
+                        value={selectedResource.id}
+                        onChange={(e) => {
+                          const res = resources.find(r => r.id === e.target.value);
+                          if (res) setSelectedResource(res);
+                        }}
+                        className={`bg-transparent border-none p-0 text-sm font-bold truncate focus:ring-0 cursor-pointer w-full max-w-[200px] sm:max-w-[300px] ${isDarkMode ? 'text-slate-200 [&>option]:bg-slate-800' : 'text-slate-800 [&>option]:bg-white'}`}
+                      >
+                        {['guideline', 'script', 'sop'].map(typeGroup => {
+                          const items = resources.filter(r => typeGroup === 'guideline' ? (r.type === 'guideline' || r.type === 'other') : r.type === typeGroup);
+                          if (items.length === 0) return null;
+                          return (
+                            <optgroup 
+                              key={typeGroup} 
+                              label={typeGroup === 'guideline' ? 'Panduan & Umum' : typeGroup.toUpperCase()}
+                            >
+                              {items.map(r => (
+                                <option key={r.id} value={r.id}>{r.title}</option>
+                              ))}
+                            </optgroup>
+                          );
+                        })}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Reader Toolbar */}
