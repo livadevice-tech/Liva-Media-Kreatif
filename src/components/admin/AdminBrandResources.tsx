@@ -3,10 +3,9 @@ import ReactQuill from 'react-quill-new';
 const Quill = ReactQuill.Quill;
 import 'react-quill-new/dist/quill.snow.css';
 // @ts-ignore
-import ImageResize from 'quill-image-resize-module-react';
+import BlotFormatter from '@enzedonline/quill-blot-formatter2';
 
-(window as any).Quill = Quill;
-Quill.register('modules/imageResize', ImageResize);
+Quill.register('modules/blotFormatter', BlotFormatter);
 import { Plus, Edit2, Trash2, Save, X, Search, FileText } from 'lucide-react';
 import type { ClientBrand, BrandResource } from '../../types';
 import { brandResourcesApi } from '../../api';
@@ -159,10 +158,7 @@ export function AdminBrandResources({
                     ['link', 'image'],
                     ['clean']
                   ],
-                  imageResize: {
-                    parchment: Quill.import('parchment'),
-                    modules: ['Resize', 'DisplaySize']
-                  }
+                  blotFormatter: {}
                 }}
               />
             </div>
