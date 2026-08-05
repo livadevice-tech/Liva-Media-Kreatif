@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { Plus, Edit2, Trash2, Save, X, Search, FileText } from 'lucide-react';
 import type { ClientBrand, BrandResource } from '../../types';
 import { brandResourcesApi } from '../../api';
@@ -137,11 +139,21 @@ export function AdminBrandResources({
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Konten / Isi (Atau Link Google Drive)</label>
-              <textarea
+              <ReactQuill
+                theme="snow"
                 value={currentEdit?.content || ''}
-                onChange={(e) => setCurrentEdit({ ...currentEdit, content: e.target.value })}
-                className="w-full border border-slate-300 rounded-lg p-3 text-sm h-48"
-                placeholder="Tuliskan isi panduan di sini..."
+                onChange={(content) => setCurrentEdit({ ...currentEdit, content })}
+                className="bg-white border-slate-300 rounded-lg text-sm [&_.ql-editor]:min-h-[150px] [&_.ql-editor]:text-slate-700"
+                placeholder="Tuliskan isi panduan di sini, dapat menyertakan gambar, link, atau memformat teks..."
+                modules={{
+                  toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['link', 'image'],
+                    ['clean']
+                  ],
+                }}
               />
             </div>
           </div>

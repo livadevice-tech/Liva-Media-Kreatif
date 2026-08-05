@@ -217,24 +217,10 @@ export function PublicBrandResources({
                     })()}
                   </div>
 
-                  <div className="prose prose-slate max-w-none">
-                    {selectedResource.content.split('\n').map((paragraph, idx) => {
-                      if (paragraph.trim().startsWith('http://') || paragraph.trim().startsWith('https://')) {
-                        return (
-                          <p key={idx}>
-                            <a href={paragraph.trim()} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">
-                              {paragraph.trim()}
-                            </a>
-                          </p>
-                        );
-                      }
-                      return (
-                        <p key={idx} className="whitespace-pre-wrap text-slate-700 leading-relaxed">
-                          {paragraph}
-                        </p>
-                      );
-                    })}
-                  </div>
+                  <div 
+                    className="prose prose-slate max-w-none [&_img]:max-w-full [&_img]:h-auto [&_a]:text-blue-600 [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: selectedResource.content }}
+                  />
                 </div>
               </div>
             ) : (
