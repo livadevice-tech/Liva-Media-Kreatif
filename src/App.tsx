@@ -12276,7 +12276,6 @@ export default function App() {
                                 brandUploadHistory={brandUploadHistory}
                                 uploadHistory={uploadHistory}
                                 onDeleteUploadBatch={handleDeleteUploadBatch}
-                                brandDashboardSettings={clientBrands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
                               />
                             </React.Suspense>
                           )}
@@ -12297,7 +12296,6 @@ export default function App() {
                               operatorPlatformFilter={operatorPlatformFilter}
                               operatorShiftFilters={operatorShiftFilters}
                               reportDbSearchQuery={reportDbSearchQuery}
-                      brandDashboardSettings={clientBrands.find((b) => b.id === activeReportBrandId)?.dashboardSettings}
                               skuSortCol={skuSortCol}
                               skuSortAsc={skuSortAsc}
                               setSkuSortCol={setSkuSortCol}
