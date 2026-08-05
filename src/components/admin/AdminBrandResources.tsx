@@ -63,10 +63,15 @@ export function AdminBrandResources({
       } as BrandResource);
     }
     
-    await brandResourcesApi.saveAll(newResources);
-    setResources(newResources);
-    setIsEditing(false);
-    setCurrentEdit(null);
+    try {
+      await brandResourcesApi.saveAll(newResources);
+      setResources(newResources);
+      setIsEditing(false);
+      setCurrentEdit(null);
+    } catch (error: any) {
+      console.error("Gagal menyimpan panduan:", error);
+      alert("Gagal menyimpan panduan. Ukuran konten mungkin terlalu besar karena gambar, atau terjadi masalah jaringan.");
+    }
   };
 
   const handleDelete = async (id: string) => {
