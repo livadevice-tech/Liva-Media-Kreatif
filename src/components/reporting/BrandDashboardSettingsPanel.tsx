@@ -176,7 +176,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                 {/* Metrics */}
                 <div>
                   <label className="block text-slate-500 font-bold mb-4 text-[11px] uppercase tracking-wider">
-                    Sembunyikan Metrik (Summary)
+                    Tampilkan Metrik (Summary)
                   </label>
                   <div className="space-y-3">
                     {((category.id === 'live' 
@@ -187,7 +187,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                         <label key={id} className="flex items-center gap-3 cursor-pointer group">
                           <input
                             type="checkbox"
-                            checked={brand.dashboardSettings?.hiddenMetrics?.includes(id) || false}
+                            checked={!(brand.dashboardSettings?.hiddenMetrics || []).includes(id)}
                             onChange={() => toggleMetric(id)}
                             className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
                           />
@@ -203,7 +203,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                 {/* Columns */}
                 <div>
                   <label className="block text-slate-500 font-bold mb-4 text-[11px] uppercase tracking-wider">
-                    Sembunyikan Kolom (Tabel)
+                    Tampilkan Kolom (Tabel)
                   </label>
                   <div className="space-y-3">
                     {((category.id === 'live' 
@@ -214,7 +214,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                         <label key={id} className="flex items-center gap-3 cursor-pointer group">
                           <input
                             type="checkbox"
-                            checked={brand.dashboardSettings?.hiddenColumns?.includes(id) || false}
+                            checked={!(brand.dashboardSettings?.hiddenColumns || []).includes(id)}
                             onChange={() => toggleColumn(id)}
                             className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
                           />
