@@ -30,6 +30,7 @@ export function LiveReportMetricsSection({
   hideEngagementMetrics = false,
   useShopeeLiveLayout = false,
   brandDashboardSettings,
+  isClientView = false,
 }: LiveReportMetricsSectionProps) {
   const [isDurationVisible, setIsDurationVisible] = useState(true);
 
@@ -91,22 +92,24 @@ export function LiveReportMetricsSection({
     <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
       <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
         <DollarSign className="h-5 w-5 text-[#5600e0]" /> Sale Metrics
-        <div className="flex items-center gap-1 ml-1">
-          {isDurationVisible ? (
-            <>
-              <span className="bg-[#5600e0]/10 text-[#5600e0] px-2.5 py-0.5 rounded-full font-bold tracking-normal text-[11px] lowercase">
-                {formatDurationText(totalDbDuration)}
-              </span>
-              <button onClick={() => setIsDurationVisible(false)} className="text-[#5600e0] hover:bg-[#5600e0]/10 p-1 rounded-full transition-colors">
-                <EyeOff size={14} />
+        {!isClientView && (
+          <div className="flex items-center gap-1 ml-1">
+            {isDurationVisible ? (
+              <>
+                <span className="bg-[#5600e0]/10 text-[#5600e0] px-2.5 py-0.5 rounded-full font-bold tracking-normal text-[11px] lowercase">
+                  {formatDurationText(totalDbDuration)}
+                </span>
+                <button onClick={() => setIsDurationVisible(false)} className="text-[#5600e0] hover:bg-[#5600e0]/10 p-1 rounded-full transition-colors">
+                  <EyeOff size={14} />
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setIsDurationVisible(true)} className="text-[#5600e0] hover:bg-[#5600e0]/10 p-1 rounded-full transition-colors">
+                <Eye size={14} />
               </button>
-            </>
-          ) : (
-            <button onClick={() => setIsDurationVisible(true)} className="text-[#5600e0] hover:bg-[#5600e0]/10 p-1 rounded-full transition-colors">
-              <Eye size={14} />
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </h4>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {!isMetricHidden("gmv") && (

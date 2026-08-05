@@ -161,6 +161,7 @@ import {
   buildMappedUploadRows,
 } from "./shared/utils/mappingUpload";
 import { exportReportToExcel } from "./shared/utils/excelExportUtils";
+import { exportReportToPdf } from "./shared/utils/pdfExportUtils";
 import { buildProductPerformanceViewModel } from "./shared/utils/productPerformanceViewModel";
 import {
   parseReportingUploadRows,
@@ -285,6 +286,7 @@ import { ProductPerformancePanel } from "./components/reporting/ProductPerforman
 import { DeleteByDateModal } from "./components/reporting/DeleteByDateModal";
 import { SkuUploadModal } from "./components/reporting/SkuUploadModal";
 import { DownloadReportModal } from "./components/reporting/DownloadReportModal";
+import { ClientDownloadConfirmationModal } from "./components/reporting/ClientDownloadConfirmationModal";
 import { ReportingUploadAnalyticsSection } from "./components/reporting/ReportingUploadAnalyticsSection";
 import { ReportingUploadPreviewTable } from "./components/reporting/ReportingUploadPreviewTable";
 import { CutoffPeriodSelector } from "./components/reporting/CutoffPeriodSelector";
@@ -5026,56 +5028,6 @@ export default function App() {
               className="flex h-screen bg-[#fafbfc] overflow-hidden text-slate-800 font-sans"
               id="client-wrapper"
             >
-              {/* LEFT SIDEBAR */}
-              <aside
-                className={`transition-all duration-200 ease-in-out ${isClientSidebarVisible ? "w-64 p-0 opacity-100 border-r" : "w-0 p-0 overflow-hidden opacity-0 border-r-0"} bg-white border-slate-200 flex flex-col justify-between flex-shrink-0 hidden md:flex font-sans`}
-              >
-                <div>
-                  <div className="h-20 flex items-center px-8 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center min-w-[32px]">
-                        <span className="text-white font-black text-sm">L</span>
-                      </div>
-                      <span className="font-bold text-lg text-slate-900 truncate whitespace-nowrap">
-                        {clientBrand?.name || "Brand Partner"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="py-6 px-4 space-y-1">
-                    {[
-                      {
-                        id: "performance",
-                        label: "Report Live",
-                        icon: BarChart2,
-                      },
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${item.id === "performance" ? "bg-indigo-50 text-indigo-700" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"} border-0`}
-                      >
-                        <item.icon
-                          className={`w-4 h-4 min-w-[16px] ${item.id === "performance" ? "text-indigo-600" : "text-slate-400"}`}
-                        />
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-1 border-t border-slate-100">
-                  <div className="mt-4 px-4 flex justify-between items-center bg-slate-50 p-2 rounded-xl border border-slate-100 whitespace-nowrap">
-                    <div className="text-xs font-semibold text-slate-700 truncate max-w-[120px]">
-                      {clientBrand?.name} Admin
-                    </div>
-                    <button
-                      onClick={handleLogout}
-                      className="text-slate-400 hover:text-rose-500 cursor-pointer border-0 bg-transparent p-1 hidden sm:block delay-150 relative"
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </aside>
 
               {/* MAIN CONTENT AREA */}
               <main
@@ -5084,45 +5036,36 @@ export default function App() {
               >
                 <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 pb-12 sm:px-6 lg:px-8 mt-6">
                   {/* TOP HEADER */}
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() =>
-                          setIsClientSidebarVisible(!isClientSidebarVisible)
-                        }
-                        className="hidden md:flex p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all cursor-pointer items-center justify-center shadow-sm"
-                        title={
-                          isClientSidebarVisible
-                            ? "Tutup Sidebar"
-                            : "Buka Sidebar"
-                        }
-                      >
-                        <Menu className="w-4 h-4" />
-                      </button>
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-[20px] border border-slate-100 shadow-sm">
+                    <div className="flex items-center gap-4">
+                      {/* Liva Logo */}
+                      <div className="hidden md:flex">
+                        <LivaLogo className="w-10 h-10" url={agencyLogoUrl} />
+                      </div>
                       <div>
-                        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                          Data Analytics Dashboard
+                        <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                          <span className="md:hidden"><LivaLogo className="w-6 h-6" url={agencyLogoUrl} /></span>
+                          {clientBrand?.name || "Brand Partner"}
                         </h1>
-                        <p className="text-sm text-slate-500 mt-1 font-medium">
-                          Pantau performa penjualan dan engagement Live stream
-                          secara real-time.
+                        <p className="text-xs md:text-sm text-slate-500 font-medium">
+                          Data Analytics Dashboard
                         </p>
                       </div>
                     </div>
 
                     {/* MOBILE CONTROLS & DOWNLOAD BUTTON */}
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={handleLogout}
-                        className="md:hidden flex items-center gap-2 p-2 rounded-lg bg-rose-50 text-rose-600 border border-rose-100"
-                      >
-                        <LogOut className="w-4 h-4" />
-                      </button>
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
                       <button 
                         onClick={() => setIsDownloadModalOpen(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all shadow-sm border-0 cursor-pointer flex items-center gap-2"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm border-0 cursor-pointer flex items-center gap-2"
                       >
-                        <Download className="w-4 h-4" /> Unduh Laporan
+                        <Download className="w-4 h-4" /> <span className="hidden sm:inline">Unduh Laporan</span>
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold border-0 cursor-pointer transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Keluar</span>
                       </button>
                     </div>
                   </div>
@@ -5319,6 +5262,7 @@ export default function App() {
                           brandDashboardSettings={clientBrands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
                           hideUploadHistory={true}
                           hideRawTableControls={true}
+                          isClientView={true}
                         />
                       </React.Suspense>
                     )}
@@ -5359,44 +5303,107 @@ export default function App() {
               </main>
 
               {/* DOWNLOAD EXCEL MODAL */}
-              <DownloadReportModal
+              <ClientDownloadConfirmationModal
                 isOpen={isDownloadModalOpen}
                 onClose={() => setIsDownloadModalOpen(false)}
-                reportType={clientReportingTab}
-                showAdvancedFilters={true}
-                onDownload={(selectedMetrics, exportPlatform, exportStart, exportEnd) => {
-                  let customLiveView = clientLiveReportView;
-                  let customProductView = clientProductReportView;
-                  let customEngagementView = clientEngagementReportView;
-
-                  // If custom filters are provided, override the views
-                  if (exportPlatform && exportPlatform !== "Semua Platform" || exportStart || exportEnd) {
-                    const filteredLogs = brandPerformanceLogs.filter((log) => {
-                      if (log.brandId !== loggedInClientBrandId) return false;
-                      if (exportPlatform && exportPlatform !== "Semua Platform" && log.platform.toLowerCase() !== exportPlatform.toLowerCase()) return false;
-                      if (exportStart && (log.date || "").split(" ")[0] < exportStart) return false;
-                      if (exportEnd && (log.date || "").split(" ")[0] > exportEnd) return false;
-                      return true;
-                    });
-                    customLiveView = { filteredDb: filteredLogs };
-                    customEngagementView = { filteredDb: filteredLogs };
-
-                    const filteredSkus = shopeeSkuLogs.filter((log) => {
-                      if (log.brandId !== loggedInClientBrandId) return false;
-                      if (exportStart && log.date < exportStart) return false;
-                      if (exportEnd && log.date > exportEnd) return false;
-                      return true;
-                    });
-                    customProductView = { filteredDb: filteredSkus };
-                  }
+                startDate={clientDateFilterType === "latest" ? clientSelectedLatestDate : clientCustomStartDate}
+                endDate={clientDateFilterType === "latest" ? clientSelectedLatestDate : clientCustomEndDate}
+                platform={clientPlatformFilter}
+                onDownloadExcel={() => {
+                  const options =
+                    clientReportingTab === "live"
+                      ? [
+                          "date",
+                          "time",
+                          "platform",
+                          "viewers",
+                          "gmv",
+                          "products_sold",
+                          "buyers",
+                          "conversion_rate",
+                          "avg_view_duration",
+                          "peak_viewers",
+                          "clicks",
+                          "shares",
+                        ]
+                      : clientReportingTab === "product"
+                        ? [
+                            "date",
+                            "platform",
+                            "sku",
+                            "product_name",
+                            "sold",
+                            "revenue",
+                          ]
+                        : [
+                            "date",
+                            "time",
+                            "platform",
+                            "viewers",
+                            "new_followers",
+                            "comments",
+                            "shares",
+                            "likes",
+                            "peak_viewers",
+                          ];
 
                   exportReportToExcel({
                     reportType: clientReportingTab,
-                    selectedMetrics,
-                    brandName: clientBrand?.name || "Mitra",
-                    liveReportView: customLiveView,
-                    productReportView: customProductView,
-                    engagementReportView: customEngagementView,
+                    selectedMetrics: options,
+                    brandName: clientBrands.find((b) => b.id === loggedInClientBrandId)?.name || "Client_Brand",
+                    liveReportView: clientLiveReportView,
+                    productReportView: clientProductReportView,
+                    engagementReportView: clientEngagementReportView,
+                    dateFilterType: clientDateFilterType,
+                    selectedLatestDate: clientSelectedLatestDate,
+                    platformFilter: clientPlatformFilter,
+                  });
+                }}
+                onDownloadPdf={() => {
+                  const options =
+                    clientReportingTab === "live"
+                      ? [
+                          "date",
+                          "time",
+                          "platform",
+                          "viewers",
+                          "gmv",
+                          "products_sold",
+                          "buyers",
+                          "conversion_paddle",
+                          "avg_view_duration",
+                          "peak_viewers",
+                          "clicks",
+                          "shares",
+                        ]
+                      : clientReportingTab === "product"
+                        ? [
+                            "date",
+                            "platform",
+                            "sku",
+                            "product_name",
+                            "sold",
+                            "revenue",
+                          ]
+                        : [
+                            "date",
+                            "time",
+                            "platform",
+                            "viewers",
+                            "new_followers",
+                            "comments",
+                            "shares",
+                            "likes",
+                            "peak_viewers",
+                          ];
+
+                  exportReportToPdf({
+                    reportType: clientReportingTab,
+                    selectedMetrics: options,
+                    brandName: clientBrands.find((b) => b.id === loggedInClientBrandId)?.name || "Client_Brand",
+                    liveReportView: clientLiveReportView,
+                    productReportView: clientProductReportView,
+                    engagementReportView: clientEngagementReportView,
                     dateFilterType: clientDateFilterType,
                     selectedLatestDate: clientSelectedLatestDate,
                     platformFilter: clientPlatformFilter,

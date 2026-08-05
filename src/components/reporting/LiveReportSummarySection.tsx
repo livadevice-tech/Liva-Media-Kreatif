@@ -15,6 +15,7 @@ type LiveReportSummarySectionProps = {
   hideEngagementMetrics?: boolean;
   useShopeeLiveLayout?: boolean;
   brandDashboardSettings?: BrandDashboardSettings;
+  isClientView?: boolean;
   isShopee?: boolean;
   hasData?: boolean;
 };
@@ -30,6 +31,7 @@ export function LiveReportSummarySection({
   hideEngagementMetrics = false,
   useShopeeLiveLayout = false,
   brandDashboardSettings,
+  isClientView = false,
   isShopee = false,
   hasData = true,
 }: LiveReportSummarySectionProps) {
@@ -66,6 +68,7 @@ export function LiveReportSummarySection({
             hideEngagementMetrics={hideEngagementMetrics}
             useShopeeLiveLayout={useShopeeLiveLayout}
             brandDashboardSettings={brandDashboardSettings}
+            isClientView={isClientView}
           />
         </>
       )}

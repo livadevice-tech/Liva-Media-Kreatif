@@ -45,6 +45,7 @@ interface LiveReportPanelProps {
   brandDashboardSettings?: BrandDashboardSettings;
   hideUploadHistory?: boolean;
   hideRawTableControls?: boolean;
+  isClientView?: boolean;
 }
 
 export function LiveReportPanel({
@@ -72,8 +73,9 @@ export function LiveReportPanel({
   uploadHistory,
   onDeleteUploadBatch,
   brandDashboardSettings,
-  hideUploadHistory,
-  hideRawTableControls,
+  hideUploadHistory = false,
+  hideRawTableControls = false,
+  isClientView = false,
 }: LiveReportPanelProps) {
   const isTikTokLive =
     operatorPlatformFilter.toLowerCase().includes("tiktok");
@@ -116,6 +118,7 @@ export function LiveReportPanel({
         brandDashboardSettings={brandDashboardSettings}
         isShopee={!isTikTokLive}
         hasData={hasAnyData}
+        isClientView={isClientView}
       />
 
       <ReportRawSessionsCard
@@ -138,6 +141,7 @@ export function LiveReportPanel({
         brandDashboardSettings={brandDashboardSettings}
         isShopee={!isTikTokLive}
         hideControls={hideRawTableControls}
+        isClientView={isClientView}
       />
 
       {!hideUploadHistory && (

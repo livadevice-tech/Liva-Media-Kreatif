@@ -312,6 +312,9 @@ export default function HostDashboard({
     const firstDay = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
     const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
 
+    const todayStrObj = new Date();
+    const todayStr = `${todayStrObj.getFullYear()}-${String(todayStrObj.getMonth() + 1).padStart(2, '0')}-${String(todayStrObj.getDate()).padStart(2, '0')}`;
+
     return Array.from({ length: 42 }).map((_, i) => {
       if (i < adjustedFirstDay || i >= adjustedFirstDay + daysInMonth) {
         return <div key={`empty-${i}`} className="py-1.5" />;
@@ -324,15 +327,32 @@ export default function HostDashboard({
       const daySchedule = hostSchedules.find(s => s.date === dateStr);
 
       let style = 'bg-white text-slate-500 border border-slate-200';
+      let isPassedAndCheckedIn = false;
+
       if (daySchedule) {
-        const brand = daySchedule.brandHandled || daySchedule.brand;
-        const colorObj = getBrandColor(brand);
-        style = `${colorObj.bg} ${colorObj.text} border-2 ${colorObj.border} font-black`;
+        const isPast = dateStr < todayStr;
+        const hasCheckedInOnDate = hostLogs?.some(
+          (log) => log.hostId === activeHostObj?.id && log.date === dateStr
+        );
+
+        if (isPast && hasCheckedInOnDate) {
+          isPassedAndCheckedIn = true;
+          style = `bg-emerald-700 text-white border-2 border-emerald-800 font-black relative group`;
+        } else {
+          const brand = daySchedule.brandHandled || daySchedule.brand;
+          const colorObj = getBrandColor(brand);
+          style = `${colorObj.bg} ${colorObj.text} border-2 ${colorObj.border} font-black`;
+        }
       }
       
       return (
         <div key={day} onClick={() => setSelectedDate(dateStr)} className={`py-1.5 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-all ${style} ${selectedDate === dateStr ? 'ring-2 ring-purple-500 ring-offset-1 scale-110 z-10' : ''}`}>
           {day}
+          {isPassedAndCheckedIn && (
+            <span className="hidden group-hover:block absolute bottom-full mb-1 bg-emerald-900 text-white text-[9px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap z-20">
+              Sudah Absen
+            </span>
+          )}
         </div>
       );
     });
