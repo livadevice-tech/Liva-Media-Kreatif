@@ -13,6 +13,7 @@ interface CustomSelectProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  searchable?: boolean;
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -22,9 +23,12 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   placeholder = 'Pilih...',
   className = '',
   disabled = false,
+  searchable = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -43,6 +47,18 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (isOpen && searchable && searchInputRef.current) {
+      searchInputRef.current.focus();
+    } else if (!isOpen) {
+      setSearchQuery('');
+    }
+  }, [isOpen, searchable]);
+
+  const filteredOptions = searchable 
+    ? options.filter(opt => opt.label.toLowerCase().includes(searchQuery.toLowerCase()))
+    : options;
 
   return (
     <div
@@ -63,12 +79,25 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
       {isOpen && (
         <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-          {options.length === 0 ? (
+          {searchable && (
+            <div className="sticky top-0 z-10 bg-white px-2 py-2">
+              <input
+                type="text"
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari..."
+                className="w-full rounded-md border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+          {filteredOptions.length === 0 ? (
             <div className="relative cursor-default select-none px-4 py-2 text-slate-500">
               Tidak ada pilihan
             </div>
           ) : (
-            options.map((option) => {
+            filteredOptions.map((option) => {
               const isSelected = option.value === value;
               return (
                 <div

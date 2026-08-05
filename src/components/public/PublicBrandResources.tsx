@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, Search, Filter, FileText, ChevronRight } from 'lucide-react';
 import type { ClientBrand, BrandResource } from '../../types';
 import { brandResourcesApi, clientBrandsApi } from '../../api';
+import { CustomSelect } from '../ui/CustomSelect';
 
 export function PublicBrandResources({ 
   brands,
@@ -82,19 +83,17 @@ export function PublicBrandResources({
               </h3>
               
               <div className="space-y-3 mb-6">
-                <select
+                <CustomSelect
                   value={selectedBrandId}
-                  onChange={(e) => {
-                    setSelectedBrandId(e.target.value);
+                  onChange={(val) => {
+                    setSelectedBrandId(val);
                     setSelectedResource(null);
                   }}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-                >
-                  <option value="" disabled>-- Pilih Brand --</option>
-                  {displayBrands.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
+                  options={displayBrands.map(b => ({ value: b.id, label: b.name }))}
+                  placeholder="-- Pilih Brand --"
+                  searchable={true}
+                  className="mb-4"
+                />
 
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
