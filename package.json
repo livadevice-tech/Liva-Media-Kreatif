@@ -33,6 +33,7 @@
     "multer": "^2.2.0",
     "mysql2": "^3.14.0",
     "nodemailer": "^9.0.3",
+    "quill-image-resize-module-react": "^3.0.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-is": "^19.2.8",
