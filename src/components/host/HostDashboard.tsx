@@ -203,6 +203,7 @@ export default function HostDashboard({
     let totalEarlyMinutes = 0;
     let earlyCount = 0;
     let validShifts = 0;
+    let toleransiCount = 0;
     
     // Sort logs from oldest to newest to apply score sequentially
     const sortedLogs = [...(hostLogs || [])].sort((a, b) => {
@@ -256,7 +257,16 @@ export default function HostDashboard({
               pointChange = 0;
               reason = `Tepat Waktu`;
               totalEarlyMinutes += diffMins;
-            } else if (diffMins < 0 && diffMins >= -15) {
+            } else if (diffMins < 0 && diffMins >= -5) {
+              if (toleransiCount < 3) {
+                pointChange = 0;
+                reason = `Toleransi Telat (${Math.abs(diffMins)}m)`;
+                toleransiCount++;
+              } else {
+                pointChange = -2;
+                reason = `Telat Ringan (${Math.abs(diffMins)}m)`;
+              }
+            } else if (diffMins < -5 && diffMins >= -15) {
               pointChange = -2;
               reason = `Telat Ringan (${Math.abs(diffMins)}m)`;
             } else if (diffMins < -15) {
@@ -330,12 +340,11 @@ export default function HostDashboard({
       let isPassedAndCheckedIn = false;
 
       if (daySchedule) {
-        const isPast = dateStr < todayStr;
         const hasCheckedInOnDate = hostLogs?.some(
           (log) => log.hostId === activeHostObj?.id && log.date === dateStr
         );
 
-        if (isPast && hasCheckedInOnDate) {
+        if (hasCheckedInOnDate) {
           isPassedAndCheckedIn = true;
           style = `bg-emerald-700 text-white border-2 border-emerald-800 font-black relative group`;
         } else {

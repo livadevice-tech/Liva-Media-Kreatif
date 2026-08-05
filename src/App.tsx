@@ -6028,6 +6028,7 @@ export default function App() {
                     let score = 100;
                     let validShifts = 0;
                     let totalEarlyMinutes = 0;
+                    let toleransiCount = 0;
 
                     const sortedLogs = [...hostLogsForDiscipline].sort((a, b) => {
                       return new Date(a.date).getTime() - new Date(b.date).getTime();
@@ -6050,7 +6051,13 @@ export default function App() {
                               totalEarlyMinutes += diffMins;
                             } else if (diffMins >= 0 && diffMins < 30) {
                               totalEarlyMinutes += diffMins;
-                            } else if (diffMins < 0 && diffMins >= -15) {
+                            } else if (diffMins < 0 && diffMins >= -5) {
+                              if (toleransiCount < 3) {
+                                toleransiCount++;
+                              } else {
+                                score -= 2;
+                              }
+                            } else if (diffMins < -5 && diffMins >= -15) {
                               score -= 2;
                             } else if (diffMins < -15) {
                               score -= 5;
