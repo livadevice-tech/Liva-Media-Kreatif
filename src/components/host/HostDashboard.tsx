@@ -776,7 +776,8 @@ export default function HostDashboard({
                     {log.reason && (
                       <span className={`text-[10px] font-bold mt-1.5 px-2 py-0.5 rounded-full inline-block w-fit ${
                         log.pointChange > 0 ? 'bg-emerald-100 text-emerald-700' : 
-                        log.pointChange < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'
+                        log.pointChange < 0 ? 'bg-rose-100 text-rose-700' : 
+                        log.reason.startsWith('Toleransi Telat') ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-700'
                       }`}>
                         {log.reason}
                       </span>
