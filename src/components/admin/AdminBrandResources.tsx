@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import ReactQuill, { Quill } from 'react-quill-new';
+import ReactQuill from 'react-quill-new';
+const Quill = ReactQuill.Quill;
 import 'react-quill-new/dist/quill.snow.css';
 // @ts-ignore
 import ImageResize from 'quill-image-resize-module-react';
