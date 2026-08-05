@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ReactQuill from 'react-quill-new';
 const Quill = ReactQuill.Quill;
 import 'react-quill-new/dist/quill.snow.css';
@@ -9,6 +9,7 @@ Quill.register('modules/blotFormatter', BlotFormatter);
 import { Plus, Edit2, Trash2, Save, X, Search, FileText } from 'lucide-react';
 import type { ClientBrand, BrandResource } from '../../types';
 import { brandResourcesApi } from '../../api';
+import { ImageCropperModal } from '../ui/ImageCropperModal';
 
 export function AdminBrandResources({ 
   brands 
@@ -24,6 +25,11 @@ export function AdminBrandResources({
   const [search, setSearch] = useState('');
   const [filterBrand, setFilterBrand] = useState('all');
   const [activeTab, setActiveTab] = useState<'all' | 'guideline' | 'script' | 'sop'>('all');
+
+  const quillRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState('');
 
   useEffect(() => {
     loadResources();
@@ -77,6 +83,52 @@ export function AdminBrandResources({
     const matchTab = activeTab === 'all' || r.type === activeTab;
     return matchSearch && matchBrand && matchTab;
   });
+
+  const imageHandler = useCallback(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCropImageSrc(reader.result as string);
+        setIsCropperOpen(true);
+      };
+      reader.readAsDataURL(file);
+      // Reset input value so the same file can be selected again
+      e.target.value = '';
+    }
+  };
+
+  const handleCropComplete = (croppedImageBase64: string) => {
+    const editor = quillRef.current?.getEditor();
+    if (editor) {
+      const range = editor.getSelection(true);
+      editor.insertEmbed(range.index, 'image', croppedImageBase64);
+      editor.setSelection(range.index + 1);
+    }
+    setIsCropperOpen(false);
+  };
+
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        ['link', 'image'],
+        ['clean']
+      ],
+      handlers: {
+        image: imageHandler
+      }
+    },
+    blotFormatter: {}
+  }), [imageHandler]);
 
   return (
     <div className="space-y-6">
@@ -144,22 +196,27 @@ export function AdminBrandResources({
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Konten / Isi (Atau Link Google Drive)</label>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
               <ReactQuill
+                ref={quillRef}
                 theme="snow"
                 value={currentEdit?.content || ''}
                 onChange={(content) => setCurrentEdit({ ...currentEdit, content })}
                 className="bg-white border-slate-300 rounded-lg text-sm [&_.ql-editor]:min-h-[150px] [&_.ql-editor]:text-slate-700"
                 placeholder="Tuliskan isi panduan di sini, dapat menyertakan gambar, link, atau memformat teks..."
-                modules={{
-                  toolbar: [
-                    [{ 'header': [1, 2, 3, false] }],
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    ['link', 'image'],
-                    ['clean']
-                  ],
-                  blotFormatter: {}
-                }}
+                modules={modules}
+              />
+              <ImageCropperModal
+                isOpen={isCropperOpen}
+                imageSrc={cropImageSrc}
+                onClose={() => setIsCropperOpen(false)}
+                onCropComplete={handleCropComplete}
               />
             </div>
           </div>
