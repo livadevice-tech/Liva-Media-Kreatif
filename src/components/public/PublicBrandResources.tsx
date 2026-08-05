@@ -218,7 +218,7 @@ export function PublicBrandResources({
                   </div>
 
                   <div 
-                    className="prose prose-slate prose-p:leading-relaxed prose-headings:font-bold prose-a:text-blue-600 hover:prose-a:text-blue-700 max-w-none [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:shadow-sm"
+                    className="prose prose-slate prose-p:leading-relaxed prose-headings:font-bold prose-a:text-blue-600 hover:prose-a:text-blue-700 max-w-none break-words whitespace-normal [&_*]:break-words [&_*]:whitespace-normal [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:shadow-sm"
                     dangerouslySetInnerHTML={{ __html: selectedResource.content }}
                   />
                 </div>
