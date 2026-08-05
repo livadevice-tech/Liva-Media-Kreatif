@@ -321,15 +321,15 @@ export function PublicBrandResources({
                     })()}
                   </div>
 
-                  {/* Typography Fix */}
+                  {/* Typography Fix: Replace &nbsp; with normal space to allow natural word wrapping */}
                   <div 
                     ref={contentRef}
                     className={`prose ${fontSize} max-w-none transition-all duration-300 ${
                       isDarkMode 
                         ? 'prose-invert prose-slate prose-a:text-blue-400 hover:prose-a:text-blue-300' 
                         : 'prose-slate prose-a:text-blue-600 hover:prose-a:text-blue-700'
-                    } break-normal whitespace-normal [&_a]:break-all [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:shadow-sm`}
-                    dangerouslySetInnerHTML={{ __html: (selectedResource as any)._htmlWithIds || selectedResource.content }}
+                    } break-words whitespace-normal [&_a]:break-all [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-xl [&_img]:shadow-sm`}
+                    dangerouslySetInnerHTML={{ __html: ((selectedResource as any)._htmlWithIds || selectedResource.content).replace(/&nbsp;/g, ' ') }}
                   />
                 </div>
               </div>
