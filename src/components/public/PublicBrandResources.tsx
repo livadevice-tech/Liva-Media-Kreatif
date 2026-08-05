@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, Search, Filter, FileText, ChevronRight } from 'lucide-react';
 import type { ClientBrand, BrandResource } from '../../types';
-import { brandResourcesApi } from '../../api';
+import { brandResourcesApi, clientBrandsApi } from '../../api';
 
 export function PublicBrandResources({ 
   brands,
