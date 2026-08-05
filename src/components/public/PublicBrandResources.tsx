@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, BookOpen, Search, Filter, FileText, ChevronRight, Moon, Sun, Type, ZoomIn, ZoomOut, List, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Search, Filter, FileText, ChevronRight, ChevronDown, Moon, Sun, Type, ZoomIn, ZoomOut, List, X } from 'lucide-react';
 import type { ClientBrand, BrandResource } from '../../types';
 import { brandResourcesApi, clientBrandsApi } from '../../api';
 import { CustomSelect } from '../ui/CustomSelect';
@@ -26,8 +26,21 @@ export function PublicBrandResources({
   const [toc, setToc] = useState<{id: string, text: string, level: string}[]>([]);
   const [showToc, setShowToc] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isResourceDropdownOpen, setResourceDropdownOpen] = useState(false);
+  const [resourceSearch, setResourceSearch] = useState('');
   
   const displayBrands = brands.length > 0 ? brands : publicBrands;
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setResourceDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -230,33 +243,74 @@ export function PublicBrandResources({
                   </button>
                   
                   {/* Desktop Title / Empty Space for mobile & Mobile Title Dropdown */}
-                  <div className="flex-1 min-w-0 px-2 lg:px-4">
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border w-fit max-w-full ${isDarkMode ? 'bg-slate-700/50 border-slate-600' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex-1 min-w-0 px-2 lg:px-4 relative" ref={dropdownRef}>
+                    <button 
+                      onClick={() => setResourceDropdownOpen(!isResourceDropdownOpen)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border w-fit max-w-full transition-colors ${isDarkMode ? 'bg-slate-700/50 border-slate-600 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
+                    >
                       <FileText className={`w-4 h-4 shrink-0 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} />
-                      <select
-                        value={selectedResource.id}
-                        onChange={(e) => {
-                          const res = resources.find(r => r.id === e.target.value);
-                          if (res) setSelectedResource(res);
-                        }}
-                        className={`bg-transparent border-none p-0 text-sm font-bold truncate focus:ring-0 cursor-pointer w-full max-w-[200px] sm:max-w-[300px] ${isDarkMode ? 'text-slate-200 [&>option]:bg-slate-800' : 'text-slate-800 [&>option]:bg-white'}`}
-                      >
-                        {['guideline', 'script', 'sop'].map(typeGroup => {
-                          const items = resources.filter(r => typeGroup === 'guideline' ? (r.type === 'guideline' || r.type === 'other') : r.type === typeGroup);
-                          if (items.length === 0) return null;
-                          return (
-                            <optgroup 
-                              key={typeGroup} 
-                              label={typeGroup === 'guideline' ? 'Panduan & Umum' : typeGroup.toUpperCase()}
-                            >
-                              {items.map(r => (
-                                <option key={r.id} value={r.id}>{r.title}</option>
-                              ))}
-                            </optgroup>
-                          );
-                        })}
-                      </select>
-                    </div>
+                      <span className={`text-sm font-bold truncate ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        {selectedResource.title}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${isResourceDropdownOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} />
+                    </button>
+
+                    {isResourceDropdownOpen && (
+                      <div className={`absolute top-full left-2 lg:left-4 mt-2 w-[300px] max-w-[calc(100vw-32px)] max-h-[60vh] overflow-hidden flex flex-col rounded-xl shadow-lg border z-50 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-black/50' : 'bg-white border-slate-200 shadow-slate-200/50'}`}>
+                        <div className={`p-2 border-b ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                          <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input 
+                              type="text"
+                              placeholder="Cari dokumen..."
+                              value={resourceSearch}
+                              onChange={(e) => setResourceSearch(e.target.value)}
+                              className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${isDarkMode ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
+                              autoFocus
+                            />
+                          </div>
+                        </div>
+                        <div className="overflow-y-auto flex-1 p-2 space-y-1">
+                          {['guideline', 'script', 'sop'].map(typeGroup => {
+                            const items = resources.filter(r => {
+                              const matchType = typeGroup === 'guideline' ? (r.type === 'guideline' || r.type === 'other') : r.type === typeGroup;
+                              const matchSearch = r.title.toLowerCase().includes(resourceSearch.toLowerCase());
+                              return matchType && matchSearch;
+                            });
+                            if (items.length === 0) return null;
+                            return (
+                              <div key={typeGroup} className="mb-2 last:mb-0">
+                                <div className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                  {typeGroup === 'guideline' ? 'Panduan & Umum' : typeGroup}
+                                </div>
+                                {items.map(r => (
+                                  <button
+                                    key={r.id}
+                                    onClick={() => {
+                                      setSelectedResource(r);
+                                      setResourceDropdownOpen(false);
+                                      setResourceSearch('');
+                                    }}
+                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                                      selectedResource.id === r.id 
+                                        ? (isDarkMode ? 'bg-blue-500/20 text-blue-400 font-medium' : 'bg-blue-50 text-blue-600 font-medium')
+                                        : (isDarkMode ? 'text-slate-300 hover:bg-slate-700/50' : 'text-slate-700 hover:bg-slate-50')
+                                    }`}
+                                  >
+                                    {r.title}
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })}
+                          {resources.filter(r => r.title.toLowerCase().includes(resourceSearch.toLowerCase())).length === 0 && (
+                            <div className={`p-4 text-center text-sm ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                              Dokumen tidak ditemukan
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Reader Toolbar */}
