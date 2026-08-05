@@ -743,18 +743,22 @@ export default function HostDashboard({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-xl font-black text-emerald-700">{hostLogs.filter(l => l.status !== 'Late' && l.status !== 'Absent' && l.status !== 'Excused').length}</span>
-              <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1">Hadir Tepat</span>
+          <div className="grid grid-cols-4 gap-2 mb-6">
+            <div className="bg-emerald-50 rounded-xl p-2 border border-emerald-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-lg font-black text-emerald-700">{hostLogs.filter(l => l.status !== 'Late' && l.status !== 'Absent' && l.status !== 'Excused').length}</span>
+              <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1 text-center">Hadir Tepat</span>
             </div>
-            <div className="bg-amber-50 rounded-xl p-3 border border-amber-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-xl font-black text-amber-700">{hostLogs.filter(l => l.status === 'Late').length}</span>
-              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1">Telat</span>
+            <div className="bg-amber-50 rounded-xl p-2 border border-amber-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-lg font-black text-amber-700">{attendanceHistory.filter(h => h.reason.startsWith('Toleransi Telat')).length}</span>
+              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1 text-center">Toleransi</span>
             </div>
-            <div className="bg-rose-50 rounded-xl p-3 border border-rose-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-xl font-black text-rose-700">{hostLogs.filter(l => l.status === 'Absent').length}</span>
-              <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest mt-1">Mangkir</span>
+            <div className="bg-orange-50 rounded-xl p-2 border border-orange-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-lg font-black text-orange-700">{attendanceHistory.filter(h => h.reason.startsWith('Telat Ringan') || h.reason.startsWith('Telat Parah')).length}</span>
+              <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest mt-1 text-center">Telat</span>
+            </div>
+            <div className="bg-rose-50 rounded-xl p-2 border border-rose-100 flex flex-col items-center justify-center shadow-sm">
+              <span className="text-lg font-black text-rose-700">{hostLogs.filter(l => l.status === 'Absent').length}</span>
+              <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest mt-1 text-center">Mangkir</span>
             </div>
           </div>
 
