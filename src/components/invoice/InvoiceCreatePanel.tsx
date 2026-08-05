@@ -159,7 +159,11 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Invoice (Issue Date)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Invoice (Invoice Date)</label>
+                  <input type="date" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.invoiceDate || draftInvoice.issueDate || ""} onChange={e => setDraftInvoice({...draftInvoice, invoiceDate: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Tanggal Dibuat (Issue Date)</label>
                   <input type="date" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-bold bg-white" value={draftInvoice.issueDate || ""} onChange={e => setDraftInvoice({...draftInvoice, issueDate: e.target.value})} />
                 </div>
                 <div>

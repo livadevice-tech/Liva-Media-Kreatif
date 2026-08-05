@@ -64,9 +64,13 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
             <label className="block text-xs font-bold text-slate-500 mb-1">Alamat/Address</label>
             <textarea className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" rows={3} value={invoiceEditor.address || ""} onChange={e => setInvoiceEditor({...invoiceEditor, address: e.target.value})}></textarea>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1">Issue Date</label>
+              <label className="block text-xs font-bold text-slate-500 mb-1">Invoice Date</label>
+              <input type="date" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={invoiceEditor.invoiceDate || invoiceEditor.issueDate || ""} onChange={e => setInvoiceEditor({...invoiceEditor, invoiceDate: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-1">Created Date</label>
               <input type="date" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={invoiceEditor.issueDate} onChange={e => setInvoiceEditor({...invoiceEditor, issueDate: e.target.value})} />
             </div>
             <div>

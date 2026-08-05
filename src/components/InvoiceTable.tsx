@@ -160,7 +160,8 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                        </select>
                     </td>
                     <td className="py-4 px-6">
-                       <div className="text-xs font-medium text-slate-700 mb-0.5">Dibuat: {formatDateUI(inv.issueDate)}</div>
+                       <div className="text-xs font-medium text-slate-700 mb-0.5">Tgl Invoice: {formatDateUI(inv.invoiceDate || inv.issueDate)}</div>
+                       <div className="text-xs font-medium text-slate-500 mb-0.5">Dibuat: {formatDateUI(inv.issueDate)}</div>
                        <div className="text-[10px] font-medium text-slate-500">Tenggat: <span className={inv.status === 'Overdue' ? 'text-red-500' : ''}>{formatDateUI(inv.dueDate)}</span></div>
                     </td>
                     <td className="py-4 px-6 text-right">

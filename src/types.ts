@@ -156,6 +156,7 @@ export interface BrandAccount {
 export interface BrandInvoice {
   id: string;
   invoiceNumber: string;
+  invoiceDate?: string;
   issueDate: string;
   dueDate: string;
   status: "Draft" | "Open Invoice" | "Paid" | "Overdue";

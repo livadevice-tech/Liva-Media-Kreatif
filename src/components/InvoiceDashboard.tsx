@@ -121,7 +121,10 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
     });
     
     if (filterMonth) {
-      list = list.filter(inv => inv.issueDate.startsWith(filterMonth));
+      list = list.filter(inv => {
+        const dateToUse = inv.invoiceDate || inv.issueDate;
+        return dateToUse.startsWith(filterMonth);
+      });
     }
     
     return list.sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
@@ -234,6 +237,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
     setDraftInvoice({
       id: `inv_${Date.now()}`,
       invoiceNumber: invoiceNumber,
+      invoiceDate: today.toISOString().substring(0, 10),
       issueDate: today.toISOString().substring(0, 10),
       dueDate: dueDate.toISOString().substring(0, 10),
       status: "Draft",
@@ -351,7 +355,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
     const printDoc = iframe.contentWindow?.document || iframe.contentDocument;
     if (!printDoc) return;
     
-    const issueParts = new Date(invoice.issueDate).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+    const invoiceDateToUse = invoice.invoiceDate || invoice.issueDate;
+    const issueParts = new Date(invoiceDateToUse).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
     const dueParts = new Date(invoice.dueDate).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
 
     const logoHtml = invoiceSettings.logoUrl 
