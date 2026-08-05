@@ -838,7 +838,14 @@ export default function App() {
       .then((session) => {
         if (cancelled || !session) return;
         setAuthSession(session);
-        if (session.role === "host") setLoggedInHostId(session.subjectId);
+        if (session.role === "host") {
+          setLoggedInHostId(session.subjectId);
+          activityLogsApi.create({
+            hostId: session.subjectId,
+            action: "RELOAD",
+            details: { message: "Host memuat ulang halaman (reload)" }
+          }).catch(() => {});
+        }
         if (session.role === "brand") setLoggedInClientBrandId(session.subjectId);
         if (session.role === "master" || session.role === "admin") {
           setIsOperatorLoggedIn(true);
