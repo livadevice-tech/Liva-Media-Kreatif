@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { Plus, Edit2, Trash2, Save, X, Search, FileText } from 'lucide-react';
 import type { ClientBrand, BrandResource } from '../../types';
 import { brandResourcesApi } from '../../api';
