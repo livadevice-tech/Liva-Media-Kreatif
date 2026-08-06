@@ -470,7 +470,7 @@ const ScheduleFilterBrandDropdown: React.FC<{
     if (!isOpen) setSearch("");
   }, [isOpen]);
 
-  const allBrandNames = clientBrands.length > 0 ? clientBrands.map(b => b.name) : brands;
+  const allBrandNames = clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map(b => b.name) : brands;
   const filteredBrands = allBrandNames.filter((b) =>
     b.toLowerCase().includes(search.toLowerCase())
   );
@@ -8431,7 +8431,7 @@ export default function App() {
                                       options={Array.from(
                                         new Set([
                                           scheduleForm.brand,
-                                          ...(clientBrands.length > 0 ? clientBrands.map((cb) => cb.name) : brands)
+                                          ...(clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map((cb) => cb.name) : brands)
                                         ].map(b => b?.trim()).filter(Boolean)),
                                       )
                                         .filter(Boolean).map(b => ({ value: b, label: b }))}
@@ -10489,7 +10489,7 @@ export default function App() {
                             <option value="Semua Brand">Semua Brand</option>
                             {Array.from(new Set([
                               dbBrandFilter !== "Semua Brand" ? dbBrandFilter : null,
-                              ...(clientBrands.length > 0 ? clientBrands.map((cb) => cb.name) : brands)
+                              ...(clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map((cb) => cb.name) : brands)
                             ].map(b => b?.trim()).filter(Boolean))).filter(Boolean).map(b => (
                               <option key={b} value={b}>{b}</option>
                             ))}
@@ -10811,7 +10811,7 @@ export default function App() {
                               {Array.from(
                                 new Set([
                                   manualForm.brand,
-                                  ...(clientBrands.length > 0 ? clientBrands.map((cb) => cb.name) : brands)
+                                  ...(clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map((cb) => cb.name) : brands)
                                 ].map(b => b?.trim()).filter(Boolean)),
                               )
                                 .filter(Boolean)
@@ -12100,7 +12100,7 @@ export default function App() {
                                           className="w-40 bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-bold focus:border-indigo-500 outline-none text-xs text-slate-700 shadow-sm transition-colors"
                                         >
                                           <option value="">-- Pilih Brand --</option>
-                                          {clientBrands.map((b) => (
+                                          {clientBrands.filter(b => b.isActive !== false).map((b) => (
                                             <option key={b.id} value={b.id}>
                                               {b.name}
                                             </option>
