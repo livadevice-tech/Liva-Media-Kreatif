@@ -6,7 +6,7 @@ import 'react-quill-new/dist/quill.snow.css';
 import BlotFormatter from '@enzedonline/quill-blot-formatter2';
 
 Quill.register('modules/blotFormatter', BlotFormatter);
-import { Plus, Edit2, Trash2, Save, X, Search, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Search, FileText, ExternalLink } from 'lucide-react';
 import type { ClientBrand, BrandResource } from '../../types';
 import { brandResourcesApi } from '../../api';
 import { ImageCropperModal } from '../ui/ImageCropperModal';
@@ -142,16 +142,25 @@ export function AdminBrandResources({
           <h2 className="text-xl font-bold text-slate-800">Manajemen Panduan & Script</h2>
           <p className="text-sm text-slate-500">Kelola informasi publik untuk masing-masing Brand</p>
         </div>
-        <button
-          onClick={() => {
-            setCurrentEdit({ type: 'script', brandId: brands[0]?.id });
-            setIsEditing(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Tambah Panduan
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => window.open('/brand-resources', '_blank')}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Halaman Publik
+          </button>
+          <button
+            onClick={() => {
+              setCurrentEdit({ type: 'script', brandId: brands[0]?.id });
+              setIsEditing(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Tambah Panduan
+          </button>
+        </div>
       </div>
 
       {isEditing ? (
