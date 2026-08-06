@@ -94,7 +94,7 @@ export function SkuUploadModal({
                   <option value="" disabled>
                     Pilih Brand...
                   </option>
-                  {clientBrands.map((b) => (
+                  {clientBrands.filter(b => b.isActive !== false).map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}
                     </option>

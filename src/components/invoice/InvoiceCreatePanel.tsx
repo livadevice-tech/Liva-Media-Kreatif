@@ -134,7 +134,7 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
           <div>
             <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Pilih Brand Klien (Otomatis Deteksi Shift)</label>
             <SearchableBrandSelect 
-              brands={clientBrands}
+              brands={clientBrands.filter(b => b.isActive !== false)}
               value={selectedBrandId}
               onChange={(val) => {
                 setSelectedBrandId(val);

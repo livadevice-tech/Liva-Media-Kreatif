@@ -643,7 +643,7 @@ export default function HostDashboard({
               <CustomSelect 
                 value={hostForm.brand} 
                 onChange={(val: string) => { setHostFormError(""); setHostForm((prev: any) => ({ ...prev, brand: val })); }} 
-                options={Array.from(new Set([hostForm.brand, ...(clientBrands?.length > 0 ? clientBrands.map((cb) => cb.name) : brands)].map(b => b?.trim()).filter(Boolean)))} 
+                options={Array.from(new Set([hostForm.brand, ...(clientBrands?.length > 0 ? clientBrands.filter(b => b.isActive !== false).map((cb) => cb.name) : brands)].map(b => b?.trim()).filter(Boolean)))} 
                 placeholder="-- Pilih Brand Besutan --" 
                 error={hostFormError && !hostForm.brand} 
               />
