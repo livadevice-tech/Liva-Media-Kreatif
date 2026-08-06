@@ -1212,11 +1212,17 @@ export default function App() {
   const [activeRole, setActiveRole] = useState<
     "host" | "operator" | "client" | null
   >(defaultRole);
-  const [showPublicBrandResources, setShowPublicBrandResources] = useState(false);
+  const [showPublicBrandResources, setShowPublicBrandResources] = useState(initPath === '/brand-resources');
 
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
+      if (path === '/brand-resources') {
+        setShowPublicBrandResources(true);
+      } else {
+        setShowPublicBrandResources(false);
+      }
+      
       const match = path.match(/\/login\/(admin|host|brand)/);
       if (match) {
         const role =
@@ -4493,6 +4499,20 @@ export default function App() {
         </div>
       )}
 
+      {showPublicBrandResources && (
+        <div className="w-full h-screen overflow-y-auto bg-slate-50 absolute inset-0 z-[100]">
+          <PublicBrandResources 
+            brands={clientBrands} 
+            onBack={() => {
+              setShowPublicBrandResources(false);
+              if (window.location.pathname === '/brand-resources') {
+                window.history.pushState({}, "", "/");
+              }
+            }} 
+          />
+        </div>
+      )}
+
       {alertState && (
         <div
           className="fixed inset-0 z-[9999] overflow-y-auto bg-[#0f172a]/50 p-4 flex items-start justify-center pt-[15vh] pb-10"
@@ -4517,16 +4537,9 @@ export default function App() {
         </div>
       )}
 
-      {!loggedInHostId && !isOperatorLoggedIn && !loggedInClientBrandId && (
+      {!loggedInHostId && !isOperatorLoggedIn && !loggedInClientBrandId && !showPublicBrandResources && (
         <div className="flex-1 flex flex-col justify-center items-center p-4">
-          {showPublicBrandResources ? (
-            <div className="w-full h-screen overflow-y-auto bg-slate-50 absolute inset-0 z-[100]">
-              <PublicBrandResources 
-                brands={clientBrands} 
-                onBack={() => setShowPublicBrandResources(false)} 
-              />
-            </div>
-          ) : activeRole === null ? (
+          {activeRole === null ? (
             /* ROLE SELECTION SCREEN */
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto text-center">
               <LivaLogo className="mx-auto" url={agencyLogoUrl} />
@@ -4570,17 +4583,6 @@ export default function App() {
           ) : activeRole === "client" ? (
             /* BRAND LOGIN PAGE - COMPLETELY SEPARATED */
             <div className="bg-white p-8 rounded-3xl border border-indigo-150 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
-              <div className="flex justify-start mb-2">
-                <button
-                  onClick={() => {
-                    window.history.pushState({}, "", "/");
-                    setActiveRole(null);
-                  }}
-                  className="text-[10px] text-slate-400 hover:text-slate-800 font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
-                >
-                  ← Kembali
-                </button>
-              </div>
               <div className="text-center mb-6">
                 <LivaLogo className="" url={agencyLogoUrl} />
                 <span className="bg-indigo-50 border border-indigo-100 text-[#5642f5] font-black text-[9px] tracking-wider uppercase px-3 py-1 rounded-full mt-4 inline-block">

@@ -178,7 +178,7 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
                 >
                   <option value="" disabled>Pilih Brand Klien</option>
                   <option value="all">Semua Brand (Global)</option>
-                  {clientBrands.map(b => (
+                  {clientBrands.filter(b => b.isActive !== false).map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>

@@ -445,7 +445,7 @@ export function AttendanceCalendarView({
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 cursor-pointer"
                     required
                   >
-                    {clientBrands.map(b => (
+                    {clientBrands.filter(b => b.isActive !== false).map(b => (
                       <option key={b.id} value={b.name}>{b.name}</option>
                     ))}
                   </select>

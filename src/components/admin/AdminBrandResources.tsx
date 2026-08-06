@@ -180,7 +180,7 @@ export function AdminBrandResources({
                 onChange={(e) => setCurrentEdit({ ...currentEdit, brandId: e.target.value })}
                 className="w-full border border-slate-300 rounded-lg p-2.5 text-sm"
               >
-                {brands.map(b => (
+                {brands.filter(b => b.isActive !== false).map(b => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
@@ -291,7 +291,7 @@ export function AdminBrandResources({
               className="px-3 py-2 border border-slate-200 rounded-lg text-sm"
             >
               <option value="all">Semua Brand</option>
-              {brands.map(b => (
+              {brands.filter(b => b.isActive !== false).map(b => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>
