@@ -4599,17 +4599,6 @@ export default function App() {
 
               {/* Right Login Form Panel */}
               <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white relative">
-                {/* Back button */}
-                <button
-                  onClick={() => {
-                    window.history.pushState({}, "", "/");
-                    setActiveRole(null);
-                  }}
-                  className="absolute top-6 right-8 text-[11px] text-slate-400 hover:text-slate-600 font-bold uppercase tracking-wider cursor-pointer"
-                >
-                  Batal
-                </button>
-
                 <div className="mb-8">
                   <div className="text-[#3b27e8] text-4xl leading-none mb-3 font-sans">*</div>
                   <h3 className="text-3xl font-extrabold text-slate-900 mb-2">Masuk Portal</h3>
