@@ -4696,232 +4696,247 @@ export default function App() {
               </div>
             </div>
           ) : (
-            /* HOST & ADMIN LOGIN PORTAL - COMPLETELY SEPARATED FROM BRAND */
-            <div className="bg-white p-8 rounded-3xl border border-purple-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
-              <div className="flex justify-start mb-2">
+            /* HOST & ADMIN LOGIN PORTAL - REDESIGNED */
+            <div className="fixed inset-0 z-[100] flex bg-[#5A52E5] text-white animate-fadeIn">
+              {/* Left Side: Branding */}
+              <div className="hidden lg:flex flex-col w-1/2 p-12 xl:p-24 justify-center relative">
                 <button
                   onClick={() => {
                     window.history.pushState({}, "", "/");
                     setActiveRole(null);
+                    setHostError("");
+                    setHostLoginUser("");
+                    setHostLoginPass("");
                   }}
-                  className="text-[10px] text-slate-400 hover:text-purple-800 font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1"
+                  className="absolute top-10 left-12 flex items-center gap-2 text-white/70 hover:text-white transition-colors font-semibold"
                 >
-                  ← Kembali
+                  <span className="text-xl leading-none">&larr;</span> Kembali
                 </button>
-              </div>
-              <div className="text-center mb-4">
-                <LivaLogo className="" url={agencyLogoUrl} />
-                <h2 className="text-[16px] font-black text-purple-950 mt-4">
-                  {activeRole === "host"
-                    ? "Login Streamer (Host)"
-                    : "Login Master Admin"}
-                </h2>
-                <p className="text-[11px] text-purple-500 font-semibold mt-1">
-                  {activeRole === "host"
-                    ? "Masuk ke portal absensi dan jadwal"
-                    : "Sistem manajemen operasional Agency"}
+
+                <div className="flex items-center gap-3 mb-16">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+                    <span className="text-[#5A52E5] font-black text-2xl leading-none mt-1.5">*</span>
+                  </div>
+                  <span className="text-3xl font-extrabold tracking-tight">Liva Agency</span>
+                </div>
+                
+                <h1 className="text-5xl xl:text-6xl font-bold mb-4 tracking-tight leading-tight">Hey, Hello!</h1>
+                <p className="text-xl text-white/90 mb-6 font-medium">Portal Operasional Internal Liva Agency</p>
+                <p className="text-white/70 leading-relaxed max-w-md text-sm">
+                  Sistem manajemen internal untuk mengatur jadwal host, memantau absensi, dan mengelola operasional agency secara real-time tanpa hambatan.
                 </p>
               </div>
 
-              <div className="bg-purple-50 p-1 rounded-xl mb-6 border border-purple-100 flex flex-wrap gap-1">
-                <button
+              {/* Right Side: Form Card */}
+              <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 relative overflow-y-auto">
+                {/* Mobile back button */}
+                <button 
                   onClick={() => {
-                    window.history.pushState({}, "", "/login/host");
-                    setActiveRole("host");
+                    window.history.pushState({}, "", "/");
+                    setActiveRole(null);
                     setHostError("");
-                    setHostLoginUser("");
-                    setHostLoginPass("");
-                  }}
-                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black tracking-wide uppercase transition-all cursor-pointer ${activeRole === "host" ? "bg-white text-purple-700 shadow-xs" : "text-purple-500 hover:text-purple-700"}`}
+                  }} 
+                  className="lg:hidden absolute top-6 left-6 flex items-center justify-center w-10 h-10 bg-white/10 rounded-full text-white/90 hover:bg-white/20 transition-colors"
                 >
-                  Host App
+                  <span className="text-xl leading-none">&larr;</span>
                 </button>
-                <button
-                  onClick={() => {
-                    window.history.pushState({}, "", "/login/admin");
-                    setActiveRole("operator");
-                    setHostError("");
-                    setHostLoginUser("");
-                    setHostLoginPass("");
-                  }}
-                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black tracking-wide uppercase transition-all cursor-pointer ${activeRole === "operator" ? "bg-purple-700 text-white shadow-xs" : "text-purple-500 hover:text-purple-700"}`}
-                >
-                  Admin
-                </button>
-              </div>
 
-              {activeRole === "host" ? (
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    try {
-                      const session = await authApi.login(
-                        "host",
-                        hostLoginUser.trim(),
-                        hostLoginPass,
-                      );
-                      setAuthSession(session);
-                      setLoggedInHostId(session.subjectId);
-                      setHostLoginUser("");
-                      setHostLoginPass("");
-                      setHostError("");
+                <div className="bg-white text-slate-900 w-full max-w-[480px] rounded-[32px] p-8 sm:p-10 xl:p-12 shadow-2xl">
+                  <div className="text-center mb-8">
+                    <h2 className="text-3xl font-extrabold mb-2 tracking-tight">Welcome Back</h2>
+                    <p className="text-slate-500 text-sm font-medium">
+                      Silakan masuk dengan akun {activeRole === 'host' ? 'Host' : 'Admin'} Anda.
+                    </p>
+                  </div>
+
+                  {/* Toggle Switch */}
+                  <div className="flex p-1.5 bg-slate-100 rounded-full mb-8">
+                    <button 
+                      onClick={() => {
+                        window.history.pushState({}, "", "/login/admin");
+                        setActiveRole('operator');
+                        setHostError("");
+                        setHostLoginUser("");
+                        setHostLoginPass("");
+                      }} 
+                      className={`flex-1 py-3 text-sm font-bold rounded-full transition-all cursor-pointer ${activeRole === 'operator' ? 'bg-white shadow text-[#5A52E5]' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Admin
+                    </button>
+                    <button 
+                      onClick={() => {
+                        window.history.pushState({}, "", "/login/host");
+                        setActiveRole('host');
+                        setHostError("");
+                        setHostLoginUser("");
+                        setHostLoginPass("");
+                      }} 
+                      className={`flex-1 py-3 text-sm font-bold rounded-full transition-all cursor-pointer ${activeRole === 'host' ? 'bg-white shadow text-[#5A52E5]' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Host
+                    </button>
+                  </div>
+
+                  {activeRole === "host" ? (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        try {
+                          const session = await authApi.login(
+                            "host",
+                            hostLoginUser.trim(),
+                            hostLoginPass,
+                          );
+                          setAuthSession(session);
+                          setLoggedInHostId(session.subjectId);
+                          setHostLoginUser("");
+                          setHostLoginPass("");
+                          setHostError("");
+                          
+                          // Log activity
+                          activityLogsApi.create({
+                            hostId: session.subjectId,
+                            action: "LOGIN",
+                            details: { message: "Host logged in via portal", ip: "browser" }
+                          }).catch(() => {});
+                          
+                        } catch (error) {
+                          setHostError(
+                            error instanceof Error
+                              ? error.message
+                              : "Username Host atau Password salah!",
+                          );
+                        }
+                      }}
+                      className="space-y-4"
+                    >
+                      {hostError && (
+                        <div className="bg-red-50 border border-red-100 text-rose-600 text-xs py-3 px-4 rounded-xl font-bold text-center">
+                          {hostError}
+                        </div>
+                      )}
                       
-                      // Log activity
-                      activityLogsApi.create({
-                        hostId: session.subjectId,
-                        action: "LOGIN",
-                        details: { message: "Host logged in via portal", ip: "browser" }
-                      }).catch(() => {});
+                      <div className="space-y-4">
+                        <input
+                          id="host-login-username"
+                          name="username"
+                          autoComplete="username"
+                          type="text"
+                          required
+                          value={hostLoginUser}
+                          onChange={(e) => setHostLoginUser(e.target.value)}
+                          placeholder="Username"
+                          className="w-full px-6 py-4 bg-transparent border border-slate-200 rounded-full text-sm font-medium focus:outline-none focus:border-[#5A52E5] focus:ring-1 focus:ring-[#5A52E5] transition-all"
+                        />
+                        <input
+                          id="host-login-password"
+                          name="password"
+                          autoComplete="current-password"
+                          type="password"
+                          required
+                          value={hostLoginPass}
+                          onChange={(e) => setHostLoginPass(e.target.value)}
+                          placeholder="Password"
+                          className="w-full px-6 py-4 bg-transparent border border-slate-200 rounded-full text-sm font-medium focus:outline-none focus:border-[#5A52E5] focus:ring-1 focus:ring-[#5A52E5] transition-all"
+                        />
+                      </div>
                       
-                    } catch (error) {
-                      setHostError(
-                        error instanceof Error
-                          ? error.message
-                          : "Username Host atau Password salah!",
-                      );
-                    }
-                  }}
-                  className="space-y-4 font-sans animate-fadeIn"
-                >
-                  {hostError && (
-                    <div className="bg-red-50 border border-red-100 text-red-700 text-[10px] py-1.5 px-2 rounded-lg font-bold text-center">
-                      ⚠️ {hostError}
-                    </div>
+                      <div className="flex justify-end mt-2 mb-6">
+                        <a href="#" className="text-xs font-semibold text-slate-500 hover:text-[#5A52E5] transition-colors">
+                          Forgot Password?
+                        </a>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full bg-[#5A52E5] hover:bg-[#4A42D5] text-white font-bold py-4 rounded-full text-sm transition-all shadow-xl shadow-[#5A52E5]/20 hover:shadow-[#5A52E5]/40 hover:-translate-y-0.5 cursor-pointer"
+                      >
+                        Login Host
+                      </button>
+                    </form>
+                  ) : (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        try {
+                          const session = await authApi.login(
+                            "admin",
+                            hostLoginUser.trim(),
+                            hostLoginPass,
+                          );
+                          setAuthSession(session);
+                          setIsOperatorLoggedIn(true);
+                          setLoggedInAdminId(
+                            session.role === "admin" ? session.subjectId : null,
+                          );
+                          setHostLoginUser("");
+                          setHostLoginPass("");
+                          setHostError("");
+                          if (session.accessTabs?.length) {
+                            setOperatorTab(session.accessTabs[0] as AdminTab);
+                          }
+                        } catch (error) {
+                          setHostError(
+                            error instanceof Error
+                              ? error.message
+                              : "ID Admin atau Password Admin salah!",
+                          );
+                        }
+                      }}
+                      className="space-y-4"
+                    >
+                      {hostError && (
+                        <div className="bg-red-50 border border-red-100 text-rose-600 text-xs py-3 px-4 rounded-xl font-bold text-center">
+                          {hostError}
+                        </div>
+                      )}
+                      
+                      <div className="space-y-4">
+                        <input
+                          id="admin-login-username"
+                          name="username"
+                          autoComplete="username"
+                          type="text"
+                          required
+                          value={hostLoginUser}
+                          onChange={(e) => setHostLoginUser(e.target.value)}
+                          placeholder="Username"
+                          className="w-full px-6 py-4 bg-transparent border border-slate-200 rounded-full text-sm font-medium focus:outline-none focus:border-[#5A52E5] focus:ring-1 focus:ring-[#5A52E5] transition-all"
+                        />
+                        <input
+                          id="admin-login-password"
+                          name="password"
+                          autoComplete="current-password"
+                          type="password"
+                          required
+                          value={hostLoginPass}
+                          onChange={(e) => setHostLoginPass(e.target.value)}
+                          placeholder="Password"
+                          className="w-full px-6 py-4 bg-transparent border border-slate-200 rounded-full text-sm font-medium focus:outline-none focus:border-[#5A52E5] focus:ring-1 focus:ring-[#5A52E5] transition-all"
+                        />
+                      </div>
+                      
+                      <div className="flex justify-end mt-2 mb-6">
+                        <a href="#" className="text-xs font-semibold text-slate-500 hover:text-[#5A52E5] transition-colors">
+                          Forgot Password?
+                        </a>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full bg-[#5A52E5] hover:bg-[#4A42D5] text-white font-bold py-4 rounded-full text-sm transition-all shadow-xl shadow-[#5A52E5]/20 hover:shadow-[#5A52E5]/40 hover:-translate-y-0.5 cursor-pointer"
+                      >
+                        Login Admin
+                      </button>
+                    </form>
                   )}
-                  <div className="text-left">
-                    <label htmlFor="host-login-username" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                      Username Host:
-                    </label>
-                    <input
-                      id="host-login-username"
-                      name="username"
-                      autoComplete="username"
-                      type="text"
-                      required
-                      value={hostLoginUser}
-                      onChange={(e) => setHostLoginUser(e.target.value)}
-                      placeholder="Misal: amandaputri"
-                      className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 font-sans focus:outline-none focus:border-purple-500 font-bold"
-                    />
+                  
+                  <div className="mt-8 text-center border-t border-slate-100 pt-6">
+                     <span className="text-xs text-slate-500 font-medium">
+                        Pastikan koneksi internet Anda stabil sebelum masuk.
+                     </span>
                   </div>
-
-                  <div className="text-left">
-                    <label htmlFor="host-login-password" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                      Password:
-                    </label>
-                    <input
-                      id="host-login-password"
-                      name="password"
-                      autoComplete="current-password"
-                      type="password"
-                      required
-                      value={hostLoginPass}
-                      onChange={(e) => setHostLoginPass(e.target.value)}
-                      placeholder="Masukkan sandi Anda"
-                      className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-mono font-bold"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-650 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold py-3 rounded-xl text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
-                  >
-                    Masuk Host App
-                  </button>
-                </form>
-              ) : (
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    try {
-                      const session = await authApi.login(
-                        "admin",
-                        hostLoginUser.trim(),
-                        hostLoginPass,
-                      );
-                      setAuthSession(session);
-                      setIsOperatorLoggedIn(true);
-                      setLoggedInAdminId(
-                        session.role === "admin" ? session.subjectId : null,
-                      );
-                      setHostLoginUser("");
-                      setHostLoginPass("");
-                      setHostError("");
-                      if (session.accessTabs?.length) {
-                        setOperatorTab(session.accessTabs[0] as AdminTab);
-                      }
-                    } catch (error) {
-                      setHostError(
-                        error instanceof Error
-                          ? error.message
-                          : "ID Admin atau Password Admin salah!",
-                      );
-                    }
-                  }}
-                  className="space-y-4 font-sans animate-fadeIn"
-                >
-                  {hostError && (
-                    <div className="bg-red-50 border border-red-100 text-red-700 text-[10px] py-1.5 px-2 rounded-lg font-bold text-center">
-                      ⚠️ {hostError}
-                    </div>
-                  )}
-                  <div className="text-left">
-                    <label htmlFor="admin-login-username" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                      ID Admin Master:
-                    </label>
-                    <input
-                      id="admin-login-username"
-                      name="username"
-                      autoComplete="username"
-                      type="text"
-                      required
-                      value={hostLoginUser}
-                      onChange={(e) => setHostLoginUser(e.target.value)}
-                      placeholder="ID Admin"
-                      className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 font-sans focus:outline-none focus:border-purple-500 font-bold"
-                    />
-                  </div>
-
-                  <div className="text-left">
-                    <label htmlFor="admin-login-password" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                      Password Admin:
-                    </label>
-                    <input
-                      id="admin-login-password"
-                      name="password"
-                      autoComplete="current-password"
-                      type="password"
-                      required
-                      value={hostLoginPass}
-                      onChange={(e) => setHostLoginPass(e.target.value)}
-                      placeholder="Sandi Admin"
-                      className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-3 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-mono font-bold"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3 rounded-xl text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
-                  >
-                    Akses Dashboard Admin
-                  </button>
-                </form>
-              )}
-
-              <div className="text-center mt-6 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.history.pushState({}, "", "/login/brand");
-                    setActiveRole("client");
-                    setHostError("");
-                    setHostLoginUser("");
-                    setHostLoginPass("");
-                  }}
-                  className="text-[11px] text-[#5642f5] hover:text-[#422ff2] font-black transition-all cursor-pointer hover:underline"
-                >
-                  Masuk ke Portal Partner Brand Klien →
-                </button>
+                </div>
               </div>
             </div>
           )}
