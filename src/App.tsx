@@ -1208,9 +1208,9 @@ export default function App() {
       : initRoleMatch[1] === "brand"
         ? "client"
         : "host"
-    : null;
+    : "operator";
   const [activeRole, setActiveRole] = useState<
-    "host" | "operator" | "client" | null
+    "host" | "operator" | "client"
   >(defaultRole);
   const [showPublicBrandResources, setShowPublicBrandResources] = useState(initPath === '/brand-resources');
 
@@ -4539,48 +4539,7 @@ export default function App() {
 
       {!loggedInHostId && !isOperatorLoggedIn && !loggedInClientBrandId && !showPublicBrandResources && (
         <div className="flex-1 flex flex-col justify-center items-center p-4">
-          {activeRole === null ? (
-            /* ROLE SELECTION SCREEN */
-            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto text-center">
-              <LivaLogo className="mx-auto" url={agencyLogoUrl} />
-              <h2 className="text-[17px] font-extrabold text-[#111827] mt-3 tracking-tight">
-                Portal Login
-              </h2>
-              <p className="text-[11px] text-slate-500 font-semibold mt-1 mb-8">
-                Pilih jalur akses Anda ke dalam sistem Liva Agency
-              </p>
-              
-              <button
-                onClick={() => {
-                  window.history.pushState({}, "", "/login/admin");
-                  setActiveRole("operator");
-                }}
-                className="w-full bg-[#111827] text-white font-black py-4 rounded-xl text-[13px] tracking-widest uppercase shadow-xl hover:-translate-y-0.5 transition-all mb-4 cursor-pointer"
-              >
-                Host & Admin
-              </button>
-              
-              <button
-                onClick={() => {
-                  window.history.pushState({}, "", "/login/brand");
-                  setActiveRole("client");
-                }}
-                className="w-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-black py-4 rounded-xl text-[13px] tracking-widest uppercase hover:bg-indigo-100 transition-all cursor-pointer"
-              >
-                Brand Partner
-              </button>
-              
-              <div className="mt-8 pt-6 border-t border-slate-100">
-                <button
-                  onClick={() => setShowPublicBrandResources(true)}
-                  className="w-full bg-white text-purple-700 border-2 border-purple-100 font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 hover:border-purple-300 transition-colors cursor-pointer"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  Lihat Panduan & Script Publik
-                </button>
-              </div>
-            </div>
-          ) : activeRole === "client" ? (
+          {activeRole === "client" ? (
             /* BRAND LOGIN PAGE - COMPLETELY SEPARATED */
             <div className="bg-white p-3 md:p-4 rounded-[32px] shadow-2xl max-w-[900px] w-full animate-fadeIn mx-auto flex flex-col md:flex-row min-h-[550px]">
               {/* Left Gradient Panel */}
@@ -4700,18 +4659,6 @@ export default function App() {
             <div className="fixed inset-0 z-[100] flex bg-[#5A52E5] text-white animate-fadeIn">
               {/* Left Side: Branding */}
               <div className="hidden lg:flex flex-col w-1/2 p-12 xl:p-24 justify-center relative">
-                <button
-                  onClick={() => {
-                    window.history.pushState({}, "", "/");
-                    setActiveRole(null);
-                    setHostError("");
-                    setHostLoginUser("");
-                    setHostLoginPass("");
-                  }}
-                  className="absolute top-10 left-12 flex items-center gap-2 text-white/70 hover:text-white transition-colors font-semibold"
-                >
-                  <span className="text-xl leading-none">&larr;</span> Kembali
-                </button>
 
                 <div className="flex items-center gap-3 mb-16">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg">
@@ -4729,17 +4676,6 @@ export default function App() {
 
               {/* Right Side: Form Card */}
               <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 relative overflow-y-auto">
-                {/* Mobile back button */}
-                <button 
-                  onClick={() => {
-                    window.history.pushState({}, "", "/");
-                    setActiveRole(null);
-                    setHostError("");
-                  }} 
-                  className="lg:hidden absolute top-6 left-6 flex items-center justify-center w-10 h-10 bg-white/10 rounded-full text-white/90 hover:bg-white/20 transition-colors"
-                >
-                  <span className="text-xl leading-none">&larr;</span>
-                </button>
 
                 <div className="bg-white text-slate-900 w-full max-w-[480px] rounded-[32px] p-8 sm:p-10 xl:p-12 shadow-2xl">
                   <div className="text-center mb-8">
