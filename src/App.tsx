@@ -4582,107 +4582,128 @@ export default function App() {
             </div>
           ) : activeRole === "client" ? (
             /* BRAND LOGIN PAGE - COMPLETELY SEPARATED */
-            <div className="bg-white p-8 rounded-3xl border border-indigo-150 shadow-xl max-w-sm w-full animate-fadeIn block mx-auto">
-              <div className="text-center mb-6">
-                <LivaLogo className="" url={agencyLogoUrl} />
-                <span className="bg-indigo-50 border border-indigo-100 text-[#5642f5] font-black text-[9px] tracking-wider uppercase px-3 py-1 rounded-full mt-4 inline-block">
-                  Portal Partner Brand & Klien
-                </span>
-                <h2 className="text-[17px] font-extrabold text-[#111827] mt-3 tracking-tight">
-                  Liva Agency • Performance Portal
-                </h2>
-                <p className="text-[11px] text-slate-500 font-semibold mt-1">
-                  Pantau laporan performa dan statistik live streaming brand
-                  Anda
-                </p>
+            <div className="bg-white p-3 md:p-4 rounded-[32px] shadow-2xl max-w-[900px] w-full animate-fadeIn mx-auto flex flex-col md:flex-row min-h-[550px]">
+              {/* Left Gradient Panel */}
+              <div className="w-full md:w-1/2 rounded-[24px] bg-gradient-to-br from-[#2ca4fb] via-[#210bb8] to-[#dbb3fa] p-10 flex flex-col justify-between relative overflow-hidden">
+                <div className="text-white relative z-10">
+                  <div className="text-5xl font-sans leading-none -mt-2 opacity-90">*</div>
+                </div>
+                
+                <div className="relative z-10 mt-16 md:mt-0">
+                  <p className="text-white/80 font-medium text-sm mb-2">Portal Partner Klien</p>
+                  <h2 className="text-white font-bold text-2xl md:text-3xl leading-tight">
+                    Pantau laporan performa dan statistik live streaming brand Anda
+                  </h2>
+                </div>
               </div>
 
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const enteredUser = clientLoginUsername.trim().toLowerCase();
-
-                  if (!enteredUser) {
-                    setHostError(
-                      "Silakan masukkan username portal terlebih dahulu!",
-                    );
-                    return;
-                  }
-
-                  try {
-                    const session = await authApi.login(
-                      "brand",
-                      enteredUser,
-                      clientLoginPass.trim(),
-                    );
-                    setAuthSession(session);
-                    setLoggedInClientBrandId(session.subjectId);
-                    setClientLoginUsername("");
-                    setClientLoginPass("");
-                    setHostError("");
-                  } catch (error) {
-                    setHostError(
-                      error instanceof Error
-                        ? error.message
-                        : "Username atau password brand klien tidak sesuai!",
-                    );
-                  }
-                }}
-                className="space-y-4 font-sans animate-fadeIn"
-              >
-                {hostError && (
-                  <div className="bg-red-50 border border-red-100 text-rose-700 text-[10px] py-1.5 px-2 rounded-lg font-bold text-center">
-                    ⚠️ {hostError}
-                  </div>
-                )}
-                <div className="text-left">
-                  <label htmlFor="brand-login-username" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                    Username Portal Klien:
-                  </label>
-                  <input
-                    id="brand-login-username"
-                    name="username"
-                    autoComplete="username"
-                    type="text"
-                    required
-                    value={clientLoginUsername}
-                    onChange={(e) => setClientLoginUsername(e.target.value)}
-                    placeholder="Masukkan username brand Anda"
-                    className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-2.5 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-bold"
-                  />
-                </div>
-
-                <div className="text-left">
-                  <label htmlFor="brand-login-password" className="block text-[10px] text-purple-950 font-black uppercase mb-1 font-mono">
-                    Password Portal:
-                  </label>
-                  <input
-                    id="brand-login-password"
-                    name="password"
-                    autoComplete="current-password"
-                    type="password"
-                    required
-                    value={clientLoginPass}
-                    onChange={(e) => setClientLoginPass(e.target.value)}
-                    placeholder="Masukkan password portal Anda"
-                    className="w-full bg-[#fcfbfe] border border-purple-150 rounded-lg px-2.5 py-2 text-xs text-purple-950 focus:outline-none focus:border-purple-500 font-bold font-mono"
-                  />
-                </div>
-
+              {/* Right Login Form Panel */}
+              <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white relative">
+                {/* Back button */}
                 <button
-                  type="submit"
-                  className="w-full relative group overflow-hidden bg-[#111827] text-white font-black py-3.5 rounded-xl text-[13px] tracking-widest uppercase transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-slate-900/40 hover:-translate-y-0.5 cursor-pointer mt-6 flex justify-center items-center gap-2 border border-slate-800"
+                  onClick={() => {
+                    window.history.pushState({}, "", "/");
+                    setActiveRole(null);
+                  }}
+                  className="absolute top-6 right-8 text-[11px] text-slate-400 hover:text-slate-600 font-bold uppercase tracking-wider cursor-pointer"
                 >
-                  <span className="relative z-10">Masuk Portal</span>
-                  <ChevronRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-800 to-slate-900 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  Batal
                 </button>
-              </form>
 
-              <div className="text-center mt-6 pt-5 border-t border-slate-100">
-                <span className="text-[11px] text-slate-400 font-medium">
-                  Harap hubungi Admin Agency untuk detail akun Anda.
-                </span>
+                <div className="mb-8">
+                  <div className="text-[#3b27e8] text-4xl leading-none mb-3 font-sans">*</div>
+                  <h3 className="text-3xl font-extrabold text-slate-900 mb-2">Masuk Portal</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                    Akses data analitik, laporan, dan evaluasi harian brand Anda kapan saja dari satu tempat.
+                  </p>
+                </div>
+
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const enteredUser = clientLoginUsername.trim().toLowerCase();
+
+                    if (!enteredUser) {
+                      setHostError(
+                        "Silakan masukkan username portal terlebih dahulu!",
+                      );
+                      return;
+                    }
+
+                    try {
+                      const session = await authApi.login(
+                        "brand",
+                        enteredUser,
+                        clientLoginPass.trim(),
+                      );
+                      setAuthSession(session);
+                      setLoggedInClientBrandId(session.subjectId);
+                      setClientLoginUsername("");
+                      setClientLoginPass("");
+                      setHostError("");
+                    } catch (error) {
+                      setHostError(
+                        error instanceof Error
+                          ? error.message
+                          : "Username atau password brand klien tidak sesuai!",
+                      );
+                    }
+                  }}
+                  className="space-y-5"
+                >
+                  {hostError && (
+                    <div className="bg-red-50 border border-red-100 text-rose-700 text-xs py-2 px-3 rounded-xl font-bold">
+                      ⚠️ {hostError}
+                    </div>
+                  )}
+                  
+                  <div className="text-left">
+                    <label htmlFor="brand-login-username" className="block text-sm font-bold text-slate-800 mb-1.5">
+                      Username Portal Klien
+                    </label>
+                    <input
+                      id="brand-login-username"
+                      name="username"
+                      autoComplete="username"
+                      type="text"
+                      required
+                      value={clientLoginUsername}
+                      onChange={(e) => setClientLoginUsername(e.target.value)}
+                      placeholder="Masukkan username brand Anda"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-[#3b27e8] focus:ring-1 focus:ring-[#3b27e8] font-medium transition-all"
+                    />
+                  </div>
+
+                  <div className="text-left">
+                    <label htmlFor="brand-login-password" className="block text-sm font-bold text-slate-800 mb-1.5">
+                      Password
+                    </label>
+                    <input
+                      id="brand-login-password"
+                      name="password"
+                      autoComplete="current-password"
+                      type="password"
+                      required
+                      value={clientLoginPass}
+                      onChange={(e) => setClientLoginPass(e.target.value)}
+                      placeholder="Masukkan password portal Anda"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-[#3b27e8] focus:ring-1 focus:ring-[#3b27e8] font-medium transition-all"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-[#3b27e8] hover:bg-[#2b17c8] text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-[#3b27e8]/20 hover:shadow-[#3b27e8]/40 hover:-translate-y-0.5 cursor-pointer mt-2"
+                  >
+                    Masuk Portal
+                  </button>
+                </form>
+
+                <div className="text-center mt-8">
+                  <span className="text-xs text-slate-500 font-medium">
+                    Butuh bantuan akses akun? <a href="#" className="text-[#3b27e8] hover:underline font-bold">Hubungi Admin</a>
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
