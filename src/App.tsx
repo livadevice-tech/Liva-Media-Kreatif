@@ -10480,134 +10480,138 @@ export default function App() {
                       </div>
 
                       {/* Middle: Search & Dropdown Filters */}
-                      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4 bg-slate-50/50">
-                        {/* Search Input */}
-                        <div className="relative flex-1" id="db_search_input_wrapper">
-                          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder="Cari host atau ID..."
-                            value={globalSearch}
-                            onChange={(e) => setGlobalSearch(e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium placeholder:text-slate-400 shadow-3xs"
-                          />
-                        </div>
-
-                        {/* Dropdowns */}
-                        <div className="flex flex-wrap md:flex-nowrap gap-2">
-                          <select
-                            value={dbPlatformFilter}
-                            onChange={(e) => setDbPlatformFilter(e.target.value)}
-                            className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
-                            style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
-                          >
-                            <option value="Semua Platform">Semua Platform</option>
-                            {platforms.map(p => <option key={p} value={p}>{p}</option>)}
-                          </select>
-                          
-                          <select
-                            value={dbBrandFilter}
-                            onChange={(e) => setDbBrandFilter(e.target.value)}
-                            className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
-                            style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
-                          >
-                            <option value="Semua Brand">Semua Brand</option>
-                            {Array.from(new Set([
-                              dbBrandFilter !== "Semua Brand" ? dbBrandFilter : null,
-                              ...(clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map((cb) => cb.name) : brands)
-                            ].map(b => b?.trim()).filter(Boolean))).filter(Boolean).map(b => (
-                              <option key={b} value={b}>{b}</option>
-                            ))}
-                          </select>
-
-                          <select
-                            value={dbShiftFilter}
-                            onChange={(e) => setDbShiftFilter(e.target.value)}
-                            className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
-                            style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
-                          >
-                            <option value="Semua Shift">Semua Shift</option>
-                            {shifts.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Date Filters (Only visible in 'all' mode) */}
+                      {/* Only show Search, Dropdowns, and Status Pills in 'all' (list) mode, hide in 'calendar' mode */}
                       {dbTabMode === "all" && (
-                        <div className="flex flex-wrap gap-3 items-center px-4 pb-4 bg-slate-50/50">
-                            <div className="flex items-center gap-2 w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-3xs focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
-                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="text-[10px] font-bold text-slate-500 uppercase">Dari:</span>
+                        <>
+                          {/* Middle: Search & Dropdown Filters */}
+                          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4 bg-slate-50/50">
+                            {/* Search Input */}
+                            <div className="relative flex-1" id="db_search_input_wrapper">
+                              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                               <input
-                                type="date"
-                                value={dbDateFilterStart}
-                                onChange={(e) => setDbDateFilterStart(e.target.value)}
-                                className="bg-transparent text-xs font-medium text-slate-700 outline-none w-full"
+                                type="text"
+                                placeholder="Cari host atau ID..."
+                                value={globalSearch}
+                                onChange={(e) => setGlobalSearch(e.target.value)}
+                                className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium placeholder:text-slate-400 shadow-3xs"
                               />
                             </div>
-                            <div className="flex items-center gap-2 w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-3xs focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
-                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="text-[10px] font-bold text-slate-500 uppercase">Sampai:</span>
-                              <input
-                                type="date"
-                                value={dbDateFilterEnd}
-                                onChange={(e) => setDbDateFilterEnd(e.target.value)}
-                                className="bg-transparent text-xs font-medium text-slate-700 outline-none w-full"
-                              />
-                            </div>
-                            {(dbDateFilterStart || dbDateFilterEnd) && (
-                              <button
-                                onClick={() => {
-                                  setDbDateFilterStart("");
-                                  setDbDateFilterEnd("");
-                                }}
-                                className="text-[10px] font-bold text-red-600 hover:text-red-700 px-3 py-1.5 hover:bg-red-50 rounded-lg transition-colors cursor-pointer w-full md:w-auto text-center"
+
+                            {/* Dropdowns */}
+                            <div className="flex flex-wrap md:flex-nowrap gap-2">
+                              <select
+                                value={dbPlatformFilter}
+                                onChange={(e) => setDbPlatformFilter(e.target.value)}
+                                className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
+                                style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
                               >
-                                Reset Tanggal
-                              </button>
-                            )}
-                        </div>
+                                <option value="Semua Platform">Semua Platform</option>
+                                {platforms.map(p => <option key={p} value={p}>{p}</option>)}
+                              </select>
+                              
+                              <select
+                                value={dbBrandFilter}
+                                onChange={(e) => setDbBrandFilter(e.target.value)}
+                                className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
+                                style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
+                              >
+                                <option value="Semua Brand">Semua Brand</option>
+                                {Array.from(new Set([
+                                  dbBrandFilter !== "Semua Brand" ? dbBrandFilter : null,
+                                  ...(clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map((cb) => cb.name) : brands)
+                                ].map(b => b?.trim()).filter(Boolean))).filter(Boolean).map(b => (
+                                  <option key={b} value={b}>{b}</option>
+                                ))}
+                              </select>
+
+                              <select
+                                value={dbShiftFilter}
+                                onChange={(e) => setDbShiftFilter(e.target.value)}
+                                className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
+                                style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
+                              >
+                                <option value="Semua Shift">Semua Shift</option>
+                                {shifts.map(s => <option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Date Filters */}
+                          <div className="flex flex-wrap gap-3 items-center px-4 pb-4 bg-slate-50/50">
+                              <div className="flex items-center gap-2 w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-3xs focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Dari:</span>
+                                <input
+                                  type="date"
+                                  value={dbDateFilterStart}
+                                  onChange={(e) => setDbDateFilterStart(e.target.value)}
+                                  className="bg-transparent text-xs font-medium text-slate-700 outline-none w-full"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2 w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-3xs focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Sampai:</span>
+                                <input
+                                  type="date"
+                                  value={dbDateFilterEnd}
+                                  onChange={(e) => setDbDateFilterEnd(e.target.value)}
+                                  className="bg-transparent text-xs font-medium text-slate-700 outline-none w-full"
+                                />
+                              </div>
+                              {(dbDateFilterStart || dbDateFilterEnd) && (
+                                <button
+                                  onClick={() => {
+                                    setDbDateFilterStart("");
+                                    setDbDateFilterEnd("");
+                                  }}
+                                  className="text-[10px] font-bold text-red-600 hover:text-red-700 px-3 py-1.5 hover:bg-red-50 rounded-lg transition-colors cursor-pointer w-full md:w-auto text-center"
+                                >
+                                  Reset Tanggal
+                                </button>
+                              )}
+                          </div>
+
+                          {/* Bottom: Status Pills */}
+                          <div className="flex flex-wrap gap-2 p-4 border-t border-slate-100 bg-white" id="database_pill_filters">
+                            {[
+                              { id: "All", label: "Semua Log", color: "bg-slate-400", text: "text-slate-600", activeBg: "bg-slate-900 text-white shadow-sm ring-1 ring-slate-900/10", activeCount: "bg-white/20 text-white" },
+                              { id: "Present", label: "Hadir", statusChoice: "Present", color: "bg-emerald-500", text: "text-emerald-700", activeBg: "bg-emerald-50 text-emerald-800 shadow-sm ring-1 ring-emerald-500/20", activeCount: "bg-emerald-200/50 text-emerald-900" },
+                              { id: "Late", label: "Terlambat", statusChoice: "Late", color: "bg-amber-500", text: "text-amber-700", activeBg: "bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-500/20", activeCount: "bg-amber-200/50 text-amber-900" },
+                              { id: "Absent", label: "Alpa / Mangkir", statusChoice: "Absent", color: "bg-red-500", text: "text-red-700", activeBg: "bg-red-50 text-red-800 shadow-sm ring-1 ring-red-500/20", activeCount: "bg-red-200/50 text-red-900" },
+                              { id: "Excused", label: "Izin / Sakit", statusChoice: "Excused", color: "bg-blue-500", text: "text-blue-700", activeBg: "bg-blue-50 text-blue-800 shadow-sm ring-1 ring-blue-500/20", activeCount: "bg-blue-200/50 text-blue-900" },
+                            ].map((pill) => {
+                              const isPillActive = dbStatusFilter === pill.id;
+                              const count = pill.id === "All"
+                                ? dbActiveBaseLogs.length
+                                : pill.id === "Absent"
+                                  ? dbActiveBaseLogs.filter((l) => l.status !== "Present" && l.status !== "Late" && l.status !== "Excused").length
+                                  : dbActiveBaseLogs.filter((l) => l.status === pill.statusChoice).length;
+
+                              return (
+                                <button
+                                  type="button"
+                                  key={pill.id}
+                                  onClick={() => {
+                                    setDbStatusFilter(pill.id as any);
+                                    setSelectedLogIds([]);
+                                  }}
+                                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
+                                    isPillActive
+                                      ? pill.activeBg
+                                      : "text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200/60"
+                                  }`}
+                                >
+                                  {!isPillActive && <div className={`w-1.5 h-1.5 rounded-full ${pill.color}`} />}
+                                  <span>{pill.label}</span>
+                                  <span className={`px-1.5 py-0.5 rounded-md font-mono text-[9px] ${isPillActive ? pill.activeCount : "bg-white border border-slate-200/60"}`}>
+                                    {count}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
                       )}
-
-                      {/* Bottom: Status Pills */}
-                      <div className="flex flex-wrap gap-2 p-4 border-t border-slate-100 bg-white" id="database_pill_filters">
-                        {[
-                          { id: "All", label: "Semua Log", color: "bg-slate-400", text: "text-slate-600", activeBg: "bg-slate-900 text-white shadow-sm ring-1 ring-slate-900/10", activeCount: "bg-white/20 text-white" },
-                          { id: "Present", label: "Hadir", statusChoice: "Present", color: "bg-emerald-500", text: "text-emerald-700", activeBg: "bg-emerald-50 text-emerald-800 shadow-sm ring-1 ring-emerald-500/20", activeCount: "bg-emerald-200/50 text-emerald-900" },
-                          { id: "Late", label: "Terlambat", statusChoice: "Late", color: "bg-amber-500", text: "text-amber-700", activeBg: "bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-500/20", activeCount: "bg-amber-200/50 text-amber-900" },
-                          { id: "Absent", label: "Alpa / Mangkir", statusChoice: "Absent", color: "bg-red-500", text: "text-red-700", activeBg: "bg-red-50 text-red-800 shadow-sm ring-1 ring-red-500/20", activeCount: "bg-red-200/50 text-red-900" },
-                          { id: "Excused", label: "Izin / Sakit", statusChoice: "Excused", color: "bg-blue-500", text: "text-blue-700", activeBg: "bg-blue-50 text-blue-800 shadow-sm ring-1 ring-blue-500/20", activeCount: "bg-blue-200/50 text-blue-900" },
-                        ].map((pill) => {
-                          const isPillActive = dbStatusFilter === pill.id;
-                          const count = pill.id === "All"
-                            ? dbActiveBaseLogs.length
-                            : pill.id === "Absent"
-                              ? dbActiveBaseLogs.filter((l) => l.status !== "Present" && l.status !== "Late" && l.status !== "Excused").length
-                              : dbActiveBaseLogs.filter((l) => l.status === pill.statusChoice).length;
-
-                          return (
-                            <button
-                              type="button"
-                              key={pill.id}
-                              onClick={() => {
-                                setDbStatusFilter(pill.id as any);
-                                setSelectedLogIds([]);
-                              }}
-                              className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
-                                isPillActive
-                                  ? pill.activeBg
-                                  : "text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200/60"
-                              }`}
-                            >
-                              {!isPillActive && <div className={`w-1.5 h-1.5 rounded-full ${pill.color}`} />}
-                              <span>{pill.label}</span>
-                              <span className={`px-1.5 py-0.5 rounded-md font-mono text-[9px] ${isPillActive ? pill.activeCount : "bg-white border border-slate-200/60"}`}>
-                                {count}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
                     </div>
 
                     {/* MANUAL LOG INSERTION FORM (EXPANDABLE SECTOINE) */}
