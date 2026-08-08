@@ -114,6 +114,7 @@ import {
   Award,
   User,
   BookOpen,
+  MoreVertical,
 } from "lucide-react";
 import {
   HostEmployee,
