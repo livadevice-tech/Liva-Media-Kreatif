@@ -4885,6 +4885,20 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => {
+                        window.history.pushState({}, "", "/login/brand");
+                        setActiveRole("client");
+                        setHostError("");
+                        setHostLoginUser("");
+                        setHostLoginPass("");
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-[#5A52E5] transition-colors cursor-pointer hover:underline"
+                    >
+                      Masuk Portal Login Brand Partner &rarr;
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
                         window.history.pushState({}, "", "/brand-resources");
                         setShowPublicBrandResources(true);
                       }}
@@ -4893,7 +4907,8 @@ export default function App() {
                       <BookOpen className="w-4 h-4" />
                       Lihat Panduan & Script Publik &rarr;
                     </button>
-                    <span className="text-xs text-slate-500 font-medium">
+
+                    <span className="text-xs text-slate-400 font-medium mt-1">
                         Pastikan koneksi internet Anda stabil sebelum masuk.
                     </span>
                   </div>
