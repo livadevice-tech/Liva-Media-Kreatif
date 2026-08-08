@@ -5518,7 +5518,7 @@ export default function App() {
                       {
                         tabId: "database",
                         label: "Database Absen",
-                        badgeCount: logs.length,
+                        badgeCount: dbActiveBaseLogs.length,
                         icon: ClipboardList,
                         category: "cat-host",
                       },
