@@ -121,8 +121,8 @@ export function AttendanceCalendarView({
     return logs.filter((log) => log.hostId === selectedHostId || log.employeeId === selectedHostId);
   }, [logs, selectedHostId]);
 
-  const getLogForDate = (dateStr: string) => {
-    return selectedHostLogs.find(l => {
+  const getLogsForDate = (dateStr: string) => {
+    return selectedHostLogs.filter(l => {
       const logDate = l.date || (typeof (l as any).timestamp === "string" ? (l as any).timestamp.split(" ")[0] : "");
       return logDate === dateStr;
     });
@@ -186,10 +186,10 @@ export function AttendanceCalendarView({
         liveDuration: formStatus === "Absent" ? 0 : 4,
         sessionCount: formStatus === "Absent" ? 0 : 1,
         status: formStatus,
-        revenueGenerated: editingLogId ? (getLogForDate(modalDate)?.revenueGenerated || randomRevenue) : randomRevenue,
+        revenueGenerated: editingLogId ? (selectedHostLogs.find(l => l.id === editingLogId)?.revenueGenerated || randomRevenue) : randomRevenue,
         conversionRate: formStatus === "Absent" ? 0 : 3.8,
         engagementRate: formStatus === "Absent" ? 0 : 7.2,
-        orders: editingLogId ? (getLogForDate(modalDate)?.orders || randomOrders) : randomOrders,
+        orders: editingLogId ? (selectedHostLogs.find(l => l.id === editingLogId)?.orders || randomOrders) : randomOrders,
         overtimeHours: formOvertime,
         isBackupShift: formIsBackup,
       };
@@ -288,52 +288,22 @@ export function AttendanceCalendarView({
             ))}
             
             {calendarDays.map((dayObj) => {
-              const log = getLogForDate(dayObj.dateStr);
+              const dayLogs = getLogsForDate(dayObj.dateStr);
               const isToday = new Date().toDateString() === dayObj.date.toDateString();
               
-              let badgeBg = "bg-slate-50";
-              let badgeBorder = "border-slate-200";
-              let badgeText = "text-slate-500";
-              let badgeDot = "bg-slate-400";
-              let label = "Tidak Ada Data";
-
-              if (log) {
-                switch (log.status) {
-                  case "Present":
-                    badgeBg = "bg-emerald-50/50";
-                    badgeBorder = "border-emerald-200";
-                    badgeText = "text-emerald-700";
-                    badgeDot = "bg-emerald-500";
-                    label = "Hadir";
-                    break;
-                  case "Late":
-                    badgeBg = "bg-amber-50/50";
-                    badgeBorder = "border-amber-200";
-                    badgeText = "text-amber-700";
-                    badgeDot = "bg-amber-500";
-                    label = "Terlambat";
-                    break;
-                  case "Absent":
-                    badgeBg = "bg-red-50/50";
-                    badgeBorder = "border-red-200";
-                    badgeText = "text-red-700";
-                    badgeDot = "bg-red-500";
-                    label = "Alpa";
-                    break;
-                  case "Excused":
-                    badgeBg = "bg-indigo-50/50";
-                    badgeBorder = "border-indigo-200";
-                    badgeText = "text-indigo-700";
-                    badgeDot = "bg-indigo-500";
-                    label = "Izin";
-                    break;
-                }
-              }
+              // Group logs by brand and shift
+              const groupedLogs = dayLogs.reduce((acc, log) => {
+                const key = `${log.brandHandled}_${log.shiftHours}_${log.status}`;
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(log);
+                return acc;
+              }, {} as Record<string, typeof logs>);
+              const logGroups = Object.values(groupedLogs);
               
               return (
                 <div 
                   key={dayObj.dateStr} 
-                  onClick={() => handleOpenModal(dayObj.dateStr, log)}
+                  onClick={() => handleOpenModal(dayObj.dateStr)}
                   className={`min-h-[130px] p-2.5 border-r border-b border-slate-100 group cursor-pointer transition-all relative
                     ${isToday ? 'bg-purple-50/20' : ''} 
                     ${!dayObj.isCurrentMonth && viewMode === "monthly" ? 'opacity-40 bg-slate-50' : 'hover:bg-slate-50'}
@@ -352,31 +322,80 @@ export function AttendanceCalendarView({
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    {log ? (
-                      <>
-                        <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${badgeBg} ${badgeBorder} transition-transform group-hover:scale-[1.02]`}>
-                          <div className="flex items-center gap-1.5">
-                            <div className={`w-1.5 h-1.5 rounded-full ${badgeDot}`}></div>
-                            <span className={`text-[10px] font-bold ${badgeText}`}>
-                              {label}
-                            </span>
+                    {logGroups.length > 0 ? (
+                      logGroups.map((group, idx) => {
+                        const log = group[0];
+                        const duplicateCount = group.length;
+
+                        let badgeBg = "bg-slate-50";
+                        let badgeBorder = "border-slate-200";
+                        let badgeText = "text-slate-500";
+                        let badgeDot = "bg-slate-400";
+                        let label = "Tidak Ada Data";
+
+                        switch (log.status) {
+                          case "Present":
+                            badgeBg = "bg-emerald-50/50";
+                            badgeBorder = "border-emerald-200";
+                            badgeText = "text-emerald-700";
+                            badgeDot = "bg-emerald-500";
+                            label = "Hadir";
+                            break;
+                          case "Late":
+                            badgeBg = "bg-amber-50/50";
+                            badgeBorder = "border-amber-200";
+                            badgeText = "text-amber-700";
+                            badgeDot = "bg-amber-500";
+                            label = "Terlambat";
+                            break;
+                          case "Absent":
+                            badgeBg = "bg-red-50/50";
+                            badgeBorder = "border-red-200";
+                            badgeText = "text-red-700";
+                            badgeDot = "bg-red-500";
+                            label = "Alpa";
+                            break;
+                          case "Excused":
+                            badgeBg = "bg-indigo-50/50";
+                            badgeBorder = "border-indigo-200";
+                            badgeText = "text-indigo-700";
+                            badgeDot = "bg-indigo-500";
+                            label = "Izin";
+                            break;
+                        }
+
+                        return (
+                          <div key={idx} onClick={(e) => { e.stopPropagation(); handleOpenModal(dayObj.dateStr, log); }} className="flex flex-col gap-1.5 mb-1.5 last:mb-0">
+                            <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${badgeBg} ${badgeBorder} transition-transform hover:scale-[1.02]`}>
+                              <div className="flex items-center gap-1.5">
+                                <div className={`w-1.5 h-1.5 rounded-full ${badgeDot}`}></div>
+                                <span className={`text-[10px] font-bold flex items-center gap-1 ${badgeText}`}>
+                                  {label}
+                                  {duplicateCount > 1 && (
+                                    <span className="bg-white/60 px-1 py-0.5 rounded text-[9px] ml-1 border border-current shadow-sm">
+                                      +{duplicateCount}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              {log.isBackupShift && (
+                                <span className="text-[8px] font-black uppercase tracking-wider text-fuchsia-600 bg-fuchsia-100/80 px-1.5 py-0.5 rounded-sm">
+                                  Backup
+                                </span>
+                              )}
+                            </div>
+                            {log.brandHandled && (
+                              <div className={`px-2 py-1 rounded text-[9px] font-semibold truncate w-full shadow-sm border ${
+                                log.isBackupShift 
+                                  ? 'bg-fuchsia-50/50 text-fuchsia-700 border-fuchsia-100' 
+                                  : 'bg-slate-100 text-slate-500 border-slate-200'
+                              }`}>
+                                {log.brandHandled}
+                              </div>
+                            )}
                           </div>
-                          {log.isBackupShift && (
-                            <span className="text-[8px] font-black uppercase tracking-wider text-fuchsia-600 bg-fuchsia-100/80 px-1.5 py-0.5 rounded-sm">
-                              Backup
-                            </span>
-                          )}
-                        </div>
-                        {log.brandHandled && (
-                          <div className={`px-2 py-1 rounded text-[9px] font-semibold truncate w-full shadow-sm border ${
-                            log.isBackupShift 
-                              ? 'bg-fuchsia-50/50 text-fuchsia-700 border-fuchsia-100' 
-                              : 'bg-slate-100 text-slate-500 border-slate-200'
-                          }`}>
-                            {log.brandHandled}
-                          </div>
-                        )}
-                      </>
+                        );
+                      })
                     ) : (
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center py-1.5 mt-1 text-[10px] font-bold text-purple-600 bg-purple-50/80 rounded-lg border border-purple-100 border-dashed">
                         <Plus className="w-3 h-3 mr-1" /> Tambah Data
