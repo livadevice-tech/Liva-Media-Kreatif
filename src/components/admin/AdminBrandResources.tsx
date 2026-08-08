@@ -34,6 +34,7 @@ export function AdminBrandResources({
   const [search, setSearch] = useState('');
   const [filterBrand, setFilterBrand] = useState('all');
   const [activeTab, setActiveTab] = useState<'all' | 'guideline' | 'script' | 'sop'>('all');
+  const [expandedBrandIds, setExpandedBrandIds] = useState<Set<string>>(new Set());
 
   const quillRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -309,85 +310,117 @@ export function AdminBrandResources({
           <div className="p-6">
             {isLoading ? (
               <div className="p-8 text-center text-slate-400">Memuat data...</div>
-            ) : filtered.length === 0 ? (
-              <div className="p-8 text-center text-slate-400">Tidak ada panduan ditemukan.</div>
             ) : (
-              <div className="space-y-10">
-                {/* Group by brandId */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {(() => {
-                  const grouped = filtered.reduce((acc, r) => {
-                    if (!acc[r.brandId]) acc[r.brandId] = [];
-                    acc[r.brandId].push(r);
-                    return acc;
-                  }, {} as Record<string, BrandResource[]>);
+                  const brandsToRender = brands.filter(b => {
+                    if (filterBrand !== 'all' && b.id !== filterBrand) return false;
+                    if (b.isActive === false) return false;
+                    return true;
+                  });
+
+                  if (brandsToRender.length === 0) {
+                    return <div className="col-span-full p-8 text-center text-slate-400">Tidak ada brand yang sesuai.</div>;
+                  }
 
                   let colorIndex = 0;
 
-                  return Object.entries(grouped).map(([brandId, brandResources]) => {
-                    const brand = brands.find(b => b.id === brandId);
-                    if (!brand) return null;
+                  return brandsToRender.map(brand => {
+                    const brandResources = filtered.filter(r => r.brandId === brand.id);
+                    if (search && brandResources.length === 0) return null; // Hide if searching and no matches
+
+                    const gradient = bgGradients[colorIndex % bgGradients.length];
+                    colorIndex++;
+                    const isExpanded = expandedBrandIds.has(brand.id);
 
                     return (
-                      <div key={brandId} className="space-y-4">
-                        <div className="flex items-center gap-3 border-b border-slate-100 pb-2">
-                          {brand.logoUrl ? (
-                            <img src={brand.logoUrl} className="w-8 h-8 rounded-full object-cover border" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[12px] font-bold text-slate-600">
-                              {brand.name.charAt(0)}
-                            </div>
-                          )}
-                          <h3 className="text-lg font-bold text-slate-800">{brand.name}</h3>
-                          <span className="text-xs font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
-                            {brandResources.length}
-                          </span>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                          {brandResources.map(r => {
-                            const gradient = bgGradients[colorIndex % bgGradients.length];
-                            colorIndex++;
-                            
-                            return (
-                              <div key={r.id} className={`relative overflow-hidden rounded-[24px] p-6 h-[220px] flex flex-col justify-between text-white bg-gradient-to-br ${gradient} shadow-sm hover:shadow-md transition-shadow group`}>
-                                {/* Large faded background icon */}
-                                <div className="absolute right-[-10px] top-1/4 opacity-20 transform rotate-12 scale-150 transition-transform group-hover:scale-125 pointer-events-none">
-                                  {r.type === 'script' ? <Mic size={100} /> : r.type === 'sop' ? <Settings size={100} /> : <BookOpen size={100} />}
-                                </div>
+                      <div key={brand.id} className="col-span-full xl:col-span-1 flex flex-col gap-4">
+                         {/* Brand Card */}
+                         <div 
+                           onClick={() => {
+                             setExpandedBrandIds(prev => {
+                               const next = new Set(prev);
+                               if (next.has(brand.id)) next.delete(brand.id);
+                               else next.add(brand.id);
+                               return next;
+                             });
+                           }}
+                           className={`relative overflow-hidden rounded-[24px] p-6 h-[220px] flex flex-col justify-between text-white bg-gradient-to-br ${gradient} shadow-sm hover:shadow-md transition-shadow cursor-pointer group w-full`}
+                         >
+                           <div className="absolute right-[-20px] top-1/4 opacity-20 transform rotate-12 scale-150 transition-transform group-hover:scale-125 pointer-events-none">
+                             <BookOpen size={120} />
+                           </div>
+                           
+                           <div className="relative z-10 pr-4">
+                             <div className="w-12 h-12 bg-white/20 rounded-full mb-4 flex items-center justify-center overflow-hidden backdrop-blur-sm border border-white/30">
+                               {brand.logoUrl ? (
+                                 <img src={brand.logoUrl} className="w-full h-full object-cover" />
+                               ) : (
+                                 <span className="font-bold text-xl">{brand.name.charAt(0)}</span>
+                               )}
+                             </div>
+                             <h4 className="font-bold text-[24px] leading-tight drop-shadow-sm line-clamp-2">{brand.name}</h4>
+                           </div>
+                           
+                           <div className="relative z-10 flex items-end justify-between mt-auto">
+                             <div>
+                               <p className="text-[14px] font-medium text-white/90 drop-shadow-sm">{brandResources.length} Dokumen</p>
+                             </div>
+                             <div className="flex items-center gap-1.5">
+                               <div className="bg-white text-slate-800 text-[12px] font-bold px-4 py-2 rounded-full shadow-sm hover:bg-slate-50 transition-colors">
+                                 {isExpanded ? 'Tutup' : 'Lihat'}
+                               </div>
+                             </div>
+                           </div>
+                         </div>
 
-                                <div className="relative z-10 pr-4">
-                                  <h4 className="font-bold text-[22px] leading-tight drop-shadow-sm line-clamp-3">{r.title}</h4>
+                         {/* Resources List */}
+                         {isExpanded && (
+                           <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-4 shadow-inner">
+                             {brandResources.length === 0 ? (
+                                <div className="text-center text-slate-400 py-6 text-sm">Belum ada panduan.</div>
+                             ) : (
+                                <div className="space-y-3">
+                                  {brandResources.map(r => (
+                                    <div key={r.id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-4 hover:border-slate-300 transition-colors shadow-sm">
+                                       <div className="flex items-center gap-3">
+                                          <div className={`p-2.5 rounded-lg ${r.type === 'script' ? 'bg-purple-100 text-purple-600' : r.type === 'sop' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+                                            {r.type === 'script' ? <Mic size={20} /> : r.type === 'sop' ? <Settings size={20} /> : <BookOpen size={20} />}
+                                          </div>
+                                          <div>
+                                            <h5 className="font-bold text-slate-700 text-sm leading-tight mb-0.5">{r.title}</h5>
+                                            <p className="text-[11px] font-medium text-slate-500 capitalize">{r.type === 'guideline' ? 'Panduan' : r.type} • {new Date(r.createdAt).toLocaleDateString('id-ID')}</p>
+                                          </div>
+                                       </div>
+                                       <div className="flex items-center gap-1.5 shrink-0">
+                                         <button 
+                                           onClick={(e) => { e.stopPropagation(); setCurrentEdit(r); setIsEditing(true); }} 
+                                           className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                         >
+                                           <Edit2 className="w-4 h-4" />
+                                         </button>
+                                         <button 
+                                           onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} 
+                                           className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                         >
+                                           <Trash2 className="w-4 h-4" />
+                                         </button>
+                                       </div>
+                                    </div>
+                                  ))}
                                 </div>
-                                
-                                <div className="relative z-10 flex items-end justify-between mt-auto">
-                                  <div>
-                                    <p className="text-[13px] font-medium text-white/90 drop-shadow-sm capitalize">
-                                      {r.type === 'guideline' ? 'Panduan' : r.type}
-                                    </p>
-                                    <p className="text-[11px] text-white/70">
-                                      {new Date(r.createdAt).toLocaleDateString('id-ID')}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <button 
-                                      onClick={() => handleDelete(r.id)} 
-                                      className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center hover:bg-black/20 text-white backdrop-blur-sm transition-colors"
-                                      title="Hapus"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button 
-                                      onClick={() => { setCurrentEdit(r); setIsEditing(true); }} 
-                                      className="bg-white text-slate-800 text-[12px] font-bold px-4 py-2 rounded-full hover:bg-slate-50 transition-colors shadow-sm"
-                                    >
-                                      Edit
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                             )}
+                             <button
+                               onClick={() => {
+                                 setCurrentEdit({ type: 'script', brandId: brand.id });
+                                 setIsEditing(true);
+                               }}
+                               className="mt-4 w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-sm font-semibold text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2 bg-white"
+                             >
+                               <Plus className="w-4 h-4" /> Tambah Dokumen Baru
+                             </button>
+                           </div>
+                         )}
                       </div>
                     );
                   });
