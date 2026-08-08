@@ -140,6 +140,7 @@ import { formatIDR } from "./shared/utils/currency";
 import { formatContractDate, padLocal } from "./shared/utils/dateFormatting";
 import { getPickerDays } from "./shared/utils/calendar";
 import { AdminBrandResources } from "./components/admin/AdminBrandResources";
+import { TrendSiaranChart } from "./components/admin/TrendSiaranChart";
 import { PublicBrandResources } from "./components/public/PublicBrandResources";
 import {
   applyDateFilterSelection,
@@ -6032,20 +6033,6 @@ export default function App() {
                   const todaySessions = schedules.filter(s => s.date === todayLocal).length;
                   const activeBrands = clientBrands.filter(b => b.isActive !== false).length;
 
-                  const last7DaysData = Array.from({ length: 7 }, (_, i) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() - (6 - i));
-                    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                    
-                    const activeBrandIds = clientBrands.filter(b => b.isActive !== false).map(b => b.id);
-                    const totalSesi = schedules.filter(s => s.date === dateStr && activeBrandIds.includes(s.brandId)).length;
-                    
-                    return {
-                      name: d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-                      total: totalSesi
-                    };
-                  });
-
                   return (
                     <div
                       className="space-y-6 animate-fadeIn"
@@ -6129,62 +6116,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Grafik 7 Hari Terakhir */}
-                      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 animate-fadeIn" style={{ animationDelay: '100ms' }}>
-                        <div className="mb-6 flex justify-between items-center">
-                          <div>
-                            <h3 className="text-[15px] font-bold text-slate-800">Tren Siaran 7 Hari Terakhir</h3>
-                            <p className="text-[11px] text-slate-400 mt-0.5 font-semibold">Jumlah sesi live aktif per hari dari semua brand aktif</p>
-                          </div>
-                          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                            <LineChart className="w-5 h-5" />
-                          </div>
-                        </div>
-                        <div className="h-[300px] w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart
-                              data={last7DaysData}
-                              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                            >
-                              <defs>
-                                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                              <XAxis 
-                                dataKey="name" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 600 }} 
-                                dy={10} 
-                              />
-                              <YAxis 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fontSize: 11, fill: '#94A3B8', fontWeight: 600 }}
-                              />
-                              <Tooltip 
-                                cursor={{ stroke: '#94A3B8', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)' }}
-                                labelStyle={{ fontWeight: 'bold', color: '#1E293B', marginBottom: '4px' }}
-                                itemStyle={{ color: '#4F46E5', fontWeight: 700 }}
-                              />
-                              <Area 
-                                type="monotone" 
-                                dataKey="total" 
-                                stroke="#4F46E5" 
-                                strokeWidth={3}
-                                fillOpacity={1} 
-                                fill="url(#colorTotal)" 
-                                activeDot={{ r: 6, fill: "#4F46E5", stroke: "#fff", strokeWidth: 2 }}
-                                name="Total Sesi"
-                              />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
+                      <TrendSiaranChart schedules={schedules} clientBrands={clientBrands} platforms={PLATFORMS} />
                     </div>
                   );
                 })()}
