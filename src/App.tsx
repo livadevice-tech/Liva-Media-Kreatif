@@ -1710,6 +1710,21 @@ export default function App() {
     const exactCheckInTime = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
     const currentTimeStr = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
 
+    // Prevent double check-in for the same schedule
+    const alreadyCheckedIn = logs.some(
+      (log) =>
+        log.hostId === activeHostObj.id &&
+        log.date === todayDateStr &&
+        log.brandHandled === hostForm.brand &&
+        log.shiftHours === hostForm.shift &&
+        log.platform === hostForm.platform
+    );
+
+    if (alreadyCheckedIn) {
+      setHostFormError("Kamu sudah absen");
+      return;
+    }
+
     // Geolocation verification (Hard Block)
     const selectedStudio = studios.find((s) => s.name === hostForm.studio);
     if (selectedStudio && selectedStudio.lat !== undefined && selectedStudio.lng !== undefined && selectedStudio.radius !== undefined) {
