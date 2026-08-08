@@ -627,6 +627,7 @@ export default function App() {
   const [deleteByDateTargetBrand, setDeleteByDateTargetBrand] = useState<{id: string, name: string} | null>(null);
   const [deleteByDateStart, setDeleteByDateStart] = useState("");
   const [deleteByDateEnd, setDeleteByDateEnd] = useState("");
+  const [expandedBrandIds, setExpandedBrandIds] = useState<Set<string>>(new Set());
 
   const [confirmState, setConfirmState] = useState<{
     message: string;
@@ -11642,7 +11643,17 @@ export default function App() {
                                 className={`bg-white rounded-xl border transition-all duration-200 hover:shadow-sm hover:border-slate-300 group border-slate-200`}
                               >
                                 {/* Card Header */}
-                                <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100">
+                                <div 
+                                  className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 cursor-pointer hover:bg-slate-50/50 transition-colors"
+                                  onClick={() => {
+                                    setExpandedBrandIds(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(brand.id)) next.delete(brand.id);
+                                      else next.add(brand.id);
+                                      return next;
+                                    });
+                                  }}
+                                >
                                   <div className="flex items-start gap-3 flex-1 min-w-0">
                                     <div className={`w-9 h-9 overflow-hidden rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${
                                       isActive ? "bg-slate-50 border border-slate-200 text-slate-700" : "bg-slate-50 text-slate-400"
@@ -11695,11 +11706,12 @@ export default function App() {
                                   <div className="flex items-center gap-2 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                     <button
                                       type="button"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setOperatorTab("invoice");
                                         setTimeout(() => {
-                                          const e = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
-                                          window.dispatchEvent(e);
+                                          const evt = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
+                                          window.dispatchEvent(evt);
                                         }, 300);
                                       }}
                                       aria-label={`Buat invoice untuk ${brand.name}`}
@@ -11710,7 +11722,10 @@ export default function App() {
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => handleEditBrand(brand)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditBrand(brand);
+                                      }}
                                       aria-label={`Edit data brand ${brand.name}`}
                                       className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition-all hover:bg-slate-50 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/30"
                                       title="Edit Data"
@@ -11719,18 +11734,28 @@ export default function App() {
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => handleDeleteBrand(brand.id)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteBrand(brand.id);
+                                      }}
                                       aria-label={`Hapus data brand ${brand.name}`}
                                       className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 transition-all hover:bg-rose-50 hover:border-rose-200 hover:text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/30"
                                       title="Hapus Data"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
+                                    <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block"></div>
+                                    {expandedBrandIds.has(brand.id) ? (
+                                      <ChevronUp className="w-5 h-5 text-slate-400" />
+                                    ) : (
+                                      <ChevronDown className="w-5 h-5 text-slate-400" />
+                                    )}
                                   </div>
                                 </div>
 
                                 {/* Card Body */}
-                                <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {expandedBrandIds.has(brand.id) && (
+                                  <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-3 gap-6">
                                   {/* Sessions */}
                                   <div>
                                     <p className="text-[10px] font-semibold text-slate-500 mb-2">Platform & Sesi</p>
@@ -11803,7 +11828,8 @@ export default function App() {
                                       )}
                                     </div>
                                   </div>
-                                </div>
+                                  </div>
+                                )}
                                 {brandFormEditor && brandFormEditor.id === brand.id && (
                                   <div className="mt-4 border-t border-slate-200 pt-4">
                                     <BrandFormEditor
