@@ -1711,7 +1711,7 @@ export default function App() {
     const currentTimeStr = `${pad(nowObj.getHours())}:${pad(nowObj.getMinutes())}:${pad(nowObj.getSeconds())}`;
 
     // Prevent double check-in for the same schedule
-    const alreadyCheckedIn = logs.some(
+    const alreadyCheckedIn = logs.find(
       (log) =>
         log.hostId === activeHostObj.id &&
         log.date === todayDateStr &&
@@ -1721,7 +1721,7 @@ export default function App() {
     );
 
     if (alreadyCheckedIn) {
-      setHostFormError("Kamu sudah absen");
+      setHostFormError(`Kamu sebelumnya sudah absen di jam ${alreadyCheckedIn.checkInTime} untuk brand ${hostForm.brand} di shift ${hostForm.shift}`);
       return;
     }
 
