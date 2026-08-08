@@ -10480,8 +10480,8 @@ export default function App() {
                       </div>
 
                       {/* Middle: Search & Dropdown Filters */}
-                      {/* Only show Search, Dropdowns, and Status Pills in 'all' (list) mode, hide in 'calendar' mode */}
-                      {dbTabMode === "all" && (
+                      {/* Only show Search, Dropdowns, and Status Pills in 'all' (list) mode and 'today' mode, hide in 'calendar' mode */}
+                      {dbTabMode !== "calendar" && (
                         <>
                           {/* Middle: Search & Dropdown Filters */}
                           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4 bg-slate-50/50">
@@ -10536,7 +10536,8 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Date Filters */}
+                          {/* Date Filters (Only visible in 'all' mode) */}
+                          {dbTabMode === "all" && (
                           <div className="flex flex-wrap gap-3 items-center px-4 pb-4 bg-slate-50/50">
                               <div className="flex items-center gap-2 w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-3xs focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
                                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
@@ -10570,6 +10571,7 @@ export default function App() {
                                 </button>
                               )}
                           </div>
+                          )}
 
                           {/* Bottom: Status Pills */}
                           <div className="flex flex-wrap gap-2 p-4 border-t border-slate-100 bg-white" id="database_pill_filters">
