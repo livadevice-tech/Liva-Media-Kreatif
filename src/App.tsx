@@ -6025,17 +6025,97 @@ export default function App() {
               {/* WORKSPACE AREA CONTAINER */}
               <div className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 pb-24 relative">
                 {/* ==================== SUBTAB: 1. DASHBOARD UTAMA ⭐ ==================== */}
-                {operatorTab === "dashboard_utama" && (
-                  <div
-                    className="space-y-6 animate-fadeIn"
-                    id="operator_dashboard_utama_content"
-                  >
-                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-                      <p className="text-slate-500 font-bold mb-2">Dashboard telah dikosongkan.</p>
-                      <p className="text-slate-400 text-sm">Silakan berikan instruksi untuk mengatur ulang isi dashboard.</p>
+                {operatorTab === "dashboard_utama" && (() => {
+                  const today = new Date();
+                  const todayLocal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                  const todaySessions = schedules.filter(s => s.date === todayLocal).length;
+                  const activeBrands = clientBrands.filter(b => b.isActive !== false).length;
+
+                  return (
+                    <div
+                      className="space-y-6 animate-fadeIn"
+                      id="operator_dashboard_utama_content"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Card 1: Total Host */}
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between h-[140px]">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-[13px] font-bold text-slate-800">Total Host Liva</h3>
+                              <p className="text-[10px] text-slate-400 mt-0.5 tracking-wider">HOST AKTIF</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+                              <Users className="w-4 h-4" />
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-end mt-4">
+                            <div className="text-3xl font-black text-slate-800 tracking-tight">{hosts.length}</div>
+                            <button className="text-slate-300 hover:text-slate-500 p-1 transition-colors">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Card 2: Jumlah Brand Aktif */}
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between h-[140px]">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-[13px] font-bold text-slate-800">Total Brand</h3>
+                              <p className="text-[10px] text-slate-400 mt-0.5 tracking-wider">BRAND AKTIF</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                              <Building2 className="w-4 h-4" />
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-end mt-4">
+                            <div className="text-3xl font-black text-slate-800 tracking-tight">{activeBrands}</div>
+                            <button className="text-slate-300 hover:text-slate-500 p-1 transition-colors">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Card 3: Jumlah Sesi Aktif Hari Ini */}
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between h-[140px]">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-[13px] font-bold text-slate-800">Sesi Hari Ini</h3>
+                              <p className="text-[10px] text-slate-400 mt-0.5 tracking-wider">JADWAL AKTIF</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
+                              <Video className="w-4 h-4" />
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-end mt-4">
+                            <div className="text-3xl font-black text-slate-800 tracking-tight">{todaySessions}</div>
+                            <button className="text-slate-300 hover:text-slate-500 p-1 transition-colors">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Card 4: Jumlah Studio */}
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between h-[140px]">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-[13px] font-bold text-slate-800">Total Studio</h3>
+                              <p className="text-[10px] text-slate-400 mt-0.5 tracking-wider">STUDIO AKTIF</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center">
+                              <MapPin className="w-4 h-4" />
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-end mt-4">
+                            <div className="text-3xl font-black text-slate-800 tracking-tight">{studios.length}</div>
+                            <button className="text-slate-300 hover:text-slate-500 p-1 transition-colors">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })}
 
                 {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST ==================== */}
                 {operatorTab === "absensi" && (
