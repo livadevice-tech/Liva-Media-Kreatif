@@ -6,7 +6,16 @@ import 'react-quill-new/dist/quill.snow.css';
 import BlotFormatter from '@enzedonline/quill-blot-formatter2';
 
 Quill.register('modules/blotFormatter', BlotFormatter);
-import { Plus, Edit2, Trash2, Save, X, Search, FileText, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Search, FileText, ExternalLink, Mic, BookOpen, Settings } from 'lucide-react';
+
+const bgGradients = [
+  'from-[#65db72] to-[#45b651]', // Green
+  'from-[#5d75f3] to-[#4a5fdb]', // Blue
+  'from-[#ff6b7e] to-[#f04f63]', // Red/Pink
+  'from-[#6870d4] to-[#5058ba]', // Indigo/Purple
+  'from-[#3ea2eb] to-[#288dd4]', // Cyan
+  'from-[#ffb141] to-[#e69829]', // Orange
+];
 import type { ClientBrand, BrandResource } from '../../types';
 import { brandResourcesApi } from '../../api';
 import { ImageCropperModal } from '../ui/ImageCropperModal';
@@ -297,82 +306,94 @@ export function AdminBrandResources({
             </select>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="p-4">Brand</th>
-                  <th className="p-4">Judul Dokumen</th>
-                  <th className="p-4">Tipe</th>
-                  <th className="p-4">Diperbarui</th>
-                  <th className="p-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {isLoading ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-slate-400">Memuat data...</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-slate-400">Tidak ada panduan ditemukan.</td></tr>
-                ) : (
-                  filtered.map(r => {
-                    const brand = brands.find(b => b.id === r.brandId);
+          <div className="p-6">
+            {isLoading ? (
+              <div className="p-8 text-center text-slate-400">Memuat data...</div>
+            ) : filtered.length === 0 ? (
+              <div className="p-8 text-center text-slate-400">Tidak ada panduan ditemukan.</div>
+            ) : (
+              <div className="space-y-10">
+                {/* Group by brandId */}
+                {(() => {
+                  const grouped = filtered.reduce((acc, r) => {
+                    if (!acc[r.brandId]) acc[r.brandId] = [];
+                    acc[r.brandId].push(r);
+                    return acc;
+                  }, {} as Record<string, BrandResource[]>);
+
+                  let colorIndex = 0;
+
+                  return Object.entries(grouped).map(([brandId, brandResources]) => {
+                    const brand = brands.find(b => b.id === brandId);
+                    if (!brand) return null;
+
                     return (
-                      <tr key={r.id} className="hover:bg-slate-50/80 transition-colors group">
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            {brand?.logoUrl ? (
-                              <img src={brand.logoUrl} className="w-6 h-6 rounded-full object-cover border" />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">
-                                {brand?.name?.charAt(0)}
-                              </div>
-                            )}
-                            <span className="font-medium text-slate-900 text-sm">{brand?.name || 'Unknown'}</span>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-slate-400" />
-                            <span className="font-semibold text-slate-700 text-sm">{r.title}</span>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className={`inline-flex px-2 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${
-                            r.type === 'script' ? 'bg-purple-100 text-purple-700' :
-                            r.type === 'sop' ? 'bg-amber-100 text-amber-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
-                            {r.type}
+                      <div key={brandId} className="space-y-4">
+                        <div className="flex items-center gap-3 border-b border-slate-100 pb-2">
+                          {brand.logoUrl ? (
+                            <img src={brand.logoUrl} className="w-8 h-8 rounded-full object-cover border" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[12px] font-bold text-slate-600">
+                              {brand.name.charAt(0)}
+                            </div>
+                          )}
+                          <h3 className="text-lg font-bold text-slate-800">{brand.name}</h3>
+                          <span className="text-xs font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                            {brandResources.length}
                           </span>
-                        </td>
-                        <td className="p-4 text-xs text-slate-500">
-                          {new Date(r.createdAt).toLocaleDateString('id-ID')}
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button 
-                              onClick={() => {
-                                setCurrentEdit(r);
-                                setIsEditing(true);
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleDelete(r.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                          {brandResources.map(r => {
+                            const gradient = bgGradients[colorIndex % bgGradients.length];
+                            colorIndex++;
+                            
+                            return (
+                              <div key={r.id} className={`relative overflow-hidden rounded-[24px] p-6 h-[220px] flex flex-col justify-between text-white bg-gradient-to-br ${gradient} shadow-sm hover:shadow-md transition-shadow group`}>
+                                {/* Large faded background icon */}
+                                <div className="absolute right-[-10px] top-1/4 opacity-20 transform rotate-12 scale-150 transition-transform group-hover:scale-125 pointer-events-none">
+                                  {r.type === 'script' ? <Mic size={100} /> : r.type === 'sop' ? <Settings size={100} /> : <BookOpen size={100} />}
+                                </div>
+
+                                <div className="relative z-10 pr-4">
+                                  <h4 className="font-bold text-[22px] leading-tight drop-shadow-sm line-clamp-3">{r.title}</h4>
+                                </div>
+                                
+                                <div className="relative z-10 flex items-end justify-between mt-auto">
+                                  <div>
+                                    <p className="text-[13px] font-medium text-white/90 drop-shadow-sm capitalize">
+                                      {r.type === 'guideline' ? 'Panduan' : r.type}
+                                    </p>
+                                    <p className="text-[11px] text-white/70">
+                                      {new Date(r.createdAt).toLocaleDateString('id-ID')}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <button 
+                                      onClick={() => handleDelete(r.id)} 
+                                      className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center hover:bg-black/20 text-white backdrop-blur-sm transition-colors"
+                                      title="Hapus"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button 
+                                      onClick={() => { setCurrentEdit(r); setIsEditing(true); }} 
+                                      className="bg-white text-slate-800 text-[12px] font-bold px-4 py-2 rounded-full hover:bg-slate-50 transition-colors shadow-sm"
+                                    >
+                                      Edit
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
+                  });
+                })()}
+              </div>
+            )}
           </div>
         </div>
       )}
