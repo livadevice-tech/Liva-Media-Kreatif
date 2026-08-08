@@ -6120,7 +6120,7 @@ export default function App() {
                         schedules={schedules} 
                         clientBrands={clientBrands} 
                         platforms={PLATFORMS}
-                        performanceLogs={performanceLogs} 
+                        performanceLogs={brandPerformanceLogs} 
                       />
                     </div>
                   );
