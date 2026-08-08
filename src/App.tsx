@@ -746,6 +746,9 @@ export default function App() {
   const [clientBrands, _setClientBrands] = useState<ClientBrand[]>([]);
   const [clientLeads, _setClientLeads] = useState<ClientLead[]>([]);
 
+  const activeBrandNames = useMemo(() => clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map(cb => cb.name) : brands, [clientBrands, brands]);
+  const defaultBrandName = activeBrandNames[0] || "";
+
   // Recover missing history if feature is newly added OR fix badly recovered names
   useEffect(() => {
     let historyChanged = false;
@@ -3848,7 +3851,7 @@ export default function App() {
     hostId: hosts[0]?.id || "",
     hostIds: [],
     isBulkHost: false,
-    brand: brands[0] || "Wardah",
+    brand: defaultBrandName || "Wardah",
     platform: platforms[0] || "TikTok Live",
     shift: shifts[0] || "Shift 1 (05.00 - 11.00)",
     studio: studios[0]?.name || "Studio Bandar Lampung",
@@ -6677,7 +6680,7 @@ export default function App() {
                                   id: "",
                                   hostId: hosts[0]?.id || "",
                                   timeSlot: shifts[0] || "",
-                                  brand: brands[0] || "",
+                                  brand: defaultBrandName,
                                   platform: platforms[0] || "",
                                   studio: studios[0]?.name || "",
                                   isOffDay: false,
@@ -7034,7 +7037,7 @@ export default function App() {
                                   studio: studio,
                                   timeSlot: shift,
                                   hostId: hosts[0]?.id || "",
-                                  brand: brands[0] || "",
+                                  brand: defaultBrandName,
                                   platform: platforms[0] || "",
                                   isOffDay: false,
                                   isPindahStudio: false,
@@ -7048,7 +7051,7 @@ export default function App() {
                                   ...prev,
                                   id: "",
                                   hostId: hosts[0]?.id || "",
-                                  brand: brands[0] || "",
+                                  brand: defaultBrandName,
                                   platform: platforms[0] || "",
                                   isOffDay: false,
                                   isPindahStudio: false,
@@ -7949,7 +7952,7 @@ export default function App() {
                                           id: "",
                                           hostId: hosts[0]?.id || "",
                                           timeSlot: shifts[0] || "",
-                                          brand: brands[0] || "",
+                                          brand: defaultBrandName,
                                           platform: platforms[0] || "",
                                           studio: studios[0]?.name || "",
                                           isOffDay: false,
@@ -8166,7 +8169,7 @@ export default function App() {
                                       date: slot.date,
                                       timeSlot: slot.shift,
                                       platform: scheduleForm.platform || "TikTok Live",
-                                      brand: scheduleForm.brand || brands[0] || "Somethinc",
+                                      brand: scheduleForm.brand || defaultBrandName || "Somethinc",
                                       status: "Assigned" as ShiftSchedule["status"],
                                       studio: slot.studio,
                                       isOffDay: scheduleForm.isOffDay,
@@ -8190,7 +8193,7 @@ export default function App() {
                                     );
                                     
                                     setScheduleForm({
-                                      id: "", hostId: "", timeSlot: shifts[0] || "", brand: brands[0] || "", platform: platforms[0] || "",
+                                      id: "", hostId: "", timeSlot: shifts[0] || "", brand: defaultBrandName, platform: platforms[0] || "",
                                       studio: studios[0] ? studios[0].name : "", isOffDay: false, isPindahStudio: false, backupOption: "none", backupHostId: "",
                                       massSlots: []
                                     });
@@ -8214,7 +8217,7 @@ export default function App() {
                                       scheduleForm.platform || "TikTok Live",
                                     brand:
                                       scheduleForm.brand ||
-                                      brands[0] ||
+                                      defaultBrandName ||
                                       "Somethinc",
                                     status: "Assigned" as ShiftSchedule["status"],
                                     studio:
@@ -8255,7 +8258,7 @@ export default function App() {
                                       hostId: "",
                                       timeSlot:
                                         shifts[0] || "Morning (08:00 - 12:00)",
-                                      brand: brands[0] || "Somethinc",
+                                      brand: defaultBrandName || "Somethinc",
                                       platform: platforms[0] || "TikTok Live",
                                       studio: studios[0]
                                         ? studios[0].name
@@ -8290,7 +8293,7 @@ export default function App() {
                                       hostId: "",
                                       timeSlot:
                                         shifts[0] || "Morning (08:00 - 12:00)",
-                                      brand: brands[0] || "Somethinc",
+                                      brand: defaultBrandName || "Somethinc",
                                       platform: platforms[0] || "TikTok Live",
                                       studio: studios[0]
                                         ? studios[0].name
@@ -8432,7 +8435,7 @@ export default function App() {
                                       options={Array.from(
                                         new Set([
                                           scheduleForm.brand,
-                                          ...(clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map((cb) => cb.name) : brands)
+                                          ...activeBrandNames
                                         ].map(b => b?.trim()).filter(Boolean)),
                                       )
                                         .filter(Boolean).map(b => ({ value: b, label: b }))}
@@ -8491,7 +8494,7 @@ export default function App() {
                                         timeSlot:
                                           shifts[0] ||
                                           "Morning (08:00 - 12:00)",
-                                        brand: brands[0] || "Somethinc",
+                                        brand: defaultBrandName || "Somethinc",
                                         platform: "TikTok Live",
                                         studio: studios[0]
                                           ? studios[0].name
