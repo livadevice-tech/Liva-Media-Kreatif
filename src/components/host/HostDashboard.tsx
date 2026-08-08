@@ -248,7 +248,12 @@ export default function HostDashboard({
             earlyMinutes = diffMins;
             validShifts++;
             
-            if (diffMins >= 30) {
+            if (log.status === 'Present' && diffMins < 0) {
+              // Jika di-update manual oleh admin jadi Present meskipun jam aslinya telat
+              pointChange = 0;
+              reason = `Tepat Waktu`;
+              totalEarlyMinutes += 0;
+            } else if (diffMins >= 30) {
               pointChange = 1;
               reason = `Early Bird (${diffMins}m awal)`;
               totalEarlyMinutes += diffMins;
