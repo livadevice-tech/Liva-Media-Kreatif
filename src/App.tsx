@@ -6116,7 +6116,7 @@ export default function App() {
                       </div>
                     </div>
                   );
-                })}
+                })()}
 
                 {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST ==================== */}
                 {operatorTab === "absensi" && (
