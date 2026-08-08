@@ -293,7 +293,8 @@ export function AttendanceCalendarView({
               
               // Group logs by brand and shift
               const groupedLogs = dayLogs.reduce((acc, log) => {
-                const key = `${log.brandHandled}_${log.shiftHours}_${log.status}`;
+                const normalizedShift = (log.shiftHours || "").replace(/\s+/g, "").toLowerCase();
+                const key = `${log.brandHandled}_${normalizedShift}_${log.status}`;
                 if (!acc[key]) acc[key] = [];
                 acc[key].push(log);
                 return acc;
@@ -362,6 +363,13 @@ export function AttendanceCalendarView({
                             badgeDot = "bg-indigo-500";
                             label = "Izin";
                             break;
+                        }
+
+                        if (duplicateCount > 1) {
+                          badgeBg = "bg-yellow-50/80";
+                          badgeBorder = "border-yellow-300";
+                          badgeText = "text-yellow-800";
+                          badgeDot = "bg-yellow-500";
                         }
 
                         return (
