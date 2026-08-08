@@ -9,23 +9,27 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { ShiftSchedule, ClientBrand } from "../../types";
-import { LineChart, Filter } from "lucide-react";
+import { BrandPerformanceLogEntry } from "../../shared/types/reporting";
+import { LineChart } from "lucide-react";
 import { CustomSelect } from "../ui/CustomSelect";
 
 interface TrendSiaranChartProps {
   schedules: ShiftSchedule[];
   clientBrands: ClientBrand[];
   platforms: string[];
+  performanceLogs: BrandPerformanceLogEntry[];
 }
 
 export function TrendSiaranChart({
   schedules,
   clientBrands,
   platforms,
+  performanceLogs,
 }: TrendSiaranChartProps) {
   const [timeRange, setTimeRange] = useState<"7" | "30" | "90">("7");
   const [activePlatform, setActivePlatform] = useState<"all" | "tiktok" | "shopee">("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
+  const [selectedMetric, setSelectedMetric] = useState<"sesi" | "jamLive" | "gmv" | "viewer">("sesi");
 
   const activeBrands = useMemo(() => {
     return clientBrands.filter((b) => b.isActive !== false);
@@ -35,6 +39,13 @@ export function TrendSiaranChart({
     { value: "all", label: "Semua Brand Aktif" },
     ...activeBrands.map((b) => ({ value: b.name, label: b.name })),
   ];
+  
+  const metricOptions = [
+    { value: "sesi", label: "Total Sesi" },
+    { value: "jamLive", label: "Total Jam Live" },
+    { value: "gmv", label: "GMV" },
+    { value: "viewer", label: "Viewer" },
+  ];
 
   const chartData = useMemo(() => {
     const days = parseInt(timeRange);
@@ -43,40 +54,106 @@ export function TrendSiaranChart({
       d.setDate(d.getDate() - (days - 1 - i));
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-      const totalSesi = schedules.filter((s) => {
-        if (s.date !== dateStr) return false;
-        
-        // Filter Platform
-        if (activePlatform !== "all" && !s.platform?.toLowerCase().includes(activePlatform)) {
-          return false;
-        }
+      let total = 0;
 
-        // Filter Brand
-        if (selectedBrand !== "all") {
-          if (s.brand !== selectedBrand) return false;
-        } else {
-          // If 'all', must be part of active brands
-          if (!activeBrands.some((b) => b.name === s.brand)) return false;
-        }
+      if (selectedMetric === "sesi") {
+        total = schedules.filter((s) => {
+          if (s.date !== dateStr) return false;
+          if (activePlatform !== "all" && !s.platform?.toLowerCase().includes(activePlatform)) return false;
+          
+          if (selectedBrand !== "all") {
+            if (s.brand !== selectedBrand) return false;
+          } else {
+            if (!activeBrands.some((b) => b.name === s.brand)) return false;
+          }
+          return true;
+        }).length;
+      } else {
+        const logsForDate = performanceLogs.filter((p) => {
+          if (p.date !== dateStr) return false;
+          if (activePlatform !== "all" && !p.platform?.toLowerCase().includes(activePlatform)) return false;
+          
+          if (selectedBrand !== "all") {
+            const brandObj = activeBrands.find((b) => b.name === selectedBrand);
+            if (brandObj && p.brandId !== brandObj.id) return false;
+            if (!brandObj && p.brandName !== selectedBrand) return false;
+          } else {
+            if (!activeBrands.some((b) => b.id === p.brandId)) return false;
+          }
+          return true;
+        });
 
-        return true;
-      }).length;
+        if (selectedMetric === "jamLive") {
+          const totalSeconds = logsForDate.reduce((sum, p) => sum + (p.duration || 0), 0);
+          total = Number((totalSeconds / 3600).toFixed(2));
+        } else if (selectedMetric === "gmv") {
+          total = logsForDate.reduce((sum, p) => sum + (p.gmv || 0), 0);
+        } else if (selectedMetric === "viewer") {
+          total = logsForDate.reduce((sum, p) => sum + (p.penonton || p.views || 0), 0);
+        }
+      }
 
       return {
         name: d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
-        total: totalSesi,
+        total: total,
       };
     });
-  }, [timeRange, activePlatform, selectedBrand, schedules, activeBrands]);
+  }, [timeRange, activePlatform, selectedBrand, schedules, activeBrands, performanceLogs, selectedMetric]);
+
+  const formatYAxis = (tickItem: number) => {
+    if (selectedMetric === "gmv") {
+      if (tickItem >= 1000000000) return `Rp ${(tickItem / 1000000000).toFixed(1)}M`;
+      if (tickItem >= 1000000) return `Rp ${(tickItem / 1000000).toFixed(1)}Jt`;
+      if (tickItem >= 1000) return `Rp ${(tickItem / 1000).toFixed(1)}rb`;
+      return `Rp ${tickItem}`;
+    }
+    if (selectedMetric === "jamLive") {
+      return `${tickItem}h`;
+    }
+    if (selectedMetric === "viewer") {
+      if (tickItem >= 1000000) return `${(tickItem / 1000000).toFixed(1)}M`;
+      if (tickItem >= 1000) return `${(tickItem / 1000).toFixed(1)}k`;
+      return tickItem.toString();
+    }
+    return tickItem.toString();
+  };
+
+  const tooltipFormatter = (value: number) => {
+    if (selectedMetric === "gmv") {
+      return [new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value), "GMV"];
+    }
+    if (selectedMetric === "jamLive") {
+      return [`${value} Jam`, "Jam Live"];
+    }
+    if (selectedMetric === "viewer") {
+      return [new Intl.NumberFormat("id-ID").format(value), "Viewer"];
+    }
+    return [value.toString(), "Sesi"];
+  };
+
+  const getMetricTitle = () => {
+    switch (selectedMetric) {
+      case "sesi":
+        return "Jumlah sesi live aktif per hari";
+      case "jamLive":
+        return "Total durasi jam live per hari";
+      case "gmv":
+        return "Total pendapatan GMV per hari";
+      case "viewer":
+        return "Total penonton (viewer) per hari";
+      default:
+        return "Metrik per hari";
+    }
+  };
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 animate-fadeIn" style={{ animationDelay: '100ms' }}>
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 animate-fadeIn" style={{ animationDelay: "100ms" }}>
       <div className="mb-6 flex flex-col xl:flex-row xl:justify-between xl:items-start gap-4">
         <div>
           <h3 className="text-[15px] font-bold text-slate-800">Tren Siaran Terakhir</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5 font-semibold">Jumlah sesi live aktif per hari</p>
+          <p className="text-[11px] text-slate-400 mt-0.5 font-semibold">{getMetricTitle()}</p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-3 items-center">
           {/* Tab Platform */}
           <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -97,6 +174,13 @@ export function TrendSiaranChart({
 
           <div className="flex gap-2">
             <CustomSelect
+              options={metricOptions}
+              value={selectedMetric}
+              onChange={(val) => setSelectedMetric(val as any)}
+              className="w-32 text-xs"
+            />
+            
+            <CustomSelect
               options={[
                 { value: "7", label: "7 Hari Terakhir" },
                 { value: "30", label: "30 Hari Terakhir" },
@@ -106,7 +190,7 @@ export function TrendSiaranChart({
               onChange={(val) => setTimeRange(val as any)}
               className="w-36 text-xs"
             />
-            
+
             <CustomSelect
               options={brandOptions}
               value={selectedBrand}
@@ -114,19 +198,16 @@ export function TrendSiaranChart({
               className="w-48 text-xs"
             />
           </div>
-          
+
           <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
             <LineChart className="w-5 h-5" />
           </div>
         </div>
       </div>
-      
+
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={chartData}
-            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-          >
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3} />
@@ -144,8 +225,9 @@ export function TrendSiaranChart({
             <YAxis
               axisLine={false}
               tickLine={false}
+              tickFormatter={formatYAxis}
               tick={{ fontSize: 11, fill: "#94A3B8", fontWeight: 600 }}
-              allowDecimals={false}
+              width={70}
             />
             <Tooltip
               cursor={{ stroke: "#94A3B8", strokeWidth: 1, strokeDasharray: "4 4" }}
@@ -156,6 +238,7 @@ export function TrendSiaranChart({
               }}
               labelStyle={{ fontWeight: "bold", color: "#1E293B", marginBottom: "4px" }}
               itemStyle={{ color: "#4F46E5", fontWeight: 700 }}
+              formatter={tooltipFormatter as any}
             />
             <Area
               type="monotone"
@@ -165,7 +248,12 @@ export function TrendSiaranChart({
               fillOpacity={1}
               fill="url(#colorTotal)"
               activeDot={{ r: 6, fill: "#4F46E5", stroke: "#fff", strokeWidth: 2 }}
-              name="Total Sesi"
+              name={
+                selectedMetric === "sesi" ? "Total Sesi" :
+                selectedMetric === "gmv" ? "GMV" :
+                selectedMetric === "viewer" ? "Viewer" :
+                "Jam Live"
+              }
             />
           </AreaChart>
         </ResponsiveContainer>

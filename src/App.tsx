@@ -6116,7 +6116,12 @@ export default function App() {
                         </div>
                       </div>
 
-                      <TrendSiaranChart schedules={schedules} clientBrands={clientBrands} platforms={PLATFORMS} />
+                      <TrendSiaranChart 
+                        schedules={schedules} 
+                        clientBrands={clientBrands} 
+                        platforms={PLATFORMS}
+                        performanceLogs={performanceLogs} 
+                      />
                     </div>
                   );
                 })()}
