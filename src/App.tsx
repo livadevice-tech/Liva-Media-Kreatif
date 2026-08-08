@@ -4672,6 +4672,20 @@ export default function App() {
                 <p className="text-white/70 leading-relaxed max-w-md text-sm">
                   Sistem manajemen internal untuk mengatur jadwal host, memantau absensi, dan mengelola operasional agency secara real-time tanpa hambatan.
                 </p>
+
+                <div className="mt-10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.history.pushState({}, "", "/brand-resources");
+                      setShowPublicBrandResources(true);
+                    }}
+                    className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-sm transition-all border border-white/25 backdrop-blur-sm cursor-pointer shadow-lg hover:-translate-y-0.5"
+                  >
+                    <BookOpen className="w-4 h-4 text-white" />
+                    Lihat Panduan & Script Publik
+                  </button>
+                </div>
               </div>
 
               {/* Right Side: Form Card */}
@@ -4867,10 +4881,21 @@ export default function App() {
                     </form>
                   )}
                   
-                  <div className="mt-8 text-center border-t border-slate-100 pt-6">
-                     <span className="text-xs text-slate-500 font-medium">
+                  <div className="mt-8 text-center border-t border-slate-100 pt-6 flex flex-col gap-3 items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.history.pushState({}, "", "/brand-resources");
+                        setShowPublicBrandResources(true);
+                      }}
+                      className="inline-flex items-center gap-2 text-xs font-bold text-[#5A52E5] hover:text-[#4A42D5] hover:underline cursor-pointer"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Lihat Panduan & Script Publik &rarr;
+                    </button>
+                    <span className="text-xs text-slate-500 font-medium">
                         Pastikan koneksi internet Anda stabil sebelum masuk.
-                     </span>
+                    </span>
                   </div>
                 </div>
               </div>
