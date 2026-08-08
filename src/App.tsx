@@ -893,6 +893,12 @@ export default function App() {
     setAuthSession(null);
     setClientLoginBrandId("");
     setClientLoginPass("");
+    
+    // Clear host dashboard state to prevent data leaking between accounts
+    setHostFormError("");
+    setHostForm({ brand: '', platform: '', shift: '', studio: '' });
+    setShowFormSuccess(false);
+    setSubmittedMessage("");
   }, [loggedInHostId]);
 
   const salarySettingsRef = useRef(salarySettings);
