@@ -5117,7 +5117,11 @@ export default function App() {
                       activeTab={clientReportingTab}
                       platformFilter={clientPlatformFilter}
                       onPlatformFilterChange={setClientPlatformFilter}
-                      availableShifts={shifts}
+                      availableShifts={
+                        clientBrand?.dashboardSettings?.allowedShifts
+                          ? shifts.filter(sh => clientBrand.dashboardSettings.allowedShifts.includes(sh))
+                          : shifts
+                      }
                       operatorShiftFilters={operatorShiftFilters}
                       setOperatorShiftFilters={setOperatorShiftFilters}
                       dateFilterType={clientDateFilterType}
@@ -12120,6 +12124,7 @@ export default function App() {
                           {operatorReportingTab === "settings" && activeReportBrandId && (
                             <BrandDashboardSettingsPanel
                               brand={clientBrands.find(b => b.id === activeReportBrandId)!}
+                              availableShifts={shifts}
                               onUpdateBrand={async (updatedBrand) => {
                                 try {
                                   if (typeof clientBrandsApi !== "undefined" && clientBrandsApi.update) {

@@ -4,6 +4,7 @@ import { ClientBrand } from '../../types';
 interface BrandDashboardSettingsPanelProps {
   brand: ClientBrand;
   onUpdateBrand: (updatedBrand: ClientBrand) => void;
+  availableShifts?: string[];
 }
 
 const CATEGORIES = [
@@ -96,7 +97,8 @@ const COLUMNS_BY_CATEGORY = {
 
 export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelProps> = ({
   brand,
-  onUpdateBrand
+  onUpdateBrand,
+  availableShifts = []
 }) => {
   const [activePlatform, setActivePlatform] = useState<'shopee' | 'tiktok'>('shopee');
 
@@ -229,6 +231,46 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
               </div>
             </div>
           ))}
+
+          {/* Shift Visibility Section */}
+          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <h4 className="text-md font-bold text-slate-800 mb-6 pb-2 border-b border-slate-200">
+              Shift Visibility (Filter & Grouping Shift)
+            </h4>
+            <p className="text-xs font-semibold text-slate-500 mb-4">
+              Pilih shift yang boleh diakses/dilihat oleh mitra brand pada halaman reporting mereka.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {availableShifts.map((sh) => {
+                const allowedShifts = brand.dashboardSettings?.allowedShifts ?? availableShifts;
+                const isChecked = allowedShifts.includes(sh);
+                return (
+                  <label key={sh} className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        const nextAllowed = isChecked
+                          ? allowedShifts.filter((x) => x !== sh)
+                          : [...allowedShifts, sh];
+                        onUpdateBrand({
+                          ...brand,
+                          dashboardSettings: {
+                            ...(brand.dashboardSettings || { hiddenMetrics: [], hiddenColumns: [] }),
+                            allowedShifts: nextAllowed,
+                          },
+                        });
+                      }}
+                      className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                      {sh}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

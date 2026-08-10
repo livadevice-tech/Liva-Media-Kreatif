@@ -178,6 +178,7 @@ export interface BrandInvoice {
 export interface BrandDashboardSettings {
   hiddenMetrics: string[];
   hiddenColumns: string[];
+  allowedShifts?: string[];
 }
 
 export interface ClientBrand {
