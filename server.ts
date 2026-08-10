@@ -29,6 +29,7 @@ import {
 import { registerHostRoutes } from "./server/routes/hosts";
 import { registerOperationsRoutes } from "./server/routes/operations";
 import { registerClientRoutes } from "./server/routes/client";
+import { registerViolationRoutes } from "./server/routes/violations";
 import { validateProductionConfig } from "./server/productionConfig";
 
 dns.setDefaultResultOrder('ipv4first');
@@ -181,6 +182,7 @@ app.use("/api", (req, res, next) => {
 registerHostRoutes(app);
 registerOperationsRoutes(app);
 registerClientRoutes(app);
+registerViolationRoutes(app);
 
 // ==================================================================
 // Lazy-initialized Gemini Client
@@ -954,6 +956,25 @@ async function runMigrations() {
     console.log('✅ Migration: duration reporting_upload_rows diisi dari raw_payload bila ada.');
   } catch (e: any) {
     console.warn('Migration duration backfill warning:', e?.message);
+  }
+
+  try {
+    await execute(`
+      CREATE TABLE IF NOT EXISTS host_violations (
+        id VARCHAR(150) PRIMARY KEY,
+        host_id VARCHAR(150) NOT NULL,
+        brand_id VARCHAR(150) NULL,
+        shift VARCHAR(100) NULL,
+        platform VARCHAR(100) NULL,
+        violation_type TEXT NULL,
+        proof_url VARCHAR(255) NULL,
+        consequence TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `, []);
+    console.log('✅ Migration: tabel host_violations dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration host_violations warning:', e?.message);
   }
 }
 

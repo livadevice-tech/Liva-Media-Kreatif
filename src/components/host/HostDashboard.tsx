@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
-  CheckCircle2, AlertTriangle, X, ChevronDown, TrendingUp, Clock, Target, Award
+  CheckCircle2, AlertTriangle, X, ChevronDown, TrendingUp, Clock, Target, Award,
+  Image, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
-import { activityLogsApi } from '../../api';
+import { activityLogsApi, violationsApi } from '../../api';
 
 
 function CustomSelect({ value, options, onChange, placeholder, error }: any) {
@@ -128,6 +129,7 @@ export default function HostDashboard({
   const [activeTab, setActiveTab] = useState<'absen' | 'rekap' | 'kalender'>('absen');
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [violations, setViolations] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -147,6 +149,14 @@ export default function HostDashboard({
         action: "PAGE_LOAD",
         details: { message: "Host opened/refreshed the dashboard" }
       }).catch(() => {});
+    }
+  }, [activeHostObj]);
+
+  useEffect(() => {
+    if (activeHostObj) {
+      violationsApi.list({ hostId: activeHostObj.id })
+        .then(setViolations)
+        .catch(console.error);
     }
   }, [activeHostObj]);
 
@@ -803,6 +813,67 @@ export default function HostDashboard({
               ))}
             </div>
           )}
+
+          {/* Violations Section */}
+          <div className="mt-8 border-t border-slate-100 pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-5 h-5 text-rose-500" />
+              <h3 className="text-[11px] font-black tracking-widest text-slate-500 uppercase">Catatan Pelanggaran Siaran</h3>
+            </div>
+
+            {violations.length === 0 ? (
+              <p className="text-xs font-bold text-slate-400">Anda tidak memiliki catatan pelanggaran siaran. Pertahankan performa terbaik Anda!</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {violations.map((v, idx) => (
+                  <div key={idx} className="p-4 bg-rose-50/50 border border-rose-100/60 rounded-2xl space-y-2 text-xs font-semibold text-slate-700">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="bg-rose-100 text-rose-800 px-2 py-0.5 rounded text-[10px] font-black uppercase">
+                          {v.brand_name || "Pelanggaran Umum"}
+                        </span>
+                        {v.platform && (
+                          <span className="ml-2 text-slate-500 font-bold text-[10px]">
+                            {v.platform} • {v.shift || "-"}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-bold">
+                        {new Date(v.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+
+                    <p className="text-slate-800 leading-relaxed">
+                      <strong className="text-slate-900 font-black block mb-0.5">Jenis Pelanggaran:</strong>
+                      {v.violation_type}
+                    </p>
+
+                    {v.consequence && (
+                      <p className="text-amber-900 bg-amber-50 border border-amber-100 p-2.5 rounded-xl">
+                        <strong className="text-amber-950 font-black block mb-0.5">Konsekuensi / Akibat:</strong>
+                        {v.consequence}
+                      </p>
+                    )}
+
+                    {v.proof_url && (
+                      <div className="pt-2">
+                        <a
+                          href={v.proof_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-purple-600 hover:text-purple-800 font-bold hover:underline"
+                        >
+                          <Image size={14} />
+                          Lihat Bukti Foto
+                          <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

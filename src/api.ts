@@ -406,3 +406,31 @@ export const brandResourcesApi = {
   },
   saveAll: (resources: import('./types').BrandResource[]) => settingsApi.save('brandResources', resources),
 };
+
+// ==================================================================
+// HOST VIOLATIONS API
+// ==================================================================
+export const violationsApi = {
+  list: async (params?: { hostId?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.hostId) query.set('hostId', params.hostId);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return request<any[]>('GET', `/violations${qs}`);
+  },
+  create: async (formData: FormData): Promise<{ id: string }> => {
+    const res = await fetch(`${API_BASE}/violations`, {
+      method: "POST",
+      body: formData,
+      credentials: "same-origin",
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(errData.error || `HTTP ${res.status}: ${res.statusText}`);
+    }
+    return res.json();
+  },
+  delete: async (id: string) => {
+    return request<{ success: boolean }>('DELETE', `/violations/${id}`);
+  }
+};
+

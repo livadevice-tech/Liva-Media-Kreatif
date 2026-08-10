@@ -4,6 +4,7 @@
  */
 
 import HostDashboard from './components/host/HostDashboard';
+import HostViolationsPanel from './components/admin/HostViolationsPanel';
 import React, {
   useState,
   useEffect,
@@ -1910,7 +1911,7 @@ export default function App() {
   // (Host personal analytics states relocated after salarySettings declaration to prevent block-scoped reference error)
 
   // --- OPERATOR SYSTEM CONSTANTS & SALARY RECAP ---
-  const [credentialsSubTab, setCredentialsSubTab] = useState<"host_list" | "activity_logs">("host_list");
+  const [credentialsSubTab, setCredentialsSubTab] = useState<"host_list" | "activity_logs" | "violations">("host_list");
   const [operatorTab, setOperatorTab] = useState<
     | "dashboard_utama"
     | "absensi"
@@ -12772,6 +12773,16 @@ export default function App() {
                       >
                         Log Aktivitas
                       </button>
+                      <button
+                        onClick={() => setCredentialsSubTab("violations")}
+                        className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+                          credentialsSubTab === "violations"
+                            ? "border-purple-600 text-purple-700"
+                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        Pelanggaran Host
+                      </button>
                     </div>
 
                     {credentialsSubTab === "host_list" && (
@@ -13014,6 +13025,15 @@ export default function App() {
 
                     {credentialsSubTab === "activity_logs" && (
                       <ActivityLogsTable />
+                    )}
+
+                    {credentialsSubTab === "violations" && (
+                      <HostViolationsPanel
+                        hosts={hosts}
+                        brands={brands}
+                        shifts={shifts}
+                        platforms={platforms}
+                      />
                     )}
                   </div>
                 )}
