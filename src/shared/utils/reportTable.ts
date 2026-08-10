@@ -1,4 +1,4 @@
-import { isPlatformMatch, normalizeDateYMD } from "./appUi";
+import { isPlatformMatch, normalizeDateYMD, getShiftFromHour } from "./appUi";
 import { normalizeDateStr } from "./dateFormatting";
 
 export type ReportDateFilterType = "latest" | "daily" | "weekly" | "monthly" | "custom" | "all" | "1_month" | "3_months";
@@ -137,8 +137,25 @@ export const filterReportLogs = (
     }
 
     if (options.shiftFilters && options.shiftFilters.length > 0) {
-      if (!options.shiftFilters.includes(log.shift || "")) {
-        return false;
+      // First: try exact match by shift name stored in DB
+      const exactMatch = options.shiftFilters.includes(log.shift || "");
+      if (!exactMatch) {
+        // Fallback: match by hour extracted from dateTime or date
+        // This handles data uploaded before a shift was renamed/added
+        const dateTimeStr = log.dateTime || log.date || "";
+        const timeMatch = dateTimeStr.match(/(\d{1,2}):(\d{2})(:\d{2})?\s*$/) ||
+          dateTimeStr.match(/\s(\d{1,2}):(\d{2})(:\d{2})?/);
+        if (timeMatch) {
+          const hour = parseInt(timeMatch[1], 10);
+          if (!Number.isNaN(hour)) {
+            const matchedShift = getShiftFromHour(hour, options.shiftFilters);
+            if (!matchedShift) return false;
+          } else {
+            return false;
+          }
+        } else {
+          return false;
+        }
       }
     }
 
