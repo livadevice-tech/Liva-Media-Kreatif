@@ -478,6 +478,21 @@ export function ReportingWorkspaceHeader({
               <span className="mr-2 text-xs font-bold text-[#5600e0]">
                 Filter & Grouping Shift:
               </span>
+              <label
+                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50"
+              >
+                <input
+                  type="checkbox"
+                  className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
+                  checked={operatorShiftFilters.length === 0}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setOperatorShiftFilters([]);
+                    }
+                  }}
+                />
+                <span className="text-xs font-semibold text-slate-700">All Time</span>
+              </label>
               {availableShifts.map((sh) => (
                 <label
                   key={sh}
