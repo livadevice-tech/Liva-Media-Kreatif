@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Plus, Trash2, Search, AlertOctagon, X, Image, FileImage, ExternalLink } from "lucide-react";
 import { violationsApi } from "../../api";
 import type { HostEmployee, ClientBrand } from "../../types";
@@ -278,8 +279,8 @@ export default function HostViolationsPanel({
       </div>
 
       {/* Input Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn">
+      {showForm && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-y-auto flex items-start justify-center p-4 sm:p-6 sm:pt-[6vh] sm:pb-12 animate-fadeIn font-sans">
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
@@ -322,21 +323,25 @@ export default function HostViolationsPanel({
               {/* Host Selector (Searchable) */}
               <div className="relative">
                 <label className="block text-[11px] text-slate-600 mb-1.5">Pilih Host *</label>
-                <input
-                  type="text"
-                  placeholder="Cari nama host..."
-                  value={hostSearch}
-                  onFocus={() => setShowHostDropdown(true)}
-                  onChange={(e) => {
-                    setHostSearch(e.target.value);
-                    setShowHostDropdown(true);
-                  }}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Cari nama host..."
+                    value={hostSearch}
+                    onFocus={() => setShowHostDropdown(true)}
+                    onChange={(e) => {
+                      setHostSearch(e.target.value);
+                      setShowHostDropdown(true);
+                    }}
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-3 text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                  <Search size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+
                 {showHostDropdown && (
-                  <div className="absolute top-[100%] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-lg mt-1 z-50 max-h-[160px] overflow-y-auto p-1">
+                  <div className="absolute z-20 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-50">
                     {filteredHostsForSelect.length === 0 ? (
-                      <div className="p-2 text-slate-400 italic text-center">Host tidak ditemukan</div>
+                      <div className="p-3 text-slate-400 text-[11px] italic">Tidak ada host cocok</div>
                     ) : (
                       filteredHostsForSelect.map(h => (
                         <div
@@ -346,10 +351,12 @@ export default function HostViolationsPanel({
                             setHostSearch(h.name);
                             setShowHostDropdown(false);
                           }}
-                          className={`p-2 hover:bg-slate-50 rounded-lg cursor-pointer flex justify-between items-center ${selectedHostId === h.id ? "bg-purple-50 text-purple-700" : ""}`}
+                          className={`p-2.5 hover:bg-slate-50 cursor-pointer transition-colors text-left flex justify-between items-center ${
+                            selectedHostId === h.id ? "bg-purple-50 text-purple-700 font-bold" : ""
+                          }`}
                         >
-                          <span>{h.name}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{h.id}</span>
+                          <span className="font-bold">{h.name}</span>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400">{h.id}</span>
                         </div>
                       ))
                     )}
@@ -360,31 +367,35 @@ export default function HostViolationsPanel({
               {/* Brand Selector (Searchable) */}
               <div className="relative">
                 <label className="block text-[11px] text-slate-600 mb-1.5">Brand</label>
-                <input
-                  type="text"
-                  placeholder="Cari nama brand..."
-                  value={brandSearch}
-                  onFocus={() => setShowBrandDropdown(true)}
-                  onChange={(e) => {
-                    setBrandSearch(e.target.value);
-                    setShowBrandDropdown(true);
-                  }}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Cari nama brand..."
+                    value={brandSearch}
+                    onFocus={() => setShowBrandDropdown(true)}
+                    onChange={(e) => {
+                      setBrandSearch(e.target.value);
+                      setShowBrandDropdown(true);
+                    }}
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-3.5 pr-10 py-3 text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                  <Search size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+
                 {showBrandDropdown && (
-                  <div className="absolute top-[100%] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-lg mt-1 z-50 max-h-[160px] overflow-y-auto p-1">
+                  <div className="absolute z-20 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-50">
                     <div
                       onClick={() => {
                         setSelectedBrandId("");
                         setBrandSearch("Umum / Semua");
                         setShowBrandDropdown(false);
                       }}
-                      className="p-2 hover:bg-slate-50 rounded-lg cursor-pointer italic text-slate-400"
+                      className="p-2.5 hover:bg-slate-50 cursor-pointer text-slate-500 italic text-[11px]"
                     >
-                      Umum / Semua
+                      Umum / Semua Brand
                     </div>
                     {filteredBrandsForSelect.length === 0 ? (
-                      <div className="p-2 text-slate-400 italic text-center">Brand tidak ditemukan</div>
+                      <div className="p-3 text-slate-400 text-[11px] italic">Tidak ada brand cocok</div>
                     ) : (
                       filteredBrandsForSelect.map(b => (
                         <div
@@ -394,9 +405,11 @@ export default function HostViolationsPanel({
                             setBrandSearch(b.name);
                             setShowBrandDropdown(false);
                           }}
-                          className={`p-2 hover:bg-slate-50 rounded-lg cursor-pointer ${selectedBrandId === b.id ? "bg-purple-50 text-purple-700" : ""}`}
+                          className={`p-2.5 hover:bg-slate-50 cursor-pointer transition-colors text-left flex justify-between items-center ${
+                            selectedBrandId === b.id ? "bg-purple-50 text-purple-700 font-bold" : ""
+                          }`}
                         >
-                          {b.name}
+                          <span className="font-bold">{b.name}</span>
                         </div>
                       ))
                     )}
@@ -449,11 +462,11 @@ export default function HostViolationsPanel({
                 />
               </div>
 
-              {/* Akibat / Resiko */}
+              {/* Resiko ke akun / Akibat */}
               <div>
                 <label className="block text-[11px] text-slate-600 mb-1.5">Resiko ke akun / Akibat</label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={consequence}
                   onChange={(e) => setConsequence(e.target.value)}
                   placeholder="Misal: Peringatan keras pertama / Pengurangan bonus fee..."
@@ -461,7 +474,7 @@ export default function HostViolationsPanel({
                 />
               </div>
 
-              {/* Upload Proof */}
+              {/* Upload Bukti */}
               <div>
                 <label className="block text-[11px] text-slate-600 mb-1.5">Upload Bukti Pelanggaran (Gambar)</label>
                 <div className="flex items-center gap-3">
@@ -501,7 +514,8 @@ export default function HostViolationsPanel({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
