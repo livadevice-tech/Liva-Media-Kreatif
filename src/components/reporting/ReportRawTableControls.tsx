@@ -49,37 +49,6 @@ export function ReportRawTableControls({
         </div>
       </div>
 
-      {reportingShopeeRawTab === "shift" && (
-        <div className="border-t border-[#edf0fb] px-4 pb-4 pt-3">
-          <div className="flex flex-wrap items-center gap-2 rounded-[18px] border border-[#e4ddf6] bg-[#faf8ff] p-3">
-            <span className="mr-2 text-xs font-bold text-[#5600e0]">
-              Filter & Grouping Shift:
-            </span>
-            {shifts.map((sh) => (
-              <label
-                key={sh}
-                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50"
-              >
-                <input
-                  type="checkbox"
-                  className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
-                  checked={adminShiftChecklist.includes(sh)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setAdminShiftChecklist([...adminShiftChecklist, sh]);
-                    } else {
-                      setAdminShiftChecklist(
-                        adminShiftChecklist.filter((x) => x !== sh),
-                      );
-                    }
-                  }}
-                />
-                <span className="text-xs font-semibold text-slate-700">{sh}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

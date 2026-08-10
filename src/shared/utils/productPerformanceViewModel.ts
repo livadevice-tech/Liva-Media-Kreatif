@@ -14,7 +14,7 @@ export interface BuildProductPerformanceViewModelInput {
   shopeeSkuLogs: readonly SkuLogEntry[];
   brandPerformanceLogs: readonly BrandPerformanceLogEntry[];
   activeReportBrandId: string;
-  operatorDateFilterType: "all" | "latest" | "month" | "custom";
+  operatorDateFilterType: "all" | "latest" | "monthly" | "custom";
   selectedLatestDate?: string;
   operatorCustomStartDate: string;
   operatorCustomEndDate: string;
@@ -82,7 +82,7 @@ export function buildProductPerformanceViewModel({
     latestDateLabel:
       operatorDateFilterType === "all"
         ? "Semua Waktu"
-        : operatorDateFilterType === "month"
+        : operatorDateFilterType === "monthly"
           ? operatorSelectedMonth
             ? getIndonesianMonthLabel(operatorSelectedMonth)
             : "Semua Waktu"

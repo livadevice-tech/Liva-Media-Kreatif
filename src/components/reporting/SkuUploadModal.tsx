@@ -5,6 +5,7 @@ import type { SkuLogEntry } from "../../shared/types/reporting";
 type BrandOption = {
   id: string;
   name: string;
+  isActive?: boolean;
 };
 
 type SkuUploadModalProps = {

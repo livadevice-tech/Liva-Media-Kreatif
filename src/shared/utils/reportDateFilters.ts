@@ -60,7 +60,7 @@ export function applyDateFilterSelection({
   if (value === "all" || value === "latest") {
     setCalendarOpen(false);
     setMonthOpen(false);
-  } else if (value === "month") {
+  } else if (value === "monthly") {
     setMonthOpen(true);
     setCalendarOpen(false);
   } else if (value === "custom") {
@@ -120,7 +120,7 @@ export function getReportPeriodLabel({
   targetLatestDate,
   customStartDate,
 }: GetReportPeriodLabelArgs) {
-  if (dateFilterType === "month" || dateFilterType === "all") {
+  if (dateFilterType === "monthly" || dateFilterType === "all") {
     return latestDateLabel || "Semua Waktu";
   }
 

@@ -31,6 +31,7 @@ interface ReportRawSessionsCardProps {
   brandDashboardSettings?: BrandDashboardSettings;
   isShopee?: boolean;
   hideControls?: boolean;
+  isClientView?: boolean;
 }
 
 const RAW_TABLE_COLUMNS = {

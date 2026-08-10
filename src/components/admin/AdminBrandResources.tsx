@@ -218,6 +218,7 @@ export function AdminBrandResources({
                 onChange={handleFileChange}
               />
               <ReactQuill
+                // @ts-ignore
                 ref={quillRef}
                 theme="snow"
                 value={currentEdit?.content || ''}

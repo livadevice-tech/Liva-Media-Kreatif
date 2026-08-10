@@ -75,7 +75,7 @@ export const filterReportLogs = (
           if (normalizedLogDate !== (options.prevStartDate || "")) {
             return false;
           }
-        } else if (options.filterType === "month" || options.filterType === "monthly") {
+        } else if (options.filterType === "monthly") {
           if (
             normalizedLogDate.substring(0, 7) !==
             (options.prevStartDate || "").substring(0, 7)
@@ -95,7 +95,7 @@ export const filterReportLogs = (
           if (normalizedLogDate !== (options.latestDate || "")) {
             return false;
           }
-        } else if (options.filterType === "month" || options.filterType === "monthly") {
+        } else if (options.filterType === "monthly") {
           if (
             normalizedLogDate.substring(0, 7) !==
             (options.selectedMonth || "")

@@ -54,6 +54,9 @@ type ReportingWorkspaceHeaderProps = {
   onNextPeriod?: () => void;
   canPrevPeriod?: boolean;
   canNextPeriod?: boolean;
+  operatorShiftFilters?: string[];
+  setOperatorShiftFilters?: Setter<string[]>;
+  availableShifts?: string[];
 };
 
 const DATE_FILTER_OPTIONS: Array<{
@@ -62,7 +65,7 @@ const DATE_FILTER_OPTIONS: Array<{
 }> = [
   { id: "latest", label: "Terbaru" },
   { id: "all", label: "Semua" },
-  { id: "month", label: "Bulan" },
+  { id: "monthly", label: "Bulan" },
   { id: "custom", label: "Rentang" },
 ];
 
@@ -114,7 +117,7 @@ function getDateButtonLabel({
     return "Pilih rentang";
   }
 
-  if (dateFilterType === "month" || dateFilterType === "monthly") {
+  if (dateFilterType === "monthly") {
     return selectedMonth ? getIndonesianMonthLabel(selectedMonth) : "Pilih bulan";
   }
 
@@ -159,6 +162,9 @@ export function ReportingWorkspaceHeader({
   onNextPeriod,
   canPrevPeriod = true,
   canNextPeriod = true,
+  operatorShiftFilters = [],
+  setOperatorShiftFilters,
+  availableShifts = [],
 }: ReportingWorkspaceHeaderProps) {
   const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
   const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
@@ -464,9 +470,39 @@ export function ReportingWorkspaceHeader({
             </div>
 
           </div>
-
-
         </div>
+
+        {setOperatorShiftFilters && (
+          <div className="border-t border-[#edf0fb] pt-3 pb-3">
+            <div className="flex flex-wrap items-center gap-2 rounded-[18px] border border-[#e4ddf6] bg-[#faf8ff] p-3">
+              <span className="mr-2 text-xs font-bold text-[#5600e0]">
+                Filter & Grouping Shift:
+              </span>
+              {availableShifts.map((sh) => (
+                <label
+                  key={sh}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
+                    checked={operatorShiftFilters.includes(sh)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setOperatorShiftFilters([...operatorShiftFilters, sh]);
+                      } else {
+                        setOperatorShiftFilters(
+                          operatorShiftFilters.filter((x) => x !== sh),
+                        );
+                      }
+                    }}
+                  />
+                  <span className="text-xs font-semibold text-slate-700">{sh}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

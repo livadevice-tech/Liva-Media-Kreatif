@@ -338,7 +338,7 @@ export function AttendanceCalendarView({
 
                   <div className="flex flex-col gap-1.5">
                     {logGroups.length > 0 ? (
-                      logGroups.map((group, idx) => {
+                      logGroups.map((group: any, idx: number) => {
                         const log = group[0];
                         const duplicateCount = group.length;
 
@@ -348,35 +348,30 @@ export function AttendanceCalendarView({
                         let badgeDot = "bg-slate-400";
                         let label = "Tidak Ada Data";
 
-                        switch (log.status) {
-                          case "Present":
-                            badgeBg = "bg-emerald-50/50";
-                            badgeBorder = "border-emerald-200";
-                            badgeText = "text-emerald-700";
-                            badgeDot = "bg-emerald-500";
-                            label = "Hadir";
-                            break;
-                          case "Late":
-                            badgeBg = "bg-amber-50/50";
-                            badgeBorder = "border-amber-200";
-                            badgeText = "text-amber-700";
-                            badgeDot = "bg-amber-500";
-                            label = "Terlambat";
-                            break;
-                          case "Absent":
-                            badgeBg = "bg-red-50/50";
-                            badgeBorder = "border-red-200";
-                            badgeText = "text-red-700";
-                            badgeDot = "bg-red-500";
-                            label = "Alpa";
-                            break;
-                          case "Excused":
-                            badgeBg = "bg-indigo-50/50";
-                            badgeBorder = "border-indigo-200";
-                            badgeText = "text-indigo-700";
-                            badgeDot = "bg-indigo-500";
-                            label = "Izin";
-                            break;
+                        if (log.status === "Hadir") {
+                          badgeBg = "bg-[#faf8ff]";
+                          badgeBorder = "border-[#e4ddf6]";
+                          badgeText = "text-[#5600e0]";
+                          badgeDot = "bg-[#5600e0]";
+                          label = "Hadir";
+                        } else if (log.status === "Libur") {
+                          badgeBg = "bg-rose-50/80";
+                          badgeBorder = "border-rose-200";
+                          badgeText = "text-rose-600";
+                          badgeDot = "bg-rose-500";
+                          label = "Libur";
+                        } else if (log.status === "Izin") {
+                          badgeBg = "bg-amber-50/80";
+                          badgeBorder = "border-amber-200";
+                          badgeText = "text-amber-600";
+                          badgeDot = "bg-amber-500";
+                          label = "Izin";
+                        } else if (log.status === "Sakit") {
+                          badgeBg = "bg-blue-50/80";
+                          badgeBorder = "border-blue-200";
+                          badgeText = "text-blue-600";
+                          badgeDot = "bg-blue-500";
+                          label = "Sakit";
                         }
 
                         if (duplicateCount > 1) {
@@ -387,7 +382,7 @@ export function AttendanceCalendarView({
                         }
 
                         return (
-                          <div key={idx} onClick={(e) => { e.stopPropagation(); handleOpenModal(dayObj.dateStr, group); }} className="flex flex-col gap-1.5 mb-1.5 last:mb-0">
+                          <div key={idx} onClick={(e) => { e.stopPropagation(); handleOpenModal(dayObj.dateStr, group as any); }} className="flex flex-col gap-1.5 mb-1.5 last:mb-0">
                             <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border ${badgeBg} ${badgeBorder} transition-transform hover:scale-[1.02]`}>
                               <div className="flex items-center gap-1.5">
                                 <div className={`w-1.5 h-1.5 rounded-full ${badgeDot}`}></div>

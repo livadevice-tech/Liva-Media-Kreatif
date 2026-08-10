@@ -98,7 +98,7 @@ export function buildLiveReportViewModel(
     } else {
       effectiveFilter = "all";
     }
-  } else if ((effectiveFilter === "month" || effectiveFilter === "monthly") && input.selectedMonth) {
+  } else if (effectiveFilter === "monthly" && input.selectedMonth) {
     latestDateLabel = input.selectedMonth;
     const [yearStr, monthStr] = input.selectedMonth.split("-");
     let year = parseInt(yearStr, 10);

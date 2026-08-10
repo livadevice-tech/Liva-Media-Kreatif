@@ -300,7 +300,7 @@ export const getShiftFromHour = (
 ) => {
   for (const shiftStr of shiftsList) {
     const match = shiftStr.match(
-      /\((\d{1,2})[.:]\d{2}\s*-\s*(\d{1,2})[.:]\d{2}\)/,
+      /\(?(\d{1,2})[.:]\d{2}\)?\s*-\s*\(?(\d{1,2})[.:]\d{2}\)?/,
     );
     if (match) {
       const startH = parseInt(match[1], 10);

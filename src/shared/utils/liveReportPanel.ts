@@ -90,11 +90,11 @@ export function buildLiveReportPanelData(
   const totalCommentsDb = sum(tableLogs, (item) => item.comments || 0);
   const totalSharesDb = sum(tableLogs, (item) => item.shares || 0);
   const totalClicksDb = sum(tableLogs, (item) => item.clicks || 0);
-  const peakViewersCount = tableLogs.filter(item => (item.peakViewers || 0) > 0).length;
-  const totalPeakViewersDb = peakViewersCount > 0 ? Math.round(sum(tableLogs, (item) => item.peakViewers || 0) / peakViewersCount) : 0;
-  const totalShopVouchersDb = sum(tableLogs, (item) => item.shopVouchers || 0);
-  const totalPenontonDb = sum(tableLogs, (item) => item.views || item.penonton || 0);
-  const totalFollowersDb = sum(tableLogs, (item) => item.followers || 0);
+  const peakViewersCount = tableLogs.filter(item => Number(item.peakViewers || 0) > 0).length;
+  const totalPeakViewersDb = peakViewersCount > 0 ? Math.round(sum(tableLogs, (item) => Number(item.peakViewers || 0)) / peakViewersCount) : 0;
+  const totalShopVouchersDb = sum(tableLogs, (item) => Number(item.shopVouchers || 0));
+  const totalPenontonDb = sum(tableLogs, (item) => Number(item.views || item.penonton || 0));
+  const totalFollowersDb = sum(tableLogs, (item) => Number(item.followers || 0));
   const avgViewDurationDb =
     totalSessionsDb > 0
       ? sum(tableLogs, (item) => item.avgViewDuration || 0) / totalSessionsDb
@@ -109,11 +109,11 @@ export function buildLiveReportPanelData(
   const pTotalCommentsDb = sum(prevTableLogs, (item) => item.comments || 0);
   const pTotalSharesDb = sum(prevTableLogs, (item) => item.shares || 0);
   const pTotalClicksDb = sum(prevTableLogs, (item) => item.clicks || 0);
-  const pPeakViewersCount = prevTableLogs.filter(item => (item.peakViewers || 0) > 0).length;
-  const pTotalPeakViewersDb = pPeakViewersCount > 0 ? Math.round(sum(prevTableLogs, (item) => item.peakViewers || 0) / pPeakViewersCount) : 0;
-  const pTotalShopVouchersDb = sum(prevTableLogs, (item) => item.shopVouchers || 0);
-  const pTotalPenontonDb = sum(prevTableLogs, (item) => item.views || item.penonton || 0);
-  const pTotalFollowersDb = sum(prevTableLogs, (item) => item.followers || 0);
+  const pPeakViewersCount = prevTableLogs.filter(item => Number(item.peakViewers || 0) > 0).length;
+  const pTotalPeakViewersDb = pPeakViewersCount > 0 ? Math.round(sum(prevTableLogs, (item) => Number(item.peakViewers || 0)) / pPeakViewersCount) : 0;
+  const pTotalShopVouchersDb = sum(prevTableLogs, (item) => Number(item.shopVouchers || 0));
+  const pTotalPenontonDb = sum(prevTableLogs, (item) => Number(item.views || item.penonton || 0));
+  const pTotalFollowersDb = sum(prevTableLogs, (item) => Number(item.followers || 0));
   const pAvgViewDurationDb =
     prevTableLogs.length > 0
       ? sum(prevTableLogs, (item) => item.avgViewDuration || 0) / prevTableLogs.length

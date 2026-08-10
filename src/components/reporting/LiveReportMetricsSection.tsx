@@ -22,6 +22,7 @@ type LiveReportMetricsSectionProps = {
   hideEngagementMetrics?: boolean;
   useShopeeLiveLayout?: boolean;
   brandDashboardSettings?: BrandDashboardSettings;
+  isClientView?: boolean;
 };
 
 export function LiveReportMetricsSection({

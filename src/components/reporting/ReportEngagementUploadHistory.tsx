@@ -34,6 +34,7 @@ interface ReportEngagementUploadHistoryProps {
     fileName: string,
     rowCount: number,
   ) => void;
+  brandDashboardSettings?: any;
 }
 
 export function ReportEngagementUploadHistory({

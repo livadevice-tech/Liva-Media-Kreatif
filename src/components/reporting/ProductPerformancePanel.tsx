@@ -8,7 +8,7 @@ type ProductPerformancePanelProps = {
   shopeeSkuLogs: SkuLogEntry[];
   brandPerformanceLogs: BrandPerformanceLogEntry[];
   activeReportBrandId: string;
-  operatorDateFilterType: "all" | "latest" | "month" | "custom";
+  operatorDateFilterType: "all" | "latest" | "monthly" | "custom";
   selectedLatestDate: string;
   operatorCustomStartDate: string;
   operatorCustomEndDate: string;
@@ -20,7 +20,7 @@ type ProductPerformancePanelProps = {
   skuSortAsc: boolean;
   setSkuSortCol: (value: "sold" | "revenue") => void;
   setSkuSortAsc: (value: boolean) => void;
-  setOperatorDateFilterType: (value: "all" | "latest" | "month" | "custom") => void;
+  setOperatorDateFilterType: (value: "all" | "latest" | "monthly" | "custom") => void;
   setOperatorCustomStartDate: (value: string) => void;
   setOperatorCustomEndDate: (value: string) => void;
   currentPage: number;
@@ -228,7 +228,7 @@ export function ProductPerformancePanel({
           currentPage={currentPage}
           itemsPerPage={itemsPerPage}
           setCurrentPage={setCurrentPage}
-          onDeleteBatch={onDeleteBatch}
+          onDeleteBatch={(batchId) => onDeleteBatch(batchId, "", 0)}
         />
       )}
     </div>

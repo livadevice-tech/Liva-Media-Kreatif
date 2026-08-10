@@ -5117,6 +5117,9 @@ export default function App() {
                       activeTab={clientReportingTab}
                       platformFilter={clientPlatformFilter}
                       onPlatformFilterChange={setClientPlatformFilter}
+                      availableShifts={shifts}
+                      operatorShiftFilters={operatorShiftFilters}
+                      setOperatorShiftFilters={setOperatorShiftFilters}
                       dateFilterType={clientDateFilterType}
                       onDateFilterTypeSelect={setClientDateFilterType}
                       monthPickerYear={clientMonthPickerYear}
@@ -11650,6 +11653,9 @@ export default function App() {
                                 "Shopee Live",
                                 "TikTok Live",
                               ]}
+                              availableShifts={shifts}
+                              operatorShiftFilters={operatorShiftFilters}
+                              setOperatorShiftFilters={setOperatorShiftFilters}
                               dateFilterType={operatorDateFilterType}
                               onDateFilterTypeSelect={
                                 handleOperatorDateFilterSelect

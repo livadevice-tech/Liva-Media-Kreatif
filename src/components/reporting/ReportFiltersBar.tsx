@@ -62,7 +62,7 @@ const DATE_FILTERS: Array<{
 }> = [
   { id: "latest", label: "Terbaru" },
   { id: "all", label: "Semua" },
-  { id: "month", label: "Bulan" },
+  { id: "monthly", label: "Bulan" },
   { id: "custom", label: "Rentang" },
 ];
 
@@ -147,11 +147,11 @@ export function ReportFiltersBar({
         </div>
 
         {((dateFilterType === "custom" && customStartDate) ||
-          dateFilterType === "month") && (
+          dateFilterType === "monthly") && (
           <div className="hidden items-center gap-1.5 rounded-[14px] border border-[#ddd7ef] bg-white px-3 py-2 shadow-sm sm:flex">
             <Calendar className="h-3.5 w-3.5 text-[#5600e0]" />
             <span className="text-[10px] font-bold text-slate-700">
-              {dateFilterType === "month"
+              {dateFilterType === "monthly"
                 ? getIndonesianMonthLabel(selectedMonth)
                 : `${customStartDate} s/d ${customEndDate}`}
             </span>
@@ -200,7 +200,7 @@ export function ReportFiltersBar({
           </button>
         ) : null}
 
-        {isMonthOpen && dateFilterType === "month" && (
+        {isMonthOpen && dateFilterType === "monthly" && (
           <div className="absolute right-0 top-full z-50 mt-2 w-64 animate-fadeIn rounded-[16px] border border-[#ddd7ef] bg-white p-4 shadow-[0_18px_36px_rgba(17,24,39,0.12)]">
             <div className="mb-4 flex items-center justify-between text-slate-800">
               <button
