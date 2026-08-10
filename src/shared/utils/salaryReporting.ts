@@ -31,6 +31,8 @@ export type HostReportRow = HostEmployee & {
   requiredWorkingDays: number;
   revenueSum: number;
   ordersSum: number;
+  hasViolations: boolean;
+  violationsCount: number;
 };
 
 export type HostDateMatcher = (rawDate: string) => boolean;
@@ -42,6 +44,7 @@ export const buildHostReportList = (
   salarySettings: HostSalarySettings,
   isDateMatching: HostDateMatcher,
   getLogDateInput: HostDateExtractor,
+  violations?: readonly any[],
 ): HostReportRow[] => {
   return hosts.map((host) => {
     const records = logs.filter(
@@ -91,6 +94,14 @@ export const buildHostReportList = (
           ? (salarySettings.tanggamusBackupPay ?? 150000)
           : (salarySettings.bandarLampungBackupPay ?? 175000);
 
+    // Check violations in the payroll cutoff date range
+    const hostViolations = (violations || []).filter(
+      (v) =>
+        (v.host_id === host.id || v.host_name === host.name) &&
+        isDateMatching(v.violation_date || (v.created_at ? v.created_at.split("T")[0] : ""))
+    );
+    const hasViolations = hostViolations.length > 0;
+
     let basePayRate = 0;
     let netSalary = calculatedOvertimePay;
     let isEligibleForBonus = false;
@@ -117,7 +128,7 @@ export const buildHostReportList = (
       calculatedBackupPay = totalBackupShiftsAsReguler * backupShiftRate;
       netSalary += calculatedBackupPay;
 
-      if (totalHadir >= requiredWorkingDays && countTerlambat <= 3) {
+      if (totalHadir >= requiredWorkingDays && countTerlambat <= 3 && !hasViolations) {
         isEligibleForBonus = true;
         calculatedBonus = isTanggamus
           ? (salarySettings.tanggamusRegulerBonus ?? 250000)
@@ -150,6 +161,8 @@ export const buildHostReportList = (
       requiredWorkingDays,
       revenueSum: records.reduce((sum, r) => sum + (r.revenueGenerated || 0), 0),
       ordersSum: records.reduce((sum, r) => sum + (r.orders || 0), 0),
+      hasViolations,
+      violationsCount: hostViolations.length,
     };
   });
 };

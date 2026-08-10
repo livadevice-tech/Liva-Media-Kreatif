@@ -256,6 +256,7 @@ import {
   authApi,
   reportingBrandApi,
   activityLogsApi,
+  violationsApi,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
@@ -767,6 +768,7 @@ export default function App() {
   const [logs, _setLogs] = useState<AttendanceLog[]>([]);
   const [clientBrands, _setClientBrands] = useState<ClientBrand[]>([]);
   const [clientLeads, _setClientLeads] = useState<ClientLead[]>([]);
+  const [violations, setViolations] = useState<any[]>([]);
 
   const activeBrandNames = useMemo(() => clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map(cb => cb.name) : brands, [clientBrands, brands]);
   const defaultBrandName = activeBrandNames[0] || "";
@@ -973,6 +975,16 @@ export default function App() {
               .catch((err) => handleQuotaError(err, "admin_accounts")),
           );
         }
+
+        // Violations
+        loadTasks.push(
+          violationsApi
+            .list()
+            .then((data) => {
+              if (!cancelled) setViolations(data);
+            })
+            .catch((err) => console.error("Error loading violations:", err)),
+        );
 
         // 2. hosts
         if (isHost || (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.hosts))) {
@@ -3650,8 +3662,9 @@ export default function App() {
         salarySettings,
         (rawDate) => isLogDateMatchingMemo(rawDate),
         getLogDateInput,
+        violations,
       ),
-    [hosts, logs, salarySettings, isLogDateMatchingMemo],
+    [hosts, logs, salarySettings, isLogDateMatchingMemo, violations],
   );
 
   // Filtered and sorted salary report list
@@ -9602,6 +9615,16 @@ export default function App() {
                                                         {item.countTerlambat}x)
                                                       </span>
                                                     </div>
+                                                    <div className="flex items-center gap-1.5 text-slate-700">
+                                                      <span>
+                                                        {!item.hasViolations
+                                                          ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                          : <XCircle className="w-3.5 h-3.5 text-red-500" />}
+                                                      </span>
+                                                      <span className="font-medium">
+                                                        Tidak Ada Pelanggaran {item.hasViolations ? `(${item.violationsCount}x)` : ""}
+                                                      </span>
+                                                    </div>
                                                   </div>
 
                                                   {item.isEligibleForBonus ? (
@@ -9627,7 +9650,8 @@ export default function App() {
                                                     <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-[9.5px] text-slate-500 shadow-3xs">
                                                       <p className="italic leading-relaxed">
                                                         *Syarat bonus: Kehadiran
-                                                        penuh & terlambat ≤ 3x
+                                                        penuh, terlambat ≤ 3x &
+                                                        tidak ada pelanggaran
                                                         untuk bonus{" "}
                                                         {formatIDR(
                                                           isTanggamus
@@ -9945,7 +9969,7 @@ export default function App() {
                                               : (salarySettings.bandarLampungRegulerBonus ??
                                                   300000),
                                           )}{" "}
-                                          jika target penuh & telat &le; 3x.
+                                          jika target penuh, telat &le; 3x & tidak ada pelanggaran.
                                         </div>
                                       )}
                                       {item.totalBackupShiftsAsReguler > 0 && (
