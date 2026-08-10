@@ -2130,14 +2130,8 @@ export default function App() {
     ],
   );
 
-  const totalReportBrandPages = Math.max(
-    1,
-    Math.ceil(filteredReportBrandRows.length / 9),
-  );
-  const visibleReportBrandRows = filteredReportBrandRows.slice(
-    (reportBrandPage - 1) * 9,
-    reportBrandPage * 9,
-  );
+  const totalReportBrandPages = 1;
+  const visibleReportBrandRows = filteredReportBrandRows;
 
   const activeReportBrandUploadHistory = useMemo(
     () =>
