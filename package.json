@@ -16,7 +16,8 @@
     "lint": "tsc --noEmit",
     "db:export": "tsx scripts/export-firebase.ts",
     "db:import": "tsx scripts/import-to-mysql.ts",
-    "migrate": "tsx scripts/migrate.ts"
+    "migrate": "tsx scripts/migrate.ts",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@enzedonline/quill-blot-formatter2": "^3.2.0",
