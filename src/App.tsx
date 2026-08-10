@@ -13030,7 +13030,7 @@ export default function App() {
                     {credentialsSubTab === "violations" && (
                       <HostViolationsPanel
                         hosts={hosts}
-                        brands={brands}
+                        brands={clientBrands}
                         shifts={shifts}
                         platforms={platforms}
                       />

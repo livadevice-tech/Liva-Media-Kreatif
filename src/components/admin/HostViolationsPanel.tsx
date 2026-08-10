@@ -56,16 +56,20 @@ export default function HostViolationsPanel({
 
   // Filtered Hosts for Search Dropdown
   const filteredHostsForSelect = useMemo(() => {
-    return hosts.filter(h => 
-      h.name.toLowerCase().includes(hostSearch.toLowerCase()) ||
-      h.id.toLowerCase().includes(hostSearch.toLowerCase())
+    const search = (hostSearch || "").toLowerCase();
+    return (hosts || []).filter(h => 
+      h && (
+        ((h.name || "").toLowerCase().includes(search)) ||
+        ((h.id || "").toLowerCase().includes(search))
+      )
     );
   }, [hosts, hostSearch]);
 
   // Filtered Brands for Search Dropdown
   const filteredBrandsForSelect = useMemo(() => {
-    return brands.filter(b => 
-      b.name.toLowerCase().includes(brandSearch.toLowerCase())
+    const search = (brandSearch || "").toLowerCase();
+    return (brands || []).filter(b => 
+      b && ((b.name || "").toLowerCase().includes(search))
     );
   }, [brands, brandSearch]);
 
