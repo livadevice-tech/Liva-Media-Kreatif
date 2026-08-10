@@ -1924,7 +1924,7 @@ export default function App() {
   const [reportBrandPlatformFilter, setReportBrandPlatformFilter] =
     useState("Semua Platform");
   const [reportBrandStatusFilter, setReportBrandStatusFilter] =
-    useState("Semua Status");
+    useState<"Aktif" | "Belum Ada Data" | "Semua Status">("Aktif");
   const [reportBrandSortKey, setReportBrandSortKey] = useState<
     "latest_activity" | "gmv" | "sessions" | "uploads" | "name"
   >("latest_activity");
@@ -11606,7 +11606,7 @@ export default function App() {
                         onResetFilters={() => {
                           setReportBrandSearchQuery("");
                           setReportBrandPlatformFilter("Semua Platform");
-                          setReportBrandStatusFilter("Semua Status");
+                          setReportBrandStatusFilter("Aktif");
                           setReportBrandSortKey("latest_activity");
                         }}
                         onPageChange={setReportBrandPage}
