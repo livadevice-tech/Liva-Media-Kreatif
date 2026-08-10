@@ -1268,7 +1268,7 @@ export default function LandingPage({ agencyLogoUrl, onEnterApp }: { agencyLogoU
                 <a href="/login/admin" className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 text-white font-medium text-sm transition-colors text-center whitespace-nowrap block">
                    Portal Admin & Host
                 </a>
-                <a href="/login/brand" className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 text-white font-medium text-sm transition-colors text-center whitespace-nowrap block">
+                <a href="/brand" className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 text-white font-medium text-sm transition-colors text-center whitespace-nowrap block">
                    Login Brand
                 </a>
              </div>

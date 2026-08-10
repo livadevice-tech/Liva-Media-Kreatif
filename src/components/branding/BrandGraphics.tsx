@@ -1,3 +1,4 @@
+import React, { useId } from "react";
 import { Sparkles } from "lucide-react";
 
 export function LivaLogo({
@@ -139,11 +140,12 @@ export function HorizontalFunnel({
   subtitle?: string;
   tag?: string;
 }) {
+  const uniqueId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const colors = ["#dce4f4", "#aebbef", "#83a3f0", "#5681ea", "#1c52e4"];
   const stepWidth = steps.length > 0 ? 1000 / steps.length : 1000;
 
   return (
-    <div className="w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm font-sans flex flex-col justify-between text-left col-span-full">
+    <div className="w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm font-sans flex flex-col justify-between text-left col-span-full overflow-hidden">
       {(title || subtitle || tag) && (
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -204,7 +206,7 @@ export function HorizontalFunnel({
         >
           <defs>
             <clipPath
-              id={`funnel-inner-clip-${title.replace(/[^a-zA-Z0-9]/g, "")}`}
+              id={`funnel-inner-clip-${uniqueId}`}
             >
               <path d="M 0,20 Q 300,35 1000,42 L 1000,88 Q 300,95 0,110 Z" />
             </clipPath>
@@ -217,7 +219,7 @@ export function HorizontalFunnel({
           />
 
           <g
-            clipPath={`url(#funnel-inner-clip-${title.replace(/[^a-zA-Z0-9]/g, "")})`}
+            clipPath={`url(#funnel-inner-clip-${uniqueId})`}
           >
             {steps.map((_, i) => (
               <rect

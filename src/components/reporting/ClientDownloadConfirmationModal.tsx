@@ -1,5 +1,5 @@
-import React from "react";
 import { Download, X, FileText, FileSpreadsheet } from "lucide-react";
+import { formatDateTimeSafe } from "../../shared/utils/dateTime";
 
 interface ClientDownloadConfirmationModalProps {
   isOpen: boolean;
@@ -21,6 +21,9 @@ export function ClientDownloadConfirmationModal({
   onDownloadPdf,
 }: ClientDownloadConfirmationModalProps) {
   if (!isOpen) return null;
+
+  const formattedStart = startDate ? formatDateTimeSafe(startDate, { day: "numeric", month: "long", year: "numeric" }) : "";
+  const formattedEnd = endDate ? formatDateTimeSafe(endDate, { day: "numeric", month: "long", year: "numeric" }) : "";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -45,7 +48,15 @@ export function ClientDownloadConfirmationModal({
         </div>
 
         <div className="mb-8 rounded-2xl bg-gray-50 p-5 text-sm font-medium text-gray-700 leading-relaxed border border-gray-100">
-          Anda ingin mengunduh laporan dari tanggal <strong className="text-[#5600e0]">{startDate || "-"}</strong> ke <strong className="text-[#5600e0]">{endDate || "-"}</strong> yang ada di platform <strong className="text-[#5600e0]">{platform || "Semua Platform"}</strong>.
+          {formattedStart === formattedEnd ? (
+            <>
+              Anda ingin mengunduh laporan untuk tanggal <strong className="text-[#5600e0]">{formattedStart || "-"}</strong> yang ada di platform <strong className="text-[#5600e0]">{platform || "Semua Platform"}</strong>.
+            </>
+          ) : (
+            <>
+              Anda ingin mengunduh laporan dari tanggal <strong className="text-[#5600e0]">{formattedStart || "-"}</strong> ke <strong className="text-[#5600e0]">{formattedEnd || "-"}</strong> yang ada di platform <strong className="text-[#5600e0]">{platform || "Semua Platform"}</strong>.
+            </>
+          )}
         </div>
 
         <div className="flex flex-col gap-3">

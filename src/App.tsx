@@ -554,7 +554,7 @@ const ScheduleFilterBrandDropdown: React.FC<{
 
 export default function App() {
   const initPath = window.location.pathname;
-  const initRoleMatch = initPath.match(/\/login\/(admin|host|brand)/);
+  const initRoleMatch = initPath.match(/\/login\/(admin|host|brand)/) || (initPath === '/brand' ? [null, 'brand'] : null);
 
   // Dynamic Platforms, Brands, and Shifts lists which can be customized
   const [platforms, _setPlatforms] = useState<string[]>(PLATFORMS);
@@ -1253,7 +1253,7 @@ export default function App() {
         setShowPublicBrandResources(false);
       }
       
-      const match = path.match(/\/login\/(admin|host|brand)/);
+      const match = path.match(/\/login\/(admin|host|brand)/) || (path === '/brand' ? [null, 'brand'] : null);
       if (match) {
         const role =
           match[1] === "admin"
@@ -4924,7 +4924,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => {
-                        window.history.pushState({}, "", "/login/brand");
+                        window.history.pushState({}, "", "/brand");
                         setActiveRole("client");
                         setHostError("");
                         setHostLoginUser("");
@@ -5359,12 +5359,27 @@ export default function App() {
                 </div>
               </main>
 
-              {/* DOWNLOAD EXCEL MODAL */}
               <ClientDownloadConfirmationModal
                 isOpen={isDownloadModalOpen}
                 onClose={() => setIsDownloadModalOpen(false)}
-                startDate={clientDateFilterType === "latest" ? clientSelectedLatestDate : clientCustomStartDate}
-                endDate={clientDateFilterType === "latest" ? clientSelectedLatestDate : clientCustomEndDate}
+                startDate={
+                  clientDateFilterType === "latest"
+                    ? clientSelectedLatestDate
+                    : clientDateFilterType === "month" && clientSelectedMonth
+                      ? `${clientSelectedMonth}-01`
+                      : clientCustomStartDate
+                }
+                endDate={
+                  clientDateFilterType === "latest"
+                    ? clientSelectedLatestDate
+                    : clientDateFilterType === "month" && clientSelectedMonth
+                      ? (() => {
+                          const [year, month] = clientSelectedMonth.split("-").map(Number);
+                          const lastDay = new Date(year, month, 0).getDate();
+                          return `${clientSelectedMonth}-${String(lastDay).padStart(2, "0")}`;
+                        })()
+                      : clientCustomEndDate
+                }
                 platform={clientPlatformFilter}
                 onDownloadExcel={() => {
                   const options =
