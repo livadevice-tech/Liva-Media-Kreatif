@@ -1943,6 +1943,18 @@ export default function App() {
   };
   const [reportDbSearchQuery, setReportDbSearchQuery] = useState("");
 
+  const clientShiftFilters = useMemo(() => {
+    const brand = clientBrands.find((b) => b.id === loggedInClientBrandId);
+    const allowed = brand?.dashboardSettings?.allowedShifts;
+    if (operatorShiftFilters.length > 0) {
+      return operatorShiftFilters;
+    }
+    if (allowed) {
+      return allowed.filter((sh) => sh !== "All Time");
+    }
+    return [];
+  }, [operatorShiftFilters, clientBrands, loggedInClientBrandId]);
+
   const clientLiveReportView = useMemo(
     () =>
       buildLiveReportViewModel({
@@ -1955,7 +1967,7 @@ export default function App() {
         customEndDate: clientCustomEndDate,
         searchQuery: reportDbSearchQuery,
         platformFilter: clientPlatformFilter,
-        shiftFilters: operatorShiftFilters,
+        shiftFilters: clientShiftFilters,
       }),
     [
       loggedInClientBrandId,
@@ -1966,7 +1978,7 @@ export default function App() {
       clientPlatformFilter,
       clientSelectedMonth,
       clientSelectedLatestDate,
-      operatorShiftFilters,
+      clientShiftFilters,
       reportDbSearchQuery,
     ],
   );
@@ -1979,7 +1991,7 @@ export default function App() {
         operatorDateFilterType: clientDateFilterType,
         selectedLatestDate: clientSelectedLatestDate,
         operatorPlatformFilter: clientPlatformFilter,
-        operatorShiftFilters: operatorShiftFilters,
+        operatorShiftFilters: clientShiftFilters,
         operatorSelectedMonth: clientSelectedMonth,
         operatorCustomStartDate: clientCustomStartDate,
         operatorCustomEndDate: clientCustomEndDate,
@@ -1993,7 +2005,7 @@ export default function App() {
       clientPlatformFilter,
       clientSelectedMonth,
       clientSelectedLatestDate,
-      operatorShiftFilters,
+      clientShiftFilters,
     ],
   );
 
@@ -2011,7 +2023,7 @@ export default function App() {
         operatorCustomEndDate: clientCustomEndDate,
         operatorSelectedMonth: clientSelectedMonth,
         operatorPlatformFilter: clientPlatformFilter,
-        operatorShiftFilters: operatorShiftFilters,
+        operatorShiftFilters: clientShiftFilters,
         reportDbSearchQuery,
       }),
     [
@@ -2024,7 +2036,7 @@ export default function App() {
       clientCustomEndDate,
       clientSelectedMonth,
       clientPlatformFilter,
-      operatorShiftFilters,
+      clientShiftFilters,
       reportDbSearchQuery,
     ],
   );
@@ -5119,9 +5131,10 @@ export default function App() {
                       onPlatformFilterChange={setClientPlatformFilter}
                       availableShifts={
                         clientBrand?.dashboardSettings?.allowedShifts
-                          ? shifts.filter(sh => clientBrand.dashboardSettings.allowedShifts.includes(sh))
+                          ? shifts.filter(sh => clientBrand.dashboardSettings.allowedShifts.includes(sh) && sh !== "All Time")
                           : shifts
                       }
+                      brandDashboardSettings={clientBrand?.dashboardSettings}
                       operatorShiftFilters={operatorShiftFilters}
                       setOperatorShiftFilters={setOperatorShiftFilters}
                       dateFilterType={clientDateFilterType}

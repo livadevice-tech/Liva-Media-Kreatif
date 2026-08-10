@@ -57,6 +57,7 @@ type ReportingWorkspaceHeaderProps = {
   operatorShiftFilters?: string[];
   setOperatorShiftFilters?: Setter<string[]>;
   availableShifts?: string[];
+  brandDashboardSettings?: any;
 };
 
 const DATE_FILTER_OPTIONS: Array<{
@@ -165,6 +166,7 @@ export function ReportingWorkspaceHeader({
   operatorShiftFilters = [],
   setOperatorShiftFilters,
   availableShifts = [],
+  brandDashboardSettings,
 }: ReportingWorkspaceHeaderProps) {
   const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
   const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
@@ -478,21 +480,29 @@ export function ReportingWorkspaceHeader({
               <span className="mr-2 text-xs font-bold text-[#5600e0]">
                 Filter & Grouping Shift:
               </span>
-              <label
-                className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50"
-              >
-                <input
-                  type="checkbox"
-                  className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
-                  checked={operatorShiftFilters.length === 0}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setOperatorShiftFilters([]);
-                    }
-                  }}
-                />
-                <span className="text-xs font-semibold text-slate-700">All Time</span>
-              </label>
+              {(() => {
+                const isAllTimeAllowed = brandDashboardSettings?.allowedShifts
+                  ? brandDashboardSettings.allowedShifts.includes("All Time")
+                  : true;
+                if (!isAllTimeAllowed) return null;
+                return (
+                  <label
+                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
+                      checked={operatorShiftFilters.length === 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setOperatorShiftFilters([]);
+                        }
+                      }}
+                    />
+                    <span className="text-xs font-semibold text-slate-700">All Time</span>
+                  </label>
+                );
+              })()}
               {availableShifts.map((sh) => (
                 <label
                   key={sh}

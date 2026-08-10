@@ -241,8 +241,36 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
               Pilih shift yang boleh diakses/dilihat oleh mitra brand pada halaman reporting mereka.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(() => {
+                const allowedShifts = brand.dashboardSettings?.allowedShifts ?? ["All Time", ...availableShifts];
+                const isAllTimeChecked = allowedShifts.includes("All Time");
+                return (
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={isAllTimeChecked}
+                      onChange={() => {
+                        const nextAllowed = isAllTimeChecked
+                          ? allowedShifts.filter((x) => x !== "All Time")
+                          : ["All Time", ...allowedShifts];
+                        onUpdateBrand({
+                          ...brand,
+                          dashboardSettings: {
+                            ...(brand.dashboardSettings || { hiddenMetrics: [], hiddenColumns: [] }),
+                            allowedShifts: nextAllowed,
+                          },
+                        });
+                      }}
+                      className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <span className="text-sm font-bold text-indigo-600 group-hover:text-indigo-800 transition-colors">
+                      Pilihan "All Time" (Semua Waktu)
+                    </span>
+                  </label>
+                );
+              })()}
               {availableShifts.map((sh) => {
-                const allowedShifts = brand.dashboardSettings?.allowedShifts ?? availableShifts;
+                const allowedShifts = brand.dashboardSettings?.allowedShifts ?? ["All Time", ...availableShifts];
                 const isChecked = allowedShifts.includes(sh);
                 return (
                   <label key={sh} className="flex items-center gap-3 cursor-pointer group">
