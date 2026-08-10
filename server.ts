@@ -969,12 +969,24 @@ async function runMigrations() {
         violation_type TEXT NULL,
         proof_url VARCHAR(255) NULL,
         consequence TEXT NULL,
+        violation_date DATE NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `, []);
     console.log('✅ Migration: tabel host_violations dipastikan ada.');
   } catch (e: any) {
     console.warn('Migration host_violations warning:', e?.message);
+  }
+
+  try {
+    await execute(`ALTER TABLE host_violations ADD COLUMN violation_date DATE NULL`, []);
+    console.log('✅ Migration: kolom violation_date ditambahkan ke host_violations.');
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_FIELDNAME') {
+      console.log('✅ Migration: kolom violation_date sudah ada di host_violations.');
+    } else {
+      console.warn('Migration violation_date column warning:', e?.message);
+    }
   }
 }
 

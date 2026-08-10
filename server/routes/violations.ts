@@ -57,7 +57,7 @@ export function registerViolationRoutes(app: Express) {
 
   // Create a new violation
   app.post("/api/violations", upload.single("proof"), asyncHandler(async (req: Request, res: Response) => {
-    const { host_id, brand_id, shift, platform, violation_type, consequence } = req.body;
+    const { host_id, brand_id, shift, platform, violation_type, consequence, violation_date } = req.body;
     
     if (!host_id || !violation_type) {
       return res.status(400).json({ error: "Host dan jenis pelanggaran wajib diisi." });
@@ -70,8 +70,8 @@ export function registerViolationRoutes(app: Express) {
     
     const id = "violation-" + genId();
     await execute(
-      `INSERT INTO host_violations (id, host_id, brand_id, shift, platform, violation_type, proof_url, consequence)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO host_violations (id, host_id, brand_id, shift, platform, violation_type, proof_url, consequence, violation_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         host_id,
@@ -80,7 +80,8 @@ export function registerViolationRoutes(app: Express) {
         platform || null,
         violation_type,
         proof_url || null,
-        consequence || null
+        consequence || null,
+        violation_date || null
       ]
     );
     

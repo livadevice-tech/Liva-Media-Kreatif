@@ -33,6 +33,9 @@ export default function HostViolationsPanel({
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [violationDate, setViolationDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
 
   // Dropdown open states for search
   const [showHostDropdown, setShowHostDropdown] = useState(false);
@@ -96,6 +99,7 @@ export default function HostViolationsPanel({
       formData.append("platform", selectedPlatform);
       formData.append("violation_type", violationType);
       formData.append("consequence", consequence);
+      formData.append("violation_date", violationDate);
       if (proofFile) {
         formData.append("proof", proofFile);
       }
@@ -113,6 +117,7 @@ export default function HostViolationsPanel({
       setViolationType("");
       setConsequence("");
       setProofFile(null);
+      setViolationDate(new Date().toISOString().split("T")[0]);
       setShowForm(false);
       
       fetchViolations();
@@ -187,6 +192,7 @@ export default function HostViolationsPanel({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                <th className="px-5 py-4">Tgl Pelanggaran</th>
                 <th className="px-5 py-4">Host</th>
                 <th className="px-5 py-4">Brand</th>
                 <th className="px-5 py-4">Shift & Platform</th>
@@ -212,6 +218,9 @@ export default function HostViolationsPanel({
               ) : (
                 filteredViolations.map((v) => (
                   <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-5 py-4 font-bold text-slate-900 whitespace-nowrap">
+                      {v.violation_date ? new Date(v.violation_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : new Date(v.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
                     <td className="px-5 py-4">
                       <div className="font-bold text-slate-900">{v.host_name || "N/A"}</div>
                       <div className="text-[10px] text-slate-400 font-bold uppercase">{v.host_id}</div>
@@ -293,6 +302,18 @@ export default function HostViolationsPanel({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 font-semibold text-xs text-slate-700">
+              {/* Tanggal Pelanggaran */}
+              <div>
+                <label className="block text-[11px] text-slate-600 mb-1.5">Tanggal Pelanggaran *</label>
+                <input
+                  type="date"
+                  required
+                  value={violationDate}
+                  onChange={(e) => setViolationDate(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
               {/* Host Selector (Searchable) */}
               <div className="relative">
                 <label className="block text-[11px] text-slate-600 mb-1.5">Pilih Host *</label>

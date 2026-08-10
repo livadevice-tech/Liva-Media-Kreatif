@@ -847,7 +847,7 @@ export default function HostDashboard({
                         )}
                       </div>
                       <span className="text-[10px] text-slate-400 font-bold">
-                        {new Date(v.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(v.violation_date || v.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                     </div>
 
