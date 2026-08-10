@@ -301,12 +301,30 @@ import {
   getLatestDateForBrand,
 } from "./shared/utils/skuReporting";
 
-const LiveReportPanel = React.lazy(() =>
+function safeLazy<T extends React.ComponentType<any>>(
+  importFn: () => Promise<{ default: T }>,
+): React.LazyExoticComponent<T> {
+  return React.lazy(() =>
+    importFn().catch((err) => {
+      console.error("Lazy import failed:", err);
+      if (
+        err.message &&
+        (err.message.includes("Failed to fetch dynamically imported module") ||
+          err.message.toLowerCase().includes("chunk"))
+      ) {
+        window.location.reload();
+      }
+      throw err;
+    }),
+  );
+}
+
+const LiveReportPanel = safeLazy(() =>
   import("./components/reporting/LiveReportPanel").then((module) => ({
     default: module.LiveReportPanel,
   })),
 );
-const EngagementReportPanel = React.lazy(() =>
+const EngagementReportPanel = safeLazy(() =>
   import("./components/reporting/EngagementReportPanel").then((module) => ({
     default: module.EngagementReportPanel,
   })),
