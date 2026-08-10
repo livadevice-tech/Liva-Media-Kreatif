@@ -11736,22 +11736,6 @@ export default function App() {
                             onTabChange={setOperatorReportingTab}
                           />
 
-                          <DeleteByDateModal
-                            isOpen={isDeleteByDateModalOpen}
-                            isSavingReport={isSavingReport}
-                            startDate={deleteByDateStart}
-                            endDate={deleteByDateEnd}
-                            onStartDateChange={setDeleteByDateStart}
-                            onEndDateChange={setDeleteByDateEnd}
-                            onClose={() => {
-                              setIsDeleteByDateModalOpen(false);
-                              setDeleteByDateStart("");
-                              setDeleteByDateEnd("");
-                              setDeleteByDateTargetBrand(null);
-                            }}
-                            onConfirm={handleDeleteBrandRawDataByDateRange}
-                          />
-
                           <SkuUploadModal
                             isOpen={isSkuUploadModalOpen}
                             isSavingReport={isSavingReport}
@@ -12138,6 +12122,22 @@ export default function App() {
                         </div>
                       </>
                     )}
+
+                    <DeleteByDateModal
+                      isOpen={isDeleteByDateModalOpen}
+                      isSavingReport={isSavingReport}
+                      startDate={deleteByDateStart}
+                      endDate={deleteByDateEnd}
+                      onStartDateChange={setDeleteByDateStart}
+                      onEndDateChange={setDeleteByDateEnd}
+                      onClose={() => {
+                        setIsDeleteByDateModalOpen(false);
+                        setDeleteByDateStart("");
+                        setDeleteByDateEnd("");
+                        setDeleteByDateTargetBrand(null);
+                      }}
+                      onConfirm={handleDeleteBrandRawDataByDateRange}
+                    />
                   </div>
                 )}
                 {/* ==================== SUBTAB: LEADS / CALON KLIEN ==================== */}
