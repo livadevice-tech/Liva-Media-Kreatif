@@ -485,8 +485,8 @@ export function ReportingWorkspaceHeader({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-[#5600e0]">Filter & Grouping Shift</span>
-                  <span className="bg-[#5600e0] text-white px-2.5 py-0.5 rounded-full text-[10px] font-extrabold">
-                    {operatorShiftFilters.length === 0 ? "All Time" : `${operatorShiftFilters.length} Terpilih`}
+                  <span className="bg-[#5600e0] text-white px-2.5 py-0.5 rounded-full text-[10px] font-extrabold max-w-[400px] truncate" title={operatorShiftFilters.join(", ")}>
+                    {operatorShiftFilters.length === 0 ? "All Time" : operatorShiftFilters.join(", ")}
                   </span>
                 </div>
                 <ChevronDown className={`h-4 w-4 text-[#5600e0] transition-transform duration-200 ${isShiftDropdownOpen ? 'transform rotate-180' : ''}`} />
