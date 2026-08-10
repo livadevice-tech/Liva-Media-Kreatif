@@ -497,23 +497,29 @@ export function parseReportingUploadRows(
     "brand",
   ]);
   const startIdx = findColIdx([
+    // Shopee Live – most specific first
+    "waktu mulai streaming",
     "start time",
     "waktu mulai",
+    "tanggal mulai",
     "tanggal",
     "date",
     "waktu",
     "mulai",
     "start",
-    "periode data",
-    "periode",
+    // "periode data" and "periode" intentionally omitted – those contain
+    // a date-range string like "01-08-2026 - 31-08-2026", not a session timestamp
   ]);
   const endIdx = findColIdx([
+    // Shopee Live – most specific first
+    "waktu selesai streaming",
     "end time",
     "waktu selesai",
+    "tanggal selesai",
     "selesai",
     "finish time",
     "end",
-    "periode akhir",
+    // "periode akhir" omitted for the same reason as "periode data" above
   ]);
   const durationIdx = headers.findIndex((h) => {
     if (!h) return false;
@@ -613,7 +619,7 @@ export function parseReportingUploadRows(
   for (let r = headerRowIdx + 1; r < jsonData.length; r++) {
     const rowData = jsonData[r];
     if (!rowData || rowData.length === 0) continue;
-    const rawStart = rowData[startIdx !== -1 ? startIdx : 0];
+    const rawStart = startIdx !== -1 ? rowData[startIdx] : undefined;
 
     if (rawStart && typeof rawStart === "number") {
       const dateObj = XLSX.SSF.parse_date_code(rawStart) as { d: number; m: number } | null;
@@ -702,7 +708,9 @@ export function parseReportingUploadRows(
     if (titleIdx !== -1 && !rowData[titleIdx]) continue;
 
     const title = titleRaw || `Stream ${r}`;
-    const rawStart = rowData[startIdx !== -1 ? startIdx : 0];
+    // Never fall back to column 0 – in Shopee files that column is "Periode Data"
+    // (a report-period range like "01-08-2026 - 31-08-2026"), not a session timestamp.
+    const rawStart = startIdx !== -1 ? rowData[startIdx] : undefined;
 
     let formattedDate = "";
     let shift = "Shift Lainnya";
