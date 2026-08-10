@@ -758,7 +758,7 @@ export default function HostDashboard({
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 mb-6">
+          <div className="grid grid-cols-5 gap-2 mb-6">
             <div className="bg-emerald-50 rounded-xl p-2 border border-emerald-100 flex flex-col items-center justify-center shadow-sm">
               <span className="text-lg font-black text-emerald-700">{hostLogs.filter(l => l.status !== 'Late' && l.status !== 'Absent' && l.status !== 'Excused').length}</span>
               <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1 text-center">Hadir Tepat</span>
@@ -774,6 +774,14 @@ export default function HostDashboard({
             <div className="bg-rose-50 rounded-xl p-2 border border-rose-100 flex flex-col items-center justify-center shadow-sm">
               <span className="text-lg font-black text-rose-700">{hostLogs.filter(l => l.status === 'Absent').length}</span>
               <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest mt-1 text-center">Mangkir</span>
+            </div>
+            <div
+              onClick={() => document.getElementById('violations-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="bg-red-50 rounded-xl p-2 border border-red-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:bg-red-100/50 transition-colors"
+              title="Klik untuk melihat detail pelanggaran"
+            >
+              <span className="text-lg font-black text-red-700">{violations.length}</span>
+              <span className="text-[9px] font-black text-red-600 uppercase tracking-widest mt-1 text-center">Pelanggaran</span>
             </div>
           </div>
 
@@ -815,7 +823,7 @@ export default function HostDashboard({
           )}
 
           {/* Violations Section */}
-          <div className="mt-8 border-t border-slate-100 pt-6">
+          <div id="violations-section" className="mt-8 border-t border-slate-100 pt-6">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="w-5 h-5 text-rose-500" />
               <h3 className="text-[11px] font-black tracking-widest text-slate-500 uppercase">Catatan Pelanggaran Siaran</h3>
