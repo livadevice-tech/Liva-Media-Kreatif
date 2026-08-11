@@ -5545,8 +5545,8 @@ export default function App() {
               className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] ${isSidebarVisible ? "w-[260px] p-5 opacity-100 border-r" : "w-0 p-0 overflow-hidden opacity-0 border-r-0"} flex-shrink-0 bg-white/70 backdrop-blur-2xl border-white/60 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex flex-col justify-between sticky top-0 h-screen font-sans z-50`}
               id="operator_sidebar"
             >
-              <div className="space-y-6">
-                <div className="px-2 py-4 border-b border-purple-50 flex items-center gap-3">
+              <div className="flex flex-col flex-1 overflow-hidden pb-4">
+                <div className="px-2 py-4 mb-4 border-b border-purple-50 flex items-center gap-3 flex-shrink-0">
                   {agencyLogoUrl ? (
                     <img
                       src={agencyLogoUrl}
@@ -5570,7 +5570,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <nav className="space-y-1.5" id="sidebar_nav">
+                <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar" id="sidebar_nav">
                   {(() => {
                     const allItems = [
                       {
@@ -5783,7 +5783,7 @@ export default function App() {
               </div>
 
               <div
-                className="border-t border-slate-50 pt-4"
+                className="border-t border-slate-50 pt-4 mt-2 flex-shrink-0"
                 id="sidebar_operator_profile"
               >
                 <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 border border-slate-100">
