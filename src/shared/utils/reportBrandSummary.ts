@@ -113,15 +113,11 @@ export function buildReportBrandSummary({
     (sum, log) => sum + (log.gmv || 0),
     0,
   );
-  const activeBrandIds = new Set<string>();
-  brandPerformanceLogs.forEach((log) => activeBrandIds.add(log.brandId));
-  brandUploadHistory.forEach((batch) => {
-    if (batch.brandId) activeBrandIds.add(batch.brandId);
-  });
+  const activeBrandsCount = clientBrands.filter(b => b.isActive !== false).length;
 
   const overviewStats: ReportBrandOverviewStats = {
     totalBrands: clientBrands.length,
-    activeBrands: activeBrandIds.size,
+    activeBrands: activeBrandsCount,
     totalSessions,
     totalGmv,
   };
@@ -171,7 +167,7 @@ export function buildReportBrandSummary({
       }
       if (
         reportBrandStatusFilter === "Aktif" &&
-        !row.hasData
+        row.brand.isActive === false
       ) {
         return false;
       }
