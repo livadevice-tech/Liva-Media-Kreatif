@@ -557,6 +557,19 @@ const ScheduleFilterBrandDropdown: React.FC<{
 export default function App() {
   const initPath = window.location.pathname;
   const initRoleMatch = initPath.match(/\/login\/(admin|host|brand)/) || (initPath === '/brand' ? [null, 'brand'] : null);
+  
+  // --- ACCESS ROLE STATE ---
+  const defaultRole = initRoleMatch
+    ? initRoleMatch[1] === "admin"
+      ? "operator"
+      : initRoleMatch[1] === "brand"
+        ? "client"
+        : "host"
+    : "operator";
+  const [activeRole, setActiveRole] = useState<
+    "host" | "operator" | "client"
+  >(defaultRole);
+  const [showPublicBrandResources, setShowPublicBrandResources] = useState(initPath === '/brand-resources');
 
   // Dynamic Platforms, Brands, and Shifts lists which can be customized
   const [platforms, _setPlatforms] = useState<string[]>(PLATFORMS);
@@ -910,6 +923,19 @@ export default function App() {
     }
 
     authApi.logout().catch(console.error);
+    
+    // Set active role for the login screen based on who logged out
+    if (loggedInClientBrandId) {
+      setActiveRole("client");
+      window.history.pushState({}, '', '/login/brand');
+    } else if (loggedInHostId) {
+      setActiveRole("host");
+      window.history.pushState({}, '', '/login/host');
+    } else if (isOperatorLoggedIn) {
+      setActiveRole("operator");
+      window.history.pushState({}, '', '/login/admin');
+    }
+
     setLoggedInClientBrandId(null);
     setLoggedInHostId(null);
     setLoggedInAdminId(null);
@@ -1243,19 +1269,7 @@ export default function App() {
     });
   }, []);
 
-  // --- ACCESS ROLE STATE ---
-  // Default to "host" to prioritize testing their submission, "operator", or "client"
-  const defaultRole = initRoleMatch
-    ? initRoleMatch[1] === "admin"
-      ? "operator"
-      : initRoleMatch[1] === "brand"
-        ? "client"
-        : "host"
-    : "operator";
-  const [activeRole, setActiveRole] = useState<
-    "host" | "operator" | "client"
-  >(defaultRole);
-  const [showPublicBrandResources, setShowPublicBrandResources] = useState(initPath === '/brand-resources');
+  // --- ACCESS ROLE STATE (Moved to top) ---
 
   useEffect(() => {
     const handlePopState = () => {
