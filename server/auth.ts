@@ -112,6 +112,7 @@ function isPathUnder(path: string, prefix: string): boolean {
 function getAdminRequiredTabs(path: string): readonly string[] | null {
   if (isPathUnder(path, "/admin-accounts")) return MODULE_TAB_REQUIREMENTS.adminAccounts;
   if (isPathUnder(path, "/hosts")) return MODULE_TAB_REQUIREMENTS.hosts;
+  if (isPathUnder(path, "/violations")) return MODULE_TAB_REQUIREMENTS.hosts;
   if (isPathUnder(path, "/logs")) return MODULE_TAB_REQUIREMENTS.logs;
   if (isPathUnder(path, "/schedules")) return MODULE_TAB_REQUIREMENTS.schedules;
   if (isPathUnder(path, "/alerts")) return MODULE_TAB_REQUIREMENTS.alerts;
@@ -144,6 +145,7 @@ export function isRequestAllowed(
   if (session.role === "host") {
     return (
       (method === "GET" && path === `/hosts/${session.subjectId}`) ||
+      (method === "GET" && path === "/violations") ||
       (method === "GET" && path === "/logs") ||
       (method === "POST" && path === "/logs") ||
       (method === "GET" && path === "/schedules") ||
