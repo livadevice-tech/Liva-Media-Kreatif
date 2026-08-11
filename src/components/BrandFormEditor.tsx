@@ -93,7 +93,7 @@ export function BrandFormEditor({
                                   "liva123").trim(),
                                 logoUrl: brandFormEditor.logoUrl,
                                 isActive: brandFormEditor.isActive !== false,
-                                dashboardSettings: brandFormEditor.dashboardSettings || { hiddenMetrics: [], hiddenColumns: [] },
+                                dashboardSettings: brandFormEditor.dashboardSettings || { hiddenMetrics: [], hiddenChartMetrics: [], hiddenColumns: [] },
                               };
 
                               try {

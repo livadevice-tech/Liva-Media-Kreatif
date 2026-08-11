@@ -111,8 +111,23 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
     onUpdateBrand({
       ...brand,
       dashboardSettings: {
-        ...(brand.dashboardSettings || { hiddenColumns: [] }),
+        ...(brand.dashboardSettings || { hiddenColumns: [], hiddenChartMetrics: [] }),
         hiddenMetrics: newMetrics,
+      },
+    });
+  };
+
+  const toggleChartMetric = (metricId: string) => {
+    const hiddenChartMetrics = brand.dashboardSettings?.hiddenChartMetrics || [];
+    const newMetrics = hiddenChartMetrics.includes(metricId)
+      ? hiddenChartMetrics.filter((id) => id !== metricId)
+      : [...hiddenChartMetrics, metricId];
+    
+    onUpdateBrand({
+      ...brand,
+      dashboardSettings: {
+        ...(brand.dashboardSettings || { hiddenColumns: [], hiddenMetrics: [] }),
+        hiddenChartMetrics: newMetrics,
       },
     });
   };
@@ -126,7 +141,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
     onUpdateBrand({
       ...brand,
       dashboardSettings: {
-        ...(brand.dashboardSettings || { hiddenMetrics: [] }),
+        ...(brand.dashboardSettings || { hiddenMetrics: [], hiddenChartMetrics: [] }),
         hiddenColumns: newCols,
       },
     });
@@ -174,7 +189,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
               <h4 className="text-md font-bold text-slate-800 mb-6 pb-2 border-b border-slate-200">
                 {category.label}
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Metrics */}
                 <div>
                   <label className="block text-slate-500 font-bold mb-4 text-[11px] uppercase tracking-wider">
@@ -191,6 +206,33 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
                             type="checkbox"
                             checked={!(brand.dashboardSettings?.hiddenMetrics || []).includes(id)}
                             onChange={() => toggleMetric(id)}
+                            className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                            {metric.label}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Chart Metrics */}
+                <div>
+                  <label className="block text-slate-500 font-bold mb-4 text-[11px] uppercase tracking-wider">
+                    Tampilkan Metrik (Grafik)
+                  </label>
+                  <div className="space-y-3">
+                    {((category.id === 'live' 
+                        ? (METRICS_BY_CATEGORY as any)[`live_${activePlatform}`] 
+                        : (METRICS_BY_CATEGORY as any)[category.id]) || []).map((metric: any) => {
+                      const id = `${activePlatform}_${category.id}_${metric.id}`;
+                      return (
+                        <label key={id} className="flex items-center gap-3 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={!(brand.dashboardSettings?.hiddenChartMetrics || []).includes(id)}
+                            onChange={() => toggleChartMetric(id)}
                             className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
                           />
                           <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">

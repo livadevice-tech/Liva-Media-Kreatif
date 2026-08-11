@@ -113,7 +113,7 @@ export function LiveReportChartSection({
 
   const platform = useShopeeLiveLayout ? "shopee" : "tiktok";
   const platformFilteredOptions = useMemo(() => {
-    const hiddenMetrics = brandDashboardSettings?.hiddenMetrics || [];
+    const hiddenChartMetrics = brandDashboardSettings?.hiddenChartMetrics || [];
     const metricIdMap: Record<string, string> = {
       gmv: "gmv",
       itemsSold: "items_sold",
@@ -140,7 +140,7 @@ export function LiveReportChartSection({
       
       // Hide if disabled in brand settings
       const settingId = `${platform}_live_${metricIdMap[opt.key] || opt.key}`;
-      if (hiddenMetrics.includes(settingId)) return false;
+      if (hiddenChartMetrics.includes(settingId)) return false;
       
       return true;
     });

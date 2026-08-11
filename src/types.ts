@@ -177,6 +177,7 @@ export interface BrandInvoice {
 
 export interface BrandDashboardSettings {
   hiddenMetrics: string[];
+  hiddenChartMetrics?: string[];
   hiddenColumns: string[];
   allowedShifts?: string[];
 }
