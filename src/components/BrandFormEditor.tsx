@@ -1,5 +1,5 @@
-import React from "react";
-import { X, Briefcase, Plus, Trash2, Check } from "lucide-react";
+import React, { useState } from "react";
+import { X, Briefcase, Plus, Trash2, Check, Eye, EyeOff } from "lucide-react";
 import type { ClientBrand } from "../types";
 import { SearchableHostSelect } from "./admin/HostManagement";
 
@@ -28,6 +28,9 @@ export function BrandFormEditor({
   studios,
   hosts
 }: BrandFormEditorProps) {
+  const [showClientPassword, setShowClientPassword] = useState(false);
+  const [showAccountPassword, setShowAccountPassword] = useState<Record<number, boolean>>({});
+
   if (!brandFormEditor) return null;
   return (
                         <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-5 relative">
@@ -130,7 +133,8 @@ export function BrandFormEditor({
                                 setBrandFormEditor(null);
                               } catch (error) {
                                 console.error("Gagal simpan brand:", error);
-                                customAlert("Gagal menyimpan data brand ke server.");
+                                const errMsg = error instanceof Error ? error.message : String(error);
+                                customAlert(`Gagal menyimpan data brand ke server. Error: ${errMsg}`);
                               }
                             }}
                             className="space-y-4 text-xs"
@@ -399,15 +403,24 @@ export function BrandFormEditor({
                                   <label className="block text-indigo-900 font-black uppercase text-[10px] tracking-wider mb-1.5">
                                     Password Portal Klien
                                   </label>
-                                  <input
-                                    name="clientPassword"
-                                    defaultValue={
-                                      brandFormEditor.clientPassword || "liva123"
-                                    }
-                                    type="text"
-                                    placeholder="Default: liva123"
-                                    className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)]"
-                                  />
+                                  <div className="relative">
+                                    <input
+                                      name="clientPassword"
+                                      defaultValue={
+                                        brandFormEditor.clientPassword || "liva123"
+                                      }
+                                      type={showClientPassword ? "text" : "password"}
+                                      placeholder="Default: liva123"
+                                      className="w-full bg-indigo-50/30 border border-indigo-100/80 rounded-xl px-4 py-3 text-xs font-bold text-indigo-950 focus:bg-white focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-indigo-300 shadow-[0_2px_10px_rgba(79,70,229,0.03)] pr-10"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowClientPassword(!showClientPassword)}
+                                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                    >
+                                      {showClientPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -725,32 +738,41 @@ export function BrandFormEditor({
                                         <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
                                           Password
                                         </label>
-                                        <input
-                                          type="text"
-                                          value={acc.password}
-                                          onChange={(e) =>
-                                            setBrandFormEditor((prev) =>
-                                              prev
-                                                ? {
-                                                    ...prev,
-                                                    accounts:
-                                                      prev.accounts?.map(
-                                                        (a, i) =>
-                                                          i === idx
-                                                            ? {
-                                                                ...a,
-                                                                password:
-                                                                  e.target
-                                                                    .value,
-                                                              }
-                                                            : a,
-                                                      ),
-                                                  }
-                                                : prev,
-                                            )
-                                          }
-                                          className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-mono text-[10px] focus:border-indigo-500 outline-none"
-                                        />
+                                        <div className="relative">
+                                          <input
+                                            type={showAccountPassword[idx] ? "text" : "password"}
+                                            value={acc.password}
+                                            onChange={(e) =>
+                                              setBrandFormEditor((prev) =>
+                                                prev
+                                                  ? {
+                                                      ...prev,
+                                                      accounts:
+                                                        prev.accounts?.map(
+                                                          (a, i) =>
+                                                            i === idx
+                                                              ? {
+                                                                  ...a,
+                                                                  password:
+                                                                    e.target
+                                                                      .value,
+                                                                }
+                                                              : a,
+                                                        ),
+                                                    }
+                                                  : prev,
+                                              )
+                                            }
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 font-mono text-[10px] focus:border-indigo-500 outline-none pr-8"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => setShowAccountPassword(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                          >
+                                            {showAccountPassword[idx] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                          </button>
+                                        </div>
                                       </div>
                                       <div className="sm:col-span-2">
                                         <label className="block text-slate-500 font-bold mb-1 text-[9px] uppercase tracking-wider">
