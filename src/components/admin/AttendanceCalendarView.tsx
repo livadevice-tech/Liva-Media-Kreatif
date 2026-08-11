@@ -38,6 +38,22 @@ export function AttendanceCalendarView({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
 
+  const currentHostIndex = hosts.findIndex((h) => h.id === selectedHostId);
+
+  const handlePrevHost = () => {
+    if (currentHostIndex > 0) {
+      setSelectedHostId(hosts[currentHostIndex - 1].id);
+    }
+  };
+
+  const handleNextHost = () => {
+    if (currentHostIndex < hosts.length - 1 && currentHostIndex !== -1) {
+      setSelectedHostId(hosts[currentHostIndex + 1].id);
+    } else if (currentHostIndex === -1 && hosts.length > 0) {
+      setSelectedHostId(hosts[0].id);
+    }
+  };
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
@@ -235,13 +251,33 @@ export function AttendanceCalendarView({
   return (
     <div className="bg-white rounded-3xl border border-slate-200/50 shadow-sm p-6 overflow-hidden mt-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
-        <div className="w-full lg:w-[350px]">
-          <SearchableHostSelect
-            hosts={hosts}
-            value={selectedHostId}
-            onChange={setSelectedHostId}
-            placeholder="Pilih Host..."
-          />
+        <div className="w-full lg:w-[350px] flex items-center gap-2">
+          <div className="flex-1">
+            <SearchableHostSelect
+              hosts={hosts}
+              value={selectedHostId}
+              onChange={setSelectedHostId}
+              placeholder="Pilih Host..."
+            />
+          </div>
+          <div className="flex bg-slate-100 rounded-lg border border-slate-200 p-1">
+            <button
+              onClick={handlePrevHost}
+              disabled={currentHostIndex <= 0}
+              className="p-1.5 rounded text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+              title="Host Sebelumnya"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleNextHost}
+              disabled={currentHostIndex === -1 || currentHostIndex >= hosts.length - 1}
+              className="p-1.5 rounded text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+              title="Host Selanjutnya"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3">
