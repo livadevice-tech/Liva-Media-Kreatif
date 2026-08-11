@@ -116,6 +116,8 @@ import {
   User,
   BookOpen,
   MoreVertical,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
   HostEmployee,
@@ -1287,6 +1289,7 @@ export default function App() {
   const [clientLoginBrandId, setClientLoginBrandId] = useState<string>("");
   const [clientLoginUsername, setClientLoginUsername] = useState<string>("");
   const [clientLoginPass, setClientLoginPass] = useState<string>("");
+  const [showClientLoginPass, setShowClientLoginPass] = useState(false);
   const [brandPerformanceLogs, setBrandPerformanceLogs] = useState<
     BrandPerformanceLogEntry[]
   >([]);
@@ -4682,17 +4685,26 @@ export default function App() {
                     <label htmlFor="brand-login-password" className="block text-sm font-bold text-slate-800 mb-1.5">
                       Password
                     </label>
-                    <input
-                      id="brand-login-password"
-                      name="password"
-                      autoComplete="current-password"
-                      type="password"
-                      required
-                      value={clientLoginPass}
-                      onChange={(e) => setClientLoginPass(e.target.value)}
-                      placeholder="Masukkan password portal Anda"
-                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-[#3b27e8] focus:ring-1 focus:ring-[#3b27e8] font-medium transition-all"
-                    />
+                    <div className="relative">
+                      <input
+                        id="brand-login-password"
+                        name="password"
+                        autoComplete="current-password"
+                        type={showClientLoginPass ? "text" : "password"}
+                        required
+                        value={clientLoginPass}
+                        onChange={(e) => setClientLoginPass(e.target.value)}
+                        placeholder="Masukkan password portal Anda"
+                        className="w-full bg-white border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm text-slate-900 focus:outline-none focus:border-[#3b27e8] focus:ring-1 focus:ring-[#3b27e8] font-medium transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowClientLoginPass(!showClientLoginPass)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                      >
+                        {showClientLoginPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
                   </div>
 
                   <button
