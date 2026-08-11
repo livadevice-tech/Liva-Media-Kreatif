@@ -348,30 +348,30 @@ export function AttendanceCalendarView({
                         let badgeDot = "bg-slate-400";
                         let label = "Tidak Ada Data";
 
-                        if (log.status === "Hadir") {
+                        if (log.status === "Present") {
                           badgeBg = "bg-[#faf8ff]";
                           badgeBorder = "border-[#e4ddf6]";
                           badgeText = "text-[#5600e0]";
                           badgeDot = "bg-[#5600e0]";
                           label = "Hadir";
-                        } else if (log.status === "Libur") {
+                        } else if (log.status === "Absent") {
                           badgeBg = "bg-rose-50/80";
                           badgeBorder = "border-rose-200";
                           badgeText = "text-rose-600";
                           badgeDot = "bg-rose-500";
-                          label = "Libur";
-                        } else if (log.status === "Izin") {
+                          label = "Alpa";
+                        } else if (log.status === "Late") {
                           badgeBg = "bg-amber-50/80";
                           badgeBorder = "border-amber-200";
                           badgeText = "text-amber-600";
                           badgeDot = "bg-amber-500";
-                          label = "Izin";
-                        } else if (log.status === "Sakit") {
+                          label = "Terlambat";
+                        } else if (log.status === "Excused") {
                           badgeBg = "bg-blue-50/80";
                           badgeBorder = "border-blue-200";
                           badgeText = "text-blue-600";
                           badgeDot = "bg-blue-500";
-                          label = "Sakit";
+                          label = "Izin/Sakit";
                         }
 
                         if (duplicateCount > 1) {
