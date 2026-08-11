@@ -116,8 +116,6 @@ import {
   User,
   BookOpen,
   MoreVertical,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import {
   HostEmployee,
