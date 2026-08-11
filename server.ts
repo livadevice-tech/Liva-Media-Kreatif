@@ -436,6 +436,8 @@ app.post("/api/reporting/brand/batch", asyncHandler(async (req, res) => {
 
   const db = getPool();
   const conn = await db.getConnection();
+  // Hoist rowsArray before try so it is accessible in catch for the FK-violation retry
+  const rowsArray = Array.isArray(rows) ? rows : [];
 
   try {
     await conn.beginTransaction();
@@ -466,7 +468,6 @@ app.post("/api/reporting/brand/batch", asyncHandler(async (req, res) => {
       Number(batch.gmv || 0),
     ]);
 
-    const rowsArray = Array.isArray(rows) ? rows : [];
     if (rowsArray.length > 0) {
       const CHUNK_SIZE = 25; // stay well within MySQL max_allowed_packet & param limits
       const rowPlaceholder = `(${Array.from({ length: 34 }, () => "?").join(",")})`;
@@ -535,6 +536,69 @@ app.post("/api/reporting/brand/batch", asyncHandler(async (req, res) => {
   } catch (e: any) {
     console.error('[reporting/brand/batch] INSERT gagal:', e?.message || e);
     await conn.rollback();
+    // If the error is a FK constraint violation (brand_id not yet in client_brands),
+    // retry the ENTIRE transaction with brand_id = NULL so data still gets saved.
+    if (e?.code === 'ER_NO_REFERENCED_ROW_2') {
+      const conn2 = await db.getConnection();
+      try {
+        await conn2.beginTransaction();
+        await conn2.execute(`DELETE FROM reporting_upload_rows WHERE batch_id = ?`, [batch.id]);
+        await conn2.execute(`
+          INSERT INTO reporting_upload_batches (
+            id, brand_id, brand_name, platform, source_kind, report_type, file_name, row_count, total_gmv
+          ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            brand_name = VALUES(brand_name), platform = VALUES(platform),
+            report_type = VALUES(report_type), file_name = VALUES(file_name),
+            row_count = VALUES(row_count), total_gmv = VALUES(total_gmv)
+        `, [
+          batch.id,
+          batch.brandName || null, batch.platform || null,
+          batch.sourceKind || null, batch.reportType || null,
+          batch.fileName || null,
+          Number(batch.rowCount || 0), Number(batch.gmv || 0),
+        ]);
+        const CHUNK_SIZE2 = 25;
+        const rowPlaceholder2 = `(${Array.from({ length: 34 }, () => '?').join(',')})`;
+        for (let off = 0; off < rowsArray.length; off += CHUNK_SIZE2) {
+          const ch = rowsArray.slice(off, off + CHUNK_SIZE2);
+          const sql2 = `INSERT INTO reporting_upload_rows (
+            id,batch_id,brand_id,brand_name,platform,source_kind,report_type,title,report_date,report_datetime,shift,
+            duration,gmv,products_sold,buyers,aov,views,impressions,penonton,live_visits,product_impressions,clicks,orders,
+            followers,likes,shares,comments,avg_view_duration,peak_viewers,shop_vouchers,special_vouchers,coins_claimed,
+            has_funnel_in_file,raw_payload
+          ) VALUES ${ch.map(() => rowPlaceholder2).join(',')}`;
+          const p2: any[] = [];
+          for (const row of ch) {
+            p2.push(
+              String(row.id||'').substring(0,140),
+              row.batchId||batch.id, null, row.brandName||batch.brandName||null,
+              row.platform||batch.platform||null, row.sourceKind||batch.sourceKind||null,
+              row.reportType||batch.reportType||null, row.title||null,
+              row.date||null, row.dateTime||null, row.shift||null,
+              Number(row.duration||0), Number(row.gmv||0), Number(row.products_sold||0),
+              Number(row.buyers||0), Number(row.aov||0), Number(row.views||0),
+              Number(row.impressions||0), Number(row.penonton||0), Number(row.liveVisits||0),
+              Number(row.productImpressions||0), Number(row.clicks||0), Number(row.orders||0),
+              Number(row.followers||0), Number(row.likes||0), Number(row.shares||0),
+              Number(row.comments||0), Number(row.avgViewDuration||0), Number(row.peakViewers||0),
+              Number(row.shopVouchers||0), Number(row.specialVouchers||0), Number(row.coinsClaimed||0),
+              row.hasFunnelInFile?1:0, JSON.stringify(row),
+            );
+          }
+          await conn2.execute(sql2, p2);
+        }
+        await conn2.commit();
+        console.log(`[reporting/brand/batch] Retry sukses (brand_id di-set NULL karena FK violation)`);
+        return res.status(201).json({ success: true, id: batch.id, rowCount: rowsArray.length });
+      } catch (e2: any) {
+        await conn2.rollback();
+        console.error('[reporting/brand/batch] Retry juga gagal:', e2?.message);
+        throw e2;
+      } finally {
+        conn2.release();
+      }
+    }
     throw e;
   } finally {
     conn.release();
@@ -998,6 +1062,25 @@ async function runMigrations() {
       console.log('✅ Migration: kolom violation_date sudah ada di host_violations.');
     } else {
       console.warn('Migration violation_date column warning:', e?.message);
+    }
+  }
+
+  // Drop FK constraints from reporting tables so inserts don't fail when a brand_id
+  // hasn't been synced to MySQL yet. Reporting is an analytics table — strict referential
+  // integrity is not needed here.
+  for (const [tbl, constraintGuess] of [
+    ['reporting_upload_batches', 'reporting_upload_batches_ibfk_1'],
+    ['reporting_upload_rows',    'reporting_upload_rows_ibfk_1'],
+    ['reporting_upload_rows',    'reporting_upload_rows_ibfk_2'],
+  ] as [string, string][]) {
+    try {
+      await execute(`ALTER TABLE ${tbl} DROP FOREIGN KEY ${constraintGuess}`, []);
+      console.log(`✅ Migration: FK ${constraintGuess} dihapus dari ${tbl}.`);
+    } catch (e: any) {
+      // ER_CANT_DROP_FIELD_OR_KEY = constraint already gone, safe to ignore
+      if (e?.code !== 'ER_CANT_DROP_FIELD_OR_KEY') {
+        console.log(`ℹ️  Migration: FK ${constraintGuess} di ${tbl}: ${e?.message}`);
+      }
     }
   }
 }

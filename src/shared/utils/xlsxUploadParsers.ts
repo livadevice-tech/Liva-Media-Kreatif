@@ -485,6 +485,9 @@ export function parseReportingUploadRows(
   const isShopee = platform.toLowerCase().includes("shopee");
 
   const titleIdx = findColIdx([
+    // TikTok Live export format
+    "room title",
+    // Generic
     "nama livestream",
     "livestream name",
     "live room title",
