@@ -35,7 +35,7 @@ interface ReportBrandSelectionPanelProps {
   onPageChange: (updater: (prev: number) => number) => void;
   onBrandSelect: (brandId: string) => void;
   onToggleBrandCardActions: (brandId: string) => void;
-  onDeleteAllBrandRawData: (brandId: string, brandName: string) => void;
+  onDeleteAllBrandRawData: (brandId: string, brandName: string, platform?: string) => void;
   onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
 }
 
