@@ -9,17 +9,19 @@ export function detectBrandFromFilename(
 ) {
   const fileNameLower = fileName.toLowerCase();
 
+  // 1. Prioritas Pertama: Exact match (contoh: "Sumber Ayu" ada utuh di filename)
   for (const brand of brands) {
-    const brandName = (brand.name || "").toLowerCase();
-    const brandNameClean = brandName.replace(/[^a-z0-9]/g, "");
-    if (brandNameClean && fileNameLower.includes(brandNameClean)) {
+    const brandNameLower = (brand.name || "").toLowerCase();
+    if (brandNameLower && fileNameLower.includes(brandNameLower)) {
       return brand;
     }
+  }
 
-    const words = brandName
-      .split(/\s+/)
-      .filter((word) => word.length > 2);
-    if (words.some((word) => fileNameLower.includes(word))) {
+  // 2. Prioritas Kedua: Match tanpa spasi/simbol (contoh: "sumber_ayu" di file cocok dengan "sumberayu" brand)
+  const fileNameClean = fileNameLower.replace(/[^a-z0-9]/g, "");
+  for (const brand of brands) {
+    const brandNameClean = (brand.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (brandNameClean && fileNameClean.includes(brandNameClean)) {
       return brand;
     }
   }
