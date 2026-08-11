@@ -5028,6 +5028,7 @@ export default function App() {
           setHostCutoffPeriod={setHostCutoffPeriod}
           availableCutoffMonths={availableCutoffMonths}
           computedSchedules={computedSchedules}
+          violations={violations.filter(v => v.host_id === activeHostObj?.id)}
         />
       )}
 
@@ -9649,7 +9650,7 @@ export default function App() {
                                                           : <XCircle className="w-3.5 h-3.5 text-red-500" />}
                                                       </span>
                                                       <span className="font-medium">
-                                                        Tidak Ada Pelanggaran {item.hasViolations ? `(${item.violationsCount}x)` : ""}
+                                                        {item.hasViolations ? `Pelanggaran (${item.violationsCount}x)` : "Tidak Ada Pelanggaran"}
                                                       </span>
                                                     </div>
                                                   </div>
@@ -13084,6 +13085,8 @@ export default function App() {
                         brands={clientBrands}
                         shifts={shifts}
                         platforms={platforms}
+                        violations={violations}
+                        setViolations={setViolations}
                       />
                     )}
                   </div>

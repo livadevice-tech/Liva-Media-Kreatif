@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
-import { activityLogsApi, violationsApi } from '../../api';
+import { activityLogsApi } from '../../api';
 
 
 function CustomSelect({ value, options, onChange, placeholder, error }: any) {
@@ -69,7 +69,7 @@ function CustomSelect({ value, options, onChange, placeholder, error }: any) {
   );
 }
 
-type HostDashboardProps = {
+interface HostDashboardProps {
   activeHostObj: any;
   hostForm: any;
   setHostForm: React.Dispatch<React.SetStateAction<any>>;
@@ -96,6 +96,7 @@ type HostDashboardProps = {
   setHostCutoffPeriod: React.Dispatch<React.SetStateAction<string>>;
   availableCutoffMonths: string[];
   computedSchedules: any[];
+  violations: any[];
 };
 
 export default function HostDashboard({
@@ -125,11 +126,11 @@ export default function HostDashboard({
   setHostCutoffPeriod,
   availableCutoffMonths,
   computedSchedules,
+  violations,
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'absen' | 'rekap' | 'kalender'>('absen');
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [violations, setViolations] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -149,14 +150,6 @@ export default function HostDashboard({
         action: "PAGE_LOAD",
         details: { message: "Host opened/refreshed the dashboard" }
       }).catch(() => {});
-    }
-  }, [activeHostObj]);
-
-  useEffect(() => {
-    if (activeHostObj) {
-      violationsApi.list({ hostId: activeHostObj.id })
-        .then(setViolations)
-        .catch(console.error);
     }
   }, [activeHostObj]);
 

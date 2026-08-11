@@ -9,6 +9,8 @@ interface HostViolationsPanelProps {
   brands: ClientBrand[];
   shifts: string[];
   platforms: string[];
+  violations: any[];
+  setViolations: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 export default function HostViolationsPanel({
@@ -16,8 +18,9 @@ export default function HostViolationsPanel({
   brands,
   shifts,
   platforms,
+  violations,
+  setViolations,
 }: HostViolationsPanelProps) {
-  const [violations, setViolations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
