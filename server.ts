@@ -441,6 +441,9 @@ app.post("/api/reporting/brand/batch", asyncHandler(async (req, res) => {
 
   try {
     await conn.beginTransaction();
+    // Disable FK checks for this session so reporting inserts never fail due to
+    // brand_id not yet existing in client_brands (analytics tables don't need strict FK).
+    await conn.execute(`SET FOREIGN_KEY_CHECKS = 0`, []);
 
     await conn.execute(`DELETE FROM reporting_upload_rows WHERE batch_id = ?`, [batch.id]);
     await conn.execute(`
@@ -531,10 +534,12 @@ app.post("/api/reporting/brand/batch", asyncHandler(async (req, res) => {
       }
     }
 
+    await conn.execute(`SET FOREIGN_KEY_CHECKS = 1`, []);
     await conn.commit();
     res.status(201).json({ success: true, id: batch.id, rowCount: rowsArray.length });
   } catch (e: any) {
     console.error('[reporting/brand/batch] INSERT gagal:', e?.message || e);
+    await conn.execute(`SET FOREIGN_KEY_CHECKS = 1`, []).catch(() => {});
     await conn.rollback();
     // If the error is a FK constraint violation (brand_id not yet in client_brands),
     // retry the ENTIRE transaction with brand_id = NULL so data still gets saved.
