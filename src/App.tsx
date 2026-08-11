@@ -2748,14 +2748,16 @@ export default function App() {
   const handleDeleteAllBrandRawData = async (
     brandId: string,
     brandName: string,
-    targetType: "all" | "product" | "performance" | "live" | "engagement" = "all"
+    targetType: "all" | "product" | "performance" | "live" | "engagement" = "all",
+    platformFilter?: string
   ) => {
-    const brandLogs = brandPerformanceLogs.filter(
-      (log) => log.brandId === brandId,
-    );
-    const brandBatches = brandUploadHistory.filter(
-      (b) => b.brandId === brandId,
-    );
+    let brandLogs = brandPerformanceLogs.filter((log) => log.brandId === brandId);
+    let brandBatches = brandUploadHistory.filter((b) => b.brandId === brandId);
+
+    if (platformFilter) {
+      brandLogs = brandLogs.filter((log) => log.platform === platformFilter);
+      brandBatches = brandBatches.filter((b) => b.platform === platformFilter);
+    }
 
     if (targetType === "product") {
       const brandSkuLogs = shopeeSkuLogs.filter(
@@ -11671,8 +11673,8 @@ export default function App() {
                         onPageChange={setReportBrandPage}
                         onBrandSelect={handleOpenReportBrand}
                         onToggleBrandCardActions={handleToggleBrandCardActions}
-                        onDeleteAllBrandRawData={(brandId, brandName) => {
-                          handleDeleteAllBrandRawData(brandId, brandName);
+                        onDeleteAllBrandRawData={(brandId, brandName, platform) => {
+                          handleDeleteAllBrandRawData(brandId, brandName, "all", platform);
                           setOpenBrandCardActionsId(null);
                         }}
                         onDeleteBrandDataByDateRange={(brandId, brandName) => {

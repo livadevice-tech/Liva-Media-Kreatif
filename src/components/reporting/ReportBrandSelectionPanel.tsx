@@ -77,7 +77,7 @@ function ReportBrandCard({
   openBrandCardActionsId: string | null;
   onBrandSelect: (brandId: string) => void;
   onToggleBrandCardActions: (brandId: string) => void;
-  onDeleteAllBrandRawData: (brandId: string, brandName: string) => void;
+  onDeleteAllBrandRawData: (brandId: string, brandName: string, platform?: string) => void;
   onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
 }) {
   const brand = row.brand;
@@ -165,15 +165,28 @@ function ReportBrandCard({
                     Hapus Rentang Waktu
                   </button>
                 )}
+                {brandPlatforms.map((platform) => (
+                  <button
+                    key={platform}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDeleteAllBrandRawData(brand.id, brand.name, platform);
+                    }}
+                    className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50"
+                  >
+                    Hapus Data {platform}
+                  </button>
+                ))}
                 <button
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
                     onDeleteAllBrandRawData(brand.id, brand.name);
                   }}
-                  className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50"
+                  className={`w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 ${brandPlatforms.length > 0 ? "border-t border-slate-100 rounded-t-none" : ""}`}
                 >
-                  Hapus Semua Data
+                  {brandPlatforms.length > 0 ? "Hapus Seluruh Platform" : "Hapus Semua Data"}
                 </button>
               </div>
             ) : null}
