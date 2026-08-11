@@ -59,6 +59,7 @@ export function LiveReportSummarySection({
               chartSelectedMetrics={chartSelectedMetrics}
               onChartSelectedMetricsChange={onChartSelectedMetricsChange}
               useShopeeLiveLayout={isShopeeStyle}
+              brandDashboardSettings={brandDashboardSettings}
             />
           )}
 
