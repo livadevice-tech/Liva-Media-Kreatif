@@ -123,6 +123,7 @@ export function LiveReportChartSection({
       productImpressions: "product_impressions",
       clicks: "product_clicks",
       gmvPerHour: "est_income",
+      durationHours: "duration_hours",
       impressions: "impressions",
       viewerActive: "live_viewer",
       likes: "likes",
