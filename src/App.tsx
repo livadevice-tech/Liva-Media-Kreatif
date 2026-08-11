@@ -3112,7 +3112,8 @@ export default function App() {
         for (const row of dataToSave) {
           const sanitizedTitle = String(row.title || "Live")
             .toLowerCase()
-            .replace(/[^a-zA-Z0-9]/g, "");
+            .replace(/[^a-zA-Z0-9]/g, "")
+            .substring(0, 40); // cap at 40 chars so the full ID stays under VARCHAR(140)
           const baseId = `${brandIdToSave}_${platformToSave.toLowerCase().replace(/\s/g, "_")}_${row.date}_${sanitizedTitle}_${Math.random().toString(36).substring(2, 9)}`;
           const rowGmv = Number(row.gmv || 0);
           totalBatchGmv += rowGmv;

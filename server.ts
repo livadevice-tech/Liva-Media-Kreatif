@@ -468,60 +468,72 @@ app.post("/api/reporting/brand/batch", asyncHandler(async (req, res) => {
 
     const rowsArray = Array.isArray(rows) ? rows : [];
     if (rowsArray.length > 0) {
+      const CHUNK_SIZE = 25; // stay well within MySQL max_allowed_packet & param limits
       const rowPlaceholder = `(${Array.from({ length: 34 }, () => "?").join(",")})`;
-      const rowSql = `
-        INSERT INTO reporting_upload_rows (
-          id, batch_id, brand_id, brand_name, platform, source_kind, report_type, title, report_date, report_datetime, shift,
-          duration, gmv, products_sold, buyers, aov, views, impressions, penonton, live_visits, product_impressions, clicks, orders,
-          followers, likes, shares, comments, avg_view_duration, peak_viewers, shop_vouchers, special_vouchers, coins_claimed,
-          has_funnel_in_file, raw_payload
-        ) VALUES ${rowsArray.map(() => rowPlaceholder).join(",")}
-      `;
-      const params: any[] = [];
-      for (const row of rowsArray) {
-        params.push(
-          row.id,
-          row.batchId || batch.id,
-          row.brandId || batch.brandId || null,
-          row.brandName || batch.brandName || null,
-          row.platform || batch.platform || null,
-          row.sourceKind || batch.sourceKind || null,
-          row.reportType || batch.reportType || null,
-          row.title || null,
-          row.date || null,
-          row.dateTime || null,
-          row.shift || null,
-          Number(row.duration || 0),
-          Number(row.gmv || 0),
-          Number(row.products_sold || 0),
-          Number(row.buyers || 0),
-          Number(row.aov || 0),
-          Number(row.views || 0),
-          Number(row.impressions || 0),
-          Number(row.penonton || 0),
-          Number(row.liveVisits || 0),
-          Number(row.productImpressions || 0),
-          Number(row.clicks || 0),
-          Number(row.orders || 0),
-          Number(row.followers || 0),
-          Number(row.likes || 0),
-          Number(row.shares || 0),
-          Number(row.comments || 0),
-          Number(row.avgViewDuration || 0),
-          Number(row.peakViewers || 0),
-          Number(row.shopVouchers || 0),
-          Number(row.specialVouchers || 0),
-          Number(row.coinsClaimed || 0),
-          row.hasFunnelInFile ? 1 : 0,
-          JSON.stringify(row),
-        );
+
+      for (let offset = 0; offset < rowsArray.length; offset += CHUNK_SIZE) {
+        const chunk = rowsArray.slice(offset, offset + CHUNK_SIZE);
+        const rowSql = `
+          INSERT INTO reporting_upload_rows (
+            id, batch_id, brand_id, brand_name, platform, source_kind, report_type, title, report_date, report_datetime, shift,
+            duration, gmv, products_sold, buyers, aov, views, impressions, penonton, live_visits, product_impressions, clicks, orders,
+            followers, likes, shares, comments, avg_view_duration, peak_viewers, shop_vouchers, special_vouchers, coins_claimed,
+            has_funnel_in_file, raw_payload
+          ) VALUES ${chunk.map(() => rowPlaceholder).join(",")}
+          ON DUPLICATE KEY UPDATE
+            gmv = VALUES(gmv), products_sold = VALUES(products_sold), buyers = VALUES(buyers),
+            views = VALUES(views), orders = VALUES(orders), likes = VALUES(likes),
+            comments = VALUES(comments), shares = VALUES(shares), followers = VALUES(followers)
+        `;
+        const params: any[] = [];
+        for (const row of chunk) {
+          // Truncate id to DB column limit (VARCHAR 140) as a safety net
+          const safeId = String(row.id || "").substring(0, 140);
+          params.push(
+            safeId,
+            row.batchId || batch.id,
+            row.brandId || batch.brandId || null,
+            row.brandName || batch.brandName || null,
+            row.platform || batch.platform || null,
+            row.sourceKind || batch.sourceKind || null,
+            row.reportType || batch.reportType || null,
+            row.title || null,
+            row.date || null,
+            row.dateTime || null,
+            row.shift || null,
+            Number(row.duration || 0),
+            Number(row.gmv || 0),
+            Number(row.products_sold || 0),
+            Number(row.buyers || 0),
+            Number(row.aov || 0),
+            Number(row.views || 0),
+            Number(row.impressions || 0),
+            Number(row.penonton || 0),
+            Number(row.liveVisits || 0),
+            Number(row.productImpressions || 0),
+            Number(row.clicks || 0),
+            Number(row.orders || 0),
+            Number(row.followers || 0),
+            Number(row.likes || 0),
+            Number(row.shares || 0),
+            Number(row.comments || 0),
+            Number(row.avgViewDuration || 0),
+            Number(row.peakViewers || 0),
+            Number(row.shopVouchers || 0),
+            Number(row.specialVouchers || 0),
+            Number(row.coinsClaimed || 0),
+            row.hasFunnelInFile ? 1 : 0,
+            JSON.stringify(row),
+          );
+        }
+        await conn.execute(rowSql, params);
       }
-      await conn.execute(rowSql, params);
     }
 
     await conn.commit();
     res.status(201).json({ success: true, id: batch.id, rowCount: rowsArray.length });
   } catch (e: any) {
+    console.error('[reporting/brand/batch] INSERT gagal:', e?.message || e);
     await conn.rollback();
     throw e;
   } finally {
