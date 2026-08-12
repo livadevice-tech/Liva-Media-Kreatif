@@ -18,6 +18,7 @@ import { ShiftSchedule, ClientBrand } from "../../types";
 import { BrandPerformanceLogEntry } from "../../shared/types/reporting";
 import { LineChart } from "lucide-react";
 import { CustomSelect } from "../ui/CustomSelect";
+import { CustomDatePicker } from "../ui/CustomDatePicker";
 
 interface TrendSiaranChartProps {
   schedules: ShiftSchedule[];
@@ -32,7 +33,9 @@ export function TrendSiaranChart({
   platforms,
   performanceLogs,
 }: TrendSiaranChartProps) {
-  const [timeRange, setTimeRange] = useState<"7" | "30" | "90">("7");
+  const [timeRange, setTimeRange] = useState<"7" | "30" | "90" | "custom">("7");
+  const [customStartDate, setCustomStartDate] = useState<string>("");
+  const [customEndDate, setCustomEndDate] = useState<string>("");
   const [activePlatform, setActivePlatform] = useState<"all" | "tiktok" | "shopee">("all");
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [selectedMetric, setSelectedMetric] = useState<"sesi" | "jamLive" | "gmv" | "viewer">("sesi");
@@ -75,10 +78,32 @@ export function TrendSiaranChart({
   }, [activePlatform, selectedMetric]);
 
   const chartData = useMemo(() => {
-    const days = parseInt(timeRange);
-    return Array.from({ length: days }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (days - 1 - i));
+    let dates: Date[] = [];
+    
+    if (timeRange === "custom" && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      if (start <= end) {
+        let current = new Date(start);
+        let count = 0;
+        while (current <= end && count < 90) { // Limit 90 days to prevent perf issues
+          dates.push(new Date(current));
+          current.setDate(current.getDate() + 1);
+          count++;
+        }
+      }
+    }
+    
+    if (dates.length === 0) {
+      const days = parseInt(timeRange === "custom" ? "7" : timeRange);
+      dates = Array.from({ length: days }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (days - 1 - i));
+        return d;
+      });
+    }
+
+    return dates.map((d) => {
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
       let total = 0;
@@ -141,7 +166,7 @@ export function TrendSiaranChart({
         ...brandTotals
       };
     });
-  }, [timeRange, activePlatform, selectedBrand, schedules, activeBrands, performanceLogs, selectedMetric]);
+  }, [timeRange, customStartDate, customEndDate, activePlatform, selectedBrand, schedules, activeBrands, performanceLogs, selectedMetric]);
 
   const formatYAxis = (tickItem: number) => {
     if (selectedMetric === "gmv") {
@@ -242,11 +267,28 @@ export function TrendSiaranChart({
                 { value: "7", label: "7 Hari Terakhir" },
                 { value: "30", label: "30 Hari Terakhir" },
                 { value: "90", label: "3 Bulan Terakhir" },
+                { value: "custom", label: "Kustom..." },
               ]}
               value={timeRange}
               onChange={(val) => setTimeRange(val as any)}
               className="w-36 text-xs"
             />
+
+            {timeRange === "custom" && (
+              <div className="flex items-center gap-1">
+                <CustomDatePicker
+                  value={customStartDate}
+                  onChange={setCustomStartDate}
+                  placeholder="Mulai"
+                />
+                <span className="text-slate-400 text-xs">-</span>
+                <CustomDatePicker
+                  value={customEndDate}
+                  onChange={setCustomEndDate}
+                  placeholder="Selesai"
+                />
+              </div>
+            )}
 
             <CustomSelect
               options={brandOptions}
