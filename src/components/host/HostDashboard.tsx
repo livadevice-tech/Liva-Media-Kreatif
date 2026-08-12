@@ -730,51 +730,54 @@ export default function HostDashboard({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className={`rounded-[16px] p-4 border flex flex-col items-center justify-center text-center ${disciplineScore >= 80 ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : disciplineScore >= 60 ? 'bg-amber-50 border-amber-100 text-amber-800' : 'bg-rose-50 border-rose-100 text-rose-800'}`}>
-              <Award className={`w-5 h-5 mb-1 ${disciplineScore >= 80 ? 'text-emerald-500' : disciplineScore >= 60 ? 'text-amber-500' : 'text-rose-500'}`} />
-              <span className="text-3xl font-black">{disciplineScore}</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80">Skor Disiplin</span>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-5">
+            <div className={`md:col-span-2 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden ${disciplineScore >= 80 ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100 text-emerald-800' : disciplineScore >= 60 ? 'bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100 text-amber-800' : 'bg-gradient-to-br from-rose-50 to-rose-100/50 border border-rose-100 text-rose-800'}`}>
+              <div className="absolute -right-4 -top-4 opacity-10">
+                <Award className="w-24 h-24" />
+              </div>
+              <Award className={`w-8 h-8 mb-2 ${disciplineScore >= 80 ? 'text-emerald-500' : disciplineScore >= 60 ? 'text-amber-500' : 'text-rose-500'}`} />
+              <span className="text-4xl sm:text-5xl font-black tracking-tight">{disciplineScore}</span>
+              <span className="text-[11px] font-bold uppercase tracking-widest mt-2 opacity-80">Skor Disiplin</span>
             </div>
             
-            <div className="flex flex-col gap-3">
-              <div className="bg-indigo-50 border border-indigo-100 rounded-[16px] p-3 flex flex-col items-center justify-center text-center h-full">
-                <Clock className="w-4 h-4 text-indigo-500 mb-1" />
-                <span className="text-lg font-black text-indigo-800">{avgEarlyArrival > 0 ? `+${avgEarlyArrival}` : avgEarlyArrival}m</span>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-600 mt-1">Avg Early</span>
+            <div className="md:col-span-3 grid grid-cols-2 gap-4">
+              <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center h-full shadow-sm">
+                <Clock className="w-6 h-6 text-indigo-500 mb-2" />
+                <span className="text-2xl font-black text-indigo-900 tracking-tight">{avgEarlyArrival > 0 ? `+${avgEarlyArrival}` : avgEarlyArrival}m</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-600/80 mt-1">Avg Early</span>
               </div>
-              <div className="bg-purple-50 border border-purple-100 rounded-[16px] p-3 flex flex-col items-center justify-center text-center h-full">
-                <Target className="w-4 h-4 text-purple-500 mb-1" />
-                <span className="text-lg font-black text-purple-800">{readinessRate}%</span>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-purple-600 mt-1">Readiness</span>
+              <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-100/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center h-full shadow-sm">
+                <Target className="w-6 h-6 text-purple-500 mb-2" />
+                <span className="text-2xl font-black text-purple-900 tracking-tight">{readinessRate}%</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-purple-600/80 mt-1">Readiness</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-5 gap-2 mb-6">
-            <div className="bg-emerald-50 rounded-xl p-2 border border-emerald-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-lg font-black text-emerald-700">{hostLogs.filter(l => l.status !== 'Late' && l.status !== 'Absent' && l.status !== 'Excused').length}</span>
-              <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1 text-center">Hadir Tepat</span>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
+            <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col items-center justify-center shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-all">
+              <span className="text-2xl font-black text-emerald-600">{hostLogs.filter(l => l.status !== 'Late' && l.status !== 'Absent' && l.status !== 'Excused').length}</span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1 text-center">Hadir Tepat</span>
             </div>
-            <div className="bg-amber-50 rounded-xl p-2 border border-amber-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-lg font-black text-amber-700">{attendanceHistory.filter(h => h.reason.startsWith('Toleransi Telat')).length}</span>
-              <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1 text-center">Toleransi</span>
+            <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col items-center justify-center shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-all">
+              <span className="text-2xl font-black text-amber-600">{attendanceHistory.filter(h => h.reason.startsWith('Toleransi Telat')).length}</span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1 text-center">Toleransi</span>
             </div>
-            <div className="bg-orange-50 rounded-xl p-2 border border-orange-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-lg font-black text-orange-700">{attendanceHistory.filter(h => h.reason.startsWith('Telat Ringan') || h.reason.startsWith('Telat Parah')).length}</span>
-              <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest mt-1 text-center">Telat</span>
+            <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col items-center justify-center shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-all">
+              <span className="text-2xl font-black text-orange-600">{attendanceHistory.filter(h => h.reason.startsWith('Telat Ringan') || h.reason.startsWith('Telat Parah')).length}</span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1 text-center">Telat</span>
             </div>
-            <div className="bg-rose-50 rounded-xl p-2 border border-rose-100 flex flex-col items-center justify-center shadow-sm">
-              <span className="text-lg font-black text-rose-700">{hostLogs.filter(l => l.status === 'Absent').length}</span>
-              <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest mt-1 text-center">Mangkir</span>
+            <div className="bg-white rounded-2xl p-3 border border-slate-100 flex flex-col items-center justify-center shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-all">
+              <span className="text-2xl font-black text-rose-600">{hostLogs.filter(l => l.status === 'Absent').length}</span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1 text-center">Mangkir</span>
             </div>
             <div
               onClick={() => document.getElementById('violations-section')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-red-50 rounded-xl p-2 border border-red-100 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:bg-red-100/50 transition-colors"
+              className="bg-red-50/50 rounded-2xl p-3 border border-red-100 flex flex-col items-center justify-center shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:bg-red-50 transition-colors cursor-pointer col-span-2 sm:col-span-1"
               title="Klik untuk melihat detail pelanggaran"
             >
-              <span className="text-lg font-black text-red-700">{violations.length}</span>
-              <span className="text-[9px] font-black text-red-600 uppercase tracking-widest mt-1 text-center">Pelanggaran</span>
+              <span className="text-2xl font-black text-red-600">{violations.length}</span>
+              <span className="text-[9px] font-bold text-red-500 uppercase tracking-widest mt-1 text-center">Pelanggaran</span>
             </div>
           </div>
 
