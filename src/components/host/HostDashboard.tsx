@@ -256,30 +256,23 @@ export default function HostDashboard({
               pointChange = 0;
               reason = `Tepat Waktu`;
               totalEarlyMinutes += 0;
-            } else if (diffMins >= 30) {
-              pointChange = 1;
-              reason = `Early Bird (${diffMins}m awal)`;
-              totalEarlyMinutes += diffMins;
-              earlyCount++;
-            } else if (diffMins >= 0 && diffMins < 30) {
+            } else if (diffMins >= 0) {
               pointChange = 0;
               reason = `Tepat Waktu`;
               totalEarlyMinutes += diffMins;
+              if (diffMins >= 30) earlyCount++;
             } else if (diffMins < 0 && diffMins >= -5) {
               if (toleransiCount < 3) {
-                pointChange = 0;
+                pointChange = -5;
                 reason = `Toleransi Telat (${Math.abs(diffMins)}m)`;
                 toleransiCount++;
               } else {
-                pointChange = -2;
-                reason = `Telat Ringan (${Math.abs(diffMins)}m)`;
+                pointChange = -10;
+                reason = `Telat (${Math.abs(diffMins)}m)`;
               }
-            } else if (diffMins < -5 && diffMins >= -15) {
-              pointChange = -2;
-              reason = `Telat Ringan (${Math.abs(diffMins)}m)`;
-            } else if (diffMins < -15) {
-              pointChange = -5;
-              reason = `Telat Parah (${Math.abs(diffMins)}m)`;
+            } else if (diffMins < -5) {
+              pointChange = -10;
+              reason = `Telat (${Math.abs(diffMins)}m)`;
             }
           }
         }
@@ -751,7 +744,7 @@ export default function HostDashboard({
               <span className="text-[10px] font-bold text-slate-500 uppercase mt-1 text-center leading-tight mt-auto">Toleransi</span>
             </div>
             <div className="bg-white rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-all">
-              <span className="text-3xl font-black text-orange-600">{attendanceHistory.filter(h => h.reason.startsWith('Telat Ringan') || h.reason.startsWith('Telat Parah')).length}</span>
+              <span className="text-3xl font-black text-orange-600">{attendanceHistory.filter(h => h.reason.startsWith('Telat')).length}</span>
               <span className="text-[10px] font-bold text-slate-500 uppercase mt-1 text-center leading-tight mt-auto">Telat</span>
             </div>
             <div className="bg-white rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-all">
@@ -786,8 +779,8 @@ export default function HostDashboard({
                     {log.reason && (
                       <span className={`text-[10px] font-bold mt-1.5 px-2 py-0.5 rounded-full inline-block w-fit ${
                         log.pointChange > 0 ? 'bg-emerald-100 text-emerald-700' : 
-                        log.pointChange < 0 ? 'bg-rose-100 text-rose-700' : 
-                        log.reason.startsWith('Toleransi Telat') ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-700'
+                        log.reason.startsWith('Toleransi Telat') ? 'bg-amber-100 text-amber-700' : 
+                        log.pointChange < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'
                       }`}>
                         {log.reason}
                       </span>
