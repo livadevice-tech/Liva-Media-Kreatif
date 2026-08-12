@@ -7,7 +7,13 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
+
+const CHART_COLORS = [
+  "#4F46E5", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", 
+  "#EC4899", "#06B6D4", "#F97316", "#14B8A6", "#6366F1"
+];
 import { ShiftSchedule, ClientBrand } from "../../types";
 import { BrandPerformanceLogEntry } from "../../shared/types/reporting";
 import { LineChart } from "lucide-react";
@@ -76,51 +82,63 @@ export function TrendSiaranChart({
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
       let total = 0;
+      const brandTotals: Record<string, number> = {};
+      activeBrands.forEach(b => brandTotals[b.name] = 0);
 
       if (selectedMetric === "sesi") {
-        total = schedules.filter((s) => {
-          if (s.date !== dateStr) return false;
-          if (activePlatform !== "all" && !s.platform?.toLowerCase().includes(activePlatform)) return false;
+        schedules.forEach((s) => {
+          if (s.date !== dateStr) return;
+          if (activePlatform !== "all" && !s.platform?.toLowerCase().includes(activePlatform)) return;
           
           if (selectedBrand !== "all") {
-            if (s.brand !== selectedBrand) return false;
+            if (s.brand !== selectedBrand) return;
+            total++;
           } else {
-            if (!activeBrands.some((b) => b.name === s.brand)) return false;
+            if (activeBrands.some((b) => b.name === s.brand)) {
+              brandTotals[s.brand] = (brandTotals[s.brand] || 0) + 1;
+              total++;
+            }
           }
-          return true;
-        }).length;
+        });
       } else {
         const logsForDate = performanceLogs.filter((p) => {
           if (p.date !== dateStr) return false;
           if (activePlatform !== "all" && !p.platform?.toLowerCase().includes(activePlatform)) return false;
-          
-          if (selectedBrand !== "all") {
-            const brandObj = activeBrands.find((b) => b.name === selectedBrand);
-            if (brandObj && p.brandId !== brandObj.id) return false;
-            if (!brandObj && p.brandName !== selectedBrand) return false;
-          } else {
-            if (!activeBrands.some((b) => b.id === p.brandId)) return false;
-          }
           return true;
         });
 
+        logsForDate.forEach(p => {
+          const brandObj = activeBrands.find((b) => b.id === p.brandId) || activeBrands.find((b) => b.name === p.brandName);
+          if (!brandObj) return;
+
+          let val = 0;
+          if (selectedMetric === "jamLive") val = p.duration || 0;
+          else if (selectedMetric === "gmv") val = p.gmv || 0;
+          else if (selectedMetric === "viewer") val = p.penonton || p.views || 0;
+          else if (selectedMetric === "products_sold") val = p.products_sold || 0;
+          else if (selectedMetric === "orders") val = p.orders || p.buyers || 0;
+
+          if (selectedBrand !== "all") {
+            if (brandObj.name !== selectedBrand) return;
+            total += val;
+          } else {
+            brandTotals[brandObj.name] = (brandTotals[brandObj.name] || 0) + val;
+            total += val;
+          }
+        });
+
         if (selectedMetric === "jamLive") {
-          const totalSeconds = logsForDate.reduce((sum, p) => sum + (p.duration || 0), 0);
-          total = Number((totalSeconds / 3600).toFixed(2));
-        } else if (selectedMetric === "gmv") {
-          total = logsForDate.reduce((sum, p) => sum + (p.gmv || 0), 0);
-        } else if (selectedMetric === "viewer") {
-          total = logsForDate.reduce((sum, p) => sum + (p.penonton || p.views || 0), 0);
-        } else if (selectedMetric === "products_sold") {
-          total = logsForDate.reduce((sum, p) => sum + (p.products_sold || 0), 0);
-        } else if (selectedMetric === "orders") {
-          total = logsForDate.reduce((sum, p) => sum + (p.orders || p.buyers || 0), 0);
+          total = Number((total / 3600).toFixed(2));
+          Object.keys(brandTotals).forEach(k => {
+            brandTotals[k] = Number((brandTotals[k] / 3600).toFixed(2));
+          });
         }
       }
 
       return {
         name: d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
         total: total,
+        ...brandTotals
       };
     });
   }, [timeRange, activePlatform, selectedBrand, schedules, activeBrands, performanceLogs, selectedMetric]);
@@ -143,23 +161,27 @@ export function TrendSiaranChart({
     return tickItem.toString();
   };
 
-  const tooltipFormatter = (value: number) => {
+  const tooltipFormatter = (value: number, name: string) => {
+    let formattedValue = value.toString();
     if (selectedMetric === "gmv") {
-      return [new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value), "GMV"];
+      formattedValue = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(value);
+    } else if (selectedMetric === "jamLive") {
+      formattedValue = `${value} Jam`;
+    } else if (selectedMetric === "viewer" || selectedMetric === "products_sold" || selectedMetric === "orders") {
+      formattedValue = new Intl.NumberFormat("id-ID").format(value);
     }
-    if (selectedMetric === "jamLive") {
-      return [`${value} Jam`, "Jam Live"];
+    
+    let metricName = name;
+    if (name === "total") {
+      if (selectedMetric === "gmv") metricName = "GMV";
+      else if (selectedMetric === "jamLive") metricName = "Jam Live";
+      else if (selectedMetric === "viewer") metricName = "Viewer";
+      else if (selectedMetric === "products_sold") metricName = "Produk Terjual";
+      else if (selectedMetric === "orders") metricName = "Pesanan";
+      else metricName = "Sesi";
     }
-    if (selectedMetric === "viewer") {
-      return [new Intl.NumberFormat("id-ID").format(value), "Viewer"];
-    }
-    if (selectedMetric === "products_sold") {
-      return [new Intl.NumberFormat("id-ID").format(value), "Produk Terjual"];
-    }
-    if (selectedMetric === "orders") {
-      return [new Intl.NumberFormat("id-ID").format(value), "Pesanan"];
-    }
-    return [value.toString(), "Sesi"];
+    
+    return [formattedValue, metricName];
   };
 
   const getMetricTitle = () => {
@@ -248,6 +270,12 @@ export function TrendSiaranChart({
                 <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.3} />
                 <stop offset="95%" stopColor="#4F46E5" stopOpacity={0} />
               </linearGradient>
+              {activeBrands.map((b, index) => (
+                <linearGradient key={b.name} id={`colorBrand${index}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_COLORS[index % CHART_COLORS.length]} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_COLORS[index % CHART_COLORS.length]} stopOpacity={0} />
+                </linearGradient>
+              ))}
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
             <XAxis
@@ -272,24 +300,36 @@ export function TrendSiaranChart({
                 boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
               }}
               labelStyle={{ fontWeight: "bold", color: "#1E293B", marginBottom: "4px" }}
-              itemStyle={{ color: "#4F46E5", fontWeight: 700 }}
+              itemStyle={{ fontWeight: 700 }}
               formatter={tooltipFormatter as any}
             />
-            <Area
-              type="monotone"
-              dataKey="total"
-              stroke="#4F46E5"
-              strokeWidth={3}
-              fillOpacity={1}
-              fill="url(#colorTotal)"
-              activeDot={{ r: 6, fill: "#4F46E5", stroke: "#fff", strokeWidth: 2 }}
-              name={
-                selectedMetric === "sesi" ? "Total Sesi" :
-                selectedMetric === "gmv" ? "GMV" :
-                selectedMetric === "viewer" ? "Viewer" :
-                "Jam Live"
-              }
-            />
+            {selectedBrand === "all" && <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "20px" }} />}
+            {selectedBrand === "all" ? (
+              activeBrands.map((b, index) => (
+                <Area
+                  key={b.name}
+                  type="monotone"
+                  dataKey={b.name}
+                  name={b.name}
+                  stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                  strokeWidth={2}
+                  fillOpacity={0.1}
+                  fill={`url(#colorBrand${index})`}
+                  activeDot={{ r: 4, strokeWidth: 1 }}
+                />
+              ))
+            ) : (
+              <Area
+                type="monotone"
+                dataKey="total"
+                name="total"
+                stroke="#4F46E5"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorTotal)"
+                activeDot={{ r: 6, fill: "#4F46E5", stroke: "#fff", strokeWidth: 2 }}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
