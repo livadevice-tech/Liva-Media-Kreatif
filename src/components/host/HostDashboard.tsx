@@ -730,7 +730,7 @@ export default function HostDashboard({
             </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+          <div className="grid grid-cols-1 gap-4 mb-5">
             <div className={`rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden ${disciplineScore >= 80 ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100 text-emerald-800' : disciplineScore >= 60 ? 'bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100 text-amber-800' : 'bg-gradient-to-br from-rose-50 to-rose-100/50 border border-rose-100 text-rose-800'}`}>
               <div className="absolute -right-4 -top-4 opacity-10">
                 <Award className="w-24 h-24" />
@@ -738,18 +738,6 @@ export default function HostDashboard({
               <Award className={`w-8 h-8 mb-2 z-10 ${disciplineScore >= 80 ? 'text-emerald-500' : disciplineScore >= 60 ? 'text-amber-500' : 'text-rose-500'}`} />
               <span className="text-4xl sm:text-5xl font-black tracking-tight z-10">{disciplineScore}</span>
               <span className="text-[11px] font-bold uppercase tracking-widest mt-2 opacity-80 z-10">Skor Disiplin</span>
-            </div>
-            
-            <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center h-full shadow-sm">
-              <Clock className="w-6 h-6 text-indigo-500 mb-2" />
-              <span className="text-3xl sm:text-4xl font-black text-indigo-900 tracking-tight">{avgEarlyArrival > 0 ? `+${avgEarlyArrival}` : avgEarlyArrival}m</span>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-600/80 mt-2">Avg Early</span>
-            </div>
-            
-            <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-100/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center h-full shadow-sm">
-              <Target className="w-6 h-6 text-purple-500 mb-2" />
-              <span className="text-3xl sm:text-4xl font-black text-purple-900 tracking-tight">{readinessRate}%</span>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-purple-600/80 mt-2">Readiness</span>
             </div>
           </div>
 
