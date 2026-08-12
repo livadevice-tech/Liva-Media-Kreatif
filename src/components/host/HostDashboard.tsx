@@ -278,6 +278,16 @@ export default function HostDashboard({
         }
       }
 
+      if (!reason) {
+        if (log.status === 'Late') {
+          pointChange = -10;
+          reason = 'Telat (Manual)';
+        } else if (log.status === 'Present') {
+          pointChange = 0;
+          reason = 'Tepat Waktu (Manual)';
+        }
+      }
+
       score += pointChange;
       
       history.push({
