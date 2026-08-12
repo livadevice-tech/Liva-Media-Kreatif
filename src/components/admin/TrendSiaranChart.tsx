@@ -40,12 +40,33 @@ export function TrendSiaranChart({
     ...activeBrands.map((b) => ({ value: b.name, label: b.name })),
   ];
   
-  const metricOptions = [
-    { value: "sesi", label: "Total Sesi" },
-    { value: "jamLive", label: "Total Jam Live" },
-    { value: "gmv", label: "GMV" },
-    { value: "viewer", label: "Viewer" },
-  ];
+  const metricOptions = useMemo(() => {
+    const base = [
+      { value: "sesi", label: "Total Sesi" },
+      { value: "jamLive", label: "Total Jam Live" },
+      { value: "gmv", label: "GMV" },
+      { value: "viewer", label: "Viewer" },
+    ];
+    if (activePlatform === "tiktok") {
+      base.push(
+        { value: "products_sold", label: "Produk Terjual (TikTok)" },
+        { value: "orders", label: "Pesanan (TikTok)" }
+      );
+    } else if (activePlatform === "shopee") {
+      base.push(
+        { value: "products_sold", label: "Produk Terjual (Shopee)" },
+        { value: "orders", label: "Pesanan (Shopee)" }
+      );
+    }
+    return base;
+  }, [activePlatform]);
+
+  // Reset selected metric if switching back to "all" and a platform-specific metric was selected
+  React.useEffect(() => {
+    if (activePlatform === "all" && (selectedMetric === "products_sold" || selectedMetric === "orders")) {
+      setSelectedMetric("sesi");
+    }
+  }, [activePlatform, selectedMetric]);
 
   const chartData = useMemo(() => {
     const days = parseInt(timeRange);
@@ -90,6 +111,10 @@ export function TrendSiaranChart({
           total = logsForDate.reduce((sum, p) => sum + (p.gmv || 0), 0);
         } else if (selectedMetric === "viewer") {
           total = logsForDate.reduce((sum, p) => sum + (p.penonton || p.views || 0), 0);
+        } else if (selectedMetric === "products_sold") {
+          total = logsForDate.reduce((sum, p) => sum + (p.products_sold || 0), 0);
+        } else if (selectedMetric === "orders") {
+          total = logsForDate.reduce((sum, p) => sum + (p.orders || p.buyers || 0), 0);
         }
       }
 
@@ -110,7 +135,7 @@ export function TrendSiaranChart({
     if (selectedMetric === "jamLive") {
       return `${tickItem}h`;
     }
-    if (selectedMetric === "viewer") {
+    if (selectedMetric === "viewer" || selectedMetric === "products_sold" || selectedMetric === "orders") {
       if (tickItem >= 1000000) return `${(tickItem / 1000000).toFixed(1)}M`;
       if (tickItem >= 1000) return `${(tickItem / 1000).toFixed(1)}k`;
       return tickItem.toString();
@@ -128,6 +153,12 @@ export function TrendSiaranChart({
     if (selectedMetric === "viewer") {
       return [new Intl.NumberFormat("id-ID").format(value), "Viewer"];
     }
+    if (selectedMetric === "products_sold") {
+      return [new Intl.NumberFormat("id-ID").format(value), "Produk Terjual"];
+    }
+    if (selectedMetric === "orders") {
+      return [new Intl.NumberFormat("id-ID").format(value), "Pesanan"];
+    }
     return [value.toString(), "Sesi"];
   };
 
@@ -141,6 +172,10 @@ export function TrendSiaranChart({
         return "Total pendapatan GMV per hari";
       case "viewer":
         return "Total penonton (viewer) per hari";
+      case "products_sold":
+        return "Total produk terjual per hari";
+      case "orders":
+        return "Total pesanan per hari";
       default:
         return "Metrik per hari";
     }
