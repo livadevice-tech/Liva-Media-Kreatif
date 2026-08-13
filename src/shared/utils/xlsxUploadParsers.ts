@@ -510,8 +510,10 @@ export function parseReportingUploadRows(
     "waktu",
     "mulai",
     "start",
-    // "periode data" and "periode" intentionally omitted – those contain
-    // a date-range string like "01-08-2026 - 31-08-2026", not a session timestamp
+    // For engagement/all tabs, "periode data" is a single daily date per row.
+    // For live-session files it can be a range string; that is handled in the
+    // parsing step by extracting only the first segment before " - ".
+    ...(uploadTargetTab === "engagement" || uploadTargetTab === "all" ? ["periode data", "periode"] : []),
   ]);
   const endIdx = findColIdx([
     // Shopee Live – most specific first
@@ -718,13 +720,18 @@ export function parseReportingUploadRows(
     let formattedDate = "";
     let shift = "Shift Lainnya";
     if (rawStart) {
-      if (typeof rawStart === "number") {
-        formattedDate = parseExcelDateCode(rawStart, shouldSwapExcelDates);
+      let rawStartNormalized = rawStart;
+      // Handle date-range strings like "01-08-2026 - 31-08-2026": take only the first date segment
+      if (typeof rawStartNormalized === "string" && rawStartNormalized.includes(" - ")) {
+        rawStartNormalized = rawStartNormalized.split(" - ")[0].trim();
+      }
+      if (typeof rawStartNormalized === "number") {
+        formattedDate = parseExcelDateCode(rawStartNormalized, shouldSwapExcelDates);
         const hour = parseInt(formattedDate.slice(11, 13), 10);
         const matchedShift = getShiftFromHour(hour, shifts);
         if (matchedShift) shift = matchedShift;
       } else {
-        formattedDate = parseDateString(String(rawStart), isMonthFirst);
+        formattedDate = parseDateString(String(rawStartNormalized), isMonthFirst);
         const timeMatch = formattedDate.match(/(\d{1,2}:\d{2})/);
         if (timeMatch) {
           const hour = parseInt(timeMatch[1], 10);
