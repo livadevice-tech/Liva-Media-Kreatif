@@ -10,28 +10,39 @@ interface Props {
   logs: BrandPerformanceLogEntry[];
 }
 
-const METRICS_MAP: Record<string, { label: string; key: keyof BrandPerformanceLogEntry }> = {
+const METRICS_MAP: Record<string, { label: string; key?: keyof BrandPerformanceLogEntry; compute?: (logs: BrandPerformanceLogEntry[]) => number }> = {
   gmv: { label: 'Omzet (GMV)', key: 'gmv' },
   orders: { label: 'Pesanan (Orders)', key: 'orders' },
   views: { label: 'Views (Impresi)', key: 'views' },
   penonton: { label: 'Penonton', key: 'penonton' },
-  buyers: { label: 'Pembeli', key: 'buyers' },
-  items_sold: { label: 'Item Terjual', key: 'items_sold' },
+  viewers: { label: 'Live Viewer / Penonton', key: 'penonton' },
+  buyers: { label: 'Customer / Pembeli', key: 'buyers' },
+  items_sold: { label: 'Item Terjual', key: 'products_sold' },
   aov: { label: 'AOV', key: 'aov' },
   clicks: { label: 'Add to Cart', key: 'clicks' },
   avg_view_duration: { label: 'Rata-rata Durasi Tonton', key: 'avg_view_duration' },
-  viewers_active: { label: 'Viewer Active', key: 'viewers_active' },
-  gmv_per_hour: { label: 'GMV / Jam', key: 'gmv_per_hour' },
-  impressions: { label: 'Live Impressions', key: 'impressions' },
+  viewers_active: { label: 'Viewer Active', key: 'penonton' },
+  gmv_per_hour: { label: 'GMV / Jam', compute: (logs) => {
+    const totalGmv = logs.reduce((acc, curr) => acc + (Number(curr.gmv) || 0), 0);
+    const totalDuration = logs.reduce((acc, curr) => acc + (Number(curr.duration) || 0), 0);
+    if (totalDuration === 0) return 0;
+    return totalGmv / (totalDuration / 3600);
+  }},
+  impressions: { label: 'Live Impressions / Viewer', key: 'impressions' },
   peak_viewers: { label: 'Peak Viewer', key: 'peak_viewers' },
-  vouchers: { label: 'Voucher Claim', key: 'vouchers' },
+  vouchers: { label: 'Voucher Claim', key: 'shop_vouchers' },
   likes: { label: 'Likes', key: 'likes' },
   comments: { label: 'Komentar', key: 'comments' },
   shares: { label: 'Shares', key: 'shares' },
-  err: { label: 'ERR %', key: 'err' },
-  product_impressions: { label: 'Product Impressions', key: 'product_impressions' },
-  product_clicks: { label: 'Product Clicks', key: 'product_clicks' },
-  new_followers: { label: 'Pengikut Baru', key: 'new_followers' },
+  err: { label: 'ERR %', compute: (logs) => {
+    const totalInteractions = logs.reduce((acc, curr) => acc + (Number(curr.likes) || 0) + (Number(curr.comments) || 0) + (Number(curr.shares) || 0), 0);
+    const totalViews = logs.reduce((acc, curr) => acc + (Number(curr.views) || Number(curr.impressions) || 0), 0);
+    if (totalViews === 0) return 0;
+    return Number(((totalInteractions / totalViews) * 100).toFixed(2));
+  }},
+  product_impressions: { label: 'Product Impressions', key: 'productImpressions' },
+  product_clicks: { label: 'Product Clicks', key: 'clicks' },
+  new_followers: { label: 'Pengikut Baru', key: 'followers' },
 };
 
 export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
@@ -68,10 +79,15 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
     }
   };
 
+  const normalizeDate = (dString?: string) => {
+    if (!dString) return '';
+    return dString.substring(0, 10);
+  };
+
   const aggregateData = (analysis: BrandPerformanceAnalysis) => {
     // Filter logs for Period A
     const logsA = logs.filter(l => {
-      const d = l.date || l.dateTime?.split(' ')[0];
+      const d = normalizeDate(l.date || l.dateTime);
       if (!d) return false;
       const matchPlatform = analysis.platform === 'Semua Platform' || l.platform === analysis.platform;
       return matchPlatform && d >= analysis.period_a_start && d <= analysis.period_a_end;
@@ -79,7 +95,7 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
 
     // Filter logs for Period B
     const logsB = logs.filter(l => {
-      const d = l.date || l.dateTime?.split(' ')[0];
+      const d = normalizeDate(l.date || l.dateTime);
       if (!d) return false;
       const matchPlatform = analysis.platform === 'Semua Platform' || l.platform === analysis.platform;
       return matchPlatform && d >= analysis.period_b_start && d <= analysis.period_b_end;
@@ -89,8 +105,16 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
       const mapInfo = METRICS_MAP[metric];
       if (!mapInfo) return null;
       
-      const sumA = logsA.reduce((acc, curr) => acc + (Number(curr[mapInfo.key]) || 0), 0);
-      const sumB = logsB.reduce((acc, curr) => acc + (Number(curr[mapInfo.key]) || 0), 0);
+      let sumA = 0;
+      let sumB = 0;
+
+      if (mapInfo.compute) {
+        sumA = mapInfo.compute(logsA);
+        sumB = mapInfo.compute(logsB);
+      } else if (mapInfo.key) {
+        sumA = logsA.reduce((acc, curr) => acc + (Number(curr[mapInfo.key!]) || 0), 0);
+        sumB = logsB.reduce((acc, curr) => acc + (Number(curr[mapInfo.key!]) || 0), 0);
+      }
 
       return {
         metricId: metric,
