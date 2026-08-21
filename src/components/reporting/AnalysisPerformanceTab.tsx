@@ -114,6 +114,53 @@ function AnalysisCard({
   const pBEnd = normalizeDate(analysis.period_b_end);
   const targetPlatform = (analysis.platform || '').toLowerCase();
 
+  const summaryData = useMemo(() => {
+    const platformLogs = logs.filter(l => {
+      return analysis.platform === 'Semua Platform' || (l.platform && l.platform.toLowerCase().includes(targetPlatform));
+    });
+
+    const logsA = platformLogs.filter(l => {
+      const d = normalizeDate(l.date || l.dateTime);
+      return d >= pAStart && d <= pAEnd;
+    });
+    
+    const logsB = platformLogs.filter(l => {
+      const d = normalizeDate(l.date || l.dateTime);
+      return d >= pBStart && d <= pBEnd;
+    });
+
+    return analysis.comparison_metrics.map(m => {
+      const mapInfo = METRICS_MAP[m];
+      if (!mapInfo) return null;
+
+      let valA = 0;
+      let valB = 0;
+
+      if (mapInfo.compute) {
+        valA = mapInfo.compute(logsA);
+        valB = mapInfo.compute(logsB);
+      } else if (mapInfo.key) {
+        valA = logsA.reduce((acc, curr) => acc + (Number(curr[mapInfo.key!]) || 0), 0);
+        valB = logsB.reduce((acc, curr) => acc + (Number(curr[mapInfo.key!]) || 0), 0);
+      }
+
+      let growth = 0;
+      if (valA > 0) {
+        growth = ((valB - valA) / valA) * 100;
+      } else if (valA === 0 && valB > 0) {
+        growth = 100;
+      }
+
+      return {
+        metricId: m,
+        label: mapInfo.label,
+        valA,
+        valB,
+        growth
+      };
+    }).filter(Boolean);
+  }, [analysis, logs, pAStart, pAEnd, pBStart, pBEnd, targetPlatform]);
+
   const chartData = useMemo(() => {
     if (!activeMetric) return [];
 
@@ -254,24 +301,49 @@ function AnalysisCard({
       
       {/* Card Body */}
       <div className="p-6">
-        {/* Metric Tabs */}
-        {analysis.comparison_metrics.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            {analysis.comparison_metrics.map(m => {
-              const mapInfo = METRICS_MAP[m];
-              if (!mapInfo) return null;
-              const isActive = activeMetric === m;
+        {/* Summary Scorecards (Acts as Metric Tabs) */}
+        {summaryData && summaryData.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+            {summaryData.map(item => {
+              if (!item) return null;
+              const isActive = activeMetric === item.metricId;
+              const isPositive = item.growth > 0;
+              const isNegative = item.growth < 0;
+              const isGmv = item.metricId === 'gmv';
+
               return (
                 <button
-                  key={m}
-                  onClick={() => setActiveMetric(m)}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  key={item.metricId}
+                  onClick={() => setActiveMetric(item.metricId)}
+                  className={`flex flex-col items-start text-left p-4 rounded-xl border transition-all ${
                     isActive 
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20' 
-                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      ? 'border-indigo-600 bg-indigo-50/30 shadow-[0_0_0_1px_rgba(79,70,229,1)]' 
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  {mapInfo.label}
+                  <span className={`text-sm font-bold mb-3 ${isActive ? 'text-indigo-900' : 'text-slate-700'}`}>
+                    {item.label}
+                  </span>
+                  
+                  <div className="w-full space-y-1.5 mb-4">
+                    <div className="flex items-center justify-between text-xs w-full">
+                      <span className="text-slate-500 font-medium">Data 1</span>
+                      <span className="font-bold text-slate-700">{formatNumber(item.valA, isGmv)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs w-full">
+                      <span className="text-slate-500 font-medium">Data 2</span>
+                      <span className="font-bold text-slate-700">{formatNumber(item.valB, isGmv)}</span>
+                    </div>
+                  </div>
+
+                  <div className={`mt-auto inline-flex items-center text-[11px] font-bold px-2 py-1 rounded-md ${
+                    isPositive ? 'bg-emerald-100 text-emerald-700' : 
+                    isNegative ? 'bg-rose-100 text-rose-700' : 
+                    'bg-slate-100 text-slate-600'
+                  }`}>
+                    {isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : isNegative ? <TrendingUp className="w-3 h-3 mr-1 rotate-180" /> : null}
+                    {isPositive ? '+' : ''}{item.growth.toFixed(1)}%
+                  </div>
                 </button>
               );
             })}
