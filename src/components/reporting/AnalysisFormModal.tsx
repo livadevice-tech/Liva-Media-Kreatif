@@ -138,39 +138,6 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess 
               </select>
             </div>
 
-            {/* Tanggal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4 p-5 border rounded-xl bg-slate-50/50">
-                <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                  <h3 className="font-medium text-slate-700">Periode 1 (Acuan)</h3>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Tanggal Mulai</label>
-                  <CustomDatePicker value={periodAStart} onChange={setPeriodAStart} className="w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Tanggal Selesai</label>
-                  <CustomDatePicker value={periodAEnd} onChange={setPeriodAEnd} className="w-full" />
-                </div>
-              </div>
-              
-              <div className="space-y-4 p-5 border rounded-xl bg-indigo-50/30 border-indigo-100/50">
-                <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                  <h3 className="font-medium text-indigo-700">Periode 2 (Bandingkan)</h3>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-indigo-700/80 mb-1.5">Tanggal Mulai</label>
-                  <CustomDatePicker value={periodBStart} onChange={setPeriodBStart} className="w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-indigo-700/80 mb-1.5">Tanggal Selesai</label>
-                  <CustomDatePicker value={periodBEnd} onChange={setPeriodBEnd} className="w-full" />
-                </div>
-              </div>
-            </div>
-
             {/* Metrik Selection with Search */}
             <div>
               <label className="block text-sm font-semibold text-slate-800 mb-3">Pilih Metrik Perbandingan</label>
@@ -229,6 +196,39 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess 
                   {selectedMetrics.length} metrik dipilih
                 </div>
               )}
+            </div>
+
+            {/* Tanggal */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4 p-5 border rounded-xl bg-slate-50/50">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                  <h3 className="font-medium text-slate-700">Periode 1 (Acuan)</h3>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Tanggal Mulai</label>
+                  <CustomDatePicker value={periodAStart} onChange={setPeriodAStart} className="w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Tanggal Selesai</label>
+                  <CustomDatePicker value={periodAEnd} onChange={setPeriodAEnd} className="w-full" />
+                </div>
+              </div>
+              
+              <div className="space-y-4 p-5 border rounded-xl bg-indigo-50/30 border-indigo-100/50">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                  <h3 className="font-medium text-indigo-700">Periode 2 (Bandingkan)</h3>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-indigo-700/80 mb-1.5">Tanggal Mulai</label>
+                  <CustomDatePicker value={periodBStart} onChange={setPeriodBStart} className="w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-indigo-700/80 mb-1.5">Tanggal Selesai</label>
+                  <CustomDatePicker value={periodBEnd} onChange={setPeriodBEnd} className="w-full" />
+                </div>
+              </div>
             </div>
 
             {/* Deskripsi */}
