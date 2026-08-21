@@ -662,6 +662,7 @@ export default function App() {
   const [deleteByDateTargetBrand, setDeleteByDateTargetBrand] = useState<{id: string, name: string} | null>(null);
   const [deleteByDateStart, setDeleteByDateStart] = useState("");
   const [deleteByDateEnd, setDeleteByDateEnd] = useState("");
+  const [deleteByDatePlatform, setDeleteByDatePlatform] = useState<string>("Semua Platform");
   const [expandedBrandIds, setExpandedBrandIds] = useState<Set<string>>(new Set());
 
   const [confirmState, setConfirmState] = useState<{
@@ -2945,7 +2946,11 @@ export default function App() {
         shopeeSkuLogs,
         deleteByDateStart,
         deleteByDateEnd,
-        (log) => log.brandId === targetBrandId,
+        (log) => {
+          if (log.brandId !== targetBrandId) return false;
+          if (deleteByDatePlatform !== "Semua Platform" && log.platform !== deleteByDatePlatform) return false;
+          return true;
+        },
       );
 
       if (logsToDelete.length === 0) {
@@ -2985,6 +2990,7 @@ export default function App() {
         if (log.brandId !== targetBrandId) return false;
         if (targetType === "live" && log.reportType === "engagement") return false;
         if (targetType === "engagement" && log.reportType !== "engagement") return false;
+        if (deleteByDatePlatform !== "Semua Platform" && log.platform !== deleteByDatePlatform) return false;
         return true;
       },
     );
@@ -2993,7 +2999,11 @@ export default function App() {
       shopeeSkuLogs,
       deleteByDateStart,
       deleteByDateEnd,
-      (log) => log.brandId === targetBrandId,
+      (log) => {
+        if (log.brandId !== targetBrandId) return false;
+        if (deleteByDatePlatform !== "Semua Platform" && log.platform !== deleteByDatePlatform) return false;
+        return true;
+      },
     ) : [];
 
     const displayType = targetType === "all" ? "Semua Raw Data & Product" : targetType === "live" ? "Live Streaming" : targetType === "engagement" ? "Engagement" : "Live & Engagement";
@@ -12214,12 +12224,16 @@ export default function App() {
                       isSavingReport={isSavingReport}
                       startDate={deleteByDateStart}
                       endDate={deleteByDateEnd}
+                      selectedPlatform={deleteByDatePlatform}
+                      availablePlatforms={deleteByDateTargetBrand ? getAvailablePlatformsForBrand(deleteByDateTargetBrand.id, brandPerformanceLogs, []) : []}
                       onStartDateChange={setDeleteByDateStart}
                       onEndDateChange={setDeleteByDateEnd}
+                      onPlatformChange={setDeleteByDatePlatform}
                       onClose={() => {
                         setIsDeleteByDateModalOpen(false);
                         setDeleteByDateStart("");
                         setDeleteByDateEnd("");
+                        setDeleteByDatePlatform("Semua Platform");
                         setDeleteByDateTargetBrand(null);
                       }}
                       onConfirm={handleDeleteBrandRawDataByDateRange}

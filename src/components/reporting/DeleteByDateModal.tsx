@@ -5,8 +5,11 @@ type DeleteByDateModalProps = {
   isSavingReport: boolean;
   startDate: string;
   endDate: string;
+  selectedPlatform: string;
+  availablePlatforms: string[];
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
+  onPlatformChange: (value: string) => void;
   onClose: () => void;
   onConfirm: () => void;
 };
@@ -16,8 +19,11 @@ export function DeleteByDateModal({
   isSavingReport,
   startDate,
   endDate,
+  selectedPlatform,
+  availablePlatforms,
   onStartDateChange,
   onEndDateChange,
+  onPlatformChange,
   onClose,
   onConfirm,
 }: DeleteByDateModalProps) {
@@ -36,8 +42,8 @@ export function DeleteByDateModal({
           Hapus Berdasarkan Rentang Waktu
         </h3>
         <p className="text-xs font-semibold text-slate-500 mb-6">
-          Pilih rentang tanggal. Semua raw data milik brand ini pada periode
-          yang dipilih akan dihapus permanen.
+          Pilih rentang tanggal dan platform. Semua raw data milik brand ini pada periode
+          dan platform yang dipilih akan dihapus permanen.
         </p>
 
         <div className="space-y-4">
@@ -62,6 +68,23 @@ export function DeleteByDateModal({
               onChange={(e) => onEndDateChange(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400"
             />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase font-black tracking-wider text-slate-500 mb-1">
+              Platform
+            </label>
+            <select
+              value={selectedPlatform}
+              onChange={(e) => onPlatformChange(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400"
+            >
+              <option value="Semua Platform">Semua Platform</option>
+              {availablePlatforms.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
