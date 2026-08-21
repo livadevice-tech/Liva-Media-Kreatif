@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { CustomDatePicker } from "../ui/CustomDatePicker";
 
 type DeleteByDateModalProps = {
   isOpen: boolean;
@@ -51,22 +52,20 @@ export function DeleteByDateModal({
             <label className="block text-[10px] uppercase font-black tracking-wider text-slate-500 mb-1">
               Dari Tanggal (Start)
             </label>
-            <input
-              type="date"
+            <CustomDatePicker
               value={startDate}
-              onChange={(e) => onStartDateChange(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400"
+              onChange={(value) => onStartDateChange(value)}
+              placeholder="Pilih Tanggal Mulai"
             />
           </div>
           <div>
             <label className="block text-[10px] uppercase font-black tracking-wider text-slate-500 mb-1">
               Sampai Tanggal (End)
             </label>
-            <input
-              type="date"
+            <CustomDatePicker
               value={endDate}
-              onChange={(e) => onEndDateChange(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400"
+              onChange={(value) => onEndDateChange(value)}
+              placeholder="Pilih Tanggal Selesai"
             />
           </div>
           <div>
