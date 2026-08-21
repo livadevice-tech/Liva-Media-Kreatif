@@ -399,12 +399,16 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAnalysis, setEditingAnalysis] = useState<BrandPerformanceAnalysis | undefined>();
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
 
-  const fetchAnalyses = async () => {
+  const fetchAnalyses = async (newlyCreatedId?: string) => {
     setIsLoading(true);
     try {
       const data = await reportingBrandApi.getAnalyses(brandId);
       setAnalyses(data);
+      if (newlyCreatedId) {
+        setSelectedAnalysisId(newlyCreatedId);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -415,6 +419,17 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
   useEffect(() => {
     if (brandId) fetchAnalyses();
   }, [brandId]);
+
+  useEffect(() => {
+    // Auto-select first analysis if none selected or selected doesn't exist anymore
+    if (analyses.length > 0) {
+      if (!selectedAnalysisId || !analyses.find(a => a.id === selectedAnalysisId)) {
+        setSelectedAnalysisId(analyses[0].id);
+      }
+    } else {
+      setSelectedAnalysisId(null);
+    }
+  }, [analyses, selectedAnalysisId]);
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus analisis ini?')) {
@@ -428,8 +443,10 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
     }
   };
 
+  const activeAnalysis = analyses.find(a => a.id === selectedAnalysisId);
+
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
@@ -449,7 +466,7 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
           className="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium text-sm shadow-sm shadow-indigo-600/20 active:scale-[0.98] whitespace-nowrap"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Buat Analisis
+          Buat Analisis Baru
         </button>
       </div>
 
@@ -480,18 +497,36 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
         </div>
       ) : (
         <div className="space-y-6">
-          {analyses.map(analysis => (
+          {/* Analysis Selector Dropdown */}
+          {analyses.length > 1 && (
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 relative z-20">
+              <span className="text-sm font-bold text-slate-700 whitespace-nowrap">Lihat Analisis:</span>
+              <select
+                value={selectedAnalysisId || ''}
+                onChange={(e) => setSelectedAnalysisId(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 font-medium cursor-pointer"
+              >
+                {analyses.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.platform} ({formatDateStr(a.period_a_start)} s/d {formatDateStr(a.period_a_end)} VS {formatDateStr(a.period_b_start)} s/d {formatDateStr(a.period_b_end)})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {activeAnalysis && (
             <AnalysisCard
-              key={analysis.id}
-              analysis={analysis}
+              key={activeAnalysis.id}
+              analysis={activeAnalysis}
               logs={logs}
               onEdit={() => {
-                setEditingAnalysis(analysis);
+                setEditingAnalysis(activeAnalysis);
                 setIsModalOpen(true);
               }}
-              onDelete={() => handleDelete(analysis.id)}
+              onDelete={() => handleDelete(activeAnalysis.id)}
             />
-          ))}
+          )}
         </div>
       )}
 
@@ -502,7 +537,7 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
           setEditingAnalysis(undefined);
         }}
         brandId={brandId}
-        onSuccess={fetchAnalyses}
+        onSuccess={() => fetchAnalyses()} // Will just refresh and keep active one unless deleted
         initialData={editingAnalysis}
       />
     </div>
