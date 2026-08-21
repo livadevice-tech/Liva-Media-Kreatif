@@ -81,24 +81,37 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
 
   const normalizeDate = (dString?: string) => {
     if (!dString) return '';
+    if (dString.includes('T')) {
+      const date = new Date(dString);
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
     return dString.substring(0, 10);
   };
 
   const aggregateData = (analysis: BrandPerformanceAnalysis) => {
+    const pAStart = normalizeDate(analysis.period_a_start);
+    const pAEnd = normalizeDate(analysis.period_a_end);
+    const pBStart = normalizeDate(analysis.period_b_start);
+    const pBEnd = normalizeDate(analysis.period_b_end);
+    const targetPlatform = (analysis.platform || '').toLowerCase();
+
     // Filter logs for Period A
     const logsA = logs.filter(l => {
       const d = normalizeDate(l.date || l.dateTime);
       if (!d) return false;
-      const matchPlatform = analysis.platform === 'Semua Platform' || l.platform === analysis.platform;
-      return matchPlatform && d >= analysis.period_a_start && d <= analysis.period_a_end;
+      const matchPlatform = analysis.platform === 'Semua Platform' || (l.platform && l.platform.toLowerCase().includes(targetPlatform));
+      return matchPlatform && d >= pAStart && d <= pAEnd;
     });
 
     // Filter logs for Period B
     const logsB = logs.filter(l => {
       const d = normalizeDate(l.date || l.dateTime);
       if (!d) return false;
-      const matchPlatform = analysis.platform === 'Semua Platform' || l.platform === analysis.platform;
-      return matchPlatform && d >= analysis.period_b_start && d <= analysis.period_b_end;
+      const matchPlatform = analysis.platform === 'Semua Platform' || (l.platform && l.platform.toLowerCase().includes(targetPlatform));
+      return matchPlatform && d >= pBStart && d <= pBEnd;
     });
 
     return analysis.comparison_metrics.map(metric => {
