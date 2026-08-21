@@ -326,6 +326,16 @@ export const reportingBrandApi = {
   /** Hapus beberapa batch dan/atau row sekaligusa */
   deleteMany: (payload: { batchIds?: string[]; logIds?: string[] }) =>
     request<{ success: boolean }>('POST', '/reporting/brand/delete-many', payload),
+
+  /** Analysis Endpoints */
+  getAnalyses: (brandId: string) =>
+    request<import('./shared/types/reporting').BrandPerformanceAnalysis[]>('GET', `/reporting/brand/analyses?brandId=${brandId}`),
+
+  createAnalysis: (payload: Partial<import('./shared/types/reporting').BrandPerformanceAnalysis>) =>
+    request<{ success: boolean; id: string }>('POST', '/reporting/brand/analyses', payload),
+
+  deleteAnalysis: (id: string) =>
+    request<{ success: boolean }>('DELETE', `/reporting/brand/analyses/${id}`),
 };
 
 // ==================================================================

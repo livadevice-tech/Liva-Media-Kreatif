@@ -670,6 +670,41 @@ app.post("/api/reporting/brand/delete-many", asyncHandler(async (req, res) => {
 }));
 
 // ==================================================================
+// BRAND PERFORMANCE ANALYSES
+// ==================================================================
+app.get("/api/reporting/brand/analyses", asyncHandler(async (req, res) => {
+  const brandId = req.query.brandId;
+  if (!brandId) return res.json([]);
+  const analyses = await queryMany(
+    `SELECT * FROM brand_performance_analyses WHERE brand_id = ? ORDER BY created_at DESC`,
+    [brandId]
+  );
+  // Parse JSON manually if needed, mysql2 might do it automatically if column is JSON
+  const parsedAnalyses = analyses.map((a: any) => ({
+    ...a,
+    comparison_metrics: typeof a.comparison_metrics === 'string' ? JSON.parse(a.comparison_metrics) : a.comparison_metrics
+  }));
+  res.json(parsedAnalyses);
+}));
+
+app.post("/api/reporting/brand/analyses", asyncHandler(async (req, res) => {
+  const { brand_id, period_a_start, period_a_end, period_b_start, period_b_end, platform, comparison_metrics, description } = req.body;
+  const id = genId();
+  await execute(
+    `INSERT INTO brand_performance_analyses (id, brand_id, period_a_start, period_a_end, period_b_start, period_b_end, platform, comparison_metrics, description) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, brand_id, period_a_start, period_a_end, period_b_start, period_b_end, platform, JSON.stringify(comparison_metrics || []), description]
+  );
+  res.json({ success: true, id });
+}));
+
+app.delete("/api/reporting/brand/analyses/:id", asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  await execute(`DELETE FROM brand_performance_analyses WHERE id = ?`, [id]);
+  res.json({ success: true });
+}));
+
+// ==================================================================
 // AI ENDPOINTS (Gemini — tidak berubah dari versi lama)
 // ==================================================================
 

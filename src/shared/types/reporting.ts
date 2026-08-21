@@ -136,3 +136,17 @@ export interface SkuLogEntry extends SkuRawRow {
   uploadedAt?: string;
   shift?: string;
 }
+
+export interface BrandPerformanceAnalysis {
+  id: string;
+  brand_id: string;
+  platform: string;
+  period_a_start: string;
+  period_a_end: string;
+  period_b_start: string;
+  period_b_end: string;
+  comparison_metrics: string[];
+  description: string;
+  created_at?: string;
+  updated_at?: string;
+}
