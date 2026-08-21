@@ -160,6 +160,21 @@ function AnalysisCard({
     return dataArray;
   }, [analysis, logs, activeMetric, pAStart, pAEnd, pBStart, pBEnd, targetPlatform]);
 
+  const formatDateWithDay = (dateString: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString + "T00:00:00Z");
+      const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const dayName = days[date.getUTCDay()];
+      
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        return `${dayName}, ${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    } catch(e) {}
+    return formatDateStr(dateString);
+  };
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -168,7 +183,7 @@ function AnalysisCard({
           <div className="space-y-3">
             {payload.map((entry: any, index: number) => {
               const dateStr = entry.name === 'Data 1' ? entry.payload.dateA : entry.payload.dateB;
-              const formattedDate = formatDateStr(dateStr);
+              const formattedDate = formatDateWithDay(dateStr);
               return (
                 <div key={index} className="flex flex-col">
                   <div className="flex items-center gap-1.5 mb-1">
