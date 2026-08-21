@@ -140,6 +140,7 @@ export interface SkuLogEntry extends SkuRawRow {
 export interface BrandPerformanceAnalysis {
   id: string;
   brand_id: string;
+  name?: string;
   platform: string;
   period_a_start: string;
   period_a_end: string;

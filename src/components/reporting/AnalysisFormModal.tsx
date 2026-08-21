@@ -52,6 +52,7 @@ const TIKTOK_METRICS = [
 ];
 
 export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess, initialData }: Props) {
+  const [name, setName] = useState("");
   const [periodAStart, setPeriodAStart] = useState("");
   const [periodAEnd, setPeriodAEnd] = useState("");
   const [periodBStart, setPeriodBStart] = useState("");
@@ -66,6 +67,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
+        setName(initialData.name || "");
         setPeriodAStart(initialData.period_a_start || "");
         setPeriodAEnd(initialData.period_a_end || "");
         setPeriodBStart(initialData.period_b_start || "");
@@ -74,6 +76,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
         setSelectedMetrics(initialData.comparison_metrics || []);
         setDescription(initialData.description || "");
       } else {
+        setName("");
         setPeriodAStart("");
         setPeriodAEnd("");
         setPeriodBStart("");
@@ -100,11 +103,44 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
     setSearchMetric("");
   };
 
-  const handleMetricToggle = (val: string) => {
-    setSelectedMetrics(prev => prev.includes(val) ? prev.filter(m => m !== val) : [...prev, val]);
+  const toggleMetric = (value: string) => {
+    setSelectedMetrics(prev => 
+      prev.includes(value) 
+        ? prev.filter(m => m !== value)
+        : [...prev, value]
+    );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const getAutoEndDate = (startStr: string) => {
+    if (!startStr) return "";
+    try {
+      const start = new Date(startStr + "T00:00:00Z");
+      start.setUTCDate(start.getUTCDate() + 6);
+      return start.toISOString().split('T')[0];
+    } catch (e) {
+      return "";
+    }
+  };
+
+  const handlePeriodAStartChange = (date: string) => {
+    setPeriodAStart(date);
+    if (date) {
+      setPeriodAEnd(getAutoEndDate(date));
+    } else {
+      setPeriodAEnd("");
+    }
+  };
+
+  const handlePeriodBStartChange = (date: string) => {
+    setPeriodBStart(date);
+    if (date) {
+      setPeriodBEnd(getAutoEndDate(date));
+    } else {
+      setPeriodBEnd("");
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!periodAStart || !periodAEnd || !periodBStart || !periodBEnd) {
       alert("Harap lengkapi semua tanggal periode.");
@@ -117,27 +153,22 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
 
     setIsSaving(true);
     try {
+      const payload = {
+        name: name.trim(),
+        period_a_start: periodAStart,
+        period_a_end: periodAEnd,
+        period_b_start: periodBStart,
+        period_b_end: periodBEnd,
+        platform,
+        comparison_metrics: selectedMetrics,
+        description,
+        brand_id: brandId
+      };
+
       if (initialData) {
-        await reportingBrandApi.updateAnalysis(initialData.id, {
-          period_a_start: periodAStart,
-          period_a_end: periodAEnd,
-          period_b_start: periodBStart,
-          period_b_end: periodBEnd,
-          platform,
-          comparison_metrics: selectedMetrics,
-          description
-        });
+        await reportingBrandApi.updateAnalysis(initialData.id, payload);
       } else {
-        await reportingBrandApi.createAnalysis({
-          brand_id: brandId,
-          period_a_start: periodAStart,
-          period_a_end: periodAEnd,
-          period_b_start: periodBStart,
-          period_b_end: periodBEnd,
-          platform,
-          comparison_metrics: selectedMetrics,
-          description
-        });
+        await reportingBrandApi.createAnalysis(payload);
       }
       onSuccess();
       onClose();
@@ -150,131 +181,144 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] bg-black/50 overflow-y-auto animate-fadeIn">
-      <div className="min-h-full flex items-center justify-center p-4 py-12">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col relative">
-          <div className="flex items-center justify-between p-5 border-b">
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">{initialData ? "Edit" : "Buat"} Analisis Performa</h2>
-            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="p-6 space-y-8">
-            {/* Platform Selection */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-800 mb-3">Pilih Platform</label>
-              <select
+    <div className="fixed inset-0 z-[100] flex justify-center items-end sm:items-center p-0 sm:p-4 animate-in fade-in duration-200">
+      <div 
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
+      
+      <div className="bg-white w-full sm:w-[600px] h-[90vh] sm:h-[85vh] sm:max-h-[800px] flex flex-col sm:rounded-2xl shadow-2xl relative z-10 animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-8 duration-300">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-100 shrink-0">
+          <h2 className="text-xl font-bold text-slate-900">
+            {initialData ? 'Edit Analisis Performa' : 'Buat Analisis Performa'}
+          </h2>
+          <button 
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+          <form onSubmit={handleSave} className="space-y-6 sm:space-y-8">
+            
+            {/* Nama Analisis */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-700">Nama Analisis</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Contoh: Analisis Campaign Lebaran"
+                className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
+              />
+            </div>
+
+            {/* Platform */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-700">Pilih Platform</label>
+              <select 
                 value={platform}
                 onChange={handlePlatformChange}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm text-slate-700 transition-all outline-none"
+                className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
               >
                 <option value="TikTok">TikTok</option>
                 <option value="Shopee">Shopee</option>
               </select>
             </div>
 
-            {/* Metrik Selection with Search */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-800 mb-3">Pilih Metrik Perbandingan</label>
+            {/* Metrics Selection */}
+            <div className="space-y-3">
+              <label className="block text-sm font-bold text-slate-700">Pilih Metrik Perbandingan</label>
               
-              <div className="relative mb-3">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-slate-400" />
-                </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Cari metrik..."
                   value={searchMetric}
                   onChange={(e) => setSearchMetric(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm text-slate-700 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg pl-9 pr-3 py-2.5 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
 
-              <div className="border border-slate-200 rounded-lg overflow-hidden flex flex-col h-[240px]">
-                <div className="flex-1 overflow-y-auto bg-slate-50/50 p-2 space-y-1">
-                  {filteredMetrics.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-slate-500">
-                      Metrik tidak ditemukan.
-                    </div>
-                  ) : (
-                    filteredMetrics.map(opt => {
-                      const isSelected = selectedMetrics.includes(opt.value);
-                      return (
-                        <div 
-                          key={opt.value} 
-                          onClick={() => handleMetricToggle(opt.value)}
-                          className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors ${
-                            isSelected ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-white border border-transparent'
-                          }`}
-                        >
-                          <span className={`text-sm ${isSelected ? 'font-medium text-indigo-700' : 'text-slate-600'}`}>
-                            {opt.label}
-                          </span>
-                          <button
-                            type="button"
-                            className={`flex items-center justify-center w-6 h-6 rounded-md transition-colors ${
-                              isSelected 
-                                ? 'bg-indigo-500 text-white' 
-                                : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                            }`}
-                          >
-                            {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+              <div className="bg-white border border-slate-200 rounded-xl max-h-48 overflow-y-auto custom-scrollbar shadow-sm">
+                {filteredMetrics.map(metric => {
+                  const isSelected = selectedMetrics.includes(metric.value);
+                  return (
+                    <button
+                      key={metric.value}
+                      type="button"
+                      onClick={() => toggleMetric(metric.value)}
+                      className={`w-full flex items-center justify-between p-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors ${isSelected ? 'bg-indigo-50/30' : ''}`}
+                    >
+                      <span className={`text-sm ${isSelected ? 'font-semibold text-indigo-900' : 'text-slate-600'}`}>
+                        {metric.label}
+                      </span>
+                      <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-              {selectedMetrics.length > 0 && (
-                <div className="mt-2 text-xs text-slate-500">
-                  {selectedMetrics.length} metrik dipilih
-                </div>
-              )}
+              <p className="text-xs text-slate-500">{selectedMetrics.length} metrik dipilih</p>
             </div>
 
-            {/* Tanggal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4 p-5 border rounded-xl bg-slate-50/50">
-                <div className="flex items-center space-x-2 mb-2">
+            {/* Date Periods */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-4 shadow-sm">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
                   <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                  <h3 className="font-medium text-slate-700">Periode 1 (Acuan)</h3>
+                  Periode 1 (Acuan)
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Tanggal Mulai</label>
-                  <CustomDatePicker value={periodAStart} onChange={setPeriodAStart} className="w-full" />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-500">Tanggal Mulai</label>
+                  <CustomDatePicker
+                    value={periodAStart}
+                    onChange={handlePeriodAStartChange}
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Tanggal Selesai</label>
-                  <CustomDatePicker value={periodAEnd} onChange={setPeriodAEnd} className="w-full" />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-500">Tanggal Selesai</label>
+                  <CustomDatePicker
+                    value={periodAEnd}
+                    onChange={setPeriodAEnd}
+                  />
                 </div>
               </div>
-              
-              <div className="space-y-4 p-5 border rounded-xl bg-indigo-50/30 border-indigo-100/50">
-                <div className="flex items-center space-x-2 mb-2">
+
+              <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/30 space-y-4 shadow-sm">
+                <div className="flex items-center gap-2 text-sm font-bold text-indigo-700">
                   <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                  <h3 className="font-medium text-indigo-700">Periode 2 (Bandingkan)</h3>
+                  Periode 2 (Bandingkan)
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-indigo-700/80 mb-1.5">Tanggal Mulai</label>
-                  <CustomDatePicker value={periodBStart} onChange={setPeriodBStart} className="w-full" />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-indigo-500">Tanggal Mulai</label>
+                  <CustomDatePicker
+                    value={periodBStart}
+                    onChange={handlePeriodBStartChange}
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-indigo-700/80 mb-1.5">Tanggal Selesai</label>
-                  <CustomDatePicker value={periodBEnd} onChange={setPeriodBEnd} className="w-full" />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-indigo-500">Tanggal Selesai</label>
+                  <CustomDatePicker
+                    value={periodBEnd}
+                    onChange={setPeriodBEnd}
+                  />
                 </div>
               </div>
             </div>
 
             {/* Deskripsi */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-800 mb-3">Deskripsi & Insight</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-700">Deskripsi & Insight</label>
               <textarea 
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 rows={4}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm text-slate-700 transition-all outline-none resize-y"
+                className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 resize-y"
                 placeholder="Tuliskan analisis atau temuan pada perbandingan dua periode ini..."
               />
             </div>

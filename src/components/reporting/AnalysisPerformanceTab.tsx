@@ -257,6 +257,9 @@ function AnalysisCard({
       <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row xl:items-start justify-between gap-4">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
+            {analysis.name && (
+              <h3 className="text-lg font-bold text-slate-900 mr-2">{analysis.name}</h3>
+            )}
             <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700">
               {analysis.platform}
             </span>
@@ -508,7 +511,7 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
               >
                 {analyses.map(a => (
                   <option key={a.id} value={a.id}>
-                    {a.platform} ({formatDateStr(a.period_a_start)} s/d {formatDateStr(a.period_a_end)} VS {formatDateStr(a.period_b_start)} s/d {formatDateStr(a.period_b_end)})
+                    {a.name ? `${a.name} - ` : ''}{a.platform} ({formatDateStr(a.period_a_start)} s/d {formatDateStr(a.period_a_end)} VS {formatDateStr(a.period_b_start)} s/d {formatDateStr(a.period_b_end)})
                   </option>
                 ))}
               </select>
