@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Trash2, Calendar, TrendingUp, BarChart3, AlertCircle, Edit3 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { reportingBrandApi } from '../../api';
 import { BrandPerformanceAnalysis, BrandPerformanceLogEntry } from '../../shared/types/reporting';
 import AnalysisFormModal from './AnalysisFormModal';
@@ -45,6 +45,268 @@ const METRICS_MAP: Record<string, { label: string; key?: keyof BrandPerformanceL
   new_followers: { label: 'Pengikut Baru', key: 'followers' },
 };
 
+const formatNumber = (num: number, isCurrency = false) => {
+  if (isCurrency) {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+  }
+  return new Intl.NumberFormat('id-ID').format(num);
+};
+
+const formatDateStr = (dateString: string) => {
+  if (!dateString) return '';
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateString;
+};
+
+const normalizeDate = (dString?: string) => {
+  if (!dString) return '';
+  if (dString.includes('T')) {
+    const date = new Date(dString);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return dString.substring(0, 10);
+};
+
+const getDaysDiff = (startStr: string, endStr: string) => {
+  const start = new Date(startStr + "T00:00:00Z");
+  const end = new Date(endStr + "T00:00:00Z");
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+};
+
+const addDays = (dateStr: string, days: number) => {
+  const date = new Date(dateStr + "T00:00:00Z");
+  date.setUTCDate(date.getUTCDate() + days);
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+function AnalysisCard({
+  analysis,
+  logs,
+  onEdit,
+  onDelete
+}: {
+  analysis: BrandPerformanceAnalysis;
+  logs: BrandPerformanceLogEntry[];
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [activeMetric, setActiveMetric] = useState(analysis.comparison_metrics[0] || '');
+
+  useEffect(() => {
+    if (!analysis.comparison_metrics.includes(activeMetric)) {
+      setActiveMetric(analysis.comparison_metrics[0] || '');
+    }
+  }, [analysis.comparison_metrics, activeMetric]);
+
+  const pAStart = normalizeDate(analysis.period_a_start);
+  const pAEnd = normalizeDate(analysis.period_a_end);
+  const pBStart = normalizeDate(analysis.period_b_start);
+  const pBEnd = normalizeDate(analysis.period_b_end);
+  const targetPlatform = (analysis.platform || '').toLowerCase();
+
+  const chartData = useMemo(() => {
+    if (!activeMetric) return [];
+
+    const mapInfo = METRICS_MAP[activeMetric];
+    if (!mapInfo) return [];
+
+    const daysA = getDaysDiff(pAStart, pAEnd);
+    const daysB = getDaysDiff(pBStart, pBEnd);
+    const maxDays = Math.max(daysA, daysB);
+
+    const dataArray = [];
+
+    const platformLogs = logs.filter(l => {
+      return analysis.platform === 'Semua Platform' || (l.platform && l.platform.toLowerCase().includes(targetPlatform));
+    });
+
+    for (let i = 0; i < maxDays; i++) {
+      const dateA = addDays(pAStart, i);
+      const dateB = addDays(pBStart, i);
+
+      const logsForDayA = platformLogs.filter(l => normalizeDate(l.date || l.dateTime) === dateA);
+      const logsForDayB = platformLogs.filter(l => normalizeDate(l.date || l.dateTime) === dateB);
+
+      let valA = 0;
+      let valB = 0;
+
+      if (mapInfo.compute) {
+        valA = mapInfo.compute(logsForDayA);
+        valB = mapInfo.compute(logsForDayB);
+      } else if (mapInfo.key) {
+        valA = logsForDayA.reduce((acc, curr) => acc + (Number(curr[mapInfo.key!]) || 0), 0);
+        valB = logsForDayB.reduce((acc, curr) => acc + (Number(curr[mapInfo.key!]) || 0), 0);
+      }
+
+      dataArray.push({
+        name: `Hari ${i + 1}`,
+        "Data 1": valA,
+        "Data 2": valB,
+        dateA: dateA,
+        dateB: dateB
+      });
+    }
+
+    return dataArray;
+  }, [analysis, logs, activeMetric, pAStart, pAEnd, pBStart, pBEnd, targetPlatform]);
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 rounded-xl shadow-lg border border-slate-100 min-w-[200px] z-50">
+          <p className="font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2">{label}</p>
+          <div className="space-y-3">
+            {payload.map((entry: any, index: number) => {
+              const dateStr = entry.name === 'Data 1' ? entry.payload.dateA : entry.payload.dateB;
+              const formattedDate = formatDateStr(dateStr);
+              return (
+                <div key={index} className="flex flex-col">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                    <span className="text-xs font-semibold text-slate-600">{entry.name}</span>
+                    <span className="text-[11px] text-slate-400">({formattedDate})</span>
+                  </div>
+                  <span className="font-bold text-sm pl-3.5 text-slate-800">
+                    {formatNumber(entry.value, activeMetric === 'gmv')}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden group">
+      {/* Card Header */}
+      <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700">
+              {analysis.platform}
+            </span>
+            <span className="text-sm font-medium text-slate-500 flex items-center">
+              <Calendar className="w-4 h-4 mr-1.5 text-slate-400" />
+              {new Date(analysis.created_at || '').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </span>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm font-semibold text-slate-700">
+            <div className="flex flex-wrap items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm gap-2">
+              <div className="flex items-center">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] mr-2"></div>
+                <span>Data 1 : {formatDateStr(analysis.period_a_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_a_end)}</span>
+              </div>
+              <span className="text-slate-400 text-xs font-bold uppercase mx-1">Vs</span>
+              <div className="flex items-center">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] mr-2"></div>
+                <span>Data 2 : {formatDateStr(analysis.period_b_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_b_end)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 shrink-0">
+          <button 
+            onClick={onEdit}
+            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+            title="Edit Analisis"
+          >
+            <Edit3 className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={onDelete}
+            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+            title="Hapus Analisis"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+      
+      {/* Card Body */}
+      <div className="p-6">
+        {/* Metric Tabs */}
+        {analysis.comparison_metrics.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            {analysis.comparison_metrics.map(m => {
+              const mapInfo = METRICS_MAP[m];
+              if (!mapInfo) return null;
+              const isActive = activeMetric === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setActiveMetric(m)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    isActive 
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20' 
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  {mapInfo.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Line Chart */}
+        <div className="h-[380px] w-full mb-8 border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
+                  tickFormatter={(value) => activeMetric === 'gmv' ? `Rp ${(value/1000000).toFixed(1)}M` : value}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2, strokeDasharray: '3 3' }} />
+                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 500 }} />
+                <Line type="monotone" dataKey="Data 1" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="Data 2" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-slate-400 font-medium text-sm">
+              Tidak ada data yang dapat ditampilkan.
+            </div>
+          )}
+        </div>
+
+        {/* Description Box */}
+        {analysis.description && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden mt-6">
+            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+            <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-indigo-500" />
+              Insight & Analisis
+            </h4>
+            <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed pl-6">
+              {analysis.description}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
   const [analyses, setAnalyses] = useState<BrandPerformanceAnalysis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,86 +339,6 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
         alert("Gagal menghapus analisis");
       }
     }
-  };
-
-  const normalizeDate = (dString?: string) => {
-    if (!dString) return '';
-    if (dString.includes('T')) {
-      const date = new Date(dString);
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }
-    return dString.substring(0, 10);
-  };
-
-  const aggregateData = (analysis: BrandPerformanceAnalysis) => {
-    const pAStart = normalizeDate(analysis.period_a_start);
-    const pAEnd = normalizeDate(analysis.period_a_end);
-    const pBStart = normalizeDate(analysis.period_b_start);
-    const pBEnd = normalizeDate(analysis.period_b_end);
-    const targetPlatform = (analysis.platform || '').toLowerCase();
-
-    // Filter logs for Period A
-    const logsA = logs.filter(l => {
-      const d = normalizeDate(l.date || l.dateTime);
-      if (!d) return false;
-      const matchPlatform = analysis.platform === 'Semua Platform' || (l.platform && l.platform.toLowerCase().includes(targetPlatform));
-      return matchPlatform && d >= pAStart && d <= pAEnd;
-    });
-
-    // Filter logs for Period B
-    const logsB = logs.filter(l => {
-      const d = normalizeDate(l.date || l.dateTime);
-      if (!d) return false;
-      const matchPlatform = analysis.platform === 'Semua Platform' || (l.platform && l.platform.toLowerCase().includes(targetPlatform));
-      return matchPlatform && d >= pBStart && d <= pBEnd;
-    });
-
-    return analysis.comparison_metrics.map(metric => {
-      const mapInfo = METRICS_MAP[metric];
-      if (!mapInfo) return null;
-      
-      let sumA = 0;
-      let sumB = 0;
-
-      if (mapInfo.compute) {
-        sumA = mapInfo.compute(logsA);
-        sumB = mapInfo.compute(logsB);
-      } else if (mapInfo.key) {
-        sumA = logsA.reduce((acc, curr) => acc + (Number(curr[mapInfo.key!]) || 0), 0);
-        sumB = logsB.reduce((acc, curr) => acc + (Number(curr[mapInfo.key!]) || 0), 0);
-      }
-
-      return {
-        metricId: metric,
-        metricLabel: mapInfo.label,
-        data: [
-          {
-            name: mapInfo.label,
-            "Data 1": sumA,
-            "Data 2": sumB,
-          }
-        ]
-      };
-    }).filter(Boolean);
-  };
-
-  const formatNumber = (num: number, isCurrency: boolean = false) => {
-    if (isCurrency) {
-      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
-    }
-    return new Intl.NumberFormat('id-ID').format(num);
-  };
-
-  const formatDateStr = (dateString: string) => {
-    if (!dateString) return '';
-    const parts = dateString.split('-');
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-    return dateString;
   };
 
   return (
@@ -211,121 +393,18 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
         </div>
       ) : (
         <div className="space-y-6">
-          {analyses.map(analysis => {
-            const chartDataArray = aggregateData(analysis);
-            
-            // Determine grid columns based on number of charts to avoid awkward whitespace
-            const numCharts = chartDataArray.length;
-            const gridClass = numCharts === 1 
-              ? "grid-cols-1" 
-              : numCharts === 2 
-                ? "grid-cols-1 md:grid-cols-2" 
-                : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
-
-            return (
-              <div key={analysis.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden group">
-                {/* Card Header */}
-                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row xl:items-start justify-between gap-4">
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700">
-                        {analysis.platform}
-                      </span>
-                      <span className="text-sm font-medium text-slate-500 flex items-center">
-                        <Calendar className="w-4 h-4 mr-1.5 text-slate-400" />
-                        {new Date(analysis.created_at || '').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </span>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm font-semibold text-slate-700">
-                      <div className="flex flex-wrap items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm gap-2">
-                        <div className="flex items-center">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] mr-2"></div>
-                          <span>Data 1 : {formatDateStr(analysis.period_a_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_a_end)}</span>
-                        </div>
-                        <span className="text-slate-400 text-xs font-bold uppercase mx-1">Vs</span>
-                        <div className="flex items-center">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] mr-2"></div>
-                          <span>Data 2 : {formatDateStr(analysis.period_b_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_b_end)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button 
-                      onClick={() => {
-                        setEditingAnalysis(analysis);
-                        setIsModalOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-                      title="Edit Analisis"
-                    >
-                      <Edit3 className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(analysis.id)}
-                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                      title="Hapus Analisis"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Card Body */}
-                <div className="p-6">
-                  {/* Charts Grid */}
-                  <div className={`grid gap-6 mb-8 ${gridClass}`}>
-                    {chartDataArray.map((chartItem, idx) => (
-                      <div key={idx} className="border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
-                        <h4 className="text-sm font-bold text-slate-800 text-center mb-5 tracking-tight">{chartItem?.metricLabel}</h4>
-                        <div className="h-64">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartItem?.data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
-                              <YAxis 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
-                                tickFormatter={(value) => chartItem?.metricId === 'gmv' ? `Rp ${(value/1000000).toFixed(1)}M` : value}
-                              />
-                              <Tooltip 
-                                cursor={{ fill: '#f8fafc' }}
-                                contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                                formatter={(value: number, name: string) => [
-                                  <span className="font-bold text-slate-800">{formatNumber(value, chartItem?.metricId === 'gmv')}</span>, 
-                                  <span className="text-slate-500 font-medium">{name}</span>
-                                ]}
-                              />
-                              <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 500 }} />
-                              <Bar dataKey="Data 1" fill="#3b82f6" radius={[6, 6, 0, 0]} maxBarSize={50} />
-                              <Bar dataKey="Data 2" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={50} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Description Box */}
-                  {analysis.description && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-                      <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-indigo-500" />
-                        Insight & Analisis
-                      </h4>
-                      <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed pl-6">
-                        {analysis.description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {analyses.map(analysis => (
+            <AnalysisCard
+              key={analysis.id}
+              analysis={analysis}
+              logs={logs}
+              onEdit={() => {
+                setEditingAnalysis(analysis);
+                setIsModalOpen(true);
+              }}
+              onDelete={() => handleDelete(analysis.id)}
+            />
+          ))}
         </div>
       )}
 
