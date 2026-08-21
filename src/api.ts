@@ -334,6 +334,9 @@ export const reportingBrandApi = {
   createAnalysis: (payload: Partial<import('./shared/types/reporting').BrandPerformanceAnalysis>) =>
     request<{ success: boolean; id: string }>('POST', '/reporting/brand/analyses', payload),
 
+  updateAnalysis: (id: string, payload: Partial<import('./shared/types/reporting').BrandPerformanceAnalysis>) =>
+    request<{ success: boolean }>('PUT', `/reporting/brand/analyses/${id}`, payload),
+
   deleteAnalysis: (id: string) =>
     request<{ success: boolean }>('DELETE', `/reporting/brand/analyses/${id}`),
 };

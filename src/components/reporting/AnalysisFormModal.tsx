@@ -10,6 +10,7 @@ interface Props {
   onClose: () => void;
   brandId: string;
   onSuccess: () => void;
+  initialData?: BrandPerformanceAnalysis;
 }
 
 const SHOPEE_METRICS = [
@@ -50,7 +51,7 @@ const TIKTOK_METRICS = [
   { value: 'err', label: 'ERR % (Engagement Rate)' },
 ];
 
-export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess }: Props) {
+export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess, initialData }: Props) {
   const [periodAStart, setPeriodAStart] = useState("");
   const [periodAEnd, setPeriodAEnd] = useState("");
   const [periodBStart, setPeriodBStart] = useState("");
@@ -63,10 +64,27 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess 
   const [searchMetric, setSearchMetric] = useState("");
 
   useEffect(() => {
-    // Reset selected metrics when platform changes
-    setSelectedMetrics([]);
-    setSearchMetric("");
-  }, [platform, isOpen]);
+    if (isOpen) {
+      if (initialData) {
+        setPeriodAStart(initialData.period_a_start || "");
+        setPeriodAEnd(initialData.period_a_end || "");
+        setPeriodBStart(initialData.period_b_start || "");
+        setPeriodBEnd(initialData.period_b_end || "");
+        setPlatform(initialData.platform || "TikTok");
+        setSelectedMetrics(initialData.comparison_metrics || []);
+        setDescription(initialData.description || "");
+      } else {
+        setPeriodAStart("");
+        setPeriodAEnd("");
+        setPeriodBStart("");
+        setPeriodBEnd("");
+        setPlatform("TikTok");
+        setSelectedMetrics([]);
+        setDescription("");
+      }
+      setSearchMetric("");
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -75,6 +93,12 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess 
   const filteredMetrics = currentMetricsOptions.filter(m => 
     m.label.toLowerCase().includes(searchMetric.toLowerCase())
   );
+
+  const handlePlatformChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPlatform(e.target.value);
+    setSelectedMetrics([]);
+    setSearchMetric("");
+  };
 
   const handleMetricToggle = (val: string) => {
     setSelectedMetrics(prev => prev.includes(val) ? prev.filter(m => m !== val) : [...prev, val]);
@@ -93,16 +117,28 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess 
 
     setIsSaving(true);
     try {
-      await reportingBrandApi.createAnalysis({
-        brand_id: brandId,
-        period_a_start: periodAStart,
-        period_a_end: periodAEnd,
-        period_b_start: periodBStart,
-        period_b_end: periodBEnd,
-        platform,
-        comparison_metrics: selectedMetrics,
-        description
-      });
+      if (initialData) {
+        await reportingBrandApi.updateAnalysis(initialData.id, {
+          period_a_start: periodAStart,
+          period_a_end: periodAEnd,
+          period_b_start: periodBStart,
+          period_b_end: periodBEnd,
+          platform,
+          comparison_metrics: selectedMetrics,
+          description
+        });
+      } else {
+        await reportingBrandApi.createAnalysis({
+          brand_id: brandId,
+          period_a_start: periodAStart,
+          period_a_end: periodAEnd,
+          period_b_start: periodBStart,
+          period_b_end: periodBEnd,
+          platform,
+          comparison_metrics: selectedMetrics,
+          description
+        });
+      }
       onSuccess();
       onClose();
     } catch (err) {
@@ -118,7 +154,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess 
       <div className="min-h-full flex items-center justify-center p-4 py-12">
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col relative">
           <div className="flex items-center justify-between p-5 border-b">
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Buat Analisis Performa</h2>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">{initialData ? "Edit" : "Buat"} Analisis Performa</h2>
             <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600">
               <X className="w-5 h-5" />
             </button>
@@ -130,7 +166,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess 
               <label className="block text-sm font-semibold text-slate-800 mb-3">Pilih Platform</label>
               <select
                 value={platform}
-                onChange={(e) => setPlatform(e.target.value)}
+                onChange={handlePlatformChange}
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm text-slate-700 transition-all outline-none"
               >
                 <option value="TikTok">TikTok</option>

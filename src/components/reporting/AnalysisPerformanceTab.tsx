@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Calendar, TrendingUp, BarChart3, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Calendar, TrendingUp, BarChart3, AlertCircle, Edit3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { reportingBrandApi } from '../../api';
 import { BrandPerformanceAnalysis, BrandPerformanceLogEntry } from '../../shared/types/reporting';
@@ -38,6 +38,7 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
   const [analyses, setAnalyses] = useState<BrandPerformanceAnalysis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAnalysis, setEditingAnalysis] = useState<BrandPerformanceAnalysis | undefined>();
 
   const fetchAnalyses = async () => {
     setIsLoading(true);
@@ -97,8 +98,8 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
         data: [
           {
             name: mapInfo.label,
-            "Periode 1": sumA,
-            "Periode 2": sumB,
+            "Data 1": sumA,
+            "Data 2": sumB,
           }
         ]
       };
@@ -110,6 +111,15 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
       return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
     }
     return new Intl.NumberFormat('id-ID').format(num);
+  };
+
+  const formatDateStr = (dateString: string) => {
+    if (!dateString) return '';
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateString;
   };
 
   return (
@@ -126,7 +136,10 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
           </p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setEditingAnalysis(undefined);
+            setIsModalOpen(true);
+          }}
           className="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium text-sm shadow-sm shadow-indigo-600/20 active:scale-[0.98] whitespace-nowrap"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -149,7 +162,10 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
             Mulai analisis performa dengan membandingkan dua rentang waktu berbeda. Temukan insight berharga untuk strategi brand ke depan.
           </p>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setEditingAnalysis(undefined);
+              setIsModalOpen(true);
+            }}
             className="inline-flex items-center px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 transition-all text-sm font-semibold shadow-sm"
           >
             <Plus className="w-4 h-4 mr-2 text-slate-400" />
@@ -172,7 +188,7 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
             return (
               <div key={analysis.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden group">
                 {/* Card Header */}
-                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row xl:items-start justify-between gap-4">
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700">
@@ -184,25 +200,40 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
                       </span>
                     </div>
                     
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-sm font-semibold text-slate-700">
-                      <div className="flex items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] mr-2.5"></div>
-                        <span>P1: {analysis.period_a_start} <span className="text-slate-400 font-normal mx-1">s/d</span> {analysis.period_a_end}</span>
-                      </div>
-                      <div className="flex items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] mr-2.5"></div>
-                        <span>P2: {analysis.period_b_start} <span className="text-slate-400 font-normal mx-1">s/d</span> {analysis.period_b_end}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm font-semibold text-slate-700">
+                      <div className="flex flex-wrap items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm gap-2">
+                        <div className="flex items-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] mr-2"></div>
+                          <span>Data 1 : {formatDateStr(analysis.period_a_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_a_end)}</span>
+                        </div>
+                        <span className="text-slate-400 text-xs font-bold uppercase mx-1">Vs</span>
+                        <div className="flex items-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] mr-2"></div>
+                          <span>Data 2 : {formatDateStr(analysis.period_b_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_b_end)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                   
-                  <button 
-                    onClick={() => handleDelete(analysis.id)}
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors shrink-0"
-                    title="Hapus Analisis"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button 
+                      onClick={() => {
+                        setEditingAnalysis(analysis);
+                        setIsModalOpen(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                      title="Edit Analisis"
+                    >
+                      <Edit3 className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(analysis.id)}
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                      title="Hapus Analisis"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
                 
                 {/* Card Body */}
@@ -232,8 +263,8 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
                                 ]}
                               />
                               <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 500 }} />
-                              <Bar dataKey="Periode 1" fill="#3b82f6" radius={[6, 6, 0, 0]} maxBarSize={50} />
-                              <Bar dataKey="Periode 2" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                              <Bar dataKey="Data 1" fill="#3b82f6" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                              <Bar dataKey="Data 2" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={50} />
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
@@ -263,9 +294,13 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
 
       <AnalysisFormModal 
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingAnalysis(undefined);
+        }}
         brandId={brandId}
         onSuccess={fetchAnalyses}
+        initialData={editingAnalysis}
       />
     </div>
   );

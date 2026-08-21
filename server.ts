@@ -704,6 +704,16 @@ app.delete("/api/reporting/brand/analyses/:id", asyncHandler(async (req, res) =>
   res.json({ success: true });
 }));
 
+app.put("/api/reporting/brand/analyses/:id", asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { period_a_start, period_a_end, period_b_start, period_b_end, platform, comparison_metrics, description } = req.body;
+  await execute(
+    `UPDATE brand_performance_analyses SET period_a_start=?, period_a_end=?, period_b_start=?, period_b_end=?, platform=?, comparison_metrics=?, description=? WHERE id=?`,
+    [period_a_start, period_a_end, period_b_start, period_b_end, platform, JSON.stringify(comparison_metrics || []), description, id]
+  );
+  res.json({ success: true });
+}));
+
 // ==================================================================
 // AI ENDPOINTS (Gemini — tidak berubah dari versi lama)
 // ==================================================================
