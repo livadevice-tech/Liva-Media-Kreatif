@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import CustomDatePicker from '../ui/CustomDatePicker';
+import { CustomDatePicker } from '../ui/CustomDatePicker';
 import { reportingBrandApi } from '../../api';
 import { BrandPerformanceAnalysis } from '../../shared/types/reporting';
 
