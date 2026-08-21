@@ -594,16 +594,6 @@ export function ReportingWorkspaceTabs({
           Live Performance
         </button>
       )}
-      {!isCategoryHidden("product") && (
-        <button
-          type="button"
-          onClick={() => onTabChange("product")}
-          className={tabClass("product")}
-        >
-          Product Performance
-        </button>
-      )}
-
       {!isCategoryHidden("analysis") && (
         <button
           type="button"
@@ -614,6 +604,15 @@ export function ReportingWorkspaceTabs({
         </button>
       )}
 
+      {!isCategoryHidden("product") && (
+        <button
+          type="button"
+          onClick={() => onTabChange("product")}
+          className={tabClass("product")}
+        >
+          Product Performance
+        </button>
+      )}
       {!hideSettingsTab && (
         <button
           type="button"
