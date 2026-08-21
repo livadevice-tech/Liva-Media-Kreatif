@@ -1954,7 +1954,7 @@ export default function App() {
     | "invoice"
   >("dashboard_utama");
   const [operatorReportingTab, setOperatorReportingTab] = useState<
-    "live" | "product" | "engagement"
+    "live" | "product" | "engagement" | "analysis" | "settings"
   >("live");
   const [brandDataTab, setBrandDataTab] = useState<"active" | "inactive">(
     "active",
@@ -12195,6 +12195,12 @@ export default function App() {
                             />
                           )}
 
+                          {operatorReportingTab === "analysis" && (
+                            <div className="flex h-64 flex-col items-center justify-center p-8 text-center animate-fadeIn">
+                              <h3 className="text-lg font-black text-slate-800">Analysis Performance</h3>
+                              <p className="mt-2 text-sm font-semibold text-slate-500">Fitur Analysis Performance sedang dalam tahap pengembangan.</p>
+                            </div>
+                          )}
 
                           {operatorReportingTab === "settings" && activeReportBrandId && (
                             <BrandDashboardSettingsPanel

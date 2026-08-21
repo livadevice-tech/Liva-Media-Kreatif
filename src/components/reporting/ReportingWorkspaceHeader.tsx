@@ -15,7 +15,7 @@ import { AdvancedDatePicker } from "./AdvancedDatePicker";
 import { getIndonesianMonthLabel } from "../../shared/utils/reporting";
 import { type ReportDateFilterType } from "../../shared/utils/reportTable";
 
-type ReportingTab = "live" | "product" | "engagement" | "settings";
+type ReportingTab = "live" | "product" | "engagement" | "analysis" | "settings";
 
 type Setter<T> = (value: T | ((prev: T) => T)) => void;
 
@@ -601,6 +601,16 @@ export function ReportingWorkspaceTabs({
           className={tabClass("product")}
         >
           Product Performance
+        </button>
+      )}
+
+      {!isCategoryHidden("analysis") && (
+        <button
+          type="button"
+          onClick={() => onTabChange("analysis")}
+          className={tabClass("analysis")}
+        >
+          Analysis Performance
         </button>
       )}
 
