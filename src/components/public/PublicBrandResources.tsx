@@ -138,6 +138,54 @@ export function PublicBrandResources({
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        
+        {/* Brand Carousel */}
+        {!selectedResource && (
+          <div className="mb-8">
+            <h2 className={`text-sm font-bold uppercase tracking-wider mb-4 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              Pilih Brand
+            </h2>
+            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x">
+              {displayBrands.map(brand => {
+                const isActive = selectedBrandId === brand.id;
+                const resourceCount = resources.filter(r => r.brandId === brand.id).length;
+                return (
+                  <button
+                    key={brand.id}
+                    onClick={() => {
+                      setSelectedBrandId(brand.id);
+                      setSelectedResource(null);
+                    }}
+                    className={`snap-start flex-shrink-0 w-48 text-left rounded-[20px] p-5 transition-all duration-300 relative overflow-hidden group ${
+                      isActive 
+                        ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-fuchsia-600 text-white shadow-xl shadow-indigo-500/20 ring-2 ring-white ring-offset-2 ring-offset-indigo-50 scale-[1.02]' 
+                        : isDarkMode 
+                          ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
+                          : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 hover:border-indigo-200'
+                    }`}
+                  >
+                    <div className="relative z-10">
+                      <div className={`text-4xl font-black tracking-tighter mb-1 ${isActive ? 'text-white' : isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                        {resourceCount}
+                      </div>
+                      <div className={`text-xs font-semibold uppercase tracking-wider mb-6 ${isActive ? 'text-indigo-100' : isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Dokumen
+                      </div>
+                      <div className={`font-bold text-base truncate ${isActive ? 'text-white' : isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}>
+                        {brand.name}
+                      </div>
+                    </div>
+                    {/* Decorative Icon */}
+                    <div className={`absolute -bottom-4 -right-4 p-4 rounded-full transition-transform duration-500 group-hover:scale-110 ${isActive ? 'bg-white/10' : isDarkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                      <BookOpen className={`w-12 h-12 ${isActive ? 'text-white opacity-40' : isDarkMode ? 'text-slate-600' : 'text-slate-200'}`} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* Left Sidebar */}
@@ -148,18 +196,6 @@ export function PublicBrandResources({
               </h3>
               
               <div className="space-y-3 mb-6">
-                <CustomSelect
-                  value={selectedBrandId}
-                  onChange={(val) => {
-                    setSelectedBrandId(val);
-                    setSelectedResource(null);
-                  }}
-                  options={displayBrands.map(b => ({ value: b.id, label: b.name }))}
-                  placeholder="-- Pilih Brand --"
-                  searchable={true}
-                  className="mb-4"
-                />
-
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input 
@@ -179,7 +215,7 @@ export function PublicBrandResources({
                 ) : !selectedBrandId ? (
                   <div className={`text-center py-8 text-sm rounded-lg border ${isDarkMode ? 'bg-slate-700/50 border-slate-600 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
                     <Filter className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50" />
-                    <p>Silakan pilih brand dari dropdown<br/>di atas terlebih dahulu.</p>
+                    <p>Silakan pilih brand dari kartu<br/>di atas terlebih dahulu.</p>
                   </div>
                 ) : filtered.length === 0 ? (
                   <div className="text-center py-4 text-sm text-slate-400">Tidak ada dokumen ditemukan</div>
