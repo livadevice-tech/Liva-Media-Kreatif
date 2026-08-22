@@ -30,7 +30,7 @@ export function PublicBrandResources({
   const [isResourceDropdownOpen, setResourceDropdownOpen] = useState(false);
   const [resourceSearch, setResourceSearch] = useState('');
   
-  const displayBrands = (brands.length > 0 ? brands : publicBrands).filter(b => b.isActive !== false);
+  const displayBrands = ((brands || []).length > 0 ? brands : publicBrands).filter(b => b?.isActive !== false);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
