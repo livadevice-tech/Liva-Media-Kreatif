@@ -13,6 +13,14 @@ const CATEGORIES = [
   { id: 'engagement', label: 'Engagement Report' },
 ];
 
+const DASHBOARD_TABS = [
+  { id: 'live', label: 'Live Performance' },
+  { id: 'analysis', label: 'Analysis Performance' },
+  { id: 'product', label: 'Product Performance' },
+  { id: 'engagement', label: 'Engagement Report' },
+  { id: 'raw', label: 'Data Tabel & Sesi' },
+];
+
 const METRICS_BY_CATEGORY = {
   live_shopee: [
     { id: "gmv", label: "GMV" },
@@ -149,6 +157,21 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
     });
   };
 
+  const toggleCategory = (categoryId: string) => {
+    const hiddenCats = brand.dashboardSettings?.hiddenCategories || [];
+    const newCats = hiddenCats.includes(categoryId)
+      ? hiddenCats.filter((id) => id !== categoryId)
+      : [...hiddenCats, categoryId];
+    
+    onUpdateBrand({
+      ...brand,
+      dashboardSettings: {
+        ...(brand.dashboardSettings || { hiddenMetrics: [], hiddenChartMetrics: [], hiddenColumns: [] }),
+        hiddenCategories: newCats,
+      },
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6">
       <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -159,6 +182,28 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
           <p className="mt-1 text-sm font-medium text-slate-500">
             Pilih metrik dan kolom yang ingin disembunyikan di dashboard mitra brand.
           </p>
+        </div>
+
+        {/* Tab / Menu Selection */}
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+          <label className="block text-slate-800 font-bold mb-4 text-[13px] uppercase tracking-wider">
+            Tampilkan Tab / Menu Dashboard
+          </label>
+          <div className="flex flex-wrap gap-4">
+            {DASHBOARD_TABS.map((tab) => (
+              <label key={tab.id} className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={!(brand.dashboardSettings?.hiddenCategories || []).includes(tab.id)}
+                  onChange={() => toggleCategory(tab.id)}
+                  className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                  {tab.label}
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* Platform Tabs */}
