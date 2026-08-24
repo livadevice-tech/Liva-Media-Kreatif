@@ -8362,7 +8362,7 @@ export default function App() {
                     
                     {/* REAL-TIME DYNAMIC INPUT PARAMETERS (REGIONAL SUPPORTED + HOURLY/MONTHLY SHIFTS) */}
                     {/* ================= ACCORDION: SETTING PAYROLL ================= */}
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-xs max-w-5xl overflow-hidden mb-6">
+                    <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-xs max-w-5xl overflow-hidden mb-6">
                       <button
                         type="button"
                         onClick={() =>
@@ -8957,7 +8957,7 @@ export default function App() {
                       const totalBrandList = Array.from(activePeriodBrands);
 
                       return (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                           <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                               Total Gaji Dibayarkan
@@ -9883,170 +9883,7 @@ export default function App() {
                                   </div>
                                 </div>
 
-                                {/* Attendance Mini Dashboard */}
-                                <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
-                                  {/* 1. Hadir / Target */}
-                                  <div className="flex flex-col justify-between">
-                                    <span className="text-[8px] font-black tracking-wider text-slate-400 block uppercase">
-                                      Hadir/Tgt
-                                    </span>
-                                    {hostType === "Reguler" ? (
-                                      <div className="inline-flex items-center justify-center gap-0.5 mt-1 bg-white border border-slate-200 rounded px-1 py-0.5 text-[10px] font-bold text-slate-800">
-                                        <span>{item.totalHadir}/</span>
-                                        <input
-                                          type="number"
-                                          min={1}
-                                          max={31}
-                                          value={item.requiredWorkingDays}
-                                          onChange={(e) => {
-                                            const val = Math.max(
-                                              1,
-                                              Math.min(
-                                                31,
-                                                Number(e.target.value),
-                                              ),
-                                            );
-                                            handleUpdateHost(item.id, {
-                                              customWorkingDaysTarget: val,
-                                            });
-                                          }}
-                                          className="w-5 border-none bg-transparent text-blue-700 font-bold text-center focus:outline-none p-0"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <span className="inline-block mt-1 font-mono text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100">
-                                        {item.totalHadir} Shf
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {/* 2. Terlambat */}
-                                  <div className="flex flex-col justify-between">
-                                    <span className="text-[8px] font-black tracking-wider text-amber-600 block uppercase">
-                                      Telat
-                                    </span>
-                                    <span
-                                      className={`inline-block mt-1 px-1 py-0.5 rounded text-[10.5px] font-bold font-mono self-center ${
-                                        item.countTerlambat > 0
-                                          ? "text-amber-700 bg-amber-50 border border-amber-100"
-                                          : "text-slate-400 bg-slate-100 border border-slate-200/40"
-                                      }`}
-                                    >
-                                      {item.countTerlambat}x
-                                    </span>
-                                  </div>
-
-                                  {/* 3. Tidak Hadir */}
-                                  <div className="flex flex-col justify-between">
-                                    <span className="text-[8px] font-black tracking-wider text-red-650 block uppercase">
-                                      Tidak Hadir
-                                    </span>
-                                    <span
-                                      className={`inline-block mt-1 px-1 py-0.5 rounded text-[10.5px] font-bold font-mono self-center ${
-                                        item.countIzin + item.countAlpa > 0
-                                          ? "text-red-700 bg-red-50 border border-red-100"
-                                          : "text-slate-400 bg-slate-100 border border-slate-200/40"
-                                      }`}
-                                    >
-                                      {item.countIzin + item.countAlpa} Hari
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Mobile Calculation Formula & Summary */}
-                                <div className="bg-[#fafaff] border border-purple-100/40 rounded-xl p-3 space-y-2 text-xs">
-                                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-semibold border-b border-purple-100/30 pb-1.5">
-                                    <span>
-                                      Rumus:{" "}
-                                      {hostType === "Reguler"
-                                        ? "Gaji Pokok Proporsional"
-                                        : "Tarif Shift"}
-                                    </span>
-                                    <span className="font-bold underline text-blue-650">
-                                      {item.studio
-                                        ? item.studio.includes("Tanggamus")
-                                          ? "Tanggamus"
-                                          : "Bandar Lampung"
-                                        : "Bandar Lampung"}
-                                    </span>
-                                  </div>
-
-                                  {hostType === "Reguler" ? (
-                                    <div className="space-y-1 font-mono text-[10px] text-slate-600">
-                                      <div>
-                                        Gaji Pokok:{" "}
-                                        {formatIDR(item.basePayRate)}
-                                      </div>
-                                      <div>
-                                        Proporsi: ({formatIDR(item.basePayRate)}{" "}
-                                        / {item.requiredWorkingDays} Hari)
-                                        &times; {item.totalHadir} Hadir ={" "}
-                                        <span className="text-slate-900 font-bold">
-                                          {formatIDR(
-                                            Math.round(
-                                              (item.basePayRate /
-                                                item.requiredWorkingDays) *
-                                                item.totalHadir,
-                                            ),
-                                          )}
-                                        </span>
-                                      </div>
-                                      {item.isEligibleForBonus ? (
-                                        <div className="text-emerald-700 font-sans font-bold flex items-center gap-1 pt-1">
-                                          <span>Bonus Kehadiran penuh:</span>
-                                          <span className="font-mono bg-emerald-50 border border-emerald-100 px-1 py-0.2 rounded text-[9px]">
-                                            +{formatIDR(item.calculatedBonus)}
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        <div className="text-[9.5px] font-sans font-medium text-slate-400 italic pt-1">
-                                          *Bonus{" "}
-                                          {formatIDR(
-                                            isTanggamus
-                                              ? (salarySettings.tanggamusRegulerBonus ??
-                                                  250000)
-                                              : (salarySettings.bandarLampungRegulerBonus ??
-                                                  300000),
-                                          )}{" "}
-                                          jika target penuh, telat &le; 3x & tidak ada pelanggaran.
-                                        </div>
-                                      )}
-                                      {item.totalBackupShiftsAsReguler > 0 && (
-                                        <div className="mt-1 pt-1 border-t border-amber-100/30 flex justify-between items-center text-amber-600 font-bold text-[9.5px]">
-                                          <span>
-                                            Shift Backup Ekstra (
-                                            {item.totalBackupShiftsAsReguler}x):
-                                          </span>
-                                          <span className="font-mono bg-amber-50 border border-amber-100 px-1 py-0.2 rounded text-[9px]">
-                                            +
-                                            {formatIDR(
-                                              item.calculatedBackupPay,
-                                            )}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-1 font-mono text-[10.5px] text-slate-600">
-                                      <div>
-                                        {item.totalHadir} Shift ×{" "}
-                                        {formatIDR(item.basePayRate)} / Shift
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {item.totalOvertimeHours > 0 && (
-                                    <div className="mt-1 pt-1 border-t border-indigo-100/30 flex justify-between items-center text-indigo-600 font-bold text-[9.5px]">
-                                      <span>
-                                        Lembur ({item.totalOvertimeHours} J):
-                                      </span>
-                                      <span className="font-mono bg-indigo-50 border border-indigo-100 px-1 py-0.2 rounded text-[9px]">
-                                        +{formatIDR(item.calculatedOvertimePay)}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {/* Gaji Bersih Transfer Block */}
+                                {/* Gaji Bersih Transfer Block */}
                                   <div className="space-y-1.5 mt-1.5">
                                     <button
                                       onClick={(e) => {
