@@ -688,12 +688,12 @@ app.get("/api/reporting/brand/analyses", asyncHandler(async (req, res) => {
 }));
 
 app.post("/api/reporting/brand/analyses", asyncHandler(async (req, res) => {
-  const { brand_id, name, period_a_start, period_a_end, period_b_start, period_b_end, platform, comparison_metrics, description } = req.body;
+  const { brand_id, name, period_a_start, period_a_end, period_b_start, period_b_end, platform, comparison_metrics, description, next_plan } = req.body;
   const id = genId();
   await execute(
-    `INSERT INTO brand_performance_analyses (id, brand_id, name, period_a_start, period_a_end, period_b_start, period_b_end, platform, comparison_metrics, description) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, brand_id, name || null, period_a_start, period_a_end, period_b_start, period_b_end, platform, JSON.stringify(comparison_metrics || []), description]
+    `INSERT INTO brand_performance_analyses (id, brand_id, name, period_a_start, period_a_end, period_b_start, period_b_end, platform, comparison_metrics, description, next_plan) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, brand_id, name || null, period_a_start, period_a_end, period_b_start, period_b_end, platform, JSON.stringify(comparison_metrics || []), description, next_plan || null]
   );
   res.json({ success: true, id });
 }));
@@ -706,10 +706,10 @@ app.delete("/api/reporting/brand/analyses/:id", asyncHandler(async (req, res) =>
 
 app.put("/api/reporting/brand/analyses/:id", asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, period_a_start, period_a_end, period_b_start, period_b_end, platform, comparison_metrics, description } = req.body;
+  const { name, period_a_start, period_a_end, period_b_start, period_b_end, platform, comparison_metrics, description, next_plan } = req.body;
   await execute(
-    `UPDATE brand_performance_analyses SET name=?, period_a_start=?, period_a_end=?, period_b_start=?, period_b_end=?, platform=?, comparison_metrics=?, description=? WHERE id=?`,
-    [name || null, period_a_start, period_a_end, period_b_start, period_b_end, platform, JSON.stringify(comparison_metrics || []), description, id]
+    `UPDATE brand_performance_analyses SET name=?, period_a_start=?, period_a_end=?, period_b_start=?, period_b_end=?, platform=?, comparison_metrics=?, description=?, next_plan=? WHERE id=?`,
+    [name || null, period_a_start, period_a_end, period_b_start, period_b_end, platform, JSON.stringify(comparison_metrics || []), description, next_plan || null, id]
   );
   res.json({ success: true });
 }));

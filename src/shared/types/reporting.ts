@@ -148,6 +148,7 @@ export interface BrandPerformanceAnalysis {
   period_b_end: string;
   comparison_metrics: string[];
   description: string;
+  next_plan?: string;
   created_at?: string;
   updated_at?: string;
 }

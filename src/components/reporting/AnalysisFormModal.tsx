@@ -60,6 +60,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
   const [platform, setPlatform] = useState("TikTok");
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
   const [description, setDescription] = useState("");
+  const [nextPlan, setNextPlan] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   
   const [searchMetric, setSearchMetric] = useState("");
@@ -75,6 +76,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
         setPlatform(initialData.platform || "TikTok");
         setSelectedMetrics(initialData.comparison_metrics || []);
         setDescription(initialData.description || "");
+        setNextPlan(initialData.next_plan || "");
       } else {
         setName("");
         setPeriodAStart("");
@@ -84,6 +86,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
         setPlatform("TikTok");
         setSelectedMetrics([]);
         setDescription("");
+        setNextPlan("");
       }
       setSearchMetric("");
     }
@@ -162,6 +165,7 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
         platform,
         comparison_metrics: selectedMetrics,
         description,
+        next_plan: nextPlan,
         brand_id: brandId
       };
 
@@ -313,13 +317,25 @@ export default function AnalysisFormModal({ isOpen, onClose, brandId, onSuccess,
 
             {/* Deskripsi */}
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Deskripsi & Insight</label>
+              <label className="block text-sm font-bold text-slate-700">Insight dan Analysis</label>
               <textarea 
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                rows={4}
+                rows={3}
                 className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 resize-y"
-                placeholder="Tuliskan analisis atau temuan pada perbandingan dua periode ini..."
+                placeholder="Tuliskan insight dan analisis performa..."
+              />
+            </div>
+            
+            {/* Next Plan */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-700">Next Plan / Improvement</label>
+              <textarea 
+                value={nextPlan}
+                onChange={e => setNextPlan(e.target.value)}
+                rows={3}
+                className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 resize-y"
+                placeholder="Tuliskan rencana perbaikan atau next plan..."
               />
             </div>
 

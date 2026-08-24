@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Trash2, Calendar, TrendingUp, BarChart3, AlertCircle, Edit3 } from 'lucide-react';
+import { Plus, Trash2, Calendar, TrendingUp, BarChart3, AlertCircle, Edit3, CheckCircle2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { reportingBrandApi } from '../../api';
 import { BrandPerformanceAnalysis, BrandPerformanceLogEntry } from '../../shared/types/reporting';
@@ -379,19 +379,34 @@ function AnalysisCard({
           )}
         </div>
 
-        {/* Description Box */}
-        {analysis.description && (
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden mt-6">
-            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-            <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-indigo-500" />
-              Insight & Analisis
-            </h4>
-            <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed pl-6">
-              {analysis.description}
-            </p>
-          </div>
-        )}
+        {/* Description & Next Plan Boxes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          {analysis.description && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden h-full">
+              <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+              <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-indigo-500" />
+                Insight & Analisis
+              </h4>
+              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed pl-6">
+                {analysis.description}
+              </p>
+            </div>
+          )}
+
+          {analysis.next_plan && (
+            <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5 relative overflow-hidden h-full">
+              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+              <h4 className="text-sm font-bold text-emerald-900 mb-2 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                Next Plan / Improvement
+              </h4>
+              <p className="text-sm text-emerald-800 whitespace-pre-wrap leading-relaxed pl-6">
+                {analysis.next_plan}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
