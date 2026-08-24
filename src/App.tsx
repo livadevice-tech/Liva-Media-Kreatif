@@ -8890,23 +8890,20 @@ export default function App() {
                         <CutoffPeriodSelector
                           id="toolbar_select_cutoff_periode"
                           value={(() => {
+                            if (timeFilter === "Semua") return "Semua";
                             const refDateObj = new Date(filterReferenceDate);
                             if (isNaN(refDateObj.getTime())) return "";
-                            const day = refDateObj.getDate();
-                            let targetMonth = refDateObj.getMonth();
-                            let targetYear = refDateObj.getFullYear();
-                            if (day >= 16) {
-                              targetMonth += 1;
-                              if (targetMonth > 11) {
-                                targetMonth = 0;
-                                targetYear += 1;
-                              }
-                            }
+                            const targetMonth = refDateObj.getMonth();
+                            const targetYear = refDateObj.getFullYear();
                             return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}`;
                           })()}
                           availableCutoffMonths={availableCutoffMonths}
                           onChange={(value) => {
                             if (!value) return;
+                            if (value === "Semua") {
+                              setTimeFilter("Semua");
+                              return;
+                            }
                             const [yearStr, monthStr] = value.split("-");
                             const year = Number(yearStr);
                             const monthIdx = Number(monthStr) - 1;

@@ -96,16 +96,9 @@ export const buildAvailableCutoffMonths = (
 
   const currentYear = now.getFullYear();
   const currentMonthIdx = now.getMonth();
-  const currentDay = now.getDate();
-  let activeMonth = currentMonthIdx + 1;
-  let activeYear = currentYear;
-  if (currentDay >= 16) {
-    activeMonth += 1;
-    if (activeMonth > 12) {
-      activeMonth = 1;
-      activeYear += 1;
-    }
-  }
+  const activeMonth = currentMonthIdx + 1;
+  const activeYear = currentYear;
+
   months.add(`${activeYear}-${String(activeMonth).padStart(2, "0")}`);
 
   if (referenceDate) {
@@ -114,15 +107,8 @@ export const buildAvailableCutoffMonths = (
     const rM = parseInt(parts[1], 10);
     const rD = parseInt(parts[2], 10);
     if (rY && rM && rD) {
-      let targetM = rM;
-      let targetY = rY;
-      if (rD >= 16) {
-        targetM += 1;
-        if (targetM > 12) {
-          targetM = 1;
-          targetY += 1;
-        }
-      }
+      const targetM = rM;
+      const targetY = rY;
       months.add(`${targetY}-${String(targetM).padStart(2, "0")}`);
     }
   }
