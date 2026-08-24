@@ -8959,7 +8959,7 @@ export default function App() {
                       return (
                         <div className="mb-6">
                           {/* Desktop View */}
-                          <div className="hidden md:grid grid-cols-4 gap-4">
+                          <div className="hidden lg:grid grid-cols-4 gap-4">
                             <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                                 Total Gaji Dibayarkan
@@ -9013,7 +9013,7 @@ export default function App() {
                             </div>
                           </div>
                           {/* Mobile View */}
-                          <details className="md:hidden group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                          <details className="lg:hidden group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                             <summary className="flex items-center justify-between p-4 font-bold text-xs text-slate-700 cursor-pointer list-none [&::-webkit-details-marker]:hidden bg-slate-50">
                               <div className="flex items-center gap-2 text-[#2563eb]">
                                 <BarChart2 className="w-4 h-4" />
@@ -9082,8 +9082,8 @@ export default function App() {
                       className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden"
                       id="salary_recap_calculator_table_wrapper"
                     >
-                      {/* DESKTOP & TABLET VIEW: Rendered as a highly polished, responsive table */}
-                      <div className="hidden md:block overflow-x-auto">
+                      {/* DESKTOP VIEW: Rendered as a highly polished, responsive table */}
+                      <div className="hidden lg:block overflow-x-auto">
                         <table
                           className="w-full text-left text-xs text-slate-900 border-collapse table-auto"
                           id="salary_recap_table"
@@ -9263,8 +9263,11 @@ export default function App() {
                                           className="w-9 h-9 rounded-full object-cover border border-slate-200"
                                         />
                                         <div className="min-w-0">
-                                          <div className="font-bold text-slate-800 text-xs truncate">
+                                          <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-1.5">
                                             {item.name}
+                                            {item.isEligibleForBonus && (
+                                              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+                                            )}
                                           </div>
                                           <div className="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
                                             
@@ -9875,8 +9878,8 @@ export default function App() {
                         </table>
                       </div>
 
-                      {/* MOBILE & SMARTPHONE VIEW: Beautifully custom styled touch cards */}
-                      <div className="md:hidden divide-y divide-slate-100">
+                      {/* MOBILE & TABLET VIEW: Beautifully custom styled touch cards */}
+                      <div className="lg:hidden divide-y divide-slate-100">
                         {filteredHostReportList.length === 0 ? (
                           <div className="text-center py-12 text-slate-400 font-mono font-medium text-xs">
                             Tidak ada rekam data host yang cocok untuk proses
@@ -9917,7 +9920,7 @@ export default function App() {
                                     </div>
                                   </div>
 
-                                  <div>
+                                  <div className="flex flex-col gap-1 items-end">
                                     {hostType === "Reguler" ? (
                                       <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[8.5px] border border-blue-100 uppercase tracking-wide">
                                         Reguler
@@ -9925,6 +9928,12 @@ export default function App() {
                                     ) : (
                                       <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold text-[8.5px] border border-purple-100 uppercase tracking-wide">
                                         Backup
+                                      </span>
+                                    )}
+                                    {item.isEligibleForBonus && (
+                                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[8.5px] border border-emerald-200 uppercase tracking-wide flex items-center gap-0.5">
+                                        <CheckCircle2 className="w-2.5 h-2.5" />
+                                        Full Absen
                                       </span>
                                     )}
                                   </div>
