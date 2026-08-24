@@ -8362,7 +8362,7 @@ export default function App() {
                     
                     {/* REAL-TIME DYNAMIC INPUT PARAMETERS (REGIONAL SUPPORTED + HOURLY/MONTHLY SHIFTS) */}
                     {/* ================= ACCORDION: SETTING PAYROLL ================= */}
-                    <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-xs max-w-5xl overflow-hidden mb-6">
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-xs max-w-5xl overflow-hidden mb-6">
                       <button
                         type="button"
                         onClick={() =>
@@ -8957,58 +8957,105 @@ export default function App() {
                       const totalBrandList = Array.from(activePeriodBrands);
 
                       return (
-                        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                              Total Gaji Dibayarkan
-                            </span>
-                            <span className="text-xl md:text-2xl font-black font-mono mt-2 text-slate-800">
-                              {formatIDR(totalGaji)}
-                            </span>
-                          </div>
-                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                              Host Bandar Lampung
-                            </span>
-                            <span className="text-xl md:text-2xl font-black font-mono mt-2 text-slate-800">
-                              {totalHostBL}{" "}
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                                Orang
+                        <div className="mb-6">
+                          {/* Desktop View */}
+                          <div className="hidden md:grid grid-cols-4 gap-4">
+                            <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                                Total Gaji Dibayarkan
                               </span>
-                            </span>
-                          </div>
-                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                              Host Tanggamus
-                            </span>
-                            <span className="text-xl md:text-2xl font-black font-mono mt-2 text-slate-800">
-                              {totalHostTGM}{" "}
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                                Orang
+                              <span className="text-xl font-black font-mono mt-2 text-slate-800">
+                                {formatIDR(totalGaji)}
                               </span>
-                            </span>
-                          </div>
-                          <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                              Total Brand Aktif
-                            </span>
-                            <div className="flex flex-col mt-2">
-                              <span className="text-xl md:text-2xl font-black font-mono text-slate-800 leading-none">
-                                {totalBrandList.length}{" "}
+                            </div>
+                            <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                                Host Bandar Lampung
+                              </span>
+                              <span className="text-xl font-black font-mono mt-2 text-slate-800">
+                                {totalHostBL}{" "}
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
-                                  Brand
+                                  Orang
                                 </span>
                               </span>
-                              {totalBrandList.length > 0 && (
-                                <span
-                                  className="text-[9px] text-slate-400 font-semibold leading-tight line-clamp-1 mt-1 truncate"
-                                  title={totalBrandList.join(", ")}
-                                >
-                                  {totalBrandList.join(", ")}
+                            </div>
+                            <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                                Host Tanggamus
+                              </span>
+                              <span className="text-xl font-black font-mono mt-2 text-slate-800">
+                                {totalHostTGM}{" "}
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                                  Orang
                                 </span>
-                              )}
+                              </span>
+                            </div>
+                            <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                                Total Brand Aktif
+                              </span>
+                              <div className="flex flex-col mt-2">
+                                <span className="text-xl font-black font-mono text-slate-800 leading-none">
+                                  {totalBrandList.length}{" "}
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+                                    Brand
+                                  </span>
+                                </span>
+                                {totalBrandList.length > 0 && (
+                                  <span
+                                    className="text-[9px] text-slate-400 font-semibold leading-tight line-clamp-1 mt-1 truncate"
+                                    title={totalBrandList.join(", ")}
+                                  >
+                                    {totalBrandList.join(", ")}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
+                          {/* Mobile View */}
+                          <details className="md:hidden group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                            <summary className="flex items-center justify-between p-4 font-bold text-xs text-slate-700 cursor-pointer list-none [&::-webkit-details-marker]:hidden bg-slate-50">
+                              <div className="flex items-center gap-2 text-[#2563eb]">
+                                <BarChart2 className="w-4 h-4" />
+                                RINGKASAN REKAP GAJI
+                              </div>
+                              <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform text-slate-500" />
+                            </summary>
+                            <div className="p-4 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white">
+                              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block">
+                                  Total Gaji
+                                </span>
+                                <span className="text-sm font-black font-mono mt-1 text-slate-800">
+                                  {formatIDR(totalGaji)}
+                                </span>
+                              </div>
+                              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block">
+                                  Host Lampung
+                                </span>
+                                <span className="text-sm font-black font-mono mt-1 text-slate-800">
+                                  {totalHostBL} <span className="text-[8px] font-normal">Orang</span>
+                                </span>
+                              </div>
+                              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block">
+                                  Host Tanggamus
+                                </span>
+                                <span className="text-sm font-black font-mono mt-1 text-slate-800">
+                                  {totalHostTGM} <span className="text-[8px] font-normal">Orang</span>
+                                </span>
+                              </div>
+                              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block">
+                                  Brand Aktif
+                                </span>
+                                <span className="text-sm font-black font-mono mt-1 text-slate-800 leading-none">
+                                  {totalBrandList.length} <span className="text-[8px] font-normal">Brand</span>
+                                </span>
+                              </div>
+                            </div>
+                          </details>
                         </div>
                       );
                     })()}
@@ -9883,7 +9930,196 @@ export default function App() {
                                   </div>
                                 </div>
 
-                                {/* Gaji Bersih Transfer Block */}
+                                  {/* Expand/Collapse Detail Button */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedHostSalaryId(expandedHostSalaryId === item.id ? null : item.id);
+                                    }}
+                                    className="w-full py-2 flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors mt-2"
+                                  >
+                                    {expandedHostSalaryId === item.id ? (
+                                      <>
+                                        <span>Tutup Detail Kalkulasi</span>
+                                        <ChevronUp className="w-3.5 h-3.5" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span>Lihat Detail Kalkulasi & Kehadiran</span>
+                                        <ChevronDown className="w-3.5 h-3.5" />
+                                      </>
+                                    )}
+                                  </button>
+
+                                  {expandedHostSalaryId === item.id && (
+                                    <div className="space-y-4 animate-fadeIn mt-3 pt-3 border-t border-slate-100">
+                                      {/* Attendance Mini Dashboard */}
+                                      <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                                        {/* 1. Hadir / Target */}
+                                        <div className="flex flex-col justify-between">
+                                          <span className="text-[8px] font-black tracking-wider text-slate-400 block uppercase">
+                                            Hadir/Tgt
+                                          </span>
+                                          {hostType === "Reguler" ? (
+                                            <div className="inline-flex items-center justify-center gap-0.5 mt-1 bg-white border border-slate-200 rounded px-1 py-0.5 text-[10px] font-bold text-slate-800">
+                                              <span>{item.totalHadir}/</span>
+                                              <input
+                                                type="number"
+                                                min={1}
+                                                max={31}
+                                                value={item.requiredWorkingDays}
+                                                onChange={(e) => {
+                                                  const val = Math.max(
+                                                    1,
+                                                    Math.min(
+                                                      31,
+                                                      Number(e.target.value),
+                                                    ),
+                                                  );
+                                                  handleUpdateHost(item.id, {
+                                                    customWorkingDaysTarget: val,
+                                                  });
+                                                }}
+                                                className="w-5 border-none bg-transparent text-blue-700 font-bold text-center focus:outline-none p-0"
+                                              />
+                                            </div>
+                                          ) : (
+                                            <span className="inline-block mt-1 font-mono text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100">
+                                              {item.totalHadir} Shf
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {/* 2. Terlambat */}
+                                        <div className="flex flex-col justify-between">
+                                          <span className="text-[8px] font-black tracking-wider text-amber-600 block uppercase">
+                                            Telat
+                                          </span>
+                                          <span
+                                            className={`inline-block mt-1 px-1 py-0.5 rounded text-[10.5px] font-bold font-mono self-center ${
+                                              item.countTerlambat > 0
+                                                ? "text-amber-700 bg-amber-50 border border-amber-100"
+                                                : "text-slate-400 bg-slate-100 border border-slate-200/40"
+                                            }`}
+                                          >
+                                            {item.countTerlambat}x
+                                          </span>
+                                        </div>
+
+                                        {/* 3. Tidak Hadir */}
+                                        <div className="flex flex-col justify-between">
+                                          <span className="text-[8px] font-black tracking-wider text-red-650 block uppercase">
+                                            Tidak Hadir
+                                          </span>
+                                          <span
+                                            className={`inline-block mt-1 px-1 py-0.5 rounded text-[10.5px] font-bold font-mono self-center ${
+                                              item.countIzin + item.countAlpa > 0
+                                                ? "text-red-700 bg-red-50 border border-red-100"
+                                                : "text-slate-400 bg-slate-100 border border-slate-200/40"
+                                            }`}
+                                          >
+                                            {item.countIzin + item.countAlpa} Hari
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* Mobile Calculation Formula & Summary */}
+                                      <div className="bg-[#fafaff] border border-purple-100/40 rounded-xl p-3 space-y-2 text-xs">
+                                        <div className="flex justify-between items-center text-[10px] text-slate-500 font-semibold border-b border-purple-100/30 pb-1.5">
+                                          <span>
+                                            Rumus:{" "}
+                                            {hostType === "Reguler"
+                                              ? "Gaji Pokok Proporsional"
+                                              : "Tarif Shift"}
+                                          </span>
+                                          <span className="font-bold underline text-blue-650">
+                                            {item.studio
+                                              ? item.studio.includes("Tanggamus")
+                                                ? "Tanggamus"
+                                                : "Bandar Lampung"
+                                              : "Bandar Lampung"}
+                                          </span>
+                                        </div>
+
+                                        {hostType === "Reguler" ? (
+                                          <div className="space-y-1 font-mono text-[10px] text-slate-600">
+                                            <div>
+                                              Gaji Pokok:{" "}
+                                              {formatIDR(item.basePayRate)}
+                                            </div>
+                                            <div>
+                                              Proporsi: ({formatIDR(item.basePayRate)}{" "}
+                                              / {item.requiredWorkingDays} Hari)
+                                              &times; {item.totalHadir} Hadir ={" "}
+                                              <span className="text-slate-900 font-bold">
+                                                {formatIDR(
+                                                  Math.round(
+                                                    (item.basePayRate /
+                                                      item.requiredWorkingDays) *
+                                                      item.totalHadir,
+                                                  ),
+                                                )}
+                                              </span>
+                                            </div>
+                                            {item.isEligibleForBonus ? (
+                                              <div className="text-emerald-700 font-sans font-bold flex items-center gap-1 pt-1">
+                                                <span>Bonus Kehadiran penuh:</span>
+                                                <span className="font-mono bg-emerald-50 border border-emerald-100 px-1 py-0.2 rounded text-[9px]">
+                                                  +{formatIDR(item.calculatedBonus)}
+                                                </span>
+                                              </div>
+                                            ) : (
+                                              <div className="text-[9.5px] font-sans font-medium text-slate-400 italic pt-1">
+                                                *Bonus{" "}
+                                                {formatIDR(
+                                                  isTanggamus
+                                                    ? (salarySettings.tanggamusRegulerBonus ??
+                                                        250000)
+                                                    : (salarySettings.bandarLampungRegulerBonus ??
+                                                        300000),
+                                                )}{" "}
+                                                jika target penuh, telat &le; 3x & tidak ada pelanggaran.
+                                              </div>
+                                            )}
+                                            {item.totalBackupShiftsAsReguler > 0 && (
+                                              <div className="mt-1 pt-1 border-t border-amber-100/30 flex justify-between items-center text-amber-600 font-bold text-[9.5px]">
+                                                <span>
+                                                  Shift Backup Ekstra (
+                                                  {item.totalBackupShiftsAsReguler}x):
+                                                </span>
+                                                <span className="font-mono bg-amber-50 border border-amber-100 px-1 py-0.2 rounded text-[9px]">
+                                                  +
+                                                  {formatIDR(
+                                                    item.calculatedBackupPay,
+                                                  )}
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-1 font-mono text-[10.5px] text-slate-600">
+                                            <div>
+                                              {item.totalHadir} Shift ×{" "}
+                                              {formatIDR(item.basePayRate)} / Shift
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {item.totalOvertimeHours > 0 && (
+                                          <div className="mt-1 pt-1 border-t border-indigo-100/30 flex justify-between items-center text-indigo-600 font-bold text-[9.5px]">
+                                            <span>
+                                              Lembur ({item.totalOvertimeHours} J):
+                                            </span>
+                                            <span className="font-mono bg-indigo-50 border border-indigo-100 px-1 py-0.2 rounded text-[9px]">
+                                              +{formatIDR(item.calculatedOvertimePay)}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Gaji Bersih Transfer Block */}
                                   <div className="space-y-1.5 mt-1.5">
                                     <button
                                       onClick={(e) => {
