@@ -133,6 +133,7 @@ import { INITIAL_HOSTS, INITIAL_LOGS, PLATFORMS, BRANDS, SHIFTS } from "./data";
 import { DoubleDatePicker } from "./components/DoubleDatePicker";
 import { CustomSelect } from "./components/ui/CustomSelect";
 import { CustomDatePicker } from "./components/ui/CustomDatePicker";
+import { MobileAdminNav } from "./components/admin/MobileAdminNav";
 import { ActivityLogsTable } from "./components/admin/ActivityLogsTable";import {
   formatDateYYYYMMDD,
   formatDateUI,
@@ -4526,6 +4527,58 @@ export default function App() {
   };
 
 
+
+  const adminNavItems = useMemo(() => {
+    const allItems = [
+      { tabId: "dashboard_utama", label: "Dashboard Utama", icon: LayoutDashboard },
+      { type: "header", label: "Manajemen Host", key: "cat-host" },
+      { tabId: "data_karyawan", label: "Data Karyawan (Host)", icon: Users, category: "cat-host" },
+      { tabId: "cuti", label: "Pengajuan Cuti / Izin", icon: Calendar, category: "cat-host" },
+      { tabId: "live", label: "Aktivitas Host (Live)", icon: Radio, category: "cat-host" },
+      { tabId: "host_schedule", label: "Penjadwalan Host", icon: Calendar, category: "cat-host" },
+      { tabId: "performa_host", label: "Performa Host", icon: TrendingUp, category: "cat-host" },
+      { tabId: "performa_produk", label: "Performa Produk", icon: Package, category: "cat-host" },
+      { tabId: "performa_brand", label: "Performa Brand", icon: Briefcase, category: "cat-host" },
+      { tabId: "gaji", label: "Sistem Penggajian", icon: DollarSign, category: "cat-host" },
+      { tabId: "absensi", label: "Calender Kerja Host", icon: Calendar, category: "cat-host" },
+      { tabId: "rekap_gaji", label: "Absen & Payroll", icon: DollarSign, category: "cat-host" },
+      { tabId: "database", label: "Database Absen", badgeCount: dbActiveBaseLogs.length, icon: ClipboardList, category: "cat-host" },
+      { tabId: "credentials", label: "Kredensial Host", icon: ShieldCheck, category: "cat-host" },
+      { type: "header", label: "Manajemen Client", key: "cat-client" },
+      { tabId: "data_brand", label: "Data Brand", icon: Briefcase, category: "cat-client" },
+      { tabId: "brand_resources", label: "Panduan & Script", icon: BookOpen, category: "cat-client" },
+      { tabId: "reporting_brand", label: "Reporting Brand (Upload)", icon: LineChart, category: "cat-client" },
+      { tabId: "invoice", label: "Invoice & Berkas", icon: Receipt, category: "cat-client" },
+      { tabId: "leads", label: "Leads/Calon Client", icon: Users, category: "cat-client" },
+      { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
+      { tabId: "settings", label: "Platform & Shift", icon: Sliders, category: "cat-system" },
+      { type: "header", label: "Keamanan Akun", key: "cat-security" },
+      { tabId: "admin_privacy", label: "Privasi Master Admin", icon: Lock, category: "cat-security" }
+    ];
+
+    let allowedTabs = null;
+    if (loggedInAdminId) {
+      allowedTabs = authSession?.role === "admin" ? authSession.accessTabs ?? null : null;
+      if (!allowedTabs) {
+        const adm = adminAccounts.find((a) => a.id === loggedInAdminId);
+        if (adm) allowedTabs = adm.accessTabs;
+      }
+    }
+
+    const filtered = allItems.filter((item) => {
+      if (item.type === "header") return true;
+      if (allowedTabs && item.tabId && !allowedTabs.includes(item.tabId)) return false;
+      return true;
+    });
+
+    return filtered.filter((item) => {
+      if (item.type === "header") {
+        return filtered.some((child) => child.category === item.key);
+      }
+      return true;
+    });
+  }, [authSession, loggedInAdminId, adminAccounts, dbActiveBaseLogs.length]);
+
   return (
     <div
       className="min-h-screen bg-[#f9f8fc] text-[#3c2f56] flex flex-col font-sans selection:bg-purple-500 selection:text-white relative"
@@ -5547,16 +5600,22 @@ export default function App() {
       {/* ========================================================== */}
       {isOperatorLoggedIn && (
         <main
-          className="flex-1 p-0 max-w-none w-full"
           id="system-main-viewport"
+          className="flex-1 p-0 max-w-none w-full pb-20 md:pb-0"
         >
           <div
             className="flex bg-[#fcfbfe] flex-1 text-slate-800 w-full"
             id="operator_dashboard_panel"
           >
+            <MobileAdminNav 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              filteredItems={adminNavItems} 
+              loggedInAdminName={authSession?.role === "master" ? "Master Admin" : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"} 
+            />
             {/* 1. LEFT VERTICAL SIDEBAR (PREMIUM GLASSMORPHISM) */}
             <aside
-              className={`transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] ${isSidebarVisible ? "w-[260px] p-5 opacity-100 border-r" : "w-0 p-0 overflow-hidden opacity-0 border-r-0"} flex-shrink-0 bg-white/70 backdrop-blur-2xl border-white/60 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex flex-col justify-between sticky top-0 h-screen font-sans z-50`}
+              className={`hidden md:flex transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] ${isSidebarVisible ? "w-[260px] p-5 opacity-100 border-r" : "w-0 p-0 overflow-hidden opacity-0 border-r-0"} flex-shrink-0 bg-white/70 backdrop-blur-2xl border-white/60 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex-col justify-between sticky top-0 h-screen font-sans z-50`}
               id="operator_sidebar"
             >
               <div className="flex flex-col flex-1 overflow-hidden pb-4">
@@ -5585,137 +5644,7 @@ export default function App() {
                 </div>
 
                 <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar" id="sidebar_nav">
-                  {(() => {
-                    const allItems = [
-                      {
-                        tabId: "dashboard_utama",
-                        label: "Dashboard Utama",
-                        icon: LayoutDashboard,
-                      },
-                      {
-                        type: "header",
-                        label: "Manajemen Host",
-                        key: "cat-host",
-                      },
-                      {
-                        tabId: "absensi",
-                        label: "Calender Kerja Host",
-                        icon: Calendar,
-                        category: "cat-host",
-                      },
-                      {
-                        tabId: "rekap_gaji",
-                        label: "Absen & Payroll",
-                        icon: DollarSign,
-                        category: "cat-host",
-                      },
-                      {
-                        tabId: "database",
-                        label: "Database Absen",
-                        badgeCount: dbActiveBaseLogs.length,
-                        icon: ClipboardList,
-                        category: "cat-host",
-                      },
-                      {
-                        tabId: "credentials",
-                        label: "Kredensial Host",
-                        icon: ShieldCheck,
-                        category: "cat-host",
-                      },
-                      {
-                        type: "header",
-                        label: "Manajemen Client",
-                        key: "cat-client",
-                      },
-                      {
-                        tabId: "data_brand",
-                        label: "Data Brand",
-                        icon: Briefcase,
-                        category: "cat-client",
-                      },
-                      {
-                        tabId: "brand_resources",
-                        label: "Panduan & Script",
-                        icon: BookOpen,
-                        category: "cat-client",
-                      },
-                      {
-                        tabId: "reporting_brand",
-                        label: "Reporting Brand (Upload)",
-                        icon: LineChart,
-                        category: "cat-client",
-                      },
-                      {
-                        tabId: "invoice",
-                        label: "Invoice & Berkas",
-                        icon: Receipt,
-                        category: "cat-client",
-                      },
-                      {
-                        tabId: "leads",
-                        label: "Leads/Calon Client",
-                        icon: Users,
-                        category: "cat-client",
-                      },
-                      {
-                        type: "header",
-                        label: "Sistem & Integrasi",
-                        key: "cat-system",
-                      },
-                      {
-                        tabId: "settings",
-                        label: "Platform & Shift",
-                        icon: Sliders,
-                        category: "cat-system",
-                      },
-                      {
-                        type: "header",
-                        label: "Keamanan Akun",
-                        key: "cat-security",
-                      },
-                      {
-                        tabId: "admin_privacy",
-                        label: "Privasi Master Admin",
-                        icon: Lock,
-                        category: "cat-security",
-                      },
-                    ];
-
-                    let allowedTabs: string[] | null = null;
-                    if (loggedInAdminId) {
-                      allowedTabs = authSession?.role === "admin"
-                        ? authSession.accessTabs ?? null
-                        : null;
-                      if (!allowedTabs) {
-                        const adm = adminAccounts.find(
-                          (a) => a.id === loggedInAdminId,
-                        );
-                        if (adm) allowedTabs = adm.accessTabs;
-                      }
-                    }
-
-                    const filteredItems = allItems.filter((item) => {
-                      if (item.type === "header") return true;
-                      if (
-                        allowedTabs &&
-                        item.tabId &&
-                        !allowedTabs.includes(item.tabId)
-                      )
-                        return false;
-                      return true;
-                    });
-
-                    return filteredItems.filter((item) => {
-                      if (item.type === "header") {
-                        // Check if there are any child items for this header's category
-                        const hasChildren = filteredItems?.some(
-                          (child) => child.category === item.key,
-                        );
-                        return hasChildren;
-                      }
-                      return true;
-                    });
-                  })().map((item, index) => {
+                  {adminNavItems.map((item, index) => {
                     if (item.type === "header") {
                       const isExpanded = expandedCategories[item.key!];
                       return (
