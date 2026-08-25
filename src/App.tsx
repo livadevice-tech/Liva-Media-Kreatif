@@ -6,6 +6,7 @@
 import HostDashboard from './components/host/HostDashboard';
 import HostViolationsPanel from './components/admin/HostViolationsPanel';
 import { MobileDashboardHome } from './components/admin/MobileDashboardHome';
+import { MobilePayrollList } from './components/admin/MobilePayrollList';
 import React, {
   useState,
   useEffect,
@@ -8600,11 +8601,16 @@ export default function App() {
 
                     {/* SALARY RECAP TABLE CONTAINER */}
                     <div
-                      className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden"
+                      className="bg-[#fcfbfe] md:bg-white md:rounded-2xl md:border border-slate-100 md:shadow-xs overflow-hidden"
                       id="salary_recap_calculator_table_wrapper"
                     >
+                      <MobilePayrollList 
+                        data={filteredHostReportList}
+                        formatIDR={formatIDR}
+                        getAvatarUrl={getAvatarUrl}
+                      />
                       {/* DESKTOP VIEW: Rendered as a highly polished, responsive table */}
-                      <div className="hidden lg:block overflow-x-auto">
+                      <div className="hidden md:block overflow-x-auto">
                         <table
                           className="w-full text-left text-xs text-slate-900 border-collapse table-auto"
                           id="salary_recap_table"
