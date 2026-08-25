@@ -204,6 +204,63 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
                       </div>
                     )}
 
+                    {/* Bonus Eligibility Section (Reguler Only) */}
+                    {hostType === "Reguler" && (
+                      <div className="pt-2">
+                        <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest leading-none mb-2">
+                          Syarat Bonus Kehadiran
+                        </div>
+                        <div className="space-y-1.5 mb-3">
+                          <div className="flex items-center gap-2 text-[11px]">
+                            {item.totalHadir >= item.requiredWorkingDays ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0 flex items-center justify-center text-[9px] text-slate-400 font-bold">✕</div>
+                            )}
+                            <span className={item.totalHadir >= item.requiredWorkingDays ? "text-slate-700" : "text-slate-500"}>
+                              Kehadiran Penuh ({item.totalHadir}/{item.requiredWorkingDays} Hari)
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-[11px]">
+                            {item.countTerlambat <= 3 ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0 flex items-center justify-center text-[9px] text-slate-400 font-bold">✕</div>
+                            )}
+                            <span className={item.countTerlambat <= 3 ? "text-slate-700" : "text-slate-500"}>
+                              Terlambat &le; 3x ({item.countTerlambat}x)
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-[11px]">
+                            {!item.hasViolations ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0 flex items-center justify-center text-[9px] text-slate-400 font-bold">✕</div>
+                            )}
+                            <span className={!item.hasViolations ? "text-slate-700" : "text-slate-500"}>
+                              {item.hasViolations ? `Ada Pelanggaran (${item.violationsCount}x)` : "Tidak Ada Pelanggaran"}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className={`p-3 rounded-xl border ${item.isEligibleForBonus ? 'bg-[#ebfef4] border-[#bbf7d0]' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className={`text-[11px] font-bold ${item.isEligibleForBonus ? 'text-emerald-800' : 'text-slate-500'}`}>
+                              Bonus +100% Hadir:
+                            </span>
+                            <span className={`text-xs font-mono font-bold ${item.isEligibleForBonus ? 'text-emerald-800' : 'text-slate-500'}`}>
+                              {item.isEligibleForBonus ? `+${formatIDR(item.calculatedBonus || 300000)}` : 'Rp 0'}
+                            </span>
+                          </div>
+                          <div className={`text-[10px] ${item.isEligibleForBonus ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            Status: {item.isEligibleForBonus ? "Memenuhi kualifikasi & berhak menerima bonus" : "Tidak memenuhi syarat bonus"}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Bonus & Potongan Summary */}
                     {(item.bonusTotal > 0 || item.deductionTotal > 0) && (
                       <div className="flex gap-2">
