@@ -620,7 +620,7 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
   const activeAnalysis = analyses.find(a => a.id === selectedAnalysisId);
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
