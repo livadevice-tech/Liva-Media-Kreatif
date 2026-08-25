@@ -55,11 +55,11 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
                   <p className="text-[10px] text-slate-500 font-medium truncate mb-1">
                     {item.studio || "Studio Bandar Lampung"}
                   </p>
-                  <div className="text-[8.5px] sm:text-[10px] text-slate-600 bg-slate-50 px-1.5 py-1 rounded inline-flex gap-1 items-center flex-nowrap whitespace-nowrap mt-1 overflow-x-auto hide-scrollbar max-w-full">
+                  <div className="text-[8px] sm:text-[10px] tracking-tight text-slate-600 bg-slate-50 px-1 py-0.5 rounded inline-flex gap-1 items-center flex-nowrap whitespace-nowrap mt-0.5">
                     <span className="font-bold text-slate-700">{item.requiredWorkingDays || 0} Hari Kerja</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0"></span>
+                    <span className="w-[3px] h-[3px] rounded-full bg-slate-300 shrink-0"></span>
                     <span className="font-bold text-emerald-600">{item.totalHadir} Masuk</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0"></span>
+                    <span className="w-[3px] h-[3px] rounded-full bg-slate-300 shrink-0"></span>
                     <span className="font-bold text-rose-500">{item.countTerlambat || 0} Terlambat</span>
                   </div>
 
