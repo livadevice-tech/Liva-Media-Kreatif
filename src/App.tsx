@@ -3567,7 +3567,9 @@ export default function App() {
   const [filterReferenceDate, setFilterReferenceDate] = useState(() => {
     const d = new Date();
     const pad = (num: number) => String(num).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    // Selalu inisialisasi ke tanggal 15 di bulan berjalan agar default cutoff period-nya 
+    // jatuh di bulan ini, tidak lompat ke bulan depan meskipun tanggal hari ini > 15.
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-15`;
   });
 
   const isLogDateMatchingMemo = useCallback(
