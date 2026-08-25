@@ -5,6 +5,7 @@
 
 import HostDashboard from './components/host/HostDashboard';
 import HostViolationsPanel from './components/admin/HostViolationsPanel';
+import { MobileDashboardHome } from './components/admin/MobileDashboardHome';
 import React, {
   useState,
   useEffect,
@@ -6052,10 +6053,18 @@ export default function App() {
                   const activeBrands = clientBrands.filter(b => b.isActive !== false).length;
 
                   return (
-                    <div
-                      className="space-y-6 animate-fadeIn"
-                      id="operator_dashboard_utama_content"
-                    >
+                    <div className="animate-fadeIn w-full" id="operator_dashboard_utama_wrapper">
+                      <MobileDashboardHome 
+                        hosts={hosts}
+                        clientBrands={clientBrands}
+                        schedules={schedules}
+                        studios={studios}
+                        loggedInAdminName={authSession?.role === "master" ? "Master Admin" : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"}
+                      />
+                      <div
+                        className="hidden md:block space-y-6"
+                        id="operator_dashboard_utama_content"
+                      >
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {/* Card 1: Total Host */}
                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between h-[140px]">
@@ -6138,8 +6147,8 @@ export default function App() {
                         schedules={schedules} 
                         clientBrands={clientBrands} 
                         platforms={PLATFORMS}
-                        performanceLogs={brandPerformanceLogs} 
                       />
+                      </div>
                     </div>
                   );
                 })()}
