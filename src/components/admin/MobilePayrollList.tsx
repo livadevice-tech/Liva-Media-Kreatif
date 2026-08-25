@@ -15,6 +15,7 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedBankId, setCopiedBankId] = useState<string | null>(null);
+  const [copiedSalaryId, setCopiedSalaryId] = useState<string | null>(null);
 
   if (!data || data.length === 0) {
     return (
@@ -29,41 +30,101 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
       {data.map((item, idx) => {
         const isExpanded = expandedId === item.id;
         const hostType = item.hostType || "Reguler";
+        const totalAbsen = (item.countAlpa || 0) + (item.countIzin || 0);
 
         return (
           <div
             key={item.id || idx}
-            className="bg-white rounded-[20px] p-4 shadow-sm border border-slate-100"
+            className="bg-white rounded-[20px] p-4 shadow-sm border border-slate-100 flex flex-col"
           >
             {/* Header / Basic Info */}
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
                 <img
                   src={getAvatarUrl(item.name)}
                   alt={item.name}
-                  className="w-10 h-10 rounded-full object-cover shadow-sm bg-slate-100 border border-slate-200"
+                  className="w-10 h-10 rounded-full object-cover shadow-sm bg-slate-100 border border-slate-200 shrink-0"
                 />
-                <div>
-                  <div className="flex items-center gap-1">
-                    <h3 className="font-bold text-slate-900 text-sm">{item.name}</h3>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <h3 className="font-bold text-slate-900 text-sm truncate">{item.name}</h3>
                     {item.isEligibleForBonus && (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    {item.studio || "Studio Bandar Lampung"} • {item.totalHadir}x Hadir
+                  <p className="text-[10px] text-slate-500 font-medium truncate mb-1">
+                    {item.studio || "Studio Bandar Lampung"}
                   </p>
+                  
+                  <div className="text-[10px] text-slate-600 bg-slate-50 px-2 py-1 rounded inline-block">
+                    <span className="font-bold text-emerald-600">{item.totalHadir} Hari Kerja</span>
+                    <span className="mx-1 text-slate-300">/</span>
+                    <span className="font-bold text-rose-500">{totalAbsen} Absen</span>
+                  </div>
+                  
+                  {/* Bank Info Directly On Card */}
+                  <div className="mt-2">
+                    {item.bankName && item.bankAccount && item.bankAccount !== "-" ? (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(String(item.bankAccount));
+                          setCopiedBankId(item.id);
+                          setTimeout(() => setCopiedBankId(null), 1500);
+                        }}
+                        className={`flex items-center gap-2 px-2.5 py-1 rounded-md border text-left max-w-full transition-colors ${
+                          copiedBankId === item.id
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <CreditCard className={`w-3.5 h-3.5 shrink-0 ${copiedBankId === item.id ? 'text-emerald-500' : 'text-slate-400'}`} />
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[9px] font-bold truncate leading-none">{item.bankName}</span>
+                          <span className="text-[10px] font-mono font-medium truncate leading-tight">{item.bankAccount}</span>
+                        </div>
+                        {copiedBankId === item.id ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 ml-auto" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-auto" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="text-[9px] text-slate-400 font-bold uppercase py-1">
+                        Belum ada Rekening
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <span className="font-black text-slate-900 text-[15px] font-mono">
-                  {formatIDR(item.netSalary)}
-                </span>
+              
+              <div className="text-right shrink-0 max-w-[40%] flex flex-col items-end">
+                <button
+                   onClick={() => {
+                     navigator.clipboard.writeText(String(item.netSalary));
+                     setCopiedSalaryId(item.id);
+                     setTimeout(() => setCopiedSalaryId(null), 1500);
+                   }}
+                   className={`flex items-center gap-1 px-2 py-1 rounded border transition-colors ${
+                     copiedSalaryId === item.id
+                       ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                       : "bg-transparent border-transparent hover:bg-slate-50 hover:border-slate-200"
+                   }`}
+                   title="Salin nominal gaji"
+                >
+                  <span className="font-black text-slate-900 text-[14px] sm:text-[15px] font-mono">
+                    {formatIDR(item.netSalary)}
+                  </span>
+                  {copiedSalaryId === item.id ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  ) : (
+                    <Copy className="w-3 h-3 text-slate-300" />
+                  )}
+                </button>
               </div>
             </div>
 
-            {/* Bill Detail Button */}
-            <div className="mt-4 flex justify-between items-center">
+            {/* Detail Gaji Button (Bottom) */}
+            <div className="mt-4 pt-3 border-t border-slate-50 flex justify-between items-center">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
                 {hostType} Host
               </span>
@@ -93,7 +154,7 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
+                  <div className="pt-3 mt-3 border-t border-slate-100 space-y-3">
                     <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest leading-none">
                       Rincian Perhitungan
                     </div>
@@ -150,51 +211,19 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
                     {(item.bonusTotal > 0 || item.deductionTotal > 0) && (
                       <div className="flex gap-2">
                         {item.bonusTotal > 0 && (
-                          <div className="flex-1 bg-emerald-50 rounded-lg p-2 flex flex-col justify-center items-center">
+                          <div className="flex-1 bg-emerald-50 rounded-lg p-2 flex flex-col justify-center items-center text-center">
                             <span className="text-[9px] font-bold text-emerald-600 uppercase">Total Bonus</span>
-                            <span className="text-xs font-mono font-bold text-emerald-700">+{formatIDR(item.bonusTotal)}</span>
+                            <span className="text-[11px] font-mono font-bold text-emerald-700 truncate max-w-full">+{formatIDR(item.bonusTotal)}</span>
                           </div>
                         )}
                         {item.deductionTotal > 0 && (
-                          <div className="flex-1 bg-rose-50 rounded-lg p-2 flex flex-col justify-center items-center">
+                          <div className="flex-1 bg-rose-50 rounded-lg p-2 flex flex-col justify-center items-center text-center">
                             <span className="text-[9px] font-bold text-rose-600 uppercase">Potongan</span>
-                            <span className="text-xs font-mono font-bold text-rose-700">-{formatIDR(item.deductionTotal)}</span>
+                            <span className="text-[11px] font-mono font-bold text-rose-700 truncate max-w-full">-{formatIDR(item.deductionTotal)}</span>
                           </div>
                         )}
                       </div>
                     )}
-
-                    {/* Bank Account Copy */}
-                    <div className="pt-2">
-                      {item.bankName && item.bankAccount && item.bankAccount !== "-" ? (
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(String(item.bankAccount));
-                            setCopiedBankId(item.id);
-                            setTimeout(() => setCopiedBankId(null), 1500);
-                          }}
-                          className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${
-                            copiedBankId === item.id
-                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                              : "bg-white border-slate-200 text-slate-600"
-                          }`}
-                        >
-                          <div className="flex flex-col text-left">
-                            <span className="text-[9px] font-bold">{item.bankName}</span>
-                            <span className="text-xs font-mono font-medium">{item.bankAccount}</span>
-                          </div>
-                          {copiedBankId === item.id ? (
-                            <Check className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <Copy className="w-4 h-4 text-slate-400" />
-                          )}
-                        </button>
-                      ) : (
-                        <div className="text-[10px] text-center text-slate-400 font-bold uppercase p-2 border border-slate-100 rounded-lg bg-slate-50">
-                          Belum ada Rekening
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </motion.div>
               )}
