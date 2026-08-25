@@ -10604,6 +10604,7 @@ export default function App() {
                                       }`}></div>
                                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                                           {Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }).format(new Date(item.date))}
+                                          {item.checkInTime && ` • ${item.checkInTime.substring(0, 5)}`}
                                       </span>
                                     </div>
                                     <span className="font-extrabold text-slate-800 text-sm leading-tight">
@@ -10622,7 +10623,7 @@ export default function App() {
                                 <div className="grid grid-cols-2 gap-x-2 gap-y-2 mt-1 pt-3 border-t border-dashed border-slate-200">
                                   <div className="flex flex-col">
                                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Shift</span>
-                                    <span className="text-xs font-semibold text-slate-700 truncate">{item.shift}</span>
+                                    <span className="text-xs font-semibold text-slate-700 truncate">{item.shiftHours || "-"}</span>
                                   </div>
                                   <div className="flex flex-col">
                                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Platform</span>
@@ -10630,7 +10631,7 @@ export default function App() {
                                   </div>
                                   <div className="flex flex-col">
                                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Brand</span>
-                                    <span className="text-xs font-semibold text-slate-700 truncate">{item.brandName || "-"}</span>
+                                    <span className="text-xs font-semibold text-slate-700 truncate">{item.brandHandled || "-"}</span>
                                   </div>
                                   <div className="flex flex-col">
                                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Studio</span>
