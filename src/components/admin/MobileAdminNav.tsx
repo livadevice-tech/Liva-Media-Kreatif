@@ -30,8 +30,8 @@ export const MobileAdminNav: React.FC<MobileAdminNavProps> = ({
   // Define the main 3 quick access tabs for the bottom nav
   const bottomNavItems = [
     { id: "dashboard_utama", icon: LayoutDashboard, label: "Home" },
-    { id: "absensi", icon: Users, label: "Host" },
-    { id: "data_brand", icon: Briefcase, label: "Client" },
+    { id: "reporting_brand", icon: Briefcase, label: "Brand" },
+    { id: "rekap_gaji", icon: Users, label: "Host" },
   ];
 
   const handleTabClick = (tabId: string) => {
@@ -93,7 +93,7 @@ export const MobileAdminNav: React.FC<MobileAdminNavProps> = ({
                 }`}
               />
             </div>
-            <span className="text-[10px] leading-none">Menu</span>
+            <span className="text-[10px] leading-none">Lainnya</span>
           </button>
         </div>
       </div>
