@@ -9513,8 +9513,8 @@ export default function App() {
                         </div>
                         
                         <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-                          {/* Segmented Control */}
-                          <div className="flex bg-slate-100/80 p-1 w-full sm:w-auto rounded-lg border border-slate-200/50">
+                          {/* Desktop Segmented Control */}
+                          <div className="hidden sm:flex bg-slate-100/80 p-1 w-auto rounded-lg border border-slate-200/50">
                             {[
                               { id: "today", label: "Hari Ini" },
                               { id: "all", label: "Semua Data" },
@@ -9523,13 +9523,37 @@ export default function App() {
                               <button
                                 key={tab.id}
                                 onClick={() => setDbTabMode(tab.id as "today" | "all" | "calendar")}
-                                className={`flex-1 sm:flex-none px-4 py-1.5 text-[11px] font-bold transition-all rounded-md ${
+                                className={`flex-none px-4 py-1.5 text-[11px] font-bold transition-all rounded-md ${
                                   dbTabMode === tab.id
                                     ? "bg-white text-slate-900 shadow-sm"
                                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                                 }`}
                               >
                                 {tab.label}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Mobile Tabs */}
+                          <div className="flex sm:hidden w-full border-b border-slate-200 justify-around">
+                            {[
+                              { id: "today", label: "Hari Ini" },
+                              { id: "all", label: "Semua Data" },
+                              { id: "calendar", label: "Kalender" }
+                            ].map((tab) => (
+                              <button
+                                key={tab.id}
+                                onClick={() => setDbTabMode(tab.id as "today" | "all" | "calendar")}
+                                className={`px-2 py-3 text-[13px] font-bold transition-all relative ${
+                                  dbTabMode === tab.id
+                                    ? "text-slate-900"
+                                    : "text-slate-400"
+                                }`}
+                              >
+                                {tab.label}
+                                {dbTabMode === tab.id && (
+                                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-slate-900 rounded-t-full" />
+                                )}
                               </button>
                             ))}
                           </div>
