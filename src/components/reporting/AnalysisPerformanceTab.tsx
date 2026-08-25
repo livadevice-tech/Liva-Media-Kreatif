@@ -353,94 +353,82 @@ function AnalysisCard({
           </div>
         )}
 
-        {/* Line Chart Data 1 */}
-        <div className="mb-4">
-          <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center px-1">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] mr-2"></div>
-            Grafik Data 1
-          </h4>
-          <div className="h-[250px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
-                    tickFormatter={(value) => activeMetric === 'gmv' ? `Rp ${(value/1000000).toFixed(1)}M` : value}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2, strokeDasharray: '3 3' }} />
-                  <Line type="monotone" dataKey="Data 1" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-slate-400 font-medium text-sm">
-                Tidak ada data yang dapat ditampilkan.
-              </div>
-            )}
-          </div>
+        {/* Line Chart */}
+        <div className="h-[380px] w-full mb-8 border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
+                  tickFormatter={(value) => activeMetric === 'gmv' ? `Rp ${(value/1000000).toFixed(1)}M` : value}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2, strokeDasharray: '3 3' }} />
+                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 500 }} />
+                <Line type="monotone" dataKey="Data 1" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="Data 2" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-slate-400 font-medium text-sm">
+              Tidak ada data yang dapat ditampilkan.
+            </div>
+          )}
         </div>
 
-        {/* Line Chart Data 2 */}
-        <div className="mb-8">
-          <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center px-1">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] mr-2"></div>
-            Grafik Data 2
-          </h4>
-          <div className="h-[250px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
-                    tickFormatter={(value) => activeMetric === 'gmv' ? `Rp ${(value/1000000).toFixed(1)}M` : value}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2, strokeDasharray: '3 3' }} />
-                  <Line type="monotone" dataKey="Data 2" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-slate-400 font-medium text-sm">
-                Tidak ada data yang dapat ditampilkan.
-              </div>
-            )}
+        {/* Empty State for Insight & Next Plan */}
+        {!analysis.description && !analysis.next_plan && (
+          <div className="mt-6 border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-slate-50/50">
+            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
+              <Plus className="w-6 h-6 text-slate-400" />
+            </div>
+            <h4 className="text-slate-900 font-bold mb-1">Belum ada Insight & Next Plan</h4>
+            <p className="text-slate-500 text-sm mb-4 max-w-sm">
+              Tambahkan analisis mendalam dan rencana perbaikan untuk evaluasi performa periode ini.
+            </p>
+            <button
+              onClick={onEdit}
+              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Tambah Insight & Plan
+            </button>
           </div>
-        </div>
+        )}
 
         {/* Description & Next Plan Boxes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          {analysis.description && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden h-full">
-              <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-              <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-indigo-500" />
-                Insight & Analisis
-              </h4>
-              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed pl-6">
-                {analysis.description}
-              </p>
-            </div>
-          )}
+        {(analysis.description || analysis.next_plan) && (
+          <div className="grid grid-cols-1 gap-4 mt-6">
+            {analysis.description && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden h-full">
+                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-indigo-500" />
+                  Insight & Analisis
+                </h4>
+                <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed pl-6">
+                  {analysis.description}
+                </p>
+              </div>
+            )}
 
-          {analysis.next_plan && (
-            <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5 relative overflow-hidden h-full">
-              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-              <h4 className="text-sm font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Next Plan / Improvement
-              </h4>
-              <p className="text-sm text-emerald-800 whitespace-pre-wrap leading-relaxed pl-6">
-                {analysis.next_plan}
-              </p>
-            </div>
-          )}
-        </div>
+            {analysis.next_plan && (
+              <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5 relative overflow-hidden h-full">
+                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                <h4 className="text-sm font-bold text-emerald-900 mb-2 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  Next Plan / Improvement
+                </h4>
+                <p className="text-sm text-emerald-800 whitespace-pre-wrap leading-relaxed pl-6">
+                  {analysis.next_plan}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
