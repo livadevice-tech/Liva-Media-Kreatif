@@ -10587,20 +10587,15 @@ export default function App() {
                                     : [...prev, item.id]
                                 );
                               }}
-                              className={`relative bg-white border rounded-xl shadow-sm transition-all duration-150 overflow-hidden flex ${
+                              className={`relative bg-white border rounded-xl shadow-sm transition-all duration-150 flex flex-col p-3 cursor-pointer ${
                                 isRowChecked 
                                   ? "border-purple-500 ring-1 ring-purple-500 bg-purple-50/10" 
                                   : "border-slate-200"
                               }`}
                             >
-                               {/* Ticket Left Side (Event / Date Info) */}
-                               <div className="flex-[3] p-3 flex flex-col border-r border-dashed border-slate-300 relative bg-gradient-to-br from-white to-slate-50/50">
-                                  {/* Top Right Circle Cutout */}
-                                  <div className="absolute top-0 right-[-6px] w-3 h-3 bg-slate-50 rounded-full border-b border-l border-slate-200 -mt-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]"></div>
-                                  {/* Bottom Right Circle Cutout */}
-                                  <div className="absolute bottom-0 right-[-6px] w-3 h-3 bg-slate-50 rounded-full border-t border-l border-slate-200 -mb-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]"></div>
-                                  
-                                  <div className="flex items-center gap-1.5 mb-1.5">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="flex flex-col">
+                                    <div className="flex items-center gap-1.5 mb-1">
                                       <div className={`w-2 h-2 rounded-full ${
                                           item.status === "Present" ? "bg-emerald-500" :
                                           item.status === "Late" ? "bg-amber-500" :
@@ -10610,124 +10605,37 @@ export default function App() {
                                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                                           {Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }).format(new Date(item.date))}
                                       </span>
-                                  </div>
-                                  
-                                  <span className="font-extrabold text-slate-800 text-sm leading-tight mb-1 truncate">
-                                      {item.hostName}
-                                  </span>
-                               </div>
-                               
-                               {/* Ticket Right Side (Brand / Platform / Status) */}
-                               <div className="flex-[2] p-3 flex flex-col justify-center bg-white relative">
-                                  {/* Top Left Circle Cutout */}
-                                  <div className="absolute top-0 left-[-6px] w-3 h-3 bg-slate-50 rounded-full border-b border-r border-slate-200 -mt-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]"></div>
-                                  {/* Bottom Left Circle Cutout */}
-                                  <div className="absolute bottom-0 left-[-6px] w-3 h-3 bg-slate-50 rounded-full border-t border-r border-slate-200 -mb-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]"></div>
-                                  
-                                  <div className="flex flex-col gap-1.5">
-                                      <span className="text-[11px] font-bold text-slate-600 truncate">
-                                          {item.brandName || "-"}
-                                      </span>
-                                      
-                                      <div className="flex flex-wrap gap-1 mt-0.5">
-                                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200 truncate max-w-full">
-                                              {item.platform}
-                                          </span>
-                                      </div>
-                                  </div>
-                               </div>
-                            </div>
-                            
-                            {/* Footer: Checkbox & Quick Actions */}
-                            <div className="flex items-center justify-between mt-2.5 px-1">
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                    <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
-                                        isRowChecked 
-                                            ? "bg-purple-600 border-purple-600 text-white" 
-                                            : "border-slate-300 bg-white text-transparent group-hover:border-purple-400"
-                                    }`}>
-                                        <Check className="w-3 h-3" strokeWidth={3} />
                                     </div>
-                                    <span className="text-[10px] font-bold text-slate-500 group-hover:text-slate-700">Pilih</span>
-                                </label>
-
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[9px] font-bold text-slate-400 mr-1 uppercase tracking-wider">Aksi</span>
-                                  
-                                  <button
-                                    onClick={() => handleUpdateLogStatus(item.id, "Present")}
-                                    className={`w-7 h-7 flex items-center justify-center rounded transition-all cursor-pointer ${
-                                      item.status === "Present"
-                                        ? "bg-emerald-100 text-emerald-700 shadow-sm ring-1 ring-emerald-200"
-                                        : "bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-200"
-                                    }`}
-                                    title="Tandai Hadir"
-                                  >
-                                    <CheckCircle2 className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateLogStatus(item.id, "Late")}
-                                    className={`w-7 h-7 flex items-center justify-center rounded transition-all cursor-pointer ${
-                                      item.status === "Late"
-                                        ? "bg-amber-100 text-amber-700 shadow-sm ring-1 ring-amber-200"
-                                        : "bg-white border border-slate-200 text-slate-400 hover:text-amber-600 hover:border-amber-200"
-                                    }`}
-                                    title="Tandai Terlambat"
-                                  >
-                                    <Clock className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateLogStatus(item.id, "Absent")}
-                                    className={`w-7 h-7 flex items-center justify-center rounded transition-all cursor-pointer ${
-                                      item.status !== "Present" && item.status !== "Late" && item.status !== "Excused"
-                                        ? "bg-rose-100 text-rose-700 shadow-sm ring-1 ring-rose-200"
-                                        : "bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200"
-                                    }`}
-                                    title="Tandai Alpa"
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateLogStatus(item.id, "Excused")}
-                                    className={`w-7 h-7 flex items-center justify-center rounded transition-all cursor-pointer ${
-                                      item.status === "Excused"
-                                        ? "bg-indigo-100 text-indigo-700 shadow-sm ring-1 ring-indigo-200"
-                                        : "bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200"
-                                    }`}
-                                    title="Tandai Izin/Sakit"
-                                  >
-                                    <FileText className="w-4 h-4" />
-                                  </button>
-                                  
-                                  <div className="w-px h-4 bg-slate-200 mx-0.5"></div>
-                                  
-                                  {pendingDeleteLogId === item.id ? (
-                                    <div className="flex items-center gap-1 animate-in fade-in duration-150 ml-1">
-                                      <button
-                                        onClick={() => {
-                                          handleDeleteLog(item.id);
-                                          setPendingDeleteLogId(null);
-                                        }}
-                                        className="px-2.5 py-1 h-7 text-[10px] font-black bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer border-0"
-                                      >
-                                        Ya
-                                      </button>
-                                      <button
-                                        onClick={() => setPendingDeleteLogId(null)}
-                                        className="px-2.5 py-1 h-7 text-[10px] font-black bg-slate-200 hover:bg-slate-300 text-slate-700 rounded transition-all cursor-pointer border-0"
-                                      >
-                                        Batal
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      onClick={() => setPendingDeleteLogId(item.id)}
-                                      className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-red-600 rounded bg-white border border-slate-200 hover:border-red-200 hover:bg-red-50 transition-all cursor-pointer"
-                                      title="Hapus log ini"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  )}
+                                    <span className="font-extrabold text-slate-800 text-sm leading-tight">
+                                        {item.hostName}
+                                    </span>
+                                  </div>
+                                  <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all shrink-0 ${
+                                      isRowChecked 
+                                          ? "bg-purple-600 border-purple-600 text-white" 
+                                          : "border-slate-300 bg-white text-transparent"
+                                  }`}>
+                                      <Check className="w-3 h-3" strokeWidth={3} />
+                                  </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-x-2 gap-y-2 mt-1 pt-3 border-t border-dashed border-slate-200">
+                                  <div className="flex flex-col">
+                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Shift</span>
+                                    <span className="text-xs font-semibold text-slate-700 truncate">{item.shift}</span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Platform</span>
+                                    <span className="text-xs font-semibold text-slate-700 truncate">{item.platform}</span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Brand</span>
+                                    <span className="text-xs font-semibold text-slate-700 truncate">{item.brandName || "-"}</span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Studio</span>
+                                    <span className="text-xs font-semibold text-slate-700 truncate">{item.studio || "-"}</span>
+                                  </div>
                                 </div>
                             </div>
                           </div>
