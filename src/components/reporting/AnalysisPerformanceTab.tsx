@@ -354,26 +354,57 @@ function AnalysisCard({
         )}
 
         {/* Line Chart */}
-        <div className="h-[380px] w-full mb-8 border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
+        <div className="flex flex-col gap-6 mb-8">
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
-                  tickFormatter={(value) => activeMetric === 'gmv' ? `Rp ${(value/1000000).toFixed(1)}M` : value}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2, strokeDasharray: '3 3' }} />
-                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 500 }} />
-                <Line type="monotone" dataKey="Data 1" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
-                <Line type="monotone" dataKey="Data 2" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            <>
+              <div className="h-[300px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
+                <div className="flex items-center mb-4">
+                  <div className="w-3 h-3 rounded-full bg-[#3b82f6] mr-2"></div>
+                  <h4 className="text-sm font-bold text-slate-700">Data 1 ({formatDateStr(analysis.period_a_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_a_end)})</h4>
+                </div>
+                <div style={{ height: 'calc(100% - 32px)' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
+                        tickFormatter={(value) => activeMetric === 'gmv' ? `Rp ${(value/1000000).toFixed(1)}M` : value}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2, strokeDasharray: '3 3' }} />
+                      <Line type="monotone" dataKey="Data 1" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="h-[300px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
+                <div className="flex items-center mb-4">
+                  <div className="w-3 h-3 rounded-full bg-[#10b981] mr-2"></div>
+                  <h4 className="text-sm font-bold text-slate-700">Data 2 ({formatDateStr(analysis.period_b_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_b_end)})</h4>
+                </div>
+                <div style={{ height: 'calc(100% - 32px)' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} 
+                        tickFormatter={(value) => activeMetric === 'gmv' ? `Rp ${(value/1000000).toFixed(1)}M` : value}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2, strokeDasharray: '3 3' }} />
+                      <Line type="monotone" dataKey="Data 2" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </>
           ) : (
-            <div className="flex items-center justify-center h-full text-slate-400 font-medium text-sm">
+            <div className="h-[380px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5 flex items-center justify-center text-slate-400 font-medium text-sm">
               Tidak ada data yang dapat ditampilkan.
             </div>
           )}
