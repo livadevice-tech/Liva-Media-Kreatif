@@ -5757,7 +5757,7 @@ export default function App() {
             >
               {/* WORKSPACE TOPBAR CONTROL BOARD */}
               <header
-                className="bg-white border-b border-slate-100 h-16 px-6 flex items-center justify-between sticky top-0 z-40"
+                className="bg-white border-b border-slate-100 h-16 px-6 hidden md:flex items-center justify-between sticky top-0 z-40"
                 id="workspace_topbar"
               >
                 <div className="flex items-center gap-3">
@@ -6042,6 +6042,8 @@ export default function App() {
                 className={`w-full mx-auto flex-1 pb-24 relative ${
                   operatorTab === "reporting_brand"
                     ? ""
+                    : operatorTab === "dashboard_utama"
+                    ? "p-0 md:p-6 max-w-7xl md:space-y-6"
                     : "p-6 max-w-7xl space-y-6"
                 }`}
               >

@@ -40,7 +40,7 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
   return (
     <div className="md:hidden flex flex-col min-h-screen bg-[#fcfbfe] text-slate-800 font-sans pb-28">
       {/* 1. Header Area */}
-      <div className="flex items-center justify-between px-6 py-8">
+      <div className="flex items-center justify-between px-4 py-8">
         <div className="flex items-center gap-3">
           {avatarUrl ? (
             <img src={avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover shadow-sm border border-slate-100" />
@@ -63,7 +63,7 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
       </div>
 
       {/* 2. Overview Section */}
-      <div className="px-6 mb-8">
+      <div className="px-4 mb-8">
         <div className="flex justify-between items-end mb-4">
           <h2 className="text-2xl font-bold text-slate-900">Overview</h2>
           <div className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm flex items-center gap-1">
@@ -123,7 +123,7 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
       </div>
 
       {/* 3. Sesi Siaran Section (Projects) */}
-      <div className="px-6 flex-1">
+      <div className="px-4 flex-1">
         <div className="flex justify-between items-end mb-4">
           <h2 className="text-2xl font-bold text-slate-900">Sesi Siaran</h2>
           <div className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm flex items-center gap-1">
