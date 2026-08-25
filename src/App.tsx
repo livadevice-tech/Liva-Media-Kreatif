@@ -5608,8 +5608,8 @@ export default function App() {
             id="operator_dashboard_panel"
           >
             <MobileAdminNav 
-              activeTab={activeTab} 
-              onTabChange={setActiveTab} 
+              activeTab={operatorTab} 
+              onTabChange={setOperatorTab} 
               filteredItems={adminNavItems} 
               loggedInAdminName={authSession?.role === "master" ? "Master Admin" : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"} 
             />
