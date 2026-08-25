@@ -11808,8 +11808,9 @@ export default function App() {
                     ) : (
                       <>
                         <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden pt-0 relative text-slate-800 font-sans text-left min-h-screen">
-                          <div className="px-4 pt-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
-                            <ReportingWorkspaceHeader
+                          <div className="w-full bg-white">
+                            <div className="px-4 pt-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
+                              <ReportingWorkspaceHeader
                               brandName={
                                 clientBrands.find(
                                   (b) => b.id === activeReportBrandId,
@@ -11912,6 +11913,7 @@ export default function App() {
                                 setIsUploadModalOpen(true);
                               }}
                             />
+                            </div>
                           </div>
 
                           <ReportingWorkspaceTabs

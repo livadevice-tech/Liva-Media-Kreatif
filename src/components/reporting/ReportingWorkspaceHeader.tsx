@@ -242,7 +242,7 @@ export function ReportingWorkspaceHeader({
 
   return (
     <section
-      className="bg-white px-4 pt-3 pb-0 sm:px-6 sm:py-4"
+      className="pt-3 pb-0 sm:py-4"
       data-active-tab={activeTab}
     >
       <div className="flex flex-col">
@@ -583,9 +583,10 @@ export function ReportingWorkspaceTabs({
   };
 
   return (
-    <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 px-4 sm:px-6 bg-white border-b border-slate-100">
-      <div className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto">
-      {!isCategoryHidden("live") && (
+    <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 bg-white border-b border-slate-100">
+      <div className="px-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
+        <div className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto">
+          {!isCategoryHidden("live") && (
         <button
           type="button"
           onClick={() => onTabChange("live")}
@@ -621,7 +622,8 @@ export function ReportingWorkspaceTabs({
         >
           Pengaturan Klien
         </button>
-      )}
+          )}
+        </div>
       </div>
     </div>
   );
