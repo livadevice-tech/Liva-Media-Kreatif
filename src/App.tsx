@@ -9499,9 +9499,9 @@ export default function App() {
                 {operatorTab === "database" && (
                   <div className="space-y-6" id="operator_database_content">
                     {/* UNIFIED DATABASE TOOLBAR */}
-                    <div className="flex flex-col bg-white border border-slate-200/60 rounded-2xl shadow-sm overflow-hidden mb-6" id="operator_database_unified_toolbar">
+                    <div className="flex flex-col bg-transparent md:bg-white md:border border-slate-200/60 md:rounded-2xl md:shadow-sm mb-6" id="operator_database_unified_toolbar">
                       {/* Top Header: Title, Segmented Control, Actions */}
-                      <div className="flex flex-col xl:flex-row xl:items-center justify-between p-5 gap-4 border-b border-slate-100">
+                      <div className="flex flex-col xl:flex-row xl:items-center justify-between py-2 md:p-5 gap-4 md:border-b border-slate-100">
                         <div>
                           <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
                             <Database className="w-4 h-4 text-purple-600" />
@@ -9588,7 +9588,7 @@ export default function App() {
                       {dbTabMode !== "calendar" && (
                         <>
                           {/* Middle: Search & Dropdown Filters */}
-                          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4 bg-slate-50/50">
+                          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 py-2 md:p-4 md:bg-slate-50/50">
                             {/* Search Input */}
                             <div className="relative flex-1" id="db_search_input_wrapper">
                               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -9678,7 +9678,8 @@ export default function App() {
                           )}
 
                           {/* Bottom: Status Pills */}
-                          <div className="flex flex-wrap gap-2 p-4 border-t border-slate-100 bg-white" id="database_pill_filters">
+                          <div className="py-2 md:px-5 md:py-4 md:border-t border-slate-100 bg-transparent md:bg-white overflow-x-auto pb-4 md:pb-4 scrollbar-hide">
+                            <div className="flex flex-wrap gap-2 px-4 md:px-0" id="database_pill_filters">
                             {[
                               { id: "All", label: "Semua Log", color: "bg-slate-400", text: "text-slate-600", activeBg: "bg-slate-900 text-white shadow-sm ring-1 ring-slate-900/10", activeCount: "bg-white/20 text-white" },
                               { id: "Present", label: "Hadir", statusChoice: "Present", color: "bg-emerald-500", text: "text-emerald-700", activeBg: "bg-emerald-50 text-emerald-800 shadow-sm ring-1 ring-emerald-500/20", activeCount: "bg-emerald-200/50 text-emerald-900" },
@@ -9715,6 +9716,7 @@ export default function App() {
                                 </button>
                               );
                             })}
+                          </div>
                           </div>
                         </>
                       )}
