@@ -93,14 +93,51 @@ function AnalysisCard({
   analysis,
   logs,
   onEdit,
-  onDelete
+  onDelete,
+  onUpdate
 }: {
   analysis: BrandPerformanceAnalysis;
   logs: BrandPerformanceLogEntry[];
   onEdit: () => void;
   onDelete: () => void;
+  onUpdate: () => void;
 }) {
   const [activeMetric, setActiveMetric] = useState(analysis.comparison_metrics[0] || '');
+
+  const [isEditingInsight, setIsEditingInsight] = useState(false);
+  const [editDescription, setEditDescription] = useState(analysis.description || '');
+  const [editNextPlan, setEditNextPlan] = useState(analysis.next_plan || '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setEditDescription(analysis.description || '');
+    setEditNextPlan(analysis.next_plan || '');
+  }, [analysis]);
+  
+  const handleSaveInsight = async () => {
+    setIsSaving(true);
+    try {
+      await reportingBrandApi.updateAnalysis(analysis.id, {
+        name: analysis.name || '',
+        period_a_start: analysis.period_a_start,
+        period_a_end: analysis.period_a_end,
+        period_b_start: analysis.period_b_start,
+        period_b_end: analysis.period_b_end,
+        platform: analysis.platform,
+        comparison_metrics: analysis.comparison_metrics,
+        description: editDescription,
+        next_plan: editNextPlan,
+        brand_id: analysis.brand_id
+      });
+      setIsEditingInsight(false);
+      onUpdate();
+    } catch (e) {
+      console.error(e);
+      alert("Gagal menyimpan insight");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (!analysis.comparison_metrics.includes(activeMetric)) {
@@ -410,55 +447,121 @@ function AnalysisCard({
           )}
         </div>
 
-        {/* Empty State for Insight & Next Plan */}
-        {!analysis.description && !analysis.next_plan && (
-          <div className="mt-6 border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-slate-50/50">
-            <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
-              <Plus className="w-6 h-6 text-slate-400" />
+        {/* Empty State or Inline Edit for Insight & Next Plan */}
+        {isEditingInsight ? (
+          <div className="mt-6 border border-indigo-100 bg-indigo-50/30 rounded-xl p-6 shadow-sm">
+            <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-indigo-500" />
+              {(!analysis.description && !analysis.next_plan) ? 'Tambah' : 'Edit'} Insight & Next Plan
+            </h4>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-700">Insight dan Analysis</label>
+                <textarea 
+                  value={editDescription}
+                  onChange={e => setEditDescription(e.target.value)}
+                  rows={3}
+                  className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-3 resize-y shadow-sm"
+                  placeholder="Tuliskan insight dan analisis performa..."
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-slate-700">Next Plan / Improvement</label>
+                <textarea 
+                  value={editNextPlan}
+                  onChange={e => setEditNextPlan(e.target.value)}
+                  rows={3}
+                  className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-3 resize-y shadow-sm"
+                  placeholder="Tuliskan rencana perbaikan atau next plan..."
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingInsight(false)}
+                  disabled={isSaving}
+                  className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveInsight}
+                  disabled={isSaving}
+                  className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 transition-all shadow-sm flex items-center"
+                >
+                  {isSaving ? "Menyimpan..." : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                      Simpan
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-            <h4 className="text-slate-900 font-bold mb-1">Belum ada Insight & Next Plan</h4>
-            <p className="text-slate-500 text-sm mb-4 max-w-sm">
-              Tambahkan analisis mendalam dan rencana perbaikan untuk evaluasi performa periode ini.
-            </p>
-            <button
-              onClick={onEdit}
-              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 transition-all active:scale-95"
-            >
-              <Plus className="w-4 h-4 mr-1.5" />
-              Tambah Insight & Plan
-            </button>
           </div>
-        )}
-
-        {/* Description & Next Plan Boxes */}
-        {(analysis.description || analysis.next_plan) && (
-          <div className="grid grid-cols-1 gap-4 mt-6">
-            {analysis.description && (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden h-full">
-                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-                <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-indigo-500" />
-                  Insight & Analisis
-                </h4>
-                <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed pl-6">
-                  {analysis.description}
+        ) : (
+          <>
+            {!analysis.description && !analysis.next_plan && (
+              <div className="mt-6 border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-slate-50/50">
+                <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
+                  <Plus className="w-6 h-6 text-slate-400" />
+                </div>
+                <h4 className="text-slate-900 font-bold mb-1">Belum ada Insight & Next Plan</h4>
+                <p className="text-slate-500 text-sm mb-4 max-w-sm">
+                  Tambahkan analisis mendalam dan rencana perbaikan untuk evaluasi performa periode ini.
                 </p>
+                <button
+                  onClick={() => setIsEditingInsight(true)}
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 transition-all active:scale-95"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Tambah Insight & Plan
+                </button>
               </div>
             )}
 
-            {analysis.next_plan && (
-              <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5 relative overflow-hidden h-full">
-                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-                <h4 className="text-sm font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  Next Plan / Improvement
-                </h4>
-                <p className="text-sm text-emerald-800 whitespace-pre-wrap leading-relaxed pl-6">
-                  {analysis.next_plan}
-                </p>
+            {/* Description & Next Plan Boxes */}
+            {(analysis.description || analysis.next_plan) && (
+              <div className="grid grid-cols-1 gap-4 mt-6 relative group/insight">
+                <div className="absolute top-2 right-2 opacity-0 group-hover/insight:opacity-100 transition-opacity z-10">
+                   <button 
+                     onClick={() => setIsEditingInsight(true)}
+                     className="p-2 bg-white border border-slate-200 shadow-sm rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                     title="Edit Insight & Plan"
+                   >
+                     <Edit3 className="w-4 h-4" />
+                   </button>
+                </div>
+
+                {analysis.description && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden h-full">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                    <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-indigo-500" />
+                      Insight & Analisis
+                    </h4>
+                    <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed pl-6">
+                      {analysis.description}
+                    </p>
+                  </div>
+                )}
+
+                {analysis.next_plan && (
+                  <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5 relative overflow-hidden h-full">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                    <h4 className="text-sm font-bold text-emerald-900 mb-2 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      Next Plan / Improvement
+                    </h4>
+                    <p className="text-sm text-emerald-800 whitespace-pre-wrap leading-relaxed pl-6">
+                      {analysis.next_plan}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>
@@ -596,6 +699,7 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
                 setIsModalOpen(true);
               }}
               onDelete={() => handleDelete(activeAnalysis.id)}
+              onUpdate={() => fetchAnalyses()}
             />
           )}
         </div>
