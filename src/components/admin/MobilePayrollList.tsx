@@ -62,38 +62,7 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
                     <span className="font-bold text-rose-500">{totalAbsen} Absen</span>
                   </div>
                   
-                  {/* Bank Info Directly On Card */}
-                  <div className="mt-2">
-                    {item.bankName && item.bankAccount && item.bankAccount !== "-" ? (
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(String(item.bankAccount));
-                          setCopiedBankId(item.id);
-                          setTimeout(() => setCopiedBankId(null), 1500);
-                        }}
-                        className={`flex items-center gap-2 px-2.5 py-1 rounded-md border text-left max-w-full transition-colors ${
-                          copiedBankId === item.id
-                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        <CreditCard className={`w-3.5 h-3.5 shrink-0 ${copiedBankId === item.id ? 'text-emerald-500' : 'text-slate-400'}`} />
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[9px] font-bold truncate leading-none">{item.bankName}</span>
-                          <span className="text-[10px] font-mono font-medium truncate leading-tight">{item.bankAccount}</span>
-                        </div>
-                        {copiedBankId === item.id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 ml-auto" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-auto" />
-                        )}
-                      </button>
-                    ) : (
-                      <div className="text-[9px] text-slate-400 font-bold uppercase py-1">
-                        Belum ada Rekening
-                      </div>
-                    )}
-                  </div>
+
                 </div>
               </div>
               
@@ -125,9 +94,37 @@ export const MobilePayrollList: React.FC<MobilePayrollListProps> = ({
 
             {/* Detail Gaji Button (Bottom) */}
             <div className="mt-4 pt-3 border-t border-slate-50 flex justify-between items-center">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
-                {hostType} Host
-              </span>
+              <div className="flex-1 mr-4">
+                {item.bankName && item.bankAccount && item.bankAccount !== "-" ? (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(String(item.bankAccount));
+                      setCopiedBankId(item.id);
+                      setTimeout(() => setCopiedBankId(null), 1500);
+                    }}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left max-w-full transition-colors ${
+                      copiedBankId === item.id
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-3xs"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                    }`}
+                  >
+                    <CreditCard className={`w-4 h-4 shrink-0 ${copiedBankId === item.id ? 'text-emerald-500' : 'text-slate-400'}`} />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[9px] font-bold truncate leading-none mb-0.5">{item.bankName}</span>
+                      <span className="text-[11px] font-mono font-bold truncate leading-none text-slate-700">{item.bankAccount}</span>
+                    </div>
+                    {copiedBankId === item.id ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 ml-1" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1 opacity-50" />
+                    )}
+                  </button>
+                ) : (
+                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wide">
+                    Belum ada Rekening
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => setExpandedId(isExpanded ? null : item.id)}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full border text-xs font-bold transition-colors ${
