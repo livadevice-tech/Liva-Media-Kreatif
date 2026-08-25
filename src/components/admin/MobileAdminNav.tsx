@@ -30,7 +30,7 @@ export const MobileAdminNav: React.FC<MobileAdminNavProps> = ({
   // Define the main 3 quick access tabs for the bottom nav
   const bottomNavItems = [
     { id: "dashboard_utama", icon: LayoutDashboard, label: "Home" },
-    { id: "data_karyawan", icon: Users, label: "Host" },
+    { id: "absensi", icon: Users, label: "Host" },
     { id: "data_brand", icon: Briefcase, label: "Client" },
   ];
 
