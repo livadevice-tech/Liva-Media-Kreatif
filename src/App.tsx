@@ -193,6 +193,7 @@ import {
   isPlatformMatch,
   formatDisplayDate,
   normalizeDateYMD,
+  getCutoffMonthForDate,
   PercentBadge,
   getBrandStyle,
   getShiftStyle,
@@ -8891,6 +8892,9 @@ export default function App() {
                           id="toolbar_select_cutoff_periode"
                           value={(() => {
                             if (timeFilter === "Semua") return "Semua";
+                            if (salarySettings.useCutOff) {
+                              return getCutoffMonthForDate(filterReferenceDate);
+                            }
                             const refDateObj = new Date(filterReferenceDate);
                             if (isNaN(refDateObj.getTime())) return "";
                             const targetMonth = refDateObj.getMonth();
@@ -11757,7 +11761,11 @@ export default function App() {
                 {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
                 {operatorTab === "reporting_brand" && (
                   <div
-                    className="mx-auto w-full max-w-[1600px] space-y-6 animate-fadeIn bg-[#fcf9f8] min-h-screen px-4 pb-12 sm:px-6 lg:px-8"
+                    className={`mx-auto w-full animate-fadeIn min-h-screen pb-12 ${
+                      activeReportBrandId === null
+                        ? "max-w-[1600px] space-y-6 bg-[#fcf9f8] px-4 sm:px-6 lg:px-8"
+                        : "max-w-full space-y-0 bg-[#fafafd] px-0 sm:px-0 lg:px-0"
+                    }`}
                     id="operator_reporting_brand_content"
                   >
                     {activeReportBrandId === null ? (
@@ -11799,8 +11807,8 @@ export default function App() {
                       />
                     ) : (
                       <>
-                        <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left">
-                          <div className="px-4 pt-4 sm:px-6">
+                        <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden pt-0 relative text-slate-800 font-sans text-left min-h-screen">
+                          <div className="px-4 pt-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
                             <ReportingWorkspaceHeader
                               brandName={
                                 clientBrands.find(
