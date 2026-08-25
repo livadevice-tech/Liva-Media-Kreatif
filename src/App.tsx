@@ -8396,7 +8396,7 @@ export default function App() {
                         className="flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center bg-purple-50/50 p-4 rounded-xl border border-purple-100"
                         id="rekap_salary_toolbar"
                       >
-                        <div className="relative flex-1">
+                        <div className="relative flex-1 min-w-0">
                           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" />
                           <input
                             type="text"
@@ -8404,7 +8404,7 @@ export default function App() {
                             placeholder="Cari host untuk perhitungan gaji..."
                             value={globalSearch}
                             onChange={(e) => setGlobalSearch(e.target.value)}
-                            className="w-full bg-white border border-purple-150 rounded-xl pl-10 pr-4 py-2.5 text-xs text-purple-950 focus:outline-none focus:border-purple-400 transition-all font-sans font-bold shadow-2xs"
+                            className="w-full bg-white border border-purple-150 rounded-xl pl-10 pr-4 py-2.5 text-xs text-purple-950 focus:outline-none focus:border-purple-400 transition-all font-sans font-bold shadow-2xs truncate"
                           />
                         </div>
 
@@ -8444,8 +8444,8 @@ export default function App() {
                               cutOffEndDay: 15,
                             }));
                           }}
-                          containerClassName="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-purple-150 shadow-2xs"
-                          selectClassName="bg-transparent text-xs font-black text-purple-950 focus:outline-none cursor-pointer border-none py-0.5 outline-none font-mono"
+                          containerClassName="flex-1 min-w-0 flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-purple-150 shadow-2xs"
+                          selectClassName="w-full min-w-0 truncate bg-transparent text-xs font-black text-purple-950 focus:outline-none cursor-pointer border-none py-0.5 outline-none font-mono"
                         />
 
                       </div>
@@ -8587,7 +8587,7 @@ export default function App() {
                       {["Semua Host", "Bandar Lampung", "Tanggamus"].map((tab) => (
                         <button
                           key={tab}
-                          className={`flex-1 text-center py-2 text-xs font-bold transition-all rounded-lg ${
+                          className={`flex-1 text-center py-2 text-[10px] sm:text-xs font-bold transition-all rounded-lg truncate px-1 ${
                             salaryRecapLocationTab === tab
                               ? "bg-white text-purple-700 shadow-sm"
                               : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
