@@ -6114,7 +6114,13 @@ export default function App() {
               </header>
 
               {/* WORKSPACE AREA CONTAINER */}
-              <div className="p-6 max-w-7xl w-full mx-auto space-y-6 flex-1 pb-24 relative">
+              <div
+                className={`w-full mx-auto flex-1 pb-24 relative ${
+                  operatorTab === "reporting_brand"
+                    ? ""
+                    : "p-6 max-w-7xl space-y-6"
+                }`}
+              >
                 {/* ==================== SUBTAB: 1. DASHBOARD UTAMA ⭐ ==================== */}
                 {operatorTab === "dashboard_utama" && (() => {
                   const today = new Date();
@@ -11763,8 +11769,8 @@ export default function App() {
                   <div
                     className={`mx-auto w-full animate-fadeIn min-h-screen pb-12 ${
                       activeReportBrandId === null
-                        ? "max-w-[1600px] space-y-6 bg-[#fcf9f8] px-4 sm:px-6 lg:px-8"
-                        : "max-w-full space-y-0 bg-[#fafafd] px-0 sm:px-0 lg:px-0"
+                        ? "max-w-[1600px] space-y-6 bg-[#fafafc] px-4 sm:px-6 lg:px-8 pt-6"
+                        : "max-w-full space-y-0 bg-[#fafafc] px-0 sm:px-0 lg:px-0"
                     }`}
                     id="operator_reporting_brand_content"
                   >
