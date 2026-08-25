@@ -6045,7 +6045,7 @@ export default function App() {
                     ? ""
                     : operatorTab === "dashboard_utama"
                     ? "p-0 md:p-6 max-w-7xl md:space-y-6"
-                    : "p-6 max-w-7xl space-y-6"
+                    : "p-4 md:p-6 max-w-7xl space-y-4 md:space-y-6"
                 }`}
               >
                 {/* ==================== SUBTAB: 1. DASHBOARD UTAMA ⭐ ==================== */}
