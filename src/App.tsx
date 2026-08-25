@@ -10584,7 +10584,7 @@ export default function App() {
                                           "bg-rose-500"
                                       }`}></div>
                                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                                          {format(new Date(item.date), "dd MMM yy", { locale: id })}
+                                          {Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }).format(new Date(item.date))}
                                       </span>
                                   </div>
                                   
