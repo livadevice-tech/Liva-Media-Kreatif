@@ -31,7 +31,7 @@ export const MobileAdminNav: React.FC<MobileAdminNavProps> = ({
   const bottomNavItems = [
     { id: "dashboard_utama", icon: LayoutDashboard, label: "Home" },
     { id: "reporting_brand", icon: Briefcase, label: "Brand" },
-    { id: "rekap_gaji", icon: Users, label: "Host" },
+    { id: "rekap_gaji", icon: Users, label: "Payroll" },
   ];
 
   const handleTabClick = (tabId: string) => {
