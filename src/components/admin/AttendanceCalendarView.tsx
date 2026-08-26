@@ -249,7 +249,7 @@ export function AttendanceCalendarView({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/50 shadow-sm p-6 overflow-hidden mt-6">
+    <div className="bg-white md:rounded-3xl border-0 md:border md:border-slate-200/50 md:shadow-sm p-4 md:p-6 overflow-hidden mt-0 md:mt-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div className="w-full lg:w-[350px] flex items-center gap-2">
           <div className="flex-1">
