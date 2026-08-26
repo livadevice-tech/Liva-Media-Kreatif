@@ -9517,14 +9517,32 @@ export default function App() {
                         <div>
                           <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
                             <Database className="w-4 h-4 text-purple-600" />
-                            Database Absensi
+                            <span className="hidden sm:inline">Database Absensi</span>
+                            <span className="sm:hidden">Data Absensi</span>
                           </h3>
-                          <p className="text-[11px] text-slate-500 font-medium mt-1">
+                          <p className="hidden sm:block text-[11px] text-slate-500 font-medium mt-1">
                             Menampilkan <span className="font-bold text-slate-700">{filteredLogsList.length}</span> dari {logs.length} data log
+                          </p>
+                          <p className="sm:hidden text-[11px] text-slate-500 font-medium mt-1">
+                            {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                           </p>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                          {/* Mobile Search - ONLY VISIBLE ON MOBILE */}
+                          {dbTabMode !== "calendar" && (
+                            <div className="relative w-full sm:hidden block mb-1 mt-1">
+                              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                              <input
+                                type="text"
+                                placeholder="Cari host atau ID..."
+                                value={globalSearch}
+                                onChange={(e) => setGlobalSearch(e.target.value)}
+                                className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium placeholder:text-slate-400 shadow-3xs"
+                              />
+                            </div>
+                          )}
+
                           {/* Desktop Segmented Control */}
                           <div className="hidden sm:flex bg-slate-100/80 p-1 w-auto rounded-lg border border-slate-200/50">
                             {[
@@ -9602,7 +9620,7 @@ export default function App() {
                           {/* Middle: Search & Dropdown Filters */}
                           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 py-2 md:p-4 md:bg-slate-50/50">
                             {/* Search Input */}
-                            <div className="relative flex-1" id="db_search_input_wrapper">
+                            <div className="relative flex-1 hidden sm:block" id="db_search_input_wrapper">
                               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                               <input
                                 type="text"
