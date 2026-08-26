@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X, Plus, Calendar, Clock, Edit2, Trash2 } from "lucide-react";
 import type { AttendanceLog, HostEmployee, ClientBrand } from "../../types";
 import { SearchableHostSelect } from "./HostManagement";
@@ -248,36 +249,59 @@ export function AttendanceCalendarView({
     }
   };
 
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    // Look for the portal target defined in App.tsx
+    setPortalTarget(document.getElementById("calendar-mobile-header-portal"));
+  }, []);
+
+  const hostSelectorUI = (
+    <div className="w-full lg:w-[350px] flex items-center gap-2">
+      <div className="flex-1">
+        <SearchableHostSelect
+          hosts={hosts}
+          value={selectedHostId}
+          onChange={setSelectedHostId}
+          placeholder="Pilih Host..."
+        />
+      </div>
+      <div className="flex bg-slate-100/70 rounded-xl border border-slate-200/60 p-1">
+        <button
+          onClick={handlePrevHost}
+          disabled={currentHostIndex <= 0}
+          className="p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          title="Host Sebelumnya"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <button
+          onClick={handleNextHost}
+          disabled={currentHostIndex === -1 || currentHostIndex >= hosts.length - 1}
+          className="p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          title="Host Selanjutnya"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-white md:rounded-3xl border-0 md:border md:border-slate-200/50 md:shadow-sm p-4 md:p-6 overflow-hidden mt-0 md:mt-6">
+      
+      {/* Mobile Host Selector Portal */}
+      {portalTarget && createPortal(
+        <div className="p-4 border-b border-slate-200 bg-white">
+          {hostSelectorUI}
+        </div>,
+        portalTarget
+      )}
+
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 md:gap-6 mb-6 md:mb-8">
-        <div className="w-full lg:w-[350px] flex items-center gap-2">
-          <div className="flex-1">
-            <SearchableHostSelect
-              hosts={hosts}
-              value={selectedHostId}
-              onChange={setSelectedHostId}
-              placeholder="Pilih Host..."
-            />
-          </div>
-          <div className="flex bg-slate-100/70 rounded-xl border border-slate-200/60 p-1">
-            <button
-              onClick={handlePrevHost}
-              disabled={currentHostIndex <= 0}
-              className="p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
-              title="Host Sebelumnya"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleNextHost}
-              disabled={currentHostIndex === -1 || currentHostIndex >= hosts.length - 1}
-              className="p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
-              title="Host Selanjutnya"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Desktop Host Selector (or fallback if portal missing) */}
+        <div className={portalTarget ? "hidden sm:block" : ""}>
+          {hostSelectorUI}
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full lg:w-auto">

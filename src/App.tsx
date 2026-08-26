@@ -3850,9 +3850,9 @@ export default function App() {
         return matchStatus;
       })
       .sort((a, b) => {
-        // Sort primarily by date then by timestamp
-        const timeA = new Date(a.date || a.timestamp || 0).getTime();
-        const timeB = new Date(b.date || b.timestamp || 0).getTime();
+        // Sort primarily by precise timestamp, fallback to date
+        const timeA = new Date(a.timestamp || a.date || 0).getTime();
+        const timeB = new Date(b.timestamp || b.date || 0).getTime();
         return dbSortDir === "desc" ? timeB - timeA : timeA - timeB;
       });
   }, [
@@ -9589,6 +9589,11 @@ export default function App() {
                               </button>
                             ))}
                           </div>
+
+                          {/* Portal Target for Calendar Mobile Header */}
+                          {dbTabMode === "calendar" && (
+                            <div id="calendar-mobile-header-portal" className="w-full sm:hidden" />
+                          )}
 
                           {/* Mobile Tabs */}
                           <div className="flex sm:hidden w-full border-b border-slate-200 justify-around">
