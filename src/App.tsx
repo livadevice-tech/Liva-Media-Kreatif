@@ -3850,9 +3850,17 @@ export default function App() {
         return matchStatus;
       })
       .sort((a, b) => {
-        // Sort primarily by precise timestamp, fallback to date
-        const timeA = new Date(a.timestamp || a.date || 0).getTime();
-        const timeB = new Date(b.timestamp || b.date || 0).getTime();
+        // Sort primarily by precise timestamp, fallback to constructed date + checkInTime, then just date
+        const getTime = (log: any) => {
+          if (log.timestamp) return new Date(log.timestamp).getTime();
+          if (log.date && log.checkInTime) {
+            return new Date(`${log.date}T${log.checkInTime}`).getTime();
+          }
+          if (log.date) return new Date(log.date).getTime();
+          return 0;
+        };
+        const timeA = getTime(a);
+        const timeB = getTime(b);
         return dbSortDir === "desc" ? timeB - timeA : timeA - timeB;
       });
   }, [
