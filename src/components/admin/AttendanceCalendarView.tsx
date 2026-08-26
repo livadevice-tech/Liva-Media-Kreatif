@@ -21,49 +21,6 @@ interface AttendanceCalendarViewProps {
   onDeleteLog: (id: string) => Promise<void>;
 }
 
-const MobileFaceIcon = ({ status }: { status: 'absent' | 'late' | 'excused' | 'present' | 'none' }) => {
-  if (status === 'none') return null;
-  
-  const eyes = (
-    <>
-      <circle cx="8" cy="10" r="1.5" fill="#1e293b" />
-      <circle cx="16" cy="10" r="1.5" fill="#1e293b" />
-    </>
-  );
-
-  if (status === 'absent') {
-    return (
-      <svg viewBox="0 0 24 24" className="w-full h-full p-2">
-        {eyes}
-        <path d="M7 16c1.5-2 3.5-2 5-2s3.5 0 5 2" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" fill="none" />
-        <path d="M17 11.5c0 1.5-1 2.5-1 3.5s1 1 1 1 1-1 1-1-1-2-1-3.5z" fill="#1e293b" />
-      </svg>
-    );
-  } else if (status === 'late') {
-    return (
-      <svg viewBox="0 0 24 24" className="w-full h-full p-2">
-        {eyes}
-        <path d="M7 14c0 3 10 3 10 0z" fill="#1e293b" />
-      </svg>
-    );
-  } else if (status === 'excused') {
-    return (
-      <svg viewBox="0 0 24 24" className="w-full h-full p-2">
-        {eyes}
-        <path d="M8 15c1 1 2 1 3 1s2 0 3-1" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" fill="none" />
-      </svg>
-    );
-  } else {
-    // present
-    return (
-      <svg viewBox="0 0 24 24" className="w-full h-full p-2">
-        {eyes}
-        <path d="M7 14c1.5 2 3.5 2 5 2s3.5 0 5-2" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" fill="none" />
-      </svg>
-    );
-  }
-};
-
 type ViewMode = "monthly" | "cutoff";
 
 export function AttendanceCalendarView({ 
@@ -396,24 +353,28 @@ export function AttendanceCalendarView({
               
               const hasLogs = dayLogs.length > 0;
               let mobileCircleBg = "bg-transparent";
-              let faceStatus: 'absent' | 'late' | 'excused' | 'present' | 'none' = 'none';
+              let firstLogBrandLogo = null;
+              let firstLogBrandName = "";
 
               if (hasLogs) {
+                const firstLog = dayLogs[0];
+                firstLogBrandName = firstLog.brandHandled || "";
+                const brand = clientBrands.find(b => b.name === firstLogBrandName);
+                if (brand && brand.logo) {
+                   firstLogBrandLogo = brand.logo;
+                }
+
                 const hasAbsent = dayLogs.some(l => l.status === "Absent");
                 const hasLate = dayLogs.some(l => l.status === "Late");
                 const hasExcused = dayLogs.some(l => l.status === "Excused");
                 if (hasAbsent) {
                    mobileCircleBg = "bg-[#747d7c]"; 
-                   faceStatus = 'absent';
                 } else if (hasLate) {
                    mobileCircleBg = "bg-[#fbe083]"; 
-                   faceStatus = 'late';
                 } else if (hasExcused) {
                    mobileCircleBg = "bg-[#b2db9d]";
-                   faceStatus = 'excused';
                 } else {
                    mobileCircleBg = "bg-[#5bb073]"; 
-                   faceStatus = 'present';
                 }
               }
 
@@ -428,8 +389,19 @@ export function AttendanceCalendarView({
                 >
                   {/* MOBILE VIEW */}
                   <div className="md:hidden flex flex-col items-center justify-start w-full relative min-h-[70px] pt-1">
-                    <div className={`w-11 h-11 flex flex-shrink-0 items-center justify-center rounded-full transition-all ${mobileCircleBg}`}>
-                      {hasLogs && <MobileFaceIcon status={faceStatus} />}
+                    <div className={`w-11 h-11 flex flex-shrink-0 items-center justify-center rounded-full transition-all ${mobileCircleBg} relative`}>
+                      {hasLogs && firstLogBrandLogo ? (
+                        <img src={firstLogBrandLogo} alt={firstLogBrandName} className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
+                      ) : hasLogs ? (
+                        <span className="font-bold text-xs text-slate-800">{firstLogBrandName.charAt(0).toUpperCase()}</span>
+                      ) : null}
+                      
+                      {/* Double Absent Badge */}
+                      {dayLogs.length > 1 && (
+                        <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm">
+                           +{dayLogs.length - 1}
+                        </div>
+                      )}
                     </div>
                     <div className="mt-1 flex items-center justify-center">
                       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isToday ? "bg-[#5bb073] text-white" : "text-slate-400"}`}>
