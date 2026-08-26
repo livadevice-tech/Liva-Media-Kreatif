@@ -581,6 +581,7 @@ export default function App() {
   const [isGlobalConfigsLoaded, setIsGlobalConfigsLoaded] = useState(false);
   const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
   const [isQuotaBannerDismissed, setIsQuotaBannerDismissed] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Checkbox selection states matching the UI Reference
   const [selectedLogIds, setSelectedLogIds] = useState<string[]>([]);
@@ -9546,15 +9547,25 @@ export default function App() {
                         <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
                           {/* Mobile Search - ONLY VISIBLE ON MOBILE */}
                           {dbTabMode !== "calendar" && (
-                            <div className="relative w-full sm:hidden block mb-1 mt-1">
-                              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                              <input
-                                type="text"
-                                placeholder="Cari host atau ID..."
-                                value={globalSearch}
-                                onChange={(e) => setGlobalSearch(e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium placeholder:text-slate-400 shadow-3xs"
-                              />
+                            <div className="w-full sm:hidden flex gap-2 mb-1 mt-1">
+                              <div className="relative flex-1">
+                                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                  type="text"
+                                  placeholder="Cari host atau ID..."
+                                  value={globalSearch}
+                                  onChange={(e) => setGlobalSearch(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium placeholder:text-slate-400 shadow-3xs"
+                                />
+                              </div>
+                              <button 
+                                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                                className={`p-2 rounded-lg border shadow-3xs flex items-center justify-center transition-all ${
+                                  showMobileFilters ? "bg-purple-50 border-purple-200 text-purple-600" : "bg-white border-slate-200 text-slate-500"
+                                }`}
+                              >
+                                <Filter className="w-4 h-4" />
+                              </button>
                             </div>
                           )}
 
@@ -9647,7 +9658,7 @@ export default function App() {
                             </div>
 
                             {/* Dropdowns */}
-                            <div className="flex flex-wrap md:flex-nowrap gap-2">
+                            <div className={`flex flex-col md:flex-row flex-wrap md:flex-nowrap gap-2 ${!showMobileFilters ? 'hidden md:flex' : ''}`}>
                               <select
                                 value={dbPlatformFilter}
                                 onChange={(e) => setDbPlatformFilter(e.target.value)}
