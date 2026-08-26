@@ -9624,7 +9624,7 @@ export default function App() {
                                 onClick={() => setDbSortDir(dbSortDir === "asc" ? "desc" : "asc")}
                                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border border-slate-200 shadow-3xs text-[10px] font-bold text-slate-600 hover:text-purple-600 transition-colors"
                               >
-                                <span>Urutkan {dbSortDir === "asc" ? "Terlama (A-Z)" : "Terbaru (Z-A)"}</span>
+                                <span>Urutkan {dbSortDir === "asc" ? "Waktu Terlama" : "Waktu Terbaru"}</span>
                                 <ArrowUpDown className="w-3 h-3" />
                               </button>
                             </div>
