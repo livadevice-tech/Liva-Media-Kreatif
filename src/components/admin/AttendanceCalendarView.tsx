@@ -360,8 +360,8 @@ export function AttendanceCalendarView({
                 const firstLog = dayLogs[0];
                 firstLogBrandName = firstLog.brandHandled || "";
                 const brand = clientBrands.find(b => b.name === firstLogBrandName);
-                if (brand && brand.logo) {
-                   firstLogBrandLogo = brand.logo;
+                if (brand && brand.logoUrl) {
+                   firstLogBrandLogo = brand.logoUrl;
                 }
 
                 const hasAbsent = dayLogs.some(l => l.status === "Absent");
