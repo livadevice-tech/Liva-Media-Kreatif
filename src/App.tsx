@@ -9698,25 +9698,25 @@ export default function App() {
 
                           {/* Date Filters (Only visible in 'all' mode) */}
                           {dbTabMode === "all" && (
-                          <div className="flex flex-wrap gap-3 items-center px-4 pb-4 bg-slate-50/50">
-                              <div className="flex items-center gap-2 w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-3xs focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
-                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">Dari:</span>
+                          <div className={`flex flex-col sm:flex-row gap-2 px-4 pb-4 bg-slate-50/50 ${!showMobileFilters ? 'hidden md:flex' : ''}`}>
+                              <div className="flex flex-1 items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+                                <Calendar className="w-4 h-4 text-slate-400" />
+                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wide">Dari:</span>
                                 <input
                                   type="date"
                                   value={dbDateFilterStart}
                                   onChange={(e) => setDbDateFilterStart(e.target.value)}
-                                  className="bg-transparent text-xs font-medium text-slate-700 outline-none w-full"
+                                  className="bg-transparent text-[13px] font-semibold text-slate-700 outline-none w-full flex-1 appearance-none"
                                 />
                               </div>
-                              <div className="flex items-center gap-2 w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-3xs focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
-                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">Sampai:</span>
+                              <div className="flex flex-1 items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+                                <Calendar className="w-4 h-4 text-slate-400" />
+                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wide">Sampai:</span>
                                 <input
                                   type="date"
                                   value={dbDateFilterEnd}
                                   onChange={(e) => setDbDateFilterEnd(e.target.value)}
-                                  className="bg-transparent text-xs font-medium text-slate-700 outline-none w-full"
+                                  className="bg-transparent text-[13px] font-semibold text-slate-700 outline-none w-full flex-1 appearance-none"
                                 />
                               </div>
                               {(dbDateFilterStart || dbDateFilterEnd) && (
@@ -9725,9 +9725,9 @@ export default function App() {
                                     setDbDateFilterStart("");
                                     setDbDateFilterEnd("");
                                   }}
-                                  className="text-[10px] font-bold text-red-600 hover:text-red-700 px-3 py-1.5 hover:bg-red-50 rounded-lg transition-colors cursor-pointer w-full md:w-auto text-center"
+                                  className="text-[11px] font-bold text-red-600 hover:text-red-700 px-4 py-2 hover:bg-red-50 rounded-xl transition-colors cursor-pointer w-full sm:w-auto text-center border border-transparent hover:border-red-100"
                                 >
-                                  Reset Tanggal
+                                  Reset
                                 </button>
                               )}
                           </div>
