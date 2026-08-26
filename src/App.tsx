@@ -1330,7 +1330,7 @@ export default function App() {
   const [clientPlatformFilter, setClientPlatformFilter] =
     useState("TikTok Live");
   const [clientReportingTab, setClientReportingTab] = useState<
-    "live" | "engagement" | "product"
+    "live" | "engagement" | "product" | "analysis"
   >("live");
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [clientSelectedMonth, setClientSelectedMonth] = useState<string>(() => {
@@ -5425,6 +5425,13 @@ export default function App() {
                           isClientView={true}
                         />
                       </React.Suspense>
+                    )}
+                    {clientReportingTab === "analysis" && loggedInClientBrandId && (
+                      <AnalysisPerformanceTab
+                        brandId={loggedInClientBrandId}
+                        logs={brandPerformanceLogs.filter(l => l.brandId === loggedInClientBrandId)}
+                        isClientView={true}
+                      />
                     )}
 
                     {clientReportingTab === "product" && (

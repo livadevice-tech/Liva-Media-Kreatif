@@ -8,6 +8,7 @@ import AnalysisFormModal from './AnalysisFormModal';
 interface Props {
   brandId: string;
   logs: BrandPerformanceLogEntry[];
+  isClientView?: boolean;
 }
 
 const METRICS_MAP: Record<string, { label: string; key?: keyof BrandPerformanceLogEntry; compute?: (logs: BrandPerformanceLogEntry[]) => number }> = {
@@ -94,13 +95,15 @@ function AnalysisCard({
   logs,
   onEdit,
   onDelete,
-  onUpdate
+  onUpdate,
+  isClientView
 }: {
   analysis: BrandPerformanceAnalysis;
   logs: BrandPerformanceLogEntry[];
   onEdit: () => void;
   onDelete: () => void;
-  onUpdate: () => void;
+  onUpdate: (id: string, updates: Partial<BrandPerformanceAnalysis>) => Promise<void>;
+  isClientView?: boolean;
 }) {
   const [activeMetric, setActiveMetric] = useState(analysis.comparison_metrics[0] || '');
 
@@ -117,20 +120,11 @@ function AnalysisCard({
   const handleSaveInsight = async () => {
     setIsSaving(true);
     try {
-      await reportingBrandApi.updateAnalysis(analysis.id, {
-        name: analysis.name || '',
-        period_a_start: analysis.period_a_start,
-        period_a_end: analysis.period_a_end,
-        period_b_start: analysis.period_b_start,
-        period_b_end: analysis.period_b_end,
-        platform: analysis.platform,
-        comparison_metrics: analysis.comparison_metrics,
+      await onUpdate(analysis.id, {
         description: editDescription,
-        next_plan: editNextPlan,
-        brand_id: analysis.brand_id
+        next_plan: editNextPlan
       });
       setIsEditingInsight(false);
-      onUpdate();
     } catch (e) {
       console.error(e);
       alert("Gagal menyimpan insight");
@@ -321,22 +315,24 @@ function AnalysisCard({
           </div>
         </div>
         
-        <div className="flex items-center gap-2 shrink-0">
-          <button 
-            onClick={onEdit}
-            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-            title="Edit Analisis"
-          >
-            <Edit3 className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={onDelete}
-            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-            title="Hapus Analisis"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
-        </div>
+        {!isClientView && (
+          <div className="flex items-center gap-2 shrink-0">
+            <button 
+              onClick={onEdit}
+              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+              title="Edit Analisis"
+            >
+              <Edit3 className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={onDelete}
+              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+              title="Hapus Analisis"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
       
       {/* Card Body */}
@@ -502,7 +498,7 @@ function AnalysisCard({
           </div>
         ) : (
           <>
-            {!analysis.description && !analysis.next_plan && (
+            {!isClientView && !analysis.description && !analysis.next_plan && (
               <div className="mt-6 border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-center bg-slate-50/50">
                 <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
                   <Plus className="w-6 h-6 text-slate-400" />
@@ -524,15 +520,17 @@ function AnalysisCard({
             {/* Description & Next Plan Boxes */}
             {(analysis.description || analysis.next_plan) && (
               <div className="grid grid-cols-1 gap-4 mt-6 relative group/insight">
-                <div className="absolute top-2 right-2 opacity-0 group-hover/insight:opacity-100 transition-opacity z-10">
-                   <button 
-                     onClick={() => setIsEditingInsight(true)}
-                     className="p-2 bg-white border border-slate-200 shadow-sm rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                     title="Edit Insight & Plan"
-                   >
-                     <Edit3 className="w-4 h-4" />
-                   </button>
-                </div>
+                {!isClientView && (
+                  <div className="absolute top-2 right-2 opacity-0 group-hover/insight:opacity-100 transition-opacity z-10">
+                     <button 
+                       onClick={() => setIsEditingInsight(true)}
+                       className="p-2 bg-white border border-slate-200 shadow-sm rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                       title="Edit Insight & Plan"
+                     >
+                       <Edit3 className="w-4 h-4" />
+                     </button>
+                  </div>
+                )}
 
                 {analysis.description && (
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden h-full">
@@ -568,7 +566,7 @@ function AnalysisCard({
   );
 }
 
-export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
+export default function AnalysisPerformanceTab({ brandId, logs, isClientView }: Props) {
   const [analyses, setAnalyses] = useState<BrandPerformanceAnalysis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -632,16 +630,18 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
             Bandingkan metrik performa brand Anda antar dua rentang waktu yang berbeda untuk mendapatkan insight pertumbuhan.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setEditingAnalysis(undefined);
-            setIsModalOpen(true);
-          }}
-          className="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium text-sm shadow-sm shadow-indigo-600/20 active:scale-[0.98] whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Buat Analisis Baru
-        </button>
+        {!isClientView && (
+          <button
+            onClick={() => {
+              setEditingAnalysis(undefined);
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium text-sm shadow-sm shadow-indigo-600/20 active:scale-[0.98] whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Buat Analisis Baru
+          </button>
+        )}
       </div>
 
       {isLoading ? (
@@ -658,16 +658,18 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
           <p className="text-sm text-slate-500 mt-2 mb-6 max-w-sm leading-relaxed">
             Mulai analisis performa dengan membandingkan dua rentang waktu berbeda. Temukan insight berharga untuk strategi brand ke depan.
           </p>
-          <button
-            onClick={() => {
-              setEditingAnalysis(undefined);
-              setIsModalOpen(true);
-            }}
-            className="inline-flex items-center px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 transition-all text-sm font-semibold shadow-sm"
-          >
-            <Plus className="w-4 h-4 mr-2 text-slate-400" />
-            Buat Analisis Pertama
-          </button>
+          {!isClientView && (
+            <button
+              onClick={() => {
+                setEditingAnalysis(undefined);
+                setIsModalOpen(true);
+              }}
+              className="inline-flex items-center px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 transition-all text-sm font-semibold shadow-sm"
+            >
+              <Plus className="w-4 h-4 mr-2 text-slate-400" />
+              Buat Analisis Pertama
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
@@ -699,7 +701,11 @@ export default function AnalysisPerformanceTab({ brandId, logs }: Props) {
                 setIsModalOpen(true);
               }}
               onDelete={() => handleDelete(activeAnalysis.id)}
-              onUpdate={() => fetchAnalyses()}
+              onUpdate={async (id, updates) => {
+                await reportingBrandApi.updateAnalysis(id, updates);
+                await fetchAnalyses();
+              }}
+              isClientView={isClientView}
             />
           )}
         </div>
