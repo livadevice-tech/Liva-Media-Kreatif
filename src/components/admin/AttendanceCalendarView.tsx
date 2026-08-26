@@ -391,9 +391,9 @@ export function AttendanceCalendarView({
                   <div className="md:hidden flex flex-col items-center justify-start w-full relative min-h-[70px] pt-1">
                     <div className={`w-11 h-11 flex flex-shrink-0 items-center justify-center rounded-full transition-all ${mobileCircleBg} relative`}>
                       {hasLogs && firstLogBrandLogo ? (
-                        <img src={firstLogBrandLogo} alt={firstLogBrandName} className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
+                        <img src={firstLogBrandLogo} alt={firstLogBrandName} className="w-full h-full object-cover rounded-full" />
                       ) : hasLogs ? (
-                        <span className="font-bold text-xs text-slate-800">{firstLogBrandName.charAt(0).toUpperCase()}</span>
+                        <span className="font-black text-xl text-slate-700/90 leading-none">{firstLogBrandName.charAt(0).toUpperCase()}</span>
                       ) : null}
                       
                       {/* Double Absent Badge */}
