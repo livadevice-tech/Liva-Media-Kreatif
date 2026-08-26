@@ -257,48 +257,49 @@ export function AttendanceCalendarView({
   }, []);
 
   const hostSelectorUI = (
-    <div className="w-full lg:w-[350px] flex items-center gap-2">
+    <div className="w-full lg:w-[350px] flex items-center gap-1.5 sm:gap-2">
       <div className="flex-1">
         <SearchableHostSelect
           hosts={hosts}
           value={selectedHostId}
           onChange={setSelectedHostId}
           placeholder="Pilih Host..."
+          triggerClassName="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 sm:px-3.5 sm:py-2.5 font-bold text-left text-slate-700 hover:bg-slate-100/50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 cursor-pointer transition-all flex items-center justify-between min-h-[36px] sm:min-h-[42px] text-xs sm:text-sm"
         />
       </div>
-      <div className="flex bg-slate-100/70 rounded-xl border border-slate-200/60 p-1">
+      <div className="flex bg-slate-100/70 rounded-xl border border-slate-200/60 p-0.5 sm:p-1">
         <button
           onClick={handlePrevHost}
           disabled={currentHostIndex <= 0}
-          className="p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          className="p-1.5 sm:p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
           title="Host Sebelumnya"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
         <button
           onClick={handleNextHost}
           disabled={currentHostIndex === -1 || currentHostIndex >= hosts.length - 1}
-          className="p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          className="p-1.5 sm:p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
           title="Host Selanjutnya"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
       </div>
     </div>
   );
 
   return (
-    <div className="bg-white md:rounded-3xl border-0 md:border md:border-slate-200/50 md:shadow-sm p-4 md:p-6 overflow-hidden mt-0 md:mt-6">
+    <div className="bg-white md:rounded-3xl border-0 md:border md:border-slate-200/50 md:shadow-sm p-2 sm:p-4 md:p-6 overflow-hidden mt-0 md:mt-6">
       
       {/* Mobile Host Selector Portal */}
       {portalTarget && createPortal(
-        <div className="p-4 border-b border-slate-200 bg-white">
+        <div className="px-3 py-2 border-b border-slate-100 bg-white">
           {hostSelectorUI}
         </div>,
         portalTarget
       )}
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 md:gap-6 mb-6 md:mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 md:gap-6 mb-4 md:mb-8">
         {/* Desktop Host Selector (or fallback if portal missing) */}
         <div className={portalTarget ? "hidden sm:block" : ""}>
           {hostSelectorUI}
@@ -308,7 +309,7 @@ export function AttendanceCalendarView({
           <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50 shadow-inner w-full sm:w-auto justify-center">
             <button
               onClick={() => setViewMode("monthly")}
-              className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer border-0 ${
+              className={`flex-1 sm:flex-none px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "monthly"
                   ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
                   : "bg-transparent text-slate-500 hover:text-slate-700"
@@ -318,7 +319,7 @@ export function AttendanceCalendarView({
             </button>
             <button
               onClick={() => setViewMode("cutoff")}
-              className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer border-0 ${
+              className={`flex-1 sm:flex-none px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "cutoff"
                   ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
                   : "bg-transparent text-slate-500 hover:text-slate-700"
@@ -328,26 +329,26 @@ export function AttendanceCalendarView({
             </button>
           </div>
 
-          <div className="flex items-center justify-between min-w-[220px] bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm mx-auto sm:mx-0">
+          <div className="flex items-center justify-between min-w-[200px] sm:min-w-[220px] bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-200 shadow-sm mx-auto sm:mx-0">
             <button onClick={handlePrevMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
-            <h2 className="text-base font-extrabold text-slate-700">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-700">
               {gridTitle}
             </h2>
             <button onClick={handleNextMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
       </div>
 
       {!selectedHostId ? (
-        <div className="py-20 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-          <div className="w-16 h-16 mb-4 rounded-full bg-white shadow-sm flex items-center justify-center">
-            <span className="text-2xl">📅</span>
+        <div className="py-10 md:py-20 px-4 text-center flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+          <div className="w-12 h-12 md:w-16 md:h-16 mb-4 rounded-full bg-white shadow-sm flex items-center justify-center">
+            <span className="text-xl md:text-2xl">📅</span>
           </div>
-          <p className="font-medium text-sm">Silakan pilih nama host terlebih dahulu untuk melihat kalender absensi.</p>
+          <p className="font-medium text-xs md:text-sm">Silakan pilih nama host terlebih dahulu untuk melihat kalender absensi.</p>
         </div>
       ) : (
         <div className="bg-white md:rounded-2xl md:border border-slate-200/70 overflow-hidden md:shadow-sm mt-2 md:mt-0">
