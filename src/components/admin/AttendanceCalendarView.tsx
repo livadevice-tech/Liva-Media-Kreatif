@@ -352,7 +352,7 @@ export function AttendanceCalendarView({
               const logGroups = Object.values(groupedLogs);
               
               const hasLogs = dayLogs.length > 0;
-              let mobileCircleBg = "bg-transparent";
+              let mobileCircleBg = "bg-transparent border-2 border-dashed border-slate-200";
               let firstLogBrandLogo = null;
               let firstLogBrandName = "";
 
