@@ -250,7 +250,7 @@ export function AttendanceCalendarView({
 
   return (
     <div className="bg-white md:rounded-3xl border-0 md:border md:border-slate-200/50 md:shadow-sm p-4 md:p-6 overflow-hidden mt-0 md:mt-6">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 md:gap-6 mb-6 md:mb-8">
         <div className="w-full lg:w-[350px] flex items-center gap-2">
           <div className="flex-1">
             <SearchableHostSelect
@@ -260,11 +260,11 @@ export function AttendanceCalendarView({
               placeholder="Pilih Host..."
             />
           </div>
-          <div className="flex bg-slate-100 rounded-lg border border-slate-200 p-1">
+          <div className="flex bg-slate-100/70 rounded-xl border border-slate-200/60 p-1">
             <button
               onClick={handlePrevHost}
               disabled={currentHostIndex <= 0}
-              className="p-1.5 rounded text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+              className="p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
               title="Host Sebelumnya"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -272,7 +272,7 @@ export function AttendanceCalendarView({
             <button
               onClick={handleNextHost}
               disabled={currentHostIndex === -1 || currentHostIndex >= hosts.length - 1}
-              className="p-1.5 rounded text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+              className="p-2 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
               title="Host Selanjutnya"
             >
               <ChevronRight className="w-4 h-4" />
@@ -280,11 +280,11 @@ export function AttendanceCalendarView({
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50 shadow-inner">
+        <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full lg:w-auto">
+          <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50 shadow-inner w-full sm:w-auto justify-center">
             <button
               onClick={() => setViewMode("monthly")}
-              className={`px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 ${
+              className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "monthly"
                   ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
                   : "bg-transparent text-slate-500 hover:text-slate-700"
@@ -294,7 +294,7 @@ export function AttendanceCalendarView({
             </button>
             <button
               onClick={() => setViewMode("cutoff")}
-              className={`px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer border-0 ${
+              className={`flex-1 sm:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "cutoff"
                   ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
                   : "bg-transparent text-slate-500 hover:text-slate-700"
@@ -304,14 +304,14 @@ export function AttendanceCalendarView({
             </button>
           </div>
 
-          <div className="flex items-center justify-between min-w-[200px] bg-white px-2 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-            <button onClick={handlePrevMonth} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
+          <div className="flex items-center justify-between min-w-[220px] bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm mx-auto sm:mx-0">
+            <button onClick={handlePrevMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <span className="font-extrabold text-slate-700 text-sm tracking-tight px-3">
+            <h2 className="text-base font-extrabold text-slate-700">
               {gridTitle}
-            </span>
-            <button onClick={handleNextMonth} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
+            </h2>
+            <button onClick={handleNextMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
@@ -388,7 +388,15 @@ export function AttendanceCalendarView({
                   `}
                 >
                   {/* MOBILE VIEW */}
-                  <div className="md:hidden flex flex-col items-center justify-start w-full relative min-h-[70px] pt-1">
+                  <div 
+                    onClick={(e) => { 
+                      if (dayLogs.length > 0) {
+                        e.stopPropagation(); 
+                        handleOpenModal(dayObj.dateStr, dayLogs);
+                      }
+                    }}
+                    className="md:hidden flex flex-col items-center justify-start w-full relative min-h-[70px] pt-1"
+                  >
                     <div className={`w-11 h-11 flex flex-shrink-0 items-center justify-center rounded-full transition-all ${mobileCircleBg} relative`}>
                       {hasLogs && firstLogBrandLogo ? (
                         <img src={firstLogBrandLogo} alt={firstLogBrandName} className="w-full h-full object-cover rounded-full" />
