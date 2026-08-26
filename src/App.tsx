@@ -9723,7 +9723,7 @@ export default function App() {
                           )}
 
                           {/* Bottom: Status Pills */}
-                          <div className="py-2 md:px-5 md:py-4 md:border-t border-slate-100 bg-transparent md:bg-white overflow-x-auto pb-4 md:pb-4 scrollbar-hide">
+                          <div className="hidden md:block py-2 md:px-5 md:py-4 md:border-t border-slate-100 bg-transparent md:bg-white overflow-x-auto pb-4 md:pb-4 scrollbar-hide">
                             <div className="flex flex-wrap gap-2 px-4 md:px-0" id="database_pill_filters">
                             {[
                               { id: "All", label: "Semua Log", color: "bg-slate-400", text: "text-slate-600", activeBg: "bg-slate-900 text-white shadow-sm ring-1 ring-slate-900/10", activeCount: "bg-white/20 text-white" },
