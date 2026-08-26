@@ -3792,7 +3792,10 @@ export default function App() {
       if (dbTabMode === "today") {
         const datePartRaw = item.date || (typeof item.timestamp === "string" ? item.timestamp.split(" ")[0] : "");
         const datePart = normalizeDateYMD(datePartRaw);
-        matchDate = datePart === filterReferenceDate;
+        const today = new Date();
+        const pad = (num: number) => String(num).padStart(2, "0");
+        const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+        matchDate = datePart === todayStr;
       } else if (dbDateFilterStart || dbDateFilterEnd) {
         // use item.date if available, else fallback to extracting from timestamp if it's a string
         const datePartRaw =
