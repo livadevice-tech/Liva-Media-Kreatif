@@ -37,7 +37,7 @@ export function AttendanceCalendarView({
 }: AttendanceCalendarViewProps) {
   const [selectedHostId, setSelectedHostId] = useState<string>("");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>("monthly");
+  const [viewMode, setViewMode] = useState<ViewMode>("cutoff");
 
   const currentHostIndex = hosts.findIndex((h) => h.id === selectedHostId);
 
@@ -305,11 +305,11 @@ export function AttendanceCalendarView({
           {hostSelectorUI}
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full lg:w-auto">
-          <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50 shadow-inner w-full sm:w-auto justify-center">
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full lg:w-auto">
+          <div className="flex bg-slate-100/80 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-slate-200/50 shadow-inner w-full sm:w-auto justify-center">
             <button
               onClick={() => setViewMode("monthly")}
-              className={`flex-1 sm:flex-none px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer border-0 ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "monthly"
                   ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
                   : "bg-transparent text-slate-500 hover:text-slate-700"
@@ -319,7 +319,7 @@ export function AttendanceCalendarView({
             </button>
             <button
               onClick={() => setViewMode("cutoff")}
-              className={`flex-1 sm:flex-none px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer border-0 ${
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-bold transition-all cursor-pointer border-0 ${
                 viewMode === "cutoff"
                   ? "bg-white text-purple-700 shadow-sm ring-1 ring-black/5"
                   : "bg-transparent text-slate-500 hover:text-slate-700"
@@ -329,15 +329,15 @@ export function AttendanceCalendarView({
             </button>
           </div>
 
-          <div className="flex items-center justify-between min-w-[200px] sm:min-w-[220px] bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-200 shadow-sm mx-auto sm:mx-0">
-            <button onClick={handlePrevMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
-              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="flex items-center justify-between min-w-[200px] sm:min-w-[220px] bg-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-slate-200 shadow-sm mx-auto sm:mx-0">
+            <button onClick={handlePrevMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent flex-shrink-0">
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
             </button>
-            <h2 className="text-sm sm:text-base font-extrabold text-slate-700">
+            <h2 className="text-xs sm:text-base font-extrabold text-slate-700 mx-2 truncate">
               {gridTitle}
             </h2>
-            <button onClick={handleNextMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent">
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            <button onClick={handleNextMonth} className="p-1 rounded-md hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer border-0 bg-transparent flex-shrink-0">
+              <ChevronRight className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
