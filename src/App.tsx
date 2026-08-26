@@ -9616,7 +9616,7 @@ export default function App() {
                           
                           {/* Mobile-only Summary & Sort Row */}
                           {dbTabMode !== "calendar" && (
-                            <div className="flex sm:hidden justify-between items-center py-2.5 px-4 bg-slate-50/50 border-b border-slate-100/80">
+                            <div className="flex sm:hidden w-full justify-between items-center py-3 px-1 border-b border-slate-100/80">
                               <div className="text-[11px] font-bold text-slate-500">
                                 <span className="text-purple-600 text-[13px]">{filteredLogsList.length}</span> Absensi
                               </div>
