@@ -9514,18 +9514,33 @@ export default function App() {
                     <div className="flex flex-col bg-transparent md:bg-white md:border border-slate-200/60 md:rounded-2xl md:shadow-sm mb-6" id="operator_database_unified_toolbar">
                       {/* Top Header: Title, Segmented Control, Actions */}
                       <div className="flex flex-col xl:flex-row xl:items-center justify-between py-2 md:p-5 gap-4 md:border-b border-slate-100">
-                        <div>
-                          <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                            <Database className="w-4 h-4 text-purple-600" />
-                            <span className="hidden sm:inline">Database Absensi</span>
-                            <span className="sm:hidden">Data Absensi</span>
-                          </h3>
-                          <p className="hidden sm:block text-[11px] text-slate-500 font-medium mt-1">
-                            Menampilkan <span className="font-bold text-slate-700">{filteredLogsList.length}</span> dari {logs.length} data log
-                          </p>
-                          <p className="sm:hidden text-[11px] text-slate-500 font-medium mt-1">
-                            {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                          </p>
+                        <div className="flex justify-between items-start w-full xl:w-auto">
+                          <div>
+                            <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                              <Database className="w-4 h-4 text-purple-600" />
+                              <span className="hidden sm:inline">Database Absensi</span>
+                              <span className="sm:hidden">Data Absensi</span>
+                            </h3>
+                            <p className="hidden sm:block text-[11px] text-slate-500 font-medium mt-1">
+                              Menampilkan <span className="font-bold text-slate-700">{filteredLogsList.length}</span> dari {logs.length} data log
+                            </p>
+                            <p className="sm:hidden text-[11px] text-slate-500 font-medium mt-1">
+                              {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                            </p>
+                          </div>
+                          
+                          {/* Mobile Action Button (Top Right) */}
+                          <button
+                            id="manual_attendance_log_modal_trigger_mobile"
+                            onClick={() => setShowManualForm(!showManualForm)}
+                            className={`sm:hidden p-2 rounded-xl transition-all shadow-sm border ${
+                              showManualForm
+                                ? "bg-slate-800 text-white border-slate-800"
+                                : "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+                            }`}
+                          >
+                            {showManualForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                          </button>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
@@ -9592,7 +9607,7 @@ export default function App() {
                           <button
                             id="manual_attendance_log_modal_trigger"
                             onClick={() => setShowManualForm(!showManualForm)}
-                            className={`w-full sm:w-auto font-black py-2 px-4 rounded-lg text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm border ${
+                            className={`hidden sm:flex w-full sm:w-auto font-black py-2 px-4 rounded-lg text-xs transition-all items-center justify-center gap-2 cursor-pointer shadow-sm border ${
                               showManualForm
                                 ? "bg-slate-800 hover:bg-slate-900 text-white border-slate-800"
                                 : "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
