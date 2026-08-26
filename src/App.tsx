@@ -9614,6 +9614,22 @@ export default function App() {
                             ))}
                           </div>
                           
+                          {/* Mobile-only Summary & Sort Row */}
+                          {dbTabMode !== "calendar" && (
+                            <div className="flex sm:hidden justify-between items-center py-2.5 px-4 bg-slate-50/50 border-b border-slate-100/80">
+                              <div className="text-[11px] font-bold text-slate-500">
+                                <span className="text-purple-600 text-[13px]">{filteredLogsList.length}</span> Absensi
+                              </div>
+                              <button
+                                onClick={() => setDbSortDir(dbSortDir === "asc" ? "desc" : "asc")}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border border-slate-200 shadow-3xs text-[10px] font-bold text-slate-600 hover:text-purple-600 transition-colors"
+                              >
+                                <span>Urutkan {dbSortDir === "asc" ? "Terlama (A-Z)" : "Terbaru (Z-A)"}</span>
+                                <ArrowUpDown className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+
                           {/* Action Button */}
                           <button
                             id="manual_attendance_log_modal_trigger"
