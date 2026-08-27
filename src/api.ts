@@ -12,7 +12,6 @@ import type {
   AdminAccount,
   AttendanceLog,
   ClientBrand,
-  ClientLead,
   ClientReporting,
   HostEmployee,
   HostActivityLog,
@@ -237,22 +236,6 @@ export const clientBrandsApi = {
   delete: (id: string) => request<void>('DELETE', `/client-brands/${id}`),
 };
 
-// ==================================================================
-// CLIENT LEADS
-// ==================================================================
-export const clientLeadsApi = {
-  /** Ambil semua leads */
-  getAll: () => request<ClientLead[]>('GET', '/client-leads'),
-
-  /** Buat lead baru */
-  create: (lead: ClientLead) => request<{ id: string }>('POST', '/client-leads', lead),
-
-  /** Update lead */
-  update: (id: string, lead: ClientLead) => request<void>('PUT', `/client-leads/${id}`, lead),
-
-  /** Hapus lead */
-  delete: (id: string) => request<void>('DELETE', `/client-leads/${id}`),
-};
 
 // ==================================================================
 // ADMIN ACCOUNTS
@@ -362,8 +345,6 @@ export async function syncToMySQL(
     'alerts': alertsApi as unknown as SyncApi,
     'client-brands': clientBrandsApi as unknown as SyncApi,
     'client_brands': clientBrandsApi as unknown as SyncApi,
-    'client-leads': clientLeadsApi as unknown as SyncApi,
-    'client_leads': clientLeadsApi as unknown as SyncApi,
     'admin-accounts': adminAccountsApi as unknown as SyncApi,
     'admin_accounts': adminAccountsApi as unknown as SyncApi,
   };

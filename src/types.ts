@@ -216,15 +216,6 @@ export interface ClientReporting {
   publicUrl?: string;
 }
 
-export interface ClientLead {
-  id: string;
-  name: string;
-  contactPerson: string;
-  contactNumber: string;
-  platformInterest: string;
-  status: "New" | "Contacted" | "Meeting Scheduled" | "Proposal Sent" | "Negotiation" | "Closed Won" | "Closed Lost";
-  notes: string;
-}
 
 export type ReportDateFilterType = "custom" | "daily" | "weekly" | "monthly" | "latest" | "all" | "month" | "1_month" | "3_months";
 

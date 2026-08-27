@@ -2,7 +2,6 @@ type BackupCollectionName =
   | "hosts"
   | "logs"
   | "clientBrands"
-  | "clientLeads"
   | "schedules"
   | "brands"
   | "shifts"
@@ -13,7 +12,6 @@ export interface DatabaseBackupPayload {
   hosts: readonly unknown[];
   logs: readonly unknown[];
   clientBrands: readonly unknown[];
-  clientLeads: readonly unknown[];
   schedules: readonly unknown[];
   brands: readonly unknown[];
   shifts: readonly unknown[];
@@ -27,7 +25,6 @@ export interface BackupImportCandidate {
   hosts?: unknown;
   logs?: unknown;
   clientBrands?: unknown;
-  clientLeads?: unknown;
   schedules?: unknown;
   brands?: unknown;
   shifts?: unknown;
@@ -42,7 +39,6 @@ const BACKUP_COLLECTIONS: Array<{
   { collectionName: "hosts", localKey: "mcn_hosts" },
   { collectionName: "logs", localKey: "mcn_logs" },
   { collectionName: "client_brands", localKey: "mcn_client_brands" },
-  { collectionName: "client_leads", localKey: "mcn_client_leads" },
 ];
 
 const isArray = (value: unknown): value is unknown[] => Array.isArray(value);
@@ -54,7 +50,6 @@ export function buildDatabaseBackupPayload(
     hosts: collections.hosts,
     logs: collections.logs,
     clientBrands: collections.clientBrands,
-    clientLeads: collections.clientLeads,
     schedules: collections.schedules,
     brands: collections.brands,
     shifts: collections.shifts,
@@ -110,7 +105,6 @@ export function extractBackupImportCollections(
     ["hosts", "hosts"],
     ["logs", "logs"],
     ["clientBrands", "clientBrands"],
-    ["clientLeads", "clientLeads"],
     ["schedules", "schedules"],
     ["brands", "brands"],
     ["shifts", "shifts"],

@@ -308,30 +308,6 @@ async function importClientBrands(conn: mysql.Connection): Promise<number> {
   }
   return count;
 }
-
-// ------------------------------------------------------------------
-// IMPORT: client_leads
-// ------------------------------------------------------------------
-async function importClientLeads(conn: mysql.Connection): Promise<number> {
-  const data = readExport('client_leads');
-  let count = 0;
-
-  for (const l of data) {
-    await conn.execute(`
-      INSERT IGNORE INTO client_leads (
-        id, name, contact_person, contact_number,
-        platform_interest, status, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [
-      l.id, l.name, l.contactPerson || null,
-      l.contactNumber || null, l.platformInterest || null,
-      l.status || 'New', l.notes || null,
-    ]);
-    count++;
-  }
-  return count;
-}
-
 // ------------------------------------------------------------------
 // IMPORT: admin_accounts
 // ------------------------------------------------------------------
@@ -438,9 +414,6 @@ async function main() {
     results['client_brands'] = await importClientBrands(conn);
     console.log(`${results['client_brands']} records (+ sessions, accounts, invoices, berkas)`);
 
-    process.stdout.write('   client_leads       → ');
-    results['client_leads'] = await importClientLeads(conn);
-    console.log(`${results['client_leads']} records`);
 
     process.stdout.write('   admin_accounts     → ');
     results['admin_accounts'] = await importAdminAccounts(conn);

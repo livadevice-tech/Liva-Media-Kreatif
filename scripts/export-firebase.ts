@@ -30,7 +30,6 @@ const COLLECTIONS_TO_EXPORT = [
   'schedules',
   'kpi_alerts',
   'client_brands',
-  'client_leads',
   'admin_accounts',
   'client_reporting',
   'studio_items',

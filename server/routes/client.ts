@@ -371,39 +371,6 @@ export function registerClientRoutes(app: Express) {
     res.json({ success: true });
   }));
 
-  app.get("/api/client-leads", asyncHandler(async (req: Request, res: Response) => {
-    const rows = await queryMany<ClientLeadRow>(`SELECT * FROM client_leads ORDER BY created_at DESC`);
-    const mapped = rows.map((l) => ({
-      id: l.id,
-      name: l.name,
-      contactPerson: l.contact_person,
-      contactNumber: l.contact_number,
-      platformInterest: l.platform_interest,
-      status: l.status,
-      notes: l.notes,
-    }));
-    res.json(mapped);
-  }));
-
-  app.post("/api/client-leads", asyncHandler(async (req: Request, res: Response) => {
-    const l = req.body;
-    const id = l.id || genId("lead");
-    await execute(`INSERT INTO client_leads (id, name, contact_person, contact_number, platform_interest, status, notes) VALUES (?,?,?,?,?,?,?)`,
-      [id, l.name, l.contactPerson || null, l.contactNumber || null, l.platformInterest || null, l.status || "New", l.notes || null]);
-    res.status(201).json({ id });
-  }));
-
-  app.put("/api/client-leads/:id", asyncHandler(async (req: Request, res: Response) => {
-    const l = req.body;
-    await execute(`UPDATE client_leads SET name=?, contact_person=?, contact_number=?, platform_interest=?, status=?, notes=? WHERE id=?`,
-      [l.name, l.contactPerson || null, l.contactNumber || null, l.platformInterest || null, l.status || "New", l.notes || null, req.params.id]);
-    res.json({ success: true });
-  }));
-
-  app.delete("/api/client-leads/:id", asyncHandler(async (req: Request, res: Response) => {
-    await execute(`DELETE FROM client_leads WHERE id = ?`, [req.params.id]);
-    res.json({ success: true });
-  }));
 
   app.get("/api/admin-accounts", asyncHandler(async (req: Request, res: Response) => {
     const admins = await queryMany<AdminAccountRow>(`SELECT id, name, username, password_hash, created_at FROM admin_accounts`);

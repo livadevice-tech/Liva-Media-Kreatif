@@ -247,22 +247,6 @@ CREATE TABLE IF NOT EXISTS brand_berkas (
   INDEX idx_brand_id (brand_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ----------------------------------------------------------
--- 13. CLIENT_LEADS (ClientLead)
--- ----------------------------------------------------------
-CREATE TABLE IF NOT EXISTS client_leads (
-  id                VARCHAR(100)  NOT NULL,
-  name              VARCHAR(150)  NOT NULL,
-  contact_person    VARCHAR(100),
-  contact_number    VARCHAR(40),
-  platform_interest VARCHAR(150),
-  status            ENUM('New','Contacted','Meeting Scheduled','Proposal Sent','Negotiation','Closed Won','Closed Lost') DEFAULT 'New',
-  notes             TEXT,
-  created_at        TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
-  updated_at        TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------
 -- 14. ADMIN_ACCOUNTS (AdminAccount)

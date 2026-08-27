@@ -127,7 +127,6 @@ import {
   ReportDateFilterType,
   ClientBrand,
   ClientReporting,
-  ClientLead,
   ShiftSchedule,
   AdminAccount,
 } from "./types";
@@ -254,7 +253,6 @@ import {
   schedulesApi,
   alertsApi,
   clientBrandsApi,
-  clientLeadsApi,
   adminAccountsApi,
   settingsApi,
   testDbConnection,
@@ -283,8 +281,6 @@ import { ReportMetricCard } from "./components/reporting/ReportMetricCard";
 import { ReportFiltersBar } from "./components/reporting/ReportFiltersBar";
 import { ReportRawSessionsCard } from "./components/reporting/ReportRawSessionsCard";
 import { UploadHistoryCard } from "./components/reporting/UploadHistoryCard";
-import { LeadPipelinePanel } from "./components/reporting/LeadPipelinePanel";
-import { LeadFormModal } from "./components/reporting/LeadFormModal";
 import {
   ReportingWorkspaceHeader,
   ReportingWorkspaceTabs,
@@ -788,7 +784,6 @@ export default function App() {
   const [hosts, _setHosts] = useState<HostEmployee[]>([]);
   const [logs, _setLogs] = useState<AttendanceLog[]>([]);
   const [clientBrands, _setClientBrands] = useState<ClientBrand[]>([]);
-  const [clientLeads, _setClientLeads] = useState<ClientLead[]>([]);
   const [violations, setViolations] = useState<any[]>([]);
 
   const activeBrandNames = useMemo(() => clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map(cb => cb.name) : brands, [clientBrands, brands]);
@@ -1063,15 +1058,7 @@ export default function App() {
           );
         }
 
-        // 5. client_leads
-        if (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.clientLeads)) {
-          loadTasks.push(
-            clientLeadsApi
-              .getAll()
-              .then(_setClientLeads)
-              .catch((err) => handleQuotaError(err, "client_leads")),
-          );
-        }
+        // 5. client_leads (Removed)
 
         // 6. schedules
         if (
@@ -1238,16 +1225,6 @@ export default function App() {
     });
   }, []);
 
-  const setClientLeads = useCallback((action: React.SetStateAction<ClientLead[]>) => {
-    _setClientLeads((prev) => {
-      const next =
-        typeof action === "function"
-          ? (action as (prevState: ClientLead[]) => ClientLead[])(prev)
-          : action;
-      return next;
-    });
-  }, []);
-
   // Modal States
   const [brandFormEditor, setBrandFormEditor] =
     useState<Partial<ClientBrand> | null>(null);
@@ -1257,10 +1234,6 @@ export default function App() {
   const [reportFormModal, setReportFormModal] = useState<{
     isOpen: boolean;
     data: Partial<ClientReporting>;
-  }>({ isOpen: false, data: {} });
-  const [leadFormModal, setLeadFormModal] = useState<{
-    isOpen: boolean;
-    data: Partial<ClientLead>;
   }>({ isOpen: false, data: {} });
   const [leadSearchQuery, setLeadSearchQuery] = useState("");
 
@@ -4507,7 +4480,6 @@ export default function App() {
         hosts,
         logs,
         clientBrands,
-        clientLeads,
         schedules,
         brands,
         shifts,
@@ -4571,8 +4543,6 @@ export default function App() {
               if (backupCollections.logs) setLogs(backupCollections.logs);
               if (backupCollections.clientBrands)
                 setClientBrands(backupCollections.clientBrands);
-              if (backupCollections.clientLeads)
-                setClientLeads(backupCollections.clientLeads);
               if (backupCollections.schedules)
                 setSchedules(backupCollections.schedules);
               if (backupCollections.brands) setBrands(backupCollections.brands);
@@ -4610,7 +4580,6 @@ export default function App() {
       { tabId: "brand_resources", label: "Panduan & Script", icon: BookOpen, category: "cat-client" },
       { tabId: "reporting_brand", label: "Reporting Brand (Upload)", icon: LineChart, category: "cat-client" },
       { tabId: "invoice", label: "Invoice & Berkas", icon: Receipt, category: "cat-client" },
-      { tabId: "leads", label: "Leads/Calon Client", icon: Users, category: "cat-client" },
       { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
       { tabId: "settings", label: "Platform & Shift", icon: Sliders, category: "cat-system" },
       { type: "header", label: "Keamanan Akun", key: "cat-security" },
@@ -11783,107 +11752,6 @@ export default function App() {
                     />
                   </div>
                 )}
-                {/* ==================== SUBTAB: LEADS / CALON KLIEN ==================== */}
-                {operatorTab === "leads" && (
-                  <div
-                    className="space-y-6 animate-fadeIn"
-                    id="operator_leads_content"
-                  >
-                    <LeadPipelinePanel
-                      leads={clientLeads}
-                      leadSearchQuery={leadSearchQuery}
-                      onLeadSearchQueryChange={setLeadSearchQuery}
-                      onCreateLead={() =>
-                        setLeadFormModal({ isOpen: true, data: {} })
-                      }
-                      onEditLead={(lead) =>
-                        setLeadFormModal({ isOpen: true, data: lead })
-                      }
-                      onDeleteLead={async (lead) => {
-                        requestConfirm(
-                          "Hapus Lead Klien?",
-                          `Data pipeline calon klien ini akan dihapus permanen. Lanjutkan?`,
-                          async () => {
-                            try {
-                              if (typeof clientLeadsApi !== "undefined" && clientLeadsApi.delete) {
-                                await clientLeadsApi.delete(lead.id);
-                              }
-                              setClientLeads((prev) =>
-                                prev.filter((b) => b.id !== lead.id),
-                              );
-                            } catch (error) {
-                              console.error("Gagal hapus lead:", error);
-                              customAlert("Gagal menghapus lead dari server.");
-                            }
-                          },
-                          "danger",
-                        );
-                      }}
-                      onStatusChange={async (leadId, status) => {
-                        try {
-                          const updatedLead = clientLeads.find((l) => l.id === leadId);
-                          if (updatedLead) {
-                            if (typeof clientLeadsApi !== "undefined" && clientLeadsApi.update) {
-                              await clientLeadsApi.update(leadId, { ...updatedLead, status });
-                            }
-                            setClientLeads((p) =>
-                              p.map((x) =>
-                                x.id === leadId ? { ...x, status } : x,
-                              ),
-                            );
-                          }
-                        } catch (error) {
-                          console.error("Gagal update status lead:", error);
-                          customAlert("Gagal mengupdate status lead ke server.");
-                        }
-                      }}
-                    />
-
-                    <LeadFormModal
-                      isOpen={leadFormModal.isOpen}
-                      lead={leadFormModal.data}
-                      platforms={platforms}
-                      onClose={() => setLeadFormModal({ isOpen: false, data: {} })}
-                      onSubmit={async (newLead) => {
-                        try {
-                          if (leadFormModal.data.id) {
-                            if (typeof clientLeadsApi !== "undefined" && clientLeadsApi.update) {
-                              await clientLeadsApi.update(newLead.id, newLead);
-                            }
-                            setClientLeads((prev) =>
-                              prev.map((l) => (l.id === newLead.id ? newLead : l)),
-                            );
-                            addNotification(
-                              "💼 Informasi Lead Diupdate",
-                              `Data lead "${newLead.name}" telah diupdate oleh admin.`,
-                              "info",
-                              "leads",
-                            );
-                          } else {
-                            if (typeof clientLeadsApi !== "undefined" && clientLeadsApi.create) {
-                              const res = await clientLeadsApi.create(newLead);
-                              if (res && res.id && res.id !== newLead.id) {
-                                newLead.id = res.id;
-                              }
-                            }
-                            setClientLeads((prev) => [...prev, newLead]);
-                            addNotification(
-                              "🔥 Leads Calon Klien Baru",
-                              `Ada registrasi lead prospek baru masuk untuk "${newLead.name}" via platform "${newLead.platformInterest}".`,
-                              "warning",
-                              "leads",
-                            );
-                          }
-                          setLeadFormModal({ isOpen: false, data: {} });
-                        } catch (error) {
-                          console.error("Gagal simpan lead:", error);
-                          customAlert("Gagal menyimpan data lead ke server.");
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-
                 {/* ==================== SUBTAB: SETTINGS CONFIGURATION ⚙️ ==================== */}
                 {operatorTab === "settings" && (
                   <div
