@@ -41,13 +41,21 @@ const getBrandColor = (brandName: string) => {
 
 // Map real studio names to short aliases if possible
 const getStudioAlias = (studioName: string) => {
-  if (studioName.toLowerCase().includes("bandar lampung 1")) return "SBA1";
-  if (studioName.toLowerCase().includes("bandar lampung 2")) return "SBA2";
-  if (studioName.toLowerCase().includes("bandar lampung 3")) return "SBA3";
-  if (studioName.toLowerCase().includes("bandar lampung")) return "SBA1";
-  if (studioName.toLowerCase().includes("cibubur 1")) return "SBB1";
-  if (studioName.toLowerCase().includes("pesanggrahan")) return "SPSW";
-  return studioName.length > 5 ? studioName.substring(0, 5).toUpperCase() : studioName;
+  const name = (studioName || "").toLowerCase();
+  if (name.includes("sba1") || name.includes("bandar lampung 1")) return "SBA1";
+  if (name.includes("sba2") || name.includes("bandar lampung 2")) return "SBA2";
+  if (name.includes("sba3") || name.includes("bandar lampung 3")) return "SBA3";
+  if (name.includes("bandar lampung")) return "SBA1";
+  if (name.includes("sbb1") || name.includes("cibubur 1") || name.includes("cibubur")) return "SBB1";
+  if (name.includes("spsw") || name.includes("pesanggrahan") || name.includes("pesawaran")) return "SPSW";
+  if (name.includes("stp1") || name.includes("tanggamus 1") || name.includes("tanggamus")) return "STP1";
+  
+  // Jika sudah inisial (pendek), kembalikan langsung
+  if (studioName.length <= 4) return studioName.toUpperCase();
+  
+  // Fallback: buat inisial otomatis dari huruf pertama tiap kata
+  const initials = studioName.split(" ").map(w => w[0]).join("").toUpperCase();
+  return initials.length > 4 ? initials.substring(0, 4) : initials;
 };
 
 export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ schedules, clientBrands, onMenuClick }) => {
