@@ -7869,18 +7869,182 @@ export default function App() {
                 {operatorTab === "rekap_gaji" && (
                   <div
                     id="operator_rekap_gaji_content"
-                    className="space-y-6 animate-fadeIn pb-12"
+                    className="md:space-y-6 animate-fadeIn pb-12"
                   >
                     
+                    {/* MOBILE PAGE HEADER */}
+                    <div className="md:hidden flex items-center justify-between px-4 pt-6 pb-2">
+                      <div>
+                        <h1 className="text-2xl font-black text-[#19192c] font-sans tracking-tight">Payroll</h1>
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">Kelola dan hitung gaji host</p>
+                      </div>
+                      <button 
+                        onClick={() => setIsPayrollConfigOpen(!isPayrollConfigOpen)}
+                        className="w-10 h-10 bg-[#f7f5ff] rounded-[14px] flex items-center justify-center border border-purple-50 transition-colors active:scale-95 shadow-sm"
+                      >
+                        <Settings className="w-5 h-5 text-[#6B46FF]" />
+                      </button>
+                    </div>
+
+                    <div className="md:hidden px-4 mb-4 mt-2">
+                       {/* MOBILE TOP CONTROLS (Settings, Search, Date Range, Summary) */}
+                       <div className="bg-white border border-slate-100 rounded-[20px] p-2 space-y-2 shadow-xs">
+                         {/* Setting Payroll Config Button */}
+                         <button onClick={() => setIsPayrollConfigOpen(!isPayrollConfigOpen)} className="w-full flex items-center p-3 hover:bg-slate-50 rounded-xl transition-colors border border-slate-100/50">
+                            <div className="w-10 h-10 bg-[#f7f5ff] rounded-[12px] flex items-center justify-center shrink-0 mr-3 shadow-3xs">
+                               <Settings className="w-5 h-5 text-[#6B46FF]" />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                               <div className="font-bold text-slate-900 text-sm leading-tight truncate">Setting Payroll Configuration</div>
+                               <div className="text-[10px] text-slate-500 truncate mt-0.5">Atur parameter dan komponen perhitungan gaji</div>
+                            </div>
+                            <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform shrink-0 ml-2 ${isPayrollConfigOpen ? 'rotate-180' : ''}`} />
+                         </button>
+
+                         {/* Mobile Search Box */}
+                         <div className="relative w-full">
+                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B46FF] w-4 h-4" />
+                             <input 
+                               placeholder="Cari host untuk perhitungan gaji..." 
+                               value={globalSearch}
+                               onChange={(e) => setGlobalSearch(e.target.value)}
+                               className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-3 text-xs text-slate-900 shadow-sm focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none font-medium placeholder:text-slate-400 transition-all" 
+                             />
+                         </div>
+
+                         {/* Mobile Date Range Selector */}
+                         <div className="relative w-full flex items-center bg-white border border-slate-200 rounded-xl p-3 shadow-sm active:bg-slate-50 transition-colors">
+                             <div className="w-10 h-10 bg-[#f7f5ff] rounded-[12px] flex items-center justify-center shrink-0 mr-3 shadow-3xs">
+                                 <Calendar className="w-5 h-5 text-[#6B46FF]" />
+                             </div>
+                             <div className="flex-1 min-w-0">
+                                 <div className="font-bold text-slate-900 text-sm leading-tight truncate">
+                                   {(() => {
+                                      if (timeFilter === "Semua") return "Semua Tanggal";
+                                      if (salarySettings.useCutOff) {
+                                        return `Cut-off Siklus`;
+                                      }
+                                      const refDateObj = new Date(filterReferenceDate);
+                                      if (isNaN(refDateObj.getTime())) return "Periode Aktif";
+                                      const m = refDateObj.getMonth();
+                                      const yr = refDateObj.getFullYear();
+                                      const monthNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+                                      return `25 ${monthNames[m]} ${yr}`;
+                                   })()}
+                                 </div>
+                                 <div className="text-[10px] text-slate-500 truncate mt-0.5">
+                                   {(() => {
+                                      if (timeFilter === "Semua") return "Semua periode yang tersedia";
+                                      if (salarySettings.useCutOff) return "Mengikuti siklus otomatis";
+                                      const refDateObj = new Date(filterReferenceDate);
+                                      if (isNaN(refDateObj.getTime())) return "";
+                                      const m = refDateObj.getMonth();
+                                      const months = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+                                      const prevM = m === 0 ? 11 : m - 1;
+                                      return `16 ${months[prevM]} - 15 ${months[m]}`;
+                                   })()}
+                                 </div>
+                             </div>
+                             <ChevronDown className="w-5 h-5 text-slate-400 shrink-0 ml-2" />
+                             {/* Transparent Overlay Select */}
+                             <CutoffPeriodSelector
+                                id="mobile_toolbar_select_cutoff"
+                                value={(() => {
+                                  if (timeFilter === "Semua") return "Semua";
+                                  if (salarySettings.useCutOff) {
+                                    return getCutoffMonthForDate(filterReferenceDate);
+                                  }
+                                  const refDateObj = new Date(filterReferenceDate);
+                                  if (isNaN(refDateObj.getTime())) return "";
+                                  const targetMonth = refDateObj.getMonth();
+                                  const targetYear = refDateObj.getFullYear();
+                                  return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}`;
+                                })()}
+                                availableCutoffMonths={availableCutoffMonths}
+                                onChange={(value) => {
+                                  if (!value) return;
+                                  if (value === "Semua") {
+                                    setTimeFilter("Semua");
+                                    return;
+                                  }
+                                  const [yearStr, monthStr] = value.split("-");
+                                  const year = Number(yearStr);
+                                  const monthIdx = Number(monthStr) - 1;
+                                  const dateToSet = new Date(year, monthIdx, 15);
+                                  const formatted = `${dateToSet.getFullYear()}-${String(dateToSet.getMonth() + 1).padStart(2, "0")}-15`;
+
+                                  setFilterReferenceDate(formatted);
+                                  setTimeFilter("Bulanan");
+                                  setSalarySettings((prev) => ({
+                                    ...prev,
+                                    useCutOff: true,
+                                    cutOffStartDay: 16,
+                                    cutOffEndDay: 15,
+                                  }));
+                                }}
+                                containerClassName="absolute inset-0 w-full h-full opacity-0"
+                                selectClassName="w-full h-full appearance-none cursor-pointer"
+                              />
+                         </div>
+
+                         {/* Mobile Summary Metric Button */}
+                         <details className="group w-full block list-none [&::-webkit-details-marker]:hidden bg-white border border-slate-100 rounded-xl overflow-hidden transition-all">
+                            <summary className="flex items-center p-3 cursor-pointer select-none">
+                               <div className="w-10 h-10 bg-[#f7f5ff] rounded-[12px] flex items-center justify-center shrink-0 mr-3 shadow-3xs">
+                                  <BarChart2 className="w-5 h-5 text-[#6B46FF]" />
+                               </div>
+                               <div className="flex-1 text-left min-w-0">
+                                  <div className="font-bold text-slate-900 text-sm leading-tight truncate">Ringkasan Rekap Gaji</div>
+                                  <div className="text-[10px] text-slate-500 truncate mt-0.5">Ringkasan total gaji berdasarkan host & lokasi</div>
+                               </div>
+                               <ChevronDown className="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform shrink-0 ml-2" />
+                            </summary>
+                            
+                            {/* Summary Content injected dynamically below using existing variables */}
+                            {(() => {
+                               const totalGajiMobile = filteredHostReportList.reduce((sum, h) => sum + h.netSalary, 0);
+                               const totalHostBLMobile = filteredHostReportList.filter(h => !h.studio?.includes("Tanggamus")).length;
+                               const totalHostTGMMobile = filteredHostReportList.filter(h => h.studio?.includes("Tanggamus")).length;
+                               const activeBrands = new Set<string>();
+                               filteredHostReportList.forEach(h => {
+                                 const records = logs.filter(l => (l.hostId === h.id || l.hostName === h.name) && isLogDateMatchingMemo(getLogDateInput(l)));
+                                 records.forEach(r => { if (r.brandHandled) activeBrands.add(r.brandHandled); });
+                               });
+                               const totalBrandsCount = Array.from(activeBrands).length;
+                               return (
+                                 <div className="p-3 grid grid-cols-2 gap-2 border-t border-slate-50 bg-slate-50/50">
+                                   <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-3xs flex flex-col">
+                                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Total Gaji</span>
+                                     <span className="text-[13px] font-black font-mono text-slate-800 truncate">{formatIDR(totalGajiMobile)}</span>
+                                   </div>
+                                   <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-3xs flex flex-col">
+                                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Host Lampung</span>
+                                     <span className="text-[13px] font-black font-mono text-slate-800">{totalHostBLMobile} <span className="text-[9px] font-normal font-sans text-slate-500">Orang</span></span>
+                                   </div>
+                                   <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-3xs flex flex-col">
+                                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Host Tanggamus</span>
+                                     <span className="text-[13px] font-black font-mono text-slate-800">{totalHostTGMMobile} <span className="text-[9px] font-normal font-sans text-slate-500">Orang</span></span>
+                                   </div>
+                                   <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-3xs flex flex-col">
+                                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Brand Aktif</span>
+                                     <span className="text-[13px] font-black font-mono text-slate-800">{totalBrandsCount} <span className="text-[9px] font-normal font-sans text-slate-500">Brand</span></span>
+                                   </div>
+                                 </div>
+                               );
+                            })()}
+                         </details>
+                       </div>
+                    </div>
+
                     {/* REAL-TIME DYNAMIC INPUT PARAMETERS (REGIONAL SUPPORTED + HOURLY/MONTHLY SHIFTS) */}
                     {/* ================= ACCORDION: SETTING PAYROLL ================= */}
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-xs max-w-5xl overflow-hidden mb-6">
+                    <div className="bg-white md:rounded-2xl border-y md:border border-slate-100 md:shadow-xs max-w-5xl overflow-hidden md:mb-6">
                       <button
                         type="button"
                         onClick={() =>
                           setIsPayrollConfigOpen(!isPayrollConfigOpen)
                         }
-                        className="w-full flex items-center justify-between p-4 md:p-6 bg-slate-50 hover:bg-slate-100 transition-colors text-left cursor-pointer border-0"
+                        className="w-full hidden md:flex items-center justify-between p-4 md:p-6 bg-slate-50 hover:bg-slate-100 transition-colors text-left cursor-pointer border-0"
                       >
                         <div className="flex items-center gap-2 text-[#2563eb] font-extrabold text-sm">
                           <Sliders className="w-4 h-4 text-[#2563eb]" />
@@ -8379,7 +8543,7 @@ export default function App() {
 
                     {/* Search & Configuration in calculator */}
                     <div
-                      className="space-y-3 mb-4"
+                      className="hidden md:block space-y-3 mb-4"
                       id="rekap_salary_toolbar_container"
                     >
                       <div
@@ -8469,9 +8633,9 @@ export default function App() {
                       const totalBrandList = Array.from(activePeriodBrands);
 
                       return (
-                        <div className="mb-6">
+                        <div className="hidden md:block mb-6">
                           {/* Desktop View */}
-                          <div className="hidden lg:grid grid-cols-4 gap-4">
+                          <div className="grid grid-cols-4 gap-4">
                             <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                                 Total Gaji Dibayarkan
@@ -8524,69 +8688,27 @@ export default function App() {
                               </div>
                             </div>
                           </div>
-                          {/* Mobile View */}
-                          <details className="lg:hidden group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                            <summary className="flex items-center justify-between p-4 font-bold text-xs text-slate-700 cursor-pointer list-none [&::-webkit-details-marker]:hidden bg-slate-50">
-                              <div className="flex items-center gap-2 text-[#2563eb]">
-                                <BarChart2 className="w-4 h-4" />
-                                RINGKASAN REKAP GAJI
-                              </div>
-                              <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform text-slate-500" />
-                            </summary>
-                            <div className="p-4 grid grid-cols-2 gap-3 border-t border-slate-100 bg-white">
-                              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
-                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block">
-                                  Total Gaji
-                                </span>
-                                <span className="text-sm font-black font-mono mt-1 text-slate-800">
-                                  {formatIDR(totalGaji)}
-                                </span>
-                              </div>
-                              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
-                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block">
-                                  Host Lampung
-                                </span>
-                                <span className="text-sm font-black font-mono mt-1 text-slate-800">
-                                  {totalHostBL} <span className="text-[8px] font-normal">Orang</span>
-                                </span>
-                              </div>
-                              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
-                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block">
-                                  Host Tanggamus
-                                </span>
-                                <span className="text-sm font-black font-mono mt-1 text-slate-800">
-                                  {totalHostTGM} <span className="text-[8px] font-normal">Orang</span>
-                                </span>
-                              </div>
-                              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
-                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 block">
-                                  Brand Aktif
-                                </span>
-                                <span className="text-sm font-black font-mono mt-1 text-slate-800 leading-none">
-                                  {totalBrandList.length} <span className="text-[8px] font-normal">Brand</span>
-                                </span>
-                              </div>
-                            </div>
-                          </details>
                         </div>
                       );
                     })()}
 
                     {/* LOCATION TABS FOR SALARY TABLE */}
-                    <div className="flex bg-slate-100 p-1 w-full max-w-md rounded-xl shadow-sm mb-4">
-                      {["Semua Host", "Bandar Lampung", "Tanggamus"].map((tab) => (
-                        <button
-                          key={tab}
-                          className={`flex-1 text-center py-2 text-[10px] sm:text-xs font-bold transition-all rounded-lg truncate px-1 ${
-                            salaryRecapLocationTab === tab
-                              ? "bg-white text-purple-700 shadow-sm"
-                              : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
-                          }`}
-                          onClick={() => setSalaryRecapLocationTab(tab)}
-                        >
-                          {tab}
-                        </button>
-                      ))}
+                    <div className="px-4 md:px-0 mb-4">
+                      <div className="flex bg-white md:bg-slate-100 p-1 w-full max-w-none md:max-w-md rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-sm">
+                        {["Semua Host", "Bandar Lampung", "Tanggamus"].map((tab) => (
+                          <button
+                            key={tab}
+                            className={`flex-1 text-center py-2 text-[10px] sm:text-xs font-bold transition-all rounded-lg truncate px-1 ${
+                              salaryRecapLocationTab === tab
+                                ? "bg-[#6B46FF] text-white shadow-md md:bg-white md:text-purple-700 md:shadow-sm"
+                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 bg-transparent"
+                            }`}
+                            onClick={() => setSalaryRecapLocationTab(tab)}
+                          >
+                            {tab}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     {/* SALARY RECAP TABLE CONTAINER */}
