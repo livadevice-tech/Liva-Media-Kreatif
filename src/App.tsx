@@ -296,6 +296,7 @@ import { DeleteByDateModal } from "./components/reporting/DeleteByDateModal";
 import { SkuUploadModal } from "./components/reporting/SkuUploadModal";
 import { DownloadReportModal } from "./components/reporting/DownloadReportModal";
 import { ClientDownloadConfirmationModal } from "./components/reporting/ClientDownloadConfirmationModal";
+import { AddManualDurationModal } from "./components/reporting/AddManualDurationModal";
 import { ReportingUploadAnalyticsSection } from "./components/reporting/ReportingUploadAnalyticsSection";
 import { ReportingUploadPreviewTable } from "./components/reporting/ReportingUploadPreviewTable";
 import { CutoffPeriodSelector } from "./components/reporting/CutoffPeriodSelector";
@@ -1334,6 +1335,7 @@ export default function App() {
     "live" | "engagement" | "product" | "analysis"
   >("live");
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [isAddManualDurationModalOpen, setIsAddManualDurationModalOpen] = useState(false);
   const [clientSelectedMonth, setClientSelectedMonth] = useState<string>(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -11328,6 +11330,7 @@ export default function App() {
                                 setUploadTargetTab("live");
                                 setIsUploadModalOpen(true);
                               }}
+                              onOpenAddManualDuration={() => setIsAddManualDurationModalOpen(true)}
                               onImportRawProduct={() => {
                                 setSaveTargetBrandId(activeReportBrandId || "");
                                 setIsSkuUploadModalOpen(true);
@@ -11678,6 +11681,15 @@ export default function App() {
                               />
                             </React.Suspense>
                           )}
+
+                          <AddManualDurationModal
+                            isOpen={isAddManualDurationModalOpen}
+                            onClose={() => setIsAddManualDurationModalOpen(false)}
+                            onSave={(date, durationSeconds) => {
+                              handleAddManualDuration(date, durationSeconds);
+                              setIsAddManualDurationModalOpen(false);
+                            }}
+                          />
 
                           {/* STORED SKU DATABASE VIEWER */}
                           {operatorReportingTab === "product" && (

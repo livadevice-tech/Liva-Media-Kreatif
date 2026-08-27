@@ -49,6 +49,7 @@ type ReportingWorkspaceHeaderProps = {
   onImportRawLive?: () => void;
   onImportRawProduct?: () => void;
   onImportRawEngagement?: () => void;
+  onOpenAddManualDuration?: () => void;
   periodLabel?: string;
   onPrevPeriod?: () => void;
   onNextPeriod?: () => void;
@@ -158,6 +159,7 @@ export function ReportingWorkspaceHeader({
   onImportRawLive,
   onImportRawProduct,
   onImportRawEngagement,
+  onOpenAddManualDuration,
   periodLabel,
   onPrevPeriod,
   onNextPeriod,
@@ -281,7 +283,7 @@ export function ReportingWorkspaceHeader({
             </div>
           </div>
           
-          {(onImportRawLive || onImportRawProduct || onImportRawEngagement) && (
+          {(onImportRawLive || onImportRawProduct || onImportRawEngagement || onOpenAddManualDuration) && (
             <div className="relative flex-shrink-0" ref={rawMenuRef}>
               <button
                 type="button"
@@ -317,6 +319,20 @@ export function ReportingWorkspaceHeader({
                       >
                         <Layers3 className="h-4 w-4 text-[#5600e0]" />
                         Upload Raw Data Live
+                      </button>
+                    )}
+                    {onOpenAddManualDuration && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenAddManualDuration();
+                          setIsRawMenuOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                      >
+                        <CalendarDays className="h-4 w-4 text-[#5600e0]" />
+                        Tambah Durasi Manual
                       </button>
                     )}
                     {onImportRawProduct && (
