@@ -42,7 +42,7 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
   const displayedSessions = activeProjectTab === "today" ? todaySessions : upcomingSessions;
 
   return (
-    <div className="md:hidden flex flex-col min-h-screen bg-[#fcfbfe] text-slate-800 font-sans pb-28">
+    <div className="md:hidden flex flex-col min-h-screen bg-[#fcfbfe] text-slate-800 font-sans pb-28 w-full max-w-[100vw] overflow-x-hidden">
       {/* 1. Header Area */}
       <div className="flex items-center justify-between px-4 py-8">
         <div className="flex items-center gap-3">
@@ -128,11 +128,11 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
 
       {/* Categories Section */}
       {adminNavItems.length > 0 && (
-        <div className="mb-8">
+        <div className="mb-8 w-full max-w-full overflow-hidden">
           <div className="flex justify-between items-end mb-4 px-4">
             <h2 className="text-xl font-bold text-slate-900">Categories</h2>
           </div>
-          <div className="flex overflow-x-auto gap-3 pb-2 px-4 scrollbar-hide snap-x">
+          <div className="flex overflow-x-auto gap-3 pb-2 px-4 scrollbar-hide snap-x w-full">
             {adminNavItems
               .filter(item => !item.type && item.tabId !== "dashboard_utama")
               .map((item, idx) => {
