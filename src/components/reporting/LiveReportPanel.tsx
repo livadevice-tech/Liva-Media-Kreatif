@@ -32,6 +32,10 @@ interface LiveReportPanelProps {
     brandName?: string,
     date?: string,
   ) => void;
+  handleEditPerformanceLogDuration?: (
+    id: string,
+    newDuration: number,
+  ) => void;
   brandPerformanceLogs: BrandPerformanceLogEntry[];
   activeReportBrandId: string;
   brandUploadHistory: UploadHistoryEntry[];
@@ -67,6 +71,7 @@ export function LiveReportPanel({
   itemsPerPage,
   isLogsLoading,
   handleDeletePerformanceLog,
+  handleEditPerformanceLogDuration,
   brandPerformanceLogs,
   activeReportBrandId,
   brandUploadHistory,
@@ -136,6 +141,7 @@ export function LiveReportPanel({
         reportDbSortAsc={reportDbSortAsc}
         onSort={handleSort}
         onDeletePerformanceLog={handleDeletePerformanceLog}
+        onEditPerformanceLogDuration={handleEditPerformanceLogDuration}
         totalPages={totalPages}
         setCurrentPage={setCurrentPage}
         brandDashboardSettings={brandDashboardSettings}

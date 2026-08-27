@@ -22,6 +22,10 @@ interface ReportRawSessionsCardProps {
     brandName?: string,
     date?: string,
   ) => void;
+  onEditPerformanceLogDuration?: (
+    id: string,
+    newDuration: number,
+  ) => void;
   totalPages: number;
   setCurrentPage: (
     value: number | ((prev: number) => number),
@@ -68,6 +72,8 @@ export function ReportRawSessionsCard({
   brandDashboardSettings,
   isShopee = true,
   hideControls = false,
+  isClientView = false,
+  onEditPerformanceLogDuration,
 }: ReportRawSessionsCardProps) {
   const isGroupedView = reportingShopeeRawTab !== "raw";
   const hc = brandDashboardSettings?.hiddenColumns || [];
@@ -209,7 +215,9 @@ export function ReportRawSessionsCard({
               {!isColumnHidden("conversion_rate") && (
                 <th className="px-5 py-4">Conversion Rate</th>
               )}
-              <th className="px-5 py-4 text-right">Aksi</th>
+              {!isClientView && (
+                <th className="px-5 py-4 text-right">Aksi</th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 text-xs font-semibold text-slate-700 bg-white">
@@ -224,9 +232,11 @@ export function ReportRawSessionsCard({
               reportDbSortAsc={reportDbSortAsc}
               onSort={onSort}
               onDeletePerformanceLog={onDeletePerformanceLog}
+              onEditPerformanceLogDuration={onEditPerformanceLogDuration}
               adminShiftChecklist={adminShiftChecklist}
               brandDashboardSettings={brandDashboardSettings}
-            isShopee={isShopee}
+              isShopee={isShopee}
+              isClientView={isClientView}
             />
           </tbody>
         </table>

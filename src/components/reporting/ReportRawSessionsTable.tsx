@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { formatDisplayDate } from "../../shared/utils/appUi";
 import {
   formatLiveSessionAverageDuration,
@@ -26,6 +27,8 @@ interface ReportRawSessionsTableProps {
   adminShiftChecklist: string[];
   brandDashboardSettings?: BrandDashboardSettings;
   isShopee?: boolean;
+  isClientView?: boolean;
+  onEditPerformanceLogDuration?: (id: string, newDuration: number) => void;
 }
 
 interface RawSessionGroupRow {
@@ -69,7 +72,11 @@ export function ReportRawSessionsTable({
   adminShiftChecklist,
   brandDashboardSettings,
   isShopee = true,
+  isClientView,
+  onEditPerformanceLogDuration,
 }: ReportRawSessionsTableProps) {
+  const [editingDurationId, setEditingDurationId] = useState<string | null>(null);
+  const [editingDurationStr, setEditingDurationStr] = useState<string>("");
   const hc = brandDashboardSettings?.hiddenColumns || [];
   const isColumnHidden = (id: string) => hc.includes(isShopee ? `shopee_live_${id}` : `tiktok_live_${id}`);
   const renderGroupedRows = () => {
@@ -246,15 +253,13 @@ export function ReportRawSessionsTable({
           <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-indigo-600">
             {(() => {
               const platform = String(g.platform || "").toLowerCase();
-              const isTikTok = platform.includes("tiktok");
-              const cr = isTikTok
-                ? g.clicks > 0 ? (g.orders / g.clicks) * 100 : 0
-                : g.viewer > 0 ? (g.customers / g.viewer) * 100 : 0;
-              return `${cr.toFixed(2)}%`;
-            })()}
+              return getLiveSessionConversionRate(g.orders, g.clicks, platform).toFixed(2);
+            })()}%
           </td>
         )}
-        <td className="px-5 py-3.5 text-right" />
+        {!isClientView && (
+          <td className="px-5 py-3.5 text-right" />
+        )}
       </tr>
     ));
   };
@@ -299,7 +304,18 @@ export function ReportRawSessionsTable({
                     </td>
                     {!isColumnHidden("duration") && (
                       <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
-                        {formatLiveSessionDuration(log.duration || 0)}
+                        {editingDurationId === log.id ? (
+                          <input
+                            type="text"
+                            value={editingDurationStr}
+                            onChange={(e) => setEditingDurationStr(e.target.value)}
+                            className="w-24 px-2 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            placeholder="HH:MM:SS"
+                            autoFocus
+                          />
+                        ) : (
+                          formatLiveSessionDuration(log.duration || 0)
+                        )}
                       </td>
                     )}
                     {!isColumnHidden("penonton") && (
@@ -337,19 +353,72 @@ export function ReportRawSessionsTable({
                         {metrics.conversionRate.toFixed(2)}%
                       </td>
                     )}
-                    <td className="px-5 py-3.5 text-right">
-                      <button
-                        type="button"
-                        aria-label="Hapus log performa live"
-                        onClick={() =>
-                          onDeletePerformanceLog(log.id, log.brandName, log.date)
-                        }
-                        className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-transparent border-0"
-                        title="Hapus Log"
-                      >
-                        ✕
-                      </button>
-                    </td>
+                    {!isClientView && (
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        {editingDurationId === log.id ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              title="Simpan Durasi"
+                              className="text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 hover:bg-indigo-100 p-1 rounded"
+                              onClick={() => {
+                                if (onEditPerformanceLogDuration) {
+                                  let newDuration = 0;
+                                  const parts = editingDurationStr.split(":").map(p => parseInt(p, 10));
+                                  if (parts.length === 3 && !parts.some(isNaN)) {
+                                    newDuration = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                                  } else if (parts.length === 2 && !parts.some(isNaN)) {
+                                    newDuration = parts[0] * 60 + parts[1];
+                                  } else {
+                                    newDuration = parseInt(editingDurationStr, 10) || 0;
+                                  }
+                                  onEditPerformanceLogDuration(log.id, newDuration);
+                                }
+                                setEditingDurationId(null);
+                              }}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              type="button"
+                              title="Batal"
+                              className="text-slate-400 hover:text-slate-600 transition-colors bg-slate-100 hover:bg-slate-200 p-1 rounded"
+                              onClick={() => setEditingDurationId(null)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-3">
+                            <button
+                              type="button"
+                              aria-label="Edit durasi performa live"
+                              onClick={() => {
+                                setEditingDurationId(log.id);
+                                setEditingDurationStr(formatLiveSessionDuration(log.duration || 0));
+                              }}
+                              className="text-slate-400 hover:text-indigo-500 transition-colors focus:outline-none cursor-pointer bg-transparent border-0"
+                              title="Edit Durasi"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Hapus log performa live"
+                              onClick={() =>
+                                onDeletePerformanceLog(log.id, log.brandName, log.date)
+                              }
+                              className="text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer bg-transparent border-0"
+                              title="Hapus Log"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}

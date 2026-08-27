@@ -2580,6 +2580,21 @@ export default function App() {
     );
   };
 
+  const handleEditPerformanceLogDuration = async (
+    id: string,
+    newDurationInSeconds: number,
+  ) => {
+    try {
+      setBrandPerformanceLogs((prev) => 
+        prev.map(log => log.id === id ? { ...log, duration: newDurationInSeconds } : log)
+      );
+      customAlert("Durasi live stream berhasil diperbarui!");
+    } catch (err: unknown) {
+      console.error("Gagal mengubah durasi:", err);
+      customAlert("Error: " + getErrorMessage(err));
+    }
+  };
+
 
   const handleUploadSkuRaw = async (file: File) => {
     setAutoDetectNotice("");
@@ -11610,6 +11625,9 @@ export default function App() {
                                 isLogsLoading={isLogsLoading}
                                 handleDeletePerformanceLog={
                                   handleDeletePerformanceLog
+                                }
+                                handleEditPerformanceLogDuration={
+                                  handleEditPerformanceLogDuration
                                 }
                                 brandPerformanceLogs={brandPerformanceLogs}
                                 activeReportBrandId={activeReportBrandId || ""}
