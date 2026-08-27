@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { FileText, Plus, Trash2, X } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
-import { BerkasManager } from './BerkasManager';
 import { InvoiceTable } from './InvoiceTable';
 import { InvoiceCreatePanel } from './invoice/InvoiceCreatePanel';
 import { InvoiceEditorModal } from './invoice/InvoiceEditorModal';
@@ -636,14 +635,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
         >
           Semua Invoice
         </button>
-        <button
-          onClick={() => setActiveTab("berkas")}
-          className={`pb-4 font-medium text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "berkas" ? "border-slate-800 text-slate-800" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          Kelola Berkas
-        </button>
+
         <button
           onClick={() => setActiveTab("reminders")}
           className={`pb-4 font-medium text-sm transition-all border-b-2 cursor-pointer whitespace-nowrap flex items-center gap-2 ${
@@ -719,13 +711,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       )}
 
       
-      {activeTab === "berkas" && (
-        <BerkasManager 
-          clientBrands={clientBrands} 
-          onUpdateBrands={handleUpdateBrands} 
-          onBack={() => setActiveTab("overview")} 
-        />
-      )}
+
 
       {invoiceEditor && (
         <InvoiceEditorModal

@@ -119,6 +119,7 @@ import {
   User,
   BookOpen,
   MoreVertical,
+  Folder,
 } from "lucide-react";
 import {
   HostEmployee,
@@ -263,6 +264,7 @@ import {
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
 import { InvoiceDashboard } from "./components/InvoiceDashboard";
+import { BerkasManager } from "./components/BerkasManager";
 import { QuickGridInput } from "./components/QuickGridInput";
 import {
   HostCredentialRow,
@@ -4579,7 +4581,8 @@ export default function App() {
       { tabId: "data_brand", label: "Data Brand", icon: Briefcase, category: "cat-client" },
       { tabId: "brand_resources", label: "Panduan & Script", icon: BookOpen, category: "cat-client" },
       { tabId: "reporting_brand", label: "Reporting Brand (Upload)", icon: LineChart, category: "cat-client" },
-      { tabId: "invoice", label: "Invoice & Berkas", icon: Receipt, category: "cat-client" },
+      { tabId: "invoice", label: "Invoice", icon: Receipt, category: "cat-client" },
+      { tabId: "berkas", label: "Berkas Klien", icon: Folder, category: "cat-client" },
       { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
       { tabId: "settings", label: "Platform & Shift", icon: Sliders, category: "cat-system" },
       { type: "header", label: "Keamanan Akun", key: "cat-security" },
@@ -5841,7 +5844,10 @@ export default function App() {
                       <span>Manajemen Panduan & Script Publik</span>
                     )}
                     {operatorTab === "invoice" && (
-                      <span>Invoice & Berkas Klien</span>
+                      <span>Invoice Klien</span>
+                    )}
+                    {operatorTab === "berkas" && (
+                      <span>Berkas Klien</span>
                     )}
                     {operatorTab === "reporting_brand" && (
                       <span>Reporting Eksternal Brand</span>
@@ -11159,6 +11165,17 @@ export default function App() {
                   />
                 )}
 
+                {/* ==================== SUBTAB: BERKAS ==================== */}
+                {operatorTab === "berkas" && (
+                  <div className="mx-auto w-full max-w-[1600px] animate-fadeIn space-y-6 bg-[#fafafc] px-4 pt-6 sm:px-6 lg:px-8 pb-12">
+                    <BerkasManager 
+                      clientBrands={clientBrands} 
+                      onUpdateBrands={setClientBrands} 
+                      onBack={() => setOperatorTab("dashboard_utama")} 
+                    />
+                  </div>
+                )}
+
                 {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
                 {operatorTab === "reporting_brand" && (
                   <div
@@ -12065,11 +12082,11 @@ export default function App() {
                                     },
                                     {
                                       id: "invoice",
-                                      label: "Invoice & Berkas",
+                                      label: "Invoice",
                                     },
                                     {
-                                      id: "leads",
-                                      label: "Leads/Calon Client",
+                                      id: "berkas",
+                                      label: "Berkas Klien",
                                     },
                                     {
                                       id: "settings",
