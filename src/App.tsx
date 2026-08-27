@@ -2595,6 +2595,44 @@ export default function App() {
     }
   };
 
+  const handleAddManualDuration = async (
+    date: string,
+    durationSeconds: number,
+  ) => {
+    if (!activeReportBrandId) {
+      customAlert("Harap pilih brand terlebih dahulu.");
+      return;
+    }
+    
+    try {
+      const brand = clientBrands.find(b => b.id === activeReportBrandId);
+      const newLog: BrandPerformanceLogEntry = {
+        id: `manual_duration_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        brandId: activeReportBrandId,
+        brandName: brand?.name || "Unknown Brand",
+        platform: operatorPlatformFilter || "Shopee Live",
+        date: date,
+        dateTime: date + " 00:00:00",
+        uploadedAt: new Date().toISOString(),
+        reportType: "Manual Duration",
+        shift: "All Time",
+        duration: durationSeconds,
+        gmv: 0,
+        products_sold: 0,
+        buyers: 0,
+        orders: 0,
+        clicks: 0,
+        views: 0,
+        average_view_duration: 0,
+      };
+
+      setBrandPerformanceLogs((prev) => [...prev, newLog]);
+      customAlert("Durasi manual berhasil ditambahkan!");
+    } catch (err: unknown) {
+      console.error("Gagal menambahkan durasi manual:", err);
+      customAlert("Error: " + getErrorMessage(err));
+    }
+  };
 
   const handleUploadSkuRaw = async (file: File) => {
     setAutoDetectNotice("");
@@ -11628,6 +11666,9 @@ export default function App() {
                                 }
                                 handleEditPerformanceLogDuration={
                                   handleEditPerformanceLogDuration
+                                }
+                                handleAddManualDuration={
+                                  handleAddManualDuration
                                 }
                                 brandPerformanceLogs={brandPerformanceLogs}
                                 activeReportBrandId={activeReportBrandId || ""}

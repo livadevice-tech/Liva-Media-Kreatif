@@ -7,6 +7,8 @@ interface ReportRawTableControlsProps {
   adminShiftChecklist: string[];
   setAdminShiftChecklist: (value: string[]) => void;
   title?: string;
+  isClientView?: boolean;
+  onOpenAddManualDuration?: () => void;
 }
 
 const RAW_TABS = [
@@ -23,6 +25,8 @@ export function ReportRawTableControls({
   adminShiftChecklist,
   setAdminShiftChecklist,
   title = "Performa Live Harian",
+  isClientView = false,
+  onOpenAddManualDuration,
 }: ReportRawTableControlsProps) {
   return (
     <div className="mb-4 rounded-[20px] border border-[#e4ddf6] bg-white shadow-[0_1px_0_rgba(17,24,39,0.03)]">
@@ -48,7 +52,21 @@ export function ReportRawTableControls({
           ))}
         </div>
       </div>
-
+      
+      {!isClientView && onOpenAddManualDuration && (
+        <div className="px-4 pb-4 flex justify-end">
+          <button
+            type="button"
+            onClick={onOpenAddManualDuration}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors focus:outline-none"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Tambah Durasi Manual
+          </button>
+        </div>
+      )}
     </div>
   );
 }

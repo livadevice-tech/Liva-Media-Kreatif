@@ -1,4 +1,6 @@
+import React, { useState } from "react";
 import { ReportRawTableControls } from "./ReportRawTableControls";
+import { AddManualDurationModal } from "./AddManualDurationModal";
 import { ReportRawSessionsTable } from "./ReportRawSessionsTable";
 import { type ReportLogLike } from "../../shared/utils/reportTable";
 import type { BrandDashboardSettings } from "../../types";
@@ -25,6 +27,10 @@ interface ReportRawSessionsCardProps {
   onEditPerformanceLogDuration?: (
     id: string,
     newDuration: number,
+  ) => void;
+  onAddManualDuration?: (
+    date: string,
+    durationSeconds: number,
   ) => void;
   totalPages: number;
   setCurrentPage: (
@@ -74,7 +80,9 @@ export function ReportRawSessionsCard({
   hideControls = false,
   isClientView = false,
   onEditPerformanceLogDuration,
+  onAddManualDuration,
 }: ReportRawSessionsCardProps) {
+  const [isAddManualDurationModalOpen, setIsAddManualDurationModalOpen] = useState(false);
   const isGroupedView = reportingShopeeRawTab !== "raw";
   const hc = brandDashboardSettings?.hiddenColumns || [];
   const isColumnHidden = (id: string) => hc.includes(isShopee ? `shopee_live_${id}` : `tiktok_live_${id}`);
@@ -88,8 +96,21 @@ export function ReportRawSessionsCard({
           shifts={shifts}
           adminShiftChecklist={adminShiftChecklist}
           setAdminShiftChecklist={setAdminShiftChecklist}
+          title={isShopee ? "Performa Shopee Live Harian" : "Performa TikTok Live Harian"}
+          isClientView={isClientView}
+          onOpenAddManualDuration={() => setIsAddManualDurationModalOpen(true)}
         />
       )}
+
+      <AddManualDurationModal
+        isOpen={isAddManualDurationModalOpen}
+        onClose={() => setIsAddManualDurationModalOpen(false)}
+        onSave={(date, durationSeconds) => {
+          if (onAddManualDuration) {
+            onAddManualDuration(date, durationSeconds);
+          }
+        }}
+      />
 
       <div className="bg-white border border-slate-100 rounded-xl overflow-x-auto shadow-sm">
         <table className="w-full text-left whitespace-nowrap">
