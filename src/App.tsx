@@ -6,6 +6,7 @@
 import HostDashboard from './components/host/HostDashboard';
 import HostViolationsPanel from './components/admin/HostViolationsPanel';
 import { MobileDashboardHome } from './components/admin/MobileDashboardHome';
+import { DesktopDashboardHome } from './components/admin/DesktopDashboardHome';
 import { MobilePayrollList } from './components/admin/MobilePayrollList';
 import React, {
   useState,
@@ -6120,94 +6121,17 @@ export default function App() {
                           setSelectedLogIds([]);
                         }}
                       />
-                      <div
-                        className="hidden md:block space-y-6"
-                        id="operator_dashboard_utama_content"
-                      >
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {/* Card 1: Total Host */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between h-[140px]">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-[13px] font-bold text-slate-800">Total Host Liva</h3>
-                              <p className="text-[10px] text-slate-400 mt-0.5 tracking-wider">HOST AKTIF</p>
-                            </div>
-                            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-                              <Users className="w-4 h-4" />
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-end mt-4">
-                            <div className="text-3xl font-black text-slate-800 tracking-tight">{hosts.length}</div>
-                            <button className="text-slate-300 hover:text-slate-500 p-1 transition-colors">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Card 2: Jumlah Brand Aktif */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between h-[140px]">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-[13px] font-bold text-slate-800">Total Brand</h3>
-                              <p className="text-[10px] text-slate-400 mt-0.5 tracking-wider">BRAND AKTIF</p>
-                            </div>
-                            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
-                              <Building2 className="w-4 h-4" />
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-end mt-4">
-                            <div className="text-3xl font-black text-slate-800 tracking-tight">{activeBrands}</div>
-                            <button className="text-slate-300 hover:text-slate-500 p-1 transition-colors">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Card 3: Jumlah Sesi Aktif Hari Ini */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between h-[140px]">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-[13px] font-bold text-slate-800">Sesi Hari Ini</h3>
-                              <p className="text-[10px] text-slate-400 mt-0.5 tracking-wider">JADWAL AKTIF</p>
-                            </div>
-                            <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
-                              <Video className="w-4 h-4" />
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-end mt-4">
-                            <div className="text-3xl font-black text-slate-800 tracking-tight">{todaySessions}</div>
-                            <button className="text-slate-300 hover:text-slate-500 p-1 transition-colors">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Card 4: Jumlah Studio */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between h-[140px]">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-[13px] font-bold text-slate-800">Total Studio</h3>
-                              <p className="text-[10px] text-slate-400 mt-0.5 tracking-wider">STUDIO AKTIF</p>
-                            </div>
-                            <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center">
-                              <MapPin className="w-4 h-4" />
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-end mt-4">
-                            <div className="text-3xl font-black text-slate-800 tracking-tight">{studios.length}</div>
-                            <button className="text-slate-300 hover:text-slate-500 p-1 transition-colors">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <TrendSiaranChart 
-                        schedules={schedules} 
-                        clientBrands={clientBrands} 
-                        platforms={PLATFORMS}
+                      <DesktopDashboardHome
+                        hosts={hosts}
+                        clientBrands={clientBrands}
+                        schedules={schedules}
+                        studios={studios}
+                        loggedInAdminName={authSession?.role === "master" ? "Master Admin" : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"}
+                        onNavigate={(tabId) => {
+                          setOperatorTab(tabId);
+                          setSelectedLogIds([]);
+                        }}
                       />
-                      </div>
                     </div>
                   );
                 })()}
