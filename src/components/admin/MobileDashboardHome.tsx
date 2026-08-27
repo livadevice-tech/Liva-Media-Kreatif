@@ -10,6 +10,8 @@ type MobileDashboardHomeProps = {
   studios: any[];
   loggedInAdminName?: string;
   avatarUrl?: string; // Optional avatar
+  onNavigate?: (tabId: string) => void;
+  adminNavItems?: any[];
 };
 
 const SparklineSVG = ({ color }: { color: string }) => (
@@ -25,6 +27,8 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
   studios,
   loggedInAdminName,
   avatarUrl,
+  onNavigate,
+  adminNavItems = [],
 }) => {
   const [activeProjectTab, setActiveProjectTab] = useState<"today" | "upcoming">("today");
 
@@ -121,6 +125,49 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Categories Section */}
+      {adminNavItems.length > 0 && (
+        <div className="mb-8">
+          <div className="flex justify-between items-end mb-4 px-4">
+            <h2 className="text-xl font-bold text-slate-900">Categories</h2>
+          </div>
+          <div className="flex overflow-x-auto gap-4 pb-2 px-4 scrollbar-hide">
+            {adminNavItems
+              .filter(item => !item.type && item.tabId !== "dashboard_utama")
+              .map((item, idx) => {
+                const IconComponent = item.icon || Calendar;
+                const colors = [
+                  "bg-blue-100 text-blue-600",
+                  "bg-purple-100 text-purple-600",
+                  "bg-pink-100 text-pink-600",
+                  "bg-orange-100 text-orange-600",
+                  "bg-emerald-100 text-emerald-600",
+                  "bg-cyan-100 text-cyan-600",
+                  "bg-amber-100 text-amber-600",
+                  "bg-rose-100 text-rose-600"
+                ];
+                const colorClass = colors[idx % colors.length];
+                
+                return (
+                  <button 
+                    key={item.tabId || idx}
+                    onClick={() => onNavigate && item.tabId && onNavigate(item.tabId)}
+                    className="flex flex-col items-center gap-2 flex-none w-[72px]"
+                  >
+                    <div className={`w-[60px] h-[60px] rounded-[20px] flex items-center justify-center ${colorClass}`}>
+                      <IconComponent className="w-7 h-7" />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-700 text-center leading-tight line-clamp-2">
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })
+            }
+          </div>
+        </div>
+      )}
 
       {/* 3. Sesi Siaran Section (Projects) */}
       <div className="px-4 flex-1">

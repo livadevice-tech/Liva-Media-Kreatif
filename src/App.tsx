@@ -6139,6 +6139,11 @@ export default function App() {
                         schedules={schedules}
                         studios={studios}
                         loggedInAdminName={authSession?.role === "master" ? "Master Admin" : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"}
+                        adminNavItems={adminNavItems}
+                        onNavigate={(tabId) => {
+                          setOperatorTab(tabId);
+                          setSelectedLogIds([]);
+                        }}
                       />
                       <div
                         className="hidden md:block space-y-6"
