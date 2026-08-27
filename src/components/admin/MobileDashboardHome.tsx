@@ -132,7 +132,7 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
           <div className="flex justify-between items-end mb-4 px-4">
             <h2 className="text-xl font-bold text-slate-900">Categories</h2>
           </div>
-          <div className="flex overflow-x-auto gap-4 pb-2 px-4 scrollbar-hide">
+          <div className="flex overflow-x-auto gap-3 pb-2 px-4 scrollbar-hide snap-x">
             {adminNavItems
               .filter(item => !item.type && item.tabId !== "dashboard_utama")
               .map((item, idx) => {
@@ -153,12 +153,12 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
                   <button 
                     key={item.tabId || idx}
                     onClick={() => onNavigate && item.tabId && onNavigate(item.tabId)}
-                    className="flex flex-col items-center gap-2 flex-none w-[72px]"
+                    className="flex flex-col items-center gap-1.5 flex-none w-[60px] snap-start"
                   >
-                    <div className={`w-[60px] h-[60px] rounded-[20px] flex items-center justify-center ${colorClass}`}>
-                      <IconComponent className="w-7 h-7" />
+                    <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center ${colorClass}`}>
+                      <IconComponent className="w-5 h-5" />
                     </div>
-                    <span className="text-[10px] font-bold text-slate-700 text-center leading-tight line-clamp-2">
+                    <span className="text-[9px] font-bold text-slate-700 text-center leading-[1.1] line-clamp-2">
                       {item.label}
                     </span>
                   </button>
