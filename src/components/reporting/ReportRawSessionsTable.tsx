@@ -76,7 +76,8 @@ export function ReportRawSessionsTable({
   onEditPerformanceLogDuration,
 }: ReportRawSessionsTableProps) {
   const [editingDurationId, setEditingDurationId] = useState<string | null>(null);
-  const [editingDurationStr, setEditingDurationStr] = useState<string>("");
+  const [editingHours, setEditingHours] = useState<string>("");
+  const [editingMinutes, setEditingMinutes] = useState<string>("");
   const hc = brandDashboardSettings?.hiddenColumns || [];
   const isColumnHidden = (id: string) => hc.includes(isShopee ? `shopee_live_${id}` : `tiktok_live_${id}`);
   const renderGroupedRows = () => {
@@ -305,14 +306,27 @@ export function ReportRawSessionsTable({
                     {!isColumnHidden("duration") && (
                       <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
                         {editingDurationId === log.id ? (
-                          <input
-                            type="text"
-                            value={editingDurationStr}
-                            onChange={(e) => setEditingDurationStr(e.target.value)}
-                            className="w-24 px-2 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                            placeholder="HH:MM:SS"
-                            autoFocus
-                          />
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              value={editingHours}
+                              onChange={(e) => setEditingHours(e.target.value)}
+                              className="w-12 px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-center"
+                              placeholder="Jam"
+                              autoFocus
+                            />
+                            <span>:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="59"
+                              value={editingMinutes}
+                              onChange={(e) => setEditingMinutes(e.target.value)}
+                              className="w-12 px-1 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-center"
+                              placeholder="Mnt"
+                            />
+                          </div>
                         ) : (
                           formatLiveSessionDuration(log.duration || 0)
                         )}
@@ -363,19 +377,14 @@ export function ReportRawSessionsTable({
                               className="text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 hover:bg-indigo-100 p-1 rounded"
                               onClick={() => {
                                 if (onEditPerformanceLogDuration) {
-                                  let newDuration = 0;
-                                  const parts = editingDurationStr.split(":").map(p => parseInt(p, 10));
-                                  if (parts.length === 3 && !parts.some(isNaN)) {
-                                    newDuration = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                                  } else if (parts.length === 2 && !parts.some(isNaN)) {
-                                    newDuration = parts[0] * 60 + parts[1];
-                                  } else {
-                                    newDuration = parseInt(editingDurationStr, 10) || 0;
-                                  }
+                                  const h = parseInt(editingHours || "0", 10);
+                                  const m = parseInt(editingMinutes || "0", 10);
+                                  const newDuration = (h * 3600) + (m * 60);
                                   onEditPerformanceLogDuration(log.id, newDuration);
                                 }
                                 setEditingDurationId(null);
                               }}
+                              disabled={!editingHours && !editingMinutes}
                             >
                               ✓
                             </button>
@@ -392,13 +401,15 @@ export function ReportRawSessionsTable({
                           <div className="flex items-center justify-end gap-3">
                             <button
                               type="button"
-                              aria-label="Edit durasi performa live"
+                              title="Edit Durasi"
+                              className="text-slate-400 hover:text-indigo-500 transition-colors focus:outline-none cursor-pointer bg-transparent border-0"
                               onClick={() => {
                                 setEditingDurationId(log.id);
-                                setEditingDurationStr(formatLiveSessionDuration(log.duration || 0));
+                                const h = Math.floor((log.duration || 0) / 3600);
+                                const m = Math.floor(((log.duration || 0) % 3600) / 60);
+                                setEditingHours(h.toString());
+                                setEditingMinutes(m.toString());
                               }}
-                              className="text-slate-400 hover:text-indigo-500 transition-colors focus:outline-none cursor-pointer bg-transparent border-0"
-                              title="Edit Durasi"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
