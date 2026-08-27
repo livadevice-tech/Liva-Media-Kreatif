@@ -9728,7 +9728,7 @@ export default function App() {
                       {dbTabMode !== "calendar" && (
                         <>
                           {/* Middle: Search & Dropdown Filters */}
-                          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 py-2 md:p-4 md:bg-slate-50/50">
+                          <div className={`flex flex-col md:flex-row items-stretch md:items-center gap-3 md:p-4 md:bg-slate-50/50 ${showMobileFilters ? "py-2" : "py-0 sm:py-2"}`}>
                             {/* Search Input */}
                             <div className="relative flex-1 hidden sm:block" id="db_search_input_wrapper">
                               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -10711,7 +10711,7 @@ export default function App() {
                     </div>
 
                     {/* MOBILE CARDS VIEW (TICKET STYLE) */}
-                    <div className="md:hidden flex flex-col gap-4 mt-4 px-1" id="raw-logs-mobile-cards-wrapper">
+                    <div className="md:hidden flex flex-col gap-4 mt-2 px-1" id="raw-logs-mobile-cards-wrapper">
                       {filteredLogsList.map((item, idx) => {
                         const isRowChecked = selectedLogIds.includes(item.id);
                         
