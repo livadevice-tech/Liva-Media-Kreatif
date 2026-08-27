@@ -132,7 +132,7 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
           <div className="flex justify-between items-end mb-4 px-4">
             <h2 className="text-xl font-bold text-slate-900">Categories</h2>
           </div>
-          <div className="flex overflow-x-auto gap-3 pb-2 px-4 scrollbar-hide snap-x w-full">
+          <div className="flex overflow-x-auto gap-3 pb-2 pl-[10px] pr-4 scrollbar-hide snap-x w-full">
             {adminNavItems
               .filter(item => !item.type && item.tabId !== "dashboard_utama")
               .map((item, idx) => {
