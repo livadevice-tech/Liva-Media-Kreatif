@@ -169,8 +169,8 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
                 // Extract hours mockup from shift string, or generate mockup times
                 let timeStr = "09:00 AM";
                 let endTimeStr = "10:00 AM";
-                if (session.shift.toLowerCase().includes("siang")) { timeStr = "01:00 PM"; endTimeStr = "02:00 PM"; }
-                if (session.shift.toLowerCase().includes("malam")) { timeStr = "07:00 PM"; endTimeStr = "08:00 PM"; }
+                if (session.shift?.toLowerCase().includes("siang")) { timeStr = "01:00 PM"; endTimeStr = "02:00 PM"; }
+                if (session.shift?.toLowerCase().includes("malam")) { timeStr = "07:00 PM"; endTimeStr = "08:00 PM"; }
 
                 return (
                   <div key={session.id || i} className="relative flex items-start py-5 group">
