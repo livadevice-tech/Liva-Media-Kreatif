@@ -7,6 +7,7 @@ import HostDashboard from './components/host/HostDashboard';
 import HostViolationsPanel from './components/admin/HostViolationsPanel';
 import { MobileDashboardHome } from './components/admin/MobileDashboardHome';
 import { DesktopDashboardHome } from './components/admin/DesktopDashboardHome';
+import { MobileWeeklySchedule } from './components/admin/MobileWeeklySchedule';
 import { MobilePayrollList } from './components/admin/MobilePayrollList';
 import React, {
   useState,
@@ -6136,10 +6137,19 @@ export default function App() {
                   );
                 })()}
 
-                {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST ==================== */}
+                {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST (MOBILE) ==================== */}
+                {operatorTab === "absensi" && (
+                  <MobileWeeklySchedule 
+                    schedules={schedules}
+                    clientBrands={clientBrands}
+                    onMenuClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                  />
+                )}
+
+                {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST (DESKTOP) ==================== */}
                 {operatorTab === "absensi" && (
                   <div
-                    className="space-y-6 animate-fadeIn"
+                    className="hidden md:block space-y-6 animate-fadeIn"
                     id="operator_absensi_content"
                   >
                     {/* CALENDAR VIEW UNTUK JADWAL HOST */}
