@@ -59,7 +59,7 @@ export const BerkasManager: React.FC<BerkasManagerProps> = ({ clientBrands, onUp
   const filteredBerkas = allBerkas.filter(berk => berk.name.toLowerCase().includes(berkasSearch.toLowerCase()) || berk.brandName.toLowerCase().includes(berkasSearch.toLowerCase()));
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 animate-fadeIn">
+    <div className="animate-fadeIn">
       <div className="flex flex-col sm:flex-row gap-4 mb-6 border-b border-slate-100 pb-5 w-full">
         <div className="relative flex-1 w-full">
           <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
