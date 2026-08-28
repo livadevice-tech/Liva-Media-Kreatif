@@ -248,41 +248,39 @@ export function ReportingWorkspaceHeader({
       data-active-tab={activeTab}
     >
       <div className="flex flex-col">
-        <div className="flex items-center justify-between pb-3 border-b border-[#e7e0f8]">
-          <div className="flex items-center gap-2 sm:gap-3">
-            {onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                aria-label="Kembali"
-                className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
-              >
-                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-              </button>
-            )}
+        <div className="flex items-center gap-3 pb-4 border-b border-[#e7e0f8]">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Kembali"
+              className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full border border-[#d8d0ee] bg-white text-slate-700 shadow-sm transition-colors hover:bg-[#f7f3ff] focus:outline-none focus:ring-2 focus:ring-[#5600e0] focus:ring-offset-2"
+            >
+              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 rotate-180" />
+            </button>
+          )}
 
-            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-              <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-base sm:text-lg font-black text-indigo-600 border border-slate-200">
-                {brandLogoUrl ? (
-                  <img
-                    src={brandLogoUrl}
-                    alt={`${brandName || "Brand"} logo`}
-                    className="h-full w-full object-cover p-1"
-                  />
-                ) : (
-                  <span>{brandInitials || "RB"}</span>
-                )}
-              </div>
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#5600e0] text-base sm:text-lg font-black text-white shadow-sm">
+              {brandLogoUrl ? (
+                <img
+                  src={brandLogoUrl}
+                  alt={`${brandName || "Brand"} logo`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{brandInitials || "RB"}</span>
+              )}
+            </div>
 
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate font-display text-[15px] sm:text-[clamp(1.25rem,2vw,1.75rem)] font-bold sm:font-black tracking-tight text-slate-900 leading-tight">
-                  {brandName || "Nama Brand"}
-                </h2>
-                <p className="mt-0.5 text-[11px] sm:text-sm font-medium text-indigo-600 sm:text-slate-500">
-                  <span className="md:hidden">{selectedPlatform}</span>
-                  <span className="hidden md:inline">ID: {brandCode}</span>
-                </p>
-              </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate font-display text-[15px] sm:text-[clamp(1.25rem,2vw,1.75rem)] font-bold sm:font-black tracking-tight text-slate-950 leading-tight">
+                {brandName || "Nama Brand"}
+              </h2>
+              <p className="mt-0.5 text-[11px] sm:text-sm font-semibold text-[#5600e0] sm:text-slate-500">
+                <span className="md:hidden">{selectedPlatform}</span>
+                <span className="hidden md:inline">ID: {brandCode}</span>
+              </p>
             </div>
           </div>
           
@@ -290,13 +288,13 @@ export function ReportingWorkspaceHeader({
           <div className="md:hidden">
             <button
               type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-slate-50/50 border border-slate-200 text-slate-400 shadow-sm"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 shadow-sm"
               onClick={() => {
                 // Settings button logic (to be handled by tabs or similar if needed)
                 // For now, it's just visually matching the mockup
               }}
             >
-              <Settings2 className="h-4 w-4" />
+              <Settings2 className="h-5 w-5" />
             </button>
           </div>
           
@@ -322,7 +320,7 @@ export function ReportingWorkspaceHeader({
               </button>
               
               {isRawMenuOpen && (
-                <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[240px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+                <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[240px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
                   <div className="space-y-1">
                     {onImportRawLive && (
                       <button
@@ -334,7 +332,7 @@ export function ReportingWorkspaceHeader({
                         }}
                         className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
                       >
-                        <Layers3 className="h-4 w-4 text-indigo-600" />
+                        <Layers3 className="h-4 w-4 text-[#5600e0]" />
                         Upload Raw Data Live
                       </button>
                     )}
@@ -348,7 +346,7 @@ export function ReportingWorkspaceHeader({
                         }}
                         className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
                       >
-                        <CalendarDays className="h-4 w-4 text-indigo-600" />
+                        <CalendarDays className="h-4 w-4 text-[#5600e0]" />
                         Tambah Durasi Manual
                       </button>
                     )}
@@ -393,7 +391,7 @@ export function ReportingWorkspaceHeader({
               <button
                 type="button"
                 onClick={openDateMenu}
-                className="inline-flex h-9 sm:h-11 w-auto sm:min-w-[220px] items-center justify-between gap-1.5 sm:gap-3 rounded-[12px] border border-slate-200 bg-white px-2.5 sm:px-4 text-left text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-9 sm:h-11 w-auto sm:min-w-[220px] items-center justify-between gap-1.5 sm:gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-2.5 sm:px-4 text-left text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
                 aria-haspopup="menu"
                 aria-expanded={isDateMenuOpen}
               >
@@ -434,7 +432,7 @@ export function ReportingWorkspaceHeader({
             periodLabel &&
             onPrevPeriod &&
             onNextPeriod ? (
-              <div className="flex items-center gap-1 sm:gap-1.5 rounded-[12px] border border-slate-200 bg-white px-1 sm:px-2 py-1 sm:py-1.5 shadow-sm h-9 sm:h-11 flex-shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 rounded-[12px] border border-[#ddd7ef] bg-white px-1 sm:px-2 py-1 sm:py-1.5 shadow-sm h-9 sm:h-11 flex-shrink-0">
                 <button
                   type="button"
                   onClick={onPrevPeriod}
@@ -445,7 +443,7 @@ export function ReportingWorkspaceHeader({
                   <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
                 <div className="min-w-[120px] sm:min-w-[150px] px-1 sm:px-2 text-center">
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-black text-indigo-600 truncate">
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-black text-[#5600e0] truncate">
                     {periodLabel}
                   </p>
                 </div>
@@ -465,7 +463,7 @@ export function ReportingWorkspaceHeader({
               <button
                 type="button"
                 onClick={openPlatformMenu}
-                className="inline-flex h-9 sm:h-11 w-auto sm:min-w-[180px] items-center justify-between gap-1.5 sm:gap-3 rounded-[12px] border border-slate-200 bg-white px-2.5 sm:px-4 text-left text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-9 sm:h-11 w-auto sm:min-w-[180px] items-center justify-between gap-1.5 sm:gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-2.5 sm:px-4 text-left text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
                 aria-haspopup="menu"
                 aria-expanded={isPlatformMenuOpen}
               >
@@ -477,7 +475,7 @@ export function ReportingWorkspaceHeader({
               </button>
 
               {isPlatformMenuOpen && (
-                <div className="absolute left-0 top-full z-50 mt-2 w-[220px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+                <div className="absolute left-0 top-full z-50 mt-2 w-[220px] rounded-[18px] border border-[#ddd7ef] bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
                   <div className="space-y-1">
                     {availablePlatforms.map((platform) => {
                       const active = platform === selectedPlatform;
@@ -491,7 +489,7 @@ export function ReportingWorkspaceHeader({
                           }}
                           className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                             active
-                              ? "bg-[#f7f2ff] text-indigo-600"
+                              ? "bg-[#f7f2ff] text-[#5600e0]"
                               : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                           }`}
                         >
@@ -517,12 +515,12 @@ export function ReportingWorkspaceHeader({
                 className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-[#e4ddf6] bg-[#faf8ff] text-slate-700 hover:bg-[#f3edff] transition-all text-xs font-bold cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-indigo-600">Filter & Grouping Shift</span>
+                  <span className="text-[#5600e0]">Filter & Grouping Shift</span>
                   <span className="bg-[#5600e0] text-white px-2.5 py-0.5 rounded-full text-[10px] font-extrabold max-w-[400px] truncate" title={operatorShiftFilters.join(", ")}>
                     {operatorShiftFilters.length === 0 ? "All Time" : operatorShiftFilters.join(", ")}
                   </span>
                 </div>
-                <ChevronDown className={`h-4 w-4 text-indigo-600 transition-transform duration-200 ${isShiftDropdownOpen ? 'transform rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 text-[#5600e0] transition-transform duration-200 ${isShiftDropdownOpen ? 'transform rotate-180' : ''}`} />
               </button>
 
               {isShiftDropdownOpen && (
@@ -545,7 +543,7 @@ export function ReportingWorkspaceHeader({
                         >
                           <input
                             type="checkbox"
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]"
+                            className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
                             checked={operatorShiftFilters.length === 0}
                             onChange={(e) => {
                               if (e.target.checked) {
@@ -564,7 +562,7 @@ export function ReportingWorkspaceHeader({
                       >
                         <input
                           type="checkbox"
-                          className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]"
+                          className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
                           checked={operatorShiftFilters.includes(sh)}
                           onChange={(e) => {
                             if (e.target.checked) {
@@ -604,10 +602,10 @@ export function ReportingWorkspaceTabs({
   brandDashboardSettings,
 }: ReportingWorkspaceTabsProps) {
   const tabClass = (tab: ReportingTab) =>
-    `relative whitespace-nowrap px-1 py-2 sm:py-3 text-[12px] sm:text-[14px] font-semibold sm:font-bold transition-all border-b-2 sm:border-b-[3px] ${
+    `relative whitespace-nowrap px-1 py-3 text-[14px] font-bold transition-all border-b-[3px] ${
       activeTab === tab
-        ? "border-indigo-600 text-slate-900 sm:text-indigo-600"
-        : "border-transparent text-slate-400 sm:text-slate-500 hover:text-slate-900"
+        ? "border-[#5600e0] text-[#5600e0]"
+        : "border-transparent text-slate-500 hover:text-slate-900"
     }`;
 
   // Helper to check if a category is hidden

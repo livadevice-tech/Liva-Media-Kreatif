@@ -133,7 +133,7 @@ export function ReportRawSessionsCard({
               ) : (
                 <>
                   <th
-                    className="px-0.5 sm:px-5 py-2 sm:py-4 cursor-pointer hover:bg-slate-100"
+                    className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                     onClick={() => onSort("date")}
                   >
                     Tanggal{" "}
@@ -145,7 +145,7 @@ export function ReportRawSessionsCard({
                   </th>
                   {!isColumnHidden("duration") && (
                     <th
-                      className="px-0.5 sm:px-5 py-2 sm:py-4 cursor-pointer hover:bg-slate-100"
+                      className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                       onClick={() => onSort("duration")}
                     >
                       Durasi{" "}
@@ -160,7 +160,7 @@ export function ReportRawSessionsCard({
               )}
               {!isColumnHidden("penonton") && (
                 <th
-                  className="px-0.5 sm:px-5 py-2 sm:py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("views")}
                 >
                   Viewer{" "}
@@ -169,7 +169,7 @@ export function ReportRawSessionsCard({
               )}
               {!isColumnHidden("gmv") && (
                 <th
-                  className="px-0.5 sm:px-5 py-2 sm:py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("gmv")}
                 >
                   <span className="md:hidden">GMV</span>
@@ -179,7 +179,7 @@ export function ReportRawSessionsCard({
               )}
               {!isColumnHidden("items_sold") && (
                 <th
-                  className="px-0.5 sm:px-5 py-2 sm:py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("products_sold")}
                 >
                   <span className="md:hidden">Sold</span>
@@ -193,7 +193,7 @@ export function ReportRawSessionsCard({
               )}
               {!isColumnHidden("engagement") && (
                 <th
-                  className="px-0.5 sm:px-5 py-2 sm:py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("avgViewDuration")}
                 >
                   <span className="md:hidden">Avg</span>
@@ -207,7 +207,7 @@ export function ReportRawSessionsCard({
               )}
               {!isColumnHidden("orders") && (
                 <th
-                  className="px-0.5 sm:px-5 py-2 sm:py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("customers")}
                 >
                   <span className="md:hidden">Cust</span>

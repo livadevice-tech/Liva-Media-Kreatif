@@ -468,59 +468,59 @@ export function LiveReportMetricsSection({
     const aovPct = calcPercentChange(avgAovDb, pAvgAovDb);
 
     const PctBadge = ({ pct }: { pct: number }) => (
-      <div className={`mt-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${pct >= 0 ? 'bg-emerald-100/20 text-emerald-300' : 'bg-red-100/20 text-red-300'}`}>
-        {pct >= 0 ? <TrendingUp size={10} /> : <TrendingUp size={10} className="rotate-180" />}
+      <div className={`mt-1.5 flex items-center justify-center gap-0.5 rounded px-1 py-0.5 text-[8px] font-bold w-full max-w-[45px] mx-auto ${pct >= 0 ? 'bg-emerald-400/20 text-emerald-300' : 'bg-rose-400/20 text-rose-300'}`}>
+        {pct >= 0 ? <TrendingUp size={8} /> : <TrendingUp size={8} className="rotate-180" />}
         {pct > 0 ? '+' : ''}{pct.toFixed(1)}%
       </div>
     );
 
     return (
-      <div className="md:hidden w-full rounded-2xl bg-gradient-to-br from-[#4d148c] to-[#6b21a8] p-4 text-white shadow-lg mb-2">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-lg">Live Overview</h3>
-          <span className="flex items-center gap-1 text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full">
+      <div className="md:hidden w-full rounded-2xl bg-[#3904b6] p-4 text-white shadow-lg mb-2">
+        <div className="flex justify-between items-center mb-5">
+          <h3 className="font-bold text-[13px] tracking-wide">Live Overview</h3>
+          <span className="flex items-center gap-1.5 text-[9px] font-bold bg-white/10 px-2 py-1 rounded-full border border-white/10">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> LIVE
           </span>
         </div>
         
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-1">
           {/* GMV */}
-          <div className="flex flex-col items-start">
-            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center mb-1">
-              <DollarSign size={12} className="text-purple-200" />
+          <div className="flex flex-col items-center justify-start text-center">
+            <div className="w-7 h-7 rounded bg-white/10 flex items-center justify-center mb-1.5 border border-white/5">
+              <DollarSign size={13} className="text-white/80" />
             </div>
-            <span className="text-[9px] text-purple-200">GMV</span>
-            <span className="text-[11px] font-bold">Rp {formatRp(totalGmvDb)}</span>
+            <span className="text-[9px] text-white/70 font-medium mb-0.5">GMV</span>
+            <span className="text-[11px] sm:text-[12px] font-bold text-white tracking-tight leading-tight w-full truncate px-0.5">Rp{formatRp(totalGmvDb)}</span>
             <PctBadge pct={gmvPct} />
           </div>
           
           {/* Item Sold */}
-          <div className="flex flex-col items-start">
-            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center mb-1">
-              <Package size={12} className="text-purple-200" />
+          <div className="flex flex-col items-center justify-start text-center">
+            <div className="w-7 h-7 rounded bg-white/10 flex items-center justify-center mb-1.5 border border-white/5">
+              <Package size={13} className="text-white/80" />
             </div>
-            <span className="text-[9px] text-purple-200">Item Sold</span>
-            <span className="text-[11px] font-bold">{formatNum(totalItemsSoldDb)}</span>
+            <span className="text-[9px] text-white/70 font-medium mb-0.5">Item Sold</span>
+            <span className="text-[11px] sm:text-[12px] font-bold text-white tracking-tight leading-tight w-full truncate px-0.5">{formatNum(totalItemsSoldDb)}</span>
             <PctBadge pct={itemPct} />
           </div>
           
           {/* GMV/Hours */}
-          <div className="flex flex-col items-start">
-            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center mb-1">
-              <Clock size={12} className="text-purple-200" />
+          <div className="flex flex-col items-center justify-start text-center">
+            <div className="w-7 h-7 rounded bg-white/10 flex items-center justify-center mb-1.5 border border-white/5">
+              <Clock size={13} className="text-white/80" />
             </div>
-            <span className="text-[9px] text-purple-200">GMV/Hours</span>
-            <span className="text-[11px] font-bold">Rp {formatRp(gmvPerHour)}</span>
+            <span className="text-[9px] text-white/70 font-medium mb-0.5">GMV/Hours</span>
+            <span className="text-[11px] sm:text-[12px] font-bold text-white tracking-tight leading-tight w-full truncate px-0.5">Rp{formatRp(gmvPerHour)}</span>
             <PctBadge pct={gmvHrPct} />
           </div>
           
           {/* AOV */}
-          <div className="flex flex-col items-start">
-            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center mb-1">
-              <Calculator size={12} className="text-purple-200" />
+          <div className="flex flex-col items-center justify-start text-center">
+            <div className="w-7 h-7 rounded bg-white/10 flex items-center justify-center mb-1.5 border border-white/5">
+              <Calculator size={13} className="text-white/80" />
             </div>
-            <span className="text-[9px] text-purple-200">AOV</span>
-            <span className="text-[11px] font-bold">Rp {formatRp(avgAovDb)}</span>
+            <span className="text-[9px] text-white/70 font-medium mb-0.5">AOV</span>
+            <span className="text-[11px] sm:text-[12px] font-bold text-white tracking-tight leading-tight w-full truncate px-0.5">Rp{formatRp(avgAovDb)}</span>
             <PctBadge pct={aovPct} />
           </div>
         </div>

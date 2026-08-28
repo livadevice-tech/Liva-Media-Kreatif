@@ -450,12 +450,12 @@ export function LiveReportChartSection({
             const opt = platformFilteredOptions.find(o => o.key === key);
             if (!opt) return null;
             return (
-              <div key={key} className="flex items-center gap-1 rounded-full bg-[#fdfcff] px-2.5 py-1 border border-[#e4ddf6]">
-                <span className="text-[10px] font-bold text-[#5600e0]">{opt.label}</span>
+              <div key={key} className="flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-slate-200">
+                <span className="text-[10px] font-medium text-slate-700">{opt.label}</span>
                 <button
                   type="button"
                   onClick={() => onChartSelectedMetricsChange(activeMetrics.filter(m => m !== key))}
-                  className="text-[#5600e0]/60 hover:text-[#5600e0]"
+                  className="text-red-500 hover:text-red-600 text-[10px] ml-0.5"
                 >
                   <span className="sr-only">Remove</span>
                   &times;
@@ -471,7 +471,7 @@ export function LiveReportChartSection({
                 setIsSaleMetricsMenuOpen(!isSaleMetricsMenuOpen);
                 setIsEngagementMetricsMenuOpen(false);
               }}
-              className="flex items-center justify-center w-6 h-6 rounded-full border border-dashed border-slate-300 text-slate-400 hover:text-slate-600 hover:border-slate-400 text-xs"
+              className="flex items-center justify-center w-6 h-6 rounded-md bg-[#5600e0] text-white hover:bg-[#4d148c] text-sm font-bold shadow-sm leading-none"
             >
               +
             </button>
