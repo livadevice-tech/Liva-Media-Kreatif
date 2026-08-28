@@ -281,8 +281,8 @@ export function ReportingWorkspaceHeader({
                 <h2 className="text-[15px] font-bold tracking-tight text-slate-900 leading-tight">
                   {brandName || "Nama Brand"}
                 </h2>
-                <p className="text-[11px] font-medium text-[#6534b8] leading-tight">
-                  {selectedPlatform}{sessionCount !== undefined ? ` - ${sessionCount} Session` : ""}
+                <p className="text-[11px] font-medium text-[#5600e0] leading-tight">
+                  {selectedPlatform}
                 </p>
               </div>
             </div>
@@ -388,7 +388,7 @@ export function ReportingWorkspaceHeader({
               <button
                 type="button"
                 onClick={openDateMenu}
-                className="inline-flex h-8 sm:h-11 items-center gap-1 sm:gap-2 rounded-lg border border-slate-200 bg-white px-2 sm:px-4 text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm"
+                className="inline-flex h-8 sm:h-11 items-center gap-1 sm:gap-2 rounded-full border border-slate-200 bg-white px-3 sm:px-4 text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm"
                 aria-haspopup="menu"
                 aria-expanded={isDateMenuOpen}
               >
@@ -424,7 +424,7 @@ export function ReportingWorkspaceHeader({
 
             {/* Date Navigation (period nav) */}
             {dateFilterType === "latest" && periodLabel && onPrevPeriod && onNextPeriod ? (
-              <div className="flex items-center gap-0.5 sm:gap-1 rounded-lg border border-slate-200 bg-white px-0.5 sm:px-2 shadow-sm h-8 sm:h-11 flex-shrink-0">
+              <div className="flex items-center gap-0.5 sm:gap-1 rounded-full border border-slate-200 bg-white px-1 sm:px-2 shadow-sm h-8 sm:h-11 flex-shrink-0">
                 <button
                   type="button"
                   onClick={onPrevPeriod}
@@ -434,7 +434,7 @@ export function ReportingWorkspaceHeader({
                   <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                 </button>
                 <div className="min-w-[100px] sm:min-w-[150px] px-0.5 sm:px-2 text-center">
-                  <p className="text-[9px] sm:text-xs font-bold text-indigo-600 truncate">
+                  <p className="text-[11px] sm:text-xs font-bold text-[#5600e0] truncate">
                     {periodLabel}
                   </p>
                 </div>
@@ -454,7 +454,7 @@ export function ReportingWorkspaceHeader({
               <button
                 type="button"
                 onClick={openPlatformMenu}
-                className="inline-flex h-8 sm:h-11 items-center gap-1 sm:gap-2 rounded-lg border border-slate-200 bg-white px-2 sm:px-4 text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm"
+                className="inline-flex h-8 sm:h-11 items-center gap-1 sm:gap-2 rounded-full border border-slate-200 bg-white px-3 sm:px-4 text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm"
                 aria-haspopup="menu"
                 aria-expanded={isPlatformMenuOpen}
               >
@@ -501,12 +501,12 @@ export function ReportingWorkspaceHeader({
                 className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-[#e4ddf6] bg-[#faf8ff] text-slate-700 hover:bg-[#f3edff] transition-all text-xs font-bold cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-indigo-600">Filter & Grouping Shift</span>
+                  <span className="text-[#5600e0]">Filter & Grouping Shift</span>
                   <span className="bg-[#5600e0] text-white px-2.5 py-0.5 rounded-full text-[10px] font-extrabold max-w-[400px] truncate" title={operatorShiftFilters.join(", ")}>
                     {operatorShiftFilters.length === 0 ? "All Time" : operatorShiftFilters.join(", ")}
                   </span>
                 </div>
-                <ChevronDown className={`h-4 w-4 text-indigo-600 transition-transform duration-200 ${isShiftDropdownOpen ? 'transform rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 text-[#5600e0] transition-transform duration-200 ${isShiftDropdownOpen ? 'transform rotate-180' : ''}`} />
               </button>
 
               {isShiftDropdownOpen && (
@@ -561,7 +561,7 @@ export function ReportingWorkspaceTabs({
   const tabClass = (tab: ReportingTab) =>
     `relative whitespace-nowrap px-1 pb-2 pt-1 sm:py-3 text-[13px] sm:text-[14px] font-semibold sm:font-bold transition-all border-b-2 sm:border-b-[3px] ${
       activeTab === tab
-        ? "border-[#5600e0] text-slate-900"
+        ? "border-[#5600e0] text-[#5600e0]"
         : "border-transparent text-slate-400 sm:text-slate-500 hover:text-slate-700"
     }`;
 
