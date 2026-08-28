@@ -1507,6 +1507,7 @@ export default function App() {
   const [newHostBankName, setNewHostBankName] = useState("");
   const [newHostUser, setNewHostUser] = useState("");
   const [newHostPass, setNewHostPass] = useState("");
+  const [hostSearchTerm, setHostSearchTerm] = useState("");
   const [newHostWorkingDaysTarget, setNewHostWorkingDaysTarget] =
     useState<number>(26);
 
@@ -12376,17 +12377,18 @@ export default function App() {
                     </div>
 
                     {/* Sub-tabs Navigation */}
-                    <div className="flex space-x-2 border-b border-slate-200">
-                      <button
-                        onClick={() => setCredentialsSubTab("host_list")}
-                        className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
-                          credentialsSubTab === "host_list"
-                            ? "border-purple-600 text-purple-700"
-                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-                        }`}
-                      >
-                        Kredensial Host
-                      </button>
+                    <div className="flex w-full overflow-x-auto no-scrollbar border-b border-slate-200">
+                      <div className="flex w-max space-x-2 px-1">
+                        <button
+                          onClick={() => setCredentialsSubTab("host_list")}
+                          className={`px-4 py-3 sm:py-2 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+                            credentialsSubTab === "host_list"
+                              ? "border-purple-600 text-purple-700"
+                              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          Kredensial Host
+                        </button>
                       <button
                         onClick={() => setCredentialsSubTab("activity_logs")}
                         className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
@@ -12397,25 +12399,41 @@ export default function App() {
                       >
                         Log Aktivitas
                       </button>
-                      <button
-                        onClick={() => setCredentialsSubTab("violations")}
-                        className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
-                          credentialsSubTab === "violations"
-                            ? "border-purple-600 text-purple-700"
-                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-                        }`}
-                      >
-                        Pelanggaran Host
-                      </button>
+                        <button
+                          onClick={() => setCredentialsSubTab("violations")}
+                          className={`px-4 py-3 sm:py-2 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+                            credentialsSubTab === "violations"
+                              ? "border-purple-600 text-purple-700"
+                              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          Pelanggaran Host
+                        </button>
+                      </div>
                     </div>
 
                     {credentialsSubTab === "host_list" && (
                       <div className="space-y-4">
-                        <div className="flex justify-end">
+                        <div className="flex flex-col sm:flex-row justify-between gap-3">
+                          <div className="flex items-center gap-2 w-full sm:w-auto order-2 sm:order-1">
+                            <div className="relative flex-1 sm:w-64">
+                              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                              <input
+                                type="text"
+                                placeholder="Cari nama host..."
+                                value={hostSearchTerm}
+                                onChange={(e) => setHostSearchTerm(e.target.value)}
+                                className="w-full bg-white border border-slate-200 rounded-[14px] sm:rounded-xl pl-11 pr-4 py-3 sm:py-2 text-sm text-slate-800 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 font-semibold shadow-sm sm:shadow-none"
+                              />
+                            </div>
+                            <button className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-slate-50 border border-slate-200 rounded-[14px] sm:rounded-xl shadow-sm sm:shadow-none text-slate-700 font-bold text-xs shrink-0 transition-all active:bg-slate-100 hover:bg-slate-100">
+                              <Filter className="w-4 h-4" /> <span className="hidden sm:inline">Filter</span><span className="sm:hidden">Filter</span>
+                            </button>
+                          </div>
                           <button
                             type="button"
                             onClick={() => setShowAddForm(!showAddForm)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 self-start sm:self-center transition-all shadow-xs cursor-pointer select-none"
+                            className="bg-[#8A2BE2] sm:bg-purple-600 hover:bg-[#7a20c9] sm:hover:bg-purple-700 text-white font-extrabold px-4 py-3 sm:py-2.5 rounded-[14px] sm:rounded-xl text-xs flex items-center justify-center gap-2 order-1 sm:order-2 w-full sm:w-auto transition-all shadow-sm sm:shadow-xs cursor-pointer select-none"
                           >
                             <Plus className="w-4 h-4" />
                             {showAddForm ? "Sembunyikan Form" : "Tambah Host Baru"}
@@ -12608,9 +12626,9 @@ export default function App() {
                       </div>
                     )}
 
-                    <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm">
-                      <table className="min-w-full divide-y divide-slate-100">
-                        <thead className="bg-slate-50/80">
+                    <div className="border-0 sm:border sm:border-slate-200 sm:rounded-xl bg-transparent sm:bg-white shadow-none sm:shadow-sm">
+                      <table className="min-w-full divide-y divide-slate-100 block sm:table">
+                        <thead className="bg-slate-50/80 hidden sm:table-header-group">
                           <tr className="text-left text-xs font-semibold text-slate-500">
                             <th className="px-6 py-4">Host</th>
                             <th className="px-6 py-4">Role</th>
@@ -12621,8 +12639,8 @@ export default function App() {
                             <th className="px-6 py-4 text-right">Aksi</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                          {hosts.map((h) => (
+                        <tbody className="divide-y-0 sm:divide-y sm:divide-slate-100 bg-transparent sm:bg-white block sm:table-row-group space-y-4 sm:space-y-0">
+                          {hosts.filter(h => !hostSearchTerm || h.name.toLowerCase().includes(hostSearchTerm.toLowerCase()) || h.employeeId?.toLowerCase().includes(hostSearchTerm.toLowerCase())).map((h) => (
                             <HostCredentialRow
                               key={h.id}
                               host={h}
