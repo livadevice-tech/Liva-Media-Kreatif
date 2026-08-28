@@ -4,6 +4,7 @@ import { getNextSortState, type ReportLogLike } from "../../shared/utils/reportT
 import type { BrandPerformanceLogEntry, UploadHistoryEntry } from "../../shared/types/reporting";
 import type { LiveReportViewModel } from "../../shared/utils/liveReporting";
 import { buildLiveReportPanelData } from "../../shared/utils/liveReportPanel";
+import { MobileLiveOverviewCard } from "./MobileLiveOverviewCard";
 import { LiveReportSummarySection } from "./LiveReportSummarySection";
 import type { BrandDashboardSettings } from "../../types";
 
@@ -113,18 +114,25 @@ export function LiveReportPanel({
   );
 
   return (
-    <div className="space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
-      <LiveReportSummarySection
-        stats={stats}
-        chartData={chartData}
-        chartSelectedMetrics={chartSelectedMetrics}
-        onChartSelectedMetricsChange={onChartSelectedMetricsChange}
-        periodLabel={model.latestDateLabel}
-        brandDashboardSettings={brandDashboardSettings}
-        isShopee={!isTikTokLive}
-        hasData={hasAnyData}
-        isClientView={isClientView}
-      />
+    <>
+      {/* MOBILE VIEW */}
+      <div className="md:hidden px-4 pb-6 space-y-4 animate-fadeIn">
+        <MobileLiveOverviewCard stats={stats} />
+      </div>
+
+      {/* DESKTOP VIEW */}
+      <div className="hidden md:block space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
+        <LiveReportSummarySection
+          stats={stats}
+          chartData={chartData}
+          chartSelectedMetrics={chartSelectedMetrics}
+          onChartSelectedMetricsChange={onChartSelectedMetricsChange}
+          periodLabel={model.latestDateLabel}
+          brandDashboardSettings={brandDashboardSettings}
+          isShopee={!isTikTokLive}
+          hasData={hasAnyData}
+          isClientView={isClientView}
+        />
 
       <ReportRawSessionsCard
         reportingShopeeRawTab={reportingShopeeRawTab}
@@ -160,6 +168,7 @@ export function LiveReportPanel({
           onDeleteBatch={onDeleteUploadBatch}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

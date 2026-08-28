@@ -11773,11 +11773,10 @@ export default function App() {
                             </div>
                           </div>
 
-                          <div className="hidden md:block">
-                            <ReportingWorkspaceTabs
-                              activeTab={operatorReportingTab}
-                              onTabChange={setOperatorReportingTab}
-                            />
+                          <ReportingWorkspaceTabs
+                            activeTab={operatorReportingTab}
+                            onTabChange={setOperatorReportingTab}
+                          />
 
                           <SkuUploadModal
                             isOpen={isSkuUploadModalOpen}
@@ -12183,7 +12182,6 @@ export default function App() {
                               }}
                             />
                           )}
-                          </div>
                         </div>
                       </>
                     )}

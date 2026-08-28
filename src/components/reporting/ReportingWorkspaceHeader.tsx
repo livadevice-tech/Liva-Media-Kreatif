@@ -570,7 +570,7 @@ export function ReportingWorkspaceTabs({
   };
 
   return (
-    <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 bg-white border-b border-slate-100 hidden md:block">
+    <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 bg-white border-b border-slate-100">
       <div className="px-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
         <div className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto">
           {!isCategoryHidden("live") && (
@@ -583,17 +583,6 @@ export function ReportingWorkspaceTabs({
           <span className="hidden md:inline">Live Performance</span>
         </button>
       )}
-      {!isCategoryHidden("analysis") && (
-        <button
-          type="button"
-          onClick={() => onTabChange("analysis")}
-          className={tabClass("analysis")}
-        >
-          <span className="md:hidden">Engagement</span>
-          <span className="hidden md:inline">Analysis Performance</span>
-        </button>
-      )}
-
       {!isCategoryHidden("product") && (
         <button
           type="button"
@@ -604,11 +593,22 @@ export function ReportingWorkspaceTabs({
           <span className="hidden md:inline">Product Performance</span>
         </button>
       )}
+
+      {!isCategoryHidden("analysis") && (
+        <button
+          type="button"
+          onClick={() => onTabChange("analysis")}
+          className={tabClass("analysis")}
+        >
+          <span className="md:hidden">Engagement</span>
+          <span className="hidden md:inline">Analysis Performance</span>
+        </button>
+      )}
       {!hideSettingsTab && (
         <button
           type="button"
           onClick={() => onTabChange("settings")}
-          className={tabClass("settings")}
+          className={`${tabClass("settings")} hidden md:block`}
         >
           Pengaturan Klien
         </button>
