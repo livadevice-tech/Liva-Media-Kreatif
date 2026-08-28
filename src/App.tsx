@@ -12359,13 +12359,13 @@ export default function App() {
                 {/* ==================== SUBTAB: AKUN & KREDENSIAL HOST PRIVASI ==================== */}
                 {operatorTab === "credentials" && (
                   <div
-                    className="bg-white border border-purple-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fadeIn"
+                    className="bg-transparent sm:bg-white sm:border border-purple-100 sm:rounded-3xl p-0 sm:p-6 sm:shadow-sm space-y-4 sm:space-y-6 animate-fadeIn"
                     id="operator_credentials_content"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-purple-50 pb-4">
                       <div>
-                        <h3 className="text-xl font-black text-purple-950 flex items-center gap-2">
-                          <ShieldCheck className="w-6 h-6 text-purple-600" />
+                        <h3 className="text-lg sm:text-xl font-black text-purple-950 flex items-center gap-2 leading-tight">
+                          <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 shrink-0" />
                           Manajemen Kredensial & Privasi Akun Host
                         </h3>
                         <p className="text-xs text-[#3c2f56]/80 mt-1 font-medium leading-relaxed">
