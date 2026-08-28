@@ -466,8 +466,6 @@ export function HostCredentialRow({
           </div>
         </td>
       </tr>
-
-      </tr>
     </>
   );
 }
