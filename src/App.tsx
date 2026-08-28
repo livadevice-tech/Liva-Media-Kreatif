@@ -5430,14 +5430,16 @@ export default function App() {
                       })()}
                     />
                       </div>
-
-                    <ReportingWorkspaceTabs
-                      activeTab={clientReportingTab}
-                      onTabChange={setClientReportingTab}
-                      hideSettingsTab={true}
-                    />
+                    <div className="hidden md:block">
+                      <ReportingWorkspaceTabs
+                        activeTab={clientReportingTab}
+                        onTabChange={setClientReportingTab}
+                        hideSettingsTab={true}
+                      />
+                    </div>
                     </div>
 
+                    <div className="hidden md:block">
                     {clientReportingTab === "live" && (
                       <React.Suspense
                         fallback={
@@ -5519,6 +5521,7 @@ export default function App() {
                         hideUploadHistory={true}
                       />
                     )}
+                    </div>
 
 
                   </div>

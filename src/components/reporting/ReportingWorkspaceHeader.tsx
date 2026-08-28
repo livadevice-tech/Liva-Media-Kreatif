@@ -55,6 +55,7 @@ type ReportingWorkspaceHeaderProps = {
   onNextPeriod?: () => void;
   canPrevPeriod?: boolean;
   canNextPeriod?: boolean;
+  sessionCount?: number;
   operatorShiftFilters?: string[];
   setOperatorShiftFilters?: Setter<string[]>;
   availableShifts?: string[];
@@ -246,10 +247,55 @@ export function ReportingWorkspaceHeader({
 
   return (
     <section
-      className="pt-3 pb-0 sm:py-4 hidden md:block"
+      className="pt-3 pb-0 sm:py-4"
       data-active-tab={activeTab}
     >
       <div className="flex flex-col">
+        {/* === MOBILE-ONLY header row (hidden on desktop) === */}
+        <div className="flex items-center justify-between pb-3 md:hidden">
+          <div className="flex items-center gap-2">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label="Kembali"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            )}
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#e7e0f8] bg-white text-sm font-bold text-slate-600">
+                {brandLogoUrl ? (
+                  <img
+                    src={brandLogoUrl}
+                    alt={`${brandName || "Brand"} logo`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xs">{brandInitials || "RB"}</span>
+                )}
+              </div>
+
+              <div className="flex flex-col min-w-0">
+                <h2 className="text-[17px] font-semibold tracking-tight text-slate-950 leading-tight truncate">
+                  {brandName || "Nama Brand"}
+                </h2>
+                <p className="text-[12px] font-medium text-[#a855f7] leading-tight mt-0.5">
+                  {selectedPlatform} {sessionCount !== undefined && `- ${sessionCount} Session`}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <button
+            type="button"
+            className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-slate-50 border border-slate-200 text-slate-500 shadow-sm"
+          >
+            <Settings2 className="h-[18px] w-[18px]" />
+          </button>
+        </div>
         {/* === DESKTOP-ONLY header row (hidden on mobile) === */}
         <div className="hidden md:flex items-center gap-3 pb-4 border-b border-[#e7e0f8]">
           {onBack && (
