@@ -379,9 +379,9 @@ export function ReportingWorkspaceHeader({
           )}
         </div>
 
-        {/* === FILTER BAR: mobile = single row, desktop = flex wrap === */}
-        <div className="flex flex-row overflow-x-auto hide-scrollbar gap-2 sm:gap-3 pt-3 sm:pt-4 sm:items-center sm:justify-between pb-2">
-          <div className="flex flex-row items-center gap-1.5 sm:gap-3 w-max sm:w-full">
+        {/* === FILTER BAR: mobile = flex wrap, desktop = flex wrap === */}
+        <div className="flex flex-row flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 sm:items-center sm:justify-between pb-2">
+          <div className="flex flex-row flex-wrap items-center gap-2 sm:gap-3 w-full">
             {/* Date Filter */}
             <div className="relative flex-shrink-0" ref={dateMenuRef}>
               <button
