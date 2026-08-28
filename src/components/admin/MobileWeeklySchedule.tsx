@@ -107,7 +107,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
 
       {/* Main Grid Section */}
       <div className="w-full overflow-x-auto no-scrollbar border-t border-slate-100 pt-2">
-        <div className="min-w-[420px]">
+        <div className="w-full">
           {/* Rows (Studios) */}
           <div className="mt-2 pb-10">
             {sortedStudios.length === 0 && (
@@ -128,18 +128,18 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
                         <button 
                           key={i} 
                           onClick={() => setActiveDate(wd.dateString)}
-                          className={`flex flex-col items-center justify-center py-2.5 mx-1 mb-1 rounded-[14px] transition-colors cursor-pointer ${
+                          className={`flex flex-col items-center justify-center py-2.5 mx-0.5 mb-1 rounded-[14px] transition-colors cursor-pointer ${
                             isActive ? 'bg-indigo-50' : 'bg-transparent'
                           }`}
                         >
-                          <div className={`text-[12px] font-bold ${isActive ? 'text-indigo-700' : 'text-slate-500'}`}>{wd.dayName}</div>
-                          <div className={`text-[10px] font-medium mt-0.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>{wd.shortDate}</div>
+                          <div className={`text-[11px] font-bold ${isActive ? 'text-indigo-700' : 'text-slate-500'}`}>{wd.dayName}</div>
+                          <div className={`text-[9px] font-medium mt-0.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>{wd.shortDate}</div>
                         </button>
                       );
                     })}
                   </div>
 
-                  <div className="grid grid-cols-7 gap-1.5 px-2">
+                  <div className="grid grid-cols-7 gap-1 px-1.5">
                     {weekDays.map((wd, i) => {
                       // Find schedules for this day
                       const daySchedules = studioSchedules.filter(s => s.date === wd.dateString);
@@ -149,14 +149,14 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
                           {daySchedules.map((s, sIdx) => {
                             const timeStr = formatTime(s.timeSlot);
                             return (
-                              <div key={sIdx} className="w-full bg-white border border-indigo-600 rounded-[12px] p-1.5 flex flex-col items-center justify-center shadow-xs">
-                                <span className="text-[9px] font-bold text-black text-center w-full truncate leading-tight">
+                              <div key={sIdx} className="w-full bg-white border border-indigo-600 rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs">
+                                <span className="text-[8.5px] font-bold text-black text-center w-full truncate leading-tight">
                                   {s.brand.split(' ')[0]}
                                 </span>
-                                <span className="text-[8.5px] font-medium text-black uppercase text-center w-full truncate leading-tight mt-0.5">
+                                <span className="text-[8px] font-medium text-black uppercase text-center w-full truncate leading-tight mt-0.5">
                                   {s.hostName.split(' ')[0]}
                                 </span>
-                                <span className="text-[9px] font-bold text-indigo-600 mt-1 leading-tight">
+                                <span className="text-[8.5px] font-bold text-indigo-600 mt-1 leading-tight">
                                   {timeStr}
                                 </span>
                               </div>
