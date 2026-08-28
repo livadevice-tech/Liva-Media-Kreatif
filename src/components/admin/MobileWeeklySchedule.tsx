@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { ChevronRight, ChevronLeft, Settings, CheckSquare } from "lucide-react";
 import { getBrandStyle } from "../../shared/utils/appUi";
 import { HostEmployee } from "../../types";
@@ -54,6 +54,13 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
     setSelectedFilledIds([]);
     setSelectedEmptySlots([]);
   };
+
+  useEffect(() => {
+    // Clear selection when schedules change (e.g. after mass delete/create)
+    setSelectedFilledIds([]);
+    setSelectedEmptySlots([]);
+    setIsSelectionMode(false);
+  }, [schedules]);
 
   const handleEmptyCellClick = (dateStr: string, studio: string, shift: string) => {
     if (isSelectionMode) {
@@ -317,12 +324,12 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
 
                   <div className="flex flex-col gap-1.5 px-1.5">
                     {(() => {
-                      const uniqueShifts = Array.from(new Set(studioSchedules.map(s => formatTime(s.timeSlot)))).sort();
+                      const uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).sort();
                       
                       return uniqueShifts.map((shift, shiftIdx) => (
                         <div key={shiftIdx} className="grid grid-cols-7 gap-1">
                           {weekDays.map((wd, i) => {
-                            const shiftSchedules = studioSchedules.filter(s => s.date === wd.dateString && formatTime(s.timeSlot) === shift);
+                            const shiftSchedules = studioSchedules.filter(s => s.date === wd.dateString && s.timeSlot === shift);
                             
                             if (shiftSchedules.length === 0) {
                               const isSelected = selectedEmptySlots.some(s => s.date === wd.dateString && s.studio === studioName && s.shift === shift);
@@ -364,7 +371,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                                         {displayName.split(' ')[0]}
                                       </span>
                                       <span className="text-[8.5px] font-bold mt-1 leading-tight">
-                                        {shift}
+                                        {formatTime(shift)}
                                       </span>
                                     </button>
                                   );
@@ -403,12 +410,21 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                   Hapus ({selectedFilledIds.length})
                 </button>
               )}
-              {selectedEmptySlots.length > 0 && (
+              {(selectedEmptySlots.length > 0 || selectedFilledIds.length > 0) && (
                 <button
-                  onClick={() => onMassCreate && onMassCreate(selectedEmptySlots)}
+                  onClick={() => {
+                    if (onMassCreate) {
+                      const filledSlotsToUpdate = selectedFilledIds.map(id => {
+                        const sched = schedules.find(s => s.id === id);
+                        return sched ? { date: sched.date, studio: sched.studio, shift: sched.timeSlot } : null;
+                      }).filter(Boolean) as EmptySlot[];
+                      
+                      onMassCreate([...selectedEmptySlots, ...filledSlotsToUpdate]);
+                    }
+                  }}
                   className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors"
                 >
-                  Buat ({selectedEmptySlots.length})
+                  Buat / Update ({selectedEmptySlots.length + selectedFilledIds.length})
                 </button>
               )}
             </div>
