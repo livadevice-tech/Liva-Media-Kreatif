@@ -6143,6 +6143,7 @@ export default function App() {
                   <MobileWeeklySchedule 
                     schedules={schedules}
                     clientBrands={clientBrands}
+                    hosts={hosts}
                     onBackClick={() => setOperatorTab("dashboard_utama")}
                     onEmptyCellClick={(dateStr, studio) => {
                       setScheduleForm(prev => ({

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { getBrandStyle } from "../../shared/utils/appUi";
+import { HostEmployee } from "../../types";
 
 interface Schedule {
   id: string;
@@ -18,6 +19,7 @@ interface Schedule {
 interface MobileWeeklyScheduleProps {
   schedules: Schedule[];
   clientBrands: any[];
+  hosts: HostEmployee[];
   onBackClick?: () => void;
   onEmptyCellClick?: (dateStr: string, studio: string) => void;
   onScheduleClick?: (schedule: Schedule) => void;
@@ -26,6 +28,7 @@ interface MobileWeeklyScheduleProps {
 export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ 
   schedules, 
   clientBrands, 
+  hosts,
   onBackClick,
   onEmptyCellClick,
   onScheduleClick
@@ -167,6 +170,10 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                             const timeStr = formatTime(s.timeSlot);
                             const brandStyle = getBrandStyle(s.brand);
                             
+                            // Find host to get username
+                            const hostData = hosts.find(h => h.id === s.hostId);
+                            const displayName = hostData?.username || s.hostName;
+                            
                             return (
                               <button 
                                 key={sIdx} 
@@ -177,7 +184,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                                   {s.brand.split(' ')[0]}
                                 </span>
                                 <span className="text-[8px] font-semibold uppercase text-center w-full truncate leading-tight mt-0.5 opacity-80">
-                                  {s.hostName.split(' ')[0]}
+                                  {displayName.split(' ')[0]}
                                 </span>
                                 <span className="text-[8.5px] font-bold mt-1 leading-tight">
                                   {timeStr}
