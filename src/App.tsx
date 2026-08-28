@@ -12362,18 +12362,29 @@ export default function App() {
                     className="bg-transparent sm:bg-white sm:border border-purple-100 sm:rounded-3xl p-0 sm:p-6 sm:shadow-sm space-y-4 sm:space-y-6 animate-fadeIn"
                     id="operator_credentials_content"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-purple-50 pb-4">
-                      <div>
+                    <div className="flex flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-purple-50 pb-4">
+                      <div className="flex-1">
                         <h3 className="text-lg sm:text-xl font-black text-purple-950 flex items-center gap-2 leading-tight">
                           <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 shrink-0" />
-                          Manajemen Kredensial & Privasi Akun Host
+                          Management akun host
                         </h3>
-                        <p className="text-xs text-[#3c2f56]/80 mt-1 font-medium leading-relaxed">
+                        <p className="text-[10px] sm:text-xs text-[#3c2f56]/80 mt-1 font-medium leading-relaxed">
                           Tambahkan host baru, edit profil (Nama, HP, Rekening
                           Bank), atau atur ulang username/password login mereka
                           secara real-time.
                         </p>
                       </div>
+                      
+                      {credentialsSubTab === "host_list" && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAddForm(!showAddForm)}
+                          className="bg-[#8A2BE2] sm:bg-purple-600 hover:bg-[#7a20c9] sm:hover:bg-purple-700 text-white font-extrabold p-2.5 sm:px-4 sm:py-2.5 rounded-[14px] sm:rounded-xl text-xs flex items-center justify-center gap-2 shrink-0 transition-all shadow-sm cursor-pointer select-none"
+                        >
+                          <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
+                          <span className="hidden sm:inline">{showAddForm ? "Batal" : "Tambah Host"}</span>
+                        </button>
+                      )}
                     </div>
 
                     {/* Sub-tabs Navigation */}
@@ -12387,7 +12398,7 @@ export default function App() {
                               : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                           }`}
                         >
-                          Kredensial Host
+                          akun
                         </button>
                       <button
                         onClick={() => setCredentialsSubTab("activity_logs")}
@@ -12397,7 +12408,7 @@ export default function App() {
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                         }`}
                       >
-                        Log Aktivitas
+                        log
                       </button>
                         <button
                           onClick={() => setCredentialsSubTab("violations")}
@@ -12407,7 +12418,7 @@ export default function App() {
                               : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
                           }`}
                         >
-                          Pelanggaran Host
+                          violation
                         </button>
                       </div>
                     </div>
@@ -12426,18 +12437,7 @@ export default function App() {
                                 className="w-full bg-white border border-slate-200 rounded-[14px] sm:rounded-xl pl-11 pr-4 py-3 sm:py-2 text-sm text-slate-800 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 font-semibold shadow-sm sm:shadow-none"
                               />
                             </div>
-                            <button className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-slate-50 border border-slate-200 rounded-[14px] sm:rounded-xl shadow-sm sm:shadow-none text-slate-700 font-bold text-xs shrink-0 transition-all active:bg-slate-100 hover:bg-slate-100">
-                              <Filter className="w-4 h-4" /> <span className="hidden sm:inline">Filter</span><span className="sm:hidden">Filter</span>
-                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setShowAddForm(!showAddForm)}
-                            className="bg-[#8A2BE2] sm:bg-purple-600 hover:bg-[#7a20c9] sm:hover:bg-purple-700 text-white font-extrabold px-4 py-3 sm:py-2.5 rounded-[14px] sm:rounded-xl text-xs flex items-center justify-center gap-2 order-1 sm:order-2 w-full sm:w-auto transition-all shadow-sm sm:shadow-xs cursor-pointer select-none"
-                          >
-                            <Plus className="w-4 h-4" />
-                            {showAddForm ? "Sembunyikan Form" : "Tambah Host Baru"}
-                          </button>
                         </div>
 
 
