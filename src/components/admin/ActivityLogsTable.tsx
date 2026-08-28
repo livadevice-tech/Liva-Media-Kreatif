@@ -85,10 +85,10 @@ export const ActivityLogsTable: React.FC = () => {
           Belum ada data log aktivitas
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+        <div className="bg-transparent sm:bg-white border-0 sm:border border-slate-200 rounded-none sm:rounded-xl overflow-visible sm:overflow-hidden shadow-none sm:shadow-sm">
+          <div className="overflow-x-visible sm:overflow-x-auto pb-4 sm:pb-0">
+            <table className="w-full text-left text-xs whitespace-normal sm:whitespace-nowrap block sm:table">
+              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 hidden sm:table-header-group">
                 <tr>
                   <th className="px-4 py-3">Waktu</th>
                   <th className="px-4 py-3">Nama Host</th>
@@ -96,27 +96,51 @@ export const ActivityLogsTable: React.FC = () => {
                   <th className="px-4 py-3">Detail</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y-0 sm:divide-y divide-slate-100 block sm:table-row-group space-y-3 sm:space-y-0">
                 {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-3 text-slate-500 font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        {formatDate(log.created_at)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-slate-700">
-                      {log.host_name || <span className="text-slate-400 italic">Unknown</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-600 border border-purple-100">
-                        {log.action}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 text-[11px] truncate max-w-[300px]">
-                      {parseDetails(log.details)}
-                    </td>
-                  </tr>
+                  <React.Fragment key={log.id}>
+                    {/* DESKTOP ROW */}
+                    <tr className="hidden sm:table-row hover:bg-slate-50/80 transition-colors">
+                      <td className="px-4 py-3 text-slate-500 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          {formatDate(log.created_at)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-slate-700">
+                        {log.host_name || <span className="text-slate-400 italic">Unknown</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-600 border border-purple-100">
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 text-[11px] truncate max-w-[300px]">
+                        {parseDetails(log.details)}
+                      </td>
+                    </tr>
+
+                    {/* MOBILE CARD */}
+                    <tr className="sm:hidden block bg-white border border-slate-200 rounded-2xl p-4 shadow-sm relative">
+                      <td className="block w-full">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-bold text-slate-800 text-[14px]">
+                            {log.host_name || <span className="text-slate-400 italic">Unknown</span>}
+                          </div>
+                          <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-600 border border-purple-100">
+                            {log.action}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-500 font-medium text-[11px] mb-3">
+                          <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          {formatDate(log.created_at)}
+                        </div>
+                        <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-600 text-[12px] break-words font-mono">
+                          {parseDetails(log.details)}
+                        </div>
+                      </td>
+                    </tr>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
