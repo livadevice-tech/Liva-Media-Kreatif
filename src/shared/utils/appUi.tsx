@@ -72,33 +72,33 @@ export const getBrandStyle = (brandName: string) => {
   const b = brandName.toLowerCase().trim();
 
   // High-contrast, beautifully paired visual identities
-  if (b.includes("somethinc") || b.includes("skin")) {
+  if (b.includes("somethinc") || b.includes("skin") || b.includes("rhc")) {
     return "bg-rose-50 text-rose-700 border-rose-200/50";
   }
-  if (b.includes("wardah") || b.includes("cosmetic") || b.includes("cosmetics")) {
+  if (b.includes("wardah") || b.includes("cosmetic") || b.includes("dewi sri spa")) {
     return "bg-emerald-50 text-emerald-700 border-emerald-200/50";
   }
-  if (b.includes("skintific") || b.includes("scientific") || b.includes("scien")) {
-    return "bg-sky-50 text-sky-750 border-sky-200/50";
+  if (b.includes("skintific") || b.includes("scientific") || b.includes("safi")) {
+    return "bg-blue-50 text-blue-700 border-blue-200/50";
   }
-  if (b.includes("scarlett") || b.includes("scarlet")) {
+  if (b.includes("scarlett") || b.includes("scarlet") || b.includes("isago")) {
     return "bg-purple-50 text-purple-700 border-purple-200/50";
   }
-  if (b.includes("avoskin") || b.includes("nourish") || b.includes("hair")) {
-    return "bg-teal-50 text-teal-700 border-teal-200/50";
+  if (b.includes("avoskin") || b.includes("mirael")) {
+    return "bg-cyan-50 text-cyan-750 border-cyan-200/50";
   }
   if (b.includes("make over") || b.includes("over") || b.includes("beauty")) {
     return "bg-slate-100 text-slate-800 border-slate-300/50";
   }
-  if (b.includes("maybelline")) {
-    return "bg-amber-50 text-amber-805 border-amber-200/50";
+  if (b.includes("maybelline") || b.includes("sumber ayu")) {
+    return "bg-orange-50 text-orange-755 border-orange-200/50";
   }
 
   let hash = 0;
   for (let i = 0; i < brandName.length; i++) {
     hash = brandName.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const index = Math.abs(hash) % 7;
+  
   const colorMap = [
     "bg-indigo-50 text-indigo-700 border-indigo-200/50",
     "bg-fuchsia-100/50 text-fuchsia-800 border-fuchsia-200/50",
@@ -107,7 +107,17 @@ export const getBrandStyle = (brandName: string) => {
     "bg-cyan-50 text-cyan-750 border-cyan-200/50",
     "bg-orange-50 text-orange-755 border-orange-200/50",
     "bg-lime-50 text-lime-800 border-lime-200/50",
+    "bg-amber-50 text-amber-700 border-amber-200/50",
+    "bg-teal-50 text-teal-700 border-teal-200/50",
+    "bg-sky-50 text-sky-700 border-sky-200/50",
+    "bg-red-50 text-red-700 border-red-200/50",
+    "bg-green-50 text-green-700 border-green-200/50",
+    "bg-yellow-50 text-yellow-700 border-yellow-200/50",
+    "bg-rose-100/50 text-rose-800 border-rose-300/50",
+    "bg-emerald-100/50 text-emerald-800 border-emerald-300/50"
   ];
+  
+  const index = Math.abs(hash) % colorMap.length;
   return colorMap[index];
 };
 
