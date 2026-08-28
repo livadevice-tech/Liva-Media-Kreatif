@@ -65,6 +65,26 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
   const [selectedHost, setSelectedHost] = useState("Semua Host");
   const [selectedBrand, setSelectedBrand] = useState("Semua Brand");
 
+  const hostOptions = useMemo(() => ["Semua Host", ...hosts.map(h => h.id)], [hosts]);
+
+  const handlePrevHost = () => {
+    const currentIndex = hostOptions.indexOf(selectedHost);
+    if (currentIndex > 0) {
+      setSelectedHost(hostOptions[currentIndex - 1]);
+    } else {
+      setSelectedHost(hostOptions[hostOptions.length - 1]);
+    }
+  };
+
+  const handleNextHost = () => {
+    const currentIndex = hostOptions.indexOf(selectedHost);
+    if (currentIndex < hostOptions.length - 1) {
+      setSelectedHost(hostOptions[currentIndex + 1]);
+    } else {
+      setSelectedHost(hostOptions[0]);
+    }
+  };
+
   // Filter schedules based on dropdowns
   const filteredSchedules = useMemo(() => {
     return weekSchedules.filter(s => {
@@ -131,18 +151,33 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
 
       {/* Filters (Host & Brand) */}
       <div className="px-4 mb-4 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
-        <div className="flex gap-2 flex-1">
-          <select 
-            value={selectedHost}
-            onChange={(e) => setSelectedHost(e.target.value)}
-            className="flex-1 min-w-0 bg-white border border-slate-200 rounded-[14px] px-3 py-2 text-[11px] font-medium text-slate-700 outline-none appearance-none"
-            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")', backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat', paddingRight: '24px' }}
-          >
-            <option value="Semua Host">Semua Host</option>
-            {hosts.map(h => (
-              <option key={h.id} value={h.id}>{h.username || h.name}</option>
-            ))}
-          </select>
+        <div className="flex gap-2 flex-1 items-center">
+          {/* Host Filter with Nav */}
+          <div className="flex items-center flex-1 min-w-0 bg-white border border-slate-200 rounded-[14px] p-0.5 shadow-sm">
+            <button 
+              onClick={handlePrevHost} 
+              className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 shrink-0 transition-colors"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <select 
+              value={selectedHost}
+              onChange={(e) => setSelectedHost(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent px-2 py-2 text-[11px] font-medium text-slate-700 outline-none appearance-none text-center"
+            >
+              <option value="Semua Host">Semua Host</option>
+              {hosts.map(h => (
+                <option key={h.id} value={h.id}>{h.username || h.name}</option>
+              ))}
+            </select>
+            <button 
+              onClick={handleNextHost} 
+              className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 shrink-0 transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <select 
             value={selectedBrand}
             onChange={(e) => setSelectedBrand(e.target.value)}
