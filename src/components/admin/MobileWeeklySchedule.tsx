@@ -106,7 +106,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
   return (
     <div className="md:hidden flex flex-col min-h-screen bg-[#faf9fe] pb-24 w-full text-slate-800 font-sans">
       {/* NEW HEADER DESIGN */}
-      <div className="px-5 pt-6 pb-4">
+      <div className="px-2 pt-6 pb-4">
         <div className="flex justify-between items-center mb-1">
           <div>
             <h1 className="text-2xl font-black text-indigo-950 tracking-tight leading-tight">Jadwal Siaran Aktif</h1>
@@ -118,7 +118,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
         </div>
       </div>
 
-      <div className="px-3 space-y-4">
+      <div className="px-2 space-y-4">
         {/* Date Navigator */}
         <div className="bg-white rounded-2xl p-1.5 flex items-center justify-between border border-slate-100 shadow-sm">
           <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-600 border border-slate-100" onClick={onBackClick}>
@@ -161,7 +161,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
             </div>
           </div>
 
-          <div className="overflow-x-auto no-scrollbar -mx-3 px-3 pb-4">
+          <div className="overflow-x-auto no-scrollbar -mx-2 px-2 pb-4">
             <div className="min-w-[550px]">
               {/* Table Header (Days) */}
               <div className="flex mb-1.5">
