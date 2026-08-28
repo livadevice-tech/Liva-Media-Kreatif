@@ -423,7 +423,7 @@ export function ReportingWorkspaceHeader({
 
             {/* Date Navigation (period nav) */}
             {dateFilterType === "latest" && periodLabel && onPrevPeriod && onNextPeriod ? (
-              <div className="flex items-center gap-0.5 sm:gap-1 rounded-full border border-slate-200 bg-white px-1 sm:px-2 shadow-sm h-8 sm:h-11 flex-shrink-0">
+              <div className="hidden md:flex items-center gap-0.5 sm:gap-1 rounded-full border border-slate-200 bg-white px-1 sm:px-2 shadow-sm h-8 sm:h-11 flex-shrink-0">
                 <button
                   type="button"
                   onClick={onPrevPeriod}
