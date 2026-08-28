@@ -196,7 +196,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
       </div>
 
       {/* Main Grid Section */}
-      <div className="w-full overflow-x-auto no-scrollbar border-t border-slate-100 pt-2">
+      <div className="w-full overflow-hidden border-t border-slate-100 pt-2">
         <div className="w-full">
           {/* Rows (Studios) */}
           <div className="mt-2 pb-10">
@@ -226,7 +226,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                         <button 
                           key={i} 
                           onClick={() => setActiveDate(wd.dateString)}
-                          className={`flex flex-col items-center justify-center py-2.5 mx-0.5 mb-1 rounded-[14px] transition-colors cursor-pointer ${
+                          className={`flex flex-col items-center justify-center py-2.5 mx-0.5 mb-1 rounded-[14px] min-w-0 transition-colors cursor-pointer ${
                             isActive ? 'bg-indigo-50' : 'bg-transparent'
                           }`}
                         >
@@ -251,7 +251,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                                 <button 
                                   key={`empty-${i}`}
                                   onClick={() => onEmptyCellClick && onEmptyCellClick(wd.dateString, studioName)}
-                                  className="w-full h-[52px] bg-slate-50/50 border border-slate-200 rounded-[10px] flex items-center justify-center text-slate-300 hover:bg-slate-100 hover:text-indigo-500 transition-colors active:scale-95 cursor-pointer"
+                                  className="w-full min-w-0 h-[52px] bg-slate-50/50 border border-slate-200 rounded-[10px] flex items-center justify-center text-slate-300 hover:bg-slate-100 hover:text-indigo-500 transition-colors active:scale-95 cursor-pointer"
                                 >
                                   <span className="text-[14px] font-medium">+</span>
                                 </button>
@@ -259,7 +259,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                             }
 
                             return (
-                              <div key={`filled-${i}`} className="flex flex-col gap-1">
+                              <div key={`filled-${i}`} className="flex flex-col gap-1 min-w-0">
                                 {shiftSchedules.map((s, sIdx) => {
                                   const brandStyle = getBrandStyle(s.brand);
                                   const hostData = hosts.find(h => h.id === s.hostId);
@@ -269,7 +269,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                                     <button 
                                       key={sIdx} 
                                       onClick={() => onScheduleClick && onScheduleClick(s)}
-                                      className={`w-full border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform ${brandStyle}`}
+                                      className={`w-full min-w-0 border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform ${brandStyle}`}
                                     >
                                       <span className="text-[8.5px] font-extrabold text-center w-full truncate leading-tight opacity-90">
                                         {s.brand.split(' ')[0]}
