@@ -21,12 +21,14 @@ interface MobileWeeklyScheduleProps {
 }
 
 export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ schedules, onBackClick }) => {
+  const [weekOffset, setWeekOffset] = useState(0);
+
   // Generate current week dates (Monday to Sunday)
   const today = new Date();
   const currentDay = today.getDay(); // 0 is Sunday, 1 is Monday
   const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
   const monday = new Date(today);
-  monday.setDate(today.getDate() - distanceToMonday);
+  monday.setDate(today.getDate() - distanceToMonday + (weekOffset * 7));
 
   const weekDays = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(monday);
@@ -87,14 +89,17 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
         <div className="flex items-center justify-between border-2 border-indigo-500 rounded-[24px] p-1.5 shadow-sm">
           <button 
             className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors"
-            onClick={onBackClick}
+            onClick={() => setWeekOffset(prev => prev - 1)}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <span className="text-[15px] font-medium text-black">
             {headerDateRange}
           </span>
-          <button className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors">
+          <button 
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors"
+            onClick={() => setWeekOffset(prev => prev + 1)}
+          >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
