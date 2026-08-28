@@ -189,10 +189,6 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
               <option key={b.name} value={b.name}>{b.name}</option>
             ))}
           </select>
-        </div>
-        <div className="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-[14px] text-[11px] font-bold whitespace-nowrap shrink-0 border border-indigo-100">
-          {filteredSchedules.length} Terdaftar
-        </div>
       </div>
 
       {/* Main Grid Section */}
