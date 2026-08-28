@@ -10910,13 +10910,13 @@ export default function App() {
                     className="space-y-6 animate-fadeIn"
                     id="operator_data_brand_content"
                   >
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-                      <div className="flex justify-between items-center mb-6">
-                        <div>
-                          <h3 className="text-sm font-black text-slate-800">
+                    <div className="bg-transparent sm:bg-white p-4 sm:p-6 sm:rounded-2xl sm:border border-slate-100 sm:shadow-sm relative overflow-hidden">
+                      <div className="flex justify-between items-start sm:items-center mb-6">
+                        <div className="flex-1 pr-4">
+                          <h3 className="text-xl sm:text-sm font-black text-[#19192c] sm:text-slate-800 tracking-tight">
                             Manajemen Data Brand Klien
                           </h3>
-                          <p className="text-xs text-slate-500 font-semibold mt-1">
+                          <p className="text-[11px] sm:text-xs text-slate-500 font-semibold mt-1">
                             Data detail terkait kontrak, invoice, dan kredensial
                             brand aktif.
                           </p>
@@ -10925,9 +10925,9 @@ export default function App() {
                           onClick={() =>
                             setBrandFormEditor({ sessions: [], accounts: [] })
                           }
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all border-0 cursor-pointer flex items-center gap-2 shadow-sm"
+                          className="px-4 py-2 sm:px-4 sm:py-2 bg-[#5C32FF] sm:bg-indigo-600 hover:bg-[#4A24E0] sm:hover:bg-indigo-700 text-white rounded-[14px] sm:rounded-lg text-xs font-bold transition-all border-0 cursor-pointer flex items-center gap-2 shadow-sm shrink-0"
                         >
-                          <Plus className="w-4 h-4" /> Klien Baru
+                          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Klien Baru</span><span className="sm:hidden">Klien Baru</span>
                         </button>
                       </div>
 
@@ -10948,36 +10948,43 @@ export default function App() {
 
                       {/* Filter Tab & Search Bar */}
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-5">
-                        <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200 shrink-0">
+                        <div className="flex w-full sm:w-auto bg-transparent sm:bg-slate-50 p-1 rounded-xl sm:border border-slate-200 shrink-0 gap-2 sm:gap-0">
                           <button
                             onClick={() => setBrandDataTab("active")}
-                            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${brandDataTab === "active" ? "bg-white text-slate-800 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700"}`}
+                            className={`flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-xs font-bold rounded-[14px] sm:rounded-lg transition-all duration-300 flex items-center justify-center gap-2 ${brandDataTab === "active" ? "bg-white text-[#5C32FF] shadow-[0_2px_8px_rgba(92,50,255,0.08)] border border-slate-200/60 sm:border-slate-200 sm:text-slate-800" : "text-slate-500 hover:text-slate-700 bg-white sm:bg-transparent border border-slate-200/60 sm:border-transparent"}`}
                           >
-                            Aktif
+                            Aktif {brandDataTab === "active" && <span className="w-1.5 h-1.5 rounded-full bg-[#5C32FF] sm:hidden"></span>} <span className="sm:hidden text-slate-400 font-normal ml-1">{clientBrands.filter(b => b.isActive !== false).length}</span>
                           </button>
                           <button
                             onClick={() => setBrandDataTab("inactive")}
-                            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all duration-300 ${brandDataTab === "inactive" ? "bg-white text-slate-800 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700"}`}
+                            className={`flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-xs font-bold rounded-[14px] sm:rounded-lg transition-all duration-300 flex items-center justify-center gap-2 ${brandDataTab === "inactive" ? "bg-white text-[#5C32FF] shadow-[0_2px_8px_rgba(92,50,255,0.08)] border border-slate-200/60 sm:border-slate-200 sm:text-slate-800" : "text-slate-500 hover:text-slate-700 bg-white sm:bg-transparent border border-slate-200/60 sm:border-transparent"}`}
                           >
-                            Tidak Aktif
+                            Tidak Aktif {brandDataTab === "inactive" && <span className="w-1.5 h-1.5 rounded-full bg-[#5C32FF] sm:hidden"></span>} <span className="sm:hidden text-slate-400 font-normal ml-1">{clientBrands.filter(b => b.isActive === false).length}</span>
                           </button>
                         </div>
-                        <div className="relative flex-1 w-full">
-                          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder="Cari nama brand klien..."
-                            value={brandDataSearch}
-                            onChange={(e) => setBrandDataSearch(e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 font-semibold"
-                          />
+                        <div className="w-full flex items-center gap-2">
+                          <div className="relative flex-1 w-full">
+                            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Cari nama brand klien..."
+                              value={brandDataSearch}
+                              onChange={(e) => setBrandDataSearch(e.target.value)}
+                              className="w-full bg-white border border-slate-200 rounded-[14px] pl-11 pr-4 py-3 sm:py-2.5 text-sm text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 font-semibold shadow-sm sm:shadow-none"
+                            />
+                          </div>
+                          {/* Mobile Filter Button */}
+                          <button className="sm:hidden flex items-center justify-center w-[46px] h-[46px] bg-white border border-slate-200 rounded-[14px] shadow-sm text-[#5C32FF] transition-all active:bg-slate-50 shrink-0">
+                            <Filter className="w-5 h-5" />
+                          </button>
                         </div>
                         <button
                           onClick={() => setBrandDataSortDir(prev => prev === "asc" ? "desc" : "asc")}
-                          className="flex items-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shrink-0"
+                          className="flex items-center gap-1.5 px-4 py-2.5 sm:py-2.5 bg-white border border-slate-200 rounded-[14px] text-xs font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shrink-0 shadow-sm sm:shadow-none sm:mt-0"
                         >
-                          <ArrowUpDown className="w-3.5 h-3.5" />
+                          <ArrowUpDown className="w-4 h-4 text-slate-500" />
                           {brandDataSortDir === "asc" ? "A–Z" : "Z–A"}
+                          <ChevronDown className="w-4 h-4 text-slate-400 sm:hidden ml-1" />
                         </button>
                       </div>
 
@@ -11002,7 +11009,7 @@ export default function App() {
                               >
                                 {/* Card Header */}
                                 <div 
-                                  className="px-5 py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 cursor-pointer hover:bg-slate-50/50 transition-colors"
+                                  className="px-4 py-4 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:border-b sm:border-slate-100 cursor-pointer sm:hover:bg-slate-50/50 transition-colors"
                                   onClick={() => {
                                     setExpandedBrandIds(prev => {
                                       const next = new Set(prev);
@@ -11012,9 +11019,9 @@ export default function App() {
                                     });
                                   }}
                                 >
-                                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                                    <div className={`w-9 h-9 overflow-hidden rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${
-                                      isActive ? "bg-slate-50 border border-slate-200 text-slate-700" : "bg-slate-50 text-slate-400"
+                                  <div className="flex items-start gap-4 sm:gap-3 flex-1 min-w-0">
+                                    <div className={`w-[52px] h-[52px] sm:w-9 sm:h-9 overflow-hidden rounded-full flex items-center justify-center shrink-0 font-black text-xl sm:text-sm sm:font-bold ${
+                                      isActive ? "bg-slate-50 sm:bg-slate-50 border border-slate-200 text-slate-700" : "bg-slate-50 text-slate-400"
                                     }`}>
                                       {brand.logoUrl ? (
                                         <img src={brand.logoUrl} alt={brand.name} className="h-full w-full object-cover" />
@@ -11023,45 +11030,54 @@ export default function App() {
                                       )}
                                     </div>
                                     <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                                        <h4 className="font-semibold text-slate-800 text-[15px] leading-tight truncate">{brand.name}</h4>
+                                      <div className="flex flex-wrap items-center gap-2 mb-2 sm:mb-1">
+                                        <h4 className="font-bold text-[#19192c] sm:font-semibold sm:text-slate-800 text-[16px] sm:text-[15px] leading-tight truncate">{brand.name}</h4>
                                         {isActive ? (
-                                          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-medium px-2 py-0.5 rounded-md">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktif
+                                          <span className="inline-flex items-center gap-1.5 bg-[#eafbf1] sm:bg-emerald-50 text-[#16a34a] sm:text-emerald-700 border border-[#bbf7d0] sm:border-emerald-200 text-[10px] font-bold sm:font-medium px-2 py-0.5 rounded-full sm:rounded-md">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] sm:bg-emerald-500"></span> Aktif
                                           </span>
                                         ) : (
-                                          <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 text-[10px] font-medium px-2 py-0.5 rounded-md">
+                                          <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 border border-slate-200 text-[10px] font-bold sm:font-medium px-2 py-0.5 rounded-full sm:rounded-md">
                                             <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Tidak Aktif
                                           </span>
                                         )}
                                         {brand.monthlyMeetingDate && (
-                                          <span className="text-[10px] text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md font-medium border border-slate-200 flex items-center gap-1.5">
+                                          <span className="text-[10px] text-slate-500 sm:text-slate-600 bg-white sm:bg-slate-50 px-2 py-1 sm:py-0.5 rounded-[8px] sm:rounded-md font-semibold border border-slate-200 flex items-center gap-1.5">
                                             <Calendar className="w-3 h-3 text-slate-400" /> Meeting Tgl {brand.monthlyMeetingDate}
                                           </span>
                                         )}
                                       </div>
-                                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 font-medium">
+                                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-slate-500 font-medium mb-1.5 sm:mb-0">
                                         <span className="flex items-center gap-1.5">
-                                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                          {formatContractDate(brand.contractStartDate)} - {formatContractDate(brand.contractEndDate)}
+                                          <Calendar className="w-3.5 h-3.5 text-slate-400 sm:hidden" />
+                                          <Clock className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
+                                          {formatContractDate(brand.contractStartDate)} – {formatContractDate(brand.contractEndDate)}
                                         </span>
                                         {brand.invoiceDate && (
-                                          <span className="flex items-center gap-1.5 text-slate-600">
-                                            <DollarSign className="w-3.5 h-3.5 text-slate-400" /> Invoice Tgl {brand.invoiceDate}
-                                          </span>
+                                          <>
+                                            <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>
+                                            <span className="text-slate-300 font-black sm:hidden">•</span>
+                                            <span className="flex items-center gap-1 text-slate-500 sm:text-slate-600">
+                                              <DollarSign className="w-3.5 h-3.5 text-slate-400" /> Invoice Tgl {brand.invoiceDate}
+                                            </span>
+                                          </>
                                         )}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-slate-500 font-medium">
                                         {brand.picName && (
-                                          <span className="flex items-center gap-1.5 text-slate-600">
-                                            <UserCheck className="w-3.5 h-3.5 text-slate-400" /> {brand.picName}
+                                          <span className="flex items-center gap-1.5 text-slate-500 sm:text-slate-600">
+                                            <User className="w-3.5 h-3.5 text-slate-400" /> {brand.picName}
                                           </span>
                                         )}
-                                        <span className="text-slate-400 font-mono text-[10px]">ID: #{brand.id.slice(-6).toUpperCase()}</span>
+                                        <span className="text-slate-300 font-black sm:hidden">•</span>
+                                        <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>
+                                        <span className="text-slate-400 font-mono text-[10px] sm:text-[10px]">ID: #{brand.id.slice(-6).toUpperCase()}</span>
                                       </div>
                                     </div>
                                   </div>
 
-                                  {/* Action Buttons */}
-                                  <div className="flex items-center gap-2 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                  {/* Action Buttons (Desktop) */}
+                                  <div className="hidden sm:flex items-center gap-2 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                     <button
                                       type="button"
                                       onClick={(e) => {
@@ -11109,6 +11125,64 @@ export default function App() {
                                       <ChevronDown className="w-5 h-5 text-slate-400" />
                                     )}
                                   </div>
+                                </div>
+
+                                {/* Action Buttons (Mobile) */}
+                                <div className="sm:hidden flex items-center justify-between px-4 pb-4 mt-2">
+                                   <div className="flex items-center gap-2">
+                                     <button
+                                       type="button"
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         setOperatorTab("invoice");
+                                         setTimeout(() => {
+                                           const evt = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
+                                           window.dispatchEvent(evt);
+                                         }, 300);
+                                       }}
+                                       className="flex items-center gap-1.5 rounded-[12px] border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-[#5C32FF] transition-all active:bg-slate-50"
+                                     >
+                                       <Receipt className="w-4 h-4" /> Invoice
+                                     </button>
+                                     <button
+                                       type="button"
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         handleEditBrand(brand);
+                                       }}
+                                       className="flex h-9 w-12 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-slate-500 transition-all active:bg-slate-50"
+                                     >
+                                       <Edit3 className="w-4 h-4" />
+                                     </button>
+                                     <button
+                                       type="button"
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         handleDeleteBrand(brand.id);
+                                       }}
+                                       className="flex h-9 w-12 items-center justify-center rounded-[12px] border border-rose-100 bg-rose-50 text-rose-500 transition-all active:bg-rose-100"
+                                     >
+                                       <Trash2 className="w-4 h-4" />
+                                     </button>
+                                   </div>
+                                   <button 
+                                      className="flex h-9 w-12 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-slate-400 active:bg-slate-50"
+                                      onClick={(e) => {
+                                         e.stopPropagation();
+                                         setExpandedBrandIds(prev => {
+                                           const next = new Set(prev);
+                                           if (next.has(brand.id)) next.delete(brand.id);
+                                           else next.add(brand.id);
+                                           return next;
+                                         });
+                                      }}
+                                   >
+                                      {expandedBrandIds.has(brand.id) ? (
+                                        <ChevronUp className="w-5 h-5" />
+                                      ) : (
+                                        <ChevronDown className="w-5 h-5" />
+                                      )}
+                                   </button>
                                 </div>
 
                                 {/* Card Body */}
