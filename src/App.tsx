@@ -5267,7 +5267,8 @@ export default function App() {
                   </div>
 
                   {/* CLIENT REPORTING MODULAR COMPONENTS */}
-                  <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left min-h-screen">
+                  <div className="md:hidden w-full h-[800px] bg-white"></div>
+                  <div className="hidden md:block w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left min-h-screen">
                     <div className="w-full bg-white">
                       <div className="px-4 pt-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
                         <ReportingWorkspaceHeader
