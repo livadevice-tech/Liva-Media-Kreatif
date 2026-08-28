@@ -146,30 +146,25 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
           </div>
         </div>
 
-        {/* Main Weekly Card */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          {/* Card Header */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center shadow-md">
-                <CalendarIcon className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-[15px] font-bold text-indigo-950 leading-tight">Jadwal Mingguan</h2>
-                <div className="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-md inline-block mt-0.5">
-                  {headerDateRange}
-                </div>
+        {/* Main Weekly Container (No Outer Card) */}
+        <div className="mt-6 mb-4">
+          {/* Section Header */}
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center shadow-md shrink-0">
+              <CalendarIcon className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-[17px] font-bold text-indigo-950 leading-tight">Jadwal Mingguan</h2>
+              <div className="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-md inline-block mt-0.5">
+                {headerDateRange}
               </div>
             </div>
-            <button className="w-8 h-8 flex items-center justify-center text-slate-400 bg-slate-50 rounded-full">
-              <ChevronRight className="w-4 h-4 -rotate-90" />
-            </button>
           </div>
 
-          <div className="p-2 sm:p-3 overflow-x-auto">
-            <div className="min-w-[600px]">
+          <div className="overflow-x-auto no-scrollbar -mx-3 px-3 pb-4">
+            <div className="min-w-[550px]">
               {/* Table Header (Days) */}
-              <div className="flex mb-2">
+              <div className="flex mb-1.5">
                 <div className="w-[80px] shrink-0"></div>
                 <div className="flex-1 grid grid-cols-7 gap-1">
                   {weekDays.map((wd, i) => {
@@ -178,7 +173,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
                       <button 
                         key={i} 
                         onClick={() => setActiveDate(wd.dateString)}
-                        className={`text-center py-2 rounded-t-xl transition-colors cursor-pointer ${isActive ? 'bg-indigo-50/70 border-x border-t border-indigo-100/50' : 'bg-transparent'}`}
+                        className={`text-center py-2 rounded-t-[14px] transition-colors cursor-pointer ${isActive ? 'bg-indigo-50/80 border-x border-t border-indigo-100/50' : 'bg-transparent'}`}
                       >
                         <div className={`text-[11px] font-bold ${isActive ? 'text-indigo-800' : 'text-slate-500'}`}>{wd.dayName}</div>
                         <div className={`text-[10px] font-medium mt-0.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>{wd.shortDate}</div>
@@ -189,17 +184,17 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
               </div>
 
               {/* Rows (Studios) */}
-              <div className="space-y-2 relative">
+              <div className="space-y-1.5 relative">
                 {Object.entries(studiosMap).map(([studioName, studioSchedules], idx) => {
                   const alias = getStudioAlias(studioName);
                   // Define studio colors based on alias
                   let studioColor = "text-orange-500 bg-orange-50 border-orange-100";
                   if (alias.includes("SBA2")) studioColor = "text-green-500 bg-green-50 border-green-100";
-                  else if (alias.includes("SBA3")) studioColor = "text-purple-500 bg-purple-50 border-purple-100";
-                  else if (alias.includes("SBB1")) studioColor = "text-cyan-500 bg-cyan-50 border-cyan-100";
+                  else if (alias.includes("SBA3") || alias.includes("ST3")) studioColor = "text-purple-500 bg-purple-50 border-purple-100";
+                  else if (alias.includes("SBB1") || alias.includes("SBB")) studioColor = "text-cyan-500 bg-cyan-50 border-cyan-100";
                   
                   return (
-                    <div key={idx} className="flex border border-slate-100 rounded-[20px] bg-white shadow-xs items-stretch relative">
+                    <div key={idx} className="flex border border-slate-200 rounded-[16px] bg-white items-stretch relative overflow-hidden">
                       {/* Highlight column background overlay */}
                       <div className="absolute inset-y-0 left-[80px] right-0 pointer-events-none flex">
                         <div className="grid grid-cols-7 gap-1 w-full h-full">
@@ -210,7 +205,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
                       </div>
 
                       {/* Left: Studio Info */}
-                      <div className="w-[80px] shrink-0 flex flex-col items-center justify-center p-2 border-r border-slate-50 bg-white z-10 rounded-l-[20px]">
+                      <div className="w-[80px] shrink-0 flex flex-col items-center justify-center py-3 px-1 border-r border-slate-100 bg-white z-10">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1.5 border ${studioColor}`}>
                           <Video className="w-4 h-4" />
                         </div>
@@ -235,16 +230,16 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
                           return (
                             <div key={i} className="flex flex-col gap-1 min-h-[60px] justify-center items-center py-1">
                               {brandsList.length === 0 ? (
-                                <div className="w-6 border-t-2 border-slate-200 rounded-full mt-2"></div>
+                                <div className="w-4 border-t-[1.5px] border-slate-200 rounded-full mt-1"></div>
                               ) : (
                                 brandsList.map(([brand, count], bIdx) => {
                                   const color = getBrandColor(brand);
                                   return (
-                                    <div key={bIdx} className={`w-full max-w-[50px] ${color.bg} border border-${color.text.replace('text-', '')}/30 rounded-md py-1 px-0.5 flex flex-col items-center justify-center shadow-xs`}>
-                                      <span className={`text-[8.5px] font-black ${color.text} leading-[1.1] text-center w-full break-words truncate px-0.5`}>
+                                    <div key={bIdx} className={`w-full max-w-[50px] ${color.bg} border border-${color.text.replace('text-', '')}/30 rounded-[8px] py-1 px-0.5 flex flex-col items-center justify-center shadow-xs`}>
+                                      <span className={`text-[8px] font-black ${color.text} leading-[1.1] text-center w-full break-words truncate px-0.5`}>
                                         {brand.split(' ')[0]}
                                       </span>
-                                      <span className={`text-[9.5px] font-bold ${color.text} mt-0.5 opacity-90`}>
+                                      <span className={`text-[9px] font-bold ${color.text} mt-[1px] opacity-90`}>
                                         +{count}
                                       </span>
                                     </div>
@@ -254,11 +249,6 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
                             </div>
                           );
                         })}
-                      </div>
-
-                      {/* Right Arrow */}
-                      <div className="absolute right-1 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-sm flex items-center justify-center z-20">
-                        <ChevronRight className="w-3 h-3 text-slate-400" />
                       </div>
                     </div>
                   );
