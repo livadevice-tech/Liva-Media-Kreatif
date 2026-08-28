@@ -124,7 +124,15 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
   return (
     <div className="md:hidden flex flex-col min-h-screen bg-white pb-24 w-full font-sans">
       {/* HEADER DESIGN */}
-      <div className="px-4 pt-6 pb-4">
+      <div className="px-4 pt-6 pb-4 flex items-center gap-3">
+        {onBackClick && (
+          <button 
+            onClick={onBackClick}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors active:scale-95"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
         <h1 className="text-[28px] font-medium text-black tracking-tight">Calender Host</h1>
       </div>
 
