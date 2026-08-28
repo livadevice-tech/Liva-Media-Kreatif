@@ -5229,7 +5229,8 @@ export default function App() {
                 className="flex-1 overflow-y-auto w-full animate-fadeIn bg-[#fcf9f8] min-h-screen"
                 id="client-main-viewport"
               >
-                <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 pb-12 sm:px-6 lg:px-8 mt-6">
+                <div className="md:hidden min-h-screen bg-white w-full"></div>
+                <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 pb-12 sm:px-6 lg:px-8 mt-6 hidden md:block">
                   {/* TOP HEADER */}
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-[20px] border border-slate-100 shadow-sm">
                     <div className="flex items-center gap-4">
