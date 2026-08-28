@@ -6180,6 +6180,7 @@ export default function App() {
 
                 {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST (DESKTOP) ==================== */}
                 {operatorTab === "absensi" && (
+                  <>
                   <div
                     className="hidden md:block space-y-6 animate-fadeIn"
                     id="operator_absensi_content"
@@ -7895,6 +7896,7 @@ export default function App() {
                         </div>
                       </div>
                     )}
+                  </>
                 )}
 
                 {/* ==================== SUBTAB: 3. REKAP & KALKULATOR GAJI ==================== */}
