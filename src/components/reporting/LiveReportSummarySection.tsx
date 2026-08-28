@@ -54,13 +54,15 @@ export function LiveReportSummarySection({
       ) : (
         <div className="flex flex-col-reverse md:flex-col gap-6">
           {chartData.length > 0 && (
-            <LiveReportChartSection
-              chartData={chartData}
-              chartSelectedMetrics={chartSelectedMetrics}
-              onChartSelectedMetricsChange={onChartSelectedMetricsChange}
-              useShopeeLiveLayout={isShopeeStyle}
-              brandDashboardSettings={brandDashboardSettings}
-            />
+            <div className="hidden md:block">
+              <LiveReportChartSection
+                chartData={chartData}
+                chartSelectedMetrics={chartSelectedMetrics}
+                onChartSelectedMetricsChange={onChartSelectedMetricsChange}
+                useShopeeLiveLayout={isShopeeStyle}
+                brandDashboardSettings={brandDashboardSettings}
+              />
+            </div>
           )}
 
           <LiveReportMetricsSection
