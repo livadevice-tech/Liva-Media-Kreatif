@@ -5417,6 +5417,15 @@ export default function App() {
                             })()
                           : undefined
                       }
+                      sessionCount={(() => {
+                        const filteredDb = brandPerformanceLogs.filter(
+                          (log) =>
+                            log.brandId === loggedInClientBrandId &&
+                            log.reportType !== "engagement" &&
+                            (!clientPlatformFilter || log.platform === clientPlatformFilter),
+                        );
+                        return filteredDb.length;
+                      })()}
                     />
                       </div>
 

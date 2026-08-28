@@ -59,6 +59,7 @@ type ReportingWorkspaceHeaderProps = {
   setOperatorShiftFilters?: Setter<string[]>;
   availableShifts?: string[];
   brandDashboardSettings?: any;
+  sessionCount?: number;
 };
 
 const DATE_FILTER_OPTIONS: Array<{
@@ -169,6 +170,7 @@ export function ReportingWorkspaceHeader({
   setOperatorShiftFilters,
   availableShifts = [],
   brandDashboardSettings,
+  sessionCount,
 }: ReportingWorkspaceHeaderProps) {
   const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
   const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
@@ -248,136 +250,127 @@ export function ReportingWorkspaceHeader({
       data-active-tab={activeTab}
     >
       <div className="flex flex-col">
-        <div className="flex items-center justify-between pb-3 border-b border-[#e7e0f8]">
-          <div className="flex items-center gap-2 sm:gap-3">
+        {/* === MOBILE-ONLY header row (hidden on desktop) === */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 md:hidden">
+          <div className="flex items-center gap-2">
             {onBack && (
               <button
                 type="button"
                 onClick={onBack}
                 aria-label="Kembali"
-                className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
               >
-                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                <ChevronLeft className="h-4 w-4" />
               </button>
             )}
 
-            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-              <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-base sm:text-lg font-black text-indigo-600 border border-slate-200">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-600">
                 {brandLogoUrl ? (
                   <img
                     src={brandLogoUrl}
                     alt={`${brandName || "Brand"} logo`}
-                    className="h-full w-full object-cover p-1"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span>{brandInitials || "RB"}</span>
+                  <span className="text-xs">{brandInitials || "RB"}</span>
                 )}
               </div>
 
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate font-display text-[15px] sm:text-[clamp(1.25rem,2vw,1.75rem)] font-bold sm:font-black tracking-tight text-slate-900 leading-tight">
+              <div className="min-w-0">
+                <h2 className="text-[15px] font-bold tracking-tight text-slate-900 leading-tight">
                   {brandName || "Nama Brand"}
                 </h2>
-                <p className="mt-0.5 text-[11px] sm:text-sm font-medium text-indigo-600 sm:text-slate-500">
-                  <span className="md:hidden">{selectedPlatform}</span>
-                  <span className="hidden md:inline">ID: {brandCode}</span>
+                <p className="text-[11px] font-medium text-[#6534b8] leading-tight">
+                  {selectedPlatform}{sessionCount !== undefined ? ` - ${sessionCount} Session` : ""}
                 </p>
               </div>
             </div>
           </div>
           
-          {/* Mobile Settings Icon */}
-          <div className="md:hidden">
+          {/* Settings icon */}
+          <button
+            type="button"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm"
+          >
+            <Settings2 className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* === DESKTOP-ONLY header row (hidden on mobile) === */}
+        <div className="hidden md:flex items-center gap-3 pb-4 border-b border-[#e7e0f8]">
+          {onBack && (
             <button
               type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-slate-50/50 border border-slate-200 text-slate-400 shadow-sm"
-              onClick={() => {
-                // Settings button logic (to be handled by tabs or similar if needed)
-                // For now, it's just visually matching the mockup
-              }}
+              onClick={onBack}
+              aria-label="Kembali"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
             >
-              <Settings2 className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
+          )}
+
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#5600e0] text-lg font-black text-white shadow-sm">
+              {brandLogoUrl ? (
+                <img
+                  src={brandLogoUrl}
+                  alt={`${brandName || "Brand"} logo`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{brandInitials || "RB"}</span>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate font-display text-[clamp(1.25rem,2vw,1.75rem)] font-black tracking-tight text-slate-950 leading-tight">
+                {brandName || "Nama Brand"}
+              </h2>
+              <p className="mt-0.5 text-sm font-semibold text-slate-500">
+                ID: {brandCode}
+              </p>
+            </div>
           </div>
           
           {(onImportRawLive || onImportRawProduct || onImportRawEngagement || onOpenAddManualDuration) && (
-            <div className="relative flex-shrink-0 hidden md:block" ref={rawMenuRef}>
+            <div className="relative flex-shrink-0" ref={rawMenuRef}>
               <button
                 type="button"
                 onClick={openRawMenu}
-                className="inline-flex h-[42px] sm:h-[48px] items-center justify-center gap-2 sm:gap-3 rounded-[16px] sm:rounded-[20px] bg-[#5200ff] px-3 sm:px-5 shadow-[0_8px_16px_-6px_rgba(82,0,255,0.4)] transition-all hover:bg-[#4300cc] focus:outline-none focus:ring-2 focus:ring-[#5200ff] focus:ring-offset-2 active:scale-95"
+                className="inline-flex h-[48px] items-center justify-center gap-3 rounded-[20px] bg-[#5200ff] px-5 shadow-[0_8px_16px_-6px_rgba(82,0,255,0.4)] transition-all hover:bg-[#4300cc] focus:outline-none focus:ring-2 focus:ring-[#5200ff] focus:ring-offset-2 active:scale-95"
                 aria-haspopup="menu"
                 aria-expanded={isRawMenuOpen}
               >
-                <Upload className="h-4 w-4 sm:h-[18px] sm:w-[18px] shrink-0 text-white" strokeWidth={2.5} />
-                <div className="flex flex-col items-start leading-[1.1] text-left hidden sm:flex">
-                  <span className="text-[13px] sm:text-[14px] font-bold text-white">Upload</span>
-                  <span className="text-[13px] sm:text-[14px] font-bold text-white">Data</span>
+                <Upload className="h-[18px] w-[18px] shrink-0 text-white" strokeWidth={2.5} />
+                <div className="flex flex-col items-start leading-[1.1] text-left">
+                  <span className="text-[14px] font-bold text-white">Upload</span>
+                  <span className="text-[14px] font-bold text-white">Data</span>
                 </div>
-                <div className="flex flex-col items-start leading-[1.1] text-left sm:hidden">
-                  <span className="text-[12px] font-bold text-white">Upload</span>
-                  <span className="text-[12px] font-bold text-white">Data</span>
-                </div>
-                <ChevronDown className="h-4 w-4 sm:h-[18px] sm:w-[18px] shrink-0 text-white opacity-80" strokeWidth={2.5} />
+                <ChevronDown className="h-[18px] w-[18px] shrink-0 text-white opacity-80" strokeWidth={2.5} />
               </button>
               
               {isRawMenuOpen && (
                 <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[240px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
                   <div className="space-y-1">
                     {onImportRawLive && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onImportRawLive();
-                          setIsRawMenuOpen(false);
-                        }}
-                        className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                      >
-                        <Layers3 className="h-4 w-4 text-indigo-600" />
-                        Upload Raw Data Live
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawLive(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                        <Layers3 className="h-4 w-4 text-indigo-600" /> Upload Raw Data Live
                       </button>
                     )}
                     {onOpenAddManualDuration && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenAddManualDuration();
-                          setIsRawMenuOpen(false);
-                        }}
-                        className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                      >
-                        <CalendarDays className="h-4 w-4 text-indigo-600" />
-                        Tambah Durasi Manual
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onOpenAddManualDuration(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                        <CalendarDays className="h-4 w-4 text-indigo-600" /> Tambah Durasi Manual
                       </button>
                     )}
                     {onImportRawProduct && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onImportRawProduct();
-                          setIsRawMenuOpen(false);
-                        }}
-                        className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                      >
-                        <ShoppingBag className="h-4 w-4 text-[#ff6a00]" />
-                        Upload Raw Data Product
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawProduct(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                        <ShoppingBag className="h-4 w-4 text-[#ff6a00]" /> Upload Raw Data Product
                       </button>
                     )}
                     {onImportRawEngagement && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onImportRawEngagement();
-                          setIsRawMenuOpen(false);
-                        }}
-                        className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                      >
-                        <Settings2 className="h-4 w-4 text-[#0f766e]" />
-                        Upload Raw Data Engagement
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawEngagement(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                        <Settings2 className="h-4 w-4 text-[#0f766e]" /> Upload Raw Data Engagement
                       </button>
                     )}
                   </div>
@@ -387,21 +380,21 @@ export function ReportingWorkspaceHeader({
           )}
         </div>
 
-        <div className="flex flex-row overflow-x-auto hide-scrollbar gap-2 sm:gap-3 pt-3 sm:pt-4 sm:items-center sm:justify-between pb-3">
-          <div className="flex flex-row items-center gap-2 sm:gap-3 w-max sm:w-full">
+        {/* === FILTER BAR: mobile = single row, desktop = flex wrap === */}
+        <div className="flex flex-row overflow-x-auto hide-scrollbar gap-2 sm:gap-3 pt-3 sm:pt-4 sm:items-center sm:justify-between pb-2">
+          <div className="flex flex-row items-center gap-1.5 sm:gap-3 w-max sm:w-full">
+            {/* Date Filter */}
             <div className="relative flex-shrink-0" ref={dateMenuRef}>
               <button
                 type="button"
                 onClick={openDateMenu}
-                className="inline-flex h-9 sm:h-11 w-auto sm:min-w-[220px] items-center justify-between gap-1.5 sm:gap-3 rounded-[12px] border border-slate-200 bg-white px-2.5 sm:px-4 text-left text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-8 sm:h-11 items-center gap-1 sm:gap-2 rounded-lg border border-slate-200 bg-white px-2 sm:px-4 text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm"
                 aria-haspopup="menu"
                 aria-expanded={isDateMenuOpen}
               >
-                <span className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
-                  <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-slate-500" />
-                  <span className="truncate">{dateButtonLabel}</span>
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-slate-400" />
+                <CalendarDays className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-400" />
+                <span className="truncate max-w-[70px] sm:max-w-none">{dateButtonLabel}</span>
+                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-400" />
               </button>
 
               {isDateMenuOpen && (
@@ -427,25 +420,21 @@ export function ReportingWorkspaceHeader({
                   />
                 </div>
               )}
-
             </div>
 
-            {dateFilterType === "latest" &&
-            periodLabel &&
-            onPrevPeriod &&
-            onNextPeriod ? (
-              <div className="flex items-center gap-1 sm:gap-1.5 rounded-[12px] border border-slate-200 bg-white px-1 sm:px-2 py-1 sm:py-1.5 shadow-sm h-9 sm:h-11 flex-shrink-0">
+            {/* Date Navigation (period nav) */}
+            {dateFilterType === "latest" && periodLabel && onPrevPeriod && onNextPeriod ? (
+              <div className="flex items-center gap-0.5 sm:gap-1 rounded-lg border border-slate-200 bg-white px-0.5 sm:px-2 shadow-sm h-8 sm:h-11 flex-shrink-0">
                 <button
                   type="button"
                   onClick={onPrevPeriod}
                   disabled={!canPrevPeriod}
-                  aria-label="Lihat tanggal sebelumnya"
-                  className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-50 disabled:opacity-40"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                 </button>
-                <div className="min-w-[120px] sm:min-w-[150px] px-1 sm:px-2 text-center">
-                  <p className="mt-0.5 text-[10px] sm:text-xs font-black text-indigo-600 truncate">
+                <div className="min-w-[100px] sm:min-w-[150px] px-0.5 sm:px-2 text-center">
+                  <p className="text-[9px] sm:text-xs font-bold text-indigo-600 truncate">
                     {periodLabel}
                   </p>
                 </div>
@@ -453,31 +442,29 @@ export function ReportingWorkspaceHeader({
                   type="button"
                   onClick={onNextPeriod}
                   disabled={!canNextPeriod}
-                  aria-label="Lihat tanggal berikutnya"
-                  className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-50 disabled:opacity-40"
                 >
-                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                 </button>
               </div>
             ) : null}
 
+            {/* Platform Filter */}
             <div className="relative flex-shrink-0" ref={platformMenuRef}>
               <button
                 type="button"
                 onClick={openPlatformMenu}
-                className="inline-flex h-9 sm:h-11 w-auto sm:min-w-[180px] items-center justify-between gap-1.5 sm:gap-3 rounded-[12px] border border-slate-200 bg-white px-2.5 sm:px-4 text-left text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-8 sm:h-11 items-center gap-1 sm:gap-2 rounded-lg border border-slate-200 bg-white px-2 sm:px-4 text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm"
                 aria-haspopup="menu"
                 aria-expanded={isPlatformMenuOpen}
               >
-                <span className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
-                  <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-[#ff6a00]" />
-                  <span className="truncate">{selectedPlatform}</span>
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-slate-400" />
+                <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-[#ff6a00]" />
+                <span className="truncate max-w-[80px] sm:max-w-none">{selectedPlatform}</span>
+                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-400" />
               </button>
 
               {isPlatformMenuOpen && (
-                <div className="absolute left-0 top-full z-50 mt-2 w-[220px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+                <div className="absolute right-0 top-full z-50 mt-2 w-[220px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
                   <div className="space-y-1">
                     {availablePlatforms.map((platform) => {
                       const active = platform === selectedPlatform;
@@ -490,9 +477,7 @@ export function ReportingWorkspaceHeader({
                             setIsPlatformMenuOpen(false);
                           }}
                           className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
-                            active
-                              ? "bg-[#f7f2ff] text-indigo-600"
-                              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                            active ? "bg-[#f7f2ff] text-indigo-600" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                           }`}
                         >
                           <span>{platform}</span>
@@ -504,7 +489,6 @@ export function ReportingWorkspaceHeader({
                 </div>
               )}
             </div>
-
           </div>
         </div>
 
@@ -527,53 +511,24 @@ export function ReportingWorkspaceHeader({
 
               {isShiftDropdownOpen && (
                 <>
-                  {/* Backdrop overlay to close when clicking outside */}
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsShiftDropdownOpen(false)}
-                  />
-                  
+                  <div className="fixed inset-0 z-40" onClick={() => setIsShiftDropdownOpen(false)} />
                   <div className="absolute left-0 right-0 z-50 mt-2 flex flex-wrap items-center gap-2 rounded-[18px] border border-[#e4ddf6] bg-white p-3 shadow-lg max-h-[250px] overflow-y-auto">
                     {(() => {
-                      const isAllTimeAllowed = brandDashboardSettings?.allowedShifts
-                        ? brandDashboardSettings.allowedShifts.includes("All Time")
-                        : true;
+                      const isAllTimeAllowed = brandDashboardSettings?.allowedShifts ? brandDashboardSettings.allowedShifts.includes("All Time") : true;
                       if (!isAllTimeAllowed) return null;
                       return (
-                        <label
-                          className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50"
-                        >
-                          <input
-                            type="checkbox"
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]"
-                            checked={operatorShiftFilters.length === 0}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setOperatorShiftFilters([]);
-                              }
-                            }}
-                          />
+                        <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50">
+                          <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]" checked={operatorShiftFilters.length === 0} onChange={(e) => { if (e.target.checked) setOperatorShiftFilters([]); }} />
                           <span className="text-xs font-semibold text-slate-700">All Time</span>
                         </label>
                       );
                     })()}
                     {availableShifts.map((sh) => (
-                      <label
-                        key={sh}
-                        className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50"
-                      >
-                        <input
-                          type="checkbox"
-                          className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]"
-                          checked={operatorShiftFilters.includes(sh)}
+                      <label key={sh} className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50">
+                        <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]" checked={operatorShiftFilters.includes(sh)}
                           onChange={(e) => {
-                            if (e.target.checked) {
-                              setOperatorShiftFilters([...operatorShiftFilters, sh]);
-                            } else {
-                              setOperatorShiftFilters(
-                                operatorShiftFilters.filter((x) => x !== sh),
-                              );
-                            }
+                            if (e.target.checked) { setOperatorShiftFilters([...operatorShiftFilters, sh]); }
+                            else { setOperatorShiftFilters(operatorShiftFilters.filter((x) => x !== sh)); }
                           }}
                         />
                         <span className="text-xs font-semibold text-slate-700">{sh}</span>
@@ -604,10 +559,10 @@ export function ReportingWorkspaceTabs({
   brandDashboardSettings,
 }: ReportingWorkspaceTabsProps) {
   const tabClass = (tab: ReportingTab) =>
-    `relative whitespace-nowrap px-1 py-2 sm:py-3 text-[12px] sm:text-[14px] font-semibold sm:font-bold transition-all border-b-2 sm:border-b-[3px] ${
+    `relative whitespace-nowrap px-1 pb-2 pt-1 sm:py-3 text-[13px] sm:text-[14px] font-semibold sm:font-bold transition-all border-b-2 sm:border-b-[3px] ${
       activeTab === tab
-        ? "border-indigo-600 text-slate-900 sm:text-indigo-600"
-        : "border-transparent text-slate-400 sm:text-slate-500 hover:text-slate-900"
+        ? "border-[#5600e0] text-slate-900"
+        : "border-transparent text-slate-400 sm:text-slate-500 hover:text-slate-700"
     }`;
 
   // Helper to check if a category is hidden
