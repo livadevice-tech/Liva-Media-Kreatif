@@ -63,10 +63,16 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
   // Sort studios alphabetically
   const sortedStudios = Object.keys(studiosMap).sort();
 
-  // Helper to format time "11:00 - 17:00" to "11-17"
+  // Helper to format time strings like "Reg 2 - (11.00 - 17.00)" or "11:00 - 17:00" to "11-17"
   const formatTime = (timeSlot: string) => {
     if (!timeSlot) return "";
-    return timeSlot.split(" - ").map(t => t.split(":")[0]).join("-");
+    const matches = timeSlot.match(/\b(\d{1,2})[:\.]\d{2}\b/g);
+    if (matches && matches.length >= 2) {
+      const start = matches[0].split(/[:\.]/)[0];
+      const end = matches[matches.length - 1].split(/[:\.]/)[0];
+      return `${start}-${end}`;
+    }
+    return timeSlot.length > 7 ? timeSlot.substring(0, 7) : timeSlot;
   };
 
   return (
