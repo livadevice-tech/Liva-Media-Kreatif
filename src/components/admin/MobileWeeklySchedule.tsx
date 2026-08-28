@@ -153,7 +153,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
       <div className="px-4 mb-4 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
         <div className="flex gap-2 flex-1 items-center">
           {/* Host Filter with Nav */}
-          <div className="flex items-center flex-1 min-w-0 bg-white border border-slate-200 rounded-[14px] p-0.5 shadow-sm">
+          <div className="flex items-center flex-[3] min-w-0 bg-white border border-slate-200 rounded-[14px] p-0.5 shadow-sm">
             <button 
               onClick={handlePrevHost} 
               className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 shrink-0 transition-colors"
@@ -181,7 +181,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
           <select 
             value={selectedBrand}
             onChange={(e) => setSelectedBrand(e.target.value)}
-            className="flex-1 min-w-0 bg-white border border-slate-200 rounded-[14px] px-3 py-2 text-[11px] font-medium text-slate-700 outline-none appearance-none"
+            className="flex-[2] min-w-0 bg-white border border-slate-200 rounded-[14px] px-3 py-2 text-[11px] font-medium text-slate-700 outline-none appearance-none"
             style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")', backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat', paddingRight: '24px' }}
           >
             <option value="Semua Brand">Semua Brand</option>
