@@ -127,7 +127,15 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
               
               return (
                 <div key={idx} className="mb-3 border-b border-slate-200 pb-3 last:border-b-0">
-                  <h2 className="text-[17px] font-medium text-black mb-3 px-3">{studioName}</h2>
+                  <div className="flex justify-between items-center px-3 mb-3">
+                    <h2 className="text-[17px] font-medium text-black">{studioName}</h2>
+                    <button 
+                      onClick={() => onEmptyCellClick && onEmptyCellClick(activeDate, studioName)}
+                      className="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 cursor-pointer active:scale-95 transition-transform"
+                    >
+                      <span className="text-base font-medium leading-none mb-0.5">+</span>
+                    </button>
+                  </div>
                   
                   {/* Table Header (Days) Per Studio */}
                   <div className="grid grid-cols-7 border-b border-slate-200 mb-3 bg-[#faf9fe]">
@@ -178,14 +186,6 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                               </button>
                             );
                           })}
-                          
-                          {/* Add button placeholder to match design */}
-                          <button 
-                            onClick={() => onEmptyCellClick && onEmptyCellClick(wd.dateString, studioName)}
-                            className="w-full h-11 bg-slate-50/50 border border-slate-200 rounded-[12px] flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors active:scale-95 cursor-pointer"
-                          >
-                            <span className="text-sm font-medium">+</span>
-                          </button>
                         </div>
                       );
                     })}
