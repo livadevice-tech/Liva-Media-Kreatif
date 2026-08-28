@@ -314,7 +314,7 @@ export function HostCredentialRow({
             </select>
           ) : (
             <span className="text-slate-600 font-medium text-xs flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${host.role.toLowerCase().includes("back up") ? "bg-amber-400" : "bg-emerald-500"}`}></span>
+              <span className={`w-1.5 h-1.5 rounded-full ${(host.role || "").toLowerCase().includes("back up") ? "bg-amber-400" : "bg-emerald-500"}`}></span>
               {host.role}
             </span>
           )}
@@ -502,7 +502,7 @@ export function HostCredentialRow({
                       <option value="Back Up Host">Back Up Host</option>
                     </select>
                  ) : (
-                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${host.role.toLowerCase().includes("back up") ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>
+                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${(host.role || "").toLowerCase().includes("back up") ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>
                       {host.role}
                     </span>
                  )}

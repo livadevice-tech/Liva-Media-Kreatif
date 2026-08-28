@@ -12640,7 +12640,7 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody className="divide-y-0 sm:divide-y sm:divide-slate-100 bg-transparent sm:bg-white block sm:table-row-group space-y-4 sm:space-y-0">
-                          {hosts.filter(h => !hostSearchTerm || h.name.toLowerCase().includes(hostSearchTerm.toLowerCase()) || h.employeeId?.toLowerCase().includes(hostSearchTerm.toLowerCase())).map((h) => (
+                          {hosts.filter(h => !hostSearchTerm || (h.name || "").toLowerCase().includes(hostSearchTerm.toLowerCase()) || (h.employeeId || "").toLowerCase().includes(hostSearchTerm.toLowerCase())).map((h) => (
                             <HostCredentialRow
                               key={h.id}
                               host={h}
