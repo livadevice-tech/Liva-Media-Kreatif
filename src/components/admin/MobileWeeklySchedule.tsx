@@ -39,24 +39,7 @@ const getBrandColor = (brandName: string) => {
   return BRAND_COLORS.default;
 };
 
-// Map real studio names to short aliases if possible
-const getStudioAlias = (studioName: string) => {
-  const name = (studioName || "").toLowerCase();
-  if (name.includes("sba1") || name.includes("bandar lampung 1")) return "SBA1";
-  if (name.includes("sba2") || name.includes("bandar lampung 2")) return "SBA2";
-  if (name.includes("sba3") || name.includes("bandar lampung 3")) return "SBA3";
-  if (name.includes("bandar lampung")) return "SBA1";
-  if (name.includes("sbb1") || name.includes("cibubur 1") || name.includes("cibubur")) return "SBB1";
-  if (name.includes("spsw") || name.includes("pesanggrahan") || name.includes("pesawaran")) return "SPSW";
-  if (name.includes("stp1") || name.includes("tanggamus 1") || name.includes("tanggamus")) return "STP1";
-  
-  // Jika sudah inisial (pendek), kembalikan langsung
-  if (studioName.length <= 4) return studioName.toUpperCase();
-  
-  // Fallback: buat inisial otomatis dari huruf pertama tiap kata
-  const initials = studioName.split(" ").map(w => w[0]).join("").toUpperCase();
-  return initials.length > 4 ? initials.substring(0, 4) : initials;
-};
+// Remove getStudioAlias since we want full names
 
 export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ schedules, clientBrands, onBackClick }) => {
   // Generate current week dates (Monday to Sunday)
@@ -83,18 +66,18 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
 
   const headerDateRange = `${weekDays[0].date.getDate()} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][weekDays[0].date.getMonth()]} - ${weekDays[6].date.getDate()} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][weekDays[6].date.getMonth()]} ${weekDays[6].date.getFullYear()}`;
 
-  // Group schedules by studio
-  const studiosMap = useMemo(() => {
+  // Group schedules by studio for the active date
+  const activeSchedulesMap = useMemo(() => {
     const map: Record<string, Schedule[]> = {};
     schedules.forEach(s => {
-      // Only include schedules in the current week
-      if (weekDays.some(wd => wd.dateString === s.date)) {
+      // Only include schedules for the selected day
+      if (s.date === activeDate) {
         if (!map[s.studio]) map[s.studio] = [];
         map[s.studio].push(s);
       }
     });
     return map;
-  }, [schedules, weekDays]);
+  }, [schedules, activeDate]);
 
   // Extract unique brands for Legend
   const uniqueBrands = useMemo(() => {
@@ -118,7 +101,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
         <div className="w-6 h-6"></div> {/* Spacer for centering */}
       </div>
 
-      <div className="px-3 pt-4">
+      <div className="px-2 pt-4">
         {/* Date Selector Pill */}
         <div className="flex justify-center mb-6">
           <div className="bg-indigo-50/80 px-4 py-2.5 rounded-2xl flex items-center gap-3">
@@ -129,21 +112,21 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
         </div>
 
         {/* Horizontal Days Row */}
-        <div className="flex justify-between items-center mb-6 px-1">
+        <div className="flex justify-between items-center mb-6 px-0.5">
           {weekDays.map((wd, i) => {
             const isActive = wd.dateString === activeDate;
             return (
               <button 
                 key={i}
                 onClick={() => setActiveDate(wd.dateString)}
-                className={`flex flex-col items-center justify-center py-2 px-1 rounded-[14px] w-12 transition-all ${
+                className={`flex flex-col items-center justify-center py-2 px-1 rounded-[14px] w-[13%] transition-all ${
                   isActive ? 'bg-indigo-500 text-white shadow-md scale-105' : 'bg-transparent text-slate-500 hover:bg-slate-100'
                 }`}
               >
                 <span className={`text-[11px] font-semibold mb-0.5 ${isActive ? 'text-indigo-50' : 'text-slate-500'}`}>
                   {wd.dayName}
                 </span>
-                <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-slate-800'}`}>
+                <span className={`text-[11px] sm:text-xs font-bold ${isActive ? 'text-white' : 'text-slate-800'}`}>
                   {wd.shortDate}
                 </span>
               </button>
@@ -152,79 +135,37 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
         </div>
 
         {/* Studio Cards */}
-        <div className="space-y-4">
-          {Object.keys(studiosMap).length === 0 && (
+        <div className="space-y-3">
+          {Object.keys(activeSchedulesMap).length === 0 && (
             <div className="text-center py-10 bg-white rounded-2xl border border-slate-100">
-               <p className="text-slate-400 text-sm font-medium">Tidak ada jadwal minggu ini.</p>
+               <p className="text-slate-400 text-sm font-medium">Tidak ada jadwal untuk tanggal ini.</p>
             </div>
           )}
 
-          {Object.entries(studiosMap).map(([studioName, studioSchedules], idx) => {
-            const alias = getStudioAlias(studioName);
-
+          {Object.entries(activeSchedulesMap).map(([studioName, studioSchedules], idx) => {
             return (
-              <div key={idx} className="bg-white rounded-[20px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-slate-100">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-[17px] font-bold text-slate-800 tracking-tight">{alias}</h2>
+              <div key={idx} className="bg-white rounded-2xl p-3 sm:p-4 shadow-[0_2px_12px_rgba(0,0,0,0.02)] border border-slate-100">
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-[15px] sm:text-[17px] font-bold text-slate-800 tracking-tight">{studioName}</h2>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </div>
                 
-                {/* 7-Day Grid within Card */}
-                <div className="grid grid-cols-7 gap-1.5 w-full">
-                  {/* Days Header */}
-                  {weekDays.map((wd, i) => (
-                    <div key={`header-${i}`} className="text-center pb-2">
-                      <span className="text-[9px] font-semibold text-slate-500">{wd.dayName}</span>
-                    </div>
-                  ))}
-
-                  {/* Shift 1 Row */}
-                  {weekDays.map((wd, i) => {
-                    // Find schedules for this day
-                    const daySchedules = studioSchedules.filter(s => s.date === wd.dateString);
-                    // Sort to guess shift 1 vs 2 (e.g. by timeSlot or just take first)
-                    const shift1 = daySchedules[0];
-
+                {/* Daily Schedule List within Card */}
+                <div className="space-y-2">
+                  {studioSchedules.map((s, i) => {
+                    const color = getBrandColor(s.brand);
                     return (
-                      <div key={`s1-${i}`} className="flex justify-center h-8">
-                        {shift1 ? (() => {
-                          const color = getBrandColor(shift1.brand);
-                          const hostShort = shift1.hostName.split(' ')[0].substring(0, 5);
-                          return (
-                            <div className={`w-full h-full rounded-md flex items-center justify-center ${color.bg} ${color.text} border border-white`}>
-                              <span className="text-[9px] font-bold tracking-tight px-0.5 leading-tight text-center line-clamp-1 truncate w-full">{hostShort}</span>
-                            </div>
-                          );
-                        })() : (
-                          <div className="w-full h-full rounded-md flex items-center justify-center border border-slate-100 bg-slate-50/50">
-                            <span className="text-[10px] text-slate-300">-</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* Shift 2 Row */}
-                  {weekDays.map((wd, i) => {
-                    // Find schedules for this day
-                    const daySchedules = studioSchedules.filter(s => s.date === wd.dateString);
-                    const shift2 = daySchedules[1]; // second shift if exists
-
-                    return (
-                      <div key={`s2-${i}`} className="flex justify-center h-8 mt-1">
-                        {shift2 ? (() => {
-                          const color = getBrandColor(shift2.brand);
-                          const hostShort = shift2.hostName.split(' ')[0].substring(0, 5);
-                          return (
-                            <div className={`w-full h-full rounded-md flex items-center justify-center ${color.bg} ${color.text} border border-white`}>
-                              <span className="text-[9px] font-bold tracking-tight px-0.5 leading-tight text-center line-clamp-1 truncate w-full">{hostShort}</span>
-                            </div>
-                          );
-                        })() : (
-                          <div className="w-full h-full rounded-md flex items-center justify-center border border-slate-100 bg-slate-50/50">
-                            <span className="text-[10px] text-slate-300">-</span>
-                          </div>
-                        )}
+                      <div key={i} className={`rounded-xl p-3 ${color.bg} border border-white flex flex-col gap-1.5 shadow-sm`}>
+                        <div className="flex justify-between items-start">
+                          <span className={`text-[13px] font-extrabold ${color.text} tracking-tight`}>{s.hostName}</span>
+                          <span className="text-[10px] font-bold text-slate-600 bg-white/70 px-2 py-0.5 rounded-lg border border-white shadow-xs">
+                            {s.timeSlot}
+                          </span>
+                        </div>
+                        <div className={`text-[11px] font-bold ${color.text} opacity-90 uppercase tracking-wider mt-0.5 flex flex-wrap gap-1 items-center`}>
+                          <span className="w-1 h-1 rounded-full bg-current opacity-50 hidden sm:block"></span>
+                          Brand: {s.brand}
+                        </div>
                       </div>
                     );
                   })}
