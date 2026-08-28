@@ -260,7 +260,7 @@ export function ReportingWorkspaceHeader({
             </button>
           )}
 
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#5600e0] text-base sm:text-lg font-black text-white shadow-sm">
               {brandLogoUrl ? (
                 <img
@@ -274,17 +274,32 @@ export function ReportingWorkspaceHeader({
             </div>
 
             <div className="min-w-0 flex-1">
-              <h2 className="truncate font-display text-[17px] sm:text-[clamp(1.25rem,2vw,1.75rem)] font-black tracking-tight text-slate-950 leading-tight">
+              <h2 className="truncate font-display text-[15px] sm:text-[clamp(1.25rem,2vw,1.75rem)] font-bold sm:font-black tracking-tight text-slate-950 leading-tight">
                 {brandName || "Nama Brand"}
               </h2>
-              <p className="mt-0.5 text-[11px] sm:text-sm font-semibold text-slate-500">
-                ID: <span className="text-slate-500">{brandCode}</span>
+              <p className="mt-0.5 text-[11px] sm:text-sm font-semibold text-[#5600e0] sm:text-slate-500">
+                <span className="md:hidden">{selectedPlatform}</span>
+                <span className="hidden md:inline">ID: {brandCode}</span>
               </p>
             </div>
           </div>
           
+          {/* Mobile Settings Icon */}
+          <div className="md:hidden">
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 shadow-sm"
+              onClick={() => {
+                // Settings button logic (to be handled by tabs or similar if needed)
+                // For now, it's just visually matching the mockup
+              }}
+            >
+              <Settings2 className="h-5 w-5" />
+            </button>
+          </div>
+          
           {(onImportRawLive || onImportRawProduct || onImportRawEngagement || onOpenAddManualDuration) && (
-            <div className="relative flex-shrink-0" ref={rawMenuRef}>
+            <div className="relative flex-shrink-0 hidden md:block" ref={rawMenuRef}>
               <button
                 type="button"
                 onClick={openRawMenu}
@@ -370,21 +385,21 @@ export function ReportingWorkspaceHeader({
           )}
         </div>
 
-        <div className="flex flex-col gap-3 pt-3 sm:pt-4 sm:flex-row sm:items-center sm:justify-between pb-3">
-          <div className="flex flex-row items-center gap-2 sm:gap-3 w-full">
-            <div className="relative flex-[2] sm:flex-none" ref={dateMenuRef}>
+        <div className="flex flex-row overflow-x-auto hide-scrollbar gap-2 sm:gap-3 pt-3 sm:pt-4 sm:items-center sm:justify-between pb-3">
+          <div className="flex flex-row items-center gap-2 sm:gap-3 w-max sm:w-full">
+            <div className="relative flex-shrink-0" ref={dateMenuRef}>
               <button
                 type="button"
                 onClick={openDateMenu}
-                className="inline-flex h-10 sm:h-11 w-full sm:w-auto sm:min-w-[220px] items-center justify-between gap-2 sm:gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-3 sm:px-4 text-left text-[13px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-9 sm:h-11 w-auto sm:min-w-[220px] items-center justify-between gap-1.5 sm:gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-2.5 sm:px-4 text-left text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
                 aria-haspopup="menu"
                 aria-expanded={isDateMenuOpen}
               >
-                <span className="flex min-w-0 items-center gap-2.5">
-                  <CalendarDays className="h-4 w-4 shrink-0 text-slate-500" />
+                <span className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
+                  <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-slate-500" />
                   <span className="truncate">{dateButtonLabel}</span>
                 </span>
-                <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-slate-400" />
               </button>
 
               {isDateMenuOpen && (
@@ -417,18 +432,18 @@ export function ReportingWorkspaceHeader({
             periodLabel &&
             onPrevPeriod &&
             onNextPeriod ? (
-              <div className="flex items-center gap-1.5 rounded-[12px] border border-[#ddd7ef] bg-white px-2 py-1.5 shadow-sm">
+              <div className="flex items-center gap-1 sm:gap-1.5 rounded-[12px] border border-[#ddd7ef] bg-white px-1 sm:px-2 py-1 sm:py-1.5 shadow-sm h-9 sm:h-11 flex-shrink-0">
                 <button
                   type="button"
                   onClick={onPrevPeriod}
                   disabled={!canPrevPeriod}
                   aria-label="Lihat tanggal sebelumnya"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
-                <div className="min-w-[150px] px-2 text-center">
-                  <p className="mt-0.5 text-xs font-black text-[#5600e0]">
+                <div className="min-w-[120px] sm:min-w-[150px] px-1 sm:px-2 text-center">
+                  <p className="mt-0.5 text-[10px] sm:text-xs font-black text-[#5600e0] truncate">
                     {periodLabel}
                   </p>
                 </div>
@@ -437,26 +452,26 @@ export function ReportingWorkspaceHeader({
                   onClick={onNextPeriod}
                   disabled={!canNextPeriod}
                   aria-label="Lihat tanggal berikutnya"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </div>
             ) : null}
 
-            <div className="relative flex-[1] sm:flex-none" ref={platformMenuRef}>
+            <div className="relative flex-shrink-0" ref={platformMenuRef}>
               <button
                 type="button"
                 onClick={openPlatformMenu}
-                className="inline-flex h-10 sm:h-11 w-full sm:w-auto sm:min-w-[180px] items-center justify-between gap-2 sm:gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-3 sm:px-4 text-left text-[13px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
+                className="inline-flex h-9 sm:h-11 w-auto sm:min-w-[180px] items-center justify-between gap-1.5 sm:gap-3 rounded-[12px] border border-[#d8d0ee] bg-white px-2.5 sm:px-4 text-left text-[11px] sm:text-[14px] font-semibold text-slate-800 shadow-sm transition-colors hover:border-[#cdbef2] hover:bg-[#fdfcff]"
                 aria-haspopup="menu"
                 aria-expanded={isPlatformMenuOpen}
               >
-                <span className="flex min-w-0 items-center gap-2.5">
-                  <ShoppingBag className="h-4 w-4 shrink-0 text-[#ff6a00]" />
+                <span className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
+                  <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-[#ff6a00]" />
                   <span className="truncate">{selectedPlatform}</span>
                 </span>
-                <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-slate-400" />
               </button>
 
               {isPlatformMenuOpen && (
@@ -608,7 +623,8 @@ export function ReportingWorkspaceTabs({
           onClick={() => onTabChange("live")}
           className={tabClass("live")}
         >
-          Live Performance
+          <span className="md:hidden">Overview</span>
+          <span className="hidden md:inline">Live Performance</span>
         </button>
       )}
       {!isCategoryHidden("analysis") && (
@@ -617,7 +633,8 @@ export function ReportingWorkspaceTabs({
           onClick={() => onTabChange("analysis")}
           className={tabClass("analysis")}
         >
-          Analysis Performance
+          <span className="md:hidden">Engagement</span>
+          <span className="hidden md:inline">Analysis Performance</span>
         </button>
       )}
 
@@ -627,7 +644,8 @@ export function ReportingWorkspaceTabs({
           onClick={() => onTabChange("product")}
           className={tabClass("product")}
         >
-          Product Performance
+          <span className="md:hidden">Sale</span>
+          <span className="hidden md:inline">Product Performance</span>
         </button>
       )}
       {!hideSettingsTab && (

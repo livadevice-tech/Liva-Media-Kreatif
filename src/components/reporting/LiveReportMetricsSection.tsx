@@ -90,7 +90,7 @@ export function LiveReportMetricsSection({
 
   // ── Compact metric card grid (same look as Engagement tab) ─────────────────
   const CompactSaleMetrics = () => (
-    <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
+    <div className="hidden md:block rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
       <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
         <DollarSign className="h-5 w-5 text-[#5600e0]" /> Sale Metrics
         {(!isClientView || !isMetricHidden("duration_hours")) && (
@@ -191,7 +191,7 @@ export function LiveReportMetricsSection({
   );
 
   const CompactSaleMetricsShopee = () => (
-    <div className="rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
+    <div className="hidden md:block rounded-[22px] border border-[#e6dff8] bg-white p-5 shadow-[0_1px_0_rgba(17,24,39,0.03)] sm:p-6">
       <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#7f6ea8]">
         <DollarSign className="h-5 w-5 text-[#5600e0]" /> Sale Metrics
         {(!isClientView || !isMetricHidden("duration_hours")) && (
@@ -453,8 +453,84 @@ export function LiveReportMetricsSection({
     );
   };
 
+  const calcPercentChange = (cur: number, prev: number) => {
+    if (prev === 0) return cur > 0 ? 100 : 0;
+    return ((cur - prev) / prev) * 100;
+  };
+
+  const MobileLiveOverviewCard = () => {
+    const formatRp = (val: number) => new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(val);
+    const formatNum = (val: number) => new Intl.NumberFormat("id-ID").format(val);
+
+    const gmvPct = calcPercentChange(totalGmvDb, pTotalGmvDb);
+    const itemPct = calcPercentChange(totalItemsSoldDb, pTotalItemsSoldDb);
+    const gmvHrPct = calcPercentChange(gmvPerHour, pGmvPerHour);
+    const aovPct = calcPercentChange(avgAovDb, pAvgAovDb);
+
+    const PctBadge = ({ pct }: { pct: number }) => (
+      <div className={`mt-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${pct >= 0 ? 'bg-emerald-100/20 text-emerald-300' : 'bg-red-100/20 text-red-300'}`}>
+        {pct >= 0 ? <TrendingUp size={10} /> : <TrendingUp size={10} className="rotate-180" />}
+        {pct > 0 ? '+' : ''}{pct.toFixed(1)}%
+      </div>
+    );
+
+    return (
+      <div className="md:hidden w-full rounded-2xl bg-gradient-to-br from-[#4d148c] to-[#6b21a8] p-4 text-white shadow-lg mb-2">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-lg">Live Overview</h3>
+          <span className="flex items-center gap-1 text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> LIVE
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-4 gap-2">
+          {/* GMV */}
+          <div className="flex flex-col items-start">
+            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center mb-1">
+              <DollarSign size={12} className="text-purple-200" />
+            </div>
+            <span className="text-[9px] text-purple-200">GMV</span>
+            <span className="text-[11px] font-bold">Rp {formatRp(totalGmvDb)}</span>
+            <PctBadge pct={gmvPct} />
+          </div>
+          
+          {/* Item Sold */}
+          <div className="flex flex-col items-start">
+            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center mb-1">
+              <Package size={12} className="text-purple-200" />
+            </div>
+            <span className="text-[9px] text-purple-200">Item Sold</span>
+            <span className="text-[11px] font-bold">{formatNum(totalItemsSoldDb)}</span>
+            <PctBadge pct={itemPct} />
+          </div>
+          
+          {/* GMV/Hours */}
+          <div className="flex flex-col items-start">
+            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center mb-1">
+              <Clock size={12} className="text-purple-200" />
+            </div>
+            <span className="text-[9px] text-purple-200">GMV/Hours</span>
+            <span className="text-[11px] font-bold">Rp {formatRp(gmvPerHour)}</span>
+            <PctBadge pct={gmvHrPct} />
+          </div>
+          
+          {/* AOV */}
+          <div className="flex flex-col items-start">
+            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center mb-1">
+              <Calculator size={12} className="text-purple-200" />
+            </div>
+            <span className="text-[9px] text-purple-200">AOV</span>
+            <span className="text-[11px] font-bold">Rp {formatRp(avgAovDb)}</span>
+            <PctBadge pct={aovPct} />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
+      <MobileLiveOverviewCard />
       {useShopeeStyle ? (
         <>
           {/* Shopee Live: Sale Metrics compact grid */}

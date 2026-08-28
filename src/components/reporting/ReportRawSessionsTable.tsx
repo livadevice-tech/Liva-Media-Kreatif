@@ -214,44 +214,44 @@ export function ReportRawSessionsTable({
 
     return sortedGroups.map((g, idx) => (
       <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-        <td className="px-5 py-3.5 text-slate-400">{idx + 1}</td>
-        <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
+        <td className="px-2 sm:px-5 py-3.5 text-slate-400">{idx + 1}</td>
+        <td className="px-2 sm:px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-800">
           {g.label}
         </td>
         {!isColumnHidden("duration") && (
-          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
+          <td className="px-2 sm:px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
             {formatLiveSessionDuration(g.duration || 0)}
           </td>
         )}
         {!isColumnHidden("penonton") && (
-          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
+          <td className="px-2 sm:px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
             {idFormatter.format(g.viewer)}
           </td>
         )}
         {!isColumnHidden("gmv") && (
-          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-emerald-600">
+          <td className="px-2 sm:px-5 py-3.5 whitespace-nowrap text-xs font-black text-emerald-600">
             Rp{idFormatter.format(g.gmv)}
           </td>
         )}
         {!isColumnHidden("items_sold") && (
-          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
+          <td className="px-2 sm:px-5 py-3.5 whitespace-nowrap text-xs font-bold text-slate-700">
             {idFormatter.format(g.itemsSold)}
           </td>
         )}
         {!isColumnHidden("engagement") && (
-          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-semibold text-slate-500">
+          <td className="px-2 sm:px-5 py-3.5 whitespace-nowrap text-xs font-semibold text-slate-500">
             {formatLiveSessionAverageDuration(
               g.sessionCount > 0 ? g.avgViewDuration / g.sessionCount : 0,
             )}
           </td>
         )}
         {!isColumnHidden("orders") && (
-          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-bold text-indigo-600">
+          <td className="px-2 sm:px-5 py-3.5 whitespace-nowrap text-xs font-bold text-indigo-600">
             {idFormatter.format(g.customers)}
           </td>
         )}
         {!isColumnHidden("conversion_rate") && (
-          <td className="px-5 py-3.5 whitespace-nowrap text-xs font-black text-indigo-600">
+          <td className="px-2 sm:px-5 py-3.5 whitespace-nowrap text-xs font-black text-indigo-600">
             {(() => {
               const platform = String(g.platform || "").toLowerCase();
               return getLiveSessionConversionRate(g.orders, g.clicks, platform).toFixed(2);
@@ -259,7 +259,7 @@ export function ReportRawSessionsTable({
           </td>
         )}
         {!isClientView && (
-          <td className="px-5 py-3.5 text-right" />
+          <td className="px-2 sm:px-5 py-3.5 text-right" />
         )}
       </tr>
     ));
@@ -297,14 +297,14 @@ export function ReportRawSessionsTable({
                     key={log.id || idx}
                     className="hover:bg-slate-50/50 transition-colors"
                   >
-                    <td className="px-5 py-3.5 text-slate-400">
+                    <td className="px-2 sm:px-5 py-3.5 text-slate-400">
                       {(currentPage - 1) * itemsPerPage + idx + 1}
                     </td>
-                    <td className="px-5 py-3.5 text-slate-500">
+                    <td className="px-2 sm:px-5 py-3.5 text-slate-500">
                       {formatDisplayDate(log.dateTime || log.date, log.platform)}
                     </td>
                     {!isColumnHidden("duration") && (
-                      <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
+                      <td className="px-2 sm:px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
                         {editingDurationId === log.id ? (
                           <div className="flex items-center gap-1">
                             <input
@@ -333,12 +333,12 @@ export function ReportRawSessionsTable({
                       </td>
                     )}
                     {!isColumnHidden("penonton") && (
-                      <td className="px-5 py-3.5">
+                      <td className="px-2 sm:px-5 py-3.5">
                         {new Intl.NumberFormat("id-ID").format(metrics.viewer)}
                       </td>
                     )}
                     {!isColumnHidden("gmv") && (
-                      <td className="px-5 py-3.5">
+                      <td className="px-2 sm:px-5 py-3.5">
                         Rp
                         {new Intl.NumberFormat("id-ID", {
                           maximumFractionDigits: 0,
@@ -346,29 +346,29 @@ export function ReportRawSessionsTable({
                       </td>
                     )}
                     {!isColumnHidden("items_sold") && (
-                      <td className="px-5 py-3.5">
+                      <td className="px-2 sm:px-5 py-3.5">
                         {new Intl.NumberFormat("id-ID").format(
                           log.products_sold || log.items_sold || 0,
                         )}
                       </td>
                     )}
                     {!isColumnHidden("engagement") && (
-                      <td className="px-5 py-3.5">
+                      <td className="px-2 sm:px-5 py-3.5">
                         {formatLiveSessionAverageDuration(log.avgViewDuration || 0)}
                       </td>
                     )}
                     {!isColumnHidden("orders") && (
-                      <td className="px-5 py-3.5">
+                      <td className="px-2 sm:px-5 py-3.5">
                         {new Intl.NumberFormat("id-ID").format(metrics.customers)}
                       </td>
                     )}
                     {!isColumnHidden("conversion_rate") && (
-                      <td className="px-5 py-3.5">
+                      <td className="px-2 sm:px-5 py-3.5">
                         {metrics.conversionRate.toFixed(2)}%
                       </td>
                     )}
                     {!isClientView && (
-                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                      <td className="px-2 sm:px-5 py-3.5 text-right whitespace-nowrap">
                         {editingDurationId === log.id ? (
                           <div className="flex items-center justify-end gap-2">
                             <button

@@ -240,8 +240,9 @@ export function LiveReportChartSection({
   }, [activeMetrics, platformFilteredOptions]);
 
   return (
-    <section className="rounded-[16px] border border-[#e6dff8] bg-white p-6 shadow-sm">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <section className="rounded-[16px] border border-[#e6dff8] bg-white p-4 sm:p-6 shadow-sm">
+      {/* Desktop Header */}
+      <div className="hidden md:flex mb-8 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-[14px] font-semibold text-slate-800">
             {dynamicTitle}
@@ -398,6 +399,116 @@ export function LiveReportChartSection({
                     {option.label}
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Header */}
+      <div className="md:hidden mb-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-800">Metrics</h3>
+          
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsGranularityMenuOpen(!isGranularityMenuOpen);
+              }}
+              className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700"
+            >
+              {granularityOptions.find((o) => o.value === granularity)?.label}
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+            </button>
+            {isGranularityMenuOpen && (
+              <div className="absolute right-0 top-full z-10 mt-1 w-32 rounded-[8px] border border-slate-200 bg-white p-1 shadow-lg">
+                {granularityOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setGranularity(option.value);
+                      setIsGranularityMenuOpen(false);
+                    }}
+                    className={`block w-full rounded-[6px] px-3 py-2 text-left text-[12px] font-medium transition-colors ${
+                      granularity === option.value
+                        ? "bg-slate-50 text-[#5600e0]"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {activeMetrics.map(key => {
+            const opt = platformFilteredOptions.find(o => o.key === key);
+            if (!opt) return null;
+            return (
+              <div key={key} className="flex items-center gap-1 rounded-full bg-[#fdfcff] px-2.5 py-1 border border-[#e4ddf6]">
+                <span className="text-[10px] font-bold text-[#5600e0]">{opt.label}</span>
+                <button
+                  type="button"
+                  onClick={() => onChartSelectedMetricsChange(activeMetrics.filter(m => m !== key))}
+                  className="text-[#5600e0]/60 hover:text-[#5600e0]"
+                >
+                  <span className="sr-only">Remove</span>
+                  &times;
+                </button>
+              </div>
+            );
+          })}
+          
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSaleMetricsMenuOpen(!isSaleMetricsMenuOpen);
+                setIsEngagementMetricsMenuOpen(false);
+              }}
+              className="flex items-center justify-center w-6 h-6 rounded-full border border-dashed border-slate-300 text-slate-400 hover:text-slate-600 hover:border-slate-400 text-xs"
+            >
+              +
+            </button>
+            {isSaleMetricsMenuOpen && (
+              <div className="absolute left-0 top-full z-20 mt-1 w-48 max-h-[250px] overflow-y-auto rounded-[8px] border border-slate-200 bg-white p-2 shadow-lg">
+                <div className="flex flex-col gap-1">
+                  {platformFilteredOptions.map((option) => {
+                    const isSelected = activeMetrics.includes(option.key);
+                    return (
+                      <label
+                        key={option.key}
+                        className="flex cursor-pointer items-center gap-2 rounded-[6px] px-2 py-1.5 hover:bg-slate-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          checked={isSelected}
+                          onChange={() => {
+                            if (isSelected) {
+                              onChartSelectedMetricsChange(
+                                activeMetrics.filter((m) => m !== option.key)
+                              );
+                            } else {
+                              onChartSelectedMetricsChange([
+                                ...activeMetrics,
+                                option.key,
+                              ]);
+                            }
+                          }}
+                        />
+                        <span className="text-[11px] font-medium text-slate-700">
+                          {option.label}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

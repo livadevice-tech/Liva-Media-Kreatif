@@ -133,7 +133,7 @@ export function ReportRawSessionsCard({
               ) : (
                 <>
                   <th
-                    className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                    className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                     onClick={() => onSort("date")}
                   >
                     Tanggal{" "}
@@ -145,7 +145,7 @@ export function ReportRawSessionsCard({
                   </th>
                   {!isColumnHidden("duration") && (
                     <th
-                      className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                      className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                       onClick={() => onSort("duration")}
                     >
                       Durasi{" "}
@@ -160,7 +160,7 @@ export function ReportRawSessionsCard({
               )}
               {!isColumnHidden("penonton") && (
                 <th
-                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("views")}
                 >
                   Viewer{" "}
@@ -169,19 +169,21 @@ export function ReportRawSessionsCard({
               )}
               {!isColumnHidden("gmv") && (
                 <th
-                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("gmv")}
                 >
-                  GMV (Rp){" "}
+                  <span className="md:hidden">GMV</span>
+                  <span className="hidden md:inline">GMV (Rp)</span>{" "}
                   {reportDbSortCol === "gmv" ? (reportDbSortAsc ? "↑" : "↓") : ""}
                 </th>
               )}
               {!isColumnHidden("items_sold") && (
                 <th
-                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("products_sold")}
                 >
-                  Items Sold{" "}
+                  <span className="md:hidden">Sold</span>
+                  <span className="hidden md:inline">Items Sold</span>{" "}
                   {reportDbSortCol === "products_sold"
                     ? reportDbSortAsc
                       ? "↑"
@@ -191,10 +193,11 @@ export function ReportRawSessionsCard({
               )}
               {!isColumnHidden("engagement") && (
                 <th
-                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("avgViewDuration")}
                 >
-                  Avg. View Duration{" "}
+                  <span className="md:hidden">Avg</span>
+                  <span className="hidden md:inline">Avg. View Duration</span>{" "}
                   {reportDbSortCol === "avgViewDuration"
                     ? reportDbSortAsc
                       ? "↑"
@@ -204,10 +207,11 @@ export function ReportRawSessionsCard({
               )}
               {!isColumnHidden("orders") && (
                 <th
-                  className="px-5 py-4 cursor-pointer hover:bg-slate-100"
+                  className="px-2 sm:px-5 py-4 cursor-pointer hover:bg-slate-100"
                   onClick={() => onSort("customers")}
                 >
-                  {isShopee ? "Customers" : "Orders"}{" "}
+                  <span className="md:hidden">Cust</span>
+                  <span className="hidden md:inline">{isShopee ? "Customers" : "Orders"}</span>{" "}
                   {reportDbSortCol === "customers"
                     ? reportDbSortAsc
                       ? "↑"

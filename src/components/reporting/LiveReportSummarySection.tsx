@@ -52,7 +52,7 @@ export function LiveReportSummarySection({
           </p>
         </div>
       ) : (
-        <>
+        <div className="flex flex-col-reverse md:flex-col gap-6">
           {chartData.length > 0 && (
             <LiveReportChartSection
               chartData={chartData}
@@ -71,7 +71,7 @@ export function LiveReportSummarySection({
             brandDashboardSettings={brandDashboardSettings}
             isClientView={isClientView}
           />
-        </>
+        </div>
       )}
     </div>
   );
