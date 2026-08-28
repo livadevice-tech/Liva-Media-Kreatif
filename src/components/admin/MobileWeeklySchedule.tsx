@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ChevronRight, ChevronLeft } from "lucide-react";
-import { getBrandColor } from "../../shared/utils/appUi";
+import { getBrandStyle } from "../../shared/utils/appUi";
 
 interface Schedule {
   id: string;
@@ -165,22 +165,21 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                         <div key={i} className="flex flex-col gap-1.5">
                           {daySchedules.map((s, sIdx) => {
                             const timeStr = formatTime(s.timeSlot);
-                            const brandColor = getBrandColor(s.brand);
+                            const brandStyle = getBrandStyle(s.brand);
                             
                             return (
                               <button 
                                 key={sIdx} 
                                 onClick={() => onScheduleClick && onScheduleClick(s)}
-                                className="w-full bg-white border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform"
-                                style={{ borderColor: brandColor }}
+                                className={`w-full border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform ${brandStyle}`}
                               >
-                                <span className="text-[8.5px] font-bold text-black text-center w-full truncate leading-tight">
+                                <span className="text-[8.5px] font-extrabold text-center w-full truncate leading-tight opacity-90">
                                   {s.brand.split(' ')[0]}
                                 </span>
-                                <span className="text-[8px] font-medium text-black uppercase text-center w-full truncate leading-tight mt-0.5">
+                                <span className="text-[8px] font-semibold uppercase text-center w-full truncate leading-tight mt-0.5 opacity-80">
                                   {s.hostName.split(' ')[0]}
                                 </span>
-                                <span className="text-[8.5px] font-bold mt-1 leading-tight" style={{ color: brandColor }}>
+                                <span className="text-[8.5px] font-bold mt-1 leading-tight">
                                   {timeStr}
                                 </span>
                               </button>
