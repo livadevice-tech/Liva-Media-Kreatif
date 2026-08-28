@@ -12640,15 +12640,37 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody className="divide-y-0 sm:divide-y sm:divide-slate-100 bg-transparent sm:bg-white block sm:table-row-group space-y-4 sm:space-y-0">
-                          {hosts.filter(h => !hostSearchTerm || (h.name || "").toLowerCase().includes(hostSearchTerm.toLowerCase()) || (h.employeeId || "").toLowerCase().includes(hostSearchTerm.toLowerCase())).map((h) => (
-                            <HostCredentialRow
-                              key={h.id}
-                              host={h}
-                              onUpdate={handleUpdateHost}
-                              onDelete={handleDeleteHost}
-                              studios={studios}
-                            />
-                          ))}
+                          {(() => {
+                            const filteredHosts = hosts.filter(h => !hostSearchTerm || (h.name || "").toLowerCase().includes(hostSearchTerm.toLowerCase()) || (h.employeeId || "").toLowerCase().includes(hostSearchTerm.toLowerCase()));
+                            
+                            if (filteredHosts.length === 0) {
+                              return (
+                                <tr className="block sm:table-row bg-white sm:bg-transparent rounded-2xl sm:rounded-none border sm:border-0 border-slate-200 p-8 sm:p-0 text-center shadow-sm sm:shadow-none mb-4 sm:mb-0 relative">
+                                  <td colSpan={7} className="block sm:table-cell py-8 text-slate-500">
+                                    <div className="flex flex-col items-center justify-center">
+                                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                        <Users className="w-8 h-8 text-slate-300" />
+                                      </div>
+                                      <p className="font-semibold text-slate-600 text-[15px]">{hostSearchTerm ? "Host tidak ditemukan" : "Belum ada data host"}</p>
+                                      <p className="text-[13px] text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+                                        {hostSearchTerm ? `Tidak ada host yang cocok dengan kata kunci "${hostSearchTerm}".` : "Klik tombol 'Tambah Host Baru' di atas untuk mulai mendaftarkan kredensial host."}
+                                      </p>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            return filteredHosts.map((h) => (
+                              <HostCredentialRow
+                                key={h.id}
+                                host={h}
+                                onUpdate={handleUpdateHost}
+                                onDelete={handleDeleteHost}
+                                studios={studios}
+                              />
+                            ));
+                          })()}
                         </tbody>
                       </table>
                     </div>
