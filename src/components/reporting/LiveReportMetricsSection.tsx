@@ -458,54 +458,9 @@ export function LiveReportMetricsSection({
     return ((cur - prev) / prev) * 100;
   };
 
-  const MobileLiveOverviewCard = () => {
-    const formatRp = (val: number) => new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(val);
-    const formatNum = (val: number) => new Intl.NumberFormat("id-ID").format(val);
-
-    const gmvPct = calcPercentChange(totalGmvDb, pTotalGmvDb);
-    const itemPct = calcPercentChange(totalItemsSoldDb, pTotalItemsSoldDb);
-    const gmvHrPct = calcPercentChange(gmvPerHour, pGmvPerHour);
-    const aovPct = calcPercentChange(avgAovDb, pAvgAovDb);
-
-    const PctBadge = ({ pct }: { pct: number }) => (
-      <div className={`mt-0 flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold w-max ${pct >= 0 ? 'bg-emerald-400/20 text-emerald-300' : 'bg-rose-400/20 text-rose-300'}`}>
-        {pct >= 0 ? <TrendingUp size={10} /> : <TrendingUp size={10} className="rotate-180" />}
-        {pct > 0 ? '+' : ''}{pct.toFixed(1)}%
-      </div>
-    );
-
-    return (
-      <div className="md:hidden w-full rounded-xl bg-[#5600e0] p-5 text-white shadow-lg mb-2">
-        <h3 className="font-bold text-[16px] tracking-wide mb-6">Live Overview</h3>
-        
-        <div className="grid grid-cols-2 gap-4">
-          {/* GMV */}
-          <div className="flex flex-col items-start justify-start text-left">
-            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-2 border border-white/5">
-              <DollarSign size={14} className="text-white/90" />
-            </div>
-            <span className="text-[10px] text-white/80 font-medium mb-1">GMV</span>
-            <span className="text-[13px] sm:text-[14px] font-bold text-white tracking-tight leading-tight w-full truncate mb-2">Rp {formatRp(totalGmvDb)}</span>
-            <PctBadge pct={gmvPct} />
-          </div>
-          
-          {/* Item Sold */}
-          <div className="flex flex-col items-start justify-start text-left">
-            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-2 border border-white/5">
-              <Package size={14} className="text-white/90" />
-            </div>
-            <span className="text-[10px] text-white/80 font-medium mb-1">Item Sold</span>
-            <span className="text-[13px] sm:text-[14px] font-bold text-white tracking-tight leading-tight w-full truncate mb-2">{formatNum(totalItemsSoldDb)}</span>
-            <PctBadge pct={itemPct} />
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="space-y-6">
-      <MobileLiveOverviewCard />
+    <div className="mb-4 sm:mb-6 hidden md:block">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
       {useShopeeStyle ? (
         <>
           {/* Shopee Live: Sale Metrics compact grid */}
@@ -624,6 +579,7 @@ export function LiveReportMetricsSection({
           <EngagementMetricsBlock />
         </>
       )}
+      </div>
     </div>
   );
 }

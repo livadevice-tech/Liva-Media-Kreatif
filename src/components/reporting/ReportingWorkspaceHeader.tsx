@@ -246,57 +246,10 @@ export function ReportingWorkspaceHeader({
 
   return (
     <section
-      className="pt-3 pb-0 sm:py-4"
+      className="pt-3 pb-0 sm:py-4 hidden md:block"
       data-active-tab={activeTab}
     >
       <div className="flex flex-col">
-        {/* === MOBILE-ONLY header row (hidden on desktop) === */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 md:hidden">
-          <div className="flex items-center gap-2">
-            {onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                aria-label="Kembali"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-            )}
-
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-600">
-                {brandLogoUrl ? (
-                  <img
-                    src={brandLogoUrl}
-                    alt={`${brandName || "Brand"} logo`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xs">{brandInitials || "RB"}</span>
-                )}
-              </div>
-
-              <div className="min-w-0">
-                <h2 className="text-[15px] font-bold tracking-tight text-slate-900 leading-tight">
-                  {brandName || "Nama Brand"}
-                </h2>
-                <p className="text-[11px] font-medium text-[#5600e0] leading-tight">
-                  {selectedPlatform}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Settings icon */}
-          <button
-            type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm"
-          >
-            <Settings2 className="h-4 w-4" />
-          </button>
-        </div>
-
         {/* === DESKTOP-ONLY header row (hidden on mobile) === */}
         <div className="hidden md:flex items-center gap-3 pb-4 border-b border-[#e7e0f8]">
           {onBack && (
@@ -571,7 +524,7 @@ export function ReportingWorkspaceTabs({
   };
 
   return (
-    <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 bg-white border-b border-slate-100">
+    <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 bg-white border-b border-slate-100 hidden md:block">
       <div className="px-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
         <div className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto">
           {!isCategoryHidden("live") && (
