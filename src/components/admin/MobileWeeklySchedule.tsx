@@ -103,27 +103,8 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
       {/* Main Grid Section */}
       <div className="w-full overflow-x-auto no-scrollbar border-t border-slate-100 pt-2">
         <div className="min-w-[420px]">
-          {/* Table Header (Days) */}
-          <div className="grid grid-cols-7 border-b border-slate-200">
-            {weekDays.map((wd, i) => {
-              const isActive = wd.dateString === activeDate;
-              return (
-                <button 
-                  key={i} 
-                  onClick={() => setActiveDate(wd.dateString)}
-                  className={`flex flex-col items-center justify-center py-2.5 mx-1 mb-1 rounded-[14px] transition-colors cursor-pointer ${
-                    isActive ? 'bg-indigo-50' : 'bg-transparent'
-                  }`}
-                >
-                  <div className={`text-[12px] font-bold ${isActive ? 'text-indigo-700' : 'text-slate-500'}`}>{wd.dayName}</div>
-                  <div className={`text-[10px] font-medium mt-0.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>{wd.shortDate}</div>
-                </button>
-              );
-            })}
-          </div>
-
           {/* Rows (Studios) */}
-          <div className="mt-4 pb-10">
+          <div className="mt-2 pb-10">
             {sortedStudios.length === 0 && (
               <div className="text-center py-10 text-slate-400">Belum ada jadwal minggu ini</div>
             )}
@@ -134,6 +115,25 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
                 <div key={idx} className="mb-6 border-b border-slate-100 pb-6 last:border-b-0">
                   <h2 className="text-[17px] font-medium text-black mb-3 px-3">{studioName}</h2>
                   
+                  {/* Table Header (Days) Per Studio */}
+                  <div className="grid grid-cols-7 border-b border-slate-200 mb-3 bg-[#faf9fe]">
+                    {weekDays.map((wd, i) => {
+                      const isActive = wd.dateString === activeDate;
+                      return (
+                        <button 
+                          key={i} 
+                          onClick={() => setActiveDate(wd.dateString)}
+                          className={`flex flex-col items-center justify-center py-2.5 mx-1 mb-1 rounded-[14px] transition-colors cursor-pointer ${
+                            isActive ? 'bg-indigo-50' : 'bg-transparent'
+                          }`}
+                        >
+                          <div className={`text-[12px] font-bold ${isActive ? 'text-indigo-700' : 'text-slate-500'}`}>{wd.dayName}</div>
+                          <div className={`text-[10px] font-medium mt-0.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>{wd.shortDate}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   <div className="grid grid-cols-7 gap-1.5 px-2">
                     {weekDays.map((wd, i) => {
                       // Find schedules for this day
