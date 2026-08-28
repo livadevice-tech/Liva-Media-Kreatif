@@ -7943,9 +7943,9 @@ export default function App() {
 
                     <div className="md:hidden px-4 mb-4 mt-2">
                        {/* MOBILE TOP CONTROLS (Settings, Search, Date Range, Summary) */}
-                       <div className="bg-white border border-slate-100 rounded-[20px] p-2 space-y-2 shadow-xs">
+                       <div className="space-y-3">
                          {/* Setting Payroll Config Button */}
-                         <button onClick={() => setIsPayrollConfigOpen(!isPayrollConfigOpen)} className="w-full flex items-center p-3 hover:bg-slate-50 rounded-xl transition-colors border border-slate-100/50">
+                         <button onClick={() => setIsPayrollConfigOpen(!isPayrollConfigOpen)} className="w-full flex items-center p-3 bg-white hover:bg-slate-50 rounded-xl transition-colors border border-slate-200 shadow-sm">
                             <div className="w-10 h-10 bg-[#f7f5ff] rounded-[12px] flex items-center justify-center shrink-0 mr-3 shadow-3xs">
                                <Settings className="w-5 h-5 text-[#6B46FF]" />
                             </div>
@@ -8043,7 +8043,7 @@ export default function App() {
                          </div>
 
                          {/* Mobile Summary Metric Button */}
-                         <details className="group w-full block list-none [&::-webkit-details-marker]:hidden bg-white border border-slate-100 rounded-xl overflow-hidden transition-all">
+                         <details className="group w-full block list-none [&::-webkit-details-marker]:hidden bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden transition-all">
                             <summary className="flex items-center p-3 cursor-pointer select-none">
                                <div className="w-10 h-10 bg-[#f7f5ff] rounded-[12px] flex items-center justify-center shrink-0 mr-3 shadow-3xs">
                                   <BarChart2 className="w-5 h-5 text-[#6B46FF]" />
