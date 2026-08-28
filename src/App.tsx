@@ -12626,27 +12626,28 @@ export default function App() {
                       </div>
                     )}
 
-                    <div className="border-0 sm:border sm:border-slate-200 sm:rounded-xl bg-transparent sm:bg-white shadow-none sm:shadow-sm">
-                      <table className="min-w-full divide-y divide-slate-100 block sm:table">
-                        <thead className="bg-slate-50/80 hidden sm:table-header-group">
-                          <tr className="text-left text-xs font-semibold text-slate-500">
-                            <th className="px-6 py-4">Host</th>
-                            <th className="px-6 py-4">Role</th>
-                            <th className="px-6 py-4">Lokasi</th>
-                            <th className="px-6 py-4">Kontak & Bank</th>
-                            <th className="px-6 py-4">Username</th>
-                            <th className="px-6 py-4">Password</th>
-                            <th className="px-6 py-4 text-right">Aksi</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y-0 sm:divide-y sm:divide-slate-100 bg-transparent sm:bg-white block sm:table-row-group space-y-4 sm:space-y-0">
+                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-slate-100">
+                          <thead className="bg-slate-50/80">
+                            <tr className="text-left text-xs font-semibold text-slate-500">
+                              <th className="px-6 py-4 whitespace-nowrap">Host</th>
+                              <th className="px-6 py-4 whitespace-nowrap">Role</th>
+                              <th className="px-6 py-4 whitespace-nowrap">Lokasi</th>
+                              <th className="px-6 py-4 whitespace-nowrap">Kontak & Bank</th>
+                              <th className="px-6 py-4 whitespace-nowrap">Username</th>
+                              <th className="px-6 py-4 whitespace-nowrap">Password</th>
+                              <th className="px-6 py-4 text-right whitespace-nowrap">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 bg-white">
                           {(() => {
                             const filteredHosts = hosts.filter(h => !hostSearchTerm || (h.name || "").toLowerCase().includes(hostSearchTerm.toLowerCase()) || (h.employeeId || "").toLowerCase().includes(hostSearchTerm.toLowerCase()));
                             
                             if (filteredHosts.length === 0) {
                               return (
-                                <tr className="block sm:table-row bg-white sm:bg-transparent rounded-2xl sm:rounded-none border sm:border-0 border-slate-200 p-8 sm:p-0 text-center shadow-sm sm:shadow-none mb-4 sm:mb-0 relative">
-                                  <td colSpan={7} className="block sm:table-cell py-8 text-slate-500">
+                                <tr>
+                                  <td colSpan={7} className="px-6 py-12 text-center">
                                     <div className="flex flex-col items-center justify-center">
                                       <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
                                         <Users className="w-8 h-8 text-slate-300" />
@@ -12672,7 +12673,8 @@ export default function App() {
                             ));
                           })()}
                         </tbody>
-                      </table>
+                        </table>
+                      </div>
                     </div>
 
                     <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 flex items-start gap-3">

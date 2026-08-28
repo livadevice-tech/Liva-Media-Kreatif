@@ -191,11 +191,11 @@ export default function HostViolationsPanel({
       )}
 
       {/* Main Table */}
-      <div className="bg-transparent sm:bg-white border-0 sm:border border-slate-200 rounded-none sm:rounded-2xl overflow-visible sm:overflow-hidden shadow-none sm:shadow-xs">
-        <div className="overflow-x-visible sm:overflow-x-auto pb-4 sm:pb-0">
-          <table className="w-full text-left border-collapse block sm:table">
-            <thead className="hidden sm:table-header-group">
-              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-500">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-700">
+            <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-500">
+              <tr>
                 <th className="px-5 py-4">Tgl Pelanggaran</th>
                 <th className="px-5 py-4">Host</th>
                 <th className="px-5 py-4">Brand</th>
@@ -206,151 +206,74 @@ export default function HostViolationsPanel({
                 <th className="px-5 py-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y-0 sm:divide-y divide-slate-100 text-xs font-medium text-slate-700 block sm:table-row-group space-y-4 sm:space-y-0">
+            <tbody className="divide-y divide-slate-100 font-medium">
               {loading && violations.length === 0 ? (
-                <tr className="block sm:table-row bg-white sm:bg-transparent rounded-2xl sm:rounded-none border sm:border-0 border-slate-200 p-8 sm:p-0 text-center shadow-sm sm:shadow-none mb-4 sm:mb-0">
-                  <td colSpan={7} className="px-5 py-8 text-center text-slate-400 block sm:table-cell">
+                <tr>
+                  <td colSpan={8} className="px-5 py-8 text-center text-slate-400">
                     Memuat data pelanggaran...
                   </td>
                 </tr>
               ) : filteredViolations.length === 0 ? (
-                <tr className="block sm:table-row bg-white sm:bg-transparent rounded-2xl sm:rounded-none border sm:border-0 border-slate-200 p-8 sm:p-0 text-center shadow-sm sm:shadow-none mb-4 sm:mb-0">
-                  <td colSpan={7} className="px-5 py-8 text-center text-slate-400 block sm:table-cell">
+                <tr>
+                  <td colSpan={8} className="px-5 py-8 text-center text-slate-400">
                     Tidak ada catatan pelanggaran ditemukan.
                   </td>
                 </tr>
               ) : (
                 filteredViolations.map((v) => (
-                  <React.Fragment key={v.id}>
-                    {/* DESKTOP ROW */}
-                    <tr className="hidden sm:table-row hover:bg-slate-50/50 transition-colors">
-                      <td className="px-5 py-4 font-bold text-slate-900 whitespace-nowrap">
-                        {v.violation_date ? new Date(v.violation_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : new Date(v.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="font-bold text-slate-900">{v.host_name || "N/A"}</div>
-                        <div className="text-[10px] text-slate-400 font-bold uppercase">{v.host_id}</div>
-                      </td>
-                      <td className="px-5 py-4">
-                        {v.brand_name ? (
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold text-[10px]">
-                            {v.brand_name}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 italic">Umum / Semua</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="font-bold">{v.shift || "-"}</div>
-                        <div className="text-[10px] text-slate-500 font-medium">{v.platform || "-"}</div>
-                      </td>
-                      <td className="px-5 py-4 max-w-xs break-words">
-                        {v.violation_type}
-                      </td>
-                      <td className="px-5 py-4">
-                        {v.proof_url ? (
-                          <a
-                            href={v.proof_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-purple-600 hover:text-purple-800 font-bold hover:underline"
-                          >
-                            <Image size={14} />
-                            Lihat Bukti
-                            <ExternalLink size={10} />
-                          </a>
-                        ) : (
-                          <span className="text-slate-400 italic text-[10px]">Tidak ada bukti</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 max-w-xs break-words font-semibold text-amber-800">
-                        {v.consequence || "-"}
-                      </td>
-                      <td className="px-5 py-4 text-center">
-                        <button
-                          onClick={() => handleDelete(v.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
-                          title="Hapus Catatan"
+                  <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-5 py-4 font-bold text-slate-900 whitespace-nowrap">
+                      {v.violation_date ? new Date(v.violation_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : new Date(v.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="font-bold text-slate-900">{v.host_name || "N/A"}</div>
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">{v.host_id}</div>
+                    </td>
+                    <td className="px-5 py-4">
+                      {v.brand_name ? (
+                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold text-[10px]">
+                          {v.brand_name}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">Umum / Semua</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="font-bold">{v.shift || "-"}</div>
+                      <div className="text-[10px] text-slate-500 font-medium">{v.platform || "-"}</div>
+                    </td>
+                    <td className="px-5 py-4 max-w-xs break-words">
+                      {v.violation_type}
+                    </td>
+                    <td className="px-5 py-4">
+                      {v.proof_url ? (
+                        <a
+                          href={v.proof_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-purple-600 hover:text-purple-800 font-bold hover:underline"
                         >
-                          <Trash2 size={15} />
-                        </button>
-                      </td>
-                    </tr>
-
-                    {/* MOBILE CARD */}
-                    <tr className="sm:hidden block bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative text-xs">
-                      <td className="block w-full">
-                        <div className="flex justify-between items-start mb-4 border-b border-slate-100 pb-3">
-                          <div>
-                            <div className="font-bold text-slate-900 text-[15px]">{v.host_name || "N/A"}</div>
-                            <div className="text-[11px] text-slate-500 font-bold uppercase mt-0.5">{v.host_id}</div>
-                          </div>
-                          <div className="text-right flex flex-col items-end">
-                            {v.brand_name ? (
-                              <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded font-bold text-[10px]">
-                                {v.brand_name}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 italic text-[10px]">Umum / Semua</span>
-                            )}
-                            <div className="font-bold text-slate-600 mt-1.5">{v.shift || "-"}</div>
-                            <div className="text-[10px] text-slate-400 font-medium leading-none">{v.platform || "-"}</div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3 mb-4">
-                          <div>
-                            <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Tgl Pelanggaran</div>
-                            <div className="font-bold text-slate-700">
-                              {v.violation_date ? new Date(v.violation_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : new Date(v.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Jenis Pelanggaran</div>
-                            <div className="bg-red-50 text-red-800 p-2.5 rounded-xl border border-red-100 text-[12px] font-medium leading-relaxed">
-                              {v.violation_type}
-                            </div>
-                          </div>
-
-                          {v.consequence && (
-                            <div>
-                              <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Akibat / Resiko</div>
-                              <div className="font-bold text-amber-700 text-[12px]">
-                                {v.consequence}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                          <div>
-                            {v.proof_url ? (
-                              <a
-                                href={v.proof_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold py-1.5 px-3 rounded-lg transition-colors text-[11px]"
-                              >
-                                <Image size={14} />
-                                Lihat Bukti
-                                <ExternalLink size={10} />
-                              </a>
-                            ) : (
-                              <span className="text-slate-400 italic text-[11px]">Tidak ada bukti</span>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => handleDelete(v.id)}
-                            className="text-red-500 hover:text-white bg-red-50 hover:bg-red-500 w-[34px] h-[34px] flex items-center justify-center rounded-xl transition-colors cursor-pointer"
-                            title="Hapus Catatan"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </React.Fragment>
+                          <Image size={14} />
+                          Lihat Bukti
+                          <ExternalLink size={10} />
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 italic text-[10px]">Tidak ada bukti</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 max-w-xs break-words font-semibold text-amber-800">
+                      {v.consequence || "-"}
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <button
+                        onClick={() => handleDelete(v.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                        title="Hapus Catatan"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
+                  </tr>
                 ))
               )}
             </tbody>
