@@ -18,9 +18,17 @@ interface MobileWeeklyScheduleProps {
   schedules: Schedule[];
   clientBrands: any[];
   onBackClick?: () => void;
+  onEmptyCellClick?: (dateStr: string, studio: string) => void;
+  onScheduleClick?: (schedule: Schedule) => void;
 }
 
-export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ schedules, onBackClick }) => {
+export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ 
+  schedules, 
+  clientBrands, 
+  onBackClick,
+  onEmptyCellClick,
+  onScheduleClick
+}) => {
   const [weekOffset, setWeekOffset] = useState(0);
 
   // Generate current week dates (Monday to Sunday)
@@ -148,23 +156,33 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
                         <div key={i} className="flex flex-col gap-1.5">
                           {daySchedules.map((s, sIdx) => {
                             const timeStr = formatTime(s.timeSlot);
+                            const brandColor = clientBrands.find(b => b.name === s.brand)?.color || '#4f46e5';
+                            
                             return (
-                              <div key={sIdx} className="w-full bg-white border border-indigo-600 rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs">
+                              <button 
+                                key={sIdx} 
+                                onClick={() => onScheduleClick && onScheduleClick(s)}
+                                className="w-full bg-white border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform"
+                                style={{ borderColor: brandColor }}
+                              >
                                 <span className="text-[8.5px] font-bold text-black text-center w-full truncate leading-tight">
                                   {s.brand.split(' ')[0]}
                                 </span>
                                 <span className="text-[8px] font-medium text-black uppercase text-center w-full truncate leading-tight mt-0.5">
                                   {s.hostName.split(' ')[0]}
                                 </span>
-                                <span className="text-[8.5px] font-bold text-indigo-600 mt-1 leading-tight">
+                                <span className="text-[8.5px] font-bold mt-1 leading-tight" style={{ color: brandColor }}>
                                   {timeStr}
                                 </span>
-                              </div>
+                              </button>
                             );
                           })}
                           
                           {/* Add button placeholder to match design */}
-                          <button className="w-full h-11 bg-slate-50/50 border border-slate-200 rounded-[12px] flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors">
+                          <button 
+                            onClick={() => onEmptyCellClick && onEmptyCellClick(wd.dateString, studioName)}
+                            className="w-full h-11 bg-slate-50/50 border border-slate-200 rounded-[12px] flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors active:scale-95 cursor-pointer"
+                          >
                             <span className="text-sm font-medium">+</span>
                           </button>
                         </div>

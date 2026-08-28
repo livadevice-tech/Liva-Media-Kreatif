@@ -6144,6 +6144,37 @@ export default function App() {
                     schedules={schedules}
                     clientBrands={clientBrands}
                     onBackClick={() => setOperatorTab("dashboard_utama")}
+                    onEmptyCellClick={(dateStr, studio) => {
+                      setScheduleForm(prev => ({
+                        ...prev,
+                        id: "",
+                        date: dateStr,
+                        studio: studio,
+                        timeSlot: shifts[0] || "",
+                        hostId: hosts[0]?.id || "",
+                        brand: defaultBrandName,
+                        platform: platforms[0] || "",
+                        isOffDay: false,
+                        isPindahStudio: false,
+                        backupHostId: "",
+                      }));
+                      setIsScheduleModalOpen(true);
+                    }}
+                    onScheduleClick={(sched) => {
+                      setScheduleForm({
+                        id: sched.id,
+                        hostId: sched.hostId,
+                        timeSlot: sched.timeSlot,
+                        brand: sched.brand,
+                        platform: sched.platform,
+                        studio: sched.studio,
+                        isOffDay: sched.isOffDay || false,
+                        isPindahStudio: sched.isPindahStudio || false,
+                        date: sched.date,
+                        backupHostId: sched.backupHostId || "",
+                      });
+                      setIsScheduleModalOpen(true);
+                    }}
                   />
                 )}
 
