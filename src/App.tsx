@@ -3461,6 +3461,7 @@ export default function App() {
     new Date().getFullYear(),
   );
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [massCreateSlots, setMassCreateSlots] = useState<{date: string, studio: string, shift: string}[]>([]);
   const [isMassActionModalOpen, setIsMassActionModalOpen] = useState(false);
   const [scheduleHostSearch, setScheduleHostSearch] = useState("");
   const [scheduleBrandSearch, setScheduleBrandSearch] = useState("");
@@ -6147,13 +6148,13 @@ export default function App() {
                     hosts={hosts}
                     onBackClick={() => setOperatorTab("dashboard_utama")}
                     onSettingsClick={() => setIsScheduleActionsOpen(true)}
-                    onEmptyCellClick={(dateStr, studio) => {
+                    onEmptyCellClick={(dateStr, studio, shift) => {
                       setScheduleForm(prev => ({
                         ...prev,
                         id: "",
                         date: dateStr,
                         studio: studio,
-                        timeSlot: shifts[0] || "",
+                        timeSlot: shift || shifts[0] || "",
                         hostId: hosts[0]?.id || "",
                         brand: defaultBrandName,
                         platform: platforms[0] || "",
@@ -6161,6 +6162,7 @@ export default function App() {
                         isPindahStudio: false,
                         backupHostId: "",
                       }));
+                      setMassCreateSlots([]);
                       setIsScheduleModalOpen(true);
                     }}
                     onScheduleClick={(sched) => {
@@ -6176,6 +6178,40 @@ export default function App() {
                         date: sched.date,
                         backupHostId: sched.backupHostId || "",
                       });
+                      setMassCreateSlots([]);
+                      setIsScheduleModalOpen(true);
+                    }}
+                    onMassDelete={(ids) => {
+                      requestConfirm(
+                        "Hapus Jadwal Massal",
+                        `Apakah Anda yakin ingin menghapus ${ids.length} jadwal yang dipilih?`,
+                        async () => {
+                          try {
+                            for (const id of ids) {
+                              await schedulesApi.delete(id);
+                            }
+                            await loadInitialData();
+                          } catch (err) {
+                            console.error("Error mass deleting", err);
+                          }
+                        }
+                      );
+                    }}
+                    onMassCreate={(slots) => {
+                      setMassCreateSlots(slots);
+                      setScheduleForm(prev => ({
+                        ...prev,
+                        id: "",
+                        date: slots[0].date,
+                        studio: slots[0].studio,
+                        timeSlot: slots[0].shift,
+                        hostId: hosts[0]?.id || "",
+                        brand: defaultBrandName,
+                        platform: platforms[0] || "",
+                        isOffDay: false,
+                        isPindahStudio: false,
+                        backupHostId: "",
+                      }));
                       setIsScheduleModalOpen(true);
                     }}
                   />
@@ -7652,7 +7688,9 @@ export default function App() {
                                   Kelola Shift & Roster Jadwal
                                 </span>
                                 <h4 className="text-sm font-black text-white">
-                                  {(() => {
+                                  {massCreateSlots && massCreateSlots.length > 0 ? (
+                                    `${massCreateSlots.length} Jadwal Dipilih`
+                                  ) : (() => {
                                     try {
                                       const d = new Date(scheduleForm.date || selectedCalendarDate);
                                       if (isNaN(d.getTime()))
@@ -7725,8 +7763,8 @@ export default function App() {
                                     }
                                   }
 
-                                  if (scheduleForm.massSlots && scheduleForm.massSlots.length > 0) {
-                                    const newSchedules = scheduleForm.massSlots.map((slot, idx) => ({
+                                  if (massCreateSlots && massCreateSlots.length > 0) {
+                                    const newSchedules = massCreateSlots.map((slot, idx) => ({
                                       id: `mass_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 5)}`,
                                       hostId: selectedHost.id,
                                       hostName: selectedHost.name,
@@ -7759,9 +7797,9 @@ export default function App() {
                                     
                                     setScheduleForm({
                                       id: "", hostId: "", timeSlot: shifts[0] || "", brand: defaultBrandName, platform: platforms[0] || "",
-                                      studio: studios[0] ? studios[0].name : "", isOffDay: false, isPindahStudio: false, backupOption: "none", backupHostId: "",
-                                      massSlots: []
-                                    });
+                                      studio: studios[0] ? studios[0].name : "", isOffDay: false, isPindahStudio: false, backupOption: "none", backupHostId: ""
+                                    } as any);
+                                    setMassCreateSlots([]);
                                     setIsScheduleModalOpen(false);
                                     return;
                                   }
@@ -7902,21 +7940,23 @@ export default function App() {
                               >
                                 {/* SELECT HOST UTAMA */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="block text-slate-500 font-extrabold mb-1.5">
-                                      Pilih Studio:
-                                    </label>
-                                    <CustomSelect
-                                      value={scheduleForm.studio}
-                                      onChange={(val) =>
-                                        setScheduleForm((prev) => ({
-                                          ...prev,
-                                          studio: val,
-                                        }))
-                                      }
-                                      options={studios.map(s => ({ value: s.name, label: `${s.name} (${s.location})` }))}
-                                    />
-                                  </div>
+                                  {!(massCreateSlots && massCreateSlots.length > 0) && (
+                                    <div>
+                                      <label className="block text-slate-500 font-extrabold mb-1.5">
+                                        Pilih Studio:
+                                      </label>
+                                      <CustomSelect
+                                        value={scheduleForm.studio}
+                                        onChange={(val) =>
+                                          setScheduleForm((prev) => ({
+                                            ...prev,
+                                            studio: val,
+                                          }))
+                                        }
+                                        options={studios.map(s => ({ value: s.name, label: `${s.name} (${s.location})` }))}
+                                      />
+                                    </div>
+                                  )}
                                   <div>
                                     <label className="block text-slate-500 font-extrabold mb-1.5">
                                       Host:
@@ -7969,21 +8009,23 @@ export default function App() {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  <div>
-                                    <label className="block text-slate-500 font-extrabold mb-1.5">
-                                      Shift:
-                                    </label>
-                                    <CustomSelect
-                                      value={scheduleForm.timeSlot}
-                                      onChange={(val) =>
-                                        setScheduleForm((prev) => ({
-                                          ...prev,
-                                          timeSlot: val,
-                                        }))
-                                      }
-                                      options={shifts.map(sh => ({ value: sh, label: sh }))}
-                                    />
-                                  </div>
+                                  {!(massCreateSlots && massCreateSlots.length > 0) && (
+                                    <div>
+                                      <label className="block text-slate-500 font-extrabold mb-1.5">
+                                        Shift:
+                                      </label>
+                                      <CustomSelect
+                                        value={scheduleForm.timeSlot}
+                                        onChange={(val) =>
+                                          setScheduleForm((prev) => ({
+                                            ...prev,
+                                            timeSlot: val,
+                                          }))
+                                        }
+                                        options={shifts.map(sh => ({ value: sh, label: sh }))}
+                                      />
+                                    </div>
+                                  )}
 
                                   <div>
                                     <label className="block text-slate-500 font-extrabold mb-1.5">

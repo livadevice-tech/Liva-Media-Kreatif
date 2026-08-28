@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ChevronRight, ChevronLeft, Settings } from "lucide-react";
+import { ChevronRight, ChevronLeft, Settings, CheckSquare } from "lucide-react";
 import { getBrandStyle } from "../../shared/utils/appUi";
 import { HostEmployee } from "../../types";
 
@@ -16,14 +16,22 @@ interface Schedule {
   studio: string;
 }
 
+export interface EmptySlot {
+  date: string;
+  studio: string;
+  shift: string;
+}
+
 interface MobileWeeklyScheduleProps {
   schedules: Schedule[];
   clientBrands: any[];
   hosts: HostEmployee[];
   onBackClick?: () => void;
-  onEmptyCellClick?: (dateStr: string, studio: string) => void;
+  onEmptyCellClick?: (dateStr: string, studio: string, shift: string) => void;
   onScheduleClick?: (schedule: Schedule) => void;
   onSettingsClick?: () => void;
+  onMassDelete?: (scheduleIds: string[]) => void;
+  onMassCreate?: (slots: EmptySlot[]) => void;
 }
 
 export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ 
@@ -33,8 +41,46 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
   onBackClick,
   onEmptyCellClick,
   onScheduleClick,
-  onSettingsClick
+  onSettingsClick,
+  onMassDelete,
+  onMassCreate
 }) => {
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedFilledIds, setSelectedFilledIds] = useState<string[]>([]);
+  const [selectedEmptySlots, setSelectedEmptySlots] = useState<EmptySlot[]>([]);
+
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(prev => !prev);
+    setSelectedFilledIds([]);
+    setSelectedEmptySlots([]);
+  };
+
+  const handleEmptyCellClick = (dateStr: string, studio: string, shift: string) => {
+    if (isSelectionMode) {
+      const exists = selectedEmptySlots.some(s => s.date === dateStr && s.studio === studio && s.shift === shift);
+      if (exists) {
+        setSelectedEmptySlots(prev => prev.filter(s => !(s.date === dateStr && s.studio === studio && s.shift === shift)));
+      } else {
+        setSelectedEmptySlots(prev => [...prev, { date: dateStr, studio, shift }]);
+      }
+    } else {
+      if (onEmptyCellClick) onEmptyCellClick(dateStr, studio, shift);
+    }
+  };
+
+  const handleScheduleClick = (schedule: Schedule) => {
+    if (isSelectionMode) {
+      const exists = selectedFilledIds.includes(schedule.id);
+      if (exists) {
+        setSelectedFilledIds(prev => prev.filter(id => id !== schedule.id));
+      } else {
+        setSelectedFilledIds(prev => [...prev, schedule.id]);
+      }
+    } else {
+      if (onScheduleClick) onScheduleClick(schedule);
+    }
+  };
+
   const [weekOffset, setWeekOffset] = useState(0);
 
   // Generate current week dates (Monday to Sunday)
@@ -139,14 +185,28 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
           <h1 className="text-[28px] font-medium text-black tracking-tight">Calender Host</h1>
         </div>
         
-        {onSettingsClick && (
+        <div className="flex items-center gap-2">
           <button 
-            onClick={onSettingsClick}
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 transition-colors active:scale-95"
+            onClick={toggleSelectionMode}
+            className={`px-3 h-9 flex items-center gap-1.5 justify-center rounded-xl border text-[13px] font-medium transition-colors active:scale-95 ${
+              isSelectionMode 
+                ? 'bg-indigo-600 border-indigo-600 text-white' 
+                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+            }`}
           >
-            <Settings className="w-5 h-5" />
+            <CheckSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">Pilih</span>
           </button>
-        )}
+          
+          {onSettingsClick && (
+            <button 
+              onClick={onSettingsClick}
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 transition-colors active:scale-95"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Date Navigator */}
@@ -265,13 +325,18 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                             const shiftSchedules = studioSchedules.filter(s => s.date === wd.dateString && formatTime(s.timeSlot) === shift);
                             
                             if (shiftSchedules.length === 0) {
+                              const isSelected = selectedEmptySlots.some(s => s.date === wd.dateString && s.studio === studioName && s.shift === shift);
                               return (
                                 <button 
                                   key={`empty-${i}`}
-                                  onClick={() => onEmptyCellClick && onEmptyCellClick(wd.dateString, studioName)}
-                                  className="w-full min-w-0 h-[52px] bg-slate-50/50 border border-slate-200 rounded-[10px] flex items-center justify-center text-slate-300 hover:bg-slate-100 hover:text-indigo-500 transition-colors active:scale-95 cursor-pointer"
+                                  onClick={() => handleEmptyCellClick(wd.dateString, studioName, shift)}
+                                  className={`w-full min-w-0 h-[52px] bg-slate-50/50 border rounded-[10px] flex items-center justify-center transition-colors active:scale-95 cursor-pointer ${
+                                    isSelected 
+                                      ? 'border-indigo-500 bg-indigo-50 text-indigo-600 shadow-[0_0_0_1px_rgba(99,102,241,0.5)]' 
+                                      : 'border-slate-200 text-slate-300 hover:bg-slate-100 hover:text-indigo-500'
+                                  }`}
                                 >
-                                  <span className="text-[14px] font-medium">+</span>
+                                  <span className="text-[14px] font-medium">{isSelected ? '✓' : '+'}</span>
                                 </button>
                               );
                             }
@@ -282,12 +347,15 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                                   const brandStyle = getBrandStyle(s.brand);
                                   const hostData = hosts.find(h => h.id === s.hostId);
                                   const displayName = hostData?.username || s.hostName;
+                                  const isSelected = selectedFilledIds.includes(s.id);
                                   
                                   return (
                                     <button 
                                       key={sIdx} 
-                                      onClick={() => onScheduleClick && onScheduleClick(s)}
-                                      className={`w-full min-w-0 border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform ${brandStyle}`}
+                                      onClick={() => handleScheduleClick(s)}
+                                      className={`w-full min-w-0 border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform ${brandStyle} ${
+                                        isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : ''
+                                      }`}
                                     >
                                       <span className="text-[8.5px] font-extrabold text-center w-full truncate leading-tight opacity-90">
                                         {s.brand.split(' ')[0]}
@@ -314,6 +382,39 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Floating Action Bar for Mass Actions */}
+      {isSelectionMode && (selectedFilledIds.length > 0 || selectedEmptySlots.length > 0) && (
+        <div className="fixed bottom-20 left-4 right-4 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 p-3 z-50 animate-in slide-in-from-bottom-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col">
+              <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Terpilih</span>
+              <span className="text-[15px] font-bold text-slate-800">
+                {selectedFilledIds.length + selectedEmptySlots.length} Item
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {selectedFilledIds.length > 0 && (
+                <button
+                  onClick={() => onMassDelete && onMassDelete(selectedFilledIds)}
+                  className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-sm font-semibold transition-colors"
+                >
+                  Hapus ({selectedFilledIds.length})
+                </button>
+              )}
+              {selectedEmptySlots.length > 0 && (
+                <button
+                  onClick={() => onMassCreate && onMassCreate(selectedEmptySlots)}
+                  className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200 transition-colors"
+                >
+                  Buat ({selectedEmptySlots.length})
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
