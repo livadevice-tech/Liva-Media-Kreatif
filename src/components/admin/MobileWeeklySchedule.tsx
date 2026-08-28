@@ -159,42 +159,58 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                     })}
                   </div>
 
-                  <div className="grid grid-cols-7 gap-1 px-1.5">
-                    {weekDays.map((wd, i) => {
-                      // Find schedules for this day
-                      const daySchedules = studioSchedules.filter(s => s.date === wd.dateString);
+                  <div className="flex flex-col gap-1.5 px-1.5">
+                    {(() => {
+                      const uniqueShifts = Array.from(new Set(studioSchedules.map(s => formatTime(s.timeSlot)))).sort();
                       
-                      return (
-                        <div key={i} className="flex flex-col gap-1.5">
-                          {daySchedules.map((s, sIdx) => {
-                            const timeStr = formatTime(s.timeSlot);
-                            const brandStyle = getBrandStyle(s.brand);
+                      return uniqueShifts.map((shift, shiftIdx) => (
+                        <div key={shiftIdx} className="grid grid-cols-7 gap-1">
+                          {weekDays.map((wd, i) => {
+                            const shiftSchedules = studioSchedules.filter(s => s.date === wd.dateString && formatTime(s.timeSlot) === shift);
                             
-                            // Find host to get username
-                            const hostData = hosts.find(h => h.id === s.hostId);
-                            const displayName = hostData?.username || s.hostName;
-                            
+                            if (shiftSchedules.length === 0) {
+                              return (
+                                <button 
+                                  key={`empty-${i}`}
+                                  onClick={() => onEmptyCellClick && onEmptyCellClick(wd.dateString, studioName)}
+                                  className="w-full h-[52px] bg-slate-50/50 border border-slate-200 rounded-[10px] flex items-center justify-center text-slate-300 hover:bg-slate-100 hover:text-indigo-500 transition-colors active:scale-95 cursor-pointer"
+                                >
+                                  <span className="text-[14px] font-medium">+</span>
+                                </button>
+                              );
+                            }
+
                             return (
-                              <button 
-                                key={sIdx} 
-                                onClick={() => onScheduleClick && onScheduleClick(s)}
-                                className={`w-full border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform ${brandStyle}`}
-                              >
-                                <span className="text-[8.5px] font-extrabold text-center w-full truncate leading-tight opacity-90">
-                                  {s.brand.split(' ')[0]}
-                                </span>
-                                <span className="text-[8px] font-semibold uppercase text-center w-full truncate leading-tight mt-0.5 opacity-80">
-                                  {displayName.split(' ')[0]}
-                                </span>
-                                <span className="text-[8.5px] font-bold mt-1 leading-tight">
-                                  {timeStr}
-                                </span>
-                              </button>
+                              <div key={`filled-${i}`} className="flex flex-col gap-1">
+                                {shiftSchedules.map((s, sIdx) => {
+                                  const brandStyle = getBrandStyle(s.brand);
+                                  const hostData = hosts.find(h => h.id === s.hostId);
+                                  const displayName = hostData?.username || s.hostName;
+                                  
+                                  return (
+                                    <button 
+                                      key={sIdx} 
+                                      onClick={() => onScheduleClick && onScheduleClick(s)}
+                                      className={`w-full border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform ${brandStyle}`}
+                                    >
+                                      <span className="text-[8.5px] font-extrabold text-center w-full truncate leading-tight opacity-90">
+                                        {s.brand.split(' ')[0]}
+                                      </span>
+                                      <span className="text-[8px] font-semibold uppercase text-center w-full truncate leading-tight mt-0.5 opacity-80">
+                                        {displayName.split(' ')[0]}
+                                      </span>
+                                      <span className="text-[8.5px] font-bold mt-1 leading-tight">
+                                        {shift}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             );
                           })}
                         </div>
-                      );
-                    })}
+                      ));
+                    })()}
                   </div>
                 </div>
               );
