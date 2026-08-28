@@ -7356,6 +7356,7 @@ export default function App() {
 
                       </div>
                     </div>
+                  </div>
 
                     {/* MODAL POP-UP: FORM MASUKKAN DATA HOST & BACKUP */}
                                         {/* MASS ACTION MODAL */}
@@ -7894,7 +7895,6 @@ export default function App() {
                         </div>
                       </div>
                     )}
-                  </div>
                 )}
 
                 {/* ==================== SUBTAB: 3. REKAP & KALKULATOR GAJI ==================== */}

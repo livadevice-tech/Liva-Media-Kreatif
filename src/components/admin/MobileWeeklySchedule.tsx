@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ChevronRight, ChevronLeft } from "lucide-react";
+import { getBrandColor } from "../../shared/utils/appUi";
 
 interface Schedule {
   id: string;
@@ -156,7 +157,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                         <div key={i} className="flex flex-col gap-1.5">
                           {daySchedules.map((s, sIdx) => {
                             const timeStr = formatTime(s.timeSlot);
-                            const brandColor = clientBrands.find(b => b.name === s.brand)?.color || '#4f46e5';
+                            const brandColor = getBrandColor(s.brand);
                             
                             return (
                               <button 
