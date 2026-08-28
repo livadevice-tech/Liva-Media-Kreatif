@@ -3703,16 +3703,16 @@ export default function App() {
   const requestConfirm = (
     title: string,
     message: string,
-    onConfirm: () => void | Promise<void>,
+    onConfirm: () => void,
     type: "danger" | "warning" | "info" = "warning",
   ) => {
     setConfirmModal({
       isOpen: true,
       title,
       message,
-      onConfirm: async () => {
+      onConfirm: () => {
         try {
-          await onConfirm();
+          onConfirm();
         } catch (err) {
           console.error(err);
         } finally {
@@ -6187,15 +6187,12 @@ export default function App() {
                         `Apakah Anda yakin ingin menghapus ${ids.length} jadwal yang dipilih?`,
                         async () => {
                           try {
-                            setSchedules((prev) => prev.filter((s) => !ids.includes(s.id)));
                             for (const id of ids) {
                               await schedulesApi.delete(id);
                             }
-                            // Optional: loadInitialData() can be called here if we want to sync,
-                            // but optimistic update is already applied.
+                            await loadInitialData();
                           } catch (err) {
                             console.error("Error mass deleting", err);
-                            await loadInitialData(); // revert on error
                           }
                         }
                       );
