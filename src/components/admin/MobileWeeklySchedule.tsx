@@ -62,17 +62,29 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
   // Filter based on week
   const weekSchedules = schedules.filter(s => weekDays.some(wd => wd.dateString === s.date));
 
+  const [selectedHost, setSelectedHost] = useState("Semua Host");
+  const [selectedBrand, setSelectedBrand] = useState("Semua Brand");
+
+  // Filter schedules based on dropdowns
+  const filteredSchedules = useMemo(() => {
+    return weekSchedules.filter(s => {
+      if (selectedHost !== "Semua Host" && s.hostId !== selectedHost) return false;
+      if (selectedBrand !== "Semua Brand" && s.brand !== selectedBrand) return false;
+      return true;
+    });
+  }, [weekSchedules, selectedHost, selectedBrand]);
+
   // Group schedules by studio for the whole week
   const studiosMap = useMemo(() => {
     const map: Record<string, Schedule[]> = {};
-    weekSchedules.forEach(s => {
+    filteredSchedules.forEach(s => {
       // Clean up studio name
       const studio = s.studio || "Unknown Studio";
       if (!map[studio]) map[studio] = [];
       map[studio].push(s);
     });
     return map;
-  }, [weekSchedules]);
+  }, [filteredSchedules]);
 
   // Sort studios alphabetically
   const sortedStudios = Object.keys(studiosMap).sort();
@@ -114,6 +126,37 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
           >
             <ChevronRight className="w-4 h-4" />
           </button>
+        </div>
+      </div>
+
+      {/* Filters (Host & Brand) */}
+      <div className="px-4 mb-4 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 flex-1">
+          <select 
+            value={selectedHost}
+            onChange={(e) => setSelectedHost(e.target.value)}
+            className="flex-1 min-w-0 bg-white border border-slate-200 rounded-[14px] px-3 py-2 text-[11px] font-medium text-slate-700 outline-none appearance-none"
+            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")', backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat', paddingRight: '24px' }}
+          >
+            <option value="Semua Host">Semua Host</option>
+            {hosts.map(h => (
+              <option key={h.id} value={h.id}>{h.username || h.name}</option>
+            ))}
+          </select>
+          <select 
+            value={selectedBrand}
+            onChange={(e) => setSelectedBrand(e.target.value)}
+            className="flex-1 min-w-0 bg-white border border-slate-200 rounded-[14px] px-3 py-2 text-[11px] font-medium text-slate-700 outline-none appearance-none"
+            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")', backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat', paddingRight: '24px' }}
+          >
+            <option value="Semua Brand">Semua Brand</option>
+            {clientBrands.map(b => (
+              <option key={b.name} value={b.name}>{b.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-[14px] text-[11px] font-bold whitespace-nowrap shrink-0 border border-indigo-100">
+          {filteredSchedules.length} Terdaftar
         </div>
       </div>
 
