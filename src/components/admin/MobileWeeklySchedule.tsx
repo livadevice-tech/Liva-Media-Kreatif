@@ -189,6 +189,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
               <option key={b.name} value={b.name}>{b.name}</option>
             ))}
           </select>
+        </div>
       </div>
 
       {/* Main Grid Section */}
