@@ -6145,6 +6145,7 @@ export default function App() {
                     clientBrands={clientBrands}
                     hosts={hosts}
                     onBackClick={() => setOperatorTab("dashboard_utama")}
+                    onSettingsClick={() => setIsScheduleActionsOpen(true)}
                     onEmptyCellClick={(dateStr, studio) => {
                       setScheduleForm(prev => ({
                         ...prev,
@@ -6177,6 +6178,198 @@ export default function App() {
                       setIsScheduleModalOpen(true);
                     }}
                   />
+                  
+                  {isScheduleActionsOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 xl:hidden">
+                      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsScheduleActionsOpen(false)} />
+                      <div className="relative w-full max-w-sm bg-white shadow-2xl rounded-2xl p-5 animate-scaleIn">
+                        <h4 className="text-[13px] font-black uppercase text-slate-800 tracking-wider mb-4 border-b border-slate-100 pb-3 text-center">Manajemen Massal Jadwal</h4>
+                        
+                        <div className="flex flex-col gap-2 mb-5">
+                          <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
+                            Periode Eksekusi:
+                          </span>
+                          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2">
+                            <div className="flex-1">
+                              <CustomDatePicker
+                                value={scheduleActionStartDate}
+                                onChange={(val) => setScheduleActionStartDate(val)}
+                                className="w-full text-xs font-bold"
+                              />
+                            </div>
+                            <span className="text-slate-400 text-[10px] font-black uppercase">s/d</span>
+                            <div className="flex-1">
+                              <CustomDatePicker
+                                value={scheduleActionEndDate}
+                                onChange={(val) => setScheduleActionEndDate(val)}
+                                className="w-full text-xs font-bold"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const startParts = scheduleActionStartDate.split("-");
+                              const endParts = scheduleActionEndDate.split("-");
+                              const startObj = new Date(
+                                parseInt(startParts[0]),
+                                parseInt(startParts[1]) - 1,
+                                parseInt(startParts[2]),
+                              );
+                              const endObj = new Date(
+                                parseInt(endParts[0]),
+                                parseInt(endParts[1]) - 1,
+                                parseInt(endParts[2]),
+                              );
+                              if (startObj > endObj) {
+                                addNotification(
+                                  "Error",
+                                  "Tanggal mulai tidak boleh lebih besar dari tanggal akhir.",
+                                  "danger",
+                                  "absensi",
+                                );
+                                return;
+                              }
+
+                              requestConfirm(
+                                "Konfirmasi Auto Generate",
+                                `Auto Generate akan membuat jadwal harian untuk seluruh sesi dari tanggal ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} (dan menghapus jadwal lama yang berpotongan). Lanjutkan?`,
+                                () => {
+                                  const newSchedules: ShiftSchedule[] = [];
+                                  const dateWalker = new Date(startObj);
+
+                                  while (dateWalker <= endObj) {
+                                    // format YYYY-MM-DD
+                                    const yyyy = dateWalker.getFullYear();
+                                    const mm = String(
+                                      dateWalker.getMonth() + 1,
+                                    ).padStart(2, "0");
+                                    const dd = String(
+                                      dateWalker.getDate(),
+                                    ).padStart(2, "0");
+                                    const dateStr = `${yyyy}-${mm}-${dd}`;
+
+                                    clientBrands.forEach((brand) => {
+                                      if (brand.sessions) {
+                                        brand.sessions.forEach((sess) => {
+                                          if (!sess.host) return;
+
+                                          // find the host with robust naming check
+                                          const hostObj = hosts.find(
+                                            (h) =>
+                                              h.name.toLowerCase().trim() ===
+                                              sess.host.toLowerCase().trim(),
+                                          );
+                                          if (hostObj) {
+                                            newSchedules.push({
+                                              id: `auto_gen_${brand.id}_${dateStr}_${sess.id}`,
+                                              hostId: hostObj.id,
+                                              hostName: hostObj.name,
+                                              employeeId: hostObj.employeeId,
+                                              date: dateStr,
+                                              timeSlot: sess.shift,
+                                              platform: sess.platform || "",
+                                              brand: brand.name,
+                                              status: "Assigned" as ShiftSchedule["status"],
+                                              studio:
+                                                sess.studio ||
+                                                "Studio Bandar Lampung",
+                                              isOffDay: false,
+                                              isPindahStudio: false,
+                                              backupHostId: "",
+                                              backupHostName: "",
+                                            });
+                                          }
+                                        });
+                                      }
+                                    });
+                                    dateWalker.setDate(
+                                      dateWalker.getDate() + 1,
+                                    );
+                                  }
+
+                                  // Replace existing schedules for this period with the newly generated ones
+                                  setSchedules((prev) => {
+                                    const filtered = prev.filter((s) => {
+                                      if (!s.date) return true;
+                                      return (
+                                        s.date < scheduleActionStartDate ||
+                                        s.date > scheduleActionEndDate
+                                      );
+                                    });
+                                    return [...filtered, ...newSchedules];
+                                  });
+                                  // Persist Auto Generate ke database
+                                  Promise.allSettled(
+                                    newSchedules.map((s) => schedulesApi.create(s))
+                                  ).catch(console.error);
+
+                                  addNotification(
+                                    "Jadwal Berhasil Dibuat",
+                                    `Auto Generate selesai memproduksi ${newSchedules.length} sesi dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}.`,
+                                    "success",
+                                    "absensi",
+                                  );
+                                },
+                                "info",
+                              );
+                              setIsScheduleActionsOpen(false);
+                            }}
+                            className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-200"
+                          >
+                            <Sparkles className="w-4 h-4" /> Auto Generate Jadwal
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              requestConfirm(
+                                `Reset Jadwal (${scheduleActionStartDate} s.d. ${scheduleActionEndDate})`,
+                                `Apakah Anda yakin ingin menghapus SELURUH jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}? Tindakan ini tidak dapat dibatalkan.`,
+                                () => {
+                                  setSchedules((prev) => {
+                                    const toRemove = prev.filter((s) => {
+                                      if (!s.date) return false;
+                                      return (
+                                        s.date >= scheduleActionStartDate &&
+                                        s.date <= scheduleActionEndDate
+                                      );
+                                    });
+                                    // Persist Reset ke database
+                                    Promise.allSettled(
+                                      toRemove.map((s) => schedulesApi.delete(s.id))
+                                    ).catch(console.error);
+                                    return prev.filter((s) => {
+                                      if (!s.date) return true;
+                                      return (
+                                        s.date < scheduleActionStartDate ||
+                                        s.date > scheduleActionEndDate
+                                      );
+                                    });
+                                  });
+                                  addNotification(
+                                    "Jadwal Direset",
+                                    `Seluruh jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate} berhasil dihapus.`,
+                                    "danger",
+                                    "absensi",
+                                  );
+                                },
+                                "danger",
+                              );
+                              setIsScheduleActionsOpen(false);
+                            }}
+                            className="w-full px-4 py-3 bg-white hover:bg-red-50 text-red-600 rounded-xl font-bold text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all border-2 border-red-100"
+                          >
+                            <Trash2 className="w-4 h-4" /> Reset Jadwal Terpilih
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  </>
                 )}
 
                 {/* ==================== SUBTAB: 2. CALENDAR JADWAL KERJA HOST (DESKTOP) ==================== */}

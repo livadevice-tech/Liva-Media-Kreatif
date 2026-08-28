@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft, Settings } from "lucide-react";
 import { getBrandStyle } from "../../shared/utils/appUi";
 import { HostEmployee } from "../../types";
 
@@ -23,6 +23,7 @@ interface MobileWeeklyScheduleProps {
   onBackClick?: () => void;
   onEmptyCellClick?: (dateStr: string, studio: string) => void;
   onScheduleClick?: (schedule: Schedule) => void;
+  onSettingsClick?: () => void;
 }
 
 export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ 
@@ -31,7 +32,8 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
   hosts,
   onBackClick,
   onEmptyCellClick,
-  onScheduleClick
+  onScheduleClick,
+  onSettingsClick
 }) => {
   const [weekOffset, setWeekOffset] = useState(0);
 
@@ -124,16 +126,27 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
   return (
     <div className="md:hidden flex flex-col min-h-screen bg-white pb-24 w-full font-sans">
       {/* HEADER DESIGN */}
-      <div className="px-4 pt-6 pb-4 flex items-center gap-3">
-        {onBackClick && (
+      <div className="px-4 pt-6 pb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {onBackClick && (
+            <button 
+              onClick={onBackClick}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors active:scale-95"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          <h1 className="text-[28px] font-medium text-black tracking-tight">Calender Host</h1>
+        </div>
+        
+        {onSettingsClick && (
           <button 
-            onClick={onBackClick}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors active:scale-95"
+            onClick={onSettingsClick}
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 transition-colors active:scale-95"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <Settings className="w-5 h-5" />
           </button>
         )}
-        <h1 className="text-[28px] font-medium text-black tracking-tight">Calender Host</h1>
       </div>
 
       {/* Date Navigator */}
