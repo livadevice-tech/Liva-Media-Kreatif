@@ -264,7 +264,7 @@ export function HostCredentialRow({
 
   return (
     <>
-      <tr className="hover:bg-slate-50/50 transition-colors border-b border-slate-100 text-xs text-slate-700">
+      <tr className="hidden sm:table-row hover:bg-slate-50/50 transition-colors border-b border-slate-100 text-xs text-slate-700">
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
             <img
@@ -464,6 +464,7 @@ export function HostCredentialRow({
               </>
             )}
           </div>
+        </td>
       </tr>
 
       {/* MOBILE CARD (Reference-style) */}
