@@ -387,6 +387,8 @@ export function HostCredentialRow({
           {isEditing ? (
             <input
               type="text"
+              autoComplete="off"
+              data-lpignore="true"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="bg-white border border-slate-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium text-xs w-28"
@@ -403,6 +405,8 @@ export function HostCredentialRow({
           {isEditing ? (
             <input
               type="password"
+              autoComplete="new-password"
+              data-lpignore="true"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-white border border-slate-300 rounded-md px-2 py-1 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono text-xs font-medium w-28"
@@ -564,7 +568,7 @@ export function HostCredentialRow({
               <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">USERNAME</div>
               <div className="font-bold text-slate-800 text-[13px] truncate pr-2">
                 {isEditing ? (
-                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[11px] w-full" placeholder="username" />
+                  <input type="text" autoComplete="off" data-lpignore="true" value={username} onChange={(e) => setUsername(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[11px] w-full" placeholder="username" />
                 ) : (host.username)}
               </div>
             </div>
@@ -572,7 +576,7 @@ export function HostCredentialRow({
               <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">PASSWORD</div>
               <div className="flex items-center gap-1.5">
                 {isEditing ? (
-                  <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[11px] w-full" placeholder="pwd" />
+                  <input type="password" autoComplete="new-password" data-lpignore="true" value={password} onChange={(e) => setPassword(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[11px] w-full" placeholder="pwd" />
                 ) : (
                   <>
                     <span className={`font-mono text-slate-800 text-[13px] truncate`}>

@@ -12485,6 +12485,8 @@ export default function App() {
                               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                               <input
                                 type="text"
+                                autoComplete="off"
+                                data-lpignore="true"
                                 placeholder="Cari nama host..."
                                 value={hostSearchTerm}
                                 onChange={(e) => setHostSearchTerm(e.target.value)}
