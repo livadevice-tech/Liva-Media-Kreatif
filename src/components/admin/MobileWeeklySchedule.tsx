@@ -112,7 +112,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
               const studioSchedules = studiosMap[studioName];
               
               return (
-                <div key={idx} className="mb-6 border-b border-slate-100 pb-6 last:border-b-0">
+                <div key={idx} className="mb-3 border-b border-slate-200 pb-3 last:border-b-0">
                   <h2 className="text-[17px] font-medium text-black mb-3 px-3">{studioName}</h2>
                   
                   {/* Table Header (Days) Per Studio */}
