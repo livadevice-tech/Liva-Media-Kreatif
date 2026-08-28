@@ -85,10 +85,10 @@ export const ActivityLogsTable: React.FC = () => {
           Belum ada data log aktivitas
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+        <div className="bg-transparent sm:bg-white border-0 sm:border border-slate-200 rounded-none sm:rounded-xl overflow-visible sm:overflow-hidden shadow-none sm:shadow-sm">
+          <div className="overflow-x-visible sm:overflow-x-auto">
+            <table className="w-full sm:min-w-full text-left text-xs whitespace-nowrap block sm:table">
+              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 hidden sm:table-header-group">
                 <tr>
                   <th className="px-4 py-3">Waktu</th>
                   <th className="px-4 py-3">Nama Host</th>
@@ -96,9 +96,11 @@ export const ActivityLogsTable: React.FC = () => {
                   <th className="px-4 py-3">Detail</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y-0 sm:divide-y divide-slate-100 block sm:table-row-group space-y-4 sm:space-y-0">
                 {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                  <React.Fragment key={log.id}>
+                    {/* DESKTOP ROW */}
+                    <tr className="hidden sm:table-row hover:bg-slate-50/80 transition-colors">
                       <td className="px-4 py-3 text-slate-500 font-medium">
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-slate-400" />
@@ -106,17 +108,51 @@ export const ActivityLogsTable: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 font-semibold text-slate-700">
-                        {log.host_name || <span className="text-slate-400 italic">Unknown</span>}
+                        {log.host_name || <span className="text-slate-400 italic font-normal">Unknown</span>}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-600 border border-purple-100">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-600 border border-purple-100">
                           {log.action}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-600 text-[11px] truncate max-w-[300px]">
                         {parseDetails(log.details)}
                       </td>
-                  </tr>
+                    </tr>
+
+                    {/* MOBILE CARD (Reference-style) */}
+                    <tr className="sm:hidden block bg-white border border-slate-200 rounded-2xl p-4 shadow-sm relative text-slate-700 w-full box-border">
+                      <td className="block w-full">
+                        {/* Header */}
+                        <div className="flex justify-between items-start w-full box-border mb-3">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div>
+                            {formatDate(log.created_at)}
+                          </div>
+                          <div className="shrink-0">
+                            <span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider bg-purple-50 text-purple-600 border border-purple-100">
+                              {log.action}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Name */}
+                        <div className="font-bold text-slate-800 text-[15px] mb-3 pr-2">
+                          {log.host_name || <span className="text-slate-400 italic">Unknown</span>}
+                        </div>
+
+                        <div className="border-t border-dashed border-slate-200 my-3"></div>
+
+                        {/* Detail Activity */}
+                        <div>
+                          <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5">DETAIL AKTIVITAS</div>
+                          <div className="font-medium text-slate-600 text-[12px] break-words">
+                            {parseDetails(log.details)}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

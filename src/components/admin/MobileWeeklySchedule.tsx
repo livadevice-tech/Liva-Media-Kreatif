@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Menu, Filter, Calendar as CalendarIcon, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, ChevronRight } from "lucide-react";
 
 interface Schedule {
   id: string;
@@ -17,7 +17,7 @@ interface Schedule {
 interface MobileWeeklyScheduleProps {
   schedules: Schedule[];
   clientBrands: any[];
-  onMenuClick?: () => void;
+  onBackClick?: () => void;
 }
 
 const BRAND_COLORS: Record<string, { bg: string; text: string }> = {
@@ -58,7 +58,7 @@ const getStudioAlias = (studioName: string) => {
   return initials.length > 4 ? initials.substring(0, 4) : initials;
 };
 
-export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ schedules, clientBrands, onMenuClick }) => {
+export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ schedules, clientBrands, onBackClick }) => {
   // Generate current week dates (Monday to Sunday)
   const today = new Date();
   const currentDay = today.getDay(); // 0 is Sunday, 1 is Monday
@@ -110,14 +110,12 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({ sche
   return (
     <div className="md:hidden flex flex-col min-h-screen bg-[#fafafc] pb-24 w-full text-slate-800 font-sans">
       {/* HEADER */}
-      <div className="flex justify-between items-center px-5 py-4 bg-white sticky top-0 z-20">
-        <button onClick={onMenuClick} className="p-1">
-          <Menu className="w-6 h-6 text-slate-700" />
+      <div className="flex justify-between items-center px-5 py-4 bg-white sticky top-0 z-20 shadow-sm">
+        <button onClick={onBackClick} className="p-1">
+          <ArrowLeft className="w-6 h-6 text-slate-700" />
         </button>
-        <h1 className="text-lg font-semibold text-slate-800">Jadwal Mingguan</h1>
-        <button className="p-1">
-          <Filter className="w-5 h-5 text-slate-700" />
-        </button>
+        <h1 className="text-lg font-semibold text-slate-800">Calender Kerja Host</h1>
+        <div className="w-6 h-6"></div> {/* Spacer for centering */}
       </div>
 
       <div className="px-3 pt-4">

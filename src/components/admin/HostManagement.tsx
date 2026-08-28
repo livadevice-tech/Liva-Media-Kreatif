@@ -464,6 +464,148 @@ export function HostCredentialRow({
               </>
             )}
           </div>
+      </tr>
+
+      {/* MOBILE CARD (Reference-style) */}
+      <tr className="sm:hidden block bg-white border border-slate-200 rounded-2xl mb-4 p-4 shadow-sm relative text-slate-700 w-full box-border">
+        <td className="block w-full">
+          {/* Header */}
+          <div className="flex justify-between items-start w-full box-border">
+            <div className="flex items-center gap-3">
+              <img
+                src={getAvatarUrl(host.name)}
+                alt={host.name}
+                referrerPolicy="no-referrer"
+                className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 flex-shrink-0"
+              />
+              <div className="min-w-0 flex-1 pr-2">
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-md px-2 py-1 text-[14px] font-bold text-slate-800 w-full focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    placeholder="Nama Host"
+                  />
+                ) : (
+                  <div className="font-bold text-slate-800 text-[15px] truncate">{host.name}</div>
+                )}
+              </div>
+            </div>
+            <div className="shrink-0">
+              {isEditing ? (
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="bg-white border border-slate-300 rounded-md px-1 py-1 text-[10px] text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-purple-500"
+                >
+                  <option value="Reguler Host">Reguler Host</option>
+                  <option value="Back Up Host">Back Up Host</option>
+                </select>
+              ) : (
+                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${(host.role || "").toLowerCase().includes("back up") ? "bg-amber-50 text-amber-600 border border-amber-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"}`}>
+                  {host.role}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-dashed border-slate-200 my-3"></div>
+
+          {/* Grid Info */}
+          <div className="grid grid-cols-2 gap-y-3 gap-x-2">
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">ID HOST</div>
+              <div className="font-semibold text-slate-700 text-[12px]">{host.employeeId}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">LOKASI</div>
+              <div className="font-semibold text-slate-700 text-[12px] truncate pr-2">
+                {isEditing ? (
+                  <select
+                    value={studio}
+                    onChange={(e) => setStudio(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-md px-1 py-1 text-[11px] w-full focus:outline-none"
+                  >
+                    {studioOptions.map((location) => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+                ) : (normalizeHostStudioLocation(host.studio) || "Bandar Lampung")}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">BANK & REK</div>
+              <div className="font-semibold text-slate-700 text-[12px] truncate pr-2">
+                {isEditing ? (
+                  <div className="flex gap-1">
+                    <input type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[10px] w-12" placeholder="Bank" />
+                    <input type="text" value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[10px] w-full" placeholder="Rekening" />
+                  </div>
+                ) : (host.bankName ? `${host.bankName} • ${host.bankAccount}` : "Belum diset")}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">NO HP</div>
+              <div className="font-semibold text-slate-700 text-[12px] truncate pr-2">
+                {isEditing ? (
+                  <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[11px] w-full" placeholder="08..." />
+                ) : (host.phone || "-")}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-dashed border-slate-200 my-3"></div>
+
+          {/* Grid Credential */}
+          <div className="grid grid-cols-2 gap-y-3 gap-x-2">
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">USERNAME</div>
+              <div className="font-bold text-slate-800 text-[13px] truncate pr-2">
+                {isEditing ? (
+                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[11px] w-full" placeholder="username" />
+                ) : (host.username)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">PASSWORD</div>
+              <div className="flex items-center gap-1.5">
+                {isEditing ? (
+                  <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} className="border border-slate-300 rounded-md px-1 py-1 text-[11px] w-full" placeholder="pwd" />
+                ) : (
+                  <>
+                    <span className={`font-mono text-slate-800 text-[13px] truncate`}>
+                      {showPassword ? (host.password || "(tersembunyi)") : (host.hasPassword || host.password ? "••••••••" : "---")}
+                    </span>
+                    <button onClick={() => setShowPassword(!showPassword)} className="text-slate-400 p-1 hover:bg-slate-50 rounded">
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 my-3"></div>
+          
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2">
+            {isEditing ? (
+              <>
+                <button onClick={handleSave} className="bg-purple-600 text-white rounded-lg px-4 py-1.5 text-xs font-bold active:bg-purple-700">Simpan</button>
+                <button onClick={handleCancel} className="bg-white border border-slate-300 text-slate-600 rounded-lg px-4 py-1.5 text-xs font-bold active:bg-slate-50">Batal</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors">
+                  <Edit2 className="w-3.5 h-3.5" /> Edit
+                </button>
+                <button onClick={() => onDelete(host.id)} className="flex items-center gap-1.5 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" /> Hapus
+                </button>
+              </>
+            )}
+          </div>
         </td>
       </tr>
     </>

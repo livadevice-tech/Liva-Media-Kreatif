@@ -6143,7 +6143,7 @@ export default function App() {
                   <MobileWeeklySchedule 
                     schedules={schedules}
                     clientBrands={clientBrands}
-                    onMenuClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                    onBackClick={() => setOperatorTab("dashboard_utama")}
                   />
                 )}
 
@@ -12626,10 +12626,10 @@ export default function App() {
                       </div>
                     )}
 
-                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-100">
-                          <thead className="bg-slate-50/80">
+                    <div className="bg-transparent sm:bg-white border-0 sm:border border-slate-200 rounded-none sm:rounded-xl overflow-visible sm:overflow-hidden shadow-none sm:shadow-sm">
+                      <div className="overflow-x-visible sm:overflow-x-auto">
+                        <table className="w-full sm:min-w-full divide-y divide-slate-100 block sm:table">
+                          <thead className="bg-slate-50/80 hidden sm:table-header-group">
                             <tr className="text-left text-xs font-semibold text-slate-500">
                               <th className="px-6 py-4 whitespace-nowrap">Host</th>
                               <th className="px-6 py-4 whitespace-nowrap">Role</th>
@@ -12640,14 +12640,14 @@ export default function App() {
                               <th className="px-6 py-4 text-right whitespace-nowrap">Aksi</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 bg-white">
+                          <tbody className="divide-y-0 sm:divide-y divide-slate-100 bg-transparent sm:bg-white block sm:table-row-group space-y-4 sm:space-y-0">
                           {(() => {
                             const filteredHosts = hosts.filter(h => !hostSearchTerm || (h.name || "").toLowerCase().includes(hostSearchTerm.toLowerCase()) || (h.employeeId || "").toLowerCase().includes(hostSearchTerm.toLowerCase()));
                             
                             if (filteredHosts.length === 0) {
                               return (
-                                <tr>
-                                  <td colSpan={7} className="px-6 py-12 text-center">
+                                <tr className="block sm:table-row bg-white sm:bg-transparent rounded-xl sm:rounded-none border sm:border-0 border-slate-200 shadow-sm sm:shadow-none mb-4 sm:mb-0">
+                                  <td colSpan={7} className="px-6 py-12 text-center block sm:table-cell">
                                     <div className="flex flex-col items-center justify-center">
                                       <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
                                         <Users className="w-8 h-8 text-slate-300" />
