@@ -22,8 +22,8 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
   if (!invoiceEditor) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-fadeIn">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+      <div className="bg-white rounded-t-3xl md:rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] md:max-h-[90vh] animate-fadeIn">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
           <h3 className="text-xl font-black text-slate-800">Edit Invoice</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-6 h-6" /></button>
@@ -150,7 +150,7 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
             </div>
           </div>
         </div>
-        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+        <div className="p-6 pb-8 md:pb-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
           <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all">Batal</button>
           <button
             onClick={() => {
