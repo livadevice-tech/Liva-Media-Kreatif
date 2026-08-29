@@ -11,6 +11,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ChevronRight,
+  Heart,
+  MessageCircle,
+  Share2,
+  UserPlus,
 } from "lucide-react";
 import type { LiveReportSummaryStats } from "./liveReportSummaryTypes";
 
@@ -58,6 +62,14 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
     gmvPerHour,
     pGmvPerHour,
     totalDbDuration,
+    totalLikesDb,
+    pTotalLikesDb,
+    totalCommentsDb,
+    pTotalCommentsDb,
+    totalSharesDb,
+    pTotalSharesDb,
+    totalFollowersDb,
+    pTotalFollowersDb,
   } = stats;
 
   const metrics = [
@@ -119,6 +131,37 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
     },
   ];
 
+  const engagementMetrics = [
+    {
+      label: "Likes",
+      icon: <Heart className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalLikesDb),
+      cur: totalLikesDb,
+      prev: pTotalLikesDb,
+    },
+    {
+      label: "Comments",
+      icon: <MessageCircle className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalCommentsDb),
+      cur: totalCommentsDb,
+      prev: pTotalCommentsDb,
+    },
+    {
+      label: "Shares",
+      icon: <Share2 className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalSharesDb),
+      cur: totalSharesDb,
+      prev: pTotalSharesDb,
+    },
+    {
+      label: "Followers",
+      icon: <UserPlus className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalFollowersDb),
+      cur: totalFollowersDb,
+      prev: pTotalFollowersDb,
+    },
+  ];
+
   return (
     <div className="md:hidden px-4 pb-6 space-y-4 animate-fadeIn">
       {/* Header section */}
@@ -173,6 +216,50 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
             </div>
           );
         })}
+      </div>
+
+      {/* Engagement Metrics */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-slate-900">Engagement Metrics</h3>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {engagementMetrics.map((metric, idx) => {
+            const { text: changeText, isPositive } = formatPercentage(metric.cur, metric.prev);
+            return (
+              <div
+                key={idx}
+                className="bg-white rounded-[10px] border border-slate-100 p-2 shadow-sm flex flex-col justify-between"
+              >
+                <div className="flex flex-col gap-1 mb-2">
+                  {metric.icon}
+                  <span className="text-[9px] font-medium text-slate-500 leading-tight">
+                    {metric.label}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold text-slate-900 mb-1">
+                    {metric.value}
+                  </div>
+                  <div
+                    className={`inline-flex items-center px-1 py-0.5 rounded border ${
+                      isPositive
+                        ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                        : "bg-red-50 border-red-100 text-red-600"
+                    }`}
+                  >
+                    {isPositive ? (
+                      <ArrowUpRight className="w-2.5 h-2.5 mr-0.5" />
+                    ) : (
+                      <ArrowDownRight className="w-2.5 h-2.5 mr-0.5" />
+                    )}
+                    <span className="text-[8px] font-bold">{changeText}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

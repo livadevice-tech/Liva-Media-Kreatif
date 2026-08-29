@@ -88,6 +88,9 @@ async function request<T>(
   const res = await fetch(`${API_BASE}${endpoint}`, options);
 
   if (!res.ok) {
+    if (res.status === 401 && endpoint !== '/auth/login') {
+      window.location.reload();
+    }
     const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(errData.error || `HTTP ${res.status}: ${res.statusText}`);
   }
