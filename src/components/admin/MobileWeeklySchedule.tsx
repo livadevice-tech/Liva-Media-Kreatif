@@ -161,8 +161,8 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
     return map;
   }, [filteredSchedules]);
 
-  // Sort studios alphabetically
-  const sortedStudios = Object.keys(studiosMap).sort();
+  // Sort studios alphabetically and numerically
+  const sortedStudios = Object.keys(studiosMap).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
   // Helper to format time strings like "Reg 2 - (11.00 - 17.00)" or "11:00 - 17:00" to "11-17"
   const formatTime = (timeSlot: string) => {
@@ -355,6 +355,10 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                                   const hostData = hosts.find(h => h.id === s.hostId);
                                   const displayName = hostData?.username || s.hostName;
                                   const isSelected = selectedFilledIds.includes(s.id);
+                                  const isNotRegularHost = !clientBrands.some(
+                                    (b: any) => b.name?.trim().toLowerCase() === s.brand?.trim().toLowerCase() && 
+                                         b.sessions?.some((session: any) => session.host?.trim().toLowerCase() === s.hostName?.trim().toLowerCase())
+                                  );
                                   
                                   return (
                                     <button 
@@ -362,7 +366,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
                                       onClick={() => handleScheduleClick(s)}
                                       className={`w-full min-w-0 border rounded-[10px] py-1.5 px-0.5 flex flex-col items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform ${brandStyle} ${
                                         isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : ''
-                                      }`}
+                                      } ${isNotRegularHost ? '!border-pink-500 shadow-[0_0_0_1px_rgba(236,72,153,1)]' : ''}`}
                                     >
                                       <span className="text-[8.5px] font-extrabold text-center w-full truncate leading-tight opacity-90">
                                         {s.brand.split(' ')[0]}
