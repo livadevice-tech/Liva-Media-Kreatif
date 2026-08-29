@@ -660,6 +660,15 @@ export function ReportingWorkspaceTabs({
         </button>
       )}
 
+      {/* METRIKS TAB - MOBILE ONLY (posisi ke-2 di mobile) */}
+      <button
+        type="button"
+        onClick={() => onTabChange("metrics")}
+        className={`${tabClass("metrics")} md:hidden`}
+      >
+        Metriks
+      </button>
+
       {!isCategoryHidden("analysis") && (
         <button
           type="button"
@@ -671,14 +680,6 @@ export function ReportingWorkspaceTabs({
         </button>
       )}
 
-      {/* METRIKS TAB - MOBILE ONLY */}
-      <button
-        type="button"
-        onClick={() => onTabChange("metrics")}
-        className={`${tabClass("metrics")} md:hidden`}
-      >
-        Metriks
-      </button>
       {!hideSettingsTab && (
         <button
           type="button"
