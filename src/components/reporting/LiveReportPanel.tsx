@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ReportRawSessionsCard } from "./ReportRawSessionsCard";
 import { UploadHistoryCard } from "./UploadHistoryCard";
 import { getNextSortState, type ReportLogLike } from "../../shared/utils/reportTable";
@@ -92,6 +93,11 @@ export function LiveReportPanel({
 }: LiveReportPanelProps) {
   const isTikTokLive =
     operatorPlatformFilter.toLowerCase().includes("tiktok");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeReportBrandId]);
+
   const panelData = buildLiveReportPanelData({
     model,
     operatorPlatformFilter,
