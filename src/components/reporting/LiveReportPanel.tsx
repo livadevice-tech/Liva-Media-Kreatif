@@ -7,6 +7,7 @@ import { buildLiveReportPanelData } from "../../shared/utils/liveReportPanel";
 import { MobileLiveOverviewCard } from "./MobileLiveOverviewCard";
 import { MobileLiveFunnelCard } from "./MobileLiveFunnelCard";
 import { MobileLiveDailyTable } from "./MobileLiveDailyTable";
+import { MobileLiveMetricsPanel } from "./MobileLiveMetricsPanel";
 import { LiveReportSummarySection } from "./LiveReportSummarySection";
 import { LiveReportChartSection } from "./LiveReportChartSection";
 import type { BrandDashboardSettings } from "../../types";
@@ -55,6 +56,7 @@ interface LiveReportPanelProps {
   hideUploadHistory?: boolean;
   hideRawTableControls?: boolean;
   isClientView?: boolean;
+  activeTab?: string;
 }
 
 export function LiveReportPanel({
@@ -86,6 +88,7 @@ export function LiveReportPanel({
   hideUploadHistory = false,
   hideRawTableControls = false,
   isClientView = false,
+  activeTab = "live",
 }: LiveReportPanelProps) {
   const isTikTokLive =
     operatorPlatformFilter.toLowerCase().includes("tiktok");
@@ -109,6 +112,14 @@ export function LiveReportPanel({
     setReportDbSortCol(nextSort.sortKey);
     setReportDbSortAsc(nextSort.sortAsc);
   };
+
+  if (activeTab === "metrics") {
+    return (
+      <div className="w-full">
+        <MobileLiveMetricsPanel stats={stats} isShopee={!isTikTokLive} />
+      </div>
+    );
+  }
 
   const hasAnyData = brandPerformanceLogs.some(
     (log) =>

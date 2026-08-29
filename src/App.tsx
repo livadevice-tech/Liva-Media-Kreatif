@@ -12063,7 +12063,7 @@ export default function App() {
                           )}
 
                           {/* STORED DATABASE VIEWER - NEW DESIGN */}
-                          {operatorReportingTab === "live" && (
+                          {(operatorReportingTab === "live" || operatorReportingTab === "metrics") && (
                             <React.Suspense
                               fallback={
                                 <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
@@ -12072,6 +12072,7 @@ export default function App() {
                               }
                             >
                               <LiveReportPanel
+                                activeTab={operatorReportingTab}
                                 model={liveReportView}
                                 chartSelectedMetrics={liveChartSelectedMetrics}
                                 onChartSelectedMetricsChange={

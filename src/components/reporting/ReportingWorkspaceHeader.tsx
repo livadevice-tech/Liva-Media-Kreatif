@@ -15,7 +15,7 @@ import { AdvancedDatePicker } from "./AdvancedDatePicker";
 import { getIndonesianMonthLabel } from "../../shared/utils/reporting";
 import { type ReportDateFilterType } from "../../shared/utils/reportTable";
 
-type ReportingTab = "live" | "product" | "engagement" | "analysis" | "settings";
+export type ReportingTab = "live" | "product" | "engagement" | "analysis" | "settings" | "metrics";
 
 type Setter<T> = (value: T | ((prev: T) => T)) => void;
 
@@ -587,9 +587,8 @@ export function ReportingWorkspaceTabs({
         <button
           type="button"
           onClick={() => onTabChange("product")}
-          className={tabClass("product")}
+          className={`${tabClass("product")} hidden md:inline-block`}
         >
-          <span className="md:hidden">Sale</span>
           <span className="hidden md:inline">Product Performance</span>
         </button>
       )}
@@ -598,12 +597,20 @@ export function ReportingWorkspaceTabs({
         <button
           type="button"
           onClick={() => onTabChange("analysis")}
-          className={tabClass("analysis")}
+          className={`${tabClass("analysis")} hidden md:inline-block`}
         >
-          <span className="md:hidden">Engagement</span>
           <span className="hidden md:inline">Analysis Performance</span>
         </button>
       )}
+
+      {/* METRIKS TAB - MOBILE ONLY */}
+      <button
+        type="button"
+        onClick={() => onTabChange("metrics")}
+        className={`${tabClass("metrics")} md:hidden`}
+      >
+        Metriks
+      </button>
       {!hideSettingsTab && (
         <button
           type="button"
