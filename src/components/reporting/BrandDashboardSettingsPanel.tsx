@@ -173,32 +173,32 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6">
-      <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100">
-          <h3 className="text-lg font-black uppercase tracking-wider text-indigo-700">
-            Pengaturan Tampilan Dashboard Klien
+    <div className="w-full py-4 px-3 sm:py-6 sm:px-4 overflow-hidden">
+      <div className="rounded-[20px] border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-slate-100">
+          <h3 className="text-base sm:text-lg font-black uppercase tracking-wider text-indigo-700">
+            Pengaturan Tampilan Dashboard
           </h3>
-          <p className="mt-1 text-sm font-medium text-slate-500">
+          <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500">
             Pilih metrik dan kolom yang ingin disembunyikan di dashboard mitra brand.
           </p>
         </div>
 
         {/* Tab / Menu Selection */}
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-          <label className="block text-slate-800 font-bold mb-4 text-[13px] uppercase tracking-wider">
+        <div className="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50">
+          <label className="block text-slate-800 font-bold mb-3 text-[11px] sm:text-[13px] uppercase tracking-wider">
             Tampilkan Tab / Menu Dashboard
           </label>
-          <div className="flex flex-wrap gap-4">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3">
             {DASHBOARD_TABS.map((tab) => (
-              <label key={tab.id} className="flex items-center gap-2.5 cursor-pointer group">
+              <label key={tab.id} className="flex items-center gap-2 cursor-pointer group">
                 <input
                   type="checkbox"
                   checked={!(brand.dashboardSettings?.hiddenCategories || []).includes(tab.id)}
                   onChange={() => toggleCategory(tab.id)}
-                  className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
                 />
-                <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                <span className="text-xs sm:text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
                   {tab.label}
                 </span>
               </label>
@@ -230,13 +230,13 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
           </button>
         </div>
 
-        <div className="p-6 space-y-8">
+        <div className="p-4 sm:p-6 space-y-5 sm:space-y-8">
           {CATEGORIES.map((category) => (
-            <div key={category.id} className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-              <h4 className="text-md font-bold text-slate-800 mb-6 pb-2 border-b border-slate-200">
+            <div key={category.id} className="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100">
+              <h4 className="text-sm font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
                 {category.label}
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-8">
                 {/* Metrics */}
                 <div>
                   <label className="block text-slate-500 font-bold mb-4 text-[11px] uppercase tracking-wider">
@@ -322,7 +322,7 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
           ))}
 
           {/* Shift Visibility Section */}
-          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+          <div className="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100">
             <h4 className="text-md font-bold text-slate-800 mb-6 pb-2 border-b border-slate-200">
               Shift Visibility (Filter & Grouping Shift)
             </h4>

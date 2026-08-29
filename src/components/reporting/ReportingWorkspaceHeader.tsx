@@ -548,6 +548,18 @@ export function ReportingWorkspaceHeader({
 
         {setOperatorShiftFilters && (
           <div className="border-t border-[#edf0fb] pt-3 pb-1 relative">
+            {/* Active date label */}
+            <div className="flex items-center gap-2 px-1 mb-2">
+              <CalendarDays className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <span className="text-[11px] font-semibold text-slate-500">Periode aktif:</span>
+              <span className="text-[11px] font-bold text-[#5600e0] truncate">
+                {periodLabel
+                  ? periodLabel
+                  : dateFilterType === "all"
+                  ? "Semua Rentang Data"
+                  : dateButtonLabel}
+              </span>
+            </div>
             <div className="relative">
               <button
                 type="button"
@@ -671,9 +683,10 @@ export function ReportingWorkspaceTabs({
         <button
           type="button"
           onClick={() => onTabChange("settings")}
-          className={`${tabClass("settings")} hidden md:block`}
+          className={`${tabClass("settings")}`}
         >
-          Pengaturan Klien
+          <span className="md:hidden">Pengaturan</span>
+          <span className="hidden md:inline">Pengaturan Klien</span>
         </button>
           )}
         </div>
