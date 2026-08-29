@@ -177,7 +177,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
   };
 
   return (
-    <div className="md:hidden flex flex-col min-h-screen bg-white pb-24 w-full font-sans">
+    <div className="md:hidden flex flex-col min-h-screen bg-white pb-24 w-full max-w-[100vw] overflow-x-hidden font-sans">
       {/* HEADER DESIGN */}
       <div className="px-4 pt-6 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">

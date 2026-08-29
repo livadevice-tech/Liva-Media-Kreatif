@@ -649,7 +649,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           MOBILE VIEW  (hidden on md and above)
       ════════════════════════════════════════════ */}
       {activeTab === 'overview' && (
-      <div className="md:hidden flex flex-col min-h-screen bg-[#f5f6fa] overflow-x-hidden max-w-full -mt-6">
+      <div className="md:hidden flex flex-col min-h-screen bg-[#f5f6fa] overflow-x-hidden max-w-[100vw] -mt-6">
 
         {/* Mobile Header */}
         <div className="bg-white px-4 pt-6 pb-3 flex items-center justify-between sticky top-0 z-30 border-b border-slate-100">
