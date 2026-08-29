@@ -665,22 +665,25 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
 
             {/* Filter Bulan */}
             <div className="px-4 py-2 bg-white">
-              <div className="flex items-center justify-between bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 w-full shadow-sm">
+              <div className="relative flex items-center justify-between bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 w-full shadow-sm cursor-pointer">
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-slate-500" />
-                  <select
-                    value={filterMonth}
-                    onChange={e => setFilterMonth(e.target.value)}
-                    className="text-[13px] font-black text-slate-700 bg-transparent outline-none appearance-none cursor-pointer"
-                  >
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const d = new Date(); d.setMonth(d.getMonth() - i);
-                      const val = d.toISOString().substring(0, 7);
-                      return <option key={val} value={val}>{getMonthLabel(val)}</option>;
-                    })}
-                  </select>
+                  <span className="text-[13px] font-black text-slate-700">
+                    {getMonthLabel(filterMonth)}
+                  </span>
                 </div>
-                <ChevronDown className="w-4 h-4 text-slate-400 pointer-events-none" />
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+                <select
+                  value={filterMonth}
+                  onChange={e => setFilterMonth(e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                >
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const d = new Date(); d.setMonth(d.getMonth() - i);
+                    const val = d.toISOString().substring(0, 7);
+                    return <option key={val} value={val}>{getMonthLabel(val)}</option>;
+                  })}
+                </select>
               </div>
             </div>
 
