@@ -832,9 +832,16 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                                 <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> <span>Due Date: {formatDateUI(inv.dueDate)}</span></div>
                               </div>
-                              <div className={`px-4 py-1.5 rounded-lg text-[10px] font-black tracking-wide ${statusColor}`}>
-                                {statusText}
-                              </div>
+                              <select
+                                value={inv.status || 'Draft'}
+                                onChange={(e) => updateInvoiceStatus(inv.brandId, inv.id, e.target.value as BrandInvoice["status"])}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black tracking-wide appearance-none cursor-pointer outline-none border border-transparent text-center transition-all ${statusColor}`}
+                              >
+                                <option value="Draft">DRAFT</option>
+                                <option value="Open Invoice">SENT (OPEN)</option>
+                                <option value="Paid">LUNAS</option>
+                                <option value="Overdue">OVERDUE</option>
+                              </select>
                             </div>
                           </div>
                         );
