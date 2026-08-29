@@ -6,6 +6,7 @@ import type { LiveReportViewModel } from "../../shared/utils/liveReporting";
 import { buildLiveReportPanelData } from "../../shared/utils/liveReportPanel";
 import { MobileLiveOverviewCard } from "./MobileLiveOverviewCard";
 import { LiveReportSummarySection } from "./LiveReportSummarySection";
+import { LiveReportChartSection } from "./LiveReportChartSection";
 import type { BrandDashboardSettings } from "../../types";
 
 interface LiveReportPanelProps {
@@ -118,6 +119,15 @@ export function LiveReportPanel({
       {/* MOBILE VIEW */}
       <div className="md:hidden px-4 pb-6 space-y-4 animate-fadeIn">
         <MobileLiveOverviewCard stats={stats} />
+        {chartData.length > 0 && (
+          <LiveReportChartSection
+            chartData={chartData}
+            chartSelectedMetrics={chartSelectedMetrics}
+            onChartSelectedMetricsChange={onChartSelectedMetricsChange}
+            useShopeeLiveLayout={!isTikTokLive}
+            brandDashboardSettings={brandDashboardSettings}
+          />
+        )}
       </div>
 
       {/* DESKTOP VIEW */}
