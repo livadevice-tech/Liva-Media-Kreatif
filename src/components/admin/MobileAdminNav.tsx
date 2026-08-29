@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LayoutDashboard, Users, Briefcase, Menu, X, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase, Menu, X, ChevronRight, LineChart } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export type NavItem = {
@@ -30,7 +30,7 @@ export const MobileAdminNav: React.FC<MobileAdminNavProps> = ({
   // Define the main 3 quick access tabs for the bottom nav
   const bottomNavItems = [
     { id: "dashboard_utama", icon: LayoutDashboard, label: "Home" },
-    { id: "reporting_brand", icon: Briefcase, label: "Brand" },
+    { id: "reporting_brand", icon: LineChart, label: "Report" },
     { id: "rekap_gaji", icon: Users, label: "Payroll" },
   ];
 
