@@ -648,10 +648,11 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       {/* ═══════════════════════════════════════════
           MOBILE VIEW  (hidden on md and above)
       ════════════════════════════════════════════ */}
-      {activeTab === 'overview' && (
       <div className="md:hidden flex flex-col min-h-screen bg-[#f5f6fa] overflow-x-hidden max-w-[100vw] -mt-6">
-
-        {/* Mobile Header */}
+      
+        {activeTab === 'overview' && (
+          <>
+            {/* Mobile Header */}
         <div className="bg-white px-4 pt-6 pb-3 flex items-center justify-between sticky top-0 z-30 border-b border-slate-100">
           <h1 className="text-[17px] font-bold text-slate-800">Invoice Client</h1>
           <button
@@ -820,13 +821,28 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
             </div>
           )}
         </div>
+        </>
+        )}
+
+        {activeTab === 'create' && (
+          <>
+            <div className="bg-white px-4 pt-6 pb-3 flex items-center gap-3 sticky top-0 z-30 border-b border-slate-100 shadow-sm">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <h1 className="text-[17px] font-bold text-slate-800 tracking-tight">Buat Invoice Baru</h1>
+            </div>
+          </>
+        )}
       </div>
-      )}
 
       {/* ═══════════════════════════════════════════
           DESKTOP VIEW & OTHER TABS
       ════════════════════════════════════════════ */}
-      <div className={`${activeTab === 'overview' ? 'hidden md:block' : 'block'} space-y-6 pb-12`}>
+      <div className="hidden md:block space-y-6 pb-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
@@ -871,7 +887,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       </div>
 
       {activeTab === "overview" && (
-        <div className="space-y-6">
+        <div className="hidden md:block space-y-6">
           <InvoiceTable 
             allInvoices={allInvoices}
             upcomingBillings={upcomingBillings}
@@ -891,7 +907,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       )}
 
       {activeTab === "create" && (
-        <InvoiceCreatePanel
+        <div className="mt-4 md:mt-0 w-full max-w-[100vw] overflow-x-hidden">
+          <InvoiceCreatePanel
           clientBrands={clientBrands}
           selectedBrandId={selectedBrandId}
           draftInvoice={draftInvoice}
@@ -901,6 +918,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           onSaveDraft={handleSaveDraft}
           onCancel={() => setActiveTab("overview")}
         />
+        </div>
       )}
 
       {activeTab === "reminders" && (
