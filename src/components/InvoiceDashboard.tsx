@@ -885,7 +885,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           Pengaturan Nota
         </button>
       </div>
+      </div>
 
+      {/* ═══════════════════════════════════════════
+          TAB CONTENTS
+      ════════════════════════════════════════════ */}
+      <div className="pb-12">
       {activeTab === "overview" && (
         <div className="hidden md:block space-y-6">
           <InvoiceTable 
