@@ -109,6 +109,10 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
   const currentYearMonth = new Date().toISOString().substring(0, 7);
   const [filterMonth, setFilterMonth] = useState<string>(currentYearMonth);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
+
   const allInvoices = useMemo(() => {
     let list: (BrandInvoice & { brandId: string; brandName: string })[] = [];
     clientBrands.forEach(brand => {
