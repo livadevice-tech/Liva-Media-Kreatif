@@ -648,10 +648,11 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       {/* ═══════════════════════════════════════════
           MOBILE VIEW  (hidden on md and above)
       ════════════════════════════════════════════ */}
-      <div className="md:hidden flex flex-col min-h-screen bg-[#f5f6fa] overflow-x-hidden max-w-full">
+      {activeTab === 'overview' && (
+      <div className="md:hidden flex flex-col min-h-screen bg-[#f5f6fa] overflow-x-hidden max-w-full -mt-6">
 
         {/* Mobile Header */}
-        <div className="bg-white px-4 pt-4 pb-3 flex items-center justify-between sticky top-0 z-30 border-b border-slate-100">
+        <div className="bg-white px-4 pt-6 pb-3 flex items-center justify-between sticky top-0 z-30 border-b border-slate-100">
           <h1 className="text-[17px] font-bold text-slate-800">Invoice Client</h1>
           <button
             onClick={() => { setActiveTab('create'); handleBrandSelectForDraft(''); }}
@@ -677,17 +678,18 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           </select>
         </div>
 
-        <div className="flex-1 px-4 pt-4 pb-24 space-y-4 overflow-x-hidden">
+        <div className="flex-1 pt-4 pb-24 space-y-4 overflow-x-hidden">
 
           {/* Recap Card */}
-          <div
-            className="rounded-2xl p-5 text-white"
-            style={{ background: 'linear-gradient(135deg, #5b4fcf 0%, #7c3aed 45%, #4f46e5 100%)' }}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="w-4 h-4 opacity-80" />
-              <span className="text-[13px] font-bold opacity-90">Recap Invoice</span>
-            </div>
+          <div className="px-4">
+            <div
+              className="rounded-2xl p-5 text-white"
+              style={{ background: 'linear-gradient(135deg, #5b4fcf 0%, #7c3aed 45%, #4f46e5 100%)' }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-4 h-4 opacity-80" />
+                <span className="text-[13px] font-bold opacity-90">Recap Invoice</span>
+              </div>
 
             {/* Stats row */}
             <div className="grid grid-cols-5 gap-1 mb-5">
@@ -722,6 +724,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                 <div className="text-[15px] font-black leading-tight truncate">{formatCurrencyShort(nominalBelumBayar)}</div>
               </div>
             </div>
+          </div>
           </div>
 
           {/* Tab Invoice | Pengaturan */}
@@ -818,11 +821,12 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           )}
         </div>
       </div>
+      )}
 
       {/* ═══════════════════════════════════════════
-          DESKTOP VIEW  (hidden on mobile)
+          DESKTOP VIEW & OTHER TABS
       ════════════════════════════════════════════ */}
-      <div className="hidden md:block space-y-6 pb-12">
+      <div className={`${activeTab === 'overview' ? 'hidden md:block' : 'block'} space-y-6 pb-12`}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
@@ -922,7 +926,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
         </div>
       )}
 
-      
+      </div>
 
 
       {invoiceEditor && (
@@ -1002,7 +1006,6 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           </div>
         </div>
       )}
-      </div>{/* end desktop wrapper */}
     </div>
   );
 };
