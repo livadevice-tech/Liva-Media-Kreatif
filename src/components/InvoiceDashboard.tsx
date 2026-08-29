@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { FileText, Plus, Trash2, X, Edit2, Download, Mail, ChevronLeft } from 'lucide-react';
+import { FileText, Plus, Trash2, X, Edit2, Download, Mail, ChevronLeft, Calendar, ChevronDown } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
 import { InvoiceTable } from './InvoiceTable';
 import { InvoiceCreatePanel } from './invoice/InvoiceCreatePanel';
@@ -653,175 +653,203 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
         {activeTab === 'overview' && (
           <>
             {/* Mobile Header */}
-        <div className="bg-white px-4 pt-6 pb-3 flex items-center justify-between sticky top-0 z-30 border-b border-slate-100">
-          <h1 className="text-[17px] font-bold text-slate-800">Invoice Client</h1>
-          <button
-            onClick={() => { setActiveTab('create'); handleBrandSelectForDraft(''); }}
-            className="flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm active:scale-95 transition-all"
-          >
-            <Plus className="w-3.5 h-3.5" /> Create
-          </button>
-        </div>
-
-        {/* Filter Bulan */}
-        <div className="bg-white px-4 py-3 flex items-center gap-2 border-b border-slate-100">
-          <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-          <select
-            value={filterMonth}
-            onChange={e => setFilterMonth(e.target.value)}
-            className="text-sm font-semibold text-slate-700 bg-transparent outline-none flex-1 cursor-pointer"
-          >
-            {Array.from({ length: 12 }, (_, i) => {
-              const d = new Date(); d.setMonth(d.getMonth() - i);
-              const val = d.toISOString().substring(0, 7);
-              return <option key={val} value={val}>{getMonthLabel(val)}</option>;
-            })}
-          </select>
-        </div>
-
-        <div className="flex-1 pt-4 pb-24 space-y-4 overflow-x-hidden">
-
-          {/* Recap Card */}
-          <div className="px-4">
-            <div
-              className="rounded-2xl p-5 text-white"
-              style={{ background: 'linear-gradient(135deg, #5b4fcf 0%, #7c3aed 45%, #4f46e5 100%)' }}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <FileText className="w-4 h-4 opacity-80" />
-                <span className="text-[13px] font-bold opacity-90">Recap Invoice</span>
-              </div>
-
-            {/* Stats row */}
-            <div className="grid grid-cols-5 gap-1 mb-5">
-              {[
-                { val: totalInvoice, label: 'Total Invoice' },
-                { val: terkirim,     label: 'Terkirim' },
-                { val: draft,        label: 'Draft' },
-                { val: bayar,        label: 'Bayar' },
-                { val: belumBayar,   label: 'Belum Bayar' },
-              ].map(item => (
-                <div key={item.label} className="flex flex-col items-center text-center">
-                  <span className="text-xl font-black leading-none">{item.val}</span>
-                  <span className="text-[9px] font-semibold opacity-75 mt-0.5 leading-tight">{item.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Nominal row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/15 rounded-xl p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-emerald-300" />
-                  <span className="text-[10px] font-semibold opacity-90">Nominal Sudah Terbayar</span>
-                </div>
-                <div className="text-[15px] font-black leading-tight truncate">{formatCurrencyShort(nominalTerbayar)}</div>
-              </div>
-              <div className="bg-white/15 rounded-xl p-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <FileText className="w-2.5 h-2.5 opacity-80" />
-                  <span className="text-[10px] font-semibold opacity-90">Nominal Belum Dibayar</span>
-                </div>
-                <div className="text-[15px] font-black leading-tight truncate">{formatCurrencyShort(nominalBelumBayar)}</div>
-              </div>
-            </div>
-          </div>
-          </div>
-
-          {/* Tab Invoice | Pengaturan */}
-          <div className="flex border-b border-slate-200 bg-white rounded-t-xl overflow-hidden">
-            {(['invoice', 'settings'] as const).map(t => (
+            <div className="bg-white px-5 pt-7 pb-4 flex items-center justify-between sticky top-0 z-30">
+              <h1 className="text-[20px] font-black text-slate-900 tracking-tight">Invoice Client</h1>
               <button
-                key={t}
-                onClick={() => setMobileInvoiceTab(t)}
-                className={`flex-1 py-3 text-sm font-bold transition-colors border-b-2 ${
-                  mobileInvoiceTab === t
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-400'
-                }`}
+                onClick={() => { setActiveTab('create'); handleBrandSelectForDraft(''); }}
+                className="flex items-center gap-1.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-sm active:scale-95 transition-all"
               >
-                {t === 'invoice' ? 'Invoice' : 'Pengaturan'}
+                <Plus className="w-4 h-4" /> Create
               </button>
-            ))}
-          </div>
+            </div>
 
-          {/* Invoice List */}
-          {mobileInvoiceTab === 'invoice' && (
-            <div className="space-y-0 bg-white rounded-b-xl overflow-hidden shadow-sm border border-t-0 border-slate-100">
-              {mobileInvoices.length === 0 ? (
-                <div className="py-12 text-center flex flex-col items-center gap-2">
-                  <FileText className="w-10 h-10 text-slate-300" />
-                  <p className="text-sm font-bold text-slate-500">Belum ada invoice bulan ini</p>
+            {/* Filter Bulan */}
+            <div className="px-4 py-2 bg-white">
+              <div className="flex items-center justify-between bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 w-full shadow-sm">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-4 h-4 text-slate-500" />
+                  <select
+                    value={filterMonth}
+                    onChange={e => setFilterMonth(e.target.value)}
+                    className="text-[13px] font-black text-slate-700 bg-transparent outline-none appearance-none cursor-pointer"
+                  >
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const d = new Date(); d.setMonth(d.getMonth() - i);
+                      const val = d.toISOString().substring(0, 7);
+                      return <option key={val} value={val}>{getMonthLabel(val)}</option>;
+                    })}
+                  </select>
                 </div>
-              ) : (
-                mobileInvoices.map((inv, idx) => {
-                  const sc = getStatusCfg(inv.status);
-                  const brand = clientBrands.find(b => b.id === inv.brandId);
-                  return (
-                    <div key={inv.id} className={`px-4 pt-3 pb-0 ${idx < mobileInvoices.length - 1 ? 'border-b border-slate-100' : ''}`}>
-                      {/* Invoice number + amount */}
-                      <div className="flex items-start justify-between mb-0.5">
-                        <span className="text-[12px] font-bold text-indigo-700 truncate pr-2 leading-tight">{inv.invoiceNumber || '-'}</span>
-                        <span className="text-[13px] font-black text-indigo-700 shrink-0">{formatCurrencyShort(inv.totalAmount || 0)}</span>
-                      </div>
-                      {/* Brand name */}
-                      <div className="text-[11px] font-semibold text-slate-700 truncate">{inv.ptName || inv.brandName}</div>
-                      {/* PIC */}
-                      <div className="text-[10px] text-slate-400 font-medium mb-2">{inv.picName || brand?.picName || '-'}</div>
-                      {/* Action row */}
-                      <div className="flex items-center justify-between py-2">
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => setInvoiceEditor({ ...inv, brandId: inv.brandId })}
-                            className="text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setInvoiceToDelete({ brandId: inv.brandId, id: inv.id })}
-                            className="text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handlePrint(inv, inv.brandName)}
-                            className="text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleShowEmailCopy(inv, inv.brandName, brand?.picEmail)}
-                            className="text-slate-400 hover:text-blue-500 transition-colors cursor-pointer"
-                          >
-                            <Mail className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      {/* Status footer strip */}
-                      <div className={`-mx-4 px-4 py-1.5 flex items-center justify-between text-[10px] font-bold ${sc.bg} ${sc.text}`}>
-                        <span>Invoice Date: {formatDateUI(inv.invoiceDate || inv.issueDate)} &nbsp;·&nbsp; Due Date: {formatDateUI(inv.dueDate)}</span>
-                        <span>Status: {sc.label}</span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+                <ChevronDown className="w-4 h-4 text-slate-400 pointer-events-none" />
+              </div>
             </div>
-          )}
 
-          {/* Pengaturan Tab (mobile) */}
-          {mobileInvoiceTab === 'settings' && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-              <InvoiceSettingsPanel
-                invoiceSettings={invoiceSettings}
-                onInvoiceSettingsChange={setInvoiceSettings}
-                onSaveSettings={saveSettings}
-                onImageUpload={handleImageUpload}
-              />
+            <div className="flex-1 pb-24 overflow-x-hidden bg-[#f5f6fa]">
+              {/* Recap Card */}
+              <div className="px-4 pt-4">
+                <div
+                  className="rounded-[20px] p-5 text-white shadow-lg shadow-indigo-200/50 relative overflow-hidden"
+                  style={{ background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)' }}
+                >
+                  {/* Dekorasi Background */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl transform translate-x-1/2 -translate-y-1/2"></div>
+                  
+                  <div className="flex items-center gap-2 mb-6 relative z-10">
+                    <FileText className="w-4 h-4 opacity-90" />
+                    <span className="text-[14px] font-bold">Recap Invoice</span>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="flex justify-between mb-6 relative z-10 px-1">
+                    {[
+                      { val: totalInvoice, label: 'Total Invoice' },
+                      { val: terkirim,     label: 'Terkirim' },
+                      { val: draft,        label: 'Draft' },
+                      { val: bayar,        label: 'Bayar' },
+                      { val: belumBayar,   label: 'Belum Bayar' },
+                    ].map((item, i, arr) => (
+                      <React.Fragment key={item.label}>
+                        <div className="flex flex-col items-center justify-center">
+                          <span className="text-xl font-black mb-1.5">{item.val}</span>
+                          <span className="text-[8px] font-bold opacity-80 whitespace-nowrap">{item.label}</span>
+                        </div>
+                        {i < arr.length - 1 && (
+                          <div className="w-[1px] bg-white opacity-20 self-stretch my-1 mx-1" />
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  {/* Nominal row */}
+                  <div className="flex gap-3 relative z-10">
+                    <div className="flex-1 bg-white/95 rounded-2xl p-3 flex flex-col justify-center shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                          <div className="w-3 h-3 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="w-2 h-2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-black text-slate-500 whitespace-nowrap truncate">Nominal Sudah Terbayar</span>
+                      </div>
+                      <div className="text-[14px] font-black text-slate-800 leading-tight truncate">{formatCurrencyShort(nominalTerbayar)}</div>
+                    </div>
+                    
+                    <div className="flex-1 bg-white/95 rounded-2xl p-3 flex flex-col justify-center shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-5 h-5 rounded-[6px] bg-indigo-100 flex items-center justify-center shrink-0">
+                          <FileText className="w-3 h-3 text-indigo-600" />
+                        </div>
+                        <span className="text-[9px] font-black text-slate-500 whitespace-nowrap truncate">Nominal Belum Dibayar</span>
+                      </div>
+                      <div className="text-[14px] font-black text-[#4f46e5] leading-tight truncate">{formatCurrencyShort(nominalBelumBayar)}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tab Invoice | Pengaturan */}
+              <div className="px-4 mt-5">
+                <div className="flex bg-white rounded-xl shadow-sm border border-slate-100 p-1">
+                  {(['invoice', 'settings'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setMobileInvoiceTab(t)}
+                      className={`flex-1 py-2.5 text-[13px] font-bold transition-all rounded-lg ${
+                        mobileInvoiceTab === t
+                          ? 'bg-white text-[#4f46e5] border-b-[3px] border-[#4f46e5] rounded-b-none shadow-[0_1px_0_0_#4f46e5]'
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      {t === 'invoice' ? 'Invoice' : 'Pengaturan'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Invoice List */}
+              <div className="px-4 mt-4">
+                {mobileInvoiceTab === 'invoice' && (
+                  <div className="space-y-4">
+                    {mobileInvoices.length === 0 ? (
+                      <div className="py-12 bg-white rounded-2xl text-center flex flex-col items-center gap-2 border border-slate-100 shadow-sm">
+                        <FileText className="w-10 h-10 text-slate-300" />
+                        <p className="text-sm font-bold text-slate-500">Belum ada invoice bulan ini</p>
+                      </div>
+                    ) : (
+                      mobileInvoices.map((inv) => {
+                        const brand = clientBrands.find(b => b.id === inv.brandId);
+                        
+                        // Status styling based on design
+                        let statusColor = "bg-slate-200 text-slate-600"; // Draft
+                        let statusText = "Draft";
+                        if (inv.status === 'TERKIRIM') {
+                           statusColor = "bg-blue-200 text-blue-700";
+                           statusText = "Terkirim";
+                        } else if (inv.status === 'DIBAYAR' || inv.status === 'SELESAI') {
+                           statusColor = "bg-emerald-200 text-emerald-700";
+                           statusText = "Selesai";
+                        }
+                        
+                        return (
+                          <div key={inv.id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+                            {/* Invoice number + amount */}
+                            <div className="flex items-start justify-between mb-2">
+                              <span className="text-[14px] font-black text-[#4f46e5] truncate pr-2 leading-tight tracking-tight">{inv.invoiceNumber || '-'}</span>
+                              <span className="text-[14px] font-black text-[#4f46e5] shrink-0">{formatCurrencyShort(inv.totalAmount || 0)}</span>
+                            </div>
+                            {/* Brand name */}
+                            <div className="text-[13px] font-black text-slate-800 truncate mb-1">{inv.ptName || inv.brandName}</div>
+                            {/* PIC */}
+                            <div className="text-[12px] font-semibold text-slate-400 mb-5">{inv.picName || brand?.picName || '-'}</div>
+                            
+                            {/* Action row */}
+                            <div className="flex items-center gap-3 mb-5">
+                              <button onClick={() => setInvoiceEditor({ ...inv, brandId: inv.brandId })} className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-[#4f46e5] hover:bg-indigo-50 hover:border-indigo-200 transition-colors bg-white shadow-sm active:scale-95">
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => setInvoiceToDelete({ brandId: inv.brandId, id: inv.id })} className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors bg-white shadow-sm active:scale-95">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => handlePrint(inv, inv.brandName)} className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 transition-colors bg-white shadow-sm active:scale-95">
+                                <Download className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => handleShowEmailCopy(inv, inv.brandName, brand?.picEmail)} className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors bg-white shadow-sm active:scale-95">
+                                <Mail className="w-4 h-4" />
+                              </button>
+                            </div>
+                            
+                            {/* Footer strip */}
+                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                              <div className="flex items-center gap-3 text-[9px] font-bold text-slate-500">
+                                <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> <span>Invoice Date: {formatDateUI(inv.invoiceDate || inv.issueDate)}</span></div>
+                                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> <span>Due Date: {formatDateUI(inv.dueDate)}</span></div>
+                              </div>
+                              <div className={`px-4 py-1.5 rounded-lg text-[10px] font-black tracking-wide ${statusColor}`}>
+                                {statusText}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+
+                {/* Pengaturan Tab (mobile) */}
+                {mobileInvoiceTab === 'settings' && (
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-1 mb-4">
+                    <InvoiceSettingsPanel
+                      invoiceSettings={invoiceSettings}
+                      onInvoiceSettingsChange={setInvoiceSettings}
+                      onSaveSettings={saveSettings}
+                      onImageUpload={handleImageUpload}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-        </>
+          </>
         )}
 
         {activeTab === 'create' && (
