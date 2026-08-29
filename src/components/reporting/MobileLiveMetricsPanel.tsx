@@ -17,6 +17,8 @@ import {
   UserPlus,
   Eye,
   Activity,
+  Ticket,
+  UserCheck,
 } from "lucide-react";
 import type { LiveReportSummaryStats } from "./liveReportSummaryTypes";
 
@@ -76,6 +78,12 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
     pTotalDbImpressions,
     totalPenontonDb,
     pTotalPenontonDb,
+    totalPeakViewersDb,
+    pTotalPeakViewersDb,
+    totalShopVouchersDb,
+    pTotalShopVouchersDb,
+    totalBuyersDb,
+    pTotalBuyersDb,
   } = stats;
 
   const errCur = totalDbImpressions > 0 ? ((totalLikesDb + totalCommentsDb + totalSharesDb) / totalDbImpressions) * 100 : 0;
@@ -173,18 +181,32 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
 
   const engagementMetricsShopee = [
     {
-      label: "Live Impressions",
-      icon: <Eye className="w-3 h-3 text-slate-500" />,
-      value: formatNumber(totalDbImpressions),
-      cur: totalDbImpressions,
-      prev: pTotalDbImpressions,
-    },
-    {
       label: "Viewer",
       icon: <Users className="w-3 h-3 text-slate-500" />,
       value: formatNumber(totalPenontonDb),
       cur: totalPenontonDb,
       prev: pTotalPenontonDb,
+    },
+    {
+      label: "Peak Viewer",
+      icon: <TrendingUp className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalPeakViewersDb),
+      cur: totalPeakViewersDb,
+      prev: pTotalPeakViewersDb,
+    },
+    {
+      label: "Voucher Claim",
+      icon: <Ticket className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalShopVouchersDb),
+      cur: totalShopVouchersDb,
+      prev: pTotalShopVouchersDb,
+    },
+    {
+      label: "Customer",
+      icon: <UserCheck className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalBuyersDb),
+      cur: totalBuyersDb,
+      prev: pTotalBuyersDb,
     },
     {
       label: "Likes",
@@ -194,7 +216,7 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
       prev: pTotalLikesDb,
     },
     {
-      label: "Comments",
+      label: "Comment",
       icon: <MessageCircle className="w-3 h-3 text-slate-500" />,
       value: formatNumber(totalCommentsDb),
       cur: totalCommentsDb,
@@ -208,21 +230,7 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
       prev: pTotalSharesDb,
     },
     {
-      label: "New followers",
-      icon: <UserPlus className="w-3 h-3 text-slate-500" />,
-      value: formatNumber(totalFollowersDb),
-      cur: totalFollowersDb,
-      prev: pTotalFollowersDb,
-    },
-    {
-      label: "Avg. View Duration",
-      icon: <TrendingUp className="w-3 h-3 text-slate-500" />,
-      value: `${avgViewDurationDb.toFixed(1)}s`,
-      cur: avgViewDurationDb,
-      prev: pAvgViewDurationDb,
-    },
-    {
-      label: "ERR %",
+      label: "ERR",
       icon: <Activity className="w-3 h-3 text-slate-500" />,
       value: `${errCur.toFixed(2)}%`,
       cur: errCur,
