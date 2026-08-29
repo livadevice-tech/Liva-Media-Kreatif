@@ -240,7 +240,7 @@ export function LiveReportChartSection({
   }, [activeMetrics, platformFilteredOptions]);
 
   return (
-    <section className="rounded-[16px] border border-[#e6dff8] bg-white p-4 sm:p-6 shadow-sm">
+    <section ref={menuRef} className="rounded-[16px] border border-[#e6dff8] bg-white p-4 sm:p-6 shadow-sm">
       {/* Desktop Header */}
       <div className="hidden md:flex mb-8 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -254,7 +254,7 @@ export function LiveReportChartSection({
           )}
         </div>
 
-        <div ref={menuRef} className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Sale Metrics Dropdown */}
           <div className="relative">
             <button
