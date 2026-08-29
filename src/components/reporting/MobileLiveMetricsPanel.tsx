@@ -19,6 +19,7 @@ import {
   Activity,
   Ticket,
   UserCheck,
+  MousePointerClick,
 } from "lucide-react";
 import type { LiveReportSummaryStats } from "./liveReportSummaryTypes";
 
@@ -84,12 +85,14 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
     pTotalShopVouchersDb,
     totalBuyersDb,
     pTotalBuyersDb,
+    totalDbProductImpressions,
+    pTotalDbProductImpressions,
   } = stats;
 
   const errCur = totalDbImpressions > 0 ? ((totalLikesDb + totalCommentsDb + totalSharesDb) / totalDbImpressions) * 100 : 0;
   const pErrCur = pTotalDbImpressions > 0 ? ((pTotalLikesDb + pTotalCommentsDb + pTotalSharesDb) / pTotalDbImpressions) * 100 : 0;
 
-  const metrics = [
+  const metricsShopee = [
     {
       label: "GMV",
       icon: <DollarSign className="w-3 h-3 text-slate-500" />,
@@ -148,7 +151,82 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
     },
   ];
 
-  const engagementMetricsDefault = [
+  const metricsTiktok = [
+    {
+      label: "GMV",
+      icon: <DollarSign className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalGmvDb, "Rp"),
+      cur: totalGmvDb,
+      prev: pTotalGmvDb,
+    },
+    {
+      label: "Item sold",
+      icon: <Package className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalItemsSoldDb),
+      cur: totalItemsSoldDb,
+      prev: pTotalItemsSoldDb,
+    },
+    {
+      label: "Orders",
+      icon: <ClipboardList className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalOrdersDb),
+      cur: totalOrdersDb,
+      prev: pTotalOrdersDb,
+    },
+    {
+      label: "AOV",
+      icon: <Calculator className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(avgAovDb, "Rp"),
+      cur: avgAovDb,
+      prev: pAvgAovDb,
+    },
+    {
+      label: "Customer",
+      icon: <UserCheck className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalBuyersDb),
+      cur: totalBuyersDb,
+      prev: pTotalBuyersDb,
+    },
+    {
+      label: "Product Impression",
+      icon: <Eye className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalDbProductImpressions),
+      cur: totalDbProductImpressions,
+      prev: pTotalDbProductImpressions,
+    },
+    {
+      label: "Product Clicks",
+      icon: <MousePointerClick className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalDbClicks),
+      cur: totalDbClicks,
+      prev: pTotalDbClicks,
+    },
+    {
+      label: "GMV/Hours",
+      icon: <Clock className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(gmvPerHour, "Rp"),
+      cur: gmvPerHour,
+      prev: pGmvPerHour,
+    },
+  ];
+
+  const activeMetrics = isShopee ? metricsShopee : metricsTiktok;
+
+  const engagementMetricsTiktok = [
+    {
+      label: "Live Impressions",
+      icon: <Eye className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalDbImpressions),
+      cur: totalDbImpressions,
+      prev: pTotalDbImpressions,
+    },
+    {
+      label: "Viewer",
+      icon: <Users className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalPenontonDb),
+      cur: totalPenontonDb,
+      prev: pTotalPenontonDb,
+    },
     {
       label: "Likes",
       icon: <Heart className="w-3 h-3 text-slate-500" />,
@@ -171,11 +249,25 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
       prev: pTotalSharesDb,
     },
     {
-      label: "Followers",
+      label: "New Followers",
       icon: <UserPlus className="w-3 h-3 text-slate-500" />,
       value: formatNumber(totalFollowersDb),
       cur: totalFollowersDb,
       prev: pTotalFollowersDb,
+    },
+    {
+      label: "Avg. View Duration",
+      icon: <TrendingUp className="w-3 h-3 text-slate-500" />,
+      value: `${avgViewDurationDb.toFixed(1)}s`,
+      cur: avgViewDurationDb,
+      prev: pAvgViewDurationDb,
+    },
+    {
+      label: "ERR",
+      icon: <Activity className="w-3 h-3 text-slate-500" />,
+      value: `${errCur.toFixed(2)}%`,
+      cur: errCur,
+      prev: pErrCur,
     },
   ];
 
@@ -238,7 +330,7 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
     },
   ];
 
-  const activeEngagementMetrics = isShopee ? engagementMetricsShopee : engagementMetricsDefault;
+  const activeEngagementMetrics = isShopee ? engagementMetricsShopee : engagementMetricsTiktok;
 
   return (
     <div className="md:hidden px-4 pb-6 space-y-4 animate-fadeIn">
@@ -259,7 +351,7 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
 
       {/* Grid of metrics */}
       <div className="grid grid-cols-4 gap-2">
-        {metrics.map((metric, idx) => {
+        {activeMetrics.map((metric, idx) => {
           const { text: changeText, isPositive } = formatPercentage(metric.cur, metric.prev);
           return (
             <div
