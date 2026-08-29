@@ -11208,14 +11208,22 @@ export default function App() {
                   >
                     <div className="bg-transparent sm:bg-white p-4 sm:p-6 sm:rounded-2xl sm:border border-slate-100 sm:shadow-sm relative overflow-hidden">
                       <div className="flex justify-between items-start sm:items-center mb-6">
-                        <div className="flex-1 pr-4">
-                          <h3 className="text-xl sm:text-sm font-black text-[#19192c] sm:text-slate-800 tracking-tight">
-                            Manajemen Data Brand Klien
-                          </h3>
-                          <p className="text-[11px] sm:text-xs text-slate-500 font-semibold mt-1">
-                            Data detail terkait kontrak, invoice, dan kredensial
-                            brand aktif.
-                          </p>
+                        <div className="flex items-start sm:items-center gap-3 flex-1 pr-4">
+                          <button
+                            onClick={() => setOperatorTab("dashboard_utama")}
+                            className="sm:hidden mt-0.5 w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors shrink-0"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+                          <div>
+                            <h3 className="text-xl sm:text-sm font-black text-[#19192c] sm:text-slate-800 tracking-tight">
+                              Manajemen Data Brand Klien
+                            </h3>
+                            <p className="text-[11px] sm:text-xs text-slate-500 font-semibold mt-1">
+                              Data detail terkait kontrak, invoice, dan kredensial
+                              brand aktif.
+                            </p>
+                          </div>
                         </div>
                         <button
                           onClick={() =>
