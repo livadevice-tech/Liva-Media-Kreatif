@@ -501,7 +501,7 @@ function AnalysisCard({
                 <textarea 
                   value={editDescription}
                   onChange={e => setEditDescription(e.target.value)}
-                  rows={3}
+                  rows={7}
                   className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-3 resize-y shadow-sm"
                   placeholder="Tuliskan insight dan analisis performa..."
                 />
@@ -511,7 +511,7 @@ function AnalysisCard({
                 <textarea 
                   value={editNextPlan}
                   onChange={e => setEditNextPlan(e.target.value)}
-                  rows={3}
+                  rows={7}
                   className="w-full bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-3 resize-y shadow-sm"
                   placeholder="Tuliskan rencana perbaikan atau next plan..."
                 />
