@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { FileText, Plus, Trash2, X, Edit2, Download, Mail } from 'lucide-react';
+import { FileText, Plus, Trash2, X, Edit2, Download, Mail, ChevronLeft } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
 import { InvoiceTable } from './InvoiceTable';
 import { InvoiceCreatePanel } from './invoice/InvoiceCreatePanel';
