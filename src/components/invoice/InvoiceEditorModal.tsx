@@ -22,8 +22,8 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
   if (!invoiceEditor) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
-      <div className="bg-white rounded-t-3xl md:rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] md:max-h-[90vh] animate-fadeIn">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-end md:items-center md:justify-center p-0 md:p-4">
+      <div className="bg-white w-full h-full md:h-auto md:rounded-3xl max-w-2xl overflow-hidden shadow-2xl flex flex-col md:max-h-[90vh] animate-slideInRight md:animate-fadeIn">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
           <h3 className="text-xl font-black text-slate-800">Edit Invoice</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-6 h-6" /></button>
