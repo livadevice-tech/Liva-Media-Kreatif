@@ -6,6 +6,7 @@ import type { LiveReportViewModel } from "../../shared/utils/liveReporting";
 import { buildLiveReportPanelData } from "../../shared/utils/liveReportPanel";
 import { MobileLiveOverviewCard } from "./MobileLiveOverviewCard";
 import { MobileLiveFunnelCard } from "./MobileLiveFunnelCard";
+import { MobileLiveDailyTable } from "./MobileLiveDailyTable";
 import { LiveReportSummarySection } from "./LiveReportSummarySection";
 import { LiveReportChartSection } from "./LiveReportChartSection";
 import type { BrandDashboardSettings } from "../../types";
@@ -130,6 +131,7 @@ export function LiveReportPanel({
           />
         )}
         <MobileLiveFunnelCard stats={stats} isShopee={!isTikTokLive} />
+        <MobileLiveDailyTable logs={tableLogs} />
       </div>
 
       {/* DESKTOP VIEW */}
