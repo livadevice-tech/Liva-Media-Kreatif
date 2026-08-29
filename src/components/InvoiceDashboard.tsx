@@ -652,7 +652,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       {/* ═══════════════════════════════════════════
           MOBILE VIEW  (hidden on md and above)
       ════════════════════════════════════════════ */}
-      <div className="md:hidden flex flex-col min-h-screen bg-[#f5f6fa] overflow-x-hidden max-w-[100vw] -mt-6">
+      <div className={`md:hidden flex flex-col bg-[#f5f6fa] overflow-x-hidden max-w-[100vw] -mt-6 ${activeTab === 'overview' ? 'min-h-screen' : ''}`}>
       
         {activeTab === 'overview' && (
           <>
