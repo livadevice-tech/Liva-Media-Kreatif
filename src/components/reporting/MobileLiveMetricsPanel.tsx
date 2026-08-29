@@ -15,6 +15,8 @@ import {
   MessageCircle,
   Share2,
   UserPlus,
+  Eye,
+  Activity,
 } from "lucide-react";
 import type { LiveReportSummaryStats } from "./liveReportSummaryTypes";
 
@@ -70,7 +72,14 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
     pTotalSharesDb,
     totalFollowersDb,
     pTotalFollowersDb,
+    totalDbImpressions,
+    pTotalDbImpressions,
+    totalPenontonDb,
+    pTotalPenontonDb,
   } = stats;
+
+  const errCur = totalDbImpressions > 0 ? ((totalLikesDb + totalCommentsDb + totalSharesDb) / totalDbImpressions) * 100 : 0;
+  const pErrCur = pTotalDbImpressions > 0 ? ((pTotalLikesDb + pTotalCommentsDb + pTotalSharesDb) / pTotalDbImpressions) * 100 : 0;
 
   const metrics = [
     {
@@ -131,7 +140,7 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
     },
   ];
 
-  const engagementMetrics = [
+  const engagementMetricsDefault = [
     {
       label: "Likes",
       icon: <Heart className="w-3 h-3 text-slate-500" />,
@@ -161,6 +170,67 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
       prev: pTotalFollowersDb,
     },
   ];
+
+  const engagementMetricsShopee = [
+    {
+      label: "Live Impressions",
+      icon: <Eye className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalDbImpressions),
+      cur: totalDbImpressions,
+      prev: pTotalDbImpressions,
+    },
+    {
+      label: "Viewer",
+      icon: <Users className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalPenontonDb),
+      cur: totalPenontonDb,
+      prev: pTotalPenontonDb,
+    },
+    {
+      label: "Likes",
+      icon: <Heart className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalLikesDb),
+      cur: totalLikesDb,
+      prev: pTotalLikesDb,
+    },
+    {
+      label: "Comments",
+      icon: <MessageCircle className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalCommentsDb),
+      cur: totalCommentsDb,
+      prev: pTotalCommentsDb,
+    },
+    {
+      label: "Shares",
+      icon: <Share2 className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalSharesDb),
+      cur: totalSharesDb,
+      prev: pTotalSharesDb,
+    },
+    {
+      label: "New followers",
+      icon: <UserPlus className="w-3 h-3 text-slate-500" />,
+      value: formatNumber(totalFollowersDb),
+      cur: totalFollowersDb,
+      prev: pTotalFollowersDb,
+    },
+    {
+      label: "Avg. View Duration",
+      icon: <TrendingUp className="w-3 h-3 text-slate-500" />,
+      value: `${avgViewDurationDb.toFixed(1)}s`,
+      cur: avgViewDurationDb,
+      prev: pAvgViewDurationDb,
+    },
+    {
+      label: "ERR %",
+      icon: <Activity className="w-3 h-3 text-slate-500" />,
+      value: `${errCur.toFixed(2)}%`,
+      cur: errCur,
+      prev: pErrCur,
+    },
+  ];
+
+  const activeEngagementMetrics = isShopee ? engagementMetricsShopee : engagementMetricsDefault;
 
   return (
     <div className="md:hidden px-4 pb-6 space-y-4 animate-fadeIn">
@@ -224,7 +294,7 @@ export function MobileLiveMetricsPanel({ stats, isShopee }: MobileLiveMetricsPan
           <h3 className="text-sm font-bold text-slate-900">Engagement Metrics</h3>
         </div>
         <div className="grid grid-cols-4 gap-2">
-          {engagementMetrics.map((metric, idx) => {
+          {activeEngagementMetrics.map((metric, idx) => {
             const { text: changeText, isPositive } = formatPercentage(metric.cur, metric.prev);
             return (
               <div
