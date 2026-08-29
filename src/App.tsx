@@ -11718,6 +11718,13 @@ export default function App() {
                                 setOperatorCustomEndDate(end);
                                 setIsOperatorCalendarOpen(false);
                               }}
+                              onDeleteAllBrandRawData={(brandId, brandName, platform) => {
+                                handleDeleteAllBrandRawData(brandId, brandName, "all", platform);
+                              }}
+                              onDeleteBrandDataByDateRange={(brandId, brandName) => {
+                                setDeleteByDateTargetBrand({ id: brandId, name: brandName });
+                                setIsDeleteByDateModalOpen(true);
+                              }}
                               onCancelCustom={() =>
                                 setIsOperatorCalendarOpen(false)
                               }
