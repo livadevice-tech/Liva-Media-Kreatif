@@ -300,17 +300,21 @@ function AnalysisCard({
             </span>
           </div>
           
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm font-semibold text-slate-700">
-            <div className="flex flex-wrap items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm gap-2">
-              <div className="flex items-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] mr-2"></div>
-                <span>Data 1 : {formatDateStr(analysis.period_a_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_a_end)}</span>
+          {/* Periode: grid 2-col on mobile, inline on desktop */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-row sm:items-center gap-2 sm:gap-3 text-xs sm:text-sm font-semibold text-slate-700">
+            <div className="flex flex-col bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm gap-1">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shrink-0"></div>
+                <span className="font-bold text-slate-600 text-[11px] sm:text-xs">Data 1 :</span>
               </div>
-              <span className="text-slate-400 text-xs font-bold uppercase mx-1">Vs</span>
-              <div className="flex items-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] mr-2"></div>
-                <span>Data 2 : {formatDateStr(analysis.period_b_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_b_end)}</span>
+              <span className="text-slate-700 pl-4 text-[11px] sm:text-xs">{formatDateStr(analysis.period_a_start)}<span className="text-slate-400 mx-0.5">-</span>{formatDateStr(analysis.period_a_end)}</span>
+            </div>
+            <div className="flex flex-col bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm gap-1">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] shrink-0"></div>
+                <span className="font-bold text-slate-600 text-[11px] sm:text-xs">Data 2 :</span>
               </div>
+              <span className="text-slate-700 pl-4 text-[11px] sm:text-xs">{formatDateStr(analysis.period_b_start)}<span className="text-slate-400 mx-0.5">-</span>{formatDateStr(analysis.period_b_end)}</span>
             </div>
           </div>
         </div>
@@ -336,7 +340,9 @@ function AnalysisCard({
       </div>
       
       {/* Card Body */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
+        {/* Metriks label - mobile only */}
+        <p className="sm:hidden text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Metriks</p>
         {/* Summary Scorecards (Acts as Metric Tabs) */}
         {summaryData && summaryData.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
@@ -387,10 +393,50 @@ function AnalysisCard({
         )}
 
         {/* Line Chart */}
-        <div className="flex flex-col gap-6 mb-8">
+        <div className="flex flex-col gap-4 sm:gap-6 mb-4 sm:mb-8">
           {chartData.length > 0 ? (
             <>
-              <div className="h-[300px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
+              {/* MOBILE: single combined chart with both data lines */}
+              <div className="sm:hidden w-full border border-slate-100 rounded-xl p-3 bg-white shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-bold text-slate-800">
+                    {summaryData.find(s => s?.metricId === activeMetric)?.label || activeMetric}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-blue-600">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>Data 1
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>Data 2
+                    </span>
+                  </div>
+                </div>
+                <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => activeMetric === 'gmv' ? `${(v/1000000).toFixed(1)}M` : String(v)} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2 }} />
+                      <Line type="monotone" dataKey="Data 1" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} />
+                      <Line type="monotone" dataKey="Data 2" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Legend bottom */}
+                <div className="flex items-center gap-4 mt-2 pt-2 border-t border-slate-100">
+                  <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+                    Data 1: {formatDateStr(analysis.period_a_start)} s/d {formatDateStr(analysis.period_a_end)}
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                    Data 2: {formatDateStr(analysis.period_b_start)} s/d {formatDateStr(analysis.period_b_end)}
+                  </span>
+                </div>
+              </div>
+              {/* DESKTOP: two separate charts */}
+              <div className="hidden sm:block h-[300px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
                 <div className="flex items-center mb-4">
                   <div className="w-3 h-3 rounded-full bg-[#3b82f6] mr-2"></div>
                   <h4 className="text-sm font-bold text-slate-700">Data 1 ({formatDateStr(analysis.period_a_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_a_end)})</h4>
@@ -412,8 +458,7 @@ function AnalysisCard({
                   </ResponsiveContainer>
                 </div>
               </div>
-
-              <div className="h-[300px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
+              <div className="hidden sm:block h-[300px] w-full border border-slate-100 rounded-xl p-5 bg-white shadow-sm ring-1 ring-slate-900/5">
                 <div className="flex items-center mb-4">
                   <div className="w-3 h-3 rounded-full bg-[#10b981] mr-2"></div>
                   <h4 className="text-sm font-bold text-slate-700">Data 2 ({formatDateStr(analysis.period_b_start)} <span className="font-normal text-slate-400 mx-1">s/d</span> {formatDateStr(analysis.period_b_end)})</h4>
@@ -618,10 +663,10 @@ export default function AnalysisPerformanceTab({ brandId, logs, isClientView }: 
   const activeAnalysis = analyses.find(a => a.id === selectedAnalysisId);
 
   return (
-    <div className="space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
+    <div className="space-y-4 sm:space-y-6 px-4 pb-8 sm:px-8 animate-fadeIn">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border-b sm:border border-slate-100 sm:border-slate-200 shadow-sm sm:shadow-sm">
+        <div className="hidden sm:block">
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-indigo-600" />
             Analisis Performa
@@ -636,10 +681,11 @@ export default function AnalysisPerformanceTab({ brandId, logs, isClientView }: 
               setEditingAnalysis(undefined);
               setIsModalOpen(true);
             }}
-            className="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium text-sm shadow-sm shadow-indigo-600/20 active:scale-[0.98] whitespace-nowrap"
+            className="inline-flex items-center justify-center px-4 py-2 sm:px-5 sm:py-2.5 bg-indigo-600 text-white rounded-full sm:rounded-xl hover:bg-indigo-700 transition-all font-medium text-xs sm:text-sm shadow-sm shadow-indigo-600/20 active:scale-[0.98] w-fit"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Buat Analisis Baru
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            <span className="sm:hidden">Tambah Analysis</span>
+            <span className="hidden sm:inline">Buat Analisis Baru</span>
           </button>
         )}
       </div>
@@ -672,24 +718,22 @@ export default function AnalysisPerformanceTab({ brandId, logs, isClientView }: 
           )}
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Analysis Selector Dropdown */}
-          {analyses.length > 1 && (
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 relative z-20">
-              <span className="text-sm font-bold text-slate-700 whitespace-nowrap">Lihat Analisis:</span>
-              <select
-                value={selectedAnalysisId || ''}
-                onChange={(e) => setSelectedAnalysisId(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 font-medium cursor-pointer"
-              >
-                {analyses.map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.name ? `${a.name} - ` : ''}{a.platform} ({formatDateStr(a.period_a_start)} s/d {formatDateStr(a.period_a_end)} VS {formatDateStr(a.period_b_start)} s/d {formatDateStr(a.period_b_end)})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="bg-white p-0 sm:p-4 rounded-xl sm:border border-slate-200 sm:shadow-sm flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 relative z-20">
+            <span className="text-sm font-bold text-slate-700 whitespace-nowrap">Lihat Analisis</span>
+            <select
+              value={selectedAnalysisId || ''}
+              onChange={(e) => setSelectedAnalysisId(e.target.value)}
+              className="w-full bg-white sm:bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 font-medium cursor-pointer"
+            >
+              {analyses.map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.name ? `${a.name}` : `${a.platform} (${formatDateStr(a.period_a_start)} vs ${formatDateStr(a.period_b_start)})`}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {activeAnalysis && (
             <AnalysisCard

@@ -652,8 +652,9 @@ export function ReportingWorkspaceTabs({
         <button
           type="button"
           onClick={() => onTabChange("analysis")}
-          className={`${tabClass("analysis")} hidden md:inline-block`}
+          className={`${tabClass("analysis")}`}
         >
+          <span className="md:hidden">Analysis</span>
           <span className="hidden md:inline">Analysis Performance</span>
         </button>
       )}
