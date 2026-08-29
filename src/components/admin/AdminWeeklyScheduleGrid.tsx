@@ -163,10 +163,18 @@ export function AdminWeeklyScheduleGrid({
       }
     });
 
-    return Array.from(groupsMap.entries()).map(([location, studiosData]) => ({
-      location,
-      studios: studiosData
-    }));
+    // Natural sort helper: handles names like "Studio A1", "Studio A2", "Studio B10"
+    const naturalSort = (a: string, b: string) =>
+      a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' });
+
+    const sorted = Array.from(groupsMap.entries())
+      .sort(([locA], [locB]) => naturalSort(locA, locB))
+      .map(([location, studiosData]) => ({
+        location,
+        studios: [...studiosData].sort((a, b) => naturalSort(a.name, b.name))
+      }));
+
+    return sorted;
   }, [studios, computedSchedules, weekDays, addedShifts]);
 
 
@@ -458,9 +466,9 @@ export function AdminWeeklyScheduleGrid({
                                        b.sessions?.some(s => s.host?.trim().toLowerCase() === sched.hostName?.trim().toLowerCase())
                                 );
                                 
-                                const cardBg = isNotRegularHost ? 'bg-slate-200' : brandColor.bg;
-                                const cardBorder = brandColor.border;
-                                const cardText = brandColor.text;
+                                const cardBg = isNotRegularHost ? 'bg-red-50' : brandColor.bg;
+                                const cardBorder = isNotRegularHost ? 'border-pink-400' : brandColor.border;
+                                const cardText = isNotRegularHost ? brandColor.text : brandColor.text;
 
                                 return (
                                   <div 
