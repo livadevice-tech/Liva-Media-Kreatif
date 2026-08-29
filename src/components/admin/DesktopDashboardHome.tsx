@@ -86,7 +86,10 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
       {/* 4 KPI CARDS */}
       <div className="grid grid-cols-4 gap-6 mb-6 px-2">
         {/* Card 1 */}
-        <div className="bg-white rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col justify-between">
+        <div 
+          onClick={() => onNavigate && onNavigate("credentials")}
+          className="bg-white rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col justify-between cursor-pointer hover:border-slate-300 hover:shadow-md transition-all active:scale-95"
+        >
           <h3 className="text-[13px] font-bold text-slate-500 mb-4">Total Host Aktif</h3>
           <div className="flex justify-between items-end">
             <div>
@@ -100,7 +103,10 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
         </div>
 
         {/* Card 2 */}
-        <div className="bg-white rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col justify-between">
+        <div 
+          onClick={() => onNavigate && onNavigate("data_brand")}
+          className="bg-white rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col justify-between cursor-pointer hover:border-slate-300 hover:shadow-md transition-all active:scale-95"
+        >
           <h3 className="text-[13px] font-bold text-slate-500 mb-4">Total Brand</h3>
           <div className="flex justify-between items-end">
             <div>
@@ -114,7 +120,10 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
         </div>
 
         {/* Card 3 */}
-        <div className="bg-white rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col justify-between">
+        <div 
+          onClick={() => onNavigate && onNavigate("database")}
+          className="bg-white rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col justify-between cursor-pointer hover:border-slate-300 hover:shadow-md transition-all active:scale-95"
+        >
           <h3 className="text-[13px] font-bold text-slate-500 mb-4">Sesi Hari Ini</h3>
           <div className="flex justify-between items-end">
             <div>
@@ -128,7 +137,10 @@ export const DesktopDashboardHome: React.FC<DesktopDashboardHomeProps> = ({
         </div>
 
         {/* Card 4 */}
-        <div className="bg-white rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col justify-between">
+        <div 
+          onClick={() => onNavigate && onNavigate("settings")}
+          className="bg-white rounded-[24px] p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col justify-between cursor-pointer hover:border-slate-300 hover:shadow-md transition-all active:scale-95"
+        >
           <h3 className="text-[13px] font-bold text-slate-500 mb-4">Total Studio</h3>
           <div className="flex justify-between items-end">
             <div>

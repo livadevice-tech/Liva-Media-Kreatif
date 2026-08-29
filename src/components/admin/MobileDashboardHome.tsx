@@ -77,7 +77,10 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
 
         <div className="grid grid-cols-2 gap-4">
           {/* Card 1: Total Host (Purple) */}
-          <div className="bg-[#f2edfb] rounded-[20px] p-5 relative overflow-hidden flex flex-col justify-between aspect-[1.25]">
+          <div 
+            onClick={() => onNavigate && onNavigate("credentials")}
+            className="bg-[#f2edfb] rounded-[20px] p-5 relative overflow-hidden flex flex-col justify-between aspect-[1.25] cursor-pointer active:scale-95 transition-all"
+          >
             <div className="flex justify-between items-start w-full">
               <span className="text-3xl font-black text-slate-800">{hosts.length}</span>
               <SparklineSVG color="#a881e6" />
@@ -89,7 +92,10 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
           </div>
 
           {/* Card 2: Total Brand (Orange) */}
-          <div className="bg-[#fcedeb] rounded-[20px] p-5 relative overflow-hidden flex flex-col justify-between aspect-[1.25]">
+          <div 
+            onClick={() => onNavigate && onNavigate("data_brand")}
+            className="bg-[#fcedeb] rounded-[20px] p-5 relative overflow-hidden flex flex-col justify-between aspect-[1.25] cursor-pointer active:scale-95 transition-all"
+          >
             <div className="flex justify-between items-start w-full">
               <span className="text-3xl font-black text-slate-800">{activeBrands.length}</span>
               <SparklineSVG color="#f0967a" />
@@ -101,7 +107,10 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
           </div>
 
           {/* Card 3: Sesi Hari Ini (Blue) */}
-          <div className="bg-[#ebf4fa] rounded-[20px] p-5 relative overflow-hidden flex flex-col justify-between aspect-[1.25]">
+          <div 
+            onClick={() => onNavigate && onNavigate("database")}
+            className="bg-[#ebf4fa] rounded-[20px] p-5 relative overflow-hidden flex flex-col justify-between aspect-[1.25] cursor-pointer active:scale-95 transition-all"
+          >
             <div className="flex justify-between items-start w-full">
               <span className="text-3xl font-black text-slate-800">{todaySessions.length}</span>
               <SparklineSVG color="#79b6e8" />
@@ -113,7 +122,10 @@ export const MobileDashboardHome: React.FC<MobileDashboardHomeProps> = ({
           </div>
 
           {/* Card 4: Total Studio (Green) */}
-          <div className="bg-[#ebf5ef] rounded-[20px] p-5 relative overflow-hidden flex flex-col justify-between aspect-[1.25]">
+          <div 
+            onClick={() => onNavigate && onNavigate("settings")}
+            className="bg-[#ebf5ef] rounded-[20px] p-5 relative overflow-hidden flex flex-col justify-between aspect-[1.25] cursor-pointer active:scale-95 transition-all"
+          >
             <div className="flex justify-between items-start w-full">
               <span className="text-3xl font-black text-slate-800">{studios.length}</span>
               <SparklineSVG color="#62c286" />
