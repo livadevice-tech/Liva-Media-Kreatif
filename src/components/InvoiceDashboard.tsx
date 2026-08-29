@@ -947,7 +947,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
       )}
 
       {activeTab === "create" && (
-        <div className="mt-4 md:mt-0 w-full max-w-[100vw] overflow-x-hidden">
+        <div className="mt-4 md:mt-0 w-full">
           <InvoiceCreatePanel
           clientBrands={clientBrands}
           selectedBrandId={selectedBrandId}
