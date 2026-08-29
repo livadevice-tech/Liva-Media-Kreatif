@@ -8197,18 +8197,6 @@ export default function App() {
                     <div className="md:hidden px-4 mb-4 mt-2">
                        {/* MOBILE TOP CONTROLS (Settings, Search, Date Range, Summary) */}
                        <div className="space-y-3">
-                         {/* Setting Payroll Config Button */}
-                         <button onClick={() => setIsPayrollConfigOpen(!isPayrollConfigOpen)} className="w-full flex items-center p-3 bg-white hover:bg-slate-50 rounded-xl transition-colors border border-slate-200 shadow-sm">
-                            <div className="w-10 h-10 bg-[#f7f5ff] rounded-[12px] flex items-center justify-center shrink-0 mr-3 shadow-3xs">
-                               <Settings className="w-5 h-5 text-[#6B46FF]" />
-                            </div>
-                            <div className="flex-1 text-left min-w-0">
-                               <div className="font-bold text-slate-900 text-sm leading-tight truncate">Setting Payroll Configuration</div>
-                               <div className="text-[10px] text-slate-500 truncate mt-0.5">Atur parameter dan komponen perhitungan gaji</div>
-                            </div>
-                            <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform shrink-0 ml-2 ${isPayrollConfigOpen ? 'rotate-180' : ''}`} />
-                         </button>
-
                          {/* Mobile Search Box */}
                          <div className="relative w-full">
                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B46FF] w-4 h-4" />
