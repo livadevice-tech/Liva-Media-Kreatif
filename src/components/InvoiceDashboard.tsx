@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { FileText, Plus, Trash2, X, Edit2, Download, Mail, ChevronLeft, Calendar, ChevronDown } from 'lucide-react';
+import { FileText, Plus, Trash2, X, Edit2, Download, Mail, ChevronLeft, Calendar, ChevronDown, Search } from 'lucide-react';
 import { ClientBrand, BrandInvoice } from '../types';
 import { InvoiceTable } from './InvoiceTable';
 import { InvoiceCreatePanel } from './invoice/InvoiceCreatePanel';
@@ -626,7 +626,20 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
     return `${months[parseInt(m) - 1]} ${y}`;
   };
 
-  const mobileInvoices = allInvoices; // already filtered by filterMonth
+  const mobileInvoices = useMemo(() => {
+    let filtered = allInvoices;
+    if (searchQuery) {
+      const lower = searchQuery.toLowerCase();
+      filtered = filtered.filter(i => 
+        (i.invoiceNumber?.toLowerCase().includes(lower)) ||
+        (i.ptName?.toLowerCase().includes(lower)) ||
+        (i.brandName?.toLowerCase().includes(lower)) ||
+        (i.picName?.toLowerCase().includes(lower))
+      );
+    }
+    return filtered;
+  }, [allInvoices, searchQuery]);
+
   const totalInvoice  = mobileInvoices.length;
   const terkirim      = mobileInvoices.filter(i => i.status === 'Terkirim' || i.status === 'Open Invoice').length;
   const draft         = mobileInvoices.filter(i => i.status === 'Draft').length;
@@ -667,8 +680,8 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
               </button>
             </div>
 
-            {/* Filter Bulan */}
-            <div className="px-4 py-2 bg-white">
+            {/* Filter Bulan dan Search */}
+            <div className="px-4 py-2 bg-white flex flex-col gap-3">
               <div className="relative flex items-center justify-between bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-3 w-full shadow-sm cursor-pointer">
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-slate-500" />
@@ -688,6 +701,17 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
                     return <option key={val} value={val}>{getMonthLabel(val)}</option>;
                   })}
                 </select>
+              </div>
+
+              <div className="relative w-full">
+                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Cari No Invoice, Klien, PIC..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-[13px] font-medium text-slate-700 placeholder-slate-400 shadow-sm focus:outline-none focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-all"
+                />
               </div>
             </div>
 

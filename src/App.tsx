@@ -12217,22 +12217,6 @@ export default function App() {
                     className="space-y-6 animate-fadeIn font-sans"
                     id="operator_settings_content"
                   >
-                    {/* Intro/Header Banner */}
-                    <div className="bg-gradient-to-r from-purple-50 to-white p-6 rounded-2xl border border-purple-100 shadow-2xs">
-                      <div className="flex items-center gap-2.5 text-purple-800 font-extrabold text-sm mb-1.5">
-                        <Sliders className="w-5 h-5 text-purple-600" />
-                        PENGATURAN METADATA STRUKTUR AGENCY (LIVE AGENT SYSTEM)
-                      </div>
-                      <p className="text-xs text-purple-600 leading-relaxed font-semibold">
-                        Kelola data-data pendukung operational streaming secara
-                        dinamis. Anda dapat menambah, mengedit, atau menghapus
-                        nama platform marketplace/media sosial, nama brand klien
-                        Agency, daftar jam kerja shift (roster silang), serta
-                        cabang lokasi & nama studio yang langsung terintegrasi
-                        ke seluruh formulir absensi host.
-                      </p>
-                    </div>
-
                     <SettingsMetadataPanels
                       agencyLogoUrl={agencyLogoUrl}
                       setAgencyLogoUrl={setAgencyLogoUrl}

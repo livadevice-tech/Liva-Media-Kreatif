@@ -134,7 +134,7 @@ export function SettingsMetadataPanels({
 }: SettingsMetadataPanelsProps) {
   return (
     <>
-      <div className="bg-gradient-to-r from-purple-50 to-white p-6 rounded-2xl border border-purple-100 shadow-2xs">
+      <div className="hidden md:block bg-gradient-to-r from-purple-50 to-white p-6 rounded-2xl border border-purple-100 shadow-2xs">
         <div className="flex items-center gap-2.5 text-purple-800 font-extrabold text-sm mb-1.5">
           <Sliders className="w-5 h-5 text-purple-600" />
           PENGATURAN METADATA STRUKTUR AGENCY (LIVE AGENT SYSTEM)
