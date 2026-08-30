@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
   CheckCircle2, AlertTriangle, ChevronDown, Clock,
-  Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2
+  Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -336,6 +336,103 @@ export default function HostDashboard({
   const getBrandColor = (brand: string) => {
     const idx = uniqueBrands.indexOf(brand);
     return brandColors[idx % brandColors.length];
+  };
+
+  const kalenderStats = useMemo(() => {
+    let hadir = 0;
+    let telat = 0;
+    let tidakHadir = 0;
+    const now = new Date();
+    
+    // Filter by viewed month
+    const monthLogs = (hostLogs || []).filter(log => {
+      const d = new Date(log.date);
+      return d.getMonth() === hostCalendarMonth && d.getFullYear() === hostCalendarYear;
+    });
+
+    const monthSchedules = hostSchedules.filter(s => {
+      const d = new Date(s.date);
+      return d.getMonth() === hostCalendarMonth && d.getFullYear() === hostCalendarYear;
+    });
+
+    monthLogs.forEach(log => {
+      if (log.status === 'Present') hadir++;
+      else if (log.status === 'Late') telat++;
+      else if (log.status === 'Absent') tidakHadir++;
+    });
+
+    // Also count schedules in the past that have no log as "Tidak Hadir"
+    monthSchedules.forEach(s => {
+      const sDate = new Date(s.date);
+      sDate.setHours(23, 59, 59, 999);
+      if (sDate < now) {
+        const hasLog = monthLogs.some(l => l.date === s.date);
+        if (!hasLog) tidakHadir++;
+      }
+    });
+
+    return { hadir, telat, tidakHadir };
+  }, [hostLogs, hostSchedules, hostCalendarMonth, hostCalendarYear]);
+
+  const renderFullCalendarDays = () => {
+    const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
+    const firstDay = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
+    const days = [];
+    
+    // Previous month empty days
+    const prevMonthDays = new Date(hostCalendarYear, hostCalendarMonth, 0).getDate();
+    for (let i = 0; i < firstDay; i++) {
+      days.push(
+        <div key={`empty-prev-${i}`} className="w-10 h-10 flex items-center justify-center text-slate-300 font-medium text-sm">
+          {prevMonthDays - firstDay + i + 1}
+        </div>
+      );
+    }
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${hostCalendarYear}-${String(hostCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isSelected = selectedDate === dateStr;
+      const schedule = hostSchedules.find(s => s.date === dateStr);
+      const log = (hostLogs || []).find(l => l.date === dateStr);
+      
+      let dotColor = null;
+      if (log?.status === 'Present') dotColor = 'bg-emerald-500';
+      else if (log?.status === 'Late') dotColor = 'bg-amber-500';
+      else if (schedule) dotColor = 'bg-indigo-500';
+
+      days.push(
+        <div key={`day-${day}`} className="flex flex-col items-center justify-center relative w-10 h-11">
+          <button 
+            onClick={() => setSelectedDate(dateStr)}
+            className={`w-9 h-9 rounded-full flex items-center justify-center text-[15px] font-bold transition-all z-10 ${
+              isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 'text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            {day}
+          </button>
+          {dotColor && (
+            <div className={`absolute bottom-0 w-1.5 h-1.5 rounded-full ${dotColor} ${isSelected ? 'opacity-0' : ''}`} />
+          )}
+          {isSelected && dotColor && (
+             <div className={`absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white z-20`} />
+          )}
+        </div>
+      );
+    }
+    
+    // Next month empty days
+    const totalSlots = days.length;
+    const remainingSlots = 42 - totalSlots; // 6 rows of 7
+    for (let i = 1; i <= remainingSlots; i++) {
+      if (days.length % 7 === 0 && remainingSlots < 7 && i > 1) break; // Don't add an empty 6th row
+      days.push(
+        <div key={`empty-next-${i}`} className="w-10 h-11 flex items-center justify-center text-slate-300 font-medium text-sm">
+          {i}
+        </div>
+      );
+    }
+    
+    return days;
   };
 
   const renderCalendarDays = () => {
@@ -698,6 +795,190 @@ export default function HostDashboard({
           </div>
         </div>
       </div>
+      )}
+
+      {/* Konten Kalender / Jadwal */}
+      {activeTab === 'kalender' && (
+        <div className="mt-2 animate-fadeIn pb-24 px-1">
+          <h2 className="text-[17px] font-black text-slate-800 mb-4 ml-1">Rekap Attendance</h2>
+          
+          {/* Summary Cards */}
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-between h-[100px]">
+              <div className="flex items-center gap-2 z-10">
+                <div className="w-7 h-7 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm shadow-indigo-500/20">
+                  <CalendarIcon className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-[10px] font-semibold text-slate-600 leading-tight">Kehadiran</span>
+              </div>
+              <div className="z-10 mt-2">
+                <div className="text-3xl font-black text-indigo-600 leading-none">{kalenderStats.hadir}</div>
+                <div className="text-[10px] text-slate-400 font-medium mt-1">Hari</div>
+              </div>
+              <CalendarIcon className="absolute -bottom-3 -right-3 w-16 h-16 text-indigo-50/60 rotate-[-15deg] pointer-events-none" strokeWidth={1} />
+            </div>
+            
+            <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-between h-[100px]">
+              <div className="flex items-center gap-2 z-10">
+                <div className="w-7 h-7 rounded-xl bg-fuchsia-500 flex items-center justify-center shrink-0 shadow-sm shadow-fuchsia-500/20">
+                  <X className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-[10px] font-semibold text-slate-600 leading-tight">Tidak Hadir</span>
+              </div>
+              <div className="z-10 mt-2">
+                <div className="text-3xl font-black text-fuchsia-500 leading-none">{kalenderStats.tidakHadir}</div>
+                <div className="text-[10px] text-slate-400 font-medium mt-1">Hari</div>
+              </div>
+              <X className="absolute -bottom-3 -right-3 w-16 h-16 text-fuchsia-50/60 rotate-[-15deg] pointer-events-none" strokeWidth={1} />
+            </div>
+
+            <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-between h-[100px]">
+              <div className="flex items-center gap-2 z-10">
+                <div className="w-7 h-7 rounded-xl bg-amber-400 flex items-center justify-center shrink-0 shadow-sm shadow-amber-400/20">
+                  <Clock className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-[10px] font-semibold text-slate-600 leading-tight">Telat</span>
+              </div>
+              <div className="z-10 mt-2">
+                <div className="text-3xl font-black text-amber-500 leading-none">{kalenderStats.telat}</div>
+                <div className="text-[10px] text-slate-400 font-medium mt-1">Hari</div>
+              </div>
+              <Clock className="absolute -bottom-3 -right-3 w-16 h-16 text-amber-50/60 rotate-[-15deg] pointer-events-none" strokeWidth={1} />
+            </div>
+          </div>
+
+          {/* Kalender Card */}
+          <div className="bg-white rounded-3xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 mb-5 relative">
+            <h3 className="text-[15px] font-bold text-slate-800 mb-5">Kalender Absensi</h3>
+            
+            <div className="flex items-center justify-between mb-6">
+              <button onClick={handlePrevMonth} className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-indigo-600 hover:bg-slate-50 transition-colors">
+                <ChevronLeft size={16} strokeWidth={2.5} />
+              </button>
+              <span className="font-bold text-[15px] text-slate-800">
+                {new Date(hostCalendarYear, hostCalendarMonth).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+              </span>
+              <div className="flex items-center gap-2">
+                <button onClick={handleNextMonth} className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-indigo-600 hover:bg-slate-50 transition-colors">
+                  <ChevronRight size={16} strokeWidth={2.5} />
+                </button>
+                <button 
+                  onClick={() => {
+                    const today = new Date();
+                    setHostCalendarMonth(today.getMonth());
+                    setHostCalendarYear(today.getFullYear());
+                    setSelectedDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
+                  }} 
+                  className="px-3 py-1.5 rounded-full border border-indigo-100 bg-indigo-50/50 text-[11px] font-bold text-indigo-600 hover:bg-indigo-50 transition-colors"
+                >
+                  Hari Ini
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-7 gap-y-3 justify-items-center mb-6">
+              {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((day, idx) => (
+                <div key={day} className="text-[11px] font-medium text-slate-400 w-10 text-center mb-2">{day}</div>
+              ))}
+              {renderFullCalendarDays()}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-5 pt-4 border-t border-slate-100/80">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[10px] font-medium text-slate-500">Hadir</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span className="text-[10px] font-medium text-slate-500">Telat</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                <span className="text-[10px] font-medium text-slate-500">Jadwal / Aktif</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Jadwal Berikutnya Card */}
+          {(() => {
+            const todayStr = (() => {
+              const d = new Date();
+              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            })();
+            const isToday = selectedDate === todayStr;
+            const isPast = selectedDate < todayStr;
+            const selectedSchedule = hostSchedules.find(s => s.date === selectedDate);
+            const selectedDateObj = new Date(selectedDate);
+            const dateLabel = isToday ? 'Hari Ini' : (new Date(selectedDateObj.getTime() - 86400000).toISOString().split('T')[0] === todayStr ? 'Besok' : '');
+            const dateFormatted = selectedDateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+            
+            if (!selectedSchedule) {
+              return (
+                <div className="bg-indigo-50/40 rounded-3xl p-5 border border-indigo-100 text-center py-8">
+                   <CalendarIcon className="w-10 h-10 text-indigo-200 mx-auto mb-2" />
+                   <div className="font-bold text-slate-600 text-sm">Tidak Ada Jadwal</div>
+                   <div className="text-[11px] text-slate-500 mt-1">{dateFormatted}</div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="bg-[#f5f7fa] rounded-3xl p-4 border border-indigo-50 shadow-sm relative">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-indigo-100/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-500/20">
+                      <CalendarIcon className="w-4.5 h-4.5" strokeWidth={2.5} />
+                    </div>
+                    <div className="font-bold text-slate-800 text-[15px]">{isPast ? 'Detail Jadwal' : 'Jadwal Berikutnya'}</div>
+                  </div>
+                  <div className="bg-indigo-100/60 px-3 py-1.5 rounded-full">
+                    <span className="text-[9px] font-bold text-indigo-600">{dateLabel ? `${dateLabel} • ` : ''}{dateFormatted}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0 mt-0.5">
+                      <Home className="w-3.5 h-3.5 text-indigo-400" />
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wide">Brand</div>
+                      <div className="font-bold text-sm text-slate-800 leading-tight">{selectedSchedule.brandHandled || selectedSchedule.brand}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0 mt-0.5">
+                      <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wide">Shift</div>
+                      <div className="font-bold text-sm text-slate-800 leading-tight max-w-[80px] truncate">{selectedSchedule.timeSlot || selectedSchedule.shift}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0 mt-0.5">
+                      <MapPin className="w-3.5 h-3.5 text-indigo-400" />
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wide">Studio</div>
+                      <div className="font-bold text-sm text-slate-800 leading-tight">{selectedSchedule.studio}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <button className="bg-indigo-600 text-white rounded-full px-5 py-2.5 text-[11px] font-bold flex items-center gap-1.5 hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20">
+                    Lihat Detail <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+        </div>
       )}
 
       {/* Mobile Bottom Navigation */}
