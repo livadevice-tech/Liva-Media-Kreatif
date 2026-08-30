@@ -647,7 +647,8 @@ export default function HostDashboard({
                    </div>
                    <div className="flex-1">
                      <div className="font-bold text-slate-800 text-sm mb-0.5">{log.brand}</div>
-                     <div className="text-[11px] text-slate-500 font-medium">{log.shift}</div>
+                     <div className="text-[11px] text-slate-500 font-medium mb-0.5">{log.shift}</div>
+                     <div className="text-[10px] text-slate-400 font-medium">{new Date(log.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                    </div>
                    <div className="text-right flex flex-col items-end">
                      <div className={`text-[9px] font-bold px-2 py-0.5 rounded-full mb-1 ${
