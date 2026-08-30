@@ -646,9 +646,24 @@ export default function HostDashboard({
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-800 text-[15px]">History Kehadiran</h3>
-            <button className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-600 flex items-center gap-1.5 shadow-sm hover:bg-slate-50 transition-colors">
-              <Filter size={14} /> Filter
-            </button>
+            <div className="relative">
+              <select
+                value={hostCutoffPeriod}
+                onChange={(e) => setHostCutoffPeriod(e.target.value)}
+                className="appearance-none bg-white border border-slate-200 rounded-xl pl-8 pr-8 py-1.5 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="Semua">Semua Waktu</option>
+                {availableCutoffMonths.map((period) => (
+                  <option key={period} value={period}>
+                    {formatCutoffPeriodOptionLabel(period)}
+                  </option>
+                ))}
+              </select>
+              <Filter size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronRight size={12} className="text-slate-400 rotate-90" />
+              </div>
+            </div>
           </div>
           
           <div className="space-y-3 pb-8">
