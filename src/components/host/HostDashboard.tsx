@@ -6,7 +6,20 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
+import { getCutoffMonthForDate } from '../../shared/utils/appUi';
 import { activityLogsApi } from '../../api';
+
+const formatShortCutoff = (period: string) => {
+  if (period === 'Semua') return 'Semua Waktu';
+  const [yrStr, moStr] = period.split('-');
+  const yr = Number(yrStr);
+  const m = Number(moStr);
+  if (!yr || !m) return period;
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sept', 'Okt', 'Nov', 'Des'];
+  let prevM = m - 1;
+  if (prevM === 0) prevM = 12;
+  return `16 ${monthNames[prevM - 1]} - 15 ${monthNames[m - 1]} ${yr}`;
+};
 
 
 function CustomSelect({ value, options, onChange, placeholder, error }: any) {
@@ -342,17 +355,10 @@ export default function HostDashboard({
     let hadir = 0;
     let telat = 0;
     let tidakHadir = 0;
-    const now = new Date();
-    
-    // Filter by viewed month
+    // Filter by cutoff period
     const monthLogs = (hostLogs || []).filter(log => {
-      const d = new Date(log.date);
-      return d.getMonth() === hostCalendarMonth && d.getFullYear() === hostCalendarYear;
-    });
-
-    const monthSchedules = hostSchedules.filter(s => {
-      const d = new Date(s.date);
-      return d.getMonth() === hostCalendarMonth && d.getFullYear() === hostCalendarYear;
+      if (hostCutoffPeriod === 'Semua') return true;
+      return getCutoffMonthForDate(log.date) === hostCutoffPeriod;
     });
 
     monthLogs.forEach(log => {
@@ -362,7 +368,7 @@ export default function HostDashboard({
     });
 
     return { hadir, telat, tidakHadir };
-  }, [hostLogs, hostSchedules, hostCalendarMonth, hostCalendarYear]);
+  }, [hostLogs, hostCutoffPeriod]);
 
   const renderFullCalendarDays = () => {
     const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
@@ -797,7 +803,32 @@ export default function HostDashboard({
       {/* Konten Kalender / Jadwal */}
       {activeTab === 'kalender' && (
         <div className="mt-2 animate-fadeIn pb-24 px-1">
-          <h2 className="text-[17px] font-black text-slate-800 mb-4 ml-1">Rekap Attendance</h2>
+          <div className="flex items-center justify-between mb-4 ml-1">
+            <h2 className="text-[17px] font-black text-slate-800">Rekap Attendance</h2>
+            <div className="relative inline-block">
+              {/* Custom UI for Dropdown */}
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-1.5 shadow-sm pointer-events-none">
+                <Filter size={12} className="text-slate-400 shrink-0" />
+                <span className="text-[11px] font-bold text-slate-600 truncate max-w-[150px]">
+                  {formatShortCutoff(hostCutoffPeriod)}
+                </span>
+                <ChevronDown size={12} className="text-slate-400 shrink-0 ml-0.5" />
+              </div>
+
+              {/* Invisible Native Select */}
+              <select
+                value={hostCutoffPeriod}
+                onChange={(e) => setHostCutoffPeriod(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none"
+              >
+                {availableCutoffMonths.map((period) => (
+                  <option key={period} value={period}>
+                    {formatShortCutoff(period)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           
           {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-2 mb-6">
