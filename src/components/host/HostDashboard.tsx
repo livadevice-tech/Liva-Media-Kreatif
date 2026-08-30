@@ -403,6 +403,9 @@ export default function HostDashboard({
   const hasCheckedInToday = hostLogs?.some(
     (log) => log.hostId === activeHostObj?.id && log.date === todayStr
   );
+  const hasCheckedInSelectedDate = hostLogs?.some(
+    (log) => log.hostId === activeHostObj?.id && log.date === selectedDate
+  );
 
   // Check schedule for today and tomorrow
   const tomorrow = new Date();
@@ -602,16 +605,12 @@ export default function HostDashboard({
               </div>
               
               <div className="flex items-center justify-between">
-                {upcomingDateStr === todayStr ? (
-                  <button 
-                    onClick={() => setIsAbsenModalOpen(true)}
-                    className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
-                  >
-                    <Clock size={16} className="text-blue-500" /> {hasCheckedInToday ? 'Sudah Absen' : 'Belum Absen'}
-                  </button>
-                ) : (
-                  <div />
-                )}
+                <button 
+                  onClick={() => setIsAbsenModalOpen(true)}
+                  className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  <Clock size={16} className="text-blue-500" /> {hasCheckedInSelectedDate ? 'Sudah Absen' : 'Belum Absen'}
+                </button>
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] text-white/80 font-medium mb-0.5">Jam Mulai</span>
                   <span className="font-black text-xl tracking-wide font-mono">
