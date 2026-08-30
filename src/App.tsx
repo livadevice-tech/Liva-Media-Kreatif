@@ -11596,6 +11596,7 @@ export default function App() {
                   <InvoiceDashboard
                     clientBrands={clientBrands}
                     onUpdateBrands={setClientBrands}
+                    onBack={() => setOperatorTab("dashboard_utama")}
                   />
                 )}
 

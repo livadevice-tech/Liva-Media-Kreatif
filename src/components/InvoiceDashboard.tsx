@@ -15,6 +15,7 @@ import { buildNextInvoiceNumber } from '../shared/utils/invoiceNumber';
 interface InvoiceDashboardProps {
   clientBrands: ClientBrand[];
   onUpdateBrands: (brands: ClientBrand[]) => void;
+  onBack?: () => void;
 }
 
 type GlobalPicEmailSetting = string | { value?: string } | null;
@@ -49,7 +50,7 @@ const sendInvoiceReminder = async (
   return (await res.json()) as InvoiceReminderResponse;
 };
 
-export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands, onUpdateBrands }) => {
+export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands, onUpdateBrands, onBack }) => {
   const [activeTab, setActiveTab] = useState<"overview" | "create" | "settings" | "berkas" | "reminders">("overview");
   const [globalPicEmail, setGlobalPicEmail] = useState<string>("admin1@liva-agency.com, admin2@liva.com");
   const [emailTestStatus, setEmailTestStatus] = useState<string>("");
@@ -671,7 +672,14 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           <>
             {/* Mobile Header */}
             <div className="bg-white px-5 pt-7 pb-4 flex items-center justify-between sticky top-0 z-30">
-              <h1 className="text-[20px] font-black text-slate-900 tracking-tight">Invoice Client</h1>
+              <div className="flex items-center gap-3">
+                {onBack && (
+                  <button onClick={onBack} className="p-1.5 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
+                <h1 className="text-[20px] font-black text-slate-900 tracking-tight">Invoice Client</h1>
+              </div>
               <button
                 onClick={() => { setActiveTab('create'); handleBrandSelectForDraft(''); }}
                 className="flex items-center gap-1.5 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-sm active:scale-95 transition-all"
