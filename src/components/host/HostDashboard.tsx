@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
   CheckCircle2, AlertTriangle, X, ChevronDown, TrendingUp, Clock, Target, Award,
-  Image, ExternalLink
+  Image, ExternalLink, Sun, LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -472,43 +472,42 @@ export default function HostDashboard({
   return (
     <div className="w-full max-w-[480px] mx-auto min-h-screen bg-[#f8f9fc] p-4 font-sans text-slate-800">
       
-      {/* Top Profile Card */}
-      <div className="bg-white rounded-[24px] border border-slate-200 p-6 shadow-sm mb-4 flex justify-between items-start gap-4">
-        
-        {/* Left Side: Avatar & Info */}
-        <div className="flex items-start gap-4 flex-1">
-          <div className="w-[72px] h-[72px] shrink-0 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 text-[28px] font-black">
-            {initials}
+      {/* Top Profile Header (Mobile App Style) */}
+      <div className="flex items-center justify-between py-2 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 shrink-0 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-lg font-black border-2 border-white shadow-sm overflow-hidden">
+            {/* Display profilePicture if exists, otherwise show initials */}
+            {(activeHostObj as any)?.profilePicture ? (
+              <img src={(activeHostObj as any).profilePicture} alt="Avatar" className="w-full h-full object-cover" />
+            ) : initials}
           </div>
-          <div className="flex flex-col items-start pt-1">
-            <span className="inline-block px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black tracking-widest uppercase rounded-full mb-2">
-              HOST CONNECT
-            </span>
-            <h2 className="text-xl font-black text-slate-900 leading-tight mb-1 pr-2">
+          
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+              <Sun className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span>SUNNY</span>
+            </div>
+            <h2 className="text-[15px] font-black text-slate-800 leading-tight">
               {activeHostObj?.name || 'Nabila Zahratun Sita'}
             </h2>
-            <div className="text-xs text-slate-500 font-semibold mb-1">
-              ID: {activeHostObj?.employeeId || '-'}
-            </div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-              <MapPin size={14} className="text-purple-600" />
-              {activeHostObj?.studio || 'Tanggamus'}
-            </div>
           </div>
         </div>
 
-        {/* Right action buttons */}
-        <div className="flex flex-col items-end gap-2.5 shrink-0 pt-1">
-          <button className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-purple-600 hover:bg-slate-50 transition-colors">
-            <Bell size={18} />
-          </button>
-          <button onClick={handleLogout} className="px-3 py-1.5 rounded-full border border-red-200 text-red-600 text-[10px] font-black tracking-wider uppercase hover:bg-red-50 transition-colors">
-            LOG OUT
-          </button>
-          <div className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-            AKTIF
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-[13px] font-bold text-slate-700 shadow-sm">
+            <MapPin className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />
+            <span>{activeHostObj?.studio || 'Kwara'}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
           </div>
+          
+          <button className="relative w-9 h-9 flex items-center justify-center text-slate-600">
+            <Bell className="w-[22px] h-[22px]" />
+            <div className="absolute top-1 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-[#f8f9fc]"></div>
+          </button>
+          
+          <button onClick={handleLogout} className="relative w-9 h-9 flex items-center justify-center text-red-400 hover:text-red-500">
+            <LogOut className="w-[22px] h-[22px]" />
+          </button>
         </div>
       </div>
 
