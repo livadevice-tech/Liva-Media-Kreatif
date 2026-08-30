@@ -746,7 +746,7 @@ export default function HostDashboard({
               <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm pointer-events-none">
                 <Filter size={14} className="text-slate-400 shrink-0" />
                 <span className="text-xs font-bold text-slate-600 truncate max-w-[220px]">
-                  {hostCutoffPeriod === "Semua" ? "Semua Waktu" : formatCutoffPeriodOptionLabel(hostCutoffPeriod).trim()}
+                  {formatShortCutoff(hostCutoffPeriod)}
                 </span>
                 <ChevronRight size={14} className="text-slate-400 rotate-90 shrink-0 ml-1" />
               </div>
@@ -759,7 +759,7 @@ export default function HostDashboard({
               >
                 {availableCutoffMonths.map((period) => (
                   <option key={period} value={period}>
-                    {formatCutoffPeriodOptionLabel(period).trim()}
+                    {formatShortCutoff(period)}
                   </option>
                 ))}
               </select>
