@@ -358,17 +358,7 @@ export default function HostDashboard({
     monthLogs.forEach(log => {
       if (log.status === 'Present') hadir++;
       else if (log.status === 'Late') telat++;
-      else if (log.status === 'Absent') tidakHadir++;
-    });
-
-    // Also count schedules in the past that have no log as "Tidak Hadir"
-    monthSchedules.forEach(s => {
-      const sDate = new Date(s.date);
-      sDate.setHours(23, 59, 59, 999);
-      if (sDate < now) {
-        const hasLog = monthLogs.some(l => l.date === s.date);
-        if (!hasLog) tidakHadir++;
-      }
+      else if (log.status === 'Absent' || log.status === 'Excused') tidakHadir++;
     });
 
     return { hadir, telat, tidakHadir };
