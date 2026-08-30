@@ -589,18 +589,18 @@ export default function HostDashboard({
             <div className="relative z-10">
               <span className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold tracking-wider uppercase">{upcomingLabel}</span>
               
-              <div className="grid grid-cols-3 gap-3 mt-5 mb-7">
+              <div className="grid grid-cols-3 gap-2 mt-5 mb-7">
                 <div>
                   <div className="text-[11px] text-white/80 font-medium mb-0.5">Brand</div>
-                  <div className="font-bold text-[15px] truncate pr-2">{upcomingSchedule.brandHandled || upcomingSchedule.brand}</div>
-                </div>
-                <div className="col-span-1">
-                  <div className="text-[11px] text-white/80 font-medium mb-0.5">Shift</div>
-                  <div className="font-bold text-[15px] truncate pr-2">{upcomingSchedule.timeSlot || upcomingSchedule.shift}</div>
+                  <div className="font-bold text-[14px] leading-tight pr-1">{upcomingSchedule.brandHandled || upcomingSchedule.brand}</div>
                 </div>
                 <div>
+                  <div className="text-[11px] text-white/80 font-medium mb-0.5">Shift</div>
+                  <div className="font-bold text-[14px] leading-tight pr-1">{upcomingSchedule.timeSlot || upcomingSchedule.shift}</div>
+                </div>
+                <div className="text-right">
                   <div className="text-[11px] text-white/80 font-medium mb-0.5">Studio</div>
-                  <div className="font-bold text-[15px] truncate">{upcomingSchedule.studio}</div>
+                  <div className="font-bold text-[14px] leading-tight">{upcomingSchedule.studio}</div>
                 </div>
               </div>
               
