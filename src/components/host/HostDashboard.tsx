@@ -937,14 +937,14 @@ export default function HostDashboard({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-start justify-between mb-1 gap-2">
                   <div className="flex items-start gap-2.5">
                     <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0 mt-0.5">
                       <Home className="w-3.5 h-3.5 text-indigo-400" />
                     </div>
                     <div>
                       <div className="text-[9px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wide">Brand</div>
-                      <div className="font-bold text-sm text-slate-800 leading-tight">{selectedSchedule.brandHandled || selectedSchedule.brand}</div>
+                      <div className="font-bold text-sm text-slate-800 leading-tight break-words">{selectedSchedule.brandHandled || selectedSchedule.brand}</div>
                     </div>
                   </div>
 
@@ -954,7 +954,7 @@ export default function HostDashboard({
                     </div>
                     <div>
                       <div className="text-[9px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wide">Shift</div>
-                      <div className="font-bold text-sm text-slate-800 leading-tight max-w-[80px] truncate">{selectedSchedule.timeSlot || selectedSchedule.shift}</div>
+                      <div className="font-bold text-sm text-slate-800 leading-tight break-words">{selectedSchedule.timeSlot || selectedSchedule.shift}</div>
                     </div>
                   </div>
 
@@ -964,15 +964,9 @@ export default function HostDashboard({
                     </div>
                     <div>
                       <div className="text-[9px] font-semibold text-slate-400 mb-0.5 uppercase tracking-wide">Studio</div>
-                      <div className="font-bold text-sm text-slate-800 leading-tight">{selectedSchedule.studio}</div>
+                      <div className="font-bold text-sm text-slate-800 leading-tight break-words">{selectedSchedule.studio}</div>
                     </div>
                   </div>
-                </div>
-
-                <div className="mt-4 flex justify-end">
-                  <button className="bg-indigo-600 text-white rounded-full px-5 py-2.5 text-[11px] font-bold flex items-center gap-1.5 hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20">
-                    Lihat Detail <ChevronRight size={14} />
-                  </button>
                 </div>
               </div>
             );
