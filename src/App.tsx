@@ -6112,7 +6112,7 @@ export default function App() {
                 className={`w-full mx-auto flex-1 pb-24 relative ${
                   operatorTab === "reporting_brand"
                     ? ""
-                    : (operatorTab === "dashboard_utama" || operatorTab === "absensi")
+                    : (operatorTab === "dashboard_utama" || operatorTab === "absensi" || operatorTab === "invoice")
                     ? "p-0 md:p-6 max-w-7xl md:space-y-6"
                     : "p-4 md:p-6 max-w-7xl space-y-4 md:space-y-6"
                 }`}
