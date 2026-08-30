@@ -5672,6 +5672,7 @@ export default function App() {
               onTabChange={setOperatorTab} 
               filteredItems={adminNavItems} 
               loggedInAdminName={authSession?.role === "master" ? "Master Admin" : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"} 
+              onLogout={handleLogout}
             />
             {/* 1. LEFT VERTICAL SIDEBAR (PREMIUM GLASSMORPHISM) */}
             <aside

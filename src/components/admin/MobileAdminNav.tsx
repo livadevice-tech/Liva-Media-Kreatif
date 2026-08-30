@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LayoutDashboard, Users, Briefcase, Menu, X, ChevronRight, LineChart } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase, Menu, X, ChevronRight, LineChart, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export type NavItem = {
@@ -17,6 +17,7 @@ type MobileAdminNavProps = {
   onTabChange: (tabId: string) => void;
   filteredItems: NavItem[];
   loggedInAdminName?: string;
+  onLogout?: () => void;
 };
 
 export const MobileAdminNav: React.FC<MobileAdminNavProps> = ({
@@ -24,6 +25,7 @@ export const MobileAdminNav: React.FC<MobileAdminNavProps> = ({
   onTabChange,
   filteredItems,
   loggedInAdminName,
+  onLogout,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -209,6 +211,25 @@ export const MobileAdminNav: React.FC<MobileAdminNavProps> = ({
                     );
                   })}
                 </div>
+
+                {onLogout && (
+                  <div className="mt-4 border-t border-slate-100 pt-4 px-3">
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onLogout();
+                      }}
+                      className="w-full flex items-center gap-3 p-3 text-left rounded-2xl hover:bg-red-50/50 transition-colors group"
+                    >
+                      <div className="w-10 h-10 rounded-[14px] bg-red-50 text-red-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm border border-red-100/50">
+                        <LogOut className="w-5 h-5" />
+                      </div>
+                      <span className="font-bold text-[15px] text-red-600">
+                        Keluar Akun
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>
