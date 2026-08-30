@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
   CheckCircle2, AlertTriangle, X, ChevronDown, TrendingUp, Clock, Target, Award,
-  Image, ExternalLink, Sun, LogOut
+  Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -470,7 +470,7 @@ export default function HostDashboard({
   }
 
   return (
-    <div className="w-full max-w-[480px] mx-auto min-h-screen bg-[#f8f9fc] p-4 font-sans text-slate-800">
+    <div className="w-full max-w-[480px] mx-auto min-h-screen bg-[#f8f9fc] p-4 font-sans text-slate-800 pb-28">
       
       {/* Top Profile Header (Mobile App Style) */}
       <div className="flex items-center justify-between py-2 mb-6">
@@ -554,28 +554,6 @@ export default function HostDashboard({
       <div className={`mb-4 px-4 py-3 rounded-[20px] border flex items-center justify-center gap-2 text-xs font-bold ${statusStyle} shadow-sm`}>
         <StatusIcon size={16} />
         {statusLabel}
-      </div>
-
-      {/* Segmented Control / Tabs */}
-      <div className="bg-[#f0f2f5] p-1.5 rounded-[20px] flex gap-1 mb-4 border border-slate-200">
-        <button 
-          onClick={() => setActiveTab('absen')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[16px] text-xs font-black transition-all ${activeTab === 'absen' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'}`}
-        >
-          <User size={16} /> Absen
-        </button>
-        <button 
-          onClick={() => setActiveTab('rekap')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[16px] text-xs font-black transition-all ${activeTab === 'rekap' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'}`}
-        >
-          <FileText size={16} /> Rekap
-        </button>
-        <button 
-          onClick={() => setActiveTab('kalender')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[16px] text-xs font-black transition-all ${activeTab === 'kalender' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'}`}
-        >
-          <CalendarIcon size={16} /> Kalender
-        </button>
       </div>
 
       {/* --- TAB CONTENT: ABSEN --- */}
@@ -946,6 +924,48 @@ export default function HostDashboard({
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-4 pt-2 bg-gradient-to-t from-[#f8f9fc] via-[#f8f9fc] to-transparent">
+        <div className="w-full max-w-[400px] mx-4 bg-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-100 px-6 py-3 flex items-center justify-between relative">
+          
+          {/* 1. Home / Rekap */}
+          <button 
+            onClick={() => setActiveTab('rekap')} 
+            className="flex flex-col items-center justify-center gap-1 w-12 group"
+          >
+            <Home className={`w-5 h-5 transition-colors ${activeTab === 'rekap' ? 'text-blue-600 fill-blue-600' : 'text-slate-400 group-hover:text-blue-500'}`} />
+            {activeTab === 'rekap' && <div className="w-1 h-1 bg-blue-600 rounded-full mt-0.5" />}
+          </button>
+          
+          {/* 2. Kalender */}
+          <button 
+            onClick={() => setActiveTab('kalender')} 
+            className="flex flex-col items-center justify-center gap-1 w-12 group"
+          >
+            <PieChart className={`w-5 h-5 transition-colors ${activeTab === 'kalender' ? 'text-blue-600 fill-blue-600' : 'text-slate-400 group-hover:text-blue-500'}`} />
+            {activeTab === 'kalender' && <div className="w-1 h-1 bg-blue-600 rounded-full mt-0.5" />}
+          </button>
+
+          {/* 3. Center Action: Scan/Absen */}
+          <button 
+            onClick={() => setActiveTab('absen')} 
+            className="w-[60px] h-[52px] bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-[0_8px_20px_rgba(37,99,235,0.4)] transform -translate-y-3 hover:scale-105 hover:-translate-y-4 transition-all duration-300"
+          >
+            <ScanLine className="w-7 h-7" />
+          </button>
+
+          {/* 4. Messages (Dummy) */}
+          <button className="flex flex-col items-center justify-center gap-1 w-12 group">
+            <MessageSquare className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+          </button>
+
+          {/* 5. Profile (Dummy) */}
+          <button className="flex flex-col items-center justify-center gap-1 w-12 group">
+            <User className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+          </button>
+        </div>
+      </div>
 
     </div>
   );
