@@ -176,7 +176,7 @@ export default function HostDashboard({
       setHostForm({
         brand: todaySchedule.brandHandled || todaySchedule.brand || '',
         platform: todaySchedule.platform || '',
-        shift: todaySchedule.shift || '',
+        shift: todaySchedule.timeSlot || todaySchedule.shift || '',
         studio: todaySchedule.studio || activeHostObj.studio || ''
       });
     } else {
@@ -799,17 +799,6 @@ export default function HostDashboard({
                         options={studios}
                         onChange={(v: string) => setHostForm({...hostForm, studio: v})}
                         placeholder="Pilih Studio"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-slate-800 mb-1.5">Catatan (opsional)</label>
-                      <input
-                        type="text"
-                        value={hostForm.note || ''}
-                        onChange={(e) => setHostForm({...hostForm, note: e.target.value})}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-                        placeholder="Tuliskan catatan..."
                       />
                     </div>
                   </div>
