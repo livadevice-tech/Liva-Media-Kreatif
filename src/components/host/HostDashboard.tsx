@@ -128,9 +128,10 @@ export default function HostDashboard({
   computedSchedules,
   violations,
 }: HostDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'absen' | 'rekap' | 'kalender'>('absen');
+  const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender'>('beranda');
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [weeklyOffset, setWeeklyOffset] = useState(0); // Offset in weeks from current week
   const [selectedDate, setSelectedDate] = useState<string | null>(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -223,6 +224,7 @@ export default function HostDashboard({
       pointChange: number;
       reason: string;
       earlyMinutes: number;
+      checkInTime?: string;
     }> = [];
 
     sortedLogs.forEach(log => {
@@ -298,6 +300,7 @@ export default function HostDashboard({
         pointChange,
         reason,
         earlyMinutes,
+        checkInTime: log.checkInTime,
       });
     });
 
@@ -506,75 +509,116 @@ export default function HostDashboard({
       </div>
 
       {/* Konten Home / Beranda */}
+      {activeTab === 'beranda' && (
       <div className="mt-2 animate-fadeIn">
         {/* Calendar Strip */}
         <div className="flex items-center justify-between mb-4 px-1">
           <div className="flex items-center gap-2">
             <CalendarIcon className="w-5 h-5 text-blue-600" />
-            <span className="font-bold text-slate-800 text-[15px]">September 2026</span>
+            <span className="font-bold text-slate-800 text-[15px]">
+              {(() => {
+                const today = new Date();
+                today.setDate(today.getDate() + (weeklyOffset * 7));
+                return today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+              })()}
+            </span>
           </div>
           <div className="flex gap-2">
-            <button className="w-8 h-8 bg-white rounded-full border border-slate-100 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors"><ChevronLeft size={18} /></button>
-            <button className="w-8 h-8 bg-white rounded-full border border-slate-100 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors"><ChevronRight size={18} /></button>
+            <button onClick={() => setWeeklyOffset(prev => prev - 1)} className="w-8 h-8 bg-white rounded-full border border-slate-100 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors"><ChevronLeft size={18} /></button>
+            <button onClick={() => setWeeklyOffset(prev => prev + 1)} className="w-8 h-8 bg-white rounded-full border border-slate-100 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors"><ChevronRight size={18} /></button>
           </div>
         </div>
 
         <div className="flex justify-between mb-6 px-1">
-          {[
-            { day: 'Mon', date: '4', active: false },
-            { day: 'Tue', date: '5', active: false },
-            { day: 'Wed', date: '6', active: false },
-            { day: 'Thu', date: '7', active: true },
-            { day: 'Fri', date: '8', active: false },
-            { day: 'Sat', date: '9', active: false },
-            { day: 'Sun', date: '10', active: false }
-          ].map((d, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5">
-              <span className={`text-[11px] font-medium ${d.active ? 'text-slate-800' : 'text-slate-500'}`}>{d.day}</span>
-              <div className={`w-10 h-11 flex flex-col items-center justify-center rounded-xl transition-all relative ${
-                d.active ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-700'
-              }`}>
-                <span className="font-bold text-[15px]">{d.date}</span>
-                {d.active && <div className="absolute -bottom-2 w-4 h-1 bg-blue-600 rounded-full" />}
-              </div>
-            </div>
-          ))}
+          {(() => {
+            const today = new Date();
+            const dayOfWeek = today.getDay() || 7; // Make Monday=1, Sunday=7
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - dayOfWeek + 1 + (weeklyOffset * 7));
+
+            return Array.from({ length: 7 }).map((_, i) => {
+              const currentDay = new Date(startOfWeek);
+              currentDay.setDate(startOfWeek.getDate() + i);
+              const dateStr = `${currentDay.getFullYear()}-${String(currentDay.getMonth() + 1).padStart(2, '0')}-${String(currentDay.getDate()).padStart(2, '0')}`;
+              const dayName = currentDay.toLocaleDateString('en-US', { weekday: 'short' });
+              const isActive = selectedDate === dateStr;
+
+              return (
+                <div key={i} className="flex flex-col items-center gap-1.5 cursor-pointer" onClick={() => setSelectedDate(dateStr)}>
+                  <span className={`text-[11px] font-medium ${isActive ? 'text-slate-800' : 'text-slate-500'}`}>{dayName}</span>
+                  <div className={`w-10 h-11 flex flex-col items-center justify-center rounded-xl transition-all relative ${
+                    isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-700'
+                  }`}>
+                    <span className="font-bold text-[15px]">{currentDay.getDate()}</span>
+                    {isActive && <div className="absolute -bottom-2 w-4 h-1 bg-blue-600 rounded-full" />}
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
 
         {/* JADWAL HARI INI Card */}
-        <div className="bg-gradient-to-br from-blue-500 to-indigo-700 rounded-[24px] p-5 text-white shadow-[0_8px_24px_rgba(79,70,229,0.25)] mb-8 relative overflow-hidden">
-          {/* subtle decorative blur behind */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[30px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
-          
-          <div className="relative z-10">
-            <span className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold tracking-wider uppercase">Jadwal Hari Ini</span>
+        {upcomingSchedule ? (
+          <div className="bg-gradient-to-br from-blue-500 to-indigo-700 rounded-[24px] p-5 text-white shadow-[0_8px_24px_rgba(79,70,229,0.25)] mb-8 relative overflow-hidden">
+            {/* subtle decorative blur behind */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[30px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
             
-            <div className="grid grid-cols-3 gap-3 mt-5 mb-7">
-              <div>
-                <div className="text-[11px] text-white/80 font-medium mb-0.5">Brand</div>
-                <div className="font-bold text-[15px]">Mirael</div>
+            <div className="relative z-10">
+              <span className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold tracking-wider uppercase">{upcomingLabel}</span>
+              
+              <div className="grid grid-cols-3 gap-3 mt-5 mb-7">
+                <div>
+                  <div className="text-[11px] text-white/80 font-medium mb-0.5">Brand</div>
+                  <div className="font-bold text-[15px] truncate pr-2">{upcomingSchedule.brandHandled || upcomingSchedule.brand}</div>
+                </div>
+                <div className="col-span-1">
+                  <div className="text-[11px] text-white/80 font-medium mb-0.5">Shift</div>
+                  <div className="font-bold text-[15px] truncate pr-2">{upcomingSchedule.timeSlot || upcomingSchedule.shift}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-white/80 font-medium mb-0.5">Studio</div>
+                  <div className="font-bold text-[15px] truncate">{upcomingSchedule.studio}</div>
+                </div>
               </div>
-              <div className="col-span-1">
-                <div className="text-[11px] text-white/80 font-medium mb-0.5">Shift</div>
-                <div className="font-bold text-[15px]">Reg 2 (11.00-17.00)</div>
-              </div>
-              <div>
-                <div className="text-[11px] text-white/80 font-medium mb-0.5">Studio</div>
-                <div className="font-bold text-[15px]">Balam A1</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <button className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
-                <Clock size={16} className="text-blue-500" /> Belum Absen
-              </button>
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] text-white/80 font-medium mb-0.5">Jam Mulai</span>
-                <span className="font-black text-xl tracking-wide font-mono">07:23:23</span>
+              
+              <div className="flex items-center justify-between">
+                <button 
+                  onClick={() => setActiveTab('absen')}
+                  className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  <Clock size={16} className="text-blue-500" /> {hasCheckedInToday ? 'Sudah Absen' : 'Belum Absen'}
+                </button>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] text-white/80 font-medium mb-0.5">Jam Mulai</span>
+                  <span className="font-black text-xl tracking-wide font-mono">
+                    {(() => {
+                      const match = (upcomingSchedule.timeSlot || "").match(/\b(\d{2}[.:]\d{2})\b/);
+                      if (!match) return "-";
+                      const formattedTime = match[1].replace('.', ':');
+                      const targetDate = new Date(`${upcomingDateStr}T${formattedTime}:00`);
+                      if (isNaN(targetDate.getTime())) return "-";
+                      
+                      const diffMs = targetDate.getTime() - currentTime.getTime();
+                      if (diffMs <= 0) return "Tiba!";
+                      
+                      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                      const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                      const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+                      
+                      return `${String(diffHours).padStart(2, '0')}:${String(diffMins).padStart(2, '0')}:${String(diffSecs).padStart(2, '0')}`;
+                    })()}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-slate-50 rounded-[24px] p-8 text-center border border-slate-200 mb-8 flex flex-col items-center">
+            <CalendarIcon size={32} className="text-slate-300 mb-3" />
+            <p className="font-bold text-slate-500 text-sm">Tidak ada jadwal terdekat</p>
+          </div>
+        )}
 
         {/* History Kehadiran */}
         <div>
@@ -585,66 +629,38 @@ export default function HostDashboard({
             </button>
           </div>
           
-          <div className="space-y-3">
-            {/* Item 1 */}
-            <div className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
-               <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
-                 <CalendarIcon size={20} strokeWidth={1.5} />
-               </div>
-               <div className="flex-1">
-                 <div className="font-bold text-slate-800 text-sm mb-0.5">Mirael</div>
-                 <div className="text-[11px] text-slate-500 font-medium">Reg (11.00-17.00)</div>
-               </div>
-               <div className="text-right">
-                 <div className="bg-emerald-50 text-emerald-600 text-[9px] font-bold px-2 py-0.5 rounded-full mb-1">Tepat Waktu</div>
-                 <div className="font-bold text-emerald-600 text-sm">10.20</div>
-               </div>
-            </div>
-            {/* Item 2 */}
-            <div className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
-               <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
-                 <CalendarIcon size={20} strokeWidth={1.5} />
-               </div>
-               <div className="flex-1">
-                 <div className="font-bold text-slate-800 text-sm mb-0.5">Mirael</div>
-                 <div className="text-[11px] text-slate-500 font-medium">Reg (11.00-17.00)</div>
-               </div>
-               <div className="text-right">
-                 <div className="bg-rose-50 text-rose-500 text-[9px] font-bold px-2 py-0.5 rounded-full mb-1">Terlat</div>
-                 <div className="font-bold text-rose-500 text-sm">11.30</div>
-               </div>
-            </div>
-            {/* Item 3 */}
-            <div className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
-               <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
-                 <CalendarIcon size={20} strokeWidth={1.5} />
-               </div>
-               <div className="flex-1">
-                 <div className="font-bold text-slate-800 text-sm mb-0.5">Mirael</div>
-                 <div className="text-[11px] text-slate-500 font-medium">Reg (11.00-17.00)</div>
-               </div>
-               <div className="text-right">
-                 <div className="bg-emerald-50 text-emerald-600 text-[9px] font-bold px-2 py-0.5 rounded-full mb-1">Tepat Waktu</div>
-                 <div className="font-bold text-emerald-600 text-sm">10.20</div>
-               </div>
-            </div>
-            {/* Item 4 */}
-            <div className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
-               <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
-                 <CalendarIcon size={20} strokeWidth={1.5} />
-               </div>
-               <div className="flex-1">
-                 <div className="font-bold text-slate-800 text-sm mb-0.5">Mirael</div>
-                 <div className="text-[11px] text-slate-500 font-medium">Reg (11.00-17.00)</div>
-               </div>
-               <div className="text-right">
-                 <div className="bg-emerald-50 text-emerald-600 text-[9px] font-bold px-2 py-0.5 rounded-full mb-1">Tepat Waktu</div>
-                 <div className="font-bold text-emerald-600 text-sm">10.20</div>
-               </div>
-            </div>
+          <div className="space-y-3 pb-8">
+            {attendanceHistory.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-400 font-bold">Belum ada riwayat kehadiran</div>
+            ) : (
+              attendanceHistory.slice(0, 5).map((log, idx) => (
+                <div key={idx} className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
+                   <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
+                     <CalendarIcon size={20} strokeWidth={1.5} />
+                   </div>
+                   <div className="flex-1">
+                     <div className="font-bold text-slate-800 text-sm mb-0.5">{log.brand}</div>
+                     <div className="text-[11px] text-slate-500 font-medium">{log.shift}</div>
+                   </div>
+                   <div className="text-right flex flex-col items-end">
+                     <div className={`text-[9px] font-bold px-2 py-0.5 rounded-full mb-1 ${
+                       log.status === 'Present' ? 'bg-emerald-50 text-emerald-600' :
+                       log.status === 'Late' ? 'bg-rose-50 text-rose-500' :
+                       'bg-slate-100 text-slate-500'
+                     }`}>
+                       {log.status === 'Present' ? 'Tepat Waktu' : log.status === 'Late' ? 'Telat' : log.status}
+                     </div>
+                     <div className={`font-bold text-sm ${log.status === 'Late' ? 'text-rose-500' : 'text-emerald-600'}`}>
+                       {log.checkInTime ? log.checkInTime.substring(0, 5) : '-'}
+                     </div>
+                   </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
+      )}
 
       {/* Mobile Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-4 pt-2 bg-gradient-to-t from-[#f8f9fc] via-[#f8f9fc] to-transparent">
