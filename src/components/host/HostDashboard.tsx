@@ -132,6 +132,7 @@ export default function HostDashboard({
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weeklyOffset, setWeeklyOffset] = useState(0); // Offset in weeks from current week
+  const [isAbsenModalOpen, setIsAbsenModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -143,6 +144,12 @@ export default function HostDashboard({
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (showFormSuccess) {
+      setIsAbsenModalOpen(false);
+    }
+  }, [showFormSuccess]);
 
   useEffect(() => {
     if (activeHostObj) {
@@ -584,7 +591,7 @@ export default function HostDashboard({
               
               <div className="flex items-center justify-between">
                 <button 
-                  onClick={() => setActiveTab('absen')}
+                  onClick={() => setIsAbsenModalOpen(true)}
                   className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
                 >
                   <Clock size={16} className="text-blue-500" /> {hasCheckedInToday ? 'Sudah Absen' : 'Belum Absen'}
@@ -688,7 +695,7 @@ export default function HostDashboard({
 
           {/* 3. Center Action: Absen */}
           <button 
-            onClick={() => setActiveTab('absen')} 
+            onClick={() => setIsAbsenModalOpen(true)} 
             className="relative -top-5 flex flex-col items-center justify-center group"
           >
             <div className="w-[58px] h-[58px] bg-blue-600 rounded-full flex items-center justify-center text-white shadow-[0_8px_20px_rgba(37,99,235,0.4)] ring-4 ring-[#f8f9fc] group-hover:scale-105 transition-all duration-300">
@@ -711,6 +718,98 @@ export default function HostDashboard({
         </div>
       </div>
 
+      {/* Absen Bottom Sheet Modal */}
+      <AnimatePresence>
+        {isAbsenModalOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAbsenModalOpen(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60]"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-white rounded-t-[32px] z-[70] shadow-2xl flex flex-col max-h-[90vh]"
+            >
+              <div className="w-full flex justify-center pt-3 pb-2 cursor-pointer" onClick={() => setIsAbsenModalOpen(false)}>
+                <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+              </div>
+              
+              <div className="px-6 pb-8 overflow-y-auto">
+                <div className="flex items-center gap-3 mb-6 mt-2">
+                  <div className="bg-blue-600 text-white px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2">
+                    <ScanLine size={16} /> Absen {hasCheckedInToday ? 'Pulang/Ulang' : 'Masuk'}
+                  </div>
+                </div>
+
+                <form onSubmit={handleHostAttendanceSubmit}>
+                  {hostFormError && (
+                    <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm mb-4 border border-red-100 flex items-start gap-2">
+                      <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                      <span className="font-medium">{hostFormError}</span>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-1.5">Brand</label>
+                      <CustomSelect
+                        value={hostForm.brand}
+                        options={brands}
+                        onChange={(v: string) => setHostForm({...hostForm, brand: v})}
+                        placeholder="Pilih Brand"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-1.5">Shift</label>
+                      <CustomSelect
+                        value={hostForm.shift}
+                        options={shifts.map(s => ({value: s, label: s}))}
+                        onChange={(v: string) => setHostForm({...hostForm, shift: v})}
+                        placeholder="Pilih Shift"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-1.5">Studio</label>
+                      <CustomSelect
+                        value={hostForm.studio}
+                        options={studios}
+                        onChange={(v: string) => setHostForm({...hostForm, studio: v})}
+                        placeholder="Pilih Studio"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-1.5">Catatan (opsional)</label>
+                      <input
+                        type="text"
+                        value={hostForm.note || ''}
+                        onChange={(e) => setHostForm({...hostForm, note: e.target.value})}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
+                        placeholder="Tuliskan catatan..."
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit"
+                    className="w-full bg-blue-600 text-white font-bold rounded-2xl py-4 mt-8 shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 active:scale-[0.98] transition-all"
+                  >
+                    Absen Sekarang
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
