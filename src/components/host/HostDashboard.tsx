@@ -735,23 +735,28 @@ export default function HostDashboard({
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-800 text-[15px]">History Kehadiran</h3>
-            <div className="relative">
+            <div className="relative inline-block">
+              {/* Custom UI for Dropdown */}
+              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm pointer-events-none">
+                <Filter size={14} className="text-slate-400 shrink-0" />
+                <span className="text-xs font-bold text-slate-600 truncate max-w-[220px]">
+                  {hostCutoffPeriod === "Semua" ? "Semua Waktu" : formatCutoffPeriodOptionLabel(hostCutoffPeriod).trim()}
+                </span>
+                <ChevronRight size={14} className="text-slate-400 rotate-90 shrink-0 ml-1" />
+              </div>
+
+              {/* Invisible Native Select */}
               <select
                 value={hostCutoffPeriod}
                 onChange={(e) => setHostCutoffPeriod(e.target.value)}
-                className="appearance-none bg-white border border-slate-200 rounded-xl pl-8 pr-8 py-1.5 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none"
               >
-                <option value="Semua">Semua Waktu</option>
                 {availableCutoffMonths.map((period) => (
                   <option key={period} value={period}>
-                    {formatCutoffPeriodOptionLabel(period)}
+                    {formatCutoffPeriodOptionLabel(period).trim()}
                   </option>
                 ))}
               </select>
-              <Filter size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <ChevronRight size={12} className="text-slate-400 rotate-90" />
-              </div>
             </div>
           </div>
           
