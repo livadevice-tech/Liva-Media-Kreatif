@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
-  CheckCircle2, AlertTriangle, X, ChevronDown, TrendingUp, Clock, Target, Award,
-  Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare
+  CheckCircle2, AlertTriangle, ChevronDown, Clock,
+  Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
@@ -470,22 +470,25 @@ export default function HostDashboard({
   }
 
   return (
-    <div className="w-full max-w-[480px] mx-auto min-h-screen bg-[#f8f9fc] p-4 font-sans text-slate-800 pb-28">
+    <div className="w-full max-w-[480px] mx-auto min-h-screen bg-[#f8f9fc] p-4 font-sans text-slate-800 pb-28 overflow-x-hidden">
       
       {/* Top Profile Header (Mobile App Style) */}
       <div className="flex items-center justify-between py-2 mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 shrink-0 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-lg font-black border-2 border-white shadow-sm overflow-hidden">
+          <div className="w-[52px] h-[52px] shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-xl font-bold border-[3px] border-white shadow-sm overflow-hidden">
             {/* Display profilePicture if exists, otherwise show initials */}
             {(activeHostObj as any)?.profilePicture ? (
               <img src={(activeHostObj as any).profilePicture} alt="Avatar" className="w-full h-full object-cover" />
-            ) : initials}
+            ) : <User className="w-6 h-6 fill-current" />}
           </div>
           
           <div className="flex flex-col justify-center">
-            <h2 className="text-[15px] font-black text-slate-800 leading-tight">
-              {activeHostObj?.name || 'Nabila Zahratun Sita'}
+            <h2 className="text-[17px] font-bold text-slate-800 leading-tight">
+              {activeHostObj?.name || 'Pujia Puspita Sari'}
             </h2>
+            <p className="text-sm font-medium text-slate-500 mt-0.5">
+              Studio Lampung
+            </p>
           </div>
         </div>
 
@@ -502,49 +505,192 @@ export default function HostDashboard({
         </div>
       </div>
 
-      {/* Konten akan dirancang ulang di sini */}
-      <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
-        <p className="text-sm font-bold text-slate-500">Area Kosong (Menunggu Desain Baru)</p>
+      {/* Konten Home / Beranda */}
+      <div className="mt-2 animate-fadeIn">
+        {/* Calendar Strip */}
+        <div className="flex items-center justify-between mb-4 px-1">
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5 text-blue-600" />
+            <span className="font-bold text-slate-800 text-[15px]">September 2026</span>
+          </div>
+          <div className="flex gap-2">
+            <button className="w-8 h-8 bg-white rounded-full border border-slate-100 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors"><ChevronLeft size={18} /></button>
+            <button className="w-8 h-8 bg-white rounded-full border border-slate-100 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors"><ChevronRight size={18} /></button>
+          </div>
+        </div>
+
+        <div className="flex justify-between mb-6 px-1">
+          {[
+            { day: 'Mon', date: '4', active: false },
+            { day: 'Tue', date: '5', active: false },
+            { day: 'Wed', date: '6', active: false },
+            { day: 'Thu', date: '7', active: true },
+            { day: 'Fri', date: '8', active: false },
+            { day: 'Sat', date: '9', active: false },
+            { day: 'Sun', date: '10', active: false }
+          ].map((d, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <span className={`text-[11px] font-medium ${d.active ? 'text-slate-800' : 'text-slate-500'}`}>{d.day}</span>
+              <div className={`w-10 h-11 flex flex-col items-center justify-center rounded-xl transition-all relative ${
+                d.active ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-700'
+              }`}>
+                <span className="font-bold text-[15px]">{d.date}</span>
+                {d.active && <div className="absolute -bottom-2 w-4 h-1 bg-blue-600 rounded-full" />}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* JADWAL HARI INI Card */}
+        <div className="bg-gradient-to-br from-blue-500 to-indigo-700 rounded-[24px] p-5 text-white shadow-[0_8px_24px_rgba(79,70,229,0.25)] mb-8 relative overflow-hidden">
+          {/* subtle decorative blur behind */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[30px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          
+          <div className="relative z-10">
+            <span className="bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold tracking-wider uppercase">Jadwal Hari Ini</span>
+            
+            <div className="grid grid-cols-3 gap-3 mt-5 mb-7">
+              <div>
+                <div className="text-[11px] text-white/80 font-medium mb-0.5">Brand</div>
+                <div className="font-bold text-[15px]">Mirael</div>
+              </div>
+              <div className="col-span-1">
+                <div className="text-[11px] text-white/80 font-medium mb-0.5">Shift</div>
+                <div className="font-bold text-[15px]">Reg 2 (11.00-17.00)</div>
+              </div>
+              <div>
+                <div className="text-[11px] text-white/80 font-medium mb-0.5">Studio</div>
+                <div className="font-bold text-[15px]">Balam A1</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <button className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
+                <Clock size={16} className="text-blue-500" /> Belum Absen
+              </button>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] text-white/80 font-medium mb-0.5">Jam Mulai</span>
+                <span className="font-black text-xl tracking-wide font-mono">07:23:23</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* History Kehadiran */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-slate-800 text-[15px]">History Kehadiran</h3>
+            <button className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-600 flex items-center gap-1.5 shadow-sm hover:bg-slate-50 transition-colors">
+              <Filter size={14} /> Filter
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            {/* Item 1 */}
+            <div className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
+               <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
+                 <CalendarIcon size={20} strokeWidth={1.5} />
+               </div>
+               <div className="flex-1">
+                 <div className="font-bold text-slate-800 text-sm mb-0.5">Mirael</div>
+                 <div className="text-[11px] text-slate-500 font-medium">Reg (11.00-17.00)</div>
+               </div>
+               <div className="text-right">
+                 <div className="bg-emerald-50 text-emerald-600 text-[9px] font-bold px-2 py-0.5 rounded-full mb-1">Tepat Waktu</div>
+                 <div className="font-bold text-emerald-600 text-sm">10.20</div>
+               </div>
+            </div>
+            {/* Item 2 */}
+            <div className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
+               <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
+                 <CalendarIcon size={20} strokeWidth={1.5} />
+               </div>
+               <div className="flex-1">
+                 <div className="font-bold text-slate-800 text-sm mb-0.5">Mirael</div>
+                 <div className="text-[11px] text-slate-500 font-medium">Reg (11.00-17.00)</div>
+               </div>
+               <div className="text-right">
+                 <div className="bg-rose-50 text-rose-500 text-[9px] font-bold px-2 py-0.5 rounded-full mb-1">Terlat</div>
+                 <div className="font-bold text-rose-500 text-sm">11.30</div>
+               </div>
+            </div>
+            {/* Item 3 */}
+            <div className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
+               <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
+                 <CalendarIcon size={20} strokeWidth={1.5} />
+               </div>
+               <div className="flex-1">
+                 <div className="font-bold text-slate-800 text-sm mb-0.5">Mirael</div>
+                 <div className="text-[11px] text-slate-500 font-medium">Reg (11.00-17.00)</div>
+               </div>
+               <div className="text-right">
+                 <div className="bg-emerald-50 text-emerald-600 text-[9px] font-bold px-2 py-0.5 rounded-full mb-1">Tepat Waktu</div>
+                 <div className="font-bold text-emerald-600 text-sm">10.20</div>
+               </div>
+            </div>
+            {/* Item 4 */}
+            <div className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
+               <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
+                 <CalendarIcon size={20} strokeWidth={1.5} />
+               </div>
+               <div className="flex-1">
+                 <div className="font-bold text-slate-800 text-sm mb-0.5">Mirael</div>
+                 <div className="text-[11px] text-slate-500 font-medium">Reg (11.00-17.00)</div>
+               </div>
+               <div className="text-right">
+                 <div className="bg-emerald-50 text-emerald-600 text-[9px] font-bold px-2 py-0.5 rounded-full mb-1">Tepat Waktu</div>
+                 <div className="font-bold text-emerald-600 text-sm">10.20</div>
+               </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Mobile Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-4 pt-2 bg-gradient-to-t from-[#f8f9fc] via-[#f8f9fc] to-transparent">
         <div className="w-full max-w-[400px] mx-4 bg-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-100 px-6 py-3 flex items-center justify-between relative">
           
-          {/* 1. Home / Rekap */}
+          {/* 1. Beranda */}
           <button 
-            onClick={() => setActiveTab('rekap')} 
+            onClick={() => setActiveTab('beranda')} 
             className="flex flex-col items-center justify-center gap-1 w-12 group"
           >
-            <Home className={`w-5 h-5 transition-colors ${activeTab === 'rekap' ? 'text-blue-600 fill-blue-600' : 'text-slate-400 group-hover:text-blue-500'}`} />
-            {activeTab === 'rekap' && <div className="w-1 h-1 bg-blue-600 rounded-full mt-0.5" />}
+            <Home className={`w-[22px] h-[22px] transition-colors ${activeTab === 'beranda' || activeTab === 'rekap' ? 'text-blue-600 fill-blue-600' : 'text-slate-400 group-hover:text-blue-500'}`} />
+            <span className={`text-[9px] font-bold ${activeTab === 'beranda' || activeTab === 'rekap' ? 'text-blue-600' : 'text-slate-400'}`}>Beranda</span>
+            {(activeTab === 'beranda' || activeTab === 'rekap') && <div className="absolute -bottom-1 w-1 h-1 bg-blue-600 rounded-full mt-1" />}
           </button>
           
-          {/* 2. Kalender */}
+          {/* 2. Jadwal */}
           <button 
             onClick={() => setActiveTab('kalender')} 
             className="flex flex-col items-center justify-center gap-1 w-12 group"
           >
-            <PieChart className={`w-5 h-5 transition-colors ${activeTab === 'kalender' ? 'text-blue-600 fill-blue-600' : 'text-slate-400 group-hover:text-blue-500'}`} />
-            {activeTab === 'kalender' && <div className="w-1 h-1 bg-blue-600 rounded-full mt-0.5" />}
+            <CalendarIcon className={`w-[22px] h-[22px] transition-colors ${activeTab === 'kalender' ? 'text-blue-600 fill-blue-600/20' : 'text-slate-400 group-hover:text-blue-500'}`} strokeWidth={1.5} />
+            <span className={`text-[9px] font-bold ${activeTab === 'kalender' ? 'text-blue-600' : 'text-slate-400'}`}>Jadwal</span>
+            {activeTab === 'kalender' && <div className="absolute -bottom-1 w-1 h-1 bg-blue-600 rounded-full mt-1" />}
           </button>
 
-          {/* 3. Center Action: Scan/Absen */}
+          {/* 3. Center Action: Absen */}
           <button 
             onClick={() => setActiveTab('absen')} 
-            className="w-[60px] h-[52px] bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-[0_8px_20px_rgba(37,99,235,0.4)] transform -translate-y-3 hover:scale-105 hover:-translate-y-4 transition-all duration-300"
+            className="relative -top-5 flex flex-col items-center justify-center group"
           >
-            <ScanLine className="w-7 h-7" />
+            <div className="w-[58px] h-[58px] bg-blue-600 rounded-full flex items-center justify-center text-white shadow-[0_8px_20px_rgba(37,99,235,0.4)] ring-4 ring-[#f8f9fc] group-hover:scale-105 transition-all duration-300">
+              <Fingerprint className="w-[28px] h-[28px]" strokeWidth={1.5} />
+            </div>
+            <span className="text-[10px] font-bold text-blue-600 mt-1 absolute -bottom-5">Absen</span>
           </button>
 
-          {/* 4. Messages (Dummy) */}
+          {/* 4. Performa */}
           <button className="flex flex-col items-center justify-center gap-1 w-12 group">
-            <MessageSquare className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+            <BarChart2 className="w-[22px] h-[22px] text-slate-400 group-hover:text-blue-500 transition-colors" strokeWidth={1.5} />
+            <span className="text-[9px] font-bold text-slate-400 group-hover:text-blue-500">Performa</span>
           </button>
 
-          {/* 5. Profile (Dummy) */}
+          {/* 5. Akun */}
           <button className="flex flex-col items-center justify-center gap-1 w-12 group">
-            <User className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+            <User className="w-[22px] h-[22px] text-slate-400 group-hover:text-blue-500 transition-colors" strokeWidth={1.5} />
+            <span className="text-[9px] font-bold text-slate-400 group-hover:text-blue-500">Akun</span>
           </button>
         </div>
       </div>
