@@ -420,45 +420,57 @@ export default function HostDashboard({
     });
   };
 
-  const todaySchedules = (computedSchedules || []).filter(
-    (s) => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay && s.date === todayStr
-  );
-  const tomorrowSchedules = (computedSchedules || []).filter(
-    (s) => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay && s.date === tomorrowStr
+  const selectedSchedules = (computedSchedules || []).filter(
+    (s) => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay && s.date === selectedDate
   );
 
-  const sortedTodaySchedules = sortByTime(todaySchedules);
-  const sortedTomorrowSchedules = sortByTime(tomorrowSchedules);
+  const sortedSelectedSchedules = sortByTime(selectedSchedules);
 
   let upcomingSchedule = null;
   let upcomingDateStr = "";
   let upcomingLabel = "";
 
-  if (sortedTodaySchedules.length > 0) {
-    const todaySched = sortedTodaySchedules[0];
-    let shiftHasStarted = false;
-    const match = (todaySched.timeSlot || "").match(timeRegex);
-    if (match) {
-      const formattedTime = match[1].replace('.', ':');
-      const targetDate = new Date(`${todayStr}T${formattedTime}:00`);
-      if (!isNaN(targetDate.getTime()) && currentTime.getTime() >= targetDate.getTime()) {
-         shiftHasStarted = true;
+  if (selectedDate === todayStr) {
+    const tomorrowSchedules = (computedSchedules || []).filter(
+      (s) => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay && s.date === tomorrowStr
+    );
+    const sortedTomorrowSchedules = sortByTime(tomorrowSchedules);
+
+    if (sortedSelectedSchedules.length > 0) {
+      const todaySched = sortedSelectedSchedules[0];
+      let shiftHasStarted = false;
+      const match = (todaySched.timeSlot || "").match(timeRegex);
+      if (match) {
+        const formattedTime = match[1].replace('.', ':');
+        const targetDate = new Date(`${todayStr}T${formattedTime}:00`);
+        if (!isNaN(targetDate.getTime()) && currentTime.getTime() >= targetDate.getTime()) {
+           shiftHasStarted = true;
+        }
       }
-    }
-    
-    if (hasCheckedInToday && shiftHasStarted) {
+      
+      if (hasCheckedInToday && shiftHasStarted) {
+        upcomingSchedule = sortedTomorrowSchedules[0];
+        upcomingDateStr = tomorrowStr;
+        upcomingLabel = "Jadwal Besok";
+      } else {
+        upcomingSchedule = todaySched;
+        upcomingDateStr = todayStr;
+        upcomingLabel = "Jadwal Hari Ini";
+      }
+    } else {
       upcomingSchedule = sortedTomorrowSchedules[0];
       upcomingDateStr = tomorrowStr;
       upcomingLabel = "Jadwal Besok";
-    } else {
-      upcomingSchedule = todaySched;
-      upcomingDateStr = todayStr;
-      upcomingLabel = "Jadwal Hari Ini";
     }
   } else {
-    upcomingSchedule = sortedTomorrowSchedules[0];
-    upcomingDateStr = tomorrowStr;
-    upcomingLabel = "Jadwal Besok";
+    upcomingSchedule = sortedSelectedSchedules[0] || null;
+    upcomingDateStr = selectedDate || "";
+    if (selectedDate === tomorrowStr) {
+      upcomingLabel = "Jadwal Besok";
+    } else {
+      const d = new Date(selectedDate || "");
+      upcomingLabel = isNaN(d.getTime()) ? "Jadwal" : `Jadwal ${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`;
+    }
   }
 
   let statusLabel = '';
@@ -590,12 +602,16 @@ export default function HostDashboard({
               </div>
               
               <div className="flex items-center justify-between">
-                <button 
-                  onClick={() => setIsAbsenModalOpen(true)}
-                  className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
-                >
-                  <Clock size={16} className="text-blue-500" /> {hasCheckedInToday ? 'Sudah Absen' : 'Belum Absen'}
-                </button>
+                {upcomingDateStr === todayStr ? (
+                  <button 
+                    onClick={() => setIsAbsenModalOpen(true)}
+                    className="bg-white text-blue-600 rounded-[14px] px-4 py-2.5 font-bold text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
+                  >
+                    <Clock size={16} className="text-blue-500" /> {hasCheckedInToday ? 'Sudah Absen' : 'Belum Absen'}
+                  </button>
+                ) : (
+                  <div />
+                )}
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] text-white/80 font-medium mb-0.5">Jam Mulai</span>
                   <span className="font-black text-xl tracking-wide font-mono">
