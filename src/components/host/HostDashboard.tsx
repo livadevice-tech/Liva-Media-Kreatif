@@ -392,28 +392,26 @@ export default function HostDashboard({
       const schedule = hostSchedules.find(s => s.date === dateStr);
       const log = (hostLogs || []).find(l => l.date === dateStr);
       
-      let dotColor = null;
+      let brandStyle = null;
       if (schedule) {
         const brand = schedule.brandHandled || schedule.brand;
-        dotColor = getBrandColor(brand).solid;
+        brandStyle = getBrandColor(brand);
       }
+
+      const buttonClasses = isSelected
+        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+        : brandStyle 
+          ? `${brandStyle.bg} ${brandStyle.text}` 
+          : 'text-slate-700 hover:bg-slate-50';
 
       days.push(
         <div key={`day-${day}`} className="flex flex-col items-center justify-center relative w-10 h-11">
           <button 
             onClick={() => setSelectedDate(dateStr)}
-            className={`w-9 h-9 rounded-full flex items-center justify-center text-[15px] font-bold transition-all z-10 ${
-              isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 'text-slate-700 hover:bg-slate-50'
-            }`}
+            className={`w-9 h-9 rounded-full flex items-center justify-center text-[15px] font-bold transition-all z-10 ${buttonClasses}`}
           >
             {day}
           </button>
-          {dotColor && (
-            <div className={`absolute bottom-0 w-1.5 h-1.5 rounded-full ${dotColor} ${isSelected ? 'opacity-0' : ''}`} />
-          )}
-          {isSelected && dotColor && (
-             <div className={`absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white z-20`} />
-          )}
         </div>
       );
     }
