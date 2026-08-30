@@ -8182,9 +8182,17 @@ export default function App() {
                     
                     {/* MOBILE PAGE HEADER */}
                     <div className="md:hidden flex items-center justify-between px-4 pt-6 pb-2">
-                      <div>
-                        <h1 className="text-2xl font-black text-[#19192c] font-sans tracking-tight">Payroll</h1>
-                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">Kelola dan hitung gaji host</p>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setOperatorTab("dashboard_utama")}
+                          className="p-1.5 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors shrink-0"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <div>
+                          <h1 className="text-2xl font-black text-[#19192c] font-sans tracking-tight">Payroll</h1>
+                          <p className="text-[10px] text-slate-500 font-medium mt-0.5">Kelola dan hitung gaji host</p>
+                        </div>
                       </div>
                       <button 
                         onClick={() => setIsPayrollConfigOpen(!isPayrollConfigOpen)}
@@ -9911,18 +9919,26 @@ export default function App() {
                       {/* Top Header: Title, Segmented Control, Actions */}
                       <div className="flex flex-col xl:flex-row xl:items-center justify-between py-2 md:p-5 gap-4 md:border-b border-slate-100">
                         <div className="flex justify-between items-start w-full xl:w-auto">
-                          <div>
-                            <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                              <Database className="w-4 h-4 text-purple-600" />
-                              <span className="hidden sm:inline">Database Absensi</span>
-                              <span className="sm:hidden">Data Absensi</span>
-                            </h3>
-                            <p className="hidden sm:block text-[11px] text-slate-500 font-medium mt-1">
-                              Menampilkan <span className="font-bold text-slate-700">{filteredLogsList.length}</span> dari {logs.length} data log
-                            </p>
-                            <p className="sm:hidden text-[11px] text-slate-500 font-medium mt-1">
-                              {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                            </p>
+                          <div className="flex items-start gap-3">
+                            <button
+                              onClick={() => setOperatorTab("dashboard_utama")}
+                              className="sm:hidden mt-0.5 p-1 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors shrink-0"
+                            >
+                              <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <div>
+                              <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                <Database className="w-4 h-4 text-purple-600" />
+                                <span className="hidden sm:inline">Database Absensi</span>
+                                <span className="sm:hidden">Data Absensi</span>
+                              </h3>
+                              <p className="hidden sm:block text-[11px] text-slate-500 font-medium mt-1">
+                                Menampilkan <span className="font-bold text-slate-700">{filteredLogsList.length}</span> dari {logs.length} data log
+                              </p>
+                              <p className="sm:hidden text-[11px] text-slate-500 font-medium mt-1">
+                                {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                              </p>
+                            </div>
                           </div>
                           
                           {/* Mobile Action Button (Top Right) */}
@@ -12291,15 +12307,23 @@ export default function App() {
                   >
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
                       <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
-                        <div>
-                          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                            <Lock className="w-5 h-5 text-rose-500" />{" "}
-                            Pengaturan Privasi & Keamanan Master Admin
-                          </h3>
-                          <p className="text-xs text-slate-500 font-semibold mt-1">
-                            Kelola kata sandi, otentikasi dua langkah, dan log
-                            aktivitas admin
-                          </p>
+                        <div className="flex items-start gap-3">
+                          <button
+                            onClick={() => setOperatorTab("dashboard_utama")}
+                            className="sm:hidden mt-0.5 p-1 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors shrink-0"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+                          <div>
+                            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                              <Lock className="w-5 h-5 text-rose-500" />{" "}
+                              Pengaturan Privasi & Keamanan Master Admin
+                            </h3>
+                            <p className="text-xs text-slate-500 font-semibold mt-1">
+                              Kelola kata sandi, otentikasi dua langkah, dan log
+                              aktivitas admin
+                            </p>
+                          </div>
                         </div>
                       </div>
 
@@ -12659,16 +12683,24 @@ export default function App() {
                     id="operator_credentials_content"
                   >
                     <div className="flex flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-purple-50 pb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg sm:text-xl font-black text-purple-950 flex items-center gap-2 leading-tight">
-                          <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 shrink-0" />
-                          Management akun host
-                        </h3>
-                        <p className="text-[10px] sm:text-xs text-[#3c2f56]/80 mt-1 font-medium leading-relaxed">
-                          Tambahkan host baru, edit profil (Nama, HP, Rekening
-                          Bank), atau atur ulang username/password login mereka
-                          secara real-time.
-                        </p>
+                      <div className="flex-1 flex items-start sm:items-center gap-3">
+                        <button
+                          onClick={() => setOperatorTab("dashboard_utama")}
+                          className="sm:hidden mt-0.5 p-1 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors shrink-0"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <div>
+                          <h3 className="text-lg sm:text-xl font-black text-purple-950 flex items-center gap-2 leading-tight">
+                            <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 shrink-0" />
+                            Management akun host
+                          </h3>
+                          <p className="text-[10px] sm:text-xs text-[#3c2f56]/80 mt-1 font-medium leading-relaxed">
+                            Tambahkan host baru, edit profil (Nama, HP, Rekening
+                            Bank), atau atur ulang username/password login mereka
+                            secara real-time.
+                          </p>
+                        </div>
                       </div>
                       
                       {credentialsSubTab === "host_list" && (
