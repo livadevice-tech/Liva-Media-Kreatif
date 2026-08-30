@@ -326,11 +326,11 @@ export default function HostDashboard({
   // Extract unique brands for the legend and assign a color index
   const uniqueBrands = Array.from(new Set(hostSchedules.map(s => s.brandHandled || s.brand)));
   const brandColors = [
-    { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-500' },
-    { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300' },
-    { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
-    { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300' },
-    { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-300' },
+    { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-500', solid: 'bg-purple-500' },
+    { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300', solid: 'bg-emerald-500' },
+    { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300', solid: 'bg-blue-500' },
+    { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300', solid: 'bg-amber-500' },
+    { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-300', solid: 'bg-rose-500' },
   ];
 
   const getBrandColor = (brand: string) => {
@@ -376,7 +376,8 @@ export default function HostDashboard({
 
   const renderFullCalendarDays = () => {
     const daysInMonth = new Date(hostCalendarYear, hostCalendarMonth + 1, 0).getDate();
-    const firstDay = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
+    const firstDayRaw = new Date(hostCalendarYear, hostCalendarMonth, 1).getDay();
+    const firstDay = (firstDayRaw + 6) % 7; // Monday = 0, Sunday = 6
     const days = [];
     
     // Previous month empty days
@@ -396,9 +397,10 @@ export default function HostDashboard({
       const log = (hostLogs || []).find(l => l.date === dateStr);
       
       let dotColor = null;
-      if (log?.status === 'Present') dotColor = 'bg-emerald-500';
-      else if (log?.status === 'Late') dotColor = 'bg-amber-500';
-      else if (schedule) dotColor = 'bg-indigo-500';
+      if (schedule) {
+        const brand = schedule.brandHandled || schedule.brand;
+        dotColor = getBrandColor(brand).solid;
+      }
 
       days.push(
         <div key={`day-${day}`} className="flex flex-col items-center justify-center relative w-10 h-11">
@@ -849,7 +851,7 @@ export default function HostDashboard({
 
           {/* Kalender Card */}
           <div className="bg-white rounded-3xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 mb-5 relative">
-            <h3 className="text-[15px] font-bold text-slate-800 mb-5">Kalender Absensi</h3>
+            <h3 className="text-[15px] font-bold text-slate-800 mb-5">Kalender Kerja Host</h3>
             
             <div className="flex items-center justify-between mb-6">
               <button onClick={handlePrevMonth} className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-indigo-600 hover:bg-slate-50 transition-colors">
@@ -877,26 +879,24 @@ export default function HostDashboard({
             </div>
 
             <div className="grid grid-cols-7 gap-y-3 justify-items-center mb-6">
-              {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map((day, idx) => (
+              {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((day, idx) => (
                 <div key={day} className="text-[11px] font-medium text-slate-400 w-10 text-center mb-2">{day}</div>
               ))}
               {renderFullCalendarDays()}
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-center gap-5 pt-4 border-t border-slate-100/80">
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[10px] font-medium text-slate-500">Hadir</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <span className="text-[10px] font-medium text-slate-500">Telat</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                <span className="text-[10px] font-medium text-slate-500">Jadwal / Aktif</span>
-              </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-4 border-t border-slate-100/80">
+              {uniqueBrands.length > 0 ? (
+                uniqueBrands.map(brand => (
+                  <div key={brand} className="flex items-center gap-1.5">
+                    <div className={`w-1.5 h-1.5 rounded-full ${getBrandColor(brand).solid}`} />
+                    <span className="text-[10px] font-medium text-slate-500">{brand}</span>
+                  </div>
+                ))
+              ) : (
+                <span className="text-[10px] font-medium text-slate-400">Belum ada brand</span>
+              )}
             </div>
           </div>
 
