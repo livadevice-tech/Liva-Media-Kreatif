@@ -483,10 +483,6 @@ export default function HostDashboard({
           </div>
           
           <div className="flex flex-col justify-center">
-            <div className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-              <Sun className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span>SUNNY</span>
-            </div>
             <h2 className="text-[15px] font-black text-slate-800 leading-tight">
               {activeHostObj?.name || 'Nabila Zahratun Sita'}
             </h2>
@@ -494,11 +490,6 @@ export default function HostDashboard({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-[13px] font-bold text-slate-700 shadow-sm">
-            <MapPin className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />
-            <span>{activeHostObj?.studio || 'Kwara'}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
-          </div>
           
           <button className="relative w-9 h-9 flex items-center justify-center text-slate-600">
             <Bell className="w-[22px] h-[22px]" />
