@@ -5430,7 +5430,7 @@ export default function App() {
                       })()}
                     />
                       </div>
-                    <div className="hidden md:block">
+                    <div className="w-full">
                       <ReportingWorkspaceTabs
                         activeTab={clientReportingTab}
                         onTabChange={setClientReportingTab}
@@ -5439,7 +5439,7 @@ export default function App() {
                     </div>
                     </div>
 
-                    <div className="hidden md:block">
+                    <div className="w-full">
                     {clientReportingTab === "live" && (
                       <React.Suspense
                         fallback={
