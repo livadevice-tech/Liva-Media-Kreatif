@@ -222,6 +222,10 @@ export default function HostDashboard({
     }
   };
 
+  const hostSchedules = useMemo(() => {
+    return (computedSchedules || []).filter(s => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay);
+  }, [computedSchedules, activeHostObj]);
+
   const { disciplineScore, avgEarlyArrival, readinessRate, attendanceHistory } = useMemo(() => {
     let score = 100;
     let totalEarlyMinutes = 0;
@@ -274,7 +278,6 @@ export default function HostDashboard({
             validShifts++;
             
             if (log.status === 'Present' && diffMins < 0) {
-              // Jika di-update manual oleh admin jadi Present meskipun jam aslinya telat
               pointChange = 0;
               reason = `Tepat Waktu`;
               totalEarlyMinutes += 0;
@@ -324,7 +327,32 @@ export default function HostDashboard({
       });
     });
 
-    history.reverse();
+    const todayObj = new Date();
+    const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
+    hostSchedules.forEach(schedule => {
+      if (schedule.date > todayStr) return;
+      if (hostCutoffPeriod && hostCutoffPeriod !== 'Semua') {
+        if (getCutoffMonthForDate(schedule.date) !== hostCutoffPeriod) return;
+      }
+      
+      const hasLog = history.some(h => h.date === schedule.date && h.shift === schedule.shift && (h.brand === schedule.brandHandled || h.brand === schedule.brand));
+      
+      if (!hasLog) {
+        history.push({
+          date: schedule.date,
+          brand: schedule.brandHandled || schedule.brand || '',
+          shift: schedule.shift || '',
+          status: 'Belum Absen',
+          pointChange: 0,
+          reason: 'Belum Absen',
+          earlyMinutes: 0,
+          checkInTime: '-',
+        });
+      }
+    });
+
+    history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return {
       disciplineScore: Math.min(100, Math.max(0, score)),
@@ -332,10 +360,8 @@ export default function HostDashboard({
       readinessRate: validShifts > 0 ? Math.round((earlyCount / validShifts) * 100) : 0,
       attendanceHistory: history,
     };
-  }, [hostLogs]);
+  }, [hostLogs, hostSchedules, hostCutoffPeriod]);
 
-  const hostSchedules = (computedSchedules || []).filter(s => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay);
-  
   // Extract unique brands for the legend and assign a color index
   const uniqueBrands = Array.from(new Set(hostSchedules.map(s => s.brandHandled || s.brand)));
   const brandColors = [
@@ -768,7 +794,7 @@ export default function HostDashboard({
             {attendanceHistory.length === 0 ? (
               <div className="text-center py-6 text-xs text-slate-400 font-bold">Belum ada riwayat kehadiran</div>
             ) : (
-              attendanceHistory.slice(0, 5).map((log, idx) => (
+              attendanceHistory.map((log, idx) => (
                 <div key={idx} className="bg-white rounded-[20px] p-4 flex items-center gap-4 border border-slate-100 shadow-sm">
                    <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center shrink-0 border border-slate-100">
                      <CalendarIcon size={20} strokeWidth={1.5} />
@@ -786,8 +812,8 @@ export default function HostDashboard({
                      }`}>
                        {log.status === 'Present' ? 'Tepat Waktu' : log.status === 'Late' ? 'Telat' : log.status}
                      </div>
-                     <div className={`font-bold text-sm ${log.status === 'Late' ? 'text-rose-500' : 'text-emerald-600'}`}>
-                       {log.checkInTime ? log.checkInTime.substring(0, 5) : '-'}
+                     <div className={`font-bold text-sm ${log.status === 'Late' ? 'text-rose-500' : log.status === 'Belum Absen' || log.status === 'Absent' ? 'text-slate-400' : 'text-emerald-600'}`}>
+                       {log.checkInTime && log.checkInTime !== '-' ? log.checkInTime.substring(0, 5) : '-'}
                      </div>
                    </div>
                 </div>
