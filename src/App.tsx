@@ -1099,7 +1099,7 @@ export default function App() {
         }
 
         // 8. brand performance logs + upload history (untuk reporting)
-        if (isAdminOrOperator || isBrand) {
+        if (isHost || isAdminOrOperator || isBrand) {
           loadTasks.push(
             reportingBrandApi
               .getAll(isBrand ? { brandId: loggedInClientBrandId } : undefined)

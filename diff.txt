@@ -1,0 +1,42 @@
+diff --git a/src/components/host/HostDashboard.tsx b/src/components/host/HostDashboard.tsx
+index 2f2ba85..bf80a53 100644
+--- a/src/components/host/HostDashboard.tsx
++++ b/src/components/host/HostDashboard.tsx
+@@ -148,10 +148,23 @@ export default function HostDashboard({
+   const [selectedPerfBrandId, setSelectedPerfBrandId] = useState<string | null>(null);
+   const [hasAutoFilled, setHasAutoFilled] = useState(false);
+ 
++  const hostSchedules = useMemo(() => {
++    return (computedSchedules || []).filter(s => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay);
++  }, [computedSchedules, activeHostObj]);
++
+   const hostClientBrands = useMemo(() => {
+-    if (!activeHostObj?.brands || !clientBrands) return [];
+-    return clientBrands.filter((cb: any) => activeHostObj.brands.includes(cb.name));
+-  }, [activeHostObj, clientBrands]);
++    if (!activeHostObj || !clientBrands) return [];
++    
++    const explicitBrands = activeHostObj.brands || [];
++    const scheduledBrands = hostSchedules.map(s => s.brandHandled || s.brand);
++    const historyBrands = (hostLogs || [])
++      .filter(l => l.hostId === activeHostObj.id)
++      .map(l => l.brandHandled || l.brand);
++      
++    const allRelevantBrands = new Set([...explicitBrands, ...scheduledBrands, ...historyBrands]);
++    
++    return clientBrands.filter((cb: any) => allRelevantBrands.has(cb.name));
++  }, [activeHostObj, clientBrands, hostSchedules, hostLogs]);
+ 
+   useEffect(() => {
+     if (activeTab === 'performance' && !selectedPerfBrandId && hostClientBrands.length > 0) {
+@@ -237,9 +250,7 @@ export default function HostDashboard({
+     }
+   };
+ 
+-  const hostSchedules = useMemo(() => {
+-    return (computedSchedules || []).filter(s => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay);
+-  }, [computedSchedules, activeHostObj]);
++
+ 
+   const { disciplineScore, avgEarlyArrival, readinessRate, attendanceHistory } = useMemo(() => {
+     let score = 100;

@@ -145,6 +145,9 @@ export function isRequestAllowed(
   if (session.role === "host") {
     return (
       (method === "GET" && path === `/hosts/${session.subjectId}`) ||
+      (method === "GET" && path === "/client-brands") ||
+      (method === "GET" && path === "/reporting/brand") ||
+      (method === "GET" && path === "/reporting/brand/analyses") ||
       (method === "GET" && path === "/violations") ||
       (method === "GET" && path === "/logs") ||
       (method === "POST" && path === "/logs") ||
