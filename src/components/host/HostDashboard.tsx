@@ -115,269 +115,10 @@ interface HostDashboardProps {
   computedSchedules: any[];
   violations: any[];
   brandPerformanceLogs: any[];
+  onOpenFullReporting?: (brandId: string) => void;
 };
 
-// ─── HostBrandPerformaView ────────────────────────────────────────────────────
-// Menampilkan reporting lengkap per brand untuk akun host (mirip client brand mobile view)
-function HostBrandPerformaView({
-  hostClientBrands,
-  selectedPerfBrandId,
-  setSelectedPerfBrandId,
-  brandPerformanceLogs,
-}: {
-  hostClientBrands: any[];
-  selectedPerfBrandId: string | null;
-  setSelectedPerfBrandId: (id: string) => void;
-  brandPerformanceLogs: any[];
-}) {
-  const [perfTab, setPerfTab] = React.useState<'metrics' | 'analysis'>('metrics');
-  const [platformFilter, setPlatformFilter] = React.useState<string>('');
-  const [dateFilter, setDateFilter] = React.useState<'latest' | 'month' | 'weekly' | 'custom'>('latest');
-  const [customStart, setCustomStart] = React.useState('');
-  const [customEnd, setCustomEnd] = React.useState('');
 
-  const selectedBrand = hostClientBrands.find((b: any) => b.id === selectedPerfBrandId);
-
-  // Ambil platform yang tersedia untuk brand ini
-  const availablePlatforms = React.useMemo(() => {
-    const logs = brandPerformanceLogs.filter((l: any) => l.brandId === selectedPerfBrandId && l.reportType !== 'engagement');
-    const set = new Set(logs.map((l: any) => l.platform).filter(Boolean));
-    return Array.from(set) as string[];
-  }, [brandPerformanceLogs, selectedPerfBrandId]);
-
-  React.useEffect(() => {
-    if (availablePlatforms.length > 0 && !platformFilter) {
-      setPlatformFilter(availablePlatforms[0]);
-    }
-  }, [availablePlatforms, platformFilter]);
-
-  // Filter logs berdasarkan brand, platform, dan tanggal
-  const filteredLogs = React.useMemo(() => {
-    return brandPerformanceLogs.filter((log: any) => {
-      if (log.brandId !== selectedPerfBrandId) return false;
-      if (log.reportType === 'engagement') return false;
-      if (platformFilter && !log.platform?.toLowerCase().includes(platformFilter.toLowerCase())) return false;
-      if (log.date) {
-        if (dateFilter === 'month') {
-          const limit = new Date();
-          limit.setDate(limit.getDate() - 30);
-          return new Date(log.date) >= limit;
-        } else if (dateFilter === 'weekly') {
-          const limit = new Date();
-          limit.setDate(limit.getDate() - 7);
-          return new Date(log.date) >= limit;
-        } else if (dateFilter === 'custom') {
-          if (customStart && log.date < customStart) return false;
-          if (customEnd && log.date > customEnd) return false;
-        }
-      }
-      return true;
-    });
-  }, [brandPerformanceLogs, selectedPerfBrandId, platformFilter, dateFilter, customStart, customEnd]);
-
-  const formatRp = (n: number) => `Rp${new Intl.NumberFormat('id-ID').format(Math.round(n))}`;
-  const formatNum = (n: number) => new Intl.NumberFormat('id-ID').format(Math.round(n));
-
-  const totalGmv = filteredLogs.reduce((s: number, l: any) => s + (l.gmv || 0), 0);
-  const totalSold = filteredLogs.reduce((s: number, l: any) => s + (l.products_sold || 0), 0);
-  const totalOrders = filteredLogs.reduce((s: number, l: any) => s + (l.orders || 0), 0);
-  const totalViewers = filteredLogs.reduce((s: number, l: any) => s + (l.penonton || 0), 0);
-  const totalClicks = filteredLogs.reduce((s: number, l: any) => s + (l.clicks || 0), 0);
-  const totalDuration = filteredLogs.reduce((s: number, l: any) => s + (l.duration_seconds || 0), 0);
-  const aov = totalOrders > 0 ? totalGmv / totalOrders : 0;
-
-  const dateFilterOptions = [
-    { value: 'latest', label: '30 Hari Terakhir' },
-    { value: 'weekly', label: '7 Hari Terakhir' },
-    { value: 'month', label: '30 Hari' },
-  ];
-
-  const metricCards = [
-    { label: 'GMV', value: formatRp(totalGmv), icon: <DollarSign className="w-4 h-4 text-indigo-500" />, color: 'bg-indigo-50' },
-    { label: 'Item Sold', value: formatNum(totalSold), icon: <Package className="w-4 h-4 text-emerald-500" />, color: 'bg-emerald-50' },
-    { label: 'Orders', value: formatNum(totalOrders), icon: <ShoppingCart className="w-4 h-4 text-amber-500" />, color: 'bg-amber-50' },
-    { label: 'AOV', value: formatRp(aov), icon: <Activity className="w-4 h-4 text-rose-500" />, color: 'bg-rose-50' },
-    { label: 'Viewers', value: formatNum(totalViewers), icon: <TrendingUp className="w-4 h-4 text-purple-500" />, color: 'bg-purple-50' },
-    { label: 'Add to Cart', value: formatNum(totalClicks), icon: <ShoppingCart className="w-4 h-4 text-sky-500" />, color: 'bg-sky-50' },
-  ];
-
-  // Sort logs by date desc for daily table
-  const sortedLogs = [...filteredLogs].sort((a: any, b: any) => {
-    const da = a.date || '';
-    const db = b.date || '';
-    return da > db ? -1 : da < db ? 1 : 0;
-  });
-
-  return (
-    <div className="flex flex-col gap-3">
-      {/* Brand Tabs */}
-      {hostClientBrands.length > 1 && (
-        <div className="px-4">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {hostClientBrands.map((brand: any) => (
-              <button
-                key={brand.id}
-                onClick={() => { setSelectedPerfBrandId(brand.id); setPlatformFilter(''); }}
-                className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                  selectedPerfBrandId === brand.id
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-white text-slate-500 border border-slate-200'
-                }`}
-              >
-                {brand.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Header brand + platform */}
-      <div className="px-4">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h2 className="text-sm font-black text-slate-900">{selectedBrand?.name || ''}</h2>
-            <p className="text-[10px] text-slate-400 font-medium">Data Performa Live</p>
-          </div>
-          {/* Platform Filter */}
-          {availablePlatforms.length > 1 && (
-            <div className="flex gap-1.5">
-              {availablePlatforms.map((p: string) => (
-                <button
-                  key={p}
-                  onClick={() => setPlatformFilter(p)}
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
-                    platformFilter === p
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-slate-500 border border-slate-200'
-                  }`}
-                >
-                  {p.replace(' Live', '')}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Date Filter */}
-        <div className="flex gap-1.5 mb-3">
-          {dateFilterOptions.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setDateFilter(opt.value as any)}
-              className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
-                dateFilter === opt.value
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-white text-slate-500 border border-slate-200'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Switch: Metrics vs Analysis */}
-      <div className="px-4">
-        <div className="flex bg-slate-100 rounded-xl p-0.5 gap-0.5">
-          <button
-            onClick={() => setPerfTab('metrics')}
-            className={`flex-1 py-1.5 rounded-[10px] text-xs font-bold transition-all ${perfTab === 'metrics' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}
-          >
-            Ringkasan
-          </button>
-          <button
-            onClick={() => setPerfTab('analysis')}
-            className={`flex-1 py-1.5 rounded-[10px] text-xs font-bold transition-all ${perfTab === 'analysis' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}
-          >
-            Analisis
-          </button>
-        </div>
-      </div>
-
-      {perfTab === 'metrics' && (
-        <>
-          {/* Summary metric cards */}
-          <div className="px-4 grid grid-cols-3 gap-2">
-            {metricCards.map((m, i) => (
-              <div key={i} className={`${m.color} rounded-2xl p-3 flex flex-col gap-1`}>
-                <div className="flex items-center gap-1">
-                  {m.icon}
-                  <span className="text-[9px] font-semibold text-slate-600">{m.label}</span>
-                </div>
-                <div className="text-xs font-black text-slate-900 leading-tight">{m.value}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Sessions count */}
-          <div className="px-4">
-            <div className="bg-slate-50 rounded-xl px-3 py-2 flex items-center justify-between">
-              <span className="text-[10px] text-slate-500 font-medium">Total Sesi Live</span>
-              <span className="text-xs font-black text-slate-800">{filteredLogs.length} sesi</span>
-            </div>
-          </div>
-
-          {/* Daily table */}
-          {sortedLogs.length > 0 ? (
-            <div className="px-4">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-xs font-bold text-slate-700">Riwayat Sesi</h3>
-                <span className="text-[10px] text-slate-400">{sortedLogs.length} sesi</span>
-              </div>
-              <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[10px]">
-                    <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50/50">
-                        <th className="text-left px-3 py-2 font-semibold text-slate-500">Tanggal</th>
-                        <th className="text-right px-3 py-2 font-semibold text-slate-500">GMV</th>
-                        <th className="text-right px-3 py-2 font-semibold text-slate-500">Orders</th>
-                        <th className="text-right px-3 py-2 font-semibold text-slate-500">Viewers</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedLogs.slice(0, 30).map((log: any, i: number) => (
-                        <tr key={i} className="border-b border-slate-50 hover:bg-slate-50/50">
-                          <td className="px-3 py-2 text-slate-600 font-medium">
-                            {log.date ? new Date(log.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : '-'}
-                            <div className="text-[8px] text-slate-400">{log.shift || log.platform || ''}</div>
-                          </td>
-                          <td className="px-3 py-2 text-right text-slate-800 font-bold">
-                            {log.gmv ? formatRp(log.gmv) : '-'}
-                          </td>
-                          <td className="px-3 py-2 text-right text-slate-600">
-                            {log.orders ?? log.products_sold ?? '-'}
-                          </td>
-                          <td className="px-3 py-2 text-right text-slate-600">
-                            {log.penonton ? formatNum(log.penonton) : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="px-4 py-8 text-center text-slate-400 text-xs">
-              Tidak ada data untuk filter ini.
-            </div>
-          )}
-        </>
-      )}
-
-      {perfTab === 'analysis' && selectedPerfBrandId && (
-        <div className="-mx-4 sm:mx-0">
-          <AnalysisPerformanceTab
-            brandId={selectedPerfBrandId}
-            logs={brandPerformanceLogs.filter((l: any) => l.brandId === selectedPerfBrandId)}
-            isClientView={true}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
 
 
 export default function HostDashboard({
@@ -409,6 +150,7 @@ export default function HostDashboard({
   computedSchedules,
   violations,
   brandPerformanceLogs,
+  onOpenFullReporting,
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance'>('beranda');
   const [selectedPerfBrandId, setSelectedPerfBrandId] = useState<string | null>(null);
@@ -1337,18 +1079,39 @@ export default function HostDashboard({
 
       {/* Konten Performance */}
       {activeTab === 'performance' && (
-        <div className="mt-2 animate-fadeIn pb-24">
+        <div className="mt-2 animate-fadeIn pb-24 px-4">
           {hostClientBrands.length === 0 ? (
             <div className="text-center py-12 text-slate-400 font-medium">
               Tidak ada data performa brand.
             </div>
           ) : (
-            <HostBrandPerformaView
-              hostClientBrands={hostClientBrands}
-              selectedPerfBrandId={selectedPerfBrandId}
-              setSelectedPerfBrandId={setSelectedPerfBrandId}
-              brandPerformanceLogs={brandPerformanceLogs || []}
-            />
+            <div className="flex flex-col gap-4 items-center justify-center py-12 bg-white border border-slate-100 rounded-3xl mt-4 shadow-sm">
+               <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-2">
+                 <BarChart2 className="w-8 h-8 text-blue-600" />
+               </div>
+               <div className="text-center px-4">
+                 <h3 className="font-black text-lg text-slate-800 mb-1">Dashboard Performa</h3>
+                 <p className="text-[11px] font-semibold text-slate-500 leading-relaxed max-w-[250px] mx-auto">
+                   Akses semua metrik penjualan, grafik, dan laporan lengkap seperti di halaman admin.
+                 </p>
+               </div>
+               
+               <div className="flex flex-col gap-3 w-full px-4 mt-4">
+                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pilih Brand</div>
+                 {hostClientBrands.map((brand: any) => (
+                   <button 
+                     key={brand.id}
+                     onClick={() => onOpenFullReporting?.(brand.id)}
+                     className="bg-white border-2 border-slate-100 hover:border-blue-500 rounded-2xl px-5 py-4 flex items-center justify-between transition-all group hover:shadow-sm"
+                   >
+                      <span className="font-bold text-sm text-slate-700 group-hover:text-blue-700">{brand.name}</span>
+                      <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center transition-colors">
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />
+                      </div>
+                   </button>
+                 ))}
+               </div>
+            </div>
           )}
         </div>
       )}

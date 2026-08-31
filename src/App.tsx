@@ -863,11 +863,9 @@ export default function App() {
     cutOffEndDay: 15,
   });
 
-  const [loggedInClientBrandId, setLoggedInClientBrandId] = useState<
-    string | null
-  >(null);
-
   const [loggedInHostId, setLoggedInHostId] = useState<string | null>(null);
+  const [hostActiveReportingBrandId, setHostActiveReportingBrandId] = useState<string | null>(null);
+  const [loggedInClientBrandId, setLoggedInClientBrandId] = useState<string | null>(null);
 
   const [loggedInAdminId, setLoggedInAdminId] = useState<string | null>(null);
 
@@ -5104,7 +5102,7 @@ export default function App() {
       )}
 
       {/* --- MAIN PAGE VIEWPORTS CONTROLLER --- */}
-      {loggedInHostId && (
+      {loggedInHostId && !hostActiveReportingBrandId && (
         <HostDashboard
           activeHostObj={activeHostObj}
           hostForm={hostForm}
@@ -5134,19 +5132,22 @@ export default function App() {
           computedSchedules={computedSchedules}
           violations={violations.filter(v => v.host_id === activeHostObj?.id)}
           brandPerformanceLogs={brandPerformanceLogs}
+          onOpenFullReporting={(brandId) => setHostActiveReportingBrandId(brandId)}
         />
       )}
 
-      {loggedInClientBrandId &&
+      {(loggedInClientBrandId || hostActiveReportingBrandId) &&
         (() => {
+          const activeClientBrandId = loggedInClientBrandId || hostActiveReportingBrandId;
+          const isHostView = !!hostActiveReportingBrandId;
           const clientBrand = clientBrands.find(
-            (b) => b.id === loggedInClientBrandId,
+            (b) => b.id === activeClientBrandId,
           );
           const clientAvailableReportDates = getAvailableReportDates(
             {
               logs: brandPerformanceLogs.filter(
                 (log) =>
-                  log.brandId === loggedInClientBrandId &&
+                  log.brandId === activeClientBrandId &&
                   log.reportType !== "engagement",
               ),
               platformFilter: clientPlatformFilter,
@@ -5164,10 +5165,9 @@ export default function App() {
                 : clientLatestAvailableReportDate
               : "";
 
-          // Filter the performance logs based on client settings
           const filteredLogs = brandPerformanceLogs.filter((log) => {
             if (
-              log.brandId !== loggedInClientBrandId ||
+              log.brandId !== activeClientBrandId ||
               log.reportType === "engagement"
             )
               return false;
@@ -5274,8 +5274,9 @@ export default function App() {
                       <div className="px-4 pt-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
                         <ReportingWorkspaceHeader
                       brandName={clientBrand?.name || "Nama Brand"}
-                      brandId={loggedInClientBrandId || undefined}
+                      brandId={activeClientBrandId || undefined}
                       brandLogoUrl={clientBrand?.logoUrl}
+                      onBack={isHostView ? () => setHostActiveReportingBrandId(null) : undefined}
                       activeTab={clientReportingTab}
                       platformFilter={clientPlatformFilter}
                       onPlatformFilterChange={setClientPlatformFilter}
@@ -5314,7 +5315,7 @@ export default function App() {
                           ? (() => {
                               const filteredDb = brandPerformanceLogs.filter(
                                 (log) =>
-                                  log.brandId === loggedInClientBrandId &&
+                                  log.brandId === activeClientBrandId &&
                                   log.reportType !== "engagement",
                               );
                               const availableReportDates = getAvailableReportDates({
@@ -5339,7 +5340,7 @@ export default function App() {
                           ? () => {
                               const filteredDb = brandPerformanceLogs.filter(
                                 (log) =>
-                                  log.brandId === loggedInClientBrandId &&
+                                  log.brandId === activeClientBrandId &&
                                   log.reportType !== "engagement",
                               );
                               const availableReportDates = getAvailableReportDates({
@@ -5365,7 +5366,7 @@ export default function App() {
                           ? () => {
                               const filteredDb = brandPerformanceLogs.filter(
                                 (log) =>
-                                  log.brandId === loggedInClientBrandId &&
+                                  log.brandId === activeClientBrandId &&
                                   log.reportType !== "engagement",
                               );
                               const availableReportDates = getAvailableReportDates({
@@ -5391,7 +5392,7 @@ export default function App() {
                           ? (() => {
                               const filteredDb = brandPerformanceLogs.filter(
                                 (log) =>
-                                  log.brandId === loggedInClientBrandId &&
+                                  log.brandId === activeClientBrandId &&
                                   log.reportType !== "engagement",
                               );
                               const availableReportDates = getAvailableReportDates({
@@ -5408,7 +5409,7 @@ export default function App() {
                           ? (() => {
                               const filteredDb = brandPerformanceLogs.filter(
                                 (log) =>
-                                  log.brandId === loggedInClientBrandId &&
+                                  log.brandId === activeClientBrandId &&
                                   log.reportType !== "engagement",
                               );
                               const availableReportDates = getAvailableReportDates({
@@ -5423,7 +5424,7 @@ export default function App() {
                       sessionCount={(() => {
                         const filteredDb = brandPerformanceLogs.filter(
                           (log) =>
-                            log.brandId === loggedInClientBrandId &&
+                            log.brandId === activeClientBrandId &&
                             log.reportType !== "engagement" &&
                             (!clientPlatformFilter || log.platform === clientPlatformFilter),
                         );
@@ -5475,21 +5476,21 @@ export default function App() {
                             handleDeletePerformanceLog
                           }
                           brandPerformanceLogs={brandPerformanceLogs}
-                          activeReportBrandId={loggedInClientBrandId || ""}
+                          activeReportBrandId={activeClientBrandId || ""}
                           brandUploadHistory={brandUploadHistory}
                           uploadHistory={uploadHistory}
                           onDeleteUploadBatch={handleDeleteUploadBatch}
-                          brandDashboardSettings={clientBrands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
+                          brandDashboardSettings={clientBrands.find((b) => b.id === activeClientBrandId)?.dashboardSettings}
                           hideUploadHistory={true}
                           hideRawTableControls={true}
                           isClientView={true}
                         />
                       </React.Suspense>
                     )}
-                    {clientReportingTab === "analysis" && loggedInClientBrandId && (
+                    {clientReportingTab === "analysis" && activeClientBrandId && (
                       <AnalysisPerformanceTab
-                        brandId={loggedInClientBrandId}
-                        logs={brandPerformanceLogs.filter(l => l.brandId === loggedInClientBrandId)}
+                        brandId={activeClientBrandId}
+                        logs={brandPerformanceLogs.filter(l => l.brandId === activeClientBrandId)}
                         isClientView={true}
                       />
                     )}
@@ -5498,7 +5499,7 @@ export default function App() {
                       <ProductPerformancePanel
                         shopeeSkuLogs={shopeeSkuLogs}
                         brandPerformanceLogs={brandPerformanceLogs}
-                        activeReportBrandId={loggedInClientBrandId || ""}
+                        activeReportBrandId={activeClientBrandId || ""}
                         operatorDateFilterType={clientDateFilterType}
                         selectedLatestDate={clientSelectedLatestDate}
                         operatorCustomStartDate={clientCustomStartDate}
@@ -5507,7 +5508,7 @@ export default function App() {
                         operatorPlatformFilter={clientPlatformFilter}
                         operatorShiftFilters={operatorShiftFilters}
                         reportDbSearchQuery={reportDbSearchQuery}
-                      brandDashboardSettings={clientBrands.find((b) => b.id === loggedInClientBrandId)?.dashboardSettings}
+                      brandDashboardSettings={clientBrands.find((b) => b.id === activeClientBrandId)?.dashboardSettings}
                         skuSortCol={skuSortCol}
                         skuSortAsc={skuSortAsc}
                         setSkuSortCol={setSkuSortCol}
@@ -5592,7 +5593,7 @@ export default function App() {
                   exportReportToExcel({
                     reportType: clientReportingTab,
                     selectedMetrics: options,
-                    brandName: clientBrands.find((b) => b.id === loggedInClientBrandId)?.name || "Client_Brand",
+                    brandName: clientBrands.find((b) => b.id === activeClientBrandId)?.name || "Client_Brand",
                     liveReportView: clientLiveReportView,
                     productReportView: clientProductReportView,
                     engagementReportView: clientEngagementReportView,
@@ -5642,7 +5643,7 @@ export default function App() {
                   exportReportToPdf({
                     reportType: clientReportingTab,
                     selectedMetrics: options,
-                    brandName: clientBrands.find((b) => b.id === loggedInClientBrandId)?.name || "Client_Brand",
+                    brandName: clientBrands.find((b) => b.id === activeClientBrandId)?.name || "Client_Brand",
                     liveReportView: clientLiveReportView,
                     productReportView: clientProductReportView,
                     engagementReportView: clientEngagementReportView,
