@@ -351,13 +351,14 @@ export default function HostDashboard({
         if (getCutoffMonthForDate(schedule.date) !== hostCutoffPeriod) return;
       }
       
-      const hasLog = history.some(h => h.date === schedule.date && h.shift === schedule.shift && (h.brand === schedule.brandHandled || h.brand === schedule.brand));
+      const schedShift = schedule.timeSlot || schedule.shift || '';
+      const hasLog = history.some(h => h.date === schedule.date && h.shift === schedShift && (h.brand === schedule.brandHandled || h.brand === schedule.brand));
       
       if (!hasLog) {
         history.push({
           date: schedule.date,
           brand: schedule.brandHandled || schedule.brand || '',
-          shift: schedule.shift || '',
+          shift: schedShift,
           status: 'Belum Absen',
           pointChange: 0,
           reason: 'Belum Absen',
