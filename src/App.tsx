@@ -1041,7 +1041,7 @@ export default function App() {
         }
 
         // 4. client_brands
-        if (isBrand || (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.clientBrands))) {
+        if (isBrand || isHost || (isAdminOrOperator && canLoad(...MODULE_TAB_REQUIREMENTS.clientBrands))) {
           loadTasks.push(
             (isBrand
               ? clientBrandsApi.getById(loggedInClientBrandId).then((brand) => [brand])
