@@ -5230,8 +5230,7 @@ export default function App() {
                 className="flex-1 overflow-y-auto w-full animate-fadeIn bg-[#fcf9f8] min-h-screen"
                 id="client-main-viewport"
               >
-                <div className="md:hidden min-h-screen bg-white w-full"></div>
-                <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 pb-12 sm:px-6 lg:px-8 mt-6 hidden md:block">
+                <div className="mx-auto w-full max-w-[1600px] space-y-6 px-0 md:px-4 pb-12 sm:px-6 lg:px-8 mt-0 md:mt-6">
                   {/* TOP HEADER */}
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-[20px] border border-slate-100 shadow-sm">
                     <div className="flex items-center gap-4">
@@ -5268,8 +5267,7 @@ export default function App() {
                   </div>
 
                   {/* CLIENT REPORTING MODULAR COMPONENTS */}
-                  <div className="md:hidden w-full h-[800px] bg-white"></div>
-                  <div className="hidden md:block w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left min-h-screen">
+                  <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-none md:rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left min-h-screen">
                     <div className="w-full bg-white">
                       <div className="px-4 pt-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
                         <ReportingWorkspaceHeader
