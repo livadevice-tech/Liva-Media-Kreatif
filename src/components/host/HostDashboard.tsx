@@ -428,7 +428,7 @@ export default function HostDashboard({
         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
         : brandStyle 
           ? `${brandStyle.bg} ${brandStyle.text}` 
-          : 'text-slate-700 hover:bg-slate-50';
+          : 'text-slate-400 hover:bg-slate-50';
 
       days.push(
         <div key={`day-${day}`} className="flex flex-col items-center justify-center relative w-10 h-11">
