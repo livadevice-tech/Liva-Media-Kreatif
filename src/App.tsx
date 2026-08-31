@@ -5133,6 +5133,7 @@ export default function App() {
           availableCutoffMonths={availableCutoffMonths}
           computedSchedules={computedSchedules}
           violations={violations.filter(v => v.host_id === activeHostObj?.id)}
+          brandPerformanceLogs={brandPerformanceLogs}
         />
       )}
 

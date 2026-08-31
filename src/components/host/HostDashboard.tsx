@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
   CheckCircle2, AlertTriangle, ChevronDown, Clock,
-  Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X
+  Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X, TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
 import { getCutoffMonthForDate } from '../../shared/utils/appUi';
 import { activityLogsApi } from '../../api';
+import AnalysisPerformanceTab from '../reporting/AnalysisPerformanceTab';
 
 const formatShortCutoff = (period: string) => {
   if (period === 'Semua') return 'Semua Waktu';
@@ -110,6 +111,7 @@ interface HostDashboardProps {
   availableCutoffMonths: string[];
   computedSchedules: any[];
   violations: any[];
+  brandPerformanceLogs: any[];
 };
 
 export default function HostDashboard({
@@ -140,9 +142,22 @@ export default function HostDashboard({
   availableCutoffMonths,
   computedSchedules,
   violations,
+  brandPerformanceLogs,
 }: HostDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender'>('beranda');
+  const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance'>('beranda');
+  const [selectedPerfBrandId, setSelectedPerfBrandId] = useState<string | null>(null);
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
+
+  const hostClientBrands = useMemo(() => {
+    if (!activeHostObj?.brands || !clientBrands) return [];
+    return clientBrands.filter((cb: any) => activeHostObj.brands.includes(cb.name));
+  }, [activeHostObj, clientBrands]);
+
+  useEffect(() => {
+    if (activeTab === 'performance' && !selectedPerfBrandId && hostClientBrands.length > 0) {
+      setSelectedPerfBrandId(hostClientBrands[0].id);
+    }
+  }, [activeTab, hostClientBrands, selectedPerfBrandId]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weeklyOffset, setWeeklyOffset] = useState(0); // Offset in weeks from current week
   const [isAbsenModalOpen, setIsAbsenModalOpen] = useState(false);
@@ -424,11 +439,14 @@ export default function HostDashboard({
         brandStyle = getBrandColor(brand);
       }
 
+      const hasCheckedIn = log && (log.status === 'Present' || log.status === 'Late' || log.checkInTime);
+      const textColorClass = hasCheckedIn ? 'text-emerald-600' : brandStyle ? brandStyle.text : 'text-slate-400';
+
       const buttonClasses = isSelected
         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
         : brandStyle 
-          ? `${brandStyle.bg} ${brandStyle.text}` 
-          : 'text-slate-400 hover:bg-slate-50';
+          ? `${brandStyle.bg} ${textColorClass}` 
+          : `${textColorClass} hover:bg-slate-50`;
 
       days.push(
         <div key={`day-${day}`} className="flex flex-col items-center justify-center relative w-10 h-11">
@@ -1025,6 +1043,49 @@ export default function HostDashboard({
         </div>
       )}
 
+      {/* Konten Performance */}
+      {activeTab === 'performance' && (
+        <div className="mt-2 animate-fadeIn pb-24">
+          {hostClientBrands.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 font-medium">
+              Tidak ada data performa brand.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {hostClientBrands.length > 1 && (
+                <div className="px-4">
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    {hostClientBrands.map((brand: any) => (
+                      <button
+                        key={brand.id}
+                        onClick={() => setSelectedPerfBrandId(brand.id)}
+                        className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                          selectedPerfBrandId === brand.id
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {brand.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {selectedPerfBrandId && (
+                <div className="-mx-4 sm:mx-0">
+                  <AnalysisPerformanceTab
+                    brandId={selectedPerfBrandId}
+                    logs={brandPerformanceLogs?.filter(l => l.brandId === selectedPerfBrandId) || []}
+                    isClientView={true}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Mobile Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-4 pt-2 bg-gradient-to-t from-[#f8f9fc] via-[#f8f9fc] to-transparent">
         <div className="w-full max-w-[400px] mx-4 bg-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-100 px-6 py-3 flex items-center justify-between relative">
@@ -1042,7 +1103,7 @@ export default function HostDashboard({
           {/* 2. Jadwal */}
           <button 
             onClick={() => setActiveTab('kalender')} 
-            className="flex flex-col items-center justify-center gap-1 w-12 group"
+            className="flex flex-col items-center justify-center p-2 relative group"
           >
             <CalendarIcon className={`w-[22px] h-[22px] transition-colors ${activeTab === 'kalender' ? 'text-blue-600 fill-blue-600/20' : 'text-slate-400 group-hover:text-blue-500'}`} strokeWidth={1.5} />
             <span className={`text-[9px] font-bold ${activeTab === 'kalender' ? 'text-blue-600' : 'text-slate-400'}`}>Jadwal</span>
