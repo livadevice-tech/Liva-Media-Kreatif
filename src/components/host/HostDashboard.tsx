@@ -163,24 +163,14 @@ export default function HostDashboard({
   const hostClientBrands = useMemo(() => {
     if (!activeHostObj || !clientBrands) return [];
     
-    const explicitBrands = activeHostObj.brands || [];
-    const scheduledBrands = hostSchedules.map(s => s.brandHandled || s.brand);
-    const historyBrands = (hostLogs || [])
-      .filter(l => l.hostId === activeHostObj.id)
-      .map(l => l.brandHandled || l.brand);
-      
-    const allRelevantBrands = new Set([...explicitBrands, ...scheduledBrands, ...historyBrands]);
-    
     return clientBrands.filter((cb: any) => {
-      if (allRelevantBrands.has(cb.name)) return true;
-      
       const hostNameLower = activeHostObj.name?.trim().toLowerCase();
       if (cb.sessions && Array.isArray(cb.sessions)) {
         return cb.sessions.some((session: any) => session.host?.trim().toLowerCase() === hostNameLower);
       }
       return false;
     });
-  }, [activeHostObj, clientBrands, hostSchedules, hostLogs]);
+  }, [activeHostObj, clientBrands]);
 
   useEffect(() => {
     if (activeTab === 'performance' && !selectedPerfBrandId && hostClientBrands.length > 0) {
@@ -1097,17 +1087,31 @@ export default function HostDashboard({
                </div>
                
                <div className="flex flex-col gap-3 w-full px-4 mt-4">
-                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pilih Brand</div>
+                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Pilih Brand</div>
                  {hostClientBrands.map((brand: any) => (
                    <button 
                      key={brand.id}
                      onClick={() => onOpenFullReporting?.(brand.id)}
-                     className="bg-white border-2 border-slate-100 hover:border-blue-500 rounded-2xl px-5 py-4 flex items-center justify-between transition-all group hover:shadow-sm"
+                     className="bg-white border border-slate-200 hover:border-blue-500 rounded-[20px] p-4 flex items-center justify-between transition-all group hover:shadow-[0_8px_30px_rgb(59,130,246,0.12)] w-full text-left"
                    >
-                      <span className="font-bold text-sm text-slate-700 group-hover:text-blue-700">{brand.name}</span>
-                      <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center transition-colors">
-                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />
-                      </div>
+                     <div className="flex items-center gap-4">
+                       <div className="w-[52px] h-[52px] rounded-full overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                         {brand.logoUrl ? (
+                           <img src={brand.logoUrl} alt={brand.name} className="w-full h-full object-cover" />
+                         ) : (
+                           <span className="font-bold text-xl text-slate-400">{brand.name?.charAt(0).toUpperCase()}</span>
+                         )}
+                       </div>
+                       <div>
+                         <span className="font-black text-[17px] text-slate-800 group-hover:text-blue-700 block mb-0.5">{brand.name}</span>
+                         <span className="text-[11px] font-semibold text-slate-500 block flex items-center gap-1">
+                           Lihat Performa Brand
+                         </span>
+                       </div>
+                     </div>
+                     <div className="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center transition-colors shrink-0">
+                       <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
+                     </div>
                    </button>
                  ))}
                </div>
