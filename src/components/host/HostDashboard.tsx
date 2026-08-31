@@ -163,7 +163,15 @@ export default function HostDashboard({
       
     const allRelevantBrands = new Set([...explicitBrands, ...scheduledBrands, ...historyBrands]);
     
-    return clientBrands.filter((cb: any) => allRelevantBrands.has(cb.name));
+    return clientBrands.filter((cb: any) => {
+      if (allRelevantBrands.has(cb.name)) return true;
+      
+      const hostNameLower = activeHostObj.name?.trim().toLowerCase();
+      if (cb.sessions && Array.isArray(cb.sessions)) {
+        return cb.sessions.some((session: any) => session.host?.trim().toLowerCase() === hostNameLower);
+      }
+      return false;
+    });
   }, [activeHostObj, clientBrands, hostSchedules, hostLogs]);
 
   useEffect(() => {
