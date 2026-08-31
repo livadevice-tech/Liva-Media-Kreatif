@@ -702,12 +702,18 @@ export default function HostDashboard({
               const dateStr = `${currentDay.getFullYear()}-${String(currentDay.getMonth() + 1).padStart(2, '0')}-${String(currentDay.getDate()).padStart(2, '0')}`;
               const dayName = currentDay.toLocaleDateString('en-US', { weekday: 'short' });
               const isActive = selectedDate === dateStr;
+              
+              const hasSchedule = hostSchedules.some(s => s.date === dateStr);
+              const log = (hostLogs || []).find(l => l.date === dateStr);
+              const hasCheckedIn = log && (log.status === 'Present' || log.status === 'Late' || log.checkInTime);
+              
+              const textColorClass = hasCheckedIn ? 'text-emerald-600' : hasSchedule ? 'text-slate-700' : 'text-slate-400';
 
               return (
                 <div key={i} className="flex flex-col items-center gap-1.5 cursor-pointer" onClick={() => setSelectedDate(dateStr)}>
                   <span className={`text-[11px] font-medium ${isActive ? 'text-slate-800' : 'text-slate-500'}`}>{dayName}</span>
                   <div className={`w-10 h-11 flex flex-col items-center justify-center rounded-xl transition-all relative ${
-                    isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-700'
+                    isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : textColorClass
                   }`}>
                     <span className="font-bold text-[15px]">{currentDay.getDate()}</span>
                     {isActive && <div className="absolute -bottom-2 w-4 h-1 bg-blue-600 rounded-full" />}
@@ -1123,9 +1129,13 @@ export default function HostDashboard({
           </button>
 
           {/* 4. Performa */}
-          <button className="flex flex-col items-center justify-center gap-1 w-12 group">
-            <BarChart2 className="w-[22px] h-[22px] text-slate-400 group-hover:text-blue-500 transition-colors" strokeWidth={1.5} />
-            <span className="text-[9px] font-bold text-slate-400 group-hover:text-blue-500">Performa</span>
+          <button 
+            onClick={() => setActiveTab('performance')}
+            className="flex flex-col items-center justify-center p-2 relative group"
+          >
+            <BarChart2 className={`w-[22px] h-[22px] transition-colors ${activeTab === 'performance' ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-500'}`} strokeWidth={1.5} />
+            <span className={`text-[9px] font-bold ${activeTab === 'performance' ? 'text-blue-600' : 'text-slate-400'}`}>Performa</span>
+            {activeTab === 'performance' && <div className="absolute -bottom-1 w-1 h-1 bg-blue-600 rounded-full mt-1" />}
           </button>
 
           {/* 5. Akun */}
