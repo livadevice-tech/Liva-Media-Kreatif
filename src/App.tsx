@@ -1978,7 +1978,7 @@ export default function App() {
     () =>
       buildLiveReportViewModel({
         brandPerformanceLogs,
-        activeReportBrandId: loggedInClientBrandId || "",
+        activeReportBrandId: (loggedInClientBrandId || hostActiveReportingBrandId) || "",
         dateFilterType: clientDateFilterType,
         selectedLatestDate: clientSelectedLatestDate,
         selectedMonth: clientSelectedMonth,
@@ -1990,6 +1990,7 @@ export default function App() {
       }),
     [
       loggedInClientBrandId,
+      hostActiveReportingBrandId,
       brandPerformanceLogs,
       clientCustomEndDate,
       clientCustomStartDate,
@@ -2006,7 +2007,7 @@ export default function App() {
     () =>
       buildEngagementReportViewModel({
         brandPerformanceLogs,
-        activeReportBrandId: loggedInClientBrandId || "",
+        activeReportBrandId: (loggedInClientBrandId || hostActiveReportingBrandId) || "",
         operatorDateFilterType: clientDateFilterType,
         selectedLatestDate: clientSelectedLatestDate,
         operatorPlatformFilter: clientPlatformFilter,
@@ -2017,6 +2018,7 @@ export default function App() {
       }),
     [
       loggedInClientBrandId,
+      hostActiveReportingBrandId,
       brandPerformanceLogs,
       clientCustomEndDate,
       clientCustomStartDate,
@@ -2035,7 +2037,7 @@ export default function App() {
       buildProductPerformanceViewModel({
         shopeeSkuLogs,
         brandPerformanceLogs,
-        activeReportBrandId: loggedInClientBrandId || "",
+        activeReportBrandId: (loggedInClientBrandId || hostActiveReportingBrandId) || "",
         operatorDateFilterType: clientDateFilterType,
         selectedLatestDate: clientSelectedLatestDate,
         operatorCustomStartDate: clientCustomStartDate,
@@ -2049,6 +2051,7 @@ export default function App() {
       shopeeSkuLogs,
       brandPerformanceLogs,
       loggedInClientBrandId,
+      hostActiveReportingBrandId,
       clientDateFilterType,
       clientSelectedLatestDate,
       clientCustomStartDate,
