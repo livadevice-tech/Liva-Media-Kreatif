@@ -5232,39 +5232,41 @@ export default function App() {
               >
                 <div className="mx-auto w-full max-w-[1600px] space-y-6 px-0 md:px-4 pb-12 sm:px-6 lg:px-8 mt-0 md:mt-6">
                   {/* TOP HEADER */}
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-[20px] border border-slate-100 shadow-sm">
-                    <div className="flex items-center gap-4">
-                      {/* Liva Logo */}
-                      <div className="hidden md:flex">
-                        <LivaLogo className="w-10 h-10" url={agencyLogoUrl} />
+                  {!isHostView && (
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-[20px] border border-slate-100 shadow-sm">
+                      <div className="flex items-center gap-4">
+                        {/* Liva Logo */}
+                        <div className="hidden md:flex">
+                          <LivaLogo className="w-10 h-10" url={agencyLogoUrl} />
+                        </div>
+                        <div>
+                          <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                            <span className="md:hidden"><LivaLogo className="w-6 h-6" url={agencyLogoUrl} /></span>
+                            {clientBrand?.name || "Brand Partner"}
+                          </h1>
+                          <p className="text-xs md:text-sm text-slate-500 font-medium">
+                            Data Analytics Dashboard
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                          <span className="md:hidden"><LivaLogo className="w-6 h-6" url={agencyLogoUrl} /></span>
-                          {clientBrand?.name || "Brand Partner"}
-                        </h1>
-                        <p className="text-xs md:text-sm text-slate-500 font-medium">
-                          Data Analytics Dashboard
-                        </p>
-                      </div>
-                    </div>
 
-                    {/* MOBILE CONTROLS & DOWNLOAD BUTTON */}
-                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-                      <button 
-                        onClick={() => setIsDownloadModalOpen(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm border-0 cursor-pointer flex items-center gap-2"
-                      >
-                        <Download className="w-4 h-4" /> <span className="hidden sm:inline">Unduh Laporan</span>
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold border-0 cursor-pointer transition-colors"
-                      >
-                        <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Keluar</span>
-                      </button>
+                      {/* MOBILE CONTROLS & DOWNLOAD BUTTON */}
+                      <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                        <button 
+                          onClick={() => setIsDownloadModalOpen(true)}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all shadow-sm border-0 cursor-pointer flex items-center gap-2"
+                        >
+                          <Download className="w-4 h-4" /> <span className="hidden sm:inline">Unduh Laporan</span>
+                        </button>
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold border-0 cursor-pointer transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Keluar</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* CLIENT REPORTING MODULAR COMPONENTS */}
                   <div className="w-full bg-[#fafafd] pb-12 overflow-x-hidden border border-slate-100 rounded-none md:rounded-3xl overflow-hidden shadow-sm pt-0 relative mt-2 text-slate-800 font-sans text-left min-h-screen">
