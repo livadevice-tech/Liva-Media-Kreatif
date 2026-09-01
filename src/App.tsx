@@ -5136,7 +5136,7 @@ export default function App() {
           violations={violations.filter(v => v.host_id === activeHostObj?.id)}
           brandPerformanceLogs={brandPerformanceLogs}
           onOpenFullReporting={(brandId) => setHostActiveReportingBrandId(brandId)}
-          onRefreshData={loadInitialData}
+          onRefreshData={async () => window.location.reload()}
         />
       )}
 

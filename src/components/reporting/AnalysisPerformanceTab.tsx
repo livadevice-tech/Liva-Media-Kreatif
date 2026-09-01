@@ -121,6 +121,7 @@ function AnalysisCard({
     setIsSaving(true);
     try {
       await onUpdate(analysis.id, {
+        ...analysis,
         description: editDescription,
         next_plan: editNextPlan
       });
