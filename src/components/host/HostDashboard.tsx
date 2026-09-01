@@ -1409,6 +1409,16 @@ export default function HostDashboard({
                     </div>
 
                     <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-1.5">Platform</label>
+                      <CustomSelect
+                        value={hostForm.platform}
+                        options={platforms}
+                        onChange={(v: string) => setHostForm({...hostForm, platform: v})}
+                        placeholder="Pilih Platform"
+                      />
+                    </div>
+
+                    <div>
                       <label className="block text-sm font-bold text-slate-800 mb-1.5">Shift</label>
                       <CustomSelect
                         value={hostForm.shift}
