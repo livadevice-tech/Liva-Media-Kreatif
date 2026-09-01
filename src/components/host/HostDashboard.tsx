@@ -8,7 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
 import { getCutoffMonthForDate } from '../../shared/utils/appUi';
-import { activityLogsApi } from '../../api';
+import { activityLogsApi, hostsApi } from '../../api';
 import AnalysisPerformanceTab from '../reporting/AnalysisPerformanceTab';
 import { MobileLiveDailyTable } from '../reporting/MobileLiveDailyTable';
 import { MobileLiveMetricsPanel } from '../reporting/MobileLiveMetricsPanel';
@@ -116,6 +116,7 @@ interface HostDashboardProps {
   violations: any[];
   brandPerformanceLogs: any[];
   onOpenFullReporting?: (brandId: string) => void;
+  onRefreshData?: () => Promise<void>;
 };
 
 
@@ -151,8 +152,51 @@ export default function HostDashboard({
   violations,
   brandPerformanceLogs,
   onOpenFullReporting,
+  onRefreshData,
 }: HostDashboardProps) {
   const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance' | 'account'>('beranda');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    phone: '',
+    bankName: '',
+    bankAccount: ''
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (activeHostObj && !isEditingProfile) {
+      setProfileForm({
+        name: activeHostObj.name || '',
+        phone: activeHostObj.phone || '',
+        bankName: activeHostObj.bankName || '',
+        bankAccount: activeHostObj.bankAccount || ''
+      });
+    }
+  }, [activeHostObj, isEditingProfile]);
+
+  const handleSaveProfile = async () => {
+    if (!activeHostObj) return;
+    try {
+      setIsSavingProfile(true);
+      await hostsApi.update(activeHostObj.id, {
+        ...activeHostObj,
+        name: profileForm.name,
+        phone: profileForm.phone,
+        bankName: profileForm.bankName,
+        bankAccount: profileForm.bankAccount
+      });
+      setIsEditingProfile(false);
+      if (onRefreshData) {
+        await onRefreshData();
+      }
+    } catch (err: any) {
+      console.error('Failed to update profile:', err);
+      alert('Gagal menyimpan profil. Silakan coba lagi.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
   const [selectedPerfBrandId, setSelectedPerfBrandId] = useState<string | null>(null);
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
 
@@ -1133,31 +1177,110 @@ export default function HostDashboard({
             <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-blue-500/20 text-white font-black text-3xl">
               {activeHostObj?.name?.charAt(0).toUpperCase() || "H"}
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-1 tracking-tight">{activeHostObj?.name || "Host Name"}</h2>
-            <p className="text-sm text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-6">
-              <User size={14} /> Host Live Streaming
-            </p>
             
-            <div className="w-full max-w-sm space-y-3">
-              <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
-                <span className="text-sm font-bold text-slate-500">ID Pegawai</span>
-                <span className="text-sm font-black text-slate-800 font-mono">{activeHostObj?.id?.slice(0, 8).toUpperCase() || "-"}</span>
-              </div>
-              <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
-                <span className="text-sm font-bold text-slate-500">Studio</span>
-                <span className="text-sm font-black text-slate-800">{activeHostObj?.studio || "Tidak Ada"}</span>
-              </div>
-              <div className="bg-[#f8f9fc] rounded-2xl p-4 flex flex-col items-start gap-2">
-                <span className="text-sm font-bold text-slate-500">Brand yang Dipegang</span>
-                <div className="flex flex-wrap gap-2">
-                  {hostClientBrands.length > 0 ? hostClientBrands.map((b: any) => (
-                    <span key={b.id} className="text-xs font-bold bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md border border-indigo-100">{b.name}</span>
-                  )) : (
-                    <span className="text-xs font-semibold text-slate-400">Belum ada brand</span>
-                  )}
+            {isEditingProfile ? (
+              <div className="w-full max-w-sm space-y-4 mb-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 text-left">Nama Lengkap</label>
+                  <input
+                    type="text"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
+                    className="w-full bg-[#f8f9fc] border-none rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                    placeholder="Masukkan nama lengkap"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 text-left">No. HP (WhatsApp)</label>
+                  <input
+                    type="tel"
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
+                    className="w-full bg-[#f8f9fc] border-none rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                    placeholder="Masukkan no HP"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 text-left">Nama Bank (Mis: BCA, Mandiri)</label>
+                  <input
+                    type="text"
+                    value={profileForm.bankName}
+                    onChange={(e) => setProfileForm({...profileForm, bankName: e.target.value})}
+                    className="w-full bg-[#f8f9fc] border-none rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                    placeholder="Masukkan nama bank"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 text-left">No. Rekening</label>
+                  <input
+                    type="text"
+                    value={profileForm.bankAccount}
+                    onChange={(e) => setProfileForm({...profileForm, bankAccount: e.target.value})}
+                    className="w-full bg-[#f8f9fc] border-none rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                    placeholder="Masukkan no rekening"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button 
+                    onClick={() => setIsEditingProfile(false)}
+                    className="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    onClick={handleSaveProfile}
+                    disabled={isSavingProfile}
+                    className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md shadow-blue-500/30 hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {isSavingProfile ? 'Menyimpan...' : 'Simpan'}
+                  </button>
                 </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <h2 className="text-2xl font-black text-slate-900 mb-1 tracking-tight">{activeHostObj?.name || "Host Name"}</h2>
+                <p className="text-sm text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-6">
+                  <User size={14} /> Host Live Streaming
+                </p>
+                
+                <div className="w-full max-w-sm space-y-3 mb-6">
+                  <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-500">ID Pegawai</span>
+                    <span className="text-sm font-black text-slate-800 font-mono">{activeHostObj?.id?.slice(0, 8).toUpperCase() || "-"}</span>
+                  </div>
+                  <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-500">No. HP</span>
+                    <span className="text-sm font-black text-slate-800">{activeHostObj?.phone || "-"}</span>
+                  </div>
+                  <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-500">Info Rekening</span>
+                    <div className="text-right">
+                      <span className="text-[13px] font-black text-slate-800 block">{activeHostObj?.bankName || "-"}</span>
+                      <span className="text-[11px] font-bold text-slate-500 block">{activeHostObj?.bankAccount || "-"}</span>
+                    </div>
+                  </div>
+                  <div className="bg-[#f8f9fc] rounded-2xl p-4 flex flex-col items-start gap-2">
+                    <span className="text-sm font-bold text-slate-500">Studio & Brand</span>
+                    <div className="text-xs font-black text-slate-800 mb-1">{activeHostObj?.studio || "Tidak Ada Studio"}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {hostClientBrands.length > 0 ? hostClientBrands.map((b: any) => (
+                        <span key={b.id} className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-100">{b.name}</span>
+                      )) : (
+                        <span className="text-[10px] font-semibold text-slate-400">Belum ada brand</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setIsEditingProfile(true)}
+                  className="w-full max-w-sm bg-blue-50 text-blue-600 font-bold py-3.5 rounded-2xl border border-blue-100 hover:bg-blue-100 hover:border-blue-200 transition-all flex items-center justify-center gap-2"
+                >
+                  <FileText size={18} />
+                  Ubah Data Profil
+                </button>
+              </>
+            )}
           </div>
           
           <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex flex-col">
