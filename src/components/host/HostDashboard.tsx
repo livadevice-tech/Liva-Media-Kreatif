@@ -3,7 +3,7 @@ import {
   Bell, MapPin, User, FileText, Calendar as CalendarIcon,
   CheckCircle2, AlertTriangle, ChevronDown, Clock,
   Image, ExternalLink, Sun, LogOut, Home, PieChart, ScanLine, MessageSquare, ChevronLeft, ChevronRight, Filter, Fingerprint, BarChart2, X, TrendingUp,
-  DollarSign, Package, ShoppingCart, Activity
+  DollarSign, Package, ShoppingCart, Activity, Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCutoffPeriodOptionLabel } from '../../shared/utils/reporting';
