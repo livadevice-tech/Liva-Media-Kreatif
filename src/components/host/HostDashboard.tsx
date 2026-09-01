@@ -152,7 +152,7 @@ export default function HostDashboard({
   brandPerformanceLogs,
   onOpenFullReporting,
 }: HostDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance'>('beranda');
+  const [activeTab, setActiveTab] = useState<'beranda' | 'absen' | 'rekap' | 'kalender' | 'performance' | 'account'>('beranda');
   const [selectedPerfBrandId, setSelectedPerfBrandId] = useState<string | null>(null);
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
 
@@ -1069,54 +1069,114 @@ export default function HostDashboard({
 
       {/* Konten Performance */}
       {activeTab === 'performance' && (
-        <div className="mt-2 animate-fadeIn pb-24 px-4">
-          {hostClientBrands.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 font-medium">
-              Tidak ada data performa brand.
+        <div className="mt-2 animate-fadeIn pb-6">
+          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+              <BarChart2 className="w-8 h-8 text-blue-600" />
             </div>
-          ) : (
-            <div className="flex flex-col gap-4 items-center justify-center py-12 bg-white border border-slate-100 rounded-3xl mt-4 shadow-sm">
-               <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-2">
-                 <BarChart2 className="w-8 h-8 text-blue-600" />
-               </div>
-               <div className="text-center px-4">
-                 <h3 className="font-black text-lg text-slate-800 mb-1">Dashboard Performa</h3>
-                 <p className="text-[11px] font-semibold text-slate-500 leading-relaxed max-w-[250px] mx-auto">
-                   Akses semua metrik penjualan, grafik, dan laporan lengkap seperti di halaman admin.
-                 </p>
-               </div>
-               
-               <div className="flex flex-col gap-3 w-full px-4 mt-4">
-                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Pilih Brand</div>
-                 {hostClientBrands.map((brand: any) => (
-                   <button 
-                     key={brand.id}
-                     onClick={() => onOpenFullReporting?.(brand.id)}
-                     className="bg-white border border-slate-200 hover:border-blue-500 rounded-[20px] p-4 flex items-center justify-between transition-all group hover:shadow-[0_8px_30px_rgb(59,130,246,0.12)] w-full text-left"
-                   >
-                     <div className="flex items-center gap-4">
-                       <div className="w-[52px] h-[52px] rounded-full overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                         {brand.logoUrl ? (
-                           <img src={brand.logoUrl} alt={brand.name} className="w-full h-full object-cover" />
-                         ) : (
-                           <span className="font-bold text-xl text-slate-400">{brand.name?.charAt(0).toUpperCase()}</span>
-                         )}
-                       </div>
-                       <div>
-                         <span className="font-black text-[17px] text-slate-800 group-hover:text-blue-700 block mb-0.5">{brand.name}</span>
-                         <span className="text-[11px] font-semibold text-slate-500 block flex items-center gap-1">
-                           Lihat Performa Brand
-                         </span>
-                       </div>
-                     </div>
-                     <div className="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center transition-colors shrink-0">
-                       <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
-                     </div>
-                   </button>
-                 ))}
-               </div>
+            <h2 className="text-xl font-black text-slate-800 mb-2 tracking-tight">Dashboard Performa</h2>
+            <p className="text-sm text-slate-500 font-medium mb-6">Pilih brand untuk melihat laporan performa live streaming Anda.</p>
+            
+            <div className="w-full max-w-sm">
+              <div className="relative mb-6">
+                <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input 
+                  type="text" 
+                  placeholder="Cari brand..." 
+                  className="w-full bg-[#f8f9fc] border-none rounded-2xl py-3.5 pl-12 pr-4 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                />
+              </div>
+              
+              <div className="flex flex-col gap-3 w-full px-2 mt-2">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2 text-left">Pilih Brand</div>
+                {hostClientBrands.map((brand: any) => (
+                  <button 
+                    key={brand.id}
+                    onClick={() => onOpenFullReporting?.(brand.id)}
+                    className="bg-white border border-slate-200 hover:border-blue-500 rounded-[20px] p-4 flex items-center justify-between transition-all group hover:shadow-[0_8px_30px_rgb(59,130,246,0.12)] w-full text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-[52px] h-[52px] rounded-full overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                        {brand.logoUrl ? (
+                          <img src={brand.logoUrl} alt={brand.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="font-bold text-xl text-slate-400">{brand.name?.charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="font-black text-[17px] text-slate-800 group-hover:text-blue-700 block mb-0.5">{brand.name}</span>
+                        <span className="text-[11px] font-semibold text-slate-500 block flex items-center gap-1">
+                          Lihat Performa Brand
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center transition-colors shrink-0">
+                      <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
+                    </div>
+                  </button>
+                ))}
+                {hostClientBrands.length === 0 && (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-slate-500 font-medium">Tidak ada data brand yang dapat ditampilkan.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+      {/* Konten Akun */}
+      {activeTab === 'account' && (
+        <div className="mt-2 animate-fadeIn pb-6 space-y-4">
+          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex flex-col items-center text-center">
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-blue-500/20 text-white font-black text-3xl">
+              {activeHostObj?.name?.charAt(0).toUpperCase() || "H"}
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-1 tracking-tight">{activeHostObj?.name || "Host Name"}</h2>
+            <p className="text-sm text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-6">
+              <User size={14} /> Host Live Streaming
+            </p>
+            
+            <div className="w-full max-w-sm space-y-3">
+              <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-500">ID Pegawai</span>
+                <span className="text-sm font-black text-slate-800 font-mono">{activeHostObj?.id?.slice(0, 8).toUpperCase() || "-"}</span>
+              </div>
+              <div className="bg-[#f8f9fc] rounded-2xl p-4 flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-500">Studio</span>
+                <span className="text-sm font-black text-slate-800">{activeHostObj?.studio || "Tidak Ada"}</span>
+              </div>
+              <div className="bg-[#f8f9fc] rounded-2xl p-4 flex flex-col items-start gap-2">
+                <span className="text-sm font-bold text-slate-500">Brand yang Dipegang</span>
+                <div className="flex flex-wrap gap-2">
+                  {hostClientBrands.length > 0 ? hostClientBrands.map((b: any) => (
+                    <span key={b.id} className="text-xs font-bold bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md border border-indigo-100">{b.name}</span>
+                  )) : (
+                    <span className="text-xs font-semibold text-slate-400">Belum ada brand</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex flex-col">
+            <h3 className="text-sm font-bold text-slate-800 mb-4 px-2">Pengaturan Lainnya</h3>
+            <div className="space-y-2">
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center justify-between bg-rose-50 hover:bg-rose-100 text-rose-600 p-4 rounded-2xl transition-colors font-bold text-[15px]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <LogOut size={18} className="text-rose-600" />
+                  </div>
+                  Keluar dari Akun
+                </div>
+                <ChevronRight size={18} className="text-rose-300" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1166,9 +1226,13 @@ export default function HostDashboard({
           </button>
 
           {/* 5. Akun */}
-          <button className="flex flex-col items-center justify-center gap-1 w-12 group">
-            <User className="w-[22px] h-[22px] text-slate-400 group-hover:text-blue-500 transition-colors" strokeWidth={1.5} />
-            <span className="text-[9px] font-bold text-slate-400 group-hover:text-blue-500">Akun</span>
+          <button 
+            onClick={() => setActiveTab('account')}
+            className="flex flex-col items-center justify-center gap-1 w-12 group relative"
+          >
+            <User className={`w-[22px] h-[22px] transition-colors ${activeTab === 'account' ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-500'}`} strokeWidth={1.5} />
+            <span className={`text-[9px] font-bold ${activeTab === 'account' ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-500'}`}>Akun</span>
+            {activeTab === 'account' && <div className="absolute -bottom-1 w-1 h-1 bg-blue-600 rounded-full mt-1" />}
           </button>
         </div>
       </div>
