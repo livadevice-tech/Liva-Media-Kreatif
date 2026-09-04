@@ -205,6 +205,7 @@ import {
   getStudioHeaderStyle,
   getBrandColor,
   getShiftFromHour,
+  compareShiftsByTime,
 } from "./shared/utils/appUi";
 import {
   buildDailyChart,
@@ -7305,21 +7306,12 @@ export default function App() {
                                 );
                               }
 
-                              const timeRegex = /\b(\d{2}:\d{2})\b/;
-                              dayScheds.sort((a, b) => {
-                                const matchA = (a.timeSlot || "").match(
-                                  timeRegex,
-                                );
-                                const matchB = (b.timeSlot || "").match(
-                                  timeRegex,
-                                );
-                                const timeA = matchA ? matchA[1] : a.timeSlot;
-                                const timeB = matchB ? matchB[1] : b.timeSlot;
-
-                                if (timeA < timeB) return -1;
-                                if (timeA > timeB) return 1;
-                                return 0;
-                              });
+                              dayScheds.sort((a, b) =>
+                                compareShiftsByTime(
+                                  a.timeSlot || "",
+                                  b.timeSlot || "",
+                                ),
+                              );
 
                               if (
                                 dayScheds.length === 0 &&
@@ -7360,23 +7352,12 @@ export default function App() {
                                           (s.studio || "Tanpa Studio") ===
                                           studioName,
                                       )
-                                      .sort((a, b) => {
-                                        const matchA = (a.timeSlot || "").match(
-                                          timeRegex,
-                                        );
-                                        const matchB = (b.timeSlot || "").match(
-                                          timeRegex,
-                                        );
-                                        const timeA = matchA
-                                          ? matchA[1]
-                                          : a.timeSlot;
-                                        const timeB = matchB
-                                          ? matchB[1]
-                                          : b.timeSlot;
-                                        if (timeA < timeB) return -1;
-                                        if (timeA > timeB) return 1;
-                                        return 0;
-                                      });
+                                      .sort((a, b) =>
+                                        compareShiftsByTime(
+                                          a.timeSlot || "",
+                                          b.timeSlot || "",
+                                        ),
+                                      );
 
                                     // Find location info if available in master list
                                     const masterStudio = studios.find(

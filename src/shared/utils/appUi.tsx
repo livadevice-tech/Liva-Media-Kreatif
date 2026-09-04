@@ -325,3 +325,32 @@ export const getShiftFromHour = (
     }
   }
 };
+
+/**
+ * Mengambil waktu mulai shift dalam satuan menit dari tengah malam (0-1439).
+ * Mendukung format:
+ * - "Reg 2 (11.00-17.00)"
+ * - "Safi (01.00)-(07.00)"
+ * - "Morning (08:00 - 12:00)"
+ * - "08.00 - 12.00"
+ */
+export const parseShiftStartTime = (shiftStr: string): number => {
+  if (!shiftStr) return 9999;
+  const match = shiftStr.match(/\b(\d{1,2})[.:](\d{2})\b/);
+  if (!match) return 9999;
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  return hours * 60 + minutes;
+};
+
+/**
+ * Comparator untuk mengurutkan shift secara kronologis berdasarkan waktu mulai,
+ * lalu dilanjutkan secara alfabetis jika waktu mulai sama.
+ */
+export const compareShiftsByTime = (a: string, b: string): number => {
+  const timeA = parseShiftStartTime(a);
+  const timeB = parseShiftStartTime(b);
+  if (timeA !== timeB) return timeA - timeB;
+  return (a || "").localeCompare(b || "", "id", { numeric: true, sensitivity: "base" });
+};
+

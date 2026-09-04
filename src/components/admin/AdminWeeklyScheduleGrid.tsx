@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ShiftSchedule, StudioItem, ClientBrand } from '../../types';
 import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle } from 'lucide-react';
-import { getBrandColor } from '../../shared/utils/appUi';
+import { getBrandColor, compareShiftsByTime } from '../../shared/utils/appUi';
 
 interface AdminWeeklyScheduleGridProps {
   computedSchedules: ShiftSchedule[];
@@ -150,7 +150,7 @@ export function AdminWeeklyScheduleGrid({
       if (manualShifts) {
         uniqueShifts = Array.from(new Set([...uniqueShifts, ...Array.from(manualShifts)])) as string[];
       }
-      uniqueShifts.sort();
+      uniqueShifts.sort(compareShiftsByTime);
       
       if (uniqueShifts.length > 0) {
           if (!groupsMap.has(loc)) {
@@ -349,7 +349,7 @@ export function AdminWeeklyScheduleGrid({
                                 
                                 <div className="p-2 space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
                                   <div className="space-y-1">
-                                    {masterShifts.map(shift => {
+                                    {[...masterShifts].sort(compareShiftsByTime).map(shift => {
                                       const isAlreadyVisible = studio.shifts.includes(shift);
                                       if (isAlreadyVisible) return null;
                                       

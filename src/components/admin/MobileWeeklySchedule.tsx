@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { ChevronRight, ChevronLeft, Settings, CheckSquare } from "lucide-react";
-import { getBrandStyle } from "../../shared/utils/appUi";
+import { getBrandStyle, compareShiftsByTime } from "../../shared/utils/appUi";
 import { HostEmployee } from "../../types";
 
 interface Schedule {
@@ -324,7 +324,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
 
                   <div className="flex flex-col gap-1.5 px-1.5">
                     {(() => {
-                      const uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).sort();
+                      const uniqueShifts = Array.from(new Set(studioSchedules.map(s => s.timeSlot))).sort(compareShiftsByTime);
                       
                       return uniqueShifts.map((shift, shiftIdx) => (
                         <div key={shiftIdx} className="grid grid-cols-7 gap-1">
