@@ -117,4 +117,10 @@ export const projectAppApi = {
     }).then(res => handleResponse<{ success: boolean }>(res)),
   deleteContentPost: (id: string) => 
     fetch(`${BASE_URL}/content-posts/${id}`, { method: 'DELETE' }).then(res => handleResponse<{ success: boolean }>(res)),
+  generateAiCopy: (data: { topic: string; pillar: string; platform?: string; brand_tone?: string }) =>
+    fetch(`${BASE_URL}/ai-generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(res => handleResponse<{ hook: string; caption: string; hashtags: string; call_to_action: string }>(res)),
 };

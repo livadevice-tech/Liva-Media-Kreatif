@@ -14,9 +14,14 @@ import {
   X, 
   Trash2, 
   Sparkles,
-  Share2
+  Share2,
+  Download,
+  Search,
+  Wand2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { ContentPost, Brand, SocialAccount, ContentPillar, ContentStatus, ContentType, PlatformType } from '../../types/projectApp';
+import { projectAppApi } from '../../services/projectAppApi';
 
 interface ContentCalendarViewProps {
   posts: ContentPost[];
@@ -56,6 +61,10 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   const [selectedBrandId, setSelectedBrandId] = useState<string>('all');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // AI Generation state
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,6 +83,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
     caption: string;
     hashtags: string;
     call_to_action: string;
+    media_url: string;
     scheduled_at: string;
     status: ContentStatus;
     assignee_copy: string;
@@ -90,6 +100,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
     caption: '',
     hashtags: '',
     call_to_action: '',
+    media_url: '',
     scheduled_at: new Date().toISOString().slice(0, 16),
     status: 'idea',
     assignee_copy: '',
@@ -121,9 +132,17 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
       if (selectedBrandId !== 'all' && p.brand_id !== selectedBrandId) return false;
       if (selectedPlatform !== 'all' && p.platform !== selectedPlatform) return false;
       if (selectedStatus !== 'all' && p.status !== selectedStatus) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = p.title?.toLowerCase().includes(q);
+        const matchCaption = p.caption?.toLowerCase().includes(q);
+        const matchHook = p.hook?.toLowerCase().includes(q);
+        const matchBrand = p.brand_name?.toLowerCase().includes(q);
+        if (!matchTitle && !matchCaption && !matchHook && !matchBrand) return false;
+      }
       return true;
     });
-  }, [posts, selectedBrandId, selectedPlatform, selectedStatus]);
+  }, [posts, selectedBrandId, selectedPlatform, selectedStatus, searchQuery]);
 
   // Open Add Post Modal with pre-selected date
   const handleOpenNewPost = (dateStr?: string) => {
@@ -147,6 +166,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
       caption: '',
       hashtags: '#LivaMedia #ContentCreator #DigitalMarketing',
       call_to_action: 'Save postingan ini untuk dibaca nanti! 📌',
+      media_url: '',
       scheduled_at: targetDate.toISOString().slice(0, 16),
       status: 'idea',
       assignee_copy: '',
@@ -158,6 +178,10 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
 
   const handleOpenEditPost = (post: ContentPost) => {
     setEditingPost(post);
+    const media = post.media_urls && Array.isArray(post.media_urls) && post.media_urls.length > 0
+      ? post.media_urls[0]
+      : '';
+
     setForm({
       id: post.id,
       brand_id: post.brand_id || brands[0]?.id || '',
@@ -170,6 +194,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
       caption: post.caption || '',
       hashtags: post.hashtags || '',
       call_to_action: post.call_to_action || '',
+      media_url: media,
       scheduled_at: post.scheduled_at ? post.scheduled_at.replace(' ', 'T').slice(0, 16) : '',
       status: post.status,
       assignee_copy: post.assignee_copy || '',
@@ -179,10 +204,80 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
     setIsModalOpen(true);
   };
 
+  // AI Copywriting generator
+  const handleGenerateAi = async () => {
+    if (!form.title.trim()) {
+      alert('Silakan isi Judul / Topik konten terlebih dahulu!');
+      return;
+    }
+    setIsAiGenerating(true);
+    try {
+      const brandObj = brands.find(b => b.id === form.brand_id);
+      const res = await projectAppApi.generateAiCopy({
+        topic: form.title,
+        pillar: form.pillar_name,
+        platform: form.platform,
+        brand_tone: brandObj?.tone_of_voice
+      });
+
+      setForm(prev => ({
+        ...prev,
+        hook: res.hook || prev.hook,
+        caption: res.caption || prev.caption,
+        hashtags: res.hashtags || prev.hashtags,
+        call_to_action: res.call_to_action || prev.call_to_action
+      }));
+    } catch (err: any) {
+      alert('Gagal menghasilkan AI Copy: ' + (err.message || err));
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  // Export CSV Plan for clients
+  const handleExportCsv = () => {
+    if (filteredPosts.length === 0) {
+      alert('Tidak ada konten untuk diexport.');
+      return;
+    }
+
+    const headers = ['Tanggal', 'Jam', 'Brand', 'Platform', 'Format', 'Pilar', 'Judul', 'Hook', 'Caption', 'Status', 'PIC Copy', 'PIC Design'];
+    const rows = filteredPosts.map(p => [
+      p.scheduled_at ? p.scheduled_at.split(' ')[0] : '',
+      p.scheduled_at ? p.scheduled_at.split(' ')[1] : '',
+      `"${(p.brand_name || '').replace(/"/g, '""')}"`,
+      p.platform,
+      p.content_type,
+      `"${(p.pillar_name || '').replace(/"/g, '""')}"`,
+      `"${(p.title || '').replace(/"/g, '""')}"`,
+      `"${(p.hook || '').replace(/"/g, '""')}"`,
+      `"${(p.caption || '').replace(/"/g, '""')}"`,
+      p.status,
+      `"${(p.assignee_copy || '').replace(/"/g, '""')}"`,
+      `"${(p.assignee_design || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Content_Plan_${year}_${monthNames[month]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) return;
-    await onSavePost(form);
+
+    const payload: Partial<ContentPost> = {
+      ...form,
+      media_urls: form.media_url ? [form.media_url] : []
+    };
+
+    await onSavePost(payload);
     setIsModalOpen(false);
   };
 
@@ -223,8 +318,20 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
           </button>
         </div>
 
-        {/* Filters */}
+        {/* Search & Filters */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Keyword Search */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Cari konten / topik..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-3 py-1.5 bg-slate-100 rounded-xl text-xs font-medium text-slate-800 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-40 sm:w-48"
+            />
+          </div>
+
           {/* Brand Filter */}
           <select
             value={selectedBrandId}
@@ -252,11 +359,20 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
             <option value="facebook">Facebook</option>
           </select>
 
+          {/* Export CSV Plan */}
+          <button
+            onClick={handleExportCsv}
+            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl border border-slate-200 transition-colors cursor-pointer"
+            title="Export Monthly Content Plan ke CSV"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+
           {/* View Mode Switcher */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 ml-1">
             <button
               onClick={() => setViewMode('calendar')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'calendar' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
               }`}
               title="Tampilan Kalender"
@@ -265,7 +381,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
             </button>
             <button
               onClick={() => setViewMode('feed')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'feed' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
               }`}
               title="Preview Grid Feed Instagram"
@@ -274,7 +390,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'list' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
               }`}
               title="Tampilan List Timeline"
@@ -285,7 +401,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
 
           <button
             onClick={() => handleOpenNewPost()}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/20 transition-all cursor-pointer ml-2"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-500/20 transition-all cursor-pointer ml-1"
           >
             <Plus className="w-4 h-4" />
             <span>Jadwalkan Konten</span>
@@ -405,36 +521,56 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
           </div>
 
           <div className="grid grid-cols-3 gap-2 mt-6">
-            {filteredPosts.slice(0, 9).map((post, idx) => (
-              <div
-                key={post.id || idx}
-                onClick={() => handleOpenEditPost(post)}
-                className="aspect-square bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-xl p-3 flex flex-col justify-between text-white relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all shadow-md"
-              >
-                <div className="flex justify-between items-start z-10">
-                  <span className="text-[9px] font-black uppercase tracking-wider bg-white/20 backdrop-blur-md px-1.5 py-0.5 rounded">
-                    {post.content_type.replace('_', ' ')}
-                  </span>
-                  <span className={`w-2 h-2 rounded-full ${
-                    post.status === 'published' ? 'bg-emerald-400' : 'bg-purple-400'
-                  }`} />
-                </div>
+            {filteredPosts.slice(0, 9).map((post, idx) => {
+              const hasImage = post.media_urls && Array.isArray(post.media_urls) && post.media_urls[0];
 
-                <div className="z-10">
-                  <h5 className="font-extrabold text-xs line-clamp-2 leading-tight">
-                    {post.title}
-                  </h5>
-                  <p className="text-[9px] text-slate-300 mt-1">
-                    {new Date(post.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                  </p>
-                </div>
+              return (
+                <div
+                  key={post.id || idx}
+                  onClick={() => handleOpenEditPost(post)}
+                  className="aspect-square bg-slate-900 rounded-xl p-3 flex flex-col justify-between text-white relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all shadow-md"
+                >
+                  {/* Photo or Gradient Background */}
+                  {hasImage ? (
+                    <img
+                      src={post.media_urls![0]}
+                      alt={post.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900" />
+                  )}
 
-                {/* Subtle Overlay on Hover */}
-                <div className="absolute inset-0 bg-indigo-600/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Eye className="w-5 h-5 text-white" />
+                  {/* Gradient Overlay for Text Legibility */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+                  {/* Top Badges */}
+                  <div className="flex justify-between items-start z-10">
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10">
+                      {post.content_type.replace('_', ' ')}
+                    </span>
+                    <span className={`w-2 h-2 rounded-full ${
+                      post.status === 'published' ? 'bg-emerald-400' : 'bg-purple-400'
+                    }`} />
+                  </div>
+
+                  {/* Title & Date */}
+                  <div className="z-10">
+                    <h5 className="font-extrabold text-xs line-clamp-2 leading-tight drop-shadow-md">
+                      {post.title}
+                    </h5>
+                    <p className="text-[9px] text-slate-300 mt-1">
+                      {new Date(post.scheduled_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                    </p>
+                  </div>
+
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-indigo-600/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
+                    <Eye className="w-5 h-5 text-white" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {Array.from({ length: Math.max(0, 9 - filteredPosts.length) }).map((_, i) => (
               <div
@@ -506,7 +642,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
 
           {filteredPosts.length === 0 && (
             <div className="text-center py-16 text-slate-400 text-xs">
-              Belum ada postingan konten yang sesuai dengan filter.
+              Belum ada postingan konten yang sesuai dengan filter atau pencarian.
             </div>
           )}
         </div>
@@ -525,7 +661,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -574,7 +710,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
                   <select
                     value={form.pillar_name}
                     onChange={(e) => setForm({ ...form, pillar_name: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium cursor-pointer"
                   >
                     <option value="Edukasi & Tips">Edukasi & Tips</option>
                     <option value="Promo & Penjualan">Promo & Penjualan</option>
@@ -592,7 +728,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
                   <select
                     value={form.brand_id}
                     onChange={(e) => setForm({ ...form, brand_id: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium cursor-pointer"
                   >
                     {brands.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -607,7 +743,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
                   <select
                     value={form.platform}
                     onChange={(e) => setForm({ ...form, platform: e.target.value as PlatformType })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium cursor-pointer"
                   >
                     <option value="instagram">Instagram</option>
                     <option value="tiktok">TikTok</option>
@@ -623,7 +759,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
                   <select
                     value={form.content_type}
                     onChange={(e) => setForm({ ...form, content_type: e.target.value as ContentType })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium cursor-pointer"
                   >
                     <option value="carousel">Carousel Feed</option>
                     <option value="feed_single">Single Post Feed</option>
@@ -632,6 +768,26 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
                     <option value="tiktok_video">TikTok Video</option>
                   </select>
                 </div>
+              </div>
+
+              {/* AI Assistant Button */}
+              <div className="flex items-center justify-between bg-indigo-50/70 p-3 rounded-2xl border border-indigo-100">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-600 animate-bounce" />
+                  <div>
+                    <span className="text-xs font-black text-indigo-900">Asisten Copywriting Otomatis</span>
+                    <p className="text-[10px] text-indigo-600">Buat Hook, Caption & Hashtag otomatis berdasarkan topik & pilar</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateAi}
+                  disabled={isAiGenerating}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  <span>{isAiGenerating ? 'Membuat Teks...' : 'Generate Copy'}</span>
+                </button>
               </div>
 
               {/* Hook (Headline) */}
@@ -660,34 +816,50 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
                 />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-slate-700">Hashtags</label>
-                  <div className="flex gap-1 text-[10px]">
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, hashtags: `${form.hashtags} #Trending #Viral #fyp` })}
-                      className="text-indigo-600 hover:underline font-bold"
-                    >
-                      +Trending
-                    </button>
-                    <span>•</span>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, hashtags: `${form.hashtags} #Promo #Diskon #SpesialPromo` })}
-                      className="text-indigo-600 hover:underline font-bold"
-                    >
-                      +Promo
-                    </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">Hashtags</label>
+                    <div className="flex gap-1 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, hashtags: `${form.hashtags} #Trending #Viral #fyp` })}
+                        className="text-indigo-600 hover:underline font-bold"
+                      >
+                        +Trending
+                      </button>
+                      <span>•</span>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, hashtags: `${form.hashtags} #Promo #Diskon #SpesialPromo` })}
+                        className="text-indigo-600 hover:underline font-bold"
+                      >
+                        +Promo
+                      </button>
+                    </div>
                   </div>
+                  <input
+                    type="text"
+                    placeholder="#BrandName #Tips #Tutorial #AgencyLife"
+                    value={form.hashtags}
+                    onChange={(e) => setForm({ ...form, hashtags: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="#BrandName #Tips #Tutorial #AgencyLife"
-                  value={form.hashtags}
-                  onChange={(e) => setForm({ ...form, hashtags: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-                />
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                    <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Gambar / Thumbnail URL (Preview Feed)</span>
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/..."
+                    value={form.media_url}
+                    onChange={(e) => setForm({ ...form, media_url: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                  />
+                </div>
               </div>
 
               {/* Waktu Publikasi & Assignee */}
@@ -748,7 +920,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                   >
                     Batal
                   </button>

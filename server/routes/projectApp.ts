@@ -489,6 +489,76 @@ projectAppRouter.put('/content-posts/:id', async (req: Request, res: Response) =
   }
 });
 
+// ==========================================
+// 8. AI COPYWRITING ASSISTANT
+// ==========================================
+projectAppRouter.post('/ai-generate', async (req: Request, res: Response) => {
+  try {
+    const { topic, pillar, platform, brand_tone } = req.body;
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey && apiKey !== 'ISI_DENGAN_API_KEY_GEMINI_ANDA' && apiKey !== 'MY_GEMINI_API_KEY') {
+      try {
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey });
+        const prompt = `Kamu adalah copywriter profesional untuk agensi media sosial.
+Buatkan konten media sosial untuk platform ${platform || 'Instagram'} dengan topik: "${topic}".
+Pilar konten: ${pillar || 'Edukasi & Tips'}
+Tone of voice brand: ${brand_tone || 'Ramah, modern, dan informatif'}
+
+Berikan output JSON dalam format:
+{
+  "hook": "1 kalimat pembuka 3 detik pertama yang sangat memikat / clickworthy",
+  "caption": "Teks caption lengkap dengan paragraf rapi dan persuasif",
+  "hashtags": "5-8 hashtag relevan berurutan diawali tanda pagar",
+  "call_to_action": "1 kalimat ajakan bertindak (CTA)"
+}`;
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+        });
+
+        const text = response.text || '';
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return res.json(parsed);
+        }
+      } catch (aiErr) {
+        console.warn('Gemini API call error, falling back to smart template:', aiErr);
+      }
+    }
+
+    // Smart Creative Agency Template Fallback
+    const templates: Record<string, { hook: string; caption: string; hashtags: string; call_to_action: string }> = {
+      'Edukasi & Tips': {
+        hook: `Stop lakuin hal ini kalau kalian mau hasil maksimal di ${topic}! ❌`,
+        caption: `Banyak orang yang masih keliru saat ngurusin ${topic}.\n\nBerikut 3 langkah simpel yang terbukti efektif:\n1. Pahami pola dasar dan tentukan target yang jelas\n2. Konsistensi kecil setiap hari > heboh sehari doang\n3. Evaluasi metrik setiap akhir pekan\n\nPraktekin trik ini sekarang juga dan rasakan bedanya! ✨`,
+        hashtags: `#${(topic || 'Tips').replace(/\s+/g, '')} #EdukasiKreatif #DigitalMarketing #AgencyTips #TipsPraktis`,
+        call_to_action: 'Save postingan ini biar gak lupa pas praktek nanti! 📌'
+      },
+      'Promo & Penjualan': {
+        hook: `PROMO TERBATAS! Khusus 50 orang tercepat hari ini aja! ⚡🔥`,
+        caption: `Kabar gembira buat kalian yang udah nungguin momen ini! Sekarang ${topic} lagi ada diskon spesial s/d 50% + bonus eksklusif.\n\nJangan tunggu sampai kehabisan kuota ya, promo ini cuma berlaku sampai stok habis! 🛒✨`,
+        hashtags: `#PromoSpesial #DiskonGajian #FlashSale #BeliSekarang #BestDeal`,
+        call_to_action: 'Klik link di bio atau komen "MAU" buat dapetin voucher khususnya sekarang! 🛍️'
+      },
+      'Entertainment & Tren': {
+        hook: `Realita vs Ekspektasi pas lagi ngerjain ${topic}... 😂`,
+        caption: `Kira-kira begini nih di balik layar kalau tim kreatif lagi fokus garap ${topic}.\nSiapa di sini yang tim 'sebentar lagi beres' tapi kenyataannya masih revisi ke-15? 🙋‍♂️🎬\n\nTag temen kalian yang relate banget sama kondisi ini!`,
+        hashtags: `#RelateBanget #BehindTheScenes #AgencyLife #POV #FYP #Trending`,
+        call_to_action: 'Tag temen kantor kalian yang kelakuannya persis begini di kolom komentar! 👇'
+      }
+    };
+
+    const selected = templates[pillar] || templates['Edukasi & Tips'];
+    res.json(selected);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 projectAppRouter.delete('/content-posts/:id', async (req: Request, res: Response) => {
   try {
     const pool = getPool();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Plus, 
   ChevronRight, 
@@ -11,6 +11,7 @@ import {
   Filter, 
   CheckCircle2, 
   Sparkles,
+  Search,
   X
 } from 'lucide-react';
 import { Project, Task, TaskStatus, TaskPriority, Brand } from '../../types/projectApp';
@@ -46,6 +47,8 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   onDeleteProject,
 }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -94,9 +97,21 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   });
 
   // Filter tasks
-  const filteredTasks = selectedProjectId === 'all'
-    ? tasks
-    : tasks.filter(t => t.project_id === selectedProjectId);
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (selectedProjectId !== 'all' && t.project_id !== selectedProjectId) return false;
+      if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = t.title?.toLowerCase().includes(q);
+        const matchDesc = t.description?.toLowerCase().includes(q);
+        const matchAssignee = t.assignee_name?.toLowerCase().includes(q);
+        const matchTags = t.tags?.toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchAssignee && !matchTags) return false;
+      }
+      return true;
+    });
+  }, [tasks, selectedProjectId, priorityFilter, searchQuery]);
 
   const handleOpenNewTask = (status: TaskStatus = 'todo') => {
     setEditingTask(null);
@@ -158,6 +173,18 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
       {/* Top Controls Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          {/* Keyword Search */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Cari task / PIC / tag..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-3 py-1.5 bg-slate-100 rounded-xl text-xs font-medium text-slate-800 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-36 sm:w-44"
+            />
+          </div>
+
           <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
             <Filter className="w-4 h-4 text-slate-500" />
             <span className="text-xs font-bold text-slate-700">Filter Proyek:</span>
@@ -174,6 +201,18 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
               ))}
             </select>
           </div>
+
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-bold text-slate-700 border border-slate-200 focus:outline-none cursor-pointer"
+          >
+            <option value="all">Semua Prioritas</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
 
           <span className="text-xs text-slate-400">
             Menampilkan <strong className="text-slate-800">{filteredTasks.length}</strong> tasks
