@@ -31,6 +31,8 @@ import { registerOperationsRoutes } from "./server/routes/operations";
 import { registerClientRoutes } from "./server/routes/client";
 import { registerViolationRoutes } from "./server/routes/violations";
 import { validateProductionConfig } from "./server/productionConfig";
+import { projectAppRouter } from "./server/routes/projectApp";
+import { runProjectAppMigrations } from "./server/migrateProjectApp";
 
 dns.setDefaultResultOrder('ipv4first');
 dotenv.config();
@@ -151,6 +153,7 @@ app.use("/api", (req, res, next) => {
   if (req.path === "/health") return next();
   if (req.method === "GET" && req.path === "/settings/brandResources") return next();
   if (req.method === "GET" && req.path === "/client-brands/public-list") return next();
+  if (req.path.startsWith("/project-app")) return next();
 
   const session = getRequestSession(req);
   if (!session) return res.status(401).json({ error: "Autentikasi diperlukan." });
@@ -183,6 +186,7 @@ registerHostRoutes(app);
 registerOperationsRoutes(app);
 registerClientRoutes(app);
 registerViolationRoutes(app);
+app.use("/api/project-app", projectAppRouter);
 
 // ==================================================================
 // Lazy-initialized Gemini Client
@@ -1138,6 +1142,7 @@ async function runMigrations() {
 async function bootstrap() {
   getSessionSecret();
   await runMigrations();
+  await runProjectAppMigrations();
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
