@@ -43,7 +43,7 @@ if (productionConfigErrors.length > 0) {
 }
 
 const app = express();
-const PORT = parseInt(process.env.PORT || "3000");
+const PORT = process.env.PORT || 3000;
 
 declare global {
   namespace Express {
@@ -1191,9 +1191,17 @@ async function bootstrap() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Liva Media Kreatif Server berjalan di port ${PORT} (${process.env.NODE_ENV || 'development'})`);
-  });
+  if (typeof PORT === 'string' && isNaN(Number(PORT))) {
+    // If PORT is a named pipe or Unix socket (common in Hostinger/Passenger)
+    app.listen(PORT, () => {
+      console.log(`🚀 Liva Media Kreatif Server berjalan di socket ${PORT} (${process.env.NODE_ENV || 'development'})`);
+    });
+  } else {
+    // Standard TCP port binding
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Liva Media Kreatif Server berjalan di port ${PORT} (${process.env.NODE_ENV || 'development'})`);
+    });
+  }
 }
 
 bootstrap().catch(err => {

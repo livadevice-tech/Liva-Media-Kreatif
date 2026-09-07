@@ -1920,7 +1920,7 @@ if (productionConfigErrors.length > 0) {
 - ${productionConfigErrors.join("\n- ")}`);
 }
 var app = (0, import_express2.default)();
-var PORT = parseInt(process.env.PORT || "3000");
+var PORT = process.env.PORT || 3e3;
 app.disable("x-powered-by");
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 app.use(import_express2.default.json({ limit: "50mb" }));
@@ -2958,9 +2958,15 @@ async function bootstrap() {
       res.sendFile(import_path3.default.join(distPath, "index.html"));
     });
   }
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`\u{1F680} Liva Media Kreatif Server berjalan di port ${PORT} (${process.env.NODE_ENV || "development"})`);
-  });
+  if (typeof PORT === "string" && isNaN(Number(PORT))) {
+    app.listen(PORT, () => {
+      console.log(`\u{1F680} Liva Media Kreatif Server berjalan di socket ${PORT} (${process.env.NODE_ENV || "development"})`);
+    });
+  } else {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`\u{1F680} Liva Media Kreatif Server berjalan di port ${PORT} (${process.env.NODE_ENV || "development"})`);
+    });
+  }
 }
 bootstrap().catch((err) => {
   console.error("Failed to start server:", err);
