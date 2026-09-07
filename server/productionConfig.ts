@@ -23,8 +23,9 @@ function isPlaceholder(value: string | undefined): boolean {
 
 function isValidHttpsOrigin(raw: string): boolean {
   try {
-    const url = new URL(raw.trim());
-    return url.protocol === "https:" && url.origin === raw.trim();
+    const cleaned = raw.trim().replace(/\/+$/, '');
+    const url = new URL(cleaned);
+    return url.protocol === "https:" && url.origin.toLowerCase() === cleaned.toLowerCase();
   } catch {
     return false;
   }

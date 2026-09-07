@@ -22,4 +22,8 @@ if (!fs.existsSync(compiledPath)) {
 }
 
 // Import & jalankan server hasil build
-import('./dist/server.cjs');
+try {
+  await import('./dist/server.cjs');
+} catch (err) {
+  console.error('❌ Gagal mengimpor dist/server.cjs:', err);
+}

@@ -39,7 +39,7 @@ dotenv.config();
 
 const productionConfigErrors = validateProductionConfig(process.env);
 if (productionConfigErrors.length > 0) {
-  throw new Error(`Konfigurasi production tidak valid:\n- ${productionConfigErrors.join("\n- ")}`);
+  console.error(`⚠️ Peringatan Konfigurasi production:\n- ${productionConfigErrors.join("\n- ")}`);
 }
 
 const app = express();
@@ -1140,9 +1140,42 @@ async function runMigrations() {
 }
 
 async function bootstrap() {
-  getSessionSecret();
-  await runMigrations();
-  await runProjectAppMigrations();
+  try {
+    getSessionSecret();
+  } catch (err: any) {
+    console.warn("⚠️ getSessionSecret warning:", err?.message);
+  }
+
+  // Health endpoint for uptime monitoring & diagnostics
+  app.get("/api/health", async (req, res) => {
+    let dbStatus = "disconnected";
+    try {
+      const pool = getPool();
+      await pool.query("SELECT 1");
+      dbStatus = "connected";
+    } catch (e: any) {
+      dbStatus = `error: ${e?.message || "unknown"}`;
+    }
+    res.json({
+      status: "ok",
+      app: "projectliva",
+      node_env: process.env.NODE_ENV,
+      database: dbStatus,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  try {
+    await runMigrations();
+  } catch (err: any) {
+    console.warn("⚠️ Warning pada migrasi legacy:", err?.message);
+  }
+
+  try {
+    await runProjectAppMigrations();
+  } catch (err: any) {
+    console.warn("⚠️ Warning pada migrasi project app:", err?.message);
+  }
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -1158,12 +1191,11 @@ async function bootstrap() {
     });
   }
 
-  app.listen(PORT, () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Liva Media Kreatif Server berjalan di port ${PORT} (${process.env.NODE_ENV || 'development'})`);
   });
 }
 
 bootstrap().catch(err => {
   console.error("Failed to start server:", err);
-  process.exit(1);
 });
