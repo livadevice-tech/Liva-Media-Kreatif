@@ -29,12 +29,36 @@ export const MobileAdminNav: React.FC<MobileAdminNavProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Define the main 3 quick access tabs for the bottom nav
-  const bottomNavItems = [
+  // Candidate quick access tabs for the bottom nav
+  const defaultBottomNavItems = [
     { id: "dashboard_utama", icon: LayoutDashboard, label: "Home" },
     { id: "reporting_brand", icon: LineChart, label: "Report" },
     { id: "rekap_gaji", icon: Users, label: "Payroll" },
   ];
+
+  // Only include tabs that the admin has permission to access
+  const allowedTabIds = new Set(
+    filteredItems
+      .filter((item) => item.type !== "header" && item.tabId)
+      .map((item) => item.tabId)
+  );
+
+  let bottomNavItems = defaultBottomNavItems.filter((item) =>
+    allowedTabIds.has(item.id)
+  );
+
+  // Fallback: If none of the default 3 quick access tabs are allowed,
+  // pick up to 3 permitted items from filteredItems so the bottom bar isn't empty
+  if (bottomNavItems.length === 0) {
+    bottomNavItems = filteredItems
+      .filter((item) => item.type !== "header" && item.tabId)
+      .slice(0, 3)
+      .map((item) => ({
+        id: item.tabId as string,
+        icon: item.icon || LayoutDashboard,
+        label: item.label.length > 10 ? item.label.slice(0, 8) + "…" : item.label,
+      }));
+  }
 
   const handleTabClick = (tabId: string) => {
     onTabChange(tabId);

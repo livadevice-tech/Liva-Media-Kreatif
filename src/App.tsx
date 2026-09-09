@@ -4618,6 +4618,17 @@ export default function App() {
     });
   }, [authSession, loggedInAdminId, adminAccounts, dbActiveBaseLogs.length]);
 
+  // Ensure active tab is within allowed tabs for restricted sub-admins
+  useEffect(() => {
+    if (!loggedInAdminId) return;
+    const allowedTabs = adminNavItems
+      .filter((item) => item.type !== "header" && item.tabId)
+      .map((item) => item.tabId as string);
+    if (allowedTabs.length > 0 && !allowedTabs.includes(operatorTab)) {
+      setOperatorTab(allowedTabs[0] as any);
+    }
+  }, [loggedInAdminId, adminNavItems, operatorTab]);
+
   return (
     <div
       className="min-h-screen bg-[#f9f8fc] text-[#3c2f56] flex flex-col font-sans selection:bg-purple-500 selection:text-white relative"
