@@ -19,6 +19,7 @@ interface DashboardOverviewProps {
   onNavigate: (tab: 'projects' | 'social' | 'calendar' | 'brands') => void;
   onTaskClick: (task: Task) => void;
   onPostClick: (post: ContentPost) => void;
+  onRetry?: () => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
@@ -27,11 +28,35 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   onNavigate,
   onTaskClick,
   onPostClick,
+  onRetry,
 }) => {
-  if (loading || !stats) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-3">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+        <p className="text-xs text-slate-500 font-medium animate-pulse">Menghubungkan & memuat data dari database MySQL...</p>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-6 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-500 mb-4 shadow-sm">
+          <AlertCircle className="w-7 h-7" />
+        </div>
+        <h3 className="text-base font-bold text-slate-800 mb-1">Gagal Memuat Data Dashboard</h3>
+        <p className="text-xs text-slate-500 max-w-md mb-5 leading-relaxed">
+          Koneksi ke database MySQL mengalami kendala atau sedang dalam proses inisialisasi. Silakan periksa tombol status database di header atas atau muat ulang.
+        </p>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/25 cursor-pointer active:scale-95"
+          >
+            <span>Muat Ulang Data</span>
+          </button>
+        )}
       </div>
     );
   }

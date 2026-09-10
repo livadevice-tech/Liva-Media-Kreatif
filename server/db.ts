@@ -27,6 +27,9 @@ export function getPool(): mysql.Pool {
       charset: "utf8mb4",
       timezone: "+07:00",
       dateStrings: true,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
+      connectTimeout: 20000,
     });
 
     console.log(`✅ MySQL pool terhubung ke ${host}/${database}`);

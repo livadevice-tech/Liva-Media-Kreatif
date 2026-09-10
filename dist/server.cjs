@@ -185,7 +185,10 @@ function getPool() {
       queueLimit: 0,
       charset: "utf8mb4",
       timezone: "+07:00",
-      dateStrings: true
+      dateStrings: true,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 1e4,
+      connectTimeout: 2e4
     });
     console.log(`\u2705 MySQL pool terhubung ke ${host}/${database}`);
   }

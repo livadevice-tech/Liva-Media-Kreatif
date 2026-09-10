@@ -248,6 +248,7 @@ export const ProjectAppContainer: React.FC = () => {
             onNavigate={(tab) => setActiveTab(tab)}
             onTaskClick={() => setActiveTab('projects')}
             onPostClick={() => setActiveTab('calendar')}
+            onRetry={loadData}
           />
         )}
 
