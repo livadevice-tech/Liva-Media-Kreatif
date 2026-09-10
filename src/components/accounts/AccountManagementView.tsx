@@ -14,8 +14,7 @@ import {
   Trash2, 
   Plus,
   Crown,
-  Sparkles,
-  Bell
+  Sparkles
 } from 'lucide-react';
 import { UserAccount, UserRole } from '../../types/app';
 import { AccountInspectorPanel } from './AccountInspectorPanel';
@@ -115,9 +114,6 @@ export const AccountManagementView: React.FC<AccountManagementViewProps> = ({
               <span>Tambah Akun</span>
             </button>
 
-            <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors relative">
-              <Bell className="w-4 h-4" />
-            </button>
           </div>
         </div>
 

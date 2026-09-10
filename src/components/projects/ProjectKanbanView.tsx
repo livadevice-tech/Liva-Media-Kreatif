@@ -18,9 +18,6 @@ import {
   Calendar,
   ChevronDown,
   Download,
-  Share2,
-  Bell,
-  Inbox
 } from 'lucide-react';
 import { Task, Project, Brand, TaskStatus, TaskPriority } from '../../types/app';
 import { TaskInspectorPanel } from './TaskInspectorPanel';
@@ -154,10 +151,6 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
             <span>New Task</span>
           </button>
 
-          <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors relative">
-            <Bell className="w-4 h-4" />
-            <span className="w-1.5 h-1.5 bg-rose-500 rounded-full absolute top-2 right-2" />
-          </button>
 
           <div className="flex items-center -space-x-1.5 pl-1">
             <div className="w-7 h-7 rounded-full bg-indigo-100 border-2 border-white text-indigo-700 font-bold text-[10px] flex items-center justify-center">

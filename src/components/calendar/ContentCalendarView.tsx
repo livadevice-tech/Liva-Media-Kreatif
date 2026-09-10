@@ -11,9 +11,6 @@ import {
   ChevronDown,
   Clock,
   User,
-  Share2,
-  Bell,
-  Inbox
 } from 'lucide-react';
 import { ContentPost, Brand, ContentPillar, ContentStatus, ContentPlatform } from '../../types/app';
 import { WeeklyTimeGridView } from './WeeklyTimeGridView';
@@ -194,25 +191,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
           </h1>
 
           <div className="flex items-center space-x-3">
-            {/* Share button */}
-            <button
-              onClick={() => {
-                navigator.clipboard?.writeText(window.location.href);
-                alert('Calendar link copied to clipboard!');
-              }}
-              className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-1.5 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>Share</span>
-            </button>
 
-            {/* Header Icon Buttons */}
-            <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">
-              <Inbox className="w-4 h-4" />
-            </button>
-            <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors relative">
-              <Bell className="w-4 h-4" />
-              <span className="w-1.5 h-1.5 bg-rose-500 rounded-full absolute top-2 right-2" />
-            </button>
 
             {/* Team Avatars */}
             <div className="flex items-center -space-x-1.5 pl-1">
