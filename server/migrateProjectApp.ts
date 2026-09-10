@@ -115,6 +115,24 @@ export async function runProjectAppMigrations() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
+  // 7. Users / Account Management Table
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS app_users (
+      id VARCHAR(50) PRIMARY KEY,
+      username VARCHAR(100) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      full_name VARCHAR(150) NOT NULL,
+      position VARCHAR(100) NOT NULL,
+      role ENUM('Master Admin', 'Admin', 'Staff') NOT NULL DEFAULT 'Staff',
+      avatar_url TEXT,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_username (username),
+      INDEX idx_role (role)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
   console.log("✅ Seluruh tabel berhasil diverifikasi/dibuat!");
 
   // Auto Seeding jika data masih kosong
@@ -194,8 +212,35 @@ async function seedInitialData() {
       ('post-5', 'b-liva', 'acc-liva-ig', 'proj-rebrand', '5 Strategi Live Shopping Menembus 100 Juta Pertama', 'Edukasi & Tips', 'instagram', 'carousel', 'Host udah heboh tapi penonton gak ada yang checkout? Ini salahnya!', 'Kunci live streaming bukan cuma di diskon, tapi di storytelling dan pacing funnel produk. Simak analisa tim Liva Media berikut ini 📈', '#LiveStreamingAgency #TikTokShopTips #ShopeeLive #AgencyTips', '${formatDate(4, 10)}', 'drafting', 'Galang', 'Bayu')
     `);
 
+    // 7. Seed Initial App Users
+    const [userRows] = await pool.query<any[]>("SELECT COUNT(*) as count FROM app_users");
+    const userCount = (userRows[0] as any)?.count || 0;
+    if (userCount === 0) {
+      await pool.query(`
+        INSERT INTO app_users (id, username, password_hash, full_name, position, role, is_active) VALUES
+        ('usr-1', 'admin', 'admin123', 'Galang Taufik', 'Founder & Creative Director', 'Master Admin', 1),
+        ('usr-2', 'nazmi', 'nazmi123', 'Nazmi Javier', 'Senior Content Specialist', 'Admin', 1),
+        ('usr-3', 'emilia', 'emilia123', 'Emilia Inder', 'Graphic & UI Designer', 'Staff', 1),
+        ('usr-4', 'bayu', 'bayu123', 'Bayu Pratama', 'Video Editor & Motion Designer', 'Staff', 1)
+      `);
+      console.log("✅ Starter user accounts berhasil diisikan!");
+    }
+
     console.log("✅ Starter seed data berhasil diisikan!");
   } else {
+    // Check if app_users is empty even if brands exist
+    const [userRows] = await pool.query<any[]>("SELECT COUNT(*) as count FROM app_users");
+    const userCount = (userRows[0] as any)?.count || 0;
+    if (userCount === 0) {
+      await pool.query(`
+        INSERT INTO app_users (id, username, password_hash, full_name, position, role, is_active) VALUES
+        ('usr-1', 'admin', 'admin123', 'Galang Taufik', 'Founder & Creative Director', 'Master Admin', 1),
+        ('usr-2', 'nazmi', 'nazmi123', 'Nazmi Javier', 'Senior Content Specialist', 'Admin', 1),
+        ('usr-3', 'emilia', 'emilia123', 'Emilia Inder', 'Graphic & UI Designer', 'Staff', 1),
+        ('usr-4', 'bayu', 'bayu123', 'Bayu Pratama', 'Video Editor & Motion Designer', 'Staff', 1)
+      `);
+      console.log("✅ Starter user accounts berhasil diisikan!");
+    }
     console.log(`ℹ️ Tabel sudah memiliki data (${brandCount} brand terdaftar).`);
   }
 }

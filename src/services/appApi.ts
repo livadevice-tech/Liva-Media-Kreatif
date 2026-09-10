@@ -6,7 +6,8 @@ import {
   ContentPillar, 
   DbStatus, 
   TaskStatus, 
-  ContentStatus 
+  ContentStatus,
+  UserAccount
 } from '../types/app';
 
 const API_BASE = '/api';
@@ -107,4 +108,22 @@ export const appApi = {
     }).then(handleResponse<{ success: boolean }>),
   deleteContentPost: (id: string): Promise<{ success: boolean }> =>
     fetch(`${API_BASE}/project-app/content-posts/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean }>),
+
+  // User Accounts Management
+  getAccounts: (): Promise<UserAccount[]> =>
+    fetch(`${API_BASE}/project-app/accounts`).then(handleResponse<UserAccount[]>),
+  createAccount: (data: Partial<UserAccount>): Promise<{ success: boolean; id: string }> =>
+    fetch(`${API_BASE}/project-app/accounts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean; id: string }>),
+  updateAccount: (id: string, data: Partial<UserAccount>): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/project-app/accounts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean }>),
+  deleteAccount: (id: string): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/project-app/accounts/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean }>),
 };

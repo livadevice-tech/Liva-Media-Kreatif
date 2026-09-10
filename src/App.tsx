@@ -17,7 +17,8 @@ import {
   AlertCircle, 
   Loader2, 
   Database,
-  ExternalLink
+  ExternalLink,
+  Users
 } from 'lucide-react';
 import { appApi } from './services/appApi';
 import { 
@@ -28,12 +29,14 @@ import {
   ContentPillar, 
   DbStatus, 
   TaskStatus, 
-  ContentStatus 
+  ContentStatus,
+  UserAccount
 } from './types/app';
 import { ContentCalendarView } from './components/calendar/ContentCalendarView';
 import { ProjectKanbanView } from './components/projects/ProjectKanbanView';
+import { AccountManagementView } from './components/accounts/AccountManagementView';
 
-type NavigationTab = 'home' | 'calendar' | 'tasks' | 'reports' | 'automation' | 'ai';
+type NavigationTab = 'home' | 'calendar' | 'tasks' | 'accounts' | 'reports' | 'automation' | 'ai';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavigationTab>('calendar');
@@ -46,6 +49,7 @@ export default function App() {
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [pillars, setPillars] = useState<ContentPillar[]>([]);
+  const [accounts, setAccounts] = useState<UserAccount[]>([]);
 
   // Database Connection
   const [dbStatus, setDbStatus] = useState<DbStatus | null>(null);
@@ -81,12 +85,13 @@ export default function App() {
   const loadAllData = useCallback(async () => {
     try {
       setLoading(true);
-      const [projectsData, tasksData, postsData, brandsData, pillarsData] = await Promise.all([
+      const [projectsData, tasksData, postsData, brandsData, pillarsData, accountsData] = await Promise.all([
         appApi.getProjects(),
         appApi.getTasks(),
         appApi.getContentPosts(),
         appApi.getBrands(),
         appApi.getPillars(),
+        appApi.getAccounts().catch(() => []),
       ]);
 
       setProjects(projectsData);
@@ -94,6 +99,7 @@ export default function App() {
       setPosts(postsData);
       setBrands(brandsData);
       setPillars(pillarsData);
+      setAccounts(accountsData);
     } catch (err: any) {
       console.error('Error loading data:', err);
       showToast(err.message || 'Gagal memuat data dari database', 'error');
@@ -213,6 +219,32 @@ export default function App() {
     }
   };
 
+  // User Account Actions
+  const handleSaveAccount = async (accountData: Partial<UserAccount>) => {
+    try {
+      if (accountData.id) {
+        await appApi.updateAccount(accountData.id, accountData);
+        showToast('Akun berhasil diperbarui');
+      } else {
+        await appApi.createAccount(accountData);
+        showToast('Akun baru berhasil dibuat');
+      }
+      loadAllData();
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menyimpan akun', 'error');
+    }
+  };
+
+  const handleDeleteAccount = async (id: string) => {
+    try {
+      await appApi.deleteAccount(id);
+      showToast('Akun berhasil dihapus');
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menghapus akun', 'error');
+    }
+  };
+
   return (
     <div className="h-screen w-screen flex bg-[#fbfbfb] text-slate-800 font-sans antialiased overflow-hidden select-none">
       {/* Toast notification */}
@@ -310,7 +342,7 @@ export default function App() {
               {isSidebarOpen && <span>Calendar</span>}
             </button>
 
-            {/* Task (With badge 8 in screenshot) */}
+            {/* Task (With badge in screenshot) */}
             <button
               onClick={() => setActiveTab('tasks')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
@@ -326,6 +358,26 @@ export default function App() {
               {isSidebarOpen && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500">
                   {tasks.length || 8}
+                </span>
+              )}
+            </button>
+
+            {/* Manajemen Akun */}
+            <button
+              onClick={() => setActiveTab('accounts')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                activeTab === 'accounts'
+                  ? 'bg-slate-100 text-slate-900 font-semibold shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Users className="w-4 h-4 text-slate-500" />
+                {isSidebarOpen && <span>Manajemen Akun</span>}
+              </div>
+              {isSidebarOpen && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  {accounts.length}
                 </span>
               )}
             </button>
@@ -439,6 +491,12 @@ export default function App() {
             onUpdateTaskStatus={handleUpdateTaskStatus}
             onSaveProject={handleSaveProject}
             onDeleteProject={handleDeleteProject}
+          />
+        ) : activeTab === 'accounts' ? (
+          <AccountManagementView
+            accounts={accounts}
+            onSaveAccount={handleSaveAccount}
+            onDeleteAccount={handleDeleteAccount}
           />
         ) : (
           /* Placeholder View for Home, Reports, Automation, AI with Quick Link */

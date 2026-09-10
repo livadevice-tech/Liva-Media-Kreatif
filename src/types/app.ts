@@ -1,6 +1,21 @@
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+export type UserRole = 'Master Admin' | 'Admin' | 'Staff';
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  password?: string;
+  full_name: string;
+  position: string;
+  role: UserRole;
+  avatar_url?: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export type ContentPlatform = 'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'twitter' | 'linkedin';
 export type ContentType = 'reels' | 'carousel' | 'feed_single' | 'story' | 'tiktok_video' | 'short';
 export type ContentStatus = 'idea' | 'drafting' | 'review' | 'approved' | 'scheduled' | 'published';

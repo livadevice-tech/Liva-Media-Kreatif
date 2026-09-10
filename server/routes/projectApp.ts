@@ -611,3 +611,99 @@ projectAppRouter.delete('/content-posts/:id', async (req: Request, res: Response
     res.status(500).json({ error: error.message });
   }
 });
+
+// ==========================================
+// 8. USER ACCOUNT MANAGEMENT ROUTES
+// ==========================================
+
+projectAppRouter.get('/accounts', async (_req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query<any[]>(`
+      SELECT id, username, password_hash as password, full_name, position, role, avatar_url, is_active, created_at, updated_at
+      FROM app_users
+      ORDER BY FIELD(role, 'Master Admin', 'Admin', 'Staff'), created_at ASC
+    `);
+    res.json(rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+projectAppRouter.post('/accounts', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const { username, password, full_name, position, role, is_active } = req.body;
+    if (!username || !password || !full_name || !position || !role) {
+      return res.status(400).json({ error: 'Username, password, nama lengkap, posisi, dan role wajib diisi.' });
+    }
+
+    const [existing] = await pool.query<any[]>(
+      'SELECT id FROM app_users WHERE LOWER(username) = LOWER(?)',
+      [username.trim()]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'Username sudah digunakan. Silakan pilih username lain.' });
+    }
+
+    const id = `usr-${Date.now()}`;
+    await pool.query(`
+      INSERT INTO app_users (id, username, password_hash, full_name, position, role, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [id, username.trim(), password, full_name.trim(), position.trim(), role, is_active !== false]);
+
+    res.status(201).json({ id, message: 'Akun berhasil dibuat' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+projectAppRouter.put('/accounts/:id', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const { id } = req.params;
+    const { username, password, full_name, position, role, is_active } = req.body;
+
+    if (!username || !full_name || !position || !role) {
+      return res.status(400).json({ error: 'Username, nama lengkap, posisi, dan role wajib diisi.' });
+    }
+
+    const [existing] = await pool.query<any[]>(
+      'SELECT id FROM app_users WHERE LOWER(username) = LOWER(?) AND id != ?',
+      [username.trim(), id]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'Username sudah digunakan oleh akun lain.' });
+    }
+
+    if (password && password.trim()) {
+      await pool.query(`
+        UPDATE app_users
+        SET username = ?, password_hash = ?, full_name = ?, position = ?, role = ?, is_active = ?
+        WHERE id = ?
+      `, [username.trim(), password.trim(), full_name.trim(), position.trim(), role, is_active !== false, id]);
+    } else {
+      await pool.query(`
+        UPDATE app_users
+        SET username = ?, full_name = ?, position = ?, role = ?, is_active = ?
+        WHERE id = ?
+      `, [username.trim(), full_name.trim(), position.trim(), role, is_active !== false, id]);
+    }
+
+    res.json({ success: true, message: 'Akun berhasil diperbarui' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+projectAppRouter.delete('/accounts/:id', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const { id } = req.params;
+    await pool.query(`DELETE FROM app_users WHERE id = ?`, [id]);
+    res.json({ success: true, message: 'Akun berhasil dihapus' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+

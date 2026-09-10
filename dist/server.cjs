@@ -1777,6 +1777,86 @@ projectAppRouter.delete("/content-posts/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+projectAppRouter.get("/accounts", async (_req, res) => {
+  try {
+    const pool2 = getPool();
+    const [rows] = await pool2.query(`
+      SELECT id, username, password_hash as password, full_name, position, role, avatar_url, is_active, created_at, updated_at
+      FROM app_users
+      ORDER BY FIELD(role, 'Master Admin', 'Admin', 'Staff'), created_at ASC
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.post("/accounts", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { username, password, full_name, position, role, is_active } = req.body;
+    if (!username || !password || !full_name || !position || !role) {
+      return res.status(400).json({ error: "Username, password, nama lengkap, posisi, dan role wajib diisi." });
+    }
+    const [existing] = await pool2.query(
+      "SELECT id FROM app_users WHERE LOWER(username) = LOWER(?)",
+      [username.trim()]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "Username sudah digunakan. Silakan pilih username lain." });
+    }
+    const id = `usr-${Date.now()}`;
+    await pool2.query(`
+      INSERT INTO app_users (id, username, password_hash, full_name, position, role, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [id, username.trim(), password, full_name.trim(), position.trim(), role, is_active !== false]);
+    res.status(201).json({ id, message: "Akun berhasil dibuat" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.put("/accounts/:id", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { id } = req.params;
+    const { username, password, full_name, position, role, is_active } = req.body;
+    if (!username || !full_name || !position || !role) {
+      return res.status(400).json({ error: "Username, nama lengkap, posisi, dan role wajib diisi." });
+    }
+    const [existing] = await pool2.query(
+      "SELECT id FROM app_users WHERE LOWER(username) = LOWER(?) AND id != ?",
+      [username.trim(), id]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "Username sudah digunakan oleh akun lain." });
+    }
+    if (password && password.trim()) {
+      await pool2.query(`
+        UPDATE app_users
+        SET username = ?, password_hash = ?, full_name = ?, position = ?, role = ?, is_active = ?
+        WHERE id = ?
+      `, [username.trim(), password.trim(), full_name.trim(), position.trim(), role, is_active !== false, id]);
+    } else {
+      await pool2.query(`
+        UPDATE app_users
+        SET username = ?, full_name = ?, position = ?, role = ?, is_active = ?
+        WHERE id = ?
+      `, [username.trim(), full_name.trim(), position.trim(), role, is_active !== false, id]);
+    }
+    res.json({ success: true, message: "Akun berhasil diperbarui" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.delete("/accounts/:id", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { id } = req.params;
+    await pool2.query(`DELETE FROM app_users WHERE id = ?`, [id]);
+    res.json({ success: true, message: "Akun berhasil dihapus" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // server/migrateProjectApp.ts
 async function runProjectAppMigrations() {
@@ -1881,6 +1961,22 @@ async function runProjectAppMigrations() {
       INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+  await pool2.execute(`
+    CREATE TABLE IF NOT EXISTS app_users (
+      id VARCHAR(50) PRIMARY KEY,
+      username VARCHAR(100) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      full_name VARCHAR(150) NOT NULL,
+      position VARCHAR(100) NOT NULL,
+      role ENUM('Master Admin', 'Admin', 'Staff') NOT NULL DEFAULT 'Staff',
+      avatar_url TEXT,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_username (username),
+      INDEX idx_role (role)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
   console.log("\u2705 Seluruh tabel berhasil diverifikasi/dibuat!");
   await seedInitialData();
 }
@@ -1941,8 +2037,32 @@ async function seedInitialData() {
       ('post-4', 'b-wardah', 'acc-wardah-ig', 'proj-99', 'Countdown 2 Hari Menuju 9.9 Mega Flash Sale', 'Promo & Penjualan', 'instagram', 'reels', 'Jangan checkout sekarang! Tunggu jam 00:00 tanggal 9!', 'Diskon s/d 70% + voucher cashback ekstra eksklusif untuk kalian yang tonton live tanggal 9 nanti! Save postingan ini biar gak ketinggalan!', '#WardahMegaSale #Diskon99 #FlashSaleSkincare', '${formatDate(3, 17)}', 'review', 'Nadia', 'Bayu'),
       ('post-5', 'b-liva', 'acc-liva-ig', 'proj-rebrand', '5 Strategi Live Shopping Menembus 100 Juta Pertama', 'Edukasi & Tips', 'instagram', 'carousel', 'Host udah heboh tapi penonton gak ada yang checkout? Ini salahnya!', 'Kunci live streaming bukan cuma di diskon, tapi di storytelling dan pacing funnel produk. Simak analisa tim Liva Media berikut ini \u{1F4C8}', '#LiveStreamingAgency #TikTokShopTips #ShopeeLive #AgencyTips', '${formatDate(4, 10)}', 'drafting', 'Galang', 'Bayu')
     `);
+    const [userRows] = await pool2.query("SELECT COUNT(*) as count FROM app_users");
+    const userCount = userRows[0]?.count || 0;
+    if (userCount === 0) {
+      await pool2.query(`
+        INSERT INTO app_users (id, username, password_hash, full_name, position, role, is_active) VALUES
+        ('usr-1', 'admin', 'admin123', 'Galang Taufik', 'Founder & Creative Director', 'Master Admin', 1),
+        ('usr-2', 'nazmi', 'nazmi123', 'Nazmi Javier', 'Senior Content Specialist', 'Admin', 1),
+        ('usr-3', 'emilia', 'emilia123', 'Emilia Inder', 'Graphic & UI Designer', 'Staff', 1),
+        ('usr-4', 'bayu', 'bayu123', 'Bayu Pratama', 'Video Editor & Motion Designer', 'Staff', 1)
+      `);
+      console.log("\u2705 Starter user accounts berhasil diisikan!");
+    }
     console.log("\u2705 Starter seed data berhasil diisikan!");
   } else {
+    const [userRows] = await pool2.query("SELECT COUNT(*) as count FROM app_users");
+    const userCount = userRows[0]?.count || 0;
+    if (userCount === 0) {
+      await pool2.query(`
+        INSERT INTO app_users (id, username, password_hash, full_name, position, role, is_active) VALUES
+        ('usr-1', 'admin', 'admin123', 'Galang Taufik', 'Founder & Creative Director', 'Master Admin', 1),
+        ('usr-2', 'nazmi', 'nazmi123', 'Nazmi Javier', 'Senior Content Specialist', 'Admin', 1),
+        ('usr-3', 'emilia', 'emilia123', 'Emilia Inder', 'Graphic & UI Designer', 'Staff', 1),
+        ('usr-4', 'bayu', 'bayu123', 'Bayu Pratama', 'Video Editor & Motion Designer', 'Staff', 1)
+      `);
+      console.log("\u2705 Starter user accounts berhasil diisikan!");
+    }
     console.log(`\u2139\uFE0F Tabel sudah memiliki data (${brandCount} brand terdaftar).`);
   }
 }
