@@ -1,8 +1,0 @@
-10237:                            <tr className="bg-[#f8f9fc] border-b border-slate-200 uppercase text-[10px] font-black tracking-wider text-slate-500 whitespace-nowrap">
-12153:                                <span className="font-sans font-black text-slate-800 border-b border-slate-200 pb-1.5 block flex items-center gap-1.5">
-12248:                                <span className="font-sans font-black text-slate-800 border-b border-slate-200 pb-1.5 block flex items-center gap-1.5">
-12408:                                  <span className="font-sans font-black text-slate-800 border-b border-slate-200 pb-1.5 block flex items-center gap-1.5 mb-2">
-12746:                          <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-16612:                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white mb-6 text-left border-b border-slate-200 px-6 sm:px-8 py-5">
-16699:                          <div className="px-6 sm:px-8 mb-6 border-b border-slate-200 flex gap-6">
-17148:                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200/70">

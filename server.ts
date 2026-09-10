@@ -150,7 +150,7 @@ app.post("/api/auth/logout", (req, res) => {
 });
 
 app.use("/api", (req, res, next) => {
-  if (req.path === "/health") return next();
+  if (req.path === "/health" || req.path === "/db-test") return next();
   if (req.method === "GET" && req.path === "/settings/brandResources") return next();
   if (req.method === "GET" && req.path === "/client-brands/public-list") return next();
   if (req.path.startsWith("/project-app")) return next();
@@ -874,17 +874,31 @@ app.post('/api/invoice/send-reminder', async (req, res) => {
 // SYSTEM STATUS ENDPOINT
 // ==================================================================
 app.get('/api/db-test', async (req, res) => {
+  const start = Date.now();
   try {
-    const session = getRequestSession(req);
-    if (!canAccessDbTest(session)) {
-      return res.status(403).json({ success: false, message: "Akses tidak diizinkan." });
-    }
     const db = getPool();
-    const [rows] = await db.query('SELECT 1 as result');
-    res.json({ success: true, message: 'Koneksi MySQL berhasil tersambung!', data: rows });
+    const [rows]: any = await db.query('SELECT 1 as connected, DATABASE() as db_name, VERSION() as version, NOW() as server_time');
+    const latencyMs = Date.now() - start;
+    res.json({
+      success: true,
+      message: 'Koneksi MySQL berhasil tersambung!',
+      latencyMs,
+      database: rows[0]?.db_name || process.env.DB_NAME || 'Unknown',
+      version: rows[0]?.version || 'Unknown',
+      serverTime: rows[0]?.server_time,
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || '3306',
+    });
   } catch (error: any) {
+    const latencyMs = Date.now() - start;
     console.error('Database connection test failed:', error);
-    res.status(500).json({ success: false, message: `Gagal terhubung ke MySQL: ${error.message}` });
+    res.status(500).json({
+      success: false,
+      message: `Gagal terhubung ke MySQL: ${error.message}`,
+      latencyMs,
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || '3306',
+    });
   }
 });
 
