@@ -1,5 +1,18 @@
 import { Brand, SocialAccount, Project, Task, ContentPost, ContentPillar, DashboardStats } from '../types/projectApp';
 
+export interface DbTestResult {
+  success: boolean;
+  message: string;
+  latencyMs: number;
+  database?: string;
+  version?: string;
+  serverTime?: string;
+  host?: string;
+  port?: string;
+  tablesCount?: number;
+  tables?: string[];
+}
+
 const BASE_URL = '/api/project-app';
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -11,6 +24,10 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export const projectAppApi = {
+  // Database Health Check
+  testDbConnection: (): Promise<DbTestResult> => 
+    fetch(`${BASE_URL}/db-test`).then(res => handleResponse<DbTestResult>(res)),
+
   // Stats
   getStats: () => fetch(`${BASE_URL}/stats`).then(res => handleResponse<DashboardStats>(res)),
 

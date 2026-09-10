@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, Kanban, Share2, Calendar, Building2, Plus, Sparkles } from 'lucide-react';
+import { DatabaseCheckButton } from './DatabaseCheckModal';
 
 export type ActiveTab = 'dashboard' | 'projects' | 'social' | 'calendar' | 'brands';
 
@@ -99,6 +100,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeTab, onTabChange, on
 
           {/* Quick Actions Dropdown / Button */}
           <div className="flex items-center space-x-2">
+            <DatabaseCheckButton />
+
             <button
               onClick={() => onQuickAdd(activeTab === 'calendar' ? 'post' : activeTab === 'projects' ? 'task' : 'post')}
               className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/25 transition-all transform active:scale-95 cursor-pointer"

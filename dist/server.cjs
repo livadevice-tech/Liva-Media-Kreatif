@@ -1175,6 +1175,42 @@ function validateProductionConfig(env) {
 // server/routes/projectApp.ts
 var import_express = require("express");
 var projectAppRouter = (0, import_express.Router)();
+projectAppRouter.get("/db-test", async (req, res) => {
+  const start = Date.now();
+  try {
+    const pool2 = getPool();
+    const [rows] = await pool2.query("SELECT 1 as connected, DATABASE() as db_name, VERSION() as version, NOW() as server_time");
+    const [tables] = await pool2.query("SHOW TABLES");
+    const latencyMs = Date.now() - start;
+    let tableNames = [];
+    if (Array.isArray(tables)) {
+      tableNames = tables.map((t) => Object.values(t)[0]);
+    }
+    res.json({
+      success: true,
+      message: "Koneksi ke MySQL database berhasil!",
+      latencyMs,
+      database: rows[0]?.db_name || process.env.DB_NAME || "Unknown",
+      version: rows[0]?.version || "Unknown",
+      serverTime: rows[0]?.server_time || (/* @__PURE__ */ new Date()).toISOString(),
+      host: process.env.DB_HOST || "localhost",
+      port: process.env.DB_PORT || "3306",
+      tablesCount: tableNames.length,
+      tables: tableNames
+    });
+  } catch (error) {
+    const latencyMs = Date.now() - start;
+    console.error("MySQL connection check error:", error);
+    res.status(500).json({
+      success: false,
+      message: `Gagal terhubung ke MySQL: ${error.message}`,
+      latencyMs,
+      database: process.env.DB_NAME || "Unknown",
+      host: process.env.DB_HOST || "localhost",
+      port: process.env.DB_PORT || "3306"
+    });
+  }
+});
 projectAppRouter.get("/stats", async (req, res) => {
   try {
     const pool2 = getPool();
@@ -2963,7 +2999,7 @@ async function bootstrap() {
       console.log(`\u{1F680} Liva Media Kreatif Server berjalan di socket ${PORT} (${process.env.NODE_ENV || "development"})`);
     });
   } else {
-    app.listen(PORT, "0.0.0.0", () => {
+    app.listen(Number(PORT), "0.0.0.0", () => {
       console.log(`\u{1F680} Liva Media Kreatif Server berjalan di port ${PORT} (${process.env.NODE_ENV || "development"})`);
     });
   }

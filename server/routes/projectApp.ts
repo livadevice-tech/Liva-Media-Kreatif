@@ -4,6 +4,48 @@ import { getPool } from '../db';
 export const projectAppRouter = Router();
 
 // ==========================================
+// 0. DATABASE CONNECTION TEST & HEALTH CHECK
+// ==========================================
+projectAppRouter.get('/db-test', async (req: Request, res: Response) => {
+  const start = Date.now();
+  try {
+    const pool = getPool();
+    const [rows]: any = await pool.query('SELECT 1 as connected, DATABASE() as db_name, VERSION() as version, NOW() as server_time');
+    const [tables]: any = await pool.query('SHOW TABLES');
+    const latencyMs = Date.now() - start;
+
+    let tableNames: string[] = [];
+    if (Array.isArray(tables)) {
+      tableNames = tables.map((t: any) => Object.values(t)[0] as string);
+    }
+
+    res.json({
+      success: true,
+      message: 'Koneksi ke MySQL database berhasil!',
+      latencyMs,
+      database: rows[0]?.db_name || process.env.DB_NAME || 'Unknown',
+      version: rows[0]?.version || 'Unknown',
+      serverTime: rows[0]?.server_time || new Date().toISOString(),
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || '3306',
+      tablesCount: tableNames.length,
+      tables: tableNames,
+    });
+  } catch (error: any) {
+    const latencyMs = Date.now() - start;
+    console.error('MySQL connection check error:', error);
+    res.status(500).json({
+      success: false,
+      message: `Gagal terhubung ke MySQL: ${error.message}`,
+      latencyMs,
+      database: process.env.DB_NAME || 'Unknown',
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || '3306',
+    });
+  }
+});
+
+// ==========================================
 // 1. STATS OVERVIEW
 // ==========================================
 projectAppRouter.get('/stats', async (req: Request, res: Response) => {

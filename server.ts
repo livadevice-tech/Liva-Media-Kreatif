@@ -1198,7 +1198,7 @@ async function bootstrap() {
     });
   } else {
     // Standard TCP port binding
-    app.listen(PORT, "0.0.0.0", () => {
+    app.listen(Number(PORT), "0.0.0.0", () => {
       console.log(`🚀 Liva Media Kreatif Server berjalan di port ${PORT} (${process.env.NODE_ENV || 'development'})`);
     });
   }
