@@ -108,12 +108,14 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   const handleOpenNewTask = (status: TaskStatus = 'todo') => {
     setDefaultTaskStatus(status);
     setEditingTask(null);
+    setIsProjectModalOpen(false);
     setIsTaskModalOpen(true);
   };
 
   const handleEditTask = (task: Task, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingTask(task);
+    setIsProjectModalOpen(false);
     setIsTaskModalOpen(true);
   };
 
@@ -220,9 +222,10 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
           <button
             onClick={() => {
               setEditingProject(null);
+              setIsTaskModalOpen(false);
               setIsProjectModalOpen(true);
             }}
-            className="px-3 py-1.5 border border-slate-200/90 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 transition-colors"
+            className="px-3 py-1.5 border border-slate-200/90 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
           >
             Manage Projects
           </button>
