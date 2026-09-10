@@ -24,7 +24,7 @@ import {
   Inbox
 } from 'lucide-react';
 import { Task, Project, Brand, TaskStatus, TaskPriority } from '../../types/app';
-import { TaskModal } from './TaskModal';
+import { TaskInspectorPanel } from './TaskInspectorPanel';
 import { ProjectModal } from './ProjectModal';
 
 interface ProjectKanbanViewProps {
@@ -132,9 +132,11 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-white">
-      {/* Top Header Bar */}
-      <div className="h-16 px-6 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
+    <div className="flex-1 flex h-full overflow-hidden bg-white">
+      {/* Main Board Canvas */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+        {/* Top Header Bar */}
+        <div className="h-16 px-6 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Tasks & Projects
@@ -418,15 +420,16 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
           </div>
         )}
       </div>
+      </div>
 
-      {/* Task Modal */}
-      <TaskModal
+      {/* Task Inspector Panel (Right Sidebar) */}
+      <TaskInspectorPanel
         isOpen={isTaskModalOpen}
         onClose={() => setIsTaskModalOpen(false)}
         onSave={onSaveTask}
+        onDelete={onDeleteTask}
         projects={projects}
-        brands={brands}
-        initialData={editingTask}
+        task={editingTask}
         defaultStatus={defaultTaskStatus}
       />
 
