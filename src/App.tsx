@@ -17,8 +17,7 @@ import {
   AlertCircle, 
   Loader2, 
   Database,
-  ExternalLink,
-  Flame
+  ExternalLink
 } from 'lucide-react';
 import { appApi } from './services/appApi';
 import { 
@@ -40,7 +39,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavigationTab>('calendar');
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [showUpgradeCard, setShowUpgradeCard] = useState(true);
 
   // Core Data
   const [projects, setProjects] = useState<Project[]>([]);
@@ -375,42 +373,6 @@ export default function App() {
 
         {/* Bottom Section */}
         <div className="space-y-3">
-          {/* Upgrade Card (Matching screenshot) */}
-          {isSidebarOpen && showUpgradeCard && (
-            <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-3.5 relative shadow-2xs">
-              <button
-                onClick={() => setShowUpgradeCard(false)}
-                className="absolute top-2.5 right-2.5 text-slate-400 hover:text-slate-600 p-0.5"
-                title="Dismiss"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-
-              <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900">
-                <span>Upgrade Pro!</span>
-                <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              </div>
-              <p className="text-[11px] text-slate-500 leading-snug mt-1 mb-3">
-                Increased productivity and organization.
-              </p>
-
-              <div className="flex items-center gap-2.5">
-                <button
-                  onClick={() => alert('Upgrade Pro Modal')}
-                  className="bg-white hover:bg-slate-50 border border-slate-200/90 shadow-2xs text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-800 transition-colors"
-                >
-                  Upgrade
-                </button>
-                <button
-                  onClick={() => alert('Learn more about Pro')}
-                  className="text-xs font-medium text-slate-600 hover:underline"
-                >
-                  Learn more
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Help & Settings */}
           <div className="space-y-1">
             <button
