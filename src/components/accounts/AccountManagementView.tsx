@@ -15,7 +15,6 @@ import {
   Plus,
   Crown,
   Sparkles,
-  Settings,
   Bell
 } from 'lucide-react';
 import { UserAccount, UserRole } from '../../types/app';
@@ -116,9 +115,6 @@ export const AccountManagementView: React.FC<AccountManagementViewProps> = ({
               <span>Tambah Akun</span>
             </button>
 
-            <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">
-              <Settings className="w-4 h-4" />
-            </button>
             <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors relative">
               <Bell className="w-4 h-4" />
             </button>

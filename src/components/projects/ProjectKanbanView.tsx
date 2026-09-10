@@ -19,7 +19,6 @@ import {
   ChevronDown,
   Download,
   Share2,
-  Settings,
   Bell,
   Inbox
 } from 'lucide-react';
@@ -155,9 +154,6 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
             <span>New Task</span>
           </button>
 
-          <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">
-            <Settings className="w-4 h-4" />
-          </button>
           <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors relative">
             <Bell className="w-4 h-4" />
             <span className="w-1.5 h-1.5 bg-rose-500 rounded-full absolute top-2 right-2" />

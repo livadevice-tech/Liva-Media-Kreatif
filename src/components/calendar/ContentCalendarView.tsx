@@ -12,7 +12,6 @@ import {
   Clock,
   User,
   Share2,
-  Settings,
   Bell,
   Inbox
 } from 'lucide-react';
@@ -207,9 +206,6 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
             </button>
 
             {/* Header Icon Buttons */}
-            <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">
-              <Settings className="w-4 h-4" />
-            </button>
             <button className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">
               <Inbox className="w-4 h-4" />
             </button>
