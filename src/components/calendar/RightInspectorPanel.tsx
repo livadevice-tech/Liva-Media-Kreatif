@@ -332,6 +332,8 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
     }
   };
 
+  if (!isOpen) return null;
+
   const availablePillars = pillars.length > 0 ? pillars : DEFAULT_PILLARS;
   const currentStatusObj = STATUS_LIST.find(s => s.id === formData.status) || STATUS_LIST[0];
 

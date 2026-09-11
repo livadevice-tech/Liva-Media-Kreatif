@@ -459,8 +459,8 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
 
   return (
     <aside 
-      style={{ width: `${sidebarWidth}px` }}
-      className="relative shrink-0 border-l border-slate-200/90 bg-white flex flex-col h-full z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-all animate-in slide-in-from-right duration-200"
+      style={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : `${sidebarWidth}px` }}
+      className="relative shrink-0 max-w-full border-l border-slate-200/90 bg-white flex flex-col h-full z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-all animate-in slide-in-from-right duration-200"
     >
       {/* Draggable Resize Handle on Left Border */}
       <div

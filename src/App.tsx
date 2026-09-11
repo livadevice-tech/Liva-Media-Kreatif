@@ -42,6 +42,10 @@ import { AccountManagementView } from './components/accounts/AccountManagementVi
 import { SettingsView, AppSettings, DEFAULT_SETTINGS } from './components/settings/SettingsView';
 import { LoginPage } from './components/auth/LoginPage';
 import { AssetFileView } from './components/assets/AssetFileView';
+import { MobileLayout, MobileTab } from './components/mobile/MobileLayout';
+import { MobileCalendarView } from './components/mobile/MobileCalendarView';
+import { MobileTaskView } from './components/mobile/MobileTaskView';
+import { MobileHomeView } from './components/mobile/MobileHomeView';
 
 type NavigationTab = 'home' | 'calendar' | 'tasks' | 'assets' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
 
@@ -58,6 +62,22 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavigationTab>('calendar');
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Mobile Viewport Detection (Screens < 768px)
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Core Data
   const [projects, setProjects] = useState<Project[]>([]);
@@ -388,6 +408,231 @@ export default function App() {
     );
   }
 
+  const renderDbModal = () => {
+    if (!showDbModal) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-fadeIn">
+        <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-indigo-600" />
+              <h3 className="text-sm font-bold text-slate-900">
+                Status Database MySQL (Hostinger)
+              </h3>
+            </div>
+            <button
+              onClick={() => setShowDbModal(false)}
+              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3 text-xs">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="font-semibold text-slate-600">Status Koneksi:</span>
+              <span className={`font-bold flex items-center gap-1.5 ${dbStatus?.success ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {dbStatus?.success ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" /> Terhubung
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-4 h-4" /> Gagal
+                  </>
+                )}
+              </span>
+            </div>
+
+            {dbStatus?.success && (
+              <div className="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Database:</span>
+                  <span className="font-mono font-semibold">{dbStatus.database}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Host:</span>
+                  <span className="font-mono font-semibold">{dbStatus.host || '153.92.15.31'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Latency:</span>
+                  <span className="font-mono font-semibold text-emerald-600">{dbStatus.latencyMs}ms</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Total Tabel:</span>
+                  <span className="font-mono font-semibold">{dbStatus.tablesCount || 10} tabel</span>
+                </div>
+              </div>
+            )}
+
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Database MySQL Hostinger siap digunakan untuk sinkronisasi Content Calendar & Task Management.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={checkDatabase}
+              disabled={checkingDb}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+            >
+              {checkingDb ? 'Memeriksa...' : 'Test Ulang'}
+            </button>
+            <button
+              onClick={() => setShowDbModal(false)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // --- MOBILE SCREEN RENDER (Screens < 768px matching Native App Design) ---
+  if (isMobile) {
+    return (
+      <div className="h-screen w-screen flex flex-col bg-[#fbfbfb] text-slate-800 font-sans antialiased overflow-hidden select-none">
+        {/* Toast notification */}
+        {toast && (
+          <div
+            className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center space-x-2 transition-all duration-200 ${
+              toast.type === 'success'
+                ? 'bg-emerald-600 text-white shadow-emerald-500/20'
+                : 'bg-rose-600 text-white shadow-rose-500/20'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
+            <span>{toast.message}</span>
+          </div>
+        )}
+
+        <MobileLayout
+          activeTab={activeTab as MobileTab}
+          onTabChange={(tab) => setActiveTab(tab as NavigationTab)}
+          currentUser={currentUser}
+          appSettings={appSettings}
+          taskCount={tasks.length}
+          dbStatus={dbStatus}
+          onOpenDbModal={() => setShowDbModal(true)}
+          onLogout={handleLogout}
+        >
+          {activeTab === 'calendar' ? (
+            <MobileCalendarView
+              posts={posts}
+              brands={brands}
+              pillars={pillars}
+              accounts={accounts}
+              onSavePost={handleSavePost}
+              onDeletePost={handleDeletePost}
+              onUpdateStatus={handleUpdateContentStatus}
+            />
+          ) : activeTab === 'tasks' ? (
+            <MobileTaskView
+              tasks={tasks}
+              projects={projects}
+              brands={brands}
+              accounts={accounts}
+              currentUser={currentUser}
+              onSaveTask={handleSaveTask}
+              onDeleteTask={handleDeleteTask}
+              onUpdateTaskStatus={handleUpdateTaskStatus}
+              onSaveProject={handleSaveProject}
+              onDeleteProject={handleDeleteProject}
+            />
+          ) : activeTab === 'home' ? (
+            <MobileHomeView
+              currentUser={currentUser}
+              posts={posts}
+              tasks={tasks}
+              onNavigate={(tab) => setActiveTab(tab as NavigationTab)}
+            />
+          ) : activeTab === 'assets' ? (
+            <div className="p-2 pb-16">
+              <AssetFileView
+                brands={brands}
+                projects={projects}
+                posts={posts}
+                tasks={tasks}
+                currentUser={currentUser}
+                onOpenCalendar={() => setActiveTab('calendar')}
+              />
+            </div>
+          ) : activeTab === 'accounts' ? (
+            currentUser?.role === 'Master Admin' ? (
+              <div className="p-3 pb-16">
+                <AccountManagementView
+                  accounts={accounts}
+                  onSaveAccount={handleSaveAccount}
+                  onDeleteAccount={handleDeleteAccount}
+                />
+              </div>
+            ) : (
+              <div className="p-8 text-center text-xs text-slate-500">
+                Akses Terbatas: Hanya Master Admin
+              </div>
+            )
+          ) : activeTab === 'settings' ? (
+            currentUser?.role === 'Master Admin' ? (
+              <div className="p-3 pb-16">
+                <SettingsView
+                  currentUser={currentUser}
+                  dbStatus={dbStatus}
+                  onCheckDb={checkDatabase}
+                  checkingDb={checkingDb}
+                  onNavigateToAccounts={() => setActiveTab('accounts')}
+                  appSettings={appSettings}
+                  onSettingsSaved={(newSettings) => {
+                    setAppSettings(newSettings);
+                    if (newSettings.general?.appName) {
+                      document.title = newSettings.general.appName;
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="p-8 text-center text-xs text-slate-500">
+                Akses Terbatas: Hanya Master Admin
+              </div>
+            )
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-base text-slate-900 capitalize">{activeTab}</h3>
+              <p className="text-xs text-slate-500 mt-1 mb-4 leading-relaxed max-w-xs">
+                Modul ini terhubung dengan Content Calendar dan Task Management tim Anda.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActiveTab('calendar')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-xs cursor-pointer"
+                >
+                  Buka Kalender
+                </button>
+                <button
+                  onClick={() => setActiveTab('tasks')}
+                  className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold shadow-xs cursor-pointer"
+                >
+                  Buka Tasks
+                </button>
+              </div>
+            </div>
+          )}
+        </MobileLayout>
+
+        {renderDbModal()}
+      </div>
+    );
+  }
+
+  // --- DESKTOP SCREEN RENDER (Screens >= 768px) ---
   return (
     <div className="h-screen w-screen flex bg-[#fbfbfb] text-slate-800 font-sans antialiased overflow-hidden select-none">
       {/* Toast notification */}
@@ -832,84 +1077,7 @@ export default function App() {
       </main>
 
       {/* MySQL Connection Diagnostics Modal */}
-      {showDbModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-sm font-bold text-slate-900">
-                  Status Database MySQL (Hostinger)
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowDbModal(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="font-semibold text-slate-600">Status Koneksi:</span>
-                <span className={`font-bold flex items-center gap-1.5 ${dbStatus?.success ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {dbStatus?.success ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" /> Terhubung
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="w-4 h-4" /> Gagal
-                    </>
-                  )}
-                </span>
-              </div>
-
-              {dbStatus?.success && (
-                <div className="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Database:</span>
-                    <span className="font-mono font-semibold">{dbStatus.database}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Host:</span>
-                    <span className="font-mono font-semibold">{dbStatus.host || '153.92.15.31'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Latency:</span>
-                    <span className="font-mono font-semibold text-emerald-600">{dbStatus.latencyMs}ms</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Total Tabel:</span>
-                    <span className="font-mono font-semibold">{dbStatus.tablesCount || 10} tabel</span>
-                  </div>
-                </div>
-              )}
-
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Database MySQL Hostinger siap digunakan untuk sinkronisasi Content Calendar & Task Management.
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={checkDatabase}
-                disabled={checkingDb}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors"
-              >
-                {checkingDb ? 'Memeriksa...' : 'Test Ulang'}
-              </button>
-              <button
-                onClick={() => setShowDbModal(false)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs transition-colors"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderDbModal()}
     </div>
   );
 }
