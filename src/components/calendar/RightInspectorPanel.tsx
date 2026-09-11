@@ -148,7 +148,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   const currentStatusObj = STATUS_LIST.find(s => s.id === formData.status) || STATUS_LIST[0];
 
   return (
-    <aside className="w-full sm:w-[500px] md:w-[560px] lg:w-[620px] xl:w-[660px] shrink-0 border-l border-slate-200/90 bg-white flex flex-col h-full z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-all animate-in slide-in-from-right duration-200">
+    <aside className="w-full sm:w-[520px] md:w-[600px] lg:w-[660px] xl:w-[720px] shrink-0 border-l border-slate-200/90 bg-white flex flex-col h-full z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-all animate-in slide-in-from-right duration-200">
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         {/* Modern Header with Status Indicator */}
         <div className="h-18 px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/40">
@@ -285,11 +285,14 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
             </div>
           </div>
 
-          {/* SECTION 2: BRIEF & COPYWRITING */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-              <FileText className="w-4 h-4 text-indigo-600" />
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Brief & Copywriting</h4>
+          {/* SECTION 2: BRIEF & COPYWRITING (EXPANDED & SPACIOUS) */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-5">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-indigo-600" />
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Brief & Copywriting</h4>
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium">Bisa di-resize / ditarik ke bawah</span>
             </div>
 
             {/* 3. Brief Konten & Visual Direction */}
@@ -298,14 +301,53 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                 <label className="block text-xs font-bold text-slate-700">
                   Brief Ide & Visual Direction
                 </label>
-                <span className="text-[10px] text-slate-400 font-medium">Hook 3 detik, angle, mood, referensi</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400">
+                    {(formData.notes || '').length} karakter
+                  </span>
+                </div>
               </div>
+
+              {/* Quick Template Chips for Brief */}
+              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const addition = '\n[HOOK 3 DETIK]: \n';
+                    setFormData({ ...formData, notes: (formData.notes || '') + addition });
+                  }}
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-md text-[10px] font-semibold transition-colors cursor-pointer border border-slate-200/60"
+                >
+                  + Hook 3s
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const addition = '\n[VISUAL CONCEPT]: \n';
+                    setFormData({ ...formData, notes: (formData.notes || '') + addition });
+                  }}
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-md text-[10px] font-semibold transition-colors cursor-pointer border border-slate-200/60"
+                >
+                  + Visual Mood
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const addition = '\n[AUDIO / MUSIC]: \n';
+                    setFormData({ ...formData, notes: (formData.notes || '') + addition });
+                  }}
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-md text-[10px] font-semibold transition-colors cursor-pointer border border-slate-200/60"
+                >
+                  + Audio Ref
+                </button>
+              </div>
+
               <textarea
-                rows={3}
+                rows={6}
                 value={formData.notes || ''}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Tuliskan brief konsep konten, hook awal yang memikat, instruksi visual untuk desainer / video editor..."
-                className="w-full bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none leading-relaxed"
+                placeholder="Tuliskan brief konsep konten secara lengkap:&#10;• Hook awal 3 detik yang memikat audiens&#10;• Alur cerita / sudut pandang (angle)&#10;• Mood visual & instruksi khusus untuk desainer / video editor..."
+                className="w-full min-h-[140px] bg-slate-50/70 border border-slate-200 rounded-xl p-4 text-xs font-normal text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-y leading-relaxed"
               />
             </div>
 
@@ -315,14 +357,53 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                 <label className="block text-xs font-bold text-slate-700">
                   Caption & Copywriting (CTA / Hashtag)
                 </label>
-                <span className="text-[10px] text-slate-400 font-medium">Draft caption postingan</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400">
+                    {(formData.caption || '').length} karakter
+                  </span>
+                </div>
               </div>
+
+              {/* Quick Template Chips for Caption */}
+              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const addition = '\n[HEADLINE]: \n';
+                    setFormData({ ...formData, caption: (formData.caption || '') + addition });
+                  }}
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-md text-[10px] font-semibold transition-colors cursor-pointer border border-slate-200/60"
+                >
+                  + Headline
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const addition = '\n👉 Komen \'INFO\' atau klik link di bio untuk detail selengkapnya!';
+                    setFormData({ ...formData, caption: (formData.caption || '') + addition });
+                  }}
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-md text-[10px] font-semibold transition-colors cursor-pointer border border-slate-200/60"
+                >
+                  + CTA
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const addition = '\n\n#LivaMedia #ContentCreator #SocialMediaStrategy #MarketingTips';
+                    setFormData({ ...formData, caption: (formData.caption || '') + addition });
+                  }}
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-md text-[10px] font-semibold transition-colors cursor-pointer border border-slate-200/60"
+                >
+                  + Hashtags
+                </button>
+              </div>
+
               <textarea
-                rows={4}
+                rows={8}
                 value={formData.caption || ''}
                 onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
-                placeholder="Tuliskan copywriting caption lengkap, Call to Action (CTA) ke bio / DM, serta hashtag..."
-                className="w-full bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none leading-relaxed"
+                placeholder="Tuliskan draft copywriting caption postingan:&#10;• Kalimat pembuka / Hook&#10;• Isi pesan / storytelling&#10;• Call to Action (CTA) ke profil, DM, atau website&#10;• Kumpulan hashtag relevan..."
+                className="w-full min-h-[180px] bg-slate-50/70 border border-slate-200 rounded-xl p-4 text-xs font-normal text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-y leading-relaxed font-sans"
               />
             </div>
           </div>
