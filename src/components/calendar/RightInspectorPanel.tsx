@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   Settings2,
   Edit2,
-  Plus
+  Plus,
+  Globe
 } from 'lucide-react';
 import { ContentPost, ContentStatus, ContentPlatform, ContentType, UserAccount, ContentPillar } from '../../types/app';
 
@@ -98,6 +99,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
     start_time: '09:00',
     status: 'scheduled',
     color: '#3b82f6',
+    published_link: '',
   });
 
   const [saving, setSaving] = useState(false);
@@ -276,6 +278,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         start_time: post.start_time || '09:00',
         status: post.status || 'scheduled',
         color: post.color || '#3b82f6',
+        published_link: post.published_link || '',
       });
     } else {
       setSelectedAssignees([]);
@@ -291,6 +294,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         start_time: '09:00',
         status: 'scheduled',
         color: '#3b82f6',
+        published_link: '',
       });
     }
   }, [post]);
@@ -1105,6 +1109,40 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                   );
                 })}
               </div>
+            </div>
+
+            {/* Link Konten Terbit (Published Link) */}
+            <div className="pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Link Konten Terbit (Published Link)</span>
+                </label>
+                {formData.published_link && (
+                  <a
+                    href={formData.published_link.startsWith('http') ? formData.published_link : `https://${formData.published_link}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Buka Link Konten</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+              <div className="relative">
+                <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="url"
+                  value={formData.published_link || ''}
+                  onChange={(e) => setFormData({ ...formData, published_link: e.target.value })}
+                  placeholder="https://instagram.com/p/... atau https://tiktok.com/@.../video/..."
+                  className="w-full bg-slate-50/70 border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Tautan postingan Instagram, TikTok, YouTube, atau platform lain setelah konten berhasil di-upload.
+              </p>
             </div>
           </div>
 

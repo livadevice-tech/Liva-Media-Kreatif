@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Video, Image, FileText, Sparkles, Trash2 } from 'lucide-react';
+import { Plus, Video, Image, FileText, Sparkles, Trash2, ExternalLink } from 'lucide-react';
 import { ContentPost } from '../../types/app';
 
 interface MonthGridViewProps {
@@ -287,10 +287,24 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
                           );
                         })()}
 
-                        {/* Scheduled Time */}
-                        <span className="text-[10px] text-slate-500 font-medium ml-1">
-                          {formatEventTime(post.start_time)}
-                        </span>
+                        {/* Scheduled Time & Published Link */}
+                        <div className="flex items-center gap-1 ml-1 shrink-0">
+                          {post.published_link && (
+                            <a
+                              href={post.published_link.startsWith('http') ? post.published_link : `https://${post.published_link}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-emerald-600 hover:text-emerald-700 hover:scale-110 transition-transform p-0.5"
+                              title="Buka link konten terbit"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {formatEventTime(post.start_time)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );

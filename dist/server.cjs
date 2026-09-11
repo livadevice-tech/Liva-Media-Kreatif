@@ -1663,15 +1663,16 @@ projectAppRouter.post("/content-posts", async (req, res) => {
       assignee_copy,
       assignee_design,
       notes,
-      assignees
+      assignees,
+      published_link
     } = req.body;
     const finalAssigneeCopy = Array.isArray(assignees) && assignees.length > 0 ? assignees.join(", ") : assignee_copy || "";
     const id = `post-${Date.now().toString(36)}`;
     await pool2.query(
       `INSERT INTO sm_content_posts 
        (id, brand_id, social_account_id, project_id, title, pillar_name, platform, content_type,
-        hook, caption, hashtags, call_to_action, media_urls, scheduled_at, status, assignee_copy, assignee_design, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        hook, caption, hashtags, call_to_action, media_urls, scheduled_at, status, assignee_copy, assignee_design, notes, published_link)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         brand_id || null,
@@ -1690,7 +1691,8 @@ projectAppRouter.post("/content-posts", async (req, res) => {
         status || "idea",
         finalAssigneeCopy,
         assignee_design || "",
-        notes || ""
+        notes || "",
+        published_link || ""
       ]
     );
     res.json({ success: true, id, message: "Postingan konten berhasil dijadwalkan" });
