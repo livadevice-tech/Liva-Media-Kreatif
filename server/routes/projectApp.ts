@@ -546,8 +546,12 @@ projectAppRouter.post('/content-posts', async (req: Request, res: Response) => {
     const {
       brand_id, social_account_id, project_id, title, pillar_name, platform,
       content_type, hook, caption, hashtags, call_to_action, media_urls,
-      scheduled_at, status, assignee_copy, assignee_design, notes
+      scheduled_at, status, assignee_copy, assignee_design, notes, assignees
     } = req.body;
+
+    const finalAssigneeCopy = Array.isArray(assignees) && assignees.length > 0
+      ? assignees.join(', ')
+      : (assignee_copy || '');
 
     const id = `post-${Date.now().toString(36)}`;
     await pool.query(
@@ -560,7 +564,7 @@ projectAppRouter.post('/content-posts', async (req: Request, res: Response) => {
         pillar_name || 'Edukasi & Tips', platform || 'instagram', content_type || 'feed_single',
         hook || '', caption || '', hashtags || '', call_to_action || '',
         JSON.stringify(media_urls || []), scheduled_at, status || 'idea',
-        assignee_copy || '', assignee_design || '', notes || ''
+        finalAssigneeCopy, assignee_design || '', notes || ''
       ]
     );
     res.json({ success: true, id, message: 'Postingan konten berhasil dijadwalkan' });
@@ -588,8 +592,12 @@ projectAppRouter.put('/content-posts/:id', async (req: Request, res: Response) =
     const {
       brand_id, social_account_id, project_id, title, pillar_name, platform,
       content_type, hook, caption, hashtags, call_to_action, media_urls,
-      scheduled_at, status, assignee_copy, assignee_design, notes, published_link
+      scheduled_at, status, assignee_copy, assignee_design, notes, published_link, assignees
     } = req.body;
+
+    const finalAssigneeCopy = Array.isArray(assignees) && assignees.length > 0
+      ? assignees.join(', ')
+      : (assignee_copy || '');
 
     await pool.query(
       `UPDATE sm_content_posts 
@@ -600,7 +608,7 @@ projectAppRouter.put('/content-posts/:id', async (req: Request, res: Response) =
       [
         brand_id, social_account_id, project_id, title, pillar_name, platform,
         content_type, hook, caption, hashtags, call_to_action, JSON.stringify(media_urls || []),
-        scheduled_at, status, assignee_copy, assignee_design, notes, published_link, id
+        scheduled_at, status, finalAssigneeCopy, assignee_design || '', notes, published_link, id
       ]
     );
     res.json({ success: true, message: 'Konten berhasil diperbarui' });

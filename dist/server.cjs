@@ -1662,8 +1662,10 @@ projectAppRouter.post("/content-posts", async (req, res) => {
       status,
       assignee_copy,
       assignee_design,
-      notes
+      notes,
+      assignees
     } = req.body;
+    const finalAssigneeCopy = Array.isArray(assignees) && assignees.length > 0 ? assignees.join(", ") : assignee_copy || "";
     const id = `post-${Date.now().toString(36)}`;
     await pool2.query(
       `INSERT INTO sm_content_posts 
@@ -1686,7 +1688,7 @@ projectAppRouter.post("/content-posts", async (req, res) => {
         JSON.stringify(media_urls || []),
         scheduled_at,
         status || "idea",
-        assignee_copy || "",
+        finalAssigneeCopy,
         assignee_design || "",
         notes || ""
       ]
@@ -1729,8 +1731,10 @@ projectAppRouter.put("/content-posts/:id", async (req, res) => {
       assignee_copy,
       assignee_design,
       notes,
-      published_link
+      published_link,
+      assignees
     } = req.body;
+    const finalAssigneeCopy = Array.isArray(assignees) && assignees.length > 0 ? assignees.join(", ") : assignee_copy || "";
     await pool2.query(
       `UPDATE sm_content_posts 
        SET brand_id = ?, social_account_id = ?, project_id = ?, title = ?, pillar_name = ?, platform = ?,
@@ -1752,8 +1756,8 @@ projectAppRouter.put("/content-posts/:id", async (req, res) => {
         JSON.stringify(media_urls || []),
         scheduled_at,
         status,
-        assignee_copy,
-        assignee_design,
+        finalAssigneeCopy,
+        assignee_design || "",
         notes,
         published_link,
         id
@@ -2175,6 +2179,14 @@ async function runProjectAppMigrations() {
   }
   try {
     await pool2.execute(`ALTER TABLE pm_tasks MODIFY COLUMN tags TEXT NULL`);
+  } catch (e) {
+  }
+  try {
+    await pool2.execute(`ALTER TABLE sm_content_posts MODIFY COLUMN assignee_copy TEXT NULL`);
+  } catch (e) {
+  }
+  try {
+    await pool2.execute(`ALTER TABLE sm_content_posts MODIFY COLUMN assignee_design TEXT NULL`);
   } catch (e) {
   }
   try {

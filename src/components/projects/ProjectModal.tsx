@@ -3,6 +3,7 @@ import {
   X, 
   FolderKanban, 
   Trash2, 
+  AlertTriangle,
   Calendar, 
   Tag, 
   Plus, 
@@ -66,6 +67,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isConfirmDeleteProject, setIsConfirmDeleteProject] = useState(false);
 
   useEffect(() => {
     if (currentInitial) {
@@ -105,16 +107,15 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
     }
   };
 
-  const handleDelete = async () => {
+  const executeDelete = async () => {
     if (!formData.id || !onDelete) return;
-    if (window.confirm(`Apakah Anda yakin ingin menghapus proyek "${formData.title}"?`)) {
-      setDeleting(true);
-      try {
-        await onDelete(formData.id);
-        onClose();
-      } finally {
-        setDeleting(false);
-      }
+    setDeleting(true);
+    try {
+      await onDelete(formData.id);
+      setIsConfirmDeleteProject(false);
+      onClose();
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -381,7 +382,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             {formData.id && onDelete ? (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => setIsConfirmDeleteProject(true)}
                 disabled={deleting}
                 className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
                 title="Hapus Proyek"
@@ -418,6 +419,41 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             </div>
           </div>
         </form>
+      )}
+
+      {/* In-App Confirmation Modal: Delete Project */}
+      {isConfirmDeleteProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4 shadow-2xs">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-1.5">
+              Hapus Proyek Ini?
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed mb-5">
+              Apakah Anda yakin ingin menghapus proyek <strong>"{formData.title}"</strong>? Semua task yang terhubung ke proyek ini juga akan dihapus.
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsConfirmDeleteProject(false)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={executeDelete}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                {deleting ? 'Menghapus...' : 'Ya, Hapus Proyek'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </aside>
   );

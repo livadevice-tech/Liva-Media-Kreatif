@@ -103,6 +103,7 @@ export interface ContentPost {
   status: ContentStatus;
   assignee_copy?: string;
   assignee_design?: string;
+  assignees?: string[];
   notes?: string;
   published_link?: string;
   created_at?: string;

@@ -147,6 +147,14 @@ export async function runProjectAppMigrations() {
     await pool.execute(`ALTER TABLE pm_tasks MODIFY COLUMN tags TEXT NULL`);
   } catch (e) {}
 
+  // Safe column migration for sm_content_posts
+  try {
+    await pool.execute(`ALTER TABLE sm_content_posts MODIFY COLUMN assignee_copy TEXT NULL`);
+  } catch (e) {}
+  try {
+    await pool.execute(`ALTER TABLE sm_content_posts MODIFY COLUMN assignee_design TEXT NULL`);
+  } catch (e) {}
+
   // Migrate app_users role to 2 roles: Master Admin & Team
   try {
     await pool.execute(`ALTER TABLE app_users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'Team'`);

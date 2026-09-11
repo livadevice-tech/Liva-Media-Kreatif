@@ -232,31 +232,60 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
                       {/* Footer: Assign & Time */}
                       <div className="flex items-center justify-between mt-1 pt-0.5">
                         {/* Assign Avatars */}
-                        <div 
-                          className="flex items-center -space-x-1" 
-                          title={`Assign: ${post.assignee_copy || 'Tim'} ${post.assignee_design ? '& ' + post.assignee_design : ''}`}
-                        >
-                          <div className="w-4 h-4 rounded-full bg-indigo-100 border border-white text-indigo-700 text-[8px] font-bold flex items-center justify-center">
-                            {post.assignee_copy
-                              ? post.assignee_copy
+                        {(() => {
+                          let assigneeList: string[] = [];
+                          if (Array.isArray(post.assignees) && post.assignees.length > 0) {
+                            assigneeList = post.assignees;
+                          } else {
+                            const raw = [post.assignee_copy, post.assignee_design].filter(Boolean).join(', ');
+                            assigneeList = raw
+                              .split(',')
+                              .map(s => s.trim())
+                              .filter(Boolean);
+                          }
+                          if (assigneeList.length === 0) assigneeList = ['Tim'];
+
+                          const colors = [
+                            'bg-indigo-100 text-indigo-700',
+                            'bg-purple-100 text-purple-700',
+                            'bg-emerald-100 text-emerald-700',
+                            'bg-amber-100 text-amber-700',
+                            'bg-pink-100 text-pink-700',
+                          ];
+
+                          const displayed = assigneeList.slice(0, 3);
+                          const remaining = assigneeList.length - displayed.length;
+
+                          return (
+                            <div 
+                              className="flex items-center -space-x-1" 
+                              title={`Ditugaskan: ${assigneeList.join(', ')}`}
+                            >
+                              {displayed.map((name, idx) => {
+                                const initials = name
                                   .split(' ')
                                   .map((n) => n[0])
                                   .join('')
                                   .slice(0, 2)
-                                  .toUpperCase()
-                              : 'NJ'}
-                          </div>
-                          {post.assignee_design && (
-                            <div className="w-4 h-4 rounded-full bg-pink-100 border border-white text-pink-700 text-[8px] font-bold flex items-center justify-center">
-                              {post.assignee_design
-                                .split(' ')
-                                .map((n) => n[0])
-                                .join('')
-                                .slice(0, 2)
-                                .toUpperCase()}
+                                  .toUpperCase() || 'U';
+                                const colorClass = colors[idx % colors.length];
+                                return (
+                                  <div 
+                                    key={idx}
+                                    className={`w-4 h-4 rounded-full border border-white text-[8px] font-bold flex items-center justify-center shrink-0 ${colorClass}`}
+                                  >
+                                    {initials}
+                                  </div>
+                                );
+                              })}
+                              {remaining > 0 && (
+                                <div className="w-4 h-4 rounded-full bg-slate-200 border border-white text-slate-700 text-[8px] font-bold flex items-center justify-center shrink-0">
+                                  +{remaining}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
+                          );
+                        })()}
 
                         {/* Scheduled Time */}
                         <span className="text-[10px] text-slate-500 font-medium ml-1">

@@ -507,25 +507,27 @@ export default function App() {
               )}
             </button>
 
-            {/* Manajemen Akun */}
-            <button
-              onClick={() => setActiveTab('accounts')}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                activeTab === 'accounts'
-                  ? 'bg-slate-100 text-slate-900 font-semibold shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Users className="w-4 h-4 text-slate-500" />
-                {isSidebarOpen && <span>Manajemen Akun</span>}
-              </div>
-              {isSidebarOpen && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                  {accounts.length}
-                </span>
-              )}
-            </button>
+            {/* Manajemen Akun (Hanya Master Admin) */}
+            {currentUser?.role === 'Master Admin' && (
+              <button
+                onClick={() => setActiveTab('accounts')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                  activeTab === 'accounts'
+                    ? 'bg-slate-100 text-slate-900 font-semibold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="w-4 h-4 text-slate-500" />
+                  {isSidebarOpen && <span>Manajemen Akun</span>}
+                </div>
+                {isSidebarOpen && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    {accounts.length}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* Reports */}
             <button
@@ -712,11 +714,31 @@ export default function App() {
             onDeleteProject={handleDeleteProject}
           />
         ) : activeTab === 'accounts' ? (
-          <AccountManagementView
-            accounts={accounts}
-            onSaveAccount={handleSaveAccount}
-            onDeleteAccount={handleDeleteAccount}
-          />
+          currentUser?.role === 'Master Admin' ? (
+            <AccountManagementView
+              accounts={accounts}
+              onSaveAccount={handleSaveAccount}
+              onDeleteAccount={handleDeleteAccount}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">
+              <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 mb-4 shadow-sm">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">
+                Akses Terbatas: Hanya Master Admin
+              </h2>
+              <p className="text-xs text-slate-500 max-w-md mt-2 mb-6 leading-relaxed">
+                Menu Manajemen Akun hanya dapat diakses dan dikelola oleh <strong className="text-purple-700 font-semibold">Master Admin</strong>. Akun Anda saat ini memiliki peran <strong className="text-slate-700 font-semibold">{currentUser?.role || 'Team'}</strong>.
+              </p>
+              <button
+                onClick={() => setActiveTab('calendar')}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                Kembali ke Kalender
+              </button>
+            </div>
+          )
         ) : activeTab === 'settings' ? (
           currentUser?.role === 'Master Admin' ? (
             <SettingsView

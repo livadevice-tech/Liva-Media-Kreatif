@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   Trash2, 
@@ -128,6 +128,33 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   const [deletingPillarId, setDeletingPillarId] = useState<string | null>(null);
   const [confirmDeletePillar, setConfirmDeletePillar] = useState<{ id: string; name: string } | null>(null);
   const [isConfirmDeletePost, setIsConfirmDeletePost] = useState(false);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [newAssigneeInput, setNewAssigneeInput] = useState('');
+
+  const teamAccounts = useMemo(() => {
+    if (accounts && accounts.length > 0) {
+      return accounts.filter((a) => a.is_active !== false);
+    }
+    return [
+      { id: 'acc-1', full_name: 'Nazmi Javier', position: 'Copywriter', role: 'Team' as const },
+      { id: 'acc-2', full_name: 'Emilia Inder', position: 'Graphic Designer', role: 'Team' as const },
+      { id: 'acc-3', full_name: 'Sarah', position: 'Social Lead', role: 'Team' as const },
+      { id: 'acc-4', full_name: 'Dimas', position: 'Video Editor', role: 'Team' as const },
+    ];
+  }, [accounts]);
+
+  const handleAddAssignee = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (!selectedAssignees.includes(trimmed)) {
+      setSelectedAssignees((prev) => [...prev, trimmed]);
+    }
+    setNewAssigneeInput('');
+  };
+
+  const handleRemoveAssignee = (name: string) => {
+    setSelectedAssignees((prev) => prev.filter((n) => n !== name));
+  };
 
   const COLOR_PRESETS = [
     { hex: '#3b82f6', name: 'Biru' },
@@ -224,6 +251,18 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
 
   useEffect(() => {
     if (post) {
+      let parsedAssignees: string[] = [];
+      if (Array.isArray((post as any).assignees) && (post as any).assignees.length > 0) {
+        parsedAssignees = (post as any).assignees;
+      } else {
+        const raw = [post.assignee_copy, post.assignee_design].filter(Boolean).join(', ');
+        parsedAssignees = raw
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+      setSelectedAssignees(parsedAssignees);
+
       setFormData({
         ...post,
         title: post.title || '',
@@ -231,14 +270,27 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         caption: post.caption || '',
         notes: post.notes || '',
         media_urls: typeof post.media_urls === 'string' ? post.media_urls : '',
-        assignee_copy: post.assignee_copy || 'Nazmi Javier',
-        assignee_design: post.assignee_design || 'Emilia Inder',
         platform: post.platform || 'instagram',
         content_type: post.content_type || 'reels',
         scheduled_at: post.scheduled_at ? post.scheduled_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
         start_time: post.start_time || '09:00',
         status: post.status || 'scheduled',
         color: post.color || '#3b82f6',
+      });
+    } else {
+      setSelectedAssignees([]);
+      setFormData({
+        title: '',
+        pillar_name: 'Educational',
+        caption: '',
+        notes: '',
+        media_urls: '',
+        platform: 'instagram',
+        content_type: 'reels',
+        scheduled_at: new Date().toISOString().slice(0, 10),
+        start_time: '09:00',
+        status: 'scheduled',
+        color: '#3b82f6',
       });
     }
   }, [post]);
@@ -251,7 +303,13 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
 
     setSaving(true);
     try {
-      await onSave(formData);
+      const payload: Partial<ContentPost> = {
+        ...formData,
+        assignee_copy: selectedAssignees.join(', '),
+        assignee_design: '',
+        assignees: selectedAssignees,
+      };
+      await onSave(payload);
       onClose();
     } finally {
       setSaving(false);
@@ -820,60 +878,164 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
               </div>
             </div>
 
-            {/* 5. Assign Tim in 2 Columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                  <PenTool className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Assign PIC Copywriter</span>
+            {/* 5. General Multi-Assignee (Ditugaskan Kepada) */}
+            <div className="space-y-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Assign To (Ditugaskan Kepada)</span>
                 </label>
-                <select
-                  value={formData.assignee_copy || ''}
-                  onChange={(e) => setFormData({ ...formData, assignee_copy: e.target.value })}
-                  className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
-                >
-                  <option value="">Pilih Anggota Copy...</option>
-                  {accounts.length > 0 ? (
-                    accounts.map((acc) => (
-                      <option key={acc.id} value={acc.full_name}>
-                        {acc.full_name} ({acc.role})
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="Nazmi Javier">Nazmi Javier (Copywriter)</option>
-                      <option value="Emilia Inder">Emilia Inder (Content Specialist)</option>
-                      <option value="Galang Taufik">Galang Taufik (Lead Creative)</option>
-                    </>
-                  )}
-                </select>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                  {selectedAssignees.length} orang ditugaskan
+                </span>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Assign PIC Designer / Editor</span>
-                </label>
-                <select
-                  value={formData.assignee_design || ''}
-                  onChange={(e) => setFormData({ ...formData, assignee_design: e.target.value })}
-                  className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+              {/* Selected Assignees Pill Badges */}
+              <div className="flex flex-wrap items-center gap-1.5 min-h-[40px] p-2 bg-slate-50/70 border border-slate-200 rounded-xl">
+                {selectedAssignees.length === 0 ? (
+                  <span className="text-xs text-slate-400 italic px-1">
+                    Belum ada anggota yang ditugaskan. Pilih akun tim di bawah atau ketik nama.
+                  </span>
+                ) : (
+                  selectedAssignees.map((name) => {
+                    const initials = name
+                      .split(' ')
+                      .map((w) => w[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2);
+                    return (
+                      <div
+                        key={name}
+                        className="inline-flex items-center gap-1.5 bg-white border border-indigo-200/80 rounded-xl px-2.5 py-1 text-xs font-bold text-indigo-950 shadow-2xs group animate-in fade-in zoom-in-95 duration-150"
+                      >
+                        <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+                          {initials}
+                        </span>
+                        <span className="truncate max-w-[150px]">{name}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleRemoveAssignee(name);
+                          }}
+                          className="p-0.5 text-slate-400 hover:text-rose-600 rounded-md transition-colors cursor-pointer"
+                          title="Hapus penugasan"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Quick Input to Add Custom Assignee */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newAssigneeInput}
+                  onChange={(e) => setNewAssigneeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddAssignee(newAssigneeInput);
+                    }
+                  }}
+                  placeholder="Ketik nama anggota lain lalu tekan Enter..."
+                  className="flex-1 min-w-0 text-xs bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                />
+                <button
+                  type="button"
+                  disabled={!newAssigneeInput.trim()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleAddAssignee(newAssigneeInput);
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-40 shrink-0"
                 >
-                  <option value="">Pilih Anggota Desain/Editor...</option>
-                  {accounts.length > 0 ? (
-                    accounts.map((acc) => (
-                      <option key={acc.id} value={acc.full_name}>
-                        {acc.full_name} ({acc.role})
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="Emilia Inder">Emilia Inder (Graphic Designer)</option>
-                      <option value="Nazmi Javier">Nazmi Javier (Video Editor)</option>
-                      <option value="Galang Taufik">Galang Taufik (Lead Creative)</option>
-                    </>
-                  )}
-                </select>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah</span>
+                </button>
+              </div>
+
+              {/* Team Accounts from Manajemen Akun */}
+              <div>
+                <div className="flex items-center justify-between mb-2 mt-2">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <User className="w-3 h-3 text-indigo-600" />
+                    <span>Pilih Akun Tim (Klik untuk Tambah/Hapus):</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {teamAccounts.length} akun tersedia
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar p-0.5">
+                  {teamAccounts.map((acc) => {
+                    const isAdded = selectedAssignees.includes(acc.full_name);
+                    const initials = acc.full_name
+                      .split(' ')
+                      .map((w) => w[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2);
+
+                    return (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          isAdded ? handleRemoveAssignee(acc.full_name) : handleAddAssignee(acc.full_name);
+                        }}
+                        className={`flex items-center gap-2.5 p-2 px-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          isAdded
+                            ? 'bg-indigo-50/90 border-indigo-400 text-indigo-950 ring-2 ring-indigo-400/20 shadow-2xs font-bold'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                            isAdded ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {initials}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold truncate leading-tight">{acc.full_name}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-slate-400 truncate">
+                              {acc.position || 'Staff'}
+                            </span>
+                            <span
+                              className={`text-[9px] px-1 py-0.2 rounded font-semibold shrink-0 ${
+                                acc.role === 'Master Admin'
+                                  ? 'bg-purple-50 text-purple-700'
+                                  : 'bg-blue-50 text-blue-700'
+                              }`}
+                            >
+                              {acc.role}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 ml-1">
+                          {isAdded ? (
+                            <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-2xs">
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-slate-400 hover:border-indigo-400 hover:text-indigo-600">
+                              <Plus className="w-2.5 h-2.5" />
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
