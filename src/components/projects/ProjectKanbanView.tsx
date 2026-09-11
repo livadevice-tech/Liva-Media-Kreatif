@@ -295,6 +295,21 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                             {task.title}
                           </h3>
 
+                          {/* Tags / Labels */}
+                          {task.tags && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {task.tags.split(',').slice(0, 3).map((tag, idx) => {
+                                const t = tag.trim();
+                                if (!t) return null;
+                                return (
+                                  <span key={idx} className="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                                    #{t}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+
                           {/* Due Date & Assignee */}
                           <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                             <div className="flex items-center gap-1.5">
@@ -302,11 +317,22 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                               <span>{task.due_date ? task.due_date.slice(5) : 'No date'}</span>
                             </div>
 
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center -space-x-1.5 overflow-hidden">
                               {task.assignee_name ? (
-                                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-800 font-bold text-[9px] flex items-center justify-center" title={task.assignee_name}>
-                                  {task.assignee_name.slice(0, 2).toUpperCase()}
-                                </div>
+                                task.assignee_name.split(',').map((name, idx) => {
+                                  const trimmed = name.trim();
+                                  if (!trimmed) return null;
+                                  const initials = trimmed.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+                                  return (
+                                    <div 
+                                      key={idx} 
+                                      className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[8px] flex items-center justify-center ring-2 ring-white shrink-0 shadow-2xs" 
+                                      title={trimmed}
+                                    >
+                                      {initials}
+                                    </div>
+                                  );
+                                })
                               ) : (
                                 <User className="w-3.5 h-3.5 text-slate-400" />
                               )}

@@ -133,6 +133,20 @@ export async function runProjectAppMigrations() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
+  // Safe column migrations for pm_tasks
+  try {
+    await pool.execute(`ALTER TABLE pm_tasks ADD COLUMN links TEXT NULL`);
+  } catch (e) {}
+  try {
+    await pool.execute(`ALTER TABLE pm_tasks ADD COLUMN subtasks TEXT NULL`);
+  } catch (e) {}
+  try {
+    await pool.execute(`ALTER TABLE pm_tasks MODIFY COLUMN assignee_name TEXT NULL`);
+  } catch (e) {}
+  try {
+    await pool.execute(`ALTER TABLE pm_tasks MODIFY COLUMN tags TEXT NULL`);
+  } catch (e) {}
+
   console.log("✅ Seluruh tabel berhasil diverifikasi/dibuat!");
 
   // Auto Seeding jika data masih kosong

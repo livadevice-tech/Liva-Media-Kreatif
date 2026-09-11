@@ -66,6 +66,8 @@ export interface Task {
   assignee_name?: string;
   due_date?: string;
   tags?: string;
+  links?: string;
+  subtasks?: string;
   order_index: number;
   created_at?: string;
 }

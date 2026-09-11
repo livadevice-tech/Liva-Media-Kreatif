@@ -352,13 +352,22 @@ projectAppRouter.get('/tasks', async (req: Request, res: Response) => {
 projectAppRouter.post('/tasks', async (req: Request, res: Response) => {
   try {
     const pool = getPool();
-    const { project_id, title, description, status, priority, assignee_name, due_date, tags } = req.body;
+    const { project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks } = req.body;
     const id = `task-${Date.now().toString(36)}`;
-    await pool.query(
-      `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, order_index)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, project_id || null, title, description || '', status || 'todo', priority || 'medium', assignee_name || '', due_date || null, tags || '', 0]
-    );
+    try {
+      await pool.query(
+        `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks, order_index)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, project_id || null, title, description || '', status || 'todo', priority || 'medium', assignee_name || '', due_date || null, tags || '', links || '', subtasks || '', 0]
+      );
+    } catch (colErr) {
+      // Fallback if links/subtasks columns not yet migrated
+      await pool.query(
+        `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, order_index)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, project_id || null, title, description || '', status || 'todo', priority || 'medium', assignee_name || '', due_date || null, tags || '', 0]
+      );
+    }
     res.json({ success: true, id, message: 'Task berhasil dibuat' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -381,13 +390,22 @@ projectAppRouter.put('/tasks/:id', async (req: Request, res: Response) => {
   try {
     const pool = getPool();
     const { id } = req.params;
-    const { project_id, title, description, status, priority, assignee_name, due_date, tags } = req.body;
-    await pool.query(
-      `UPDATE pm_tasks 
-       SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?
-       WHERE id = ?`,
-      [project_id, title, description, status, priority, assignee_name, due_date, tags, id]
-    );
+    const { project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks } = req.body;
+    try {
+      await pool.query(
+        `UPDATE pm_tasks 
+         SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?, links = ?, subtasks = ?
+         WHERE id = ?`,
+        [project_id, title, description, status, priority, assignee_name, due_date, tags, links || '', subtasks || '', id]
+      );
+    } catch (colErr) {
+      await pool.query(
+        `UPDATE pm_tasks 
+         SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?
+         WHERE id = ?`,
+        [project_id, title, description, status, priority, assignee_name, due_date, tags, id]
+      );
+    }
     res.json({ success: true, message: 'Task berhasil diperbarui' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
