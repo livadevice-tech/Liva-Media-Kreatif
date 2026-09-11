@@ -53,8 +53,8 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   onUpdateStatus,
   onOpenQuickAdd
 }) => {
-  // Default to July 18, 2025 matching the user reference image
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 6, 18));
+  // Default to the current running month and date
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showDeleteDropdown, setShowDeleteDropdown] = useState(false);
@@ -125,7 +125,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   };
 
   const goToday = () => {
-    setCurrentDate(new Date(2025, 6, 18));
+    setCurrentDate(new Date());
   };
 
   // Pre-populate mock agency content for July 2025
@@ -239,7 +239,11 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   };
 
   const handleOpenNewEvent = () => {
-    const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-18`;
+    const today = new Date();
+    const isCurrentMonthView = month === today.getMonth() && year === today.getFullYear();
+    const todayStr = isCurrentMonthView
+      ? `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      : `${year}-${String(month + 1).padStart(2, '0')}-01`;
     setSelectedPost({
       title: '',
       pillar_name: 'Educational',
@@ -302,8 +306,9 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   };
 
   // Top header date card details
-  const displayDayNum =
-    month === 6 && year === 2025 ? 18 : (month === new Date().getMonth() && year === new Date().getFullYear() ? new Date().getDate() : 1);
+  const today = new Date();
+  const isCurrentMonthView = month === today.getMonth() && year === today.getFullYear();
+  const displayDayNum = isCurrentMonthView ? today.getDate() : 1;
 
   return (
     <div className="flex-1 flex h-full overflow-hidden bg-slate-50/50">

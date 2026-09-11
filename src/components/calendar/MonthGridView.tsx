@@ -68,9 +68,6 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
   const today = new Date();
   const isHighlightTarget = (dNum: number, isCurMonth: boolean) => {
     if (!isCurMonth) return false;
-    if (year === 2025 && month === 6) {
-      return dNum === 18;
-    }
     return (
       today.getFullYear() === year &&
       today.getMonth() === month &&
