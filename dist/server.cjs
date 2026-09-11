@@ -1996,6 +1996,51 @@ projectAppRouter.delete("/accounts/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+projectAppRouter.get("/settings/:key", async (req, res) => {
+  try {
+    const { key } = req.params;
+    if (key === "adminCredentials") {
+      return res.status(404).json({ error: "Pengaturan tidak ditemukan." });
+    }
+    const pool2 = getPool();
+    const [rows] = await pool2.query(`SELECT setting_value FROM global_settings WHERE setting_key = ?`, [key]);
+    if (!rows || rows.length === 0) {
+      return res.json(null);
+    }
+    let value = rows[0].setting_value;
+    if (typeof value === "string") {
+      try {
+        value = JSON.parse(value);
+      } catch (e) {
+      }
+    }
+    if (key === "liva_global_configs" && value && typeof value === "object") {
+      delete value.adminCredentials;
+    }
+    return res.json(value);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.post("/settings/:key", async (req, res) => {
+  try {
+    const { key } = req.params;
+    if (key === "adminCredentials") {
+      return res.status(403).json({ error: "Kredensial admin dikelola oleh server." });
+    }
+    const pool2 = getPool();
+    const value = req.body && typeof req.body === "object" ? Array.isArray(req.body) ? [...req.body] : { ...req.body } : req.body;
+    if (key === "liva_global_configs" && value) delete value.adminCredentials;
+    await pool2.query(`
+      INSERT INTO global_settings (setting_key, setting_value) 
+      VALUES (?, ?) 
+      ON DUPLICATE KEY UPDATE setting_value = ?
+    `, [key, JSON.stringify(value), JSON.stringify(value)]);
+    res.json({ success: true, key });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // server/migrateProjectApp.ts
 async function runProjectAppMigrations() {
@@ -2314,7 +2359,7 @@ app.use("/api", (req, res, next) => {
   if (req.path === "/health" || req.path === "/db-test") return next();
   if (req.method === "GET" && req.path === "/settings/brandResources") return next();
   if (req.method === "GET" && req.path === "/client-brands/public-list") return next();
-  if (req.path.startsWith("/project-app")) return next();
+  if (req.path.startsWith("/project-app") || req.path.startsWith("/settings")) return next();
   const session = getRequestSession(req);
   if (!session) return res.status(401).json({ error: "Autentikasi diperlukan." });
   if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {

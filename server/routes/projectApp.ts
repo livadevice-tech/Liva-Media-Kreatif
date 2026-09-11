@@ -867,3 +867,58 @@ projectAppRouter.delete('/accounts/:id', async (req: Request, res: Response) => 
   }
 });
 
+// ==================================================================
+// Application Settings
+// ==================================================================
+projectAppRouter.get('/settings/:key', async (req: Request, res: Response) => {
+  try {
+    const { key } = req.params;
+    if (key === 'adminCredentials') {
+      return res.status(404).json({ error: 'Pengaturan tidak ditemukan.' });
+    }
+    const pool = getPool();
+    const [rows]: any = await pool.query(`SELECT setting_value FROM global_settings WHERE setting_key = ?`, [key]);
+    if (!rows || rows.length === 0) {
+      return res.json(null);
+    }
+    let value = rows[0].setting_value;
+    if (typeof value === 'string') {
+      try {
+        value = JSON.parse(value);
+      } catch (e) {
+        // Keep as string
+      }
+    }
+    if (key === 'liva_global_configs' && value && typeof value === 'object') {
+      delete value.adminCredentials;
+    }
+    return res.json(value);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+projectAppRouter.post('/settings/:key', async (req: Request, res: Response) => {
+  try {
+    const { key } = req.params;
+    if (key === 'adminCredentials') {
+      return res.status(403).json({ error: 'Kredensial admin dikelola oleh server.' });
+    }
+    const pool = getPool();
+    const value = req.body && typeof req.body === 'object'
+      ? (Array.isArray(req.body) ? [...req.body] : { ...req.body })
+      : req.body;
+    if (key === 'liva_global_configs' && value) delete value.adminCredentials;
+    
+    await pool.query(`
+      INSERT INTO global_settings (setting_key, setting_value) 
+      VALUES (?, ?) 
+      ON DUPLICATE KEY UPDATE setting_value = ?
+    `, [key, JSON.stringify(value), JSON.stringify(value)]);
+    res.json({ success: true, key });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+

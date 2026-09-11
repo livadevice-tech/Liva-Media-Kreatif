@@ -161,9 +161,9 @@ export const appApi = {
 
   // Application Settings
   getSettings: <T = any>(key: string): Promise<T> =>
-    fetch(`${API_BASE}/settings/${key}`).then(handleResponse<T>),
+    fetch(`${API_BASE}/project-app/settings/${key}`).then(handleResponse<T>),
   saveSettings: (key: string, data: any): Promise<{ success: boolean; key: string }> =>
-    fetch(`${API_BASE}/settings/${key}`, {
+    fetch(`${API_BASE}/project-app/settings/${key}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
