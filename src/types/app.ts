@@ -108,6 +108,19 @@ export interface ContentPost {
   created_at?: string;
 }
 
+export interface AssetFileItem {
+  id: string;
+  title: string;
+  url: string;
+  type: 'gdrive' | 'figma' | 'canva' | 'video' | 'image' | 'document' | 'other';
+  brand_id?: string;
+  brand_name?: string;
+  project_title?: string;
+  source: 'calendar' | 'task' | 'manual';
+  notes?: string;
+  created_at?: string;
+}
+
 export interface DbStatus {
   success: boolean;
   message: string;

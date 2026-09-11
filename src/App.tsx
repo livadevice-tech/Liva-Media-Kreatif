@@ -21,7 +21,8 @@ import {
   Users,
   LogOut,
   Lock,
-  ShieldAlert
+  ShieldAlert,
+  FolderArchive
 } from 'lucide-react';
 import { appApi } from './services/appApi';
 import { 
@@ -40,8 +41,9 @@ import { ProjectKanbanView } from './components/projects/ProjectKanbanView';
 import { AccountManagementView } from './components/accounts/AccountManagementView';
 import { SettingsView, AppSettings, DEFAULT_SETTINGS } from './components/settings/SettingsView';
 import { LoginPage } from './components/auth/LoginPage';
+import { AssetFileView } from './components/assets/AssetFileView';
 
-type NavigationTab = 'home' | 'calendar' | 'tasks' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
+type NavigationTab = 'home' | 'calendar' | 'tasks' | 'assets' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
@@ -507,6 +509,21 @@ export default function App() {
               )}
             </button>
 
+            {/* Asset File */}
+            <button
+              onClick={() => setActiveTab('assets')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                activeTab === 'assets'
+                  ? 'bg-slate-100 text-slate-900 font-semibold shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <FolderArchive className="w-4 h-4 text-slate-500" />
+                {isSidebarOpen && <span>Asset File</span>}
+              </div>
+            </button>
+
             {/* Manajemen Akun (Hanya Master Admin) */}
             {currentUser?.role === 'Master Admin' && (
               <button
@@ -713,6 +730,13 @@ export default function App() {
             onUpdateTaskStatus={handleUpdateTaskStatus}
             onSaveProject={handleSaveProject}
             onDeleteProject={handleDeleteProject}
+          />
+        ) : activeTab === 'assets' ? (
+          <AssetFileView
+            brands={brands}
+            posts={posts}
+            tasks={tasks}
+            onOpenCalendar={() => setActiveTab('calendar')}
           />
         ) : activeTab === 'accounts' ? (
           currentUser?.role === 'Master Admin' ? (
