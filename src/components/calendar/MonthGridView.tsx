@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Video, Image, FileText, Sparkles } from 'lucide-react';
 import { ContentPost } from '../../types/app';
 
 interface MonthGridViewProps {
@@ -23,37 +23,27 @@ function formatEventTime(timeStr?: string): string {
   return minute === '00' ? `${hour}:00${ampm}` : `${hour}:${minute}${ampm}`;
 }
 
-function getEventColorTheme(color?: string, status?: string) {
+const PILLAR_COLORS: Record<string, { border: string; bg: string; text: string; badge: string }> = {
+  educational: { border: 'border-l-blue-500', bg: 'bg-blue-50/90 hover:bg-blue-100/90', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-800' },
+  promotional: { border: 'border-l-amber-500', bg: 'bg-amber-50/90 hover:bg-amber-100/90', text: 'text-amber-700', badge: 'bg-amber-100 text-amber-800' },
+  entertainment: { border: 'border-l-purple-500', bg: 'bg-purple-50/90 hover:bg-purple-100/90', text: 'text-purple-700', badge: 'bg-purple-100 text-purple-800' },
+  authority: { border: 'border-l-emerald-500', bg: 'bg-emerald-50/90 hover:bg-emerald-100/90', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-800' },
+  'behind the scene': { border: 'border-l-rose-500', bg: 'bg-rose-50/90 hover:bg-rose-100/90', text: 'text-rose-700', badge: 'bg-rose-100 text-rose-800' },
+  engagement: { border: 'border-l-indigo-500', bg: 'bg-indigo-50/90 hover:bg-indigo-100/90', text: 'text-indigo-700', badge: 'bg-indigo-100 text-indigo-800' },
+};
+
+function getPillarStyle(pillarName?: string, color?: string) {
+  const p = (pillarName || '').toLowerCase().trim();
+  if (PILLAR_COLORS[p]) return PILLAR_COLORS[p];
+
   const c = (color || '').toLowerCase();
-  if (c.includes('green') || c.includes('emerald') || c === '#4ade80' || c === '#10b981' || status === 'published') {
-    return {
-      card: 'border-l-[3px] border-emerald-500 bg-emerald-50/80 hover:bg-emerald-100/80',
-      avatarBg: 'bg-emerald-100 text-emerald-800',
-    };
-  }
-  if (c.includes('amber') || c.includes('orange') || c === '#fb923c' || c === '#f59e0b') {
-    return {
-      card: 'border-l-[3px] border-amber-500 bg-amber-50/80 hover:bg-amber-100/80',
-      avatarBg: 'bg-amber-100 text-amber-800',
-    };
-  }
-  if (c.includes('purple') || c.includes('indigo') || c === '#a855f7' || c === '#818cf8' || c === '#6366f1') {
-    return {
-      card: 'border-l-[3px] border-purple-500 bg-purple-50/80 hover:bg-purple-100/80',
-      avatarBg: 'bg-purple-100 text-purple-800',
-    };
-  }
-  if (c.includes('pink') || c.includes('rose') || c === '#f472b6' || c === '#f43f5e') {
-    return {
-      card: 'border-l-[3px] border-pink-500 bg-pink-50/80 hover:bg-pink-100/80',
-      avatarBg: 'bg-pink-100 text-pink-800',
-    };
-  }
-  // default blue
-  return {
-    card: 'border-l-[3px] border-blue-500 bg-blue-50/80 hover:bg-blue-100/80',
-    avatarBg: 'bg-blue-100 text-blue-800',
-  };
+  if (c.includes('green') || c.includes('emerald')) return PILLAR_COLORS.authority;
+  if (c.includes('amber') || c.includes('orange')) return PILLAR_COLORS.promotional;
+  if (c.includes('purple')) return PILLAR_COLORS.entertainment;
+  if (c.includes('pink') || c.includes('rose')) return PILLAR_COLORS['behind the scene'];
+  if (c.includes('indigo')) return PILLAR_COLORS.engagement;
+
+  return PILLAR_COLORS.educational;
 }
 
 export const MonthGridView: React.FC<MonthGridViewProps> = ({
@@ -75,7 +65,6 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-  // Highlighted day: if July 2025, highlight 18 (matching reference image), otherwise today if matching current month
   const today = new Date();
   const isHighlightTarget = (dNum: number, isCurMonth: boolean) => {
     if (!isCurMonth) return false;
@@ -89,7 +78,6 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
     );
   };
 
-  // Generate 35 cells (5 rows) or 42 cells (6 rows)
   const totalDaysCount = startDayIndex + daysInMonth > 35 ? 42 : 35;
 
   const cells = [];
@@ -148,7 +136,7 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
 
       {/* Days Grid */}
       <div
-        className={`grid grid-cols-7 flex-1 min-h-0 divide-y divide-slate-200/60 overflow-y-auto custom-scrollbar`}
+        className="grid grid-cols-7 flex-1 min-h-0 divide-y divide-slate-200/60 overflow-y-auto custom-scrollbar"
         style={{
           gridTemplateRows: `repeat(${totalDaysCount / 7}, minmax(115px, 1fr))`,
         }}
@@ -189,16 +177,16 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
                     onSlotClick(cell.dateStr, '09:00');
                   }}
                   className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all cursor-pointer"
-                  title={`Tambah event tanggal ${cell.dateStr}`}
+                  title={`Tambah konten tanggal ${cell.dateStr}`}
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Event Cards inside Day Cell */}
+              {/* Event / Content Cards inside Day Cell */}
               <div className="space-y-1.5 flex-1 overflow-hidden flex flex-col justify-start">
                 {cell.posts.slice(0, 2).map((post) => {
-                  const theme = getEventColorTheme(post.color, post.status);
+                  const style = getPillarStyle(post.pillar_name, post.color);
                   const isSelected = selectedPostId === post.id;
 
                   return (
@@ -208,19 +196,32 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
                         e.stopPropagation();
                         onSelectPost(post);
                       }}
-                      className={`p-1.5 rounded-lg transition-all cursor-pointer shadow-2xs hover:shadow-xs hover:scale-[1.01] ${
-                        theme.card
-                      } ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}
+                      className={`p-1.5 rounded-lg border-l-[3px] ${style.border} ${style.bg} transition-all cursor-pointer shadow-2xs hover:shadow-xs hover:scale-[1.01] ${
+                        isSelected ? 'ring-2 ring-indigo-500' : ''
+                      }`}
                     >
-                      <div className="text-[11px] font-semibold text-slate-800 truncate leading-snug">
+                      {/* Name Content */}
+                      <div className="text-[11px] font-bold text-slate-800 truncate leading-snug">
                         {post.title}
                       </div>
+
+                      {/* Pillar Badge */}
+                      {post.pillar_name && (
+                        <div className="mt-0.5">
+                          <span className={`text-[8px] font-extrabold uppercase px-1 py-0.2 rounded ${style.badge}`}>
+                            {post.pillar_name}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Footer: Assign & Time */}
                       <div className="flex items-center justify-between mt-1 pt-0.5">
-                        {/* Avatars */}
-                        <div className="flex items-center -space-x-1">
-                          <div
-                            className={`w-4 h-4 rounded-full border border-white text-[8px] font-bold flex items-center justify-center ${theme.avatarBg}`}
-                          >
+                        {/* Assign Avatars */}
+                        <div 
+                          className="flex items-center -space-x-1" 
+                          title={`Assign: ${post.assignee_copy || 'Tim'} ${post.assignee_design ? '& ' + post.assignee_design : ''}`}
+                        >
+                          <div className="w-4 h-4 rounded-full bg-indigo-100 border border-white text-indigo-700 text-[8px] font-bold flex items-center justify-center">
                             {post.assignee_copy
                               ? post.assignee_copy
                                   .split(' ')
@@ -242,7 +243,7 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
                           )}
                         </div>
 
-                        {/* Time */}
+                        {/* Scheduled Time */}
                         <span className="text-[10px] text-slate-500 font-medium ml-1">
                           {formatEventTime(post.start_time)}
                         </span>

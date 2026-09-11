@@ -561,6 +561,7 @@ export default function App() {
             posts={posts}
             brands={brands}
             pillars={pillars}
+            accounts={accounts}
             onSavePost={handleSavePost}
             onDeletePost={handleDeletePost}
             onUpdateStatus={handleUpdateContentStatus}
