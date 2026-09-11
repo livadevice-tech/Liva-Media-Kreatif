@@ -476,7 +476,7 @@ export default function App() {
               {isSidebarOpen && <span>Home</span>}
             </button>
 
-            {/* Calendar (Active in screenshot) */}
+            {/* Calendar */}
             <button
               onClick={() => setActiveTab('calendar')}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
@@ -486,7 +486,7 @@ export default function App() {
               }`}
             >
               <CalendarIcon className="w-4 h-4 text-slate-600" />
-              {isSidebarOpen && <span>Calendar</span>}
+              {isSidebarOpen && <span>Calender Content</span>}
             </button>
 
             {/* Task (With badge in screenshot) */}
