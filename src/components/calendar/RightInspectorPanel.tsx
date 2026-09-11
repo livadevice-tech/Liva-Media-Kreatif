@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Trash2, 
+  AlertTriangle,
   Calendar as CalendarIcon, 
   Clock, 
   Link as LinkIcon, 
@@ -125,6 +126,8 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   });
   const [savingPillar, setSavingPillar] = useState(false);
   const [deletingPillarId, setDeletingPillarId] = useState<string | null>(null);
+  const [confirmDeletePillar, setConfirmDeletePillar] = useState<{ id: string; name: string } | null>(null);
+  const [isConfirmDeletePost, setIsConfirmDeletePost] = useState(false);
 
   const COLOR_PRESETS = [
     { hex: '#3b82f6', name: 'Biru' },
@@ -191,8 +194,9 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
     }
   };
 
-  const handleDeletePillarClick = async (pillarId: string, pillarName: string) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus pillar "${pillarName}"?`)) return;
+  const executeDeletePillar = async () => {
+    if (!confirmDeletePillar) return;
+    const { id: pillarId, name: pillarName } = confirmDeletePillar;
 
     setDeletingPillarId(pillarId);
     try {
@@ -212,6 +216,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
       if (inlineEditingId === pillarId) {
         setInlineEditingId(null);
       }
+      setConfirmDeletePillar(null);
     } finally {
       setDeletingPillarId(null);
     }
@@ -253,16 +258,15 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
     }
   };
 
-  const handleDelete = async () => {
+  const executeDeletePost = async () => {
     if (!formData.id || !onDelete) return;
-    if (window.confirm(`Apakah Anda yakin ingin menghapus konten "${formData.title}"?`)) {
-      setDeleting(true);
-      try {
-        await onDelete(formData.id);
-        onClose();
-      } finally {
-        setDeleting(false);
-      }
+    setDeleting(true);
+    try {
+      await onDelete(formData.id);
+      setIsConfirmDeletePost(false);
+      onClose();
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -291,14 +295,27 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
               <p className="text-[11px] text-slate-400 mt-0.5">Content Planner • Liva Media Kreatif</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-            title="Tutup Panel"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {formData.id && onDelete && (
+              <button
+                type="button"
+                onClick={() => setIsConfirmDeletePost(true)}
+                disabled={deleting}
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                title="Hapus Konten Ini"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              title="Tutup Panel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Form Body with Clean Spacing & Cards */}
@@ -440,7 +457,11 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                           <button
                             type="button"
                             disabled={deletingPillarId === pil.id}
-                            onClick={() => handleDeletePillarClick(pil.id, pil.name)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setConfirmDeletePillar({ id: pil.id, name: pil.name });
+                            }}
                             className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                             title="Hapus Pilar Langsung"
                           >
@@ -507,8 +528,9 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                           type="button"
                           disabled={deletingPillarId === pil.id}
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
-                            handleDeletePillarClick(pil.id, pil.name);
+                            setConfirmDeletePillar({ id: pil.id, name: pil.name });
                           }}
                           className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer disabled:opacity-50"
                           title="Hapus pilar langsung di sini"
@@ -931,7 +953,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
           {formData.id && onDelete ? (
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setIsConfirmDeletePost(true)}
               disabled={deleting}
               className="px-3 py-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
               title="Hapus Konten"
@@ -971,6 +993,76 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
           </div>
         </div>
       </form>
+
+      {/* In-App Confirmation Modal: Delete Pillar */}
+      {confirmDeletePillar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4 shadow-2xs">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-1.5">
+              Hapus Pilar Konten?
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed mb-5">
+              Apakah Anda yakin ingin menghapus pilar <strong>"{confirmDeletePillar.name}"</strong>? Data pilar ini akan dihapus dari opsi pilihan pilar.
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setConfirmDeletePillar(null)}
+                disabled={Boolean(deletingPillarId)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={executeDeletePillar}
+                disabled={Boolean(deletingPillarId)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                {deletingPillarId ? 'Menghapus...' : 'Ya, Hapus Pilar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Confirmation Modal: Delete Content Post */}
+      {isConfirmDeletePost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4 shadow-2xs">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-1.5">
+              Hapus Konten Kalender?
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed mb-5">
+              Apakah Anda yakin ingin menghapus konten <strong>"{formData.title}"</strong>? Tindakan ini akan menghapus jadwal postingan ini secara permanen.
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsConfirmDeletePost(false)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={executeDeletePost}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                {deleting ? 'Menghapus...' : 'Ya, Hapus Konten'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </aside>
   );

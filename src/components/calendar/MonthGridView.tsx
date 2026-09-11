@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Video, Image, FileText, Sparkles } from 'lucide-react';
+import { Plus, Video, Image, FileText, Sparkles, Trash2 } from 'lucide-react';
 import { ContentPost } from '../../types/app';
 
 interface MonthGridViewProps {
@@ -8,6 +8,7 @@ interface MonthGridViewProps {
   onSelectPost: (post: ContentPost) => void;
   onSlotClick: (dateStr: string, defaultTime?: string) => void;
   selectedPostId?: string;
+  onDeletePost?: (post: ContentPost) => void;
 }
 
 const DAY_NAMES = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -52,6 +53,7 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
   onSelectPost,
   onSlotClick,
   selectedPostId,
+  onDeletePost,
 }) => {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -193,13 +195,29 @@ export const MonthGridView: React.FC<MonthGridViewProps> = ({
                         e.stopPropagation();
                         onSelectPost(post);
                       }}
-                      className={`p-1.5 rounded-lg border-l-[3px] ${style.border} ${style.bg} transition-all cursor-pointer shadow-2xs hover:shadow-xs hover:scale-[1.01] ${
+                      className={`group/card relative p-1.5 rounded-lg border-l-[3px] ${style.border} ${style.bg} transition-all cursor-pointer shadow-2xs hover:shadow-xs hover:scale-[1.01] ${
                         isSelected ? 'ring-2 ring-indigo-500' : ''
                       }`}
                     >
-                      {/* Name Content */}
-                      <div className="text-[11px] font-bold text-slate-800 truncate leading-snug">
-                        {post.title}
+                      {/* Name Content & Quick Delete Button */}
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="text-[11px] font-bold text-slate-800 truncate leading-snug flex-1 min-w-0">
+                          {post.title}
+                        </div>
+                        {onDeletePost && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onDeletePost(post);
+                            }}
+                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50/80 rounded p-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity cursor-pointer shrink-0"
+                            title="Hapus konten ini langsung"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
 
                       {/* Pillar Badge */}
