@@ -19,7 +19,8 @@ import {
   Grid,
   List as ListIcon,
   Tag,
-  Briefcase
+  Briefcase,
+  Edit2
 } from 'lucide-react';
 import { AssetFileItem, Brand, ContentPost, Task, Project } from '../../types/app';
 
@@ -46,9 +47,14 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Modal Add Asset state
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newAsset, setNewAsset] = useState<{
+  // Sidebar CRUD Asset state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(480);
+  const [isResizing, setIsResizing] = useState(false);
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+
+  const [assetForm, setAssetForm] = useState<{
+    id?: string;
     title: string;
     url: string;
     type: AssetFileItem['type'];
@@ -61,6 +67,54 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     project_type: 'Client',
     notes: '',
   });
+
+  const openSidebarForCreate = () => {
+    setEditingAssetId(null);
+    setAssetForm({
+      title: '',
+      url: '',
+      type: 'gdrive',
+      project_type: 'Client',
+      notes: '',
+    });
+    setIsSidebarOpen(true);
+  };
+
+  const openSidebarForEdit = (item: AssetFileItem) => {
+    setEditingAssetId(item.id);
+    setAssetForm({
+      id: item.id,
+      title: item.title,
+      url: item.url,
+      type: item.type,
+      project_type: (item.project_type === 'Internal' || item.brand_name === 'Internal') ? 'Internal' : 'Client',
+      notes: item.notes || '',
+    });
+    setIsSidebarOpen(true);
+  };
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+    setEditingAssetId(null);
+  };
+
+  // Drag resize handler for sidebar
+  React.useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newW = Math.max(380, Math.min(window.innerWidth - 80, window.innerWidth - e.clientX));
+      setSidebarWidth(newW);
+    };
+    const handleMouseUp = () => setIsResizing(false);
+    if (isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   // Custom manual asset files stored locally
   const [manualAssets, setManualAssets] = useState<AssetFileItem[]>(() => {
@@ -235,36 +289,54 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Add new manual asset
-  const handleAddAssetSubmit = (e: React.FormEvent) => {
+  // Save asset (Create or Edit)
+  const handleSaveAsset = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAsset.title.trim() || !newAsset.url.trim()) return;
+    if (!assetForm.title.trim() || !assetForm.url.trim()) return;
 
-    const createdItem: AssetFileItem = {
-      id: `manual-${Date.now()}`,
-      title: newAsset.title.trim(),
-      url: newAsset.url.trim(),
-      type: newAsset.type || detectType(newAsset.url),
-      project_type: newAsset.project_type,
-      brand_name: newAsset.project_type,
-      source: 'manual',
-      notes: newAsset.notes.trim() || undefined,
-      created_at: new Date().toISOString(),
-    };
+    if (editingAssetId) {
+      // Edit existing manual asset
+      const updated = manualAssets.map((item) => {
+        if (item.id === editingAssetId) {
+          return {
+            ...item,
+            title: assetForm.title.trim(),
+            url: assetForm.url.trim(),
+            type: assetForm.type || detectType(assetForm.url),
+            project_type: assetForm.project_type,
+            brand_name: assetForm.project_type,
+            notes: assetForm.notes.trim() || undefined,
+          };
+        }
+        return item;
+      });
+      saveManualAssets(updated);
+    } else {
+      // Create new manual asset
+      const createdItem: AssetFileItem = {
+        id: `manual-${Date.now()}`,
+        title: assetForm.title.trim(),
+        url: assetForm.url.trim(),
+        type: assetForm.type || detectType(assetForm.url),
+        project_type: assetForm.project_type,
+        brand_name: assetForm.project_type,
+        source: 'manual',
+        notes: assetForm.notes.trim() || undefined,
+        created_at: new Date().toISOString(),
+      };
+      saveManualAssets([createdItem, ...manualAssets]);
+    }
 
-    saveManualAssets([createdItem, ...manualAssets]);
-    setIsAddModalOpen(false);
-    setNewAsset({
-      title: '',
-      url: '',
-      type: 'gdrive',
-      project_type: 'Client',
-      notes: '',
-    });
+    closeSidebar();
   };
 
   const handleDeleteManual = (id: string) => {
-    saveManualAssets(manualAssets.filter((a) => a.id !== id));
+    if (confirm('Apakah Anda yakin ingin menghapus asset file ini?')) {
+      saveManualAssets(manualAssets.filter((a) => a.id !== id));
+      if (editingAssetId === id) {
+        closeSidebar();
+      }
+    }
   };
 
   // Type badge & icon helper
@@ -339,7 +411,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
         </div>
 
         <button
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={openSidebarForCreate}
           className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
@@ -425,320 +497,400 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-6 bg-slate-50/40 custom-scrollbar">
-        {filteredAssets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-80 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 mb-3 shadow-2xs">
-              <FolderArchive className="w-7 h-7" />
+      {/* Main Content & Sidebar Layout */}
+      <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/40 custom-scrollbar">
+          {filteredAssets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-80 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 mb-3 shadow-2xs">
+                <FolderArchive className="w-7 h-7" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Tidak ada asset file ditemukan</h3>
+              <p className="text-xs text-slate-500 max-w-sm mt-1 mb-4">
+                Coba ganti kata kunci pencarian atau tambahkan asset file baru menggunakan tombol di kanan atas.
+              </p>
+              <button
+                onClick={openSidebarForCreate}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                + Tambah Asset Baru
+              </button>
             </div>
-            <h3 className="text-sm font-bold text-slate-800">Tidak ada asset file ditemukan</h3>
-            <p className="text-xs text-slate-500 max-w-sm mt-1 mb-4">
-              Coba ganti kata kunci pencarian atau tambahkan asset file baru menggunakan tombol di kanan atas.
-            </p>
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-xs transition-colors cursor-pointer"
-            >
-              + Tambah Asset Baru
-            </button>
-          </div>
-        ) : viewMode === 'grid' ? (
-          /* Grid View */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredAssets.map((item) => {
-              const typeInfo = getTypeBadge(item.type);
-              const isCopied = copiedId === item.id;
-              const linkUrl = item.url.startsWith('http') ? item.url : `https://${item.url}`;
+          ) : viewMode === 'grid' ? (
+            /* Grid View */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredAssets.map((item) => {
+                const typeInfo = getTypeBadge(item.type);
+                const isCopied = copiedId === item.id;
+                const linkUrl = item.url.startsWith('http') ? item.url : `https://${item.url}`;
 
-              return (
-                <div
-                  key={item.id}
-                  className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex flex-col justify-between group"
-                >
-                  <div>
-                    {/* Top Row: Type & Brand */}
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border ${typeInfo.badge}`}>
-                        {typeInfo.icon}
-                        <span>{typeInfo.label}</span>
-                      </span>
-
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[120px] ${
-                        (item.project_type === 'Internal' || item.brand_name === 'Internal')
-                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}>
-                        {item.project_type || item.brand_name || 'Client'}
-                      </span>
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors">
-                      {item.title}
-                    </h3>
-
-                    {/* Notes or Project context */}
-                    {item.notes && (
-                      <p className="text-[11px] text-slate-500 line-clamp-2 mt-1.5 leading-relaxed">
-                        {item.notes}
-                      </p>
-                    )}
-
-                    {/* Source label */}
-                    <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100">
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
-                        Sumber:
-                      </span>
-                      <span className="text-[10px] font-medium text-slate-600 truncate">
-                        {item.source === 'calendar' ? 'Content Calendar' : item.source === 'task' ? 'Task Project' : 'Asset Manual'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Actions */}
-                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100 gap-1.5">
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyLink(item)}
-                        className="px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                        title="Salin Link Asset"
-                      >
-                        {isCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                        <span className="text-[11px]">{isCopied ? 'Tersalin!' : 'Salin'}</span>
-                      </button>
-
-                      {item.source === 'manual' && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteManual(item.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Hapus Asset Manual"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-
-                    <a
-                      href={linkUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
-                    >
-                      <span>Buka</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          /* Table / List View */
-          <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">Nama Asset</th>
-                  <th className="py-3 px-4">Jenis / Type</th>
-                  <th className="py-3 px-4">Jenis Project</th>
-                  <th className="py-3 px-4">Sumber</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                {filteredAssets.map((item) => {
-                  const typeInfo = getTypeBadge(item.type);
-                  const isCopied = copiedId === item.id;
-                  const linkUrl = item.url.startsWith('http') ? item.url : `https://${item.url}`;
-
-                  return (
-                    <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-4 font-semibold text-slate-900 max-w-xs truncate">
-                        <div className="truncate" title={item.title}>{item.title}</div>
-                        {item.notes && <div className="text-[10px] text-slate-400 truncate">{item.notes}</div>}
-                      </td>
-                      <td className="py-3 px-4">
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex flex-col justify-between group"
+                  >
+                    <div>
+                      {/* Top Row: Type & Brand */}
+                      <div className="flex items-center justify-between gap-2 mb-2.5">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border ${typeInfo.badge}`}>
                           {typeInfo.icon}
                           <span>{typeInfo.label}</span>
                         </span>
-                      </td>
-                      <td className="py-3 px-4 font-medium">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[120px] ${
                           (item.project_type === 'Internal' || item.brand_name === 'Internal')
-                            ? 'bg-purple-50 text-purple-700 border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                            : 'bg-blue-50 text-blue-700 border border-blue-200'
                         }`}>
                           {item.project_type || item.brand_name || 'Client'}
                         </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-500 text-[11px]">
-                        {item.source === 'calendar' ? 'Content Calendar' : item.source === 'task' ? 'Task Project' : 'Asset Manual'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleCopyLink(item)}
-                            className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                            title="Salin Link"
-                          >
-                            {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                          <a
-                            href={linkUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
-                          >
-                            <span>Buka</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                          {item.source === 'manual' && (
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors">
+                        {item.title}
+                      </h3>
+
+                      {/* Notes or Project context */}
+                      {item.notes && (
+                        <p className="text-[11px] text-slate-500 line-clamp-2 mt-1.5 leading-relaxed">
+                          {item.notes}
+                        </p>
+                      )}
+
+                      {/* Source label */}
+                      <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100">
+                        <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                          Sumber:
+                        </span>
+                        <span className="text-[10px] font-medium text-slate-600 truncate">
+                          {item.source === 'calendar' ? 'Content Calendar' : item.source === 'task' ? 'Task Project' : 'Asset Manual'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Actions */}
+                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100 gap-1.5">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(item)}
+                          className="px-2 py-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                          title="Salin Link Asset"
+                        >
+                          {isCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                          <span className="text-[11px]">{isCopied ? 'Tersalin!' : 'Salin'}</span>
+                        </button>
+
+                        {item.source === 'manual' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openSidebarForEdit(item)}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                              title="Edit Asset"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteManual(item.id)}
                               className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="Hapus"
+                              title="Hapus Asset Manual"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3 h-3" />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          </>
+                        )}
+                      </div>
+
+                      <a
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                      >
+                        <span>Buka</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* Table / List View */
+            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="py-3 px-4">Nama Asset</th>
+                    <th className="py-3 px-4">Jenis / Type</th>
+                    <th className="py-3 px-4">Jenis Project</th>
+                    <th className="py-3 px-4">Sumber</th>
+                    <th className="py-3 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                  {filteredAssets.map((item) => {
+                    const typeInfo = getTypeBadge(item.type);
+                    const isCopied = copiedId === item.id;
+                    const linkUrl = item.url.startsWith('http') ? item.url : `https://${item.url}`;
+
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3 px-4 font-semibold text-slate-900 max-w-xs truncate">
+                          <div className="truncate" title={item.title}>{item.title}</div>
+                          {item.notes && <div className="text-[10px] text-slate-400 truncate">{item.notes}</div>}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border ${typeInfo.badge}`}>
+                            {typeInfo.icon}
+                            <span>{typeInfo.label}</span>
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-medium">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                            (item.project_type === 'Internal' || item.brand_name === 'Internal')
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {item.project_type || item.brand_name || 'Client'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-500 text-[11px]">
+                          {item.source === 'calendar' ? 'Content Calendar' : item.source === 'task' ? 'Task Project' : 'Asset Manual'}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyLink(item)}
+                              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              title="Salin Link"
+                            >
+                              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                            <a
+                              href={linkUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Buka</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                            {item.source === 'manual' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openSidebarForEdit(item)}
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Edit Asset"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteManual(item.id)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Hapus Asset"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar Drawer: Tambah / Edit Asset File */}
+        {isSidebarOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/30 backdrop-blur-[2px] animate-in fade-in duration-150">
+            <aside
+              style={{ width: `${sidebarWidth}px` }}
+              className="relative h-full bg-white border-l border-slate-200 shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-200"
+            >
+              {/* Resize Handle */}
+              <div
+                onMouseDown={() => setIsResizing(true)}
+                className="absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize z-50 hover:bg-indigo-500/20 active:bg-indigo-500/40 transition-colors flex items-center justify-center group"
+                title="Tarik untuk mengubah ukuran sidebar"
+              >
+                <div className="w-1 h-8 rounded-full bg-slate-300 group-hover:bg-indigo-500" />
+              </div>
+
+              {/* Sidebar Header */}
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
+                    <FolderArchive className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      {editingAssetId ? 'Edit Asset File' : 'Tambah Asset File Baru'}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      {editingAssetId ? 'Perbarui informasi tautan atau berkas asset' : 'Simpan tautan aset kreatif atau berkas kampanye'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {/* Preset Width Buttons */}
+                  <div className="hidden sm:flex items-center bg-slate-100 p-0.5 rounded-lg mr-1 text-[10px] font-semibold text-slate-600">
+                    <button
+                      type="button"
+                      onClick={() => setSidebarWidth(420)}
+                      className={`px-1.5 py-0.5 rounded ${sidebarWidth === 420 ? 'bg-white shadow-2xs text-indigo-600 font-bold' : 'hover:text-slate-900'}`}
+                    >
+                      Compact
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSidebarWidth(560)}
+                      className={`px-1.5 py-0.5 rounded ${sidebarWidth === 560 ? 'bg-white shadow-2xs text-indigo-600 font-bold' : 'hover:text-slate-900'}`}
+                    >
+                      Wide
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={closeSidebar}
+                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                    title="Tutup Panel"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Sidebar Form Body */}
+              <form onSubmit={handleSaveAsset} className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Nama / Judul Asset <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Contoh: Master Video Raw Footage Shopee 9.9"
+                      value={assetForm.title}
+                      onChange={(e) => setAssetForm({ ...assetForm, title: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Jenis Project <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={assetForm.project_type}
+                        onChange={(e) => setAssetForm({ ...assetForm, project_type: e.target.value as 'Internal' | 'Client' })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      >
+                        <option value="Internal">Internal</option>
+                        <option value="Client">Client</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Jenis Asset
+                      </label>
+                      <select
+                        value={assetForm.type}
+                        onChange={(e) => setAssetForm({ ...assetForm, type: e.target.value as any })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      >
+                        <option value="gdrive">Google Drive</option>
+                        <option value="figma">Figma</option>
+                        <option value="canva">Canva</option>
+                        <option value="video">Video Footage</option>
+                        <option value="image">Foto / Image Kit</option>
+                        <option value="document">Dokumen / PDF</option>
+                        <option value="other">Tautan Lainnya</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      URL / Tautan Link <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="url"
+                        required
+                        placeholder="https://drive.google.com/... atau https://figma.com/..."
+                        value={assetForm.url}
+                        onChange={(e) => setAssetForm({ ...assetForm, url: e.target.value })}
+                        className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Keterangan / Catatan (Opsional)
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Catatan akses folder, password, briefing, atau panduan penggunaan..."
+                      value={assetForm.notes}
+                      onChange={(e) => setAssetForm({ ...assetForm, notes: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  {editingAssetId && (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteManual(editingAssetId)}
+                        className="w-full py-2 px-3 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus Asset Ini</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sidebar Footer */}
+                <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={closeSidebar}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
+                  >
+                    {editingAssetId ? 'Simpan Perubahan' : 'Tambah Asset File'}
+                  </button>
+                </div>
+              </form>
+            </aside>
           </div>
         )}
       </div>
-
-      {/* Modal: Tambah Asset File Baru */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                  <FolderArchive className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Tambah Asset File Baru</h3>
-                  <p className="text-[11px] text-slate-400">Simpan tautan aset kreatif atau berkas kampanye</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddAssetSubmit} className="space-y-4 pt-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nama / Judul Asset <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Master Video Raw Footage Shopee 9.9"
-                  value={newAsset.title}
-                  onChange={(e) => setNewAsset({ ...newAsset, title: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Jenis Project <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={newAsset.project_type}
-                    onChange={(e) => setNewAsset({ ...newAsset, project_type: e.target.value as 'Internal' | 'Client' })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                  >
-                    <option value="Internal">Internal</option>
-                    <option value="Client">Client</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Jenis Asset
-                  </label>
-                  <select
-                    value={newAsset.type}
-                    onChange={(e) => setNewAsset({ ...newAsset, type: e.target.value as any })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                  >
-                    <option value="gdrive">Google Drive</option>
-                    <option value="figma">Figma</option>
-                    <option value="canva">Canva</option>
-                    <option value="video">Video Footage</option>
-                    <option value="image">Foto / Image Kit</option>
-                    <option value="document">Dokumen / PDF</option>
-                    <option value="other">Tautan Lainnya</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  URL / Tautan Link <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="url"
-                    required
-                    placeholder="https://drive.google.com/... atau https://figma.com/..."
-                    value={newAsset.url}
-                    onChange={(e) => setNewAsset({ ...newAsset, url: e.target.value })}
-                    className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Keterangan / Catatan (Opsional)
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Catatan akses folder, password, atau panduan penggunaan..."
-                  value={newAsset.notes}
-                  onChange={(e) => setNewAsset({ ...newAsset, notes: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
-                >
-                  Simpan Asset File
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
