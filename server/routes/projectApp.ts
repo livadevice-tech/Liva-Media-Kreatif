@@ -1,7 +1,55 @@
 import { Router, Request, Response } from 'express';
 import { getPool } from '../db';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 export const projectAppRouter = Router();
+
+// Setup Multer Storage for Asset Files (Images & PDFs)
+const assetStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(process.cwd(), 'uploads', 'assets');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `${uniqueSuffix}-${cleanName}`);
+  },
+});
+
+const uploadAsset = multer({
+  storage: assetStorage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+});
+
+// Endpoint upload berkas asset (Gambar, PDF, dsb.)
+projectAppRouter.post('/upload-asset', uploadAsset.single('asset_file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Tidak ada file yang diunggah.' });
+    }
+    const fileUrl = `/uploads/assets/${req.file.filename}`;
+    const isImage = !!req.file.mimetype.startsWith('image/');
+    const isPdf = req.file.mimetype === 'application/pdf' || req.file.originalname.toLowerCase().endsWith('.pdf');
+
+    return res.json({
+      success: true,
+      url: fileUrl,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      fileType: isImage ? 'image' : isPdf ? 'document' : 'other',
+    });
+  } catch (error: any) {
+    console.error('Asset upload error:', error);
+    return res.status(500).json({ error: error.message || 'Gagal mengunggah file asset.' });
+  }
+});
 
 // ==========================================
 // 0. DATABASE CONNECTION TEST & HEALTH CHECK

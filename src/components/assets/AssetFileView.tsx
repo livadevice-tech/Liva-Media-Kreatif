@@ -23,8 +23,13 @@ import {
   Edit2,
   Lock,
   Globe2,
-  ShieldAlert
+  ShieldAlert,
+  UploadCloud,
+  Paperclip,
+  FileCheck,
+  Loader2
 } from 'lucide-react';
+import { appApi } from '../../services/appApi';
 import { AssetFileItem, Brand, ContentPost, Task, Project, UserAccount } from '../../types/app';
 
 interface AssetFileViewProps {
@@ -59,6 +64,8 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
   const [sidebarWidth, setSidebarWidth] = useState(480);
   const [isResizing, setIsResizing] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [assetForm, setAssetForm] = useState<{
     id?: string;
@@ -68,6 +75,9 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     project_type: 'Internal' | 'Client';
     notes: string;
     is_private: boolean;
+    file_name?: string;
+    file_size?: number;
+    is_attached?: boolean;
   }>({
     title: '',
     url: '',
@@ -75,10 +85,14 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     project_type: 'Client',
     notes: '',
     is_private: false,
+    file_name: undefined,
+    file_size: undefined,
+    is_attached: false,
   });
 
   const openSidebarForCreate = () => {
     setEditingAssetId(null);
+    setUploadError(null);
     setAssetForm({
       title: '',
       url: '',
@@ -86,12 +100,16 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       project_type: 'Client',
       notes: '',
       is_private: false,
+      file_name: undefined,
+      file_size: undefined,
+      is_attached: false,
     });
     setIsSidebarOpen(true);
   };
 
   const openSidebarForEdit = (item: AssetFileItem) => {
     setEditingAssetId(item.id);
+    setUploadError(null);
     setAssetForm({
       id: item.id,
       title: item.title,
@@ -100,6 +118,9 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       project_type: (item.project_type === 'Internal' || item.brand_name === 'Internal') ? 'Internal' : 'Client',
       notes: item.notes || '',
       is_private: !!item.is_private,
+      file_name: item.file_name,
+      file_size: item.file_size,
+      is_attached: !!item.is_attached,
     });
     setIsSidebarOpen(true);
   };
@@ -107,6 +128,60 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
   const closeSidebar = () => {
     setIsSidebarOpen(false);
     setEditingAssetId(null);
+    setUploadError(null);
+  };
+
+  // Handle local PDF / Image file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      setUploadError('Ukuran file maksimal 50 MB.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const res = await appApi.uploadAssetFile(file);
+      if (res && res.url) {
+        // Auto fill title if empty
+        const autoTitle = assetForm.title.trim() 
+          ? assetForm.title 
+          : file.name.replace(/\.[^/.]+$/, '');
+
+        setAssetForm((prev) => ({
+          ...prev,
+          title: autoTitle,
+          url: res.url,
+          type: res.fileType as any,
+          file_name: file.name,
+          file_size: file.size,
+          is_attached: true,
+        }));
+      }
+    } catch (err: any) {
+      console.error('File upload failed:', err);
+      setUploadError(err.message || 'Gagal mengunggah file. Silakan coba lagi.');
+    } finally {
+      setIsUploading(false);
+      // Reset input value so same file can be re-selected if needed
+      e.target.value = '';
+    }
+  };
+
+  // Remove attached file
+  const handleRemoveAttachment = () => {
+    setAssetForm((prev) => ({
+      ...prev,
+      url: '',
+      file_name: undefined,
+      file_size: undefined,
+      is_attached: false,
+    }));
   };
 
   // Drag resize handler for sidebar
@@ -323,6 +398,9 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
             brand_name: assetForm.project_type,
             notes: assetForm.notes.trim() || undefined,
             is_private: isMasterAdmin ? assetForm.is_private : item.is_private,
+            file_name: assetForm.file_name,
+            file_size: assetForm.file_size,
+            is_attached: assetForm.is_attached,
           };
         }
         return item;
@@ -340,6 +418,9 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
         source: 'manual',
         notes: assetForm.notes.trim() || undefined,
         is_private: isMasterAdmin ? assetForm.is_private : false,
+        file_name: assetForm.file_name,
+        file_size: assetForm.file_size,
+        is_attached: assetForm.is_attached,
         created_at: new Date().toISOString(),
       };
       saveManualAssets([createdItem, ...manualAssets]);
@@ -578,6 +659,17 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                         {item.title}
                       </h3>
 
+                      {/* File attachment indicator */}
+                      {item.is_attached && (
+                        <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-[10px] text-slate-600 truncate">
+                          <Paperclip className="w-3 h-3 text-indigo-500 shrink-0" />
+                          <span className="font-medium truncate">{item.file_name || 'Berkas Terlampir'}</span>
+                          {item.file_size && (
+                            <span className="text-slate-400 shrink-0">({(item.file_size / (1024 * 1024)).toFixed(2)} MB)</span>
+                          )}
+                        </div>
+                      )}
+
                       {/* Notes or Project context */}
                       {item.notes && (
                         <p className="text-[11px] text-slate-500 line-clamp-2 mt-1.5 leading-relaxed">
@@ -669,6 +761,12 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                         <td className="py-3 px-4 font-semibold text-slate-900 max-w-xs truncate">
                           <div className="flex items-center gap-1.5 truncate">
                             <span className="truncate" title={item.title}>{item.title}</span>
+                            {item.is_attached && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0" title={item.file_name || 'Berkas Terlampir'}>
+                                <Paperclip className="w-2.5 h-2.5 text-indigo-600" />
+                                <span>Lampiran</span>
+                              </span>
+                            )}
                             {item.is_private && isMasterAdmin && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-300 shrink-0">
                                 <Lock className="w-2.5 h-2.5" />
@@ -676,6 +774,12 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                               </span>
                             )}
                           </div>
+                          {item.file_name && item.is_attached && (
+                            <div className="text-[10px] text-indigo-600 font-medium truncate flex items-center gap-1 mt-0.5">
+                              <span>📎 {item.file_name}</span>
+                              {item.file_size && <span className="text-slate-400 font-normal">({(item.file_size / (1024 * 1024)).toFixed(2)} MB)</span>}
+                            </div>
+                          )}
                           {item.notes && <div className="text-[10px] text-slate-400 truncate">{item.notes}</div>}
                         </td>
                         <td className="py-3 px-4">
@@ -919,16 +1023,124 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                     </div>
                   )}
 
+                  {/* Upload / Attach File (PDF / Gambar) */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      URL / Tautan Link <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <Paperclip className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Lampirkan File (PDF / Gambar)</span>
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-medium">Opsional (Maks. 50 MB)</span>
+                    </div>
+
+                    {assetForm.is_attached && assetForm.url ? (
+                      /* Attached File Preview Card */
+                      <div className="bg-indigo-50/60 border border-indigo-200/80 rounded-2xl p-3 flex items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-150">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-white border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
+                            {assetForm.type === 'image' ? (
+                              <ImageIcon className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <FileText className="w-4 h-4 text-rose-600" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-800 truncate" title={assetForm.file_name || 'File Terlampir'}>
+                              {assetForm.file_name || 'Berkas Terlampir'}
+                            </div>
+                            <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
+                              <span className="font-semibold text-indigo-600 uppercase">
+                                {assetForm.type === 'image' ? 'Foto / Gambar' : 'Dokumen PDF'}
+                              </span>
+                              {assetForm.file_size && (
+                                <span>• {(assetForm.file_size / (1024 * 1024)).toFixed(2)} MB</span>
+                              )}
+                              <span>• Tersimpan di Server</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <a
+                            href={assetForm.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 bg-white text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition-colors"
+                            title="Buka Berkas"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={handleRemoveAttachment}
+                            className="p-1.5 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                            title="Hapus Lampiran"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Drag & Drop or Click File Picker */
+                      <label className={`group border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                        isUploading 
+                          ? 'border-indigo-400 bg-indigo-50/50 cursor-wait'
+                          : 'border-slate-200 hover:border-indigo-400 bg-slate-50/50 hover:bg-indigo-50/20'
+                      }`}>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.svg"
+                          onChange={handleFileUpload}
+                          disabled={isUploading}
+                          className="hidden"
+                        />
+                        {isUploading ? (
+                          <div className="flex flex-col items-center gap-2 py-1">
+                            <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
+                            <span className="text-xs font-semibold text-indigo-700">Sedang mengunggah file...</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1.5 py-1">
+                            <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform shadow-2xs">
+                              <UploadCloud className="w-5 h-5" />
+                            </div>
+                            <div className="text-xs font-bold text-slate-700">
+                              Klik untuk pilih <span className="text-indigo-600">Foto / PDF</span>
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              Format: JPG, PNG, WEBP, SVG, atau PDF (Otomatis generate URL)
+                            </div>
+                          </div>
+                        )}
+                      </label>
+                    )}
+
+                    {uploadError && (
+                      <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                        <ShieldAlert className="w-3 h-3" />
+                        <span>{uploadError}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700">
+                        URL / Tautan Link <span className="text-rose-500">*</span>
+                      </label>
+                      {assetForm.is_attached && (
+                        <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                          <Check className="w-2.5 h-2.5" />
+                          <span>Terisi otomatis dari upload</span>
+                        </span>
+                      )}
+                    </div>
                     <div className="relative">
                       <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
-                        type="url"
+                        type="text"
                         required
-                        placeholder="https://drive.google.com/... atau https://figma.com/..."
+                        placeholder="https://drive.google.com/... atau tautan file"
                         value={assetForm.url}
                         onChange={(e) => setAssetForm({ ...assetForm, url: e.target.value })}
                         className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"

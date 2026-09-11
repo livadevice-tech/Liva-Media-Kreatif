@@ -168,4 +168,28 @@ export const appApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }).then(handleResponse<{ success: boolean; key: string }>),
+
+  // Asset File Upload (Image / PDF / File)
+  uploadAssetFile: (file: File): Promise<{
+    success: boolean;
+    url: string;
+    originalName: string;
+    size: number;
+    mimetype: string;
+    fileType: 'image' | 'document' | 'other';
+  }> => {
+    const formData = new FormData();
+    formData.append('asset_file', file);
+    return fetch(`${API_BASE}/project-app/upload-asset`, {
+      method: 'POST',
+      body: formData,
+    }).then(handleResponse<{
+      success: boolean;
+      url: string;
+      originalName: string;
+      size: number;
+      mimetype: string;
+      fileType: 'image' | 'document' | 'other';
+    }>);
+  },
 };

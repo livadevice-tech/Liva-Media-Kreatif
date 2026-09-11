@@ -121,6 +121,9 @@ export interface AssetFileItem {
   source: 'calendar' | 'task' | 'manual';
   notes?: string;
   is_private?: boolean;
+  file_name?: string;
+  file_size?: number;
+  is_attached?: boolean;
   created_at?: string;
 }
 

@@ -24,7 +24,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 // server.ts
 var import_nodemailer = __toESM(require("nodemailer"), 1);
 var import_express2 = __toESM(require("express"), 1);
-var import_path3 = __toESM(require("path"), 1);
+var import_path4 = __toESM(require("path"), 1);
 var import_dns = __toESM(require("dns"), 1);
 var import_vite = require("vite");
 var import_genai = require("@google/genai");
@@ -112,38 +112,38 @@ function hashPasswordForStorage(password) {
   const hash = (0, import_node_crypto.scryptSync)(password, salt, 64);
   return `scrypt:${salt.toString("base64url")}:${hash.toString("base64url")}`;
 }
-function isPathUnder(path4, prefix) {
-  return path4 === prefix || path4.startsWith(`${prefix}/`);
+function isPathUnder(path5, prefix) {
+  return path5 === prefix || path5.startsWith(`${prefix}/`);
 }
-function getAdminRequiredTabs(path4) {
-  if (isPathUnder(path4, "/admin-accounts")) return MODULE_TAB_REQUIREMENTS.adminAccounts;
-  if (isPathUnder(path4, "/hosts")) return MODULE_TAB_REQUIREMENTS.hosts;
-  if (isPathUnder(path4, "/violations")) return MODULE_TAB_REQUIREMENTS.hosts;
-  if (isPathUnder(path4, "/logs")) return MODULE_TAB_REQUIREMENTS.logs;
-  if (isPathUnder(path4, "/schedules")) return MODULE_TAB_REQUIREMENTS.schedules;
-  if (isPathUnder(path4, "/alerts")) return MODULE_TAB_REQUIREMENTS.alerts;
-  if (isPathUnder(path4, "/client-brands")) return MODULE_TAB_REQUIREMENTS.clientBrands;
-  if (isPathUnder(path4, "/client-leads")) return MODULE_TAB_REQUIREMENTS.clientLeads;
-  if (isPathUnder(path4, "/client-reporting")) return MODULE_TAB_REQUIREMENTS.clientReporting;
-  if (isPathUnder(path4, "/reporting/brand")) return MODULE_TAB_REQUIREMENTS.reportingBrand;
-  if (isPathUnder(path4, "/settings")) return MODULE_TAB_REQUIREMENTS.settings;
-  if (isPathUnder(path4, "/invoice")) return MODULE_TAB_REQUIREMENTS.invoice;
-  if (isPathUnder(path4, "/chat")) return MODULE_TAB_REQUIREMENTS.chat;
-  if (isPathUnder(path4, "/ai")) return MODULE_TAB_REQUIREMENTS.ai;
+function getAdminRequiredTabs(path5) {
+  if (isPathUnder(path5, "/admin-accounts")) return MODULE_TAB_REQUIREMENTS.adminAccounts;
+  if (isPathUnder(path5, "/hosts")) return MODULE_TAB_REQUIREMENTS.hosts;
+  if (isPathUnder(path5, "/violations")) return MODULE_TAB_REQUIREMENTS.hosts;
+  if (isPathUnder(path5, "/logs")) return MODULE_TAB_REQUIREMENTS.logs;
+  if (isPathUnder(path5, "/schedules")) return MODULE_TAB_REQUIREMENTS.schedules;
+  if (isPathUnder(path5, "/alerts")) return MODULE_TAB_REQUIREMENTS.alerts;
+  if (isPathUnder(path5, "/client-brands")) return MODULE_TAB_REQUIREMENTS.clientBrands;
+  if (isPathUnder(path5, "/client-leads")) return MODULE_TAB_REQUIREMENTS.clientLeads;
+  if (isPathUnder(path5, "/client-reporting")) return MODULE_TAB_REQUIREMENTS.clientReporting;
+  if (isPathUnder(path5, "/reporting/brand")) return MODULE_TAB_REQUIREMENTS.reportingBrand;
+  if (isPathUnder(path5, "/settings")) return MODULE_TAB_REQUIREMENTS.settings;
+  if (isPathUnder(path5, "/invoice")) return MODULE_TAB_REQUIREMENTS.invoice;
+  if (isPathUnder(path5, "/chat")) return MODULE_TAB_REQUIREMENTS.chat;
+  if (isPathUnder(path5, "/ai")) return MODULE_TAB_REQUIREMENTS.ai;
   return null;
 }
-function isRequestAllowed(session, method, path4) {
-  if (method === "GET" && path4 === "/client-brands/public") return true;
-  if (method === "GET" && path4 === "/client-brands/public-list") return true;
+function isRequestAllowed(session, method, path5) {
+  if (method === "GET" && path5 === "/client-brands/public") return true;
+  if (method === "GET" && path5 === "/client-brands/public-list") return true;
   if (session.role === "master") return true;
   if (session.role === "admin") {
-    const requiredTabs = getAdminRequiredTabs(path4);
+    const requiredTabs = getAdminRequiredTabs(path5);
     return requiredTabs ? canAccessAnyTab(session.accessTabs, requiredTabs) : false;
   }
   if (session.role === "host") {
-    return method === "GET" && path4 === `/hosts/${session.subjectId}` || method === "GET" && path4 === "/client-brands" || method === "GET" && path4 === "/reporting/brand" || method === "GET" && path4 === "/reporting/brand/analyses" || method === "GET" && path4 === "/violations" || method === "GET" && path4 === "/logs" || method === "POST" && path4 === "/logs" || method === "GET" && path4 === "/schedules" || method === "GET" && path4 === "/settings/liva_global_configs";
+    return method === "GET" && path5 === `/hosts/${session.subjectId}` || method === "GET" && path5 === "/client-brands" || method === "GET" && path5 === "/reporting/brand" || method === "GET" && path5 === "/reporting/brand/analyses" || method === "GET" && path5 === "/violations" || method === "GET" && path5 === "/logs" || method === "POST" && path5 === "/logs" || method === "GET" && path5 === "/schedules" || method === "GET" && path5 === "/settings/liva_global_configs";
   }
-  return method === "GET" && path4 === `/client-brands/${session.subjectId}` || method === "GET" && path4 === "/schedules" || method === "GET" && path4 === "/client-reporting" || method === "GET" && path4.startsWith("/reporting/brand") || method === "GET" && path4 === "/settings/liva_global_configs";
+  return method === "GET" && path5 === `/client-brands/${session.subjectId}` || method === "GET" && path5 === "/schedules" || method === "GET" && path5 === "/client-reporting" || method === "GET" && path5.startsWith("/reporting/brand") || method === "GET" && path5 === "/settings/liva_global_configs";
 }
 function readCookie(header, name) {
   if (!header) return null;
@@ -1174,7 +1174,50 @@ function validateProductionConfig(env) {
 
 // server/routes/projectApp.ts
 var import_express = require("express");
+var import_multer3 = __toESM(require("multer"), 1);
+var import_path3 = __toESM(require("path"), 1);
+var import_fs3 = __toESM(require("fs"), 1);
 var projectAppRouter = (0, import_express.Router)();
+var assetStorage = import_multer3.default.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = import_path3.default.join(process.cwd(), "uploads", "assets");
+    if (!import_fs3.default.existsSync(dir)) {
+      import_fs3.default.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, `${uniqueSuffix}-${cleanName}`);
+  }
+});
+var uploadAsset = (0, import_multer3.default)({
+  storage: assetStorage,
+  limits: { fileSize: 50 * 1024 * 1024 }
+  // 50MB
+});
+projectAppRouter.post("/upload-asset", uploadAsset.single("asset_file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Tidak ada file yang diunggah." });
+    }
+    const fileUrl = `/uploads/assets/${req.file.filename}`;
+    const isImage = !!req.file.mimetype.startsWith("image/");
+    const isPdf = req.file.mimetype === "application/pdf" || req.file.originalname.toLowerCase().endsWith(".pdf");
+    return res.json({
+      success: true,
+      url: fileUrl,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      fileType: isImage ? "image" : isPdf ? "document" : "other"
+    });
+  } catch (error) {
+    console.error("Asset upload error:", error);
+    return res.status(500).json({ error: error.message || "Gagal mengunggah file asset." });
+  }
+});
 projectAppRouter.get("/db-test", async (req, res) => {
   const start = Date.now();
   try {
@@ -2336,7 +2379,7 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use("/uploads", import_express2.default.static(import_path3.default.join(process.cwd(), "uploads")));
+app.use("/uploads", import_express2.default.static(import_path4.default.join(process.cwd(), "uploads")));
 app.post("/api/auth/login", asyncHandler(async (req, res) => {
   const role = String(req.body?.role || "");
   const username = String(req.body?.username || "").trim();
@@ -3369,10 +3412,10 @@ async function bootstrap() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = import_path3.default.join(process.cwd(), "dist");
+    const distPath = import_path4.default.join(process.cwd(), "dist");
     app.use(import_express2.default.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(import_path3.default.join(distPath, "index.html"));
+      res.sendFile(import_path4.default.join(distPath, "index.html"));
     });
   }
   if (typeof PORT === "string" && isNaN(Number(PORT))) {
