@@ -22,6 +22,7 @@ import {
 import { Task, Project, Brand, TaskStatus, TaskPriority, UserAccount } from '../../types/app';
 import { TaskInspectorPanel } from './TaskInspectorPanel';
 import { ProjectModal } from './ProjectModal';
+import { TaskCalendarView } from './TaskCalendarView';
 
 interface ProjectKanbanViewProps {
   tasks: Task[];
@@ -60,7 +61,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   onSaveProject,
   onDeleteProject,
 }) => {
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'calendar'>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
@@ -73,43 +74,41 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Partial<Project> | null>(null);
 
-  // Filter tasks
+  // Filter tasks based on search and filters
   const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
-      if (selectedProjectId !== 'all' && t.project_id !== selectedProjectId) return false;
-      if (selectedPriority !== 'all' && t.priority !== selectedPriority) return false;
+    return tasks.filter((task) => {
+      if (selectedProjectId !== 'all' && task.project_id !== selectedProjectId) return false;
+      if (selectedPriority !== 'all' && task.priority !== selectedPriority) return false;
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchTitle = t.title.toLowerCase().includes(q);
-        const matchPic = t.assignee_name?.toLowerCase().includes(q);
-        const matchTag = t.tags?.toLowerCase().includes(q);
-        if (!matchTitle && !matchPic && !matchTag) return false;
+        const query = searchQuery.toLowerCase();
+        const matchTitle = task.title.toLowerCase().includes(query);
+        const matchDesc = task.description?.toLowerCase().includes(query);
+        const matchAssignee = task.assignee_name?.toLowerCase().includes(query);
+        if (!matchTitle && !matchDesc && !matchAssignee) return false;
       }
       return true;
     });
   }, [tasks, selectedProjectId, selectedPriority, searchQuery]);
 
-  // Group tasks by status
+  // Group tasks by status for columns
   const tasksByColumn = useMemo(() => {
-    const map = {
-      todo: [] as Task[],
-      in_progress: [] as Task[],
-      review: [] as Task[],
-      done: [] as Task[],
+    const map: Record<TaskStatus, Task[]> = {
+      todo: [],
+      in_progress: [],
+      review: [],
+      done: [],
     };
-    for (const t of filteredTasks) {
-      if (map[t.status]) {
-        map[t.status].push(t);
-      } else {
-        map.todo.push(t);
+    for (const task of filteredTasks) {
+      if (map[task.status]) {
+        map[task.status].push(task);
       }
     }
     return map;
   }, [filteredTasks]);
 
-  const handleOpenNewTask = (status: TaskStatus = 'todo') => {
+  const handleOpenNewTask = (status: TaskStatus = 'todo', defaultDueDate?: string) => {
     setDefaultTaskStatus(status);
-    setEditingTask(null);
+    setEditingTask(defaultDueDate ? { due_date: defaultDueDate, status } : null);
     setIsProjectModalOpen(false);
     setIsTaskModalOpen(true);
   };
@@ -219,6 +218,17 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
               <List className="w-3.5 h-3.5" />
               <span>List</span>
             </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'calendar'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Calendar</span>
+            </button>
           </div>
 
           <button
@@ -235,7 +245,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50/50">
+      <div className={`flex-1 overflow-y-auto ${viewMode === 'calendar' ? 'p-4 sm:p-6' : 'p-6'} custom-scrollbar bg-slate-50/50 flex flex-col`}>
         {viewMode === 'kanban' ? (
           /* Kanban Columns */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 h-full items-start">
@@ -380,7 +390,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
               );
             })}
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           /* List Table View */
           <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
             <table className="w-full text-left text-xs">
@@ -438,6 +448,15 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
               </tbody>
             </table>
           </div>
+        ) : (
+          /* Calendar View */
+          <TaskCalendarView
+            tasks={filteredTasks}
+            projects={projects}
+            onEditTask={handleEditTask}
+            onOpenNewTask={handleOpenNewTask}
+            onUpdateTaskStatus={onUpdateTaskStatus}
+          />
         )}
       </div>
       </div>
