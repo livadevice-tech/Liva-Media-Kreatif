@@ -19,7 +19,9 @@ import {
   Database,
   ExternalLink,
   Users,
-  LogOut
+  LogOut,
+  Lock,
+  ShieldAlert
 } from 'lucide-react';
 import { appApi } from './services/appApi';
 import { 
@@ -36,9 +38,10 @@ import {
 import { ContentCalendarView } from './components/calendar/ContentCalendarView';
 import { ProjectKanbanView } from './components/projects/ProjectKanbanView';
 import { AccountManagementView } from './components/accounts/AccountManagementView';
+import { SettingsView } from './components/settings/SettingsView';
 import { LoginPage } from './components/auth/LoginPage';
 
-type NavigationTab = 'home' | 'calendar' | 'tasks' | 'accounts' | 'reports' | 'automation' | 'ai';
+type NavigationTab = 'home' | 'calendar' | 'tasks' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
@@ -539,13 +542,44 @@ export default function App() {
               {isSidebarOpen && <span>Help</span>}
             </button>
 
-            <button
-              onClick={() => alert('Workspace Settings')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              <Settings className="w-4 h-4 text-slate-500" />
-              {isSidebarOpen && <span>Settings</span>}
-            </button>
+            {/* Settings (Only accessible by Master Admin) */}
+            {currentUser?.role === 'Master Admin' ? (
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                  activeTab === 'settings'
+                    ? 'bg-purple-50 text-purple-700 font-semibold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+                title="Pengaturan Aplikasi (Master Admin)"
+              >
+                <Settings className={`w-4 h-4 ${activeTab === 'settings' ? 'text-purple-600' : 'text-slate-500'}`} />
+                {isSidebarOpen && (
+                  <div className="flex items-center justify-between flex-1">
+                    <span>Settings</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-bold uppercase tracking-wider">
+                      Master
+                    </span>
+                  </div>
+                )}
+              </button>
+            ) : (
+              <button
+                disabled
+                title="Pengaturan aplikasi hanya dapat diakses oleh Master Admin"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-slate-400/80 cursor-not-allowed bg-slate-50/50"
+              >
+                <Lock className="w-4 h-4 text-slate-400" />
+                {isSidebarOpen && (
+                  <div className="flex items-center justify-between flex-1">
+                    <span>Settings</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200/60 text-slate-500 font-medium">
+                      Terkunci
+                    </span>
+                  </div>
+                )}
+              </button>
+            )}
 
             {/* DB Status Badge (Clickable for diagnostics) */}
             <button
@@ -643,6 +677,34 @@ export default function App() {
             onSaveAccount={handleSaveAccount}
             onDeleteAccount={handleDeleteAccount}
           />
+        ) : activeTab === 'settings' ? (
+          currentUser?.role === 'Master Admin' ? (
+            <SettingsView
+              currentUser={currentUser}
+              dbStatus={dbStatus}
+              onCheckDb={checkDatabase}
+              checkingDb={checkingDb}
+              onNavigateToAccounts={() => setActiveTab('accounts')}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">
+              <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 mb-4 shadow-sm">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">
+                Akses Terbatas: Hanya Master Admin
+              </h2>
+              <p className="text-xs text-slate-500 max-w-md mt-2 mb-6 leading-relaxed">
+                Menu pengaturan konfigurasi aplikasi ini hanya dapat diakses oleh akun dengan wewenang <strong className="text-purple-700 font-semibold">Master Admin</strong>. Akun Anda saat ini memiliki peran <strong className="text-slate-700 font-semibold">{currentUser?.role || 'User'}</strong>.
+              </p>
+              <button
+                onClick={() => setActiveTab('calendar')}
+                className="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
+              >
+                Kembali ke Content Calendar
+              </button>
+            </div>
+          )
         ) : (
           /* Placeholder View for Home, Reports, Automation, AI with Quick Link */
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">

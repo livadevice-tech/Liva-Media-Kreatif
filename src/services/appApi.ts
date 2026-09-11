@@ -158,4 +158,14 @@ export const appApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
     }).then(handleResponse<{ success: boolean; user: UserAccount; message?: string }>),
+
+  // Application Settings
+  getSettings: <T = any>(key: string): Promise<T> =>
+    fetch(`${API_BASE}/settings/${key}`).then(handleResponse<T>),
+  saveSettings: (key: string, data: any): Promise<{ success: boolean; key: string }> =>
+    fetch(`${API_BASE}/settings/${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean; key: string }>),
 };
