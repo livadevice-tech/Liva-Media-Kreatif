@@ -120,6 +120,7 @@ export interface AssetFileItem {
   project_title?: string;
   source: 'calendar' | 'task' | 'manual';
   notes?: string;
+  is_private?: boolean;
   created_at?: string;
 }
 

@@ -737,6 +737,7 @@ export default function App() {
             projects={projects}
             posts={posts}
             tasks={tasks}
+            currentUser={currentUser}
             onOpenCalendar={() => setActiveTab('calendar')}
           />
         ) : activeTab === 'accounts' ? (

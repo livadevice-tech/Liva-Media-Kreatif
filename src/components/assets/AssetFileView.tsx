@@ -20,15 +20,19 @@ import {
   List as ListIcon,
   Tag,
   Briefcase,
-  Edit2
+  Edit2,
+  Lock,
+  Globe2,
+  ShieldAlert
 } from 'lucide-react';
-import { AssetFileItem, Brand, ContentPost, Task, Project } from '../../types/app';
+import { AssetFileItem, Brand, ContentPost, Task, Project, UserAccount } from '../../types/app';
 
 interface AssetFileViewProps {
   brands: Brand[];
   projects?: Project[];
   posts: ContentPost[];
   tasks: Task[];
+  currentUser?: UserAccount | null;
   onOpenCalendar?: () => void;
 }
 
@@ -39,8 +43,11 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
   projects = [],
   posts,
   tasks,
+  currentUser,
   onOpenCalendar,
 }) => {
+  const isMasterAdmin = currentUser?.role === 'Master Admin';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectType, setSelectedProjectType] = useState<'all' | 'Internal' | 'Client'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -60,12 +67,14 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     type: AssetFileItem['type'];
     project_type: 'Internal' | 'Client';
     notes: string;
+    is_private: boolean;
   }>({
     title: '',
     url: '',
     type: 'gdrive',
     project_type: 'Client',
     notes: '',
+    is_private: false,
   });
 
   const openSidebarForCreate = () => {
@@ -76,6 +85,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       type: 'gdrive',
       project_type: 'Client',
       notes: '',
+      is_private: false,
     });
     setIsSidebarOpen(true);
   };
@@ -89,6 +99,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       type: item.type,
       project_type: (item.project_type === 'Internal' || item.brand_name === 'Internal') ? 'Internal' : 'Client',
       notes: item.notes || '',
+      is_private: !!item.is_private,
     });
     setIsSidebarOpen(true);
   };
@@ -263,6 +274,11 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
   // Filter assets
   const filteredAssets = useMemo(() => {
     return allAssets.filter((item) => {
+      // Role-based privacy check: private assets only visible to Master Admin
+      if (item.is_private && !isMasterAdmin) {
+        return false;
+      }
+
       if (selectedProjectType !== 'all') {
         const itemType = item.project_type || (item.brand_name?.toLowerCase() === 'internal' ? 'Internal' : 'Client');
         if (itemType !== selectedProjectType) return false;
@@ -280,7 +296,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       }
       return true;
     });
-  }, [allAssets, selectedProjectType, selectedCategory, searchQuery]);
+  }, [allAssets, selectedProjectType, selectedCategory, searchQuery, isMasterAdmin]);
 
   // Copy URL to clipboard
   const handleCopyLink = (item: AssetFileItem) => {
@@ -306,6 +322,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
             project_type: assetForm.project_type,
             brand_name: assetForm.project_type,
             notes: assetForm.notes.trim() || undefined,
+            is_private: isMasterAdmin ? assetForm.is_private : item.is_private,
           };
         }
         return item;
@@ -322,6 +339,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
         brand_name: assetForm.project_type,
         source: 'manual',
         notes: assetForm.notes.trim() || undefined,
+        is_private: isMasterAdmin ? assetForm.is_private : false,
         created_at: new Date().toISOString(),
       };
       saveManualAssets([createdItem, ...manualAssets]);
@@ -530,12 +548,21 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                     className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex flex-col justify-between group"
                   >
                     <div>
-                      {/* Top Row: Type & Brand */}
+                      {/* Top Row: Type & Brand & Privacy */}
                       <div className="flex items-center justify-between gap-2 mb-2.5">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border ${typeInfo.badge}`}>
-                          {typeInfo.icon}
-                          <span>{typeInfo.label}</span>
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border ${typeInfo.badge}`}>
+                            {typeInfo.icon}
+                            <span>{typeInfo.label}</span>
+                          </span>
+
+                          {item.is_private && isMasterAdmin && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-300" title="Asset Private (Hanya Master Admin)">
+                              <Lock className="w-2.5 h-2.5" />
+                              <span>Private</span>
+                            </span>
+                          )}
+                        </div>
 
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[120px] ${
                           (item.project_type === 'Internal' || item.brand_name === 'Internal')
@@ -640,7 +667,15 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
                         <td className="py-3 px-4 font-semibold text-slate-900 max-w-xs truncate">
-                          <div className="truncate" title={item.title}>{item.title}</div>
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="truncate" title={item.title}>{item.title}</span>
+                            {item.is_private && isMasterAdmin && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-300 shrink-0">
+                                <Lock className="w-2.5 h-2.5" />
+                                <span>Private</span>
+                              </span>
+                            )}
+                          </div>
                           {item.notes && <div className="text-[10px] text-slate-400 truncate">{item.notes}</div>}
                         </td>
                         <td className="py-3 px-4">
@@ -824,6 +859,65 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                       </select>
                     </div>
                   </div>
+
+                  {/* Toggle Akses: Private / Public (Khusus Master Admin) */}
+                  {isMasterAdmin && (
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          {assetForm.is_private ? (
+                            <Lock className="w-3.5 h-3.5 text-amber-600" />
+                          ) : (
+                            <Globe2 className="w-3.5 h-3.5 text-emerald-600" />
+                          )}
+                          <span>Hak Akses Asset (Visibilitas)</span>
+                        </label>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 uppercase tracking-wider">
+                          Master Admin
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 bg-white p-1 rounded-xl border border-slate-200/80">
+                        <button
+                          type="button"
+                          onClick={() => setAssetForm({ ...assetForm, is_private: false })}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            !assetForm.is_private
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                              : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Globe2 className="w-3.5 h-3.5" />
+                          <span>Public (Semua Akun)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setAssetForm({ ...assetForm, is_private: true })}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            assetForm.is_private
+                              ? 'bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs'
+                              : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Private (Hanya Admin)</span>
+                        </button>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 leading-normal">
+                        {assetForm.is_private ? (
+                          <span className="text-amber-700 font-medium">
+                            🔒 <strong>Private:</strong> Asset ini hanya dapat dilihat dan diakses oleh akun <strong>Master Admin</strong>. Akun role Team tidak akan melihat asset ini.
+                          </span>
+                        ) : (
+                          <span className="text-slate-600">
+                            🌐 <strong>Public:</strong> Asset ini dapat dilihat dan diakses oleh seluruh anggota akun (Master Admin & Team).
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
