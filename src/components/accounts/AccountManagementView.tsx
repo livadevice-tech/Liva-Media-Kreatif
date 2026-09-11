@@ -38,7 +38,8 @@ export const AccountManagementView: React.FC<AccountManagementViewProps> = ({
   // Filtered accounts
   const filteredAccounts = useMemo(() => {
     return accounts.filter((acc) => {
-      if (selectedRoleFilter !== 'all' && acc.role !== selectedRoleFilter) return false;
+      if (selectedRoleFilter === 'Master Admin' && acc.role !== 'Master Admin') return false;
+      if (selectedRoleFilter === 'Team' && acc.role === 'Master Admin') return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = acc.full_name?.toLowerCase().includes(q);
@@ -50,13 +51,12 @@ export const AccountManagementView: React.FC<AccountManagementViewProps> = ({
     });
   }, [accounts, selectedRoleFilter, searchQuery]);
 
-  // Role stats
+  // Role stats (2 Roles: Master Admin & Team)
   const stats = useMemo(() => {
     return {
       total: accounts.length,
       masterAdmin: accounts.filter((a) => a.role === 'Master Admin').length,
-      admin: accounts.filter((a) => a.role === 'Admin').length,
-      staff: accounts.filter((a) => a.role === 'Staff').length,
+      team: accounts.filter((a) => a.role === 'Team' || a.role === 'Admin' || (a.role as string) === 'Staff').length,
     };
   }, [accounts]);
 
@@ -70,24 +70,17 @@ export const AccountManagementView: React.FC<AccountManagementViewProps> = ({
     setIsInspectorOpen(true);
   };
 
-  const getRoleBadge = (role: UserRole) => {
-    switch (role) {
-      case 'Master Admin':
-        return {
-          badge: 'bg-purple-50 text-purple-700 border-purple-200',
-          icon: <Crown className="w-3 h-3 text-purple-600" />,
-        };
-      case 'Admin':
-        return {
-          badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-          icon: <ShieldCheck className="w-3 h-3 text-indigo-600" />,
-        };
-      default:
-        return {
-          badge: 'bg-slate-100 text-slate-700 border-slate-200',
-          icon: <UserCheck className="w-3 h-3 text-slate-600" />,
-        };
+  const getRoleBadge = (role: UserRole | string) => {
+    if (role === 'Master Admin') {
+      return {
+        badge: 'bg-purple-50 text-purple-700 border-purple-200',
+        icon: <Crown className="w-3 h-3 text-purple-600" />,
+      };
     }
+    return {
+      badge: 'bg-blue-50 text-blue-700 border-blue-200',
+      icon: <Users className="w-3 h-3 text-blue-600" />,
+    };
   };
 
   return (
@@ -154,24 +147,14 @@ export const AccountManagementView: React.FC<AccountManagementViewProps> = ({
               Master Admin ({stats.masterAdmin})
             </button>
             <button
-              onClick={() => setSelectedRoleFilter('Admin')}
+              onClick={() => setSelectedRoleFilter('Team')}
               className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
-                selectedRoleFilter === 'Admin'
-                  ? 'bg-white text-indigo-700 shadow-2xs'
+                selectedRoleFilter === 'Team'
+                  ? 'bg-white text-blue-700 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Admin ({stats.admin})
-            </button>
-            <button
-              onClick={() => setSelectedRoleFilter('Staff')}
-              className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
-                selectedRoleFilter === 'Staff'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Staff ({stats.staff})
+              Team ({stats.team})
             </button>
           </div>
         </div>
@@ -215,9 +198,7 @@ export const AccountManagementView: React.FC<AccountManagementViewProps> = ({
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shadow-2xs ${
                               acc.role === 'Master Admin'
                                 ? 'bg-purple-100 text-purple-800'
-                                : acc.role === 'Admin'
-                                ? 'bg-indigo-100 text-indigo-800'
-                                : 'bg-slate-100 text-slate-800'
+                                : 'bg-blue-100 text-blue-800'
                             }`}>
                               {initials}
                             </div>

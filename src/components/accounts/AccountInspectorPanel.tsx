@@ -26,23 +26,16 @@ const ROLES: { id: UserRole; label: string; desc: string; badge: string; border:
   { 
     id: 'Master Admin', 
     label: 'Master Admin', 
-    desc: 'Akses penuh ke seluruh sistem, konfigurasi, dan database.',
+    desc: 'Akses penuh ke seluruh sistem, konfigurasi pengaturan aplikasi, manajemen akun tim, dan database.',
     badge: 'bg-purple-100 text-purple-800 border-purple-200',
     border: 'border-purple-500'
   },
   { 
-    id: 'Admin', 
-    label: 'Admin', 
-    desc: 'Mengelola jadwal konten, tugas proyek, dan pelaporan tim.',
-    badge: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    border: 'border-indigo-500'
-  },
-  { 
-    id: 'Staff', 
-    label: 'Staff', 
-    desc: 'Operasional harian: mengerjakan tugas dan jadwal konten terkait.',
-    badge: 'bg-slate-100 text-slate-800 border-slate-200',
-    border: 'border-slate-500'
+    id: 'Team', 
+    label: 'Team', 
+    desc: 'Akses seluruh modul operasional tim (Content Calendar, Tasks Kanban & Calendar, Brand, Pillars) kecuali menu khusus Master Admin.',
+    badge: 'bg-blue-100 text-blue-800 border-blue-200',
+    border: 'border-blue-500'
   },
 ];
 
@@ -58,7 +51,7 @@ export const AccountInspectorPanel: React.FC<AccountInspectorPanelProps> = ({
     password: '',
     full_name: '',
     position: '',
-    role: 'Staff',
+    role: 'Team',
     is_active: true,
   });
 
@@ -73,7 +66,7 @@ export const AccountInspectorPanel: React.FC<AccountInspectorPanelProps> = ({
         password: '', // leave blank when editing
         full_name: account.full_name || '',
         position: account.position || '',
-        role: account.role || 'Staff',
+        role: account.role === 'Master Admin' ? 'Master Admin' : 'Team',
         is_active: account.is_active !== false,
       });
     } else {
@@ -82,7 +75,7 @@ export const AccountInspectorPanel: React.FC<AccountInspectorPanelProps> = ({
         password: '',
         full_name: '',
         position: '',
-        role: 'Staff',
+        role: 'Team',
         is_active: true,
       });
     }

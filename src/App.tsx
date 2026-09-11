@@ -662,7 +662,9 @@ export default function App() {
                       {currentUser?.full_name || 'Admin User'}
                     </div>
                     <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
-                      <span className="font-semibold text-indigo-600">{currentUser?.role || 'Admin'}</span>
+                      <span className={`font-semibold ${currentUser?.role === 'Master Admin' ? 'text-purple-600' : 'text-blue-600'}`}>
+                        {currentUser?.role || 'Team'}
+                      </span>
                       {currentUser?.position && <span>• {currentUser.position}</span>}
                     </div>
                   </div>

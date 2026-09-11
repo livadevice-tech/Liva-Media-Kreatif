@@ -1,7 +1,7 @@
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
-export type UserRole = 'Master Admin' | 'Admin' | 'Staff';
+export type UserRole = 'Master Admin' | 'Team';
 
 export interface UserAccount {
   id: string;

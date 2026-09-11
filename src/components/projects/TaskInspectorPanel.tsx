@@ -855,9 +855,7 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
                               <span className={`text-[9px] px-1 py-0.2 rounded font-semibold shrink-0 ${
                                 acc.role === 'Master Admin' 
                                   ? 'bg-purple-50 text-purple-700' 
-                                  : acc.role === 'Admin' 
-                                  ? 'bg-blue-50 text-blue-700' 
-                                  : 'bg-slate-100 text-slate-600'
+                                  : 'bg-blue-50 text-blue-700'
                               }`}>
                                 {acc.role}
                               </span>

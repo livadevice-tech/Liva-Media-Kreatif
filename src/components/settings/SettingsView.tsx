@@ -820,7 +820,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     Tingkatan Wewenang Akun (Role Hierarchy)
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Master Admin Card */}
                     <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/50 space-y-2">
                       <div className="flex items-center gap-2 text-purple-800 font-bold text-xs">
@@ -828,29 +828,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         Master Admin
                       </div>
                       <p className="text-[11px] text-purple-900/80 leading-relaxed">
-                        Akses tertinggi sistem: Dapat mengatur seluruh pengaturan aplikasi, menambah & mengedit akun, serta melakukan hapus massal kalender.
+                        Akses penuh ke seluruh sistem: Mengatur konfigurasi & pengaturan aplikasi, kelola akun pengguna, koneksi database, serta semua fitur operasional.
                       </p>
                     </div>
 
-                    {/* Admin Card */}
-                    <div className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-2">
-                      <div className="flex items-center gap-2 text-indigo-800 font-bold text-xs">
-                        <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                        Admin
+                    {/* Team Card */}
+                    <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 space-y-2">
+                      <div className="flex items-center gap-2 text-blue-800 font-bold text-xs">
+                        <Users className="w-4 h-4 text-blue-600" />
+                        Team
                       </div>
-                      <p className="text-[11px] text-indigo-900/80 leading-relaxed">
-                        Akses manajerial operasional: Mengelola Content Calendar, Kanban Board, Brand Client, dan Content Pillars.
-                      </p>
-                    </div>
-
-                    {/* Staff Card */}
-                    <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
-                      <div className="flex items-center gap-2 text-slate-800 font-bold text-xs">
-                        <Lock className="w-4 h-4 text-slate-500" />
-                        Staff / Kreator
-                      </div>
-                      <p className="text-[11px] text-slate-600 leading-relaxed">
-                        Akses tugas & jadwal: Melihat tugas yang ditugaskan (assigned to), update status task, dan melihat konten kalender.
+                      <p className="text-[11px] text-blue-900/80 leading-relaxed">
+                        Akses operasional tim: Dapat mengakses modul kerja (Content Calendar, Tasks Kanban & Kalender, Brand Klien, Content Pillars), kecuali menu pengaturan dan hak akses yang hanya ditandai untuk Master Admin.
                       </p>
                     </div>
                   </div>

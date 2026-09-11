@@ -782,7 +782,7 @@ projectAppRouter.get('/accounts', async (_req: Request, res: Response) => {
     const [rows] = await pool.query<any[]>(`
       SELECT id, username, password_hash as password, full_name, position, role, avatar_url, is_active, created_at, updated_at
       FROM app_users
-      ORDER BY FIELD(role, 'Master Admin', 'Admin', 'Staff'), created_at ASC
+      ORDER BY FIELD(role, 'Master Admin', 'Team'), created_at ASC
     `);
     res.json(rows);
   } catch (error: any) {

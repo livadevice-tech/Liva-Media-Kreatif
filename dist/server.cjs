@@ -1922,7 +1922,7 @@ projectAppRouter.get("/accounts", async (_req, res) => {
     const [rows] = await pool2.query(`
       SELECT id, username, password_hash as password, full_name, position, role, avatar_url, is_active, created_at, updated_at
       FROM app_users
-      ORDER BY FIELD(role, 'Master Admin', 'Admin', 'Staff'), created_at ASC
+      ORDER BY FIELD(role, 'Master Admin', 'Team'), created_at ASC
     `);
     res.json(rows);
   } catch (error) {
@@ -2175,6 +2175,11 @@ async function runProjectAppMigrations() {
   }
   try {
     await pool2.execute(`ALTER TABLE pm_tasks MODIFY COLUMN tags TEXT NULL`);
+  } catch (e) {
+  }
+  try {
+    await pool2.execute(`ALTER TABLE app_users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'Team'`);
+    await pool2.execute(`UPDATE app_users SET role = 'Team' WHERE role IN ('Admin', 'Staff')`);
   } catch (e) {
   }
   console.log("\u2705 Seluruh tabel berhasil diverifikasi/dibuat!");
