@@ -377,20 +377,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                             {task.title}
                           </h3>
 
-                          {/* Tags / Labels */}
-                          {task.tags && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {task.tags.split(',').slice(0, 3).map((tag, idx) => {
-                                const t = tag.trim();
-                                if (!t) return null;
-                                return (
-                                  <span key={idx} className="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                                    #{t}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          )}
+
 
                           {/* Due Date & Assignee */}
                           <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">

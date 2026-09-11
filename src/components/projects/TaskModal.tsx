@@ -187,28 +187,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
 
-          {/* Due Date & Tags */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1.5">Tenggat Waktu (Deadline)</label>
-              <input
-                type="date"
-                value={formData.due_date || ''}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1.5">Label / Tags</label>
-              <input
-                type="text"
-                value={formData.tags || ''}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                placeholder="Design, Copy, Video, Approval"
-                className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
-              />
-            </div>
+          {/* Due Date */}
+          <div>
+            <label className="block font-semibold text-slate-300 mb-1.5">Tenggat Waktu (Deadline)</label>
+            <input
+              type="date"
+              value={formData.due_date || ''}
+              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-mono"
+            />
           </div>
 
           {/* Description */}
