@@ -630,6 +630,7 @@ export default function App() {
             tasks={tasks}
             projects={projects}
             brands={brands}
+            accounts={accounts}
             onSaveTask={handleSaveTask}
             onDeleteTask={handleDeleteTask}
             onUpdateTaskStatus={handleUpdateTaskStatus}

@@ -19,7 +19,7 @@ import {
   ChevronDown,
   Download,
 } from 'lucide-react';
-import { Task, Project, Brand, TaskStatus, TaskPriority } from '../../types/app';
+import { Task, Project, Brand, TaskStatus, TaskPriority, UserAccount } from '../../types/app';
 import { TaskInspectorPanel } from './TaskInspectorPanel';
 import { ProjectModal } from './ProjectModal';
 
@@ -27,6 +27,7 @@ interface ProjectKanbanViewProps {
   tasks: Task[];
   projects: Project[];
   brands: Brand[];
+  accounts?: UserAccount[];
   onSaveTask: (task: Partial<Task>) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
   onUpdateTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
@@ -52,6 +53,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   tasks,
   projects,
   brands,
+  accounts,
   onSaveTask,
   onDeleteTask,
   onUpdateTaskStatus,
@@ -449,6 +451,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
         projects={projects}
         task={editingTask}
         defaultStatus={defaultTaskStatus}
+        accounts={accounts}
       />
 
       {/* Project Modal */}

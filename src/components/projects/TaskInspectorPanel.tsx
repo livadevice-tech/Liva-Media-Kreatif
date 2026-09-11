@@ -26,7 +26,8 @@ import {
   Flag,
   Copy
 } from 'lucide-react';
-import { Task, Project, TaskStatus, TaskPriority } from '../../types/app';
+import { Task, Project, TaskStatus, TaskPriority, UserAccount } from '../../types/app';
+import { appApi } from '../../services/appApi';
 
 interface TaskInspectorPanelProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ interface TaskInspectorPanelProps {
   task: Partial<Task> | null;
   projects: Project[];
   defaultStatus?: TaskStatus;
+  accounts?: UserAccount[];
 }
 
 export interface TaskLink {
@@ -65,15 +67,6 @@ const DEFAULT_LABELS: CustomLabel[] = [
   { id: 'lbl-urgent', name: 'Urgent', color: '#f43f5e' },
   { id: 'lbl-approval', name: 'Approval', color: '#f59e0b' },
   { id: 'lbl-client', name: 'Client Request', color: '#06b6d4' },
-];
-
-const PRESET_TEAM_MEMBERS = [
-  { name: 'Nazmi Javier', role: 'Copywriter' },
-  { name: 'Emilia Inder', role: 'Graphic Designer' },
-  { name: 'Rian', role: 'Videographer & Editor' },
-  { name: 'Galang', role: 'Creative Director' },
-  { name: 'Sarah', role: 'Social Media Specialist' },
-  { name: 'Dina', role: 'Account Manager' },
 ];
 
 const COLOR_PRESETS = [
@@ -111,7 +104,23 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
   task,
   projects,
   defaultStatus = 'todo',
+  accounts = [],
 }) => {
+  // 0. Accounts from Master Admin / Manajemen Akun
+  const [teamAccounts, setTeamAccounts] = useState<UserAccount[]>(accounts || []);
+
+  useEffect(() => {
+    if (accounts && accounts.length > 0) {
+      setTeamAccounts(accounts);
+    } else {
+      appApi.getAccounts().then((res) => {
+        if (res && res.length > 0) {
+          setTeamAccounts(res);
+        }
+      }).catch((err) => console.error('Failed to load accounts for tasks:', err));
+    }
+  }, [accounts, isOpen]);
+
   // 1. Resizable Width State & Drag Handle
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     try {
@@ -798,33 +807,83 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
                 </button>
               </div>
 
-              {/* Quick suggestions from team */}
+              {/* Accounts from Master Admin (Manajemen Akun) */}
               <div>
-                <span className="text-[10px] font-semibold text-slate-400 block mb-1">Rekomendasi Anggota Tim:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {PRESET_TEAM_MEMBERS.map((tm) => {
-                    const isAdded = assigneeList.includes(tm.name);
-                    return (
-                      <button
-                        key={tm.name}
-                        type="button"
-                        onClick={() => isAdded ? handleRemoveAssignee(tm.name) : handleAddAssignee(tm.name)}
-                        className={`text-[11px] px-2 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
-                          isAdded
-                            ? 'bg-indigo-50 border-indigo-300 text-indigo-700 font-bold'
-                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{tm.name}</span>
-                        {isAdded ? (
-                          <Check className="w-3 h-3 text-indigo-600 stroke-[3]" />
-                        ) : (
-                          <span className="text-[10px] text-slate-400">({tm.role})</span>
-                        )}
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <User className="w-3 h-3 text-indigo-600" />
+                    <span>Pilih Akun Tim (Manajemen Akun):</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {teamAccounts.length} akun terdaftar
+                  </span>
                 </div>
+
+                {teamAccounts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto custom-scrollbar p-0.5">
+                    {teamAccounts.map((acc) => {
+                      const isAdded = assigneeList.includes(acc.full_name);
+                      const initials = acc.full_name
+                        .split(' ')
+                        .map(w => w[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2);
+
+                      return (
+                        <button
+                          key={acc.id}
+                          type="button"
+                          onClick={() => isAdded ? handleRemoveAssignee(acc.full_name) : handleAddAssignee(acc.full_name)}
+                          className={`flex items-center gap-2.5 p-2 px-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                            isAdded
+                              ? 'bg-indigo-50/90 border-indigo-400 text-indigo-950 ring-2 ring-indigo-400/20 shadow-2xs font-bold'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                            isAdded ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {initials}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold truncate leading-tight">{acc.full_name}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-slate-400 truncate">
+                                {acc.position || 'Staff'}
+                              </span>
+                              <span className={`text-[9px] px-1 py-0.2 rounded font-semibold shrink-0 ${
+                                acc.role === 'Master Admin' 
+                                  ? 'bg-purple-50 text-purple-700' 
+                                  : acc.role === 'Admin' 
+                                  ? 'bg-blue-50 text-blue-700' 
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {acc.role}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="shrink-0 ml-1">
+                            {isAdded ? (
+                              <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-slate-400 hover:border-indigo-400 hover:text-indigo-600">
+                                <Plus className="w-3 h-3" />
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Belum ada akun di Manajemen Akun. Master Admin dapat menambahkan akun terlebih dahulu di tab <strong>Manajemen Akun</strong>.</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
