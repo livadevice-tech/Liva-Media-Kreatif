@@ -38,7 +38,7 @@ import {
 import { ContentCalendarView } from './components/calendar/ContentCalendarView';
 import { ProjectKanbanView } from './components/projects/ProjectKanbanView';
 import { AccountManagementView } from './components/accounts/AccountManagementView';
-import { SettingsView } from './components/settings/SettingsView';
+import { SettingsView, AppSettings, DEFAULT_SETTINGS } from './components/settings/SettingsView';
 import { LoginPage } from './components/auth/LoginPage';
 
 type NavigationTab = 'home' | 'calendar' | 'tasks' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
@@ -64,6 +64,39 @@ export default function App() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [pillars, setPillars] = useState<ContentPillar[]>([]);
   const [accounts, setAccounts] = useState<UserAccount[]>([]);
+
+  // Application Settings (Configurable App & Website Name)
+  const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const data = await appApi.getSettings<Partial<AppSettings>>('liva_app_settings');
+      if (data && typeof data === 'object') {
+        const merged: AppSettings = {
+          general: { ...DEFAULT_SETTINGS.general, ...(data.general || {}) },
+          contentWorkflow: { ...DEFAULT_SETTINGS.contentWorkflow, ...(data.contentWorkflow || {}) },
+          tasksWorkflow: { ...DEFAULT_SETTINGS.tasksWorkflow, ...(data.tasksWorkflow || {}) },
+          system: { ...DEFAULT_SETTINGS.system, ...(data.system || {}) },
+        };
+        setAppSettings(merged);
+        if (merged.general?.appName) {
+          document.title = merged.general.appName;
+        }
+      }
+    } catch (e) {
+      console.warn('Gagal memuat pengaturan aplikasi:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  // Dynamic Website / Browser Tab Title
+  useEffect(() => {
+    const title = appSettings.general?.appName || 'Liva Agency Hub';
+    document.title = title;
+  }, [appSettings.general?.appName]);
 
   // Database Connection
   const [dbStatus, setDbStatus] = useState<DbStatus | null>(null);
@@ -342,6 +375,7 @@ export default function App() {
           </div>
         )}
         <LoginPage
+          appName={appSettings.general?.appName}
           onLoginSuccess={(user) => {
             setCurrentUser(user);
             showToast(`Selamat datang kembali, ${user.full_name}!`, 'success');
@@ -387,11 +421,15 @@ export default function App() {
                 <Sparkles className="w-4 h-4" />
               </div>
               {isSidebarOpen && (
-                <div className="flex items-center gap-1 cursor-pointer hover:opacity-80">
-                  <span className="font-bold text-sm text-slate-900 tracking-tight">
-                    Inside
+                <div 
+                  onClick={() => currentUser?.role === 'Master Admin' ? setActiveTab('settings') : null}
+                  className="flex items-center gap-1 cursor-pointer hover:opacity-80 min-w-0 max-w-[140px]"
+                  title={appSettings.general?.appName || 'Liva Agency Hub'}
+                >
+                  <span className="font-bold text-sm text-slate-900 tracking-tight truncate">
+                    {appSettings.general?.appName || 'Liva Agency Hub'}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </div>
               )}
             </div>
@@ -685,6 +723,13 @@ export default function App() {
               onCheckDb={checkDatabase}
               checkingDb={checkingDb}
               onNavigateToAccounts={() => setActiveTab('accounts')}
+              appSettings={appSettings}
+              onSettingsSaved={(newSettings) => {
+                setAppSettings(newSettings);
+                if (newSettings.general?.appName) {
+                  document.title = newSettings.general.appName;
+                }
+              }}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">

@@ -15,9 +15,10 @@ import { appApi } from '../../services/appApi';
 interface LoginPageProps {
   onLoginSuccess: (user: UserAccount) => void;
   dbConnected?: boolean;
+  appName?: string;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, dbConnected = true }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, dbConnected = true, appName }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,35 +29,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, dbConnecte
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password) {
-      setError('Silakan masukkan username dan password.');
+      setError('Mohon masukkan username dan password.');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
     try {
-      // Strictly authenticate against the app_users table managed in Manajemen Akun
-      const result = await appApi.login({ username: username.trim(), password });
-      if (result.success && result.user) {
+      setLoading(true);
+      setError(null);
+      const res = await appApi.login({ username: username.trim(), password });
+      if (res.success && res.user) {
         if (rememberMe) {
-          localStorage.setItem('liva_user_session', JSON.stringify(result.user));
+          localStorage.setItem('liva_user_session', JSON.stringify(res.user));
         }
-        onLoginSuccess(result.user);
+        onLoginSuccess(res.user);
       } else {
-        setError(result.message || 'Username atau password salah.');
+        setError(res.message || 'Login gagal. Periksa kembali akun Anda.');
       }
     } catch (err: any) {
-      setError(err.message || 'Gagal login. Pastikan username dan password sesuai dengan akun di Manajemen Akun.');
+      setError(err.message || 'Gagal masuk ke sistem. Periksa koneksi ke server.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full bg-radial-[at_50%_0%] from-indigo-50/80 via-slate-50 to-slate-100 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans">
-      {/* Background Decorative Ambient Blobs */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-200/40 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-indigo-50/40 to-slate-100 p-4 relative overflow-hidden font-sans">
+      {/* Decorative Blur Backgrounds */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-200/50 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-200/40 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-100/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -68,7 +67,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, dbConnecte
             <Layers className="w-7 h-7" />
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Liva Agency
+            {appName || 'Liva Agency'}
           </h1>
           <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
             Silakan masuk dengan akun yang terdaftar di Manajemen Akun

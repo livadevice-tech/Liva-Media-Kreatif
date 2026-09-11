@@ -56,7 +56,7 @@ export interface AppSettings {
   };
 }
 
-const DEFAULT_SETTINGS: AppSettings = {
+export const DEFAULT_SETTINGS: AppSettings = {
   general: {
     appName: 'Liva Agency Hub',
     agencyName: 'Liva Media Kreatif',
@@ -93,6 +93,8 @@ interface SettingsViewProps {
   onCheckDb: () => Promise<void>;
   checkingDb: boolean;
   onNavigateToAccounts?: () => void;
+  appSettings?: AppSettings;
+  onSettingsSaved?: (newSettings: AppSettings) => void;
 }
 
 type SettingsTab = 'general' | 'workflow' | 'database' | 'security';
@@ -103,27 +105,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onCheckDb,
   checkingDb,
   onNavigateToAccounts,
+  appSettings: initialAppSettings,
+  onSettingsSaved,
 }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<AppSettings>(initialAppSettings || DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(!initialAppSettings);
   const [saving, setSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Load settings from backend
+  // Sync if prop changes
   useEffect(() => {
+    if (initialAppSettings) {
+      setSettings(initialAppSettings);
+    }
+  }, [initialAppSettings]);
+
+  // Load settings from backend if not passed
+  useEffect(() => {
+    if (initialAppSettings) {
+      setLoading(false);
+      return;
+    }
     let isMounted = true;
     const loadSettings = async () => {
       try {
         setLoading(true);
         const data = await appApi.getSettings<Partial<AppSettings>>('liva_app_settings');
         if (isMounted && data && typeof data === 'object') {
-          setSettings({
+          const loaded: AppSettings = {
             general: { ...DEFAULT_SETTINGS.general, ...(data.general || {}) },
             contentWorkflow: { ...DEFAULT_SETTINGS.contentWorkflow, ...(data.contentWorkflow || {}) },
             tasksWorkflow: { ...DEFAULT_SETTINGS.tasksWorkflow, ...(data.tasksWorkflow || {}) },
             system: { ...DEFAULT_SETTINGS.system, ...(data.system || {}) },
-          });
+          };
+          setSettings(loaded);
+          if (onSettingsSaved) onSettingsSaved(loaded);
         }
       } catch (err) {
         console.warn('Could not load custom settings, using defaults:', err);
@@ -135,12 +152,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialAppSettings, onSettingsSaved]);
 
   const handleSave = async () => {
     try {
       setSaving(true);
       await appApi.saveSettings('liva_app_settings', settings);
+      if (onSettingsSaved) {
+        onSettingsSaved(settings);
+      }
       setNotification({
         type: 'success',
         message: 'Pengaturan aplikasi berhasil disimpan dan diperbarui!',
