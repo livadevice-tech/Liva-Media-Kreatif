@@ -707,6 +707,7 @@ export default function App() {
             projects={projects}
             brands={brands}
             accounts={accounts}
+            currentUser={currentUser}
             onSaveTask={handleSaveTask}
             onDeleteTask={handleDeleteTask}
             onUpdateTaskStatus={handleUpdateTaskStatus}

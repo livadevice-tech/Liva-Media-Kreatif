@@ -29,6 +29,7 @@ interface ProjectKanbanViewProps {
   projects: Project[];
   brands: Brand[];
   accounts?: UserAccount[];
+  currentUser?: UserAccount | null;
   onSaveTask: (task: Partial<Task>) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
   onUpdateTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
@@ -55,6 +56,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   projects,
   brands,
   accounts,
+  currentUser,
   onSaveTask,
   onDeleteTask,
   onUpdateTaskStatus,
@@ -65,6 +67,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
+  const [assigneeScope, setAssigneeScope] = useState<'all' | 'me'>('all');
 
   // Modal states
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -74,9 +77,41 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Partial<Project> | null>(null);
 
-  // Filter tasks based on search and filters
+  // Helper to check if a task is assigned to currentUser
+  const isTaskAssignedToMe = (task: Task, user: UserAccount | null | undefined): boolean => {
+    if (!user || !task.assignee_name) return false;
+    const raw = task.assignee_name.toLowerCase();
+
+    // Check full name
+    if (user.full_name) {
+      const fn = user.full_name.toLowerCase().trim();
+      if (fn && raw.includes(fn)) return true;
+
+      // Also split first name (e.g. "Galang" from "Galang (Head Creative)")
+      const firstName = fn.split(/[\s(]/)[0]?.trim();
+      if (firstName && firstName.length >= 3 && raw.includes(firstName)) return true;
+    }
+
+    // Check username
+    if (user.username) {
+      const un = user.username.toLowerCase().trim();
+      if (un && raw.includes(un)) return true;
+    }
+
+    // Check id
+    if (user.id && raw.includes(user.id.toLowerCase())) return true;
+
+    return false;
+  };
+
+  const myTasksCount = useMemo(() => {
+    return tasks.filter((t) => isTaskAssignedToMe(t, currentUser)).length;
+  }, [tasks, currentUser]);
+
+  // Filter tasks based on search, project, priority, and assigneeScope (All / Assign me)
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
+      if (assigneeScope === 'me' && !isTaskAssignedToMe(task, currentUser)) return false;
       if (selectedProjectId !== 'all' && task.project_id !== selectedProjectId) return false;
       if (selectedPriority !== 'all' && task.priority !== selectedPriority) return false;
       if (searchQuery.trim()) {
@@ -88,7 +123,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
       }
       return true;
     });
-  }, [tasks, selectedProjectId, selectedPriority, searchQuery]);
+  }, [tasks, assigneeScope, currentUser, selectedProjectId, selectedPriority, searchQuery]);
 
   // Group tasks by status for columns
   const tasksByColumn = useMemo(() => {
@@ -168,9 +203,9 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
 
       {/* Filter & View Toolbar */}
       <div className="h-14 px-6 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0 gap-4">
-        {/* Search & Project Selector */}
-        <div className="flex items-center space-x-3 flex-1 max-w-md">
-          <div className="relative w-full">
+        {/* Search, Project Selector & Assignee Scope Toggle */}
+        <div className="flex items-center space-x-2.5 flex-1 min-w-0 max-w-2xl">
+          <div className="relative w-full min-w-[160px] max-w-xs">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -184,13 +219,48 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-medium text-slate-700 focus:outline-none cursor-pointer"
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-medium text-slate-700 focus:outline-none cursor-pointer shrink-0 max-w-[160px] truncate"
           >
             <option value="all">All Projects</option>
             {projects.map(p => (
               <option key={p.id} value={p.id}>{p.title}</option>
             ))}
           </select>
+
+          {/* Toggle: All / Assign me */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200/60 shrink-0">
+            <button
+              type="button"
+              onClick={() => setAssigneeScope('all')}
+              className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                assigneeScope === 'all'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>All</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAssigneeScope('me')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                assigneeScope === 'me'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title={currentUser ? `Ditugaskan ke ${currentUser.full_name || currentUser.username}` : 'Ditugaskan ke saya'}
+            >
+              <User className={`w-3 h-3 ${assigneeScope === 'me' ? 'text-white' : 'text-slate-400'}`} />
+              <span>Assign me</span>
+              {myTasksCount > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  assigneeScope === 'me' ? 'bg-indigo-700/90 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {myTasksCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* View Switcher */}
