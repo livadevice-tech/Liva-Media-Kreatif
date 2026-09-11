@@ -41,6 +41,7 @@ export interface Project {
   brand_name?: string;
   brand_color?: string;
   title: string;
+  project_type?: 'Internal' | 'Client' | string;
   description?: string;
   status: 'planning' | 'in_progress' | 'review' | 'completed';
   priority: TaskPriority;

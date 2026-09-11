@@ -36,6 +36,7 @@ export interface Project {
   brand_id?: string;
   brand_name?: string;
   title: string;
+  project_type?: 'Internal' | 'Client' | string;
   description?: string;
   status: ProjectStatus;
   priority: TaskPriority;
@@ -113,6 +114,7 @@ export interface AssetFileItem {
   title: string;
   url: string;
   type: 'gdrive' | 'figma' | 'canva' | 'video' | 'image' | 'document' | 'other';
+  project_type?: 'Internal' | 'Client';
   brand_id?: string;
   brand_name?: string;
   project_title?: string;

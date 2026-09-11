@@ -21,10 +21,11 @@ import {
   Tag,
   Briefcase
 } from 'lucide-react';
-import { AssetFileItem, Brand, ContentPost, Task } from '../../types/app';
+import { AssetFileItem, Brand, ContentPost, Task, Project } from '../../types/app';
 
 interface AssetFileViewProps {
   brands: Brand[];
+  projects?: Project[];
   posts: ContentPost[];
   tasks: Task[];
   onOpenCalendar?: () => void;
@@ -34,12 +35,13 @@ const STORAGE_KEY = 'liva_custom_asset_files';
 
 export const AssetFileView: React.FC<AssetFileViewProps> = ({
   brands,
+  projects = [],
   posts,
   tasks,
   onOpenCalendar,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState<string>('all');
+  const [selectedProjectType, setSelectedProjectType] = useState<'all' | 'Internal' | 'Client'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -50,13 +52,13 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     title: string;
     url: string;
     type: AssetFileItem['type'];
-    brand_id: string;
+    project_type: 'Internal' | 'Client';
     notes: string;
   }>({
     title: '',
     url: '',
     type: 'gdrive',
-    brand_id: brands[0]?.id || '',
+    project_type: 'Client',
     notes: '',
   });
 
@@ -72,19 +74,19 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
         title: 'Master Google Drive - Liva Creative Media Q3/Q4',
         url: 'https://drive.google.com/drive/folders/liva-master-assets-2026',
         type: 'gdrive',
-        brand_id: 'b-liva',
-        brand_name: 'Liva Creative Media',
+        project_type: 'Internal',
+        brand_name: 'Internal',
         source: 'manual',
         notes: 'Folder utama asset foto, video raw footage, dan project files agency',
         created_at: new Date().toISOString(),
       },
       {
         id: 'asset-default-2',
-        title: 'Figma UI/UX & Brand Design System Wardah',
-        url: 'https://figma.com/@wardah-brand-system-2026',
+        title: 'Figma UI/UX & Brand Design System Client',
+        url: 'https://figma.com/@client-brand-system-2026',
         type: 'figma',
-        brand_id: 'b-wardah',
-        brand_name: 'Wardah Official',
+        project_type: 'Client',
+        brand_name: 'Client',
         source: 'manual',
         notes: 'Komponen desain feed Instagram, carousel template & story guide',
         created_at: new Date().toISOString(),
@@ -92,10 +94,10 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       {
         id: 'asset-default-3',
         title: 'Canva Template Bundling Promo 9.9',
-        url: 'https://canva.com/design/wardah-promo-bundling-sale',
+        url: 'https://canva.com/design/client-promo-bundling-sale',
         type: 'canva',
-        brand_id: 'b-wardah',
-        brand_name: 'Wardah Official',
+        project_type: 'Client',
+        brand_name: 'Client',
         source: 'manual',
         notes: 'Template materi promosi kilat TikTok & Instagram Story',
         created_at: new Date().toISOString(),
@@ -122,13 +124,23 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     return 'other';
   };
 
+  // Map helper to determine if a project is Internal or Client
+  const getProjectType = (projectId?: string): 'Internal' | 'Client' => {
+    if (!projectId) return 'Client';
+    const found = projects.find(p => p.id === projectId);
+    if (found && found.project_type) {
+      return (found.project_type.toLowerCase() === 'internal') ? 'Internal' : 'Client';
+    }
+    return 'Client';
+  };
+
   // Extract assets from content posts (media_urls)
   const calendarAssets = useMemo<AssetFileItem[]>(() => {
     const list: AssetFileItem[] = [];
     posts.forEach((p) => {
       if (p.media_urls && typeof p.media_urls === 'string' && p.media_urls.trim()) {
         const raw = p.media_urls.trim();
-        // Support multiple comma-separated or space-separated URLs
+        const pType = getProjectType(p.project_id);
         const urls = raw.split(/[\n,]+/).map((u) => u.trim()).filter((u) => u.startsWith('http') || u.includes('.'));
         if (urls.length > 0) {
           urls.forEach((u, i) => {
@@ -137,8 +149,8 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
               title: `${p.title} ${urls.length > 1 ? `(Asset ${i + 1})` : ''}`,
               url: u,
               type: detectType(u),
-              brand_id: p.brand_id,
-              brand_name: p.brand_name || brands.find((b) => b.id === p.brand_id)?.name || 'General',
+              project_type: pType,
+              brand_name: pType,
               project_title: `Konten: ${p.pillar_name || 'Calendar'}`,
               source: 'calendar',
               notes: p.caption ? `Caption: ${p.caption.slice(0, 70)}...` : undefined,
@@ -151,8 +163,8 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
             title: p.title,
             url: raw,
             type: detectType(raw),
-            brand_id: p.brand_id,
-            brand_name: p.brand_name || brands.find((b) => b.id === p.brand_id)?.name || 'General',
+            project_type: pType,
+            brand_name: pType,
             project_title: `Konten: ${p.pillar_name || 'Calendar'}`,
             source: 'calendar',
             created_at: p.scheduled_at,
@@ -161,7 +173,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       }
     });
     return list;
-  }, [posts, brands]);
+  }, [posts, projects]);
 
   // Extract assets from tasks (links)
   const taskAssets = useMemo<AssetFileItem[]>(() => {
@@ -169,6 +181,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     tasks.forEach((t) => {
       if (t.links && typeof t.links === 'string' && t.links.trim()) {
         const raw = t.links.trim();
+        const pType = getProjectType(t.project_id);
         const urls = raw.split(/[\n,]+/).map((u) => u.trim()).filter((u) => u.startsWith('http') || u.includes('.'));
         urls.forEach((u, i) => {
           list.push({
@@ -176,7 +189,8 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
             title: `${t.title} ${urls.length > 1 ? `(Tautan ${i + 1})` : ''}`,
             url: u,
             type: detectType(u),
-            brand_name: t.brand_name || 'Project Task',
+            project_type: pType,
+            brand_name: pType,
             project_title: t.project_title || 'Task Management',
             source: 'task',
             created_at: t.due_date,
@@ -185,7 +199,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       }
     });
     return list;
-  }, [tasks]);
+  }, [tasks, projects]);
 
   // Combine all assets
   const allAssets = useMemo(() => {
@@ -195,10 +209,9 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
   // Filter assets
   const filteredAssets = useMemo(() => {
     return allAssets.filter((item) => {
-      if (selectedBrand !== 'all') {
-        const brandMatch = item.brand_id === selectedBrand || 
-          (brands.find(b => b.id === selectedBrand)?.name.toLowerCase() === item.brand_name?.toLowerCase());
-        if (!brandMatch) return false;
+      if (selectedProjectType !== 'all') {
+        const itemType = item.project_type || (item.brand_name?.toLowerCase() === 'internal' ? 'Internal' : 'Client');
+        if (itemType !== selectedProjectType) return false;
       }
       if (selectedCategory !== 'all' && item.type !== selectedCategory) {
         return false;
@@ -207,13 +220,13 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
         const q = searchQuery.toLowerCase();
         const matchTitle = item.title.toLowerCase().includes(q);
         const matchUrl = item.url.toLowerCase().includes(q);
-        const matchBrand = item.brand_name?.toLowerCase().includes(q);
+        const matchType = item.project_type?.toLowerCase().includes(q);
         const matchNotes = item.notes?.toLowerCase().includes(q);
-        if (!matchTitle && !matchUrl && !matchBrand && !matchNotes) return false;
+        if (!matchTitle && !matchUrl && !matchType && !matchNotes) return false;
       }
       return true;
     });
-  }, [allAssets, selectedBrand, selectedCategory, searchQuery, brands]);
+  }, [allAssets, selectedProjectType, selectedCategory, searchQuery]);
 
   // Copy URL to clipboard
   const handleCopyLink = (item: AssetFileItem) => {
@@ -227,14 +240,13 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     e.preventDefault();
     if (!newAsset.title.trim() || !newAsset.url.trim()) return;
 
-    const brandObj = brands.find((b) => b.id === newAsset.brand_id);
     const createdItem: AssetFileItem = {
       id: `manual-${Date.now()}`,
       title: newAsset.title.trim(),
       url: newAsset.url.trim(),
       type: newAsset.type || detectType(newAsset.url),
-      brand_id: newAsset.brand_id,
-      brand_name: brandObj?.name || 'General',
+      project_type: newAsset.project_type,
+      brand_name: newAsset.project_type,
       source: 'manual',
       notes: newAsset.notes.trim() || undefined,
       created_at: new Date().toISOString(),
@@ -246,7 +258,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       title: '',
       url: '',
       type: 'gdrive',
-      brand_id: brands[0]?.id || '',
+      project_type: 'Client',
       notes: '',
     });
   };
@@ -350,18 +362,15 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
             />
           </div>
 
-          {/* Brand Filter */}
+          {/* Jenis Project Filter (Internal / Client) */}
           <select
-            value={selectedBrand}
-            onChange={(e) => setSelectedBrand(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-slate-200/90 rounded-xl text-xs font-medium text-slate-700 focus:outline-none cursor-pointer"
+            value={selectedProjectType}
+            onChange={(e) => setSelectedProjectType(e.target.value as any)}
+            className="px-3 py-1.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="all">Semua Brand / Klien</option>
-            {brands.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
+            <option value="all">Semua Project (Internal / Client)</option>
+            <option value="Internal">Internal</option>
+            <option value="Client">Client</option>
           </select>
 
           {/* Category Chips */}
@@ -454,8 +463,12 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                         <span>{typeInfo.label}</span>
                       </span>
 
-                      <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[120px]">
-                        {item.brand_name || 'General'}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[120px] ${
+                        (item.project_type === 'Internal' || item.brand_name === 'Internal')
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}>
+                        {item.project_type || item.brand_name || 'Client'}
                       </span>
                     </div>
 
@@ -529,7 +542,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-3 px-4">Nama Asset</th>
                   <th className="py-3 px-4">Jenis / Type</th>
-                  <th className="py-3 px-4">Brand / Klien</th>
+                  <th className="py-3 px-4">Jenis Project</th>
                   <th className="py-3 px-4">Sumber</th>
                   <th className="py-3 px-4 text-right">Aksi</th>
                 </tr>
@@ -552,8 +565,14 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                           <span>{typeInfo.label}</span>
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-medium text-slate-600">
-                        {item.brand_name || 'General'}
+                      <td className="py-3 px-4 font-medium">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                          (item.project_type === 'Internal' || item.brand_name === 'Internal')
+                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          {item.project_type || item.brand_name || 'Client'}
+                        </span>
                       </td>
                       <td className="py-3 px-4 text-slate-500 text-[11px]">
                         {item.source === 'calendar' ? 'Content Calendar' : item.source === 'task' ? 'Task Project' : 'Asset Manual'}
@@ -639,18 +658,15 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Brand / Klien
+                    Jenis Project <span className="text-rose-500">*</span>
                   </label>
                   <select
-                    value={newAsset.brand_id}
-                    onChange={(e) => setNewAsset({ ...newAsset, brand_id: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    value={newAsset.project_type}
+                    onChange={(e) => setNewAsset({ ...newAsset, project_type: e.target.value as 'Internal' | 'Client' })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   >
-                    {brands.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
+                    <option value="Internal">Internal</option>
+                    <option value="Client">Client</option>
                   </select>
                 </div>
 

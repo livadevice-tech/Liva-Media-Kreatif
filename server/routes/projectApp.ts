@@ -273,12 +273,24 @@ projectAppRouter.get('/projects', async (_req: Request, res: Response) => {
 projectAppRouter.post('/projects', async (req: Request, res: Response) => {
   try {
     const pool = getPool();
-    const { brand_id, title, description, status, priority, start_date, due_date, progress, color } = req.body;
+    const { brand_id, title, description, status, priority, start_date, due_date, progress, color, project_type } = req.body;
     const id = `proj-${Date.now().toString(36)}`;
     await pool.query(
-      `INSERT INTO pm_projects (id, brand_id, title, description, status, priority, start_date, due_date, progress, color)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, brand_id || null, title, description || '', status || 'planning', priority || 'medium', start_date || null, due_date || null, progress || 0, color || '#4f46e5']
+      `INSERT INTO pm_projects (id, brand_id, title, description, status, priority, start_date, due_date, progress, color, project_type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, 
+        brand_id || null, 
+        title, 
+        description || '', 
+        status || 'in_progress', 
+        priority || 'medium', 
+        start_date || new Date().toISOString().slice(0, 10), 
+        due_date || null, 
+        progress || 0, 
+        color || (project_type === 'Internal' ? '#6366f1' : '#0ea5e9'),
+        project_type || 'Client'
+      ]
     );
     res.json({ success: true, id, message: 'Proyek berhasil dibuat' });
   } catch (error: any) {
@@ -290,12 +302,24 @@ projectAppRouter.put('/projects/:id', async (req: Request, res: Response) => {
   try {
     const pool = getPool();
     const { id } = req.params;
-    const { brand_id, title, description, status, priority, start_date, due_date, progress, color } = req.body;
+    const { brand_id, title, description, status, priority, start_date, due_date, progress, color, project_type } = req.body;
     await pool.query(
       `UPDATE pm_projects 
-       SET brand_id = ?, title = ?, description = ?, status = ?, priority = ?, start_date = ?, due_date = ?, progress = ?, color = ?
+       SET brand_id = ?, title = ?, description = ?, status = ?, priority = ?, start_date = ?, due_date = ?, progress = ?, color = ?, project_type = ?
        WHERE id = ?`,
-      [brand_id, title, description, status, priority, start_date, due_date, progress, color, id]
+      [
+        brand_id || null, 
+        title, 
+        description || '', 
+        status || 'in_progress', 
+        priority || 'medium', 
+        start_date || null, 
+        due_date || null, 
+        progress || 0, 
+        color || (project_type === 'Internal' ? '#6366f1' : '#0ea5e9'),
+        project_type || 'Client',
+        id
+      ]
     );
     res.json({ success: true, message: 'Proyek berhasil diupdate' });
   } catch (error: any) {

@@ -734,6 +734,7 @@ export default function App() {
         ) : activeTab === 'assets' ? (
           <AssetFileView
             brands={brands}
+            projects={projects}
             posts={posts}
             tasks={tasks}
             onOpenCalendar={() => setActiveTab('calendar')}

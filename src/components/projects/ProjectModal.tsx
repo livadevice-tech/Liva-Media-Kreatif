@@ -56,14 +56,10 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   const [activeTab, setActiveTab] = useState<'form' | 'list'>('form');
   const [formData, setFormData] = useState<Partial<Project>>({
     title: '',
-    brand_id: brands[0]?.id || '',
+    project_type: 'Client',
     status: 'in_progress',
     priority: 'medium',
-    progress: 0,
-    color: '#6366f1',
-    description: '',
-    start_date: new Date().toISOString().slice(0, 10),
-    due_date: '',
+    color: '#0ea5e9',
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -73,24 +69,19 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
     if (currentInitial) {
       setFormData({
         ...currentInitial,
-        start_date: currentInitial.start_date ? currentInitial.start_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
-        due_date: currentInitial.due_date ? currentInitial.due_date.slice(0, 10) : '',
+        project_type: currentInitial.project_type || 'Client',
       });
       setActiveTab('form');
     } else {
       setFormData({
         title: '',
-        brand_id: brands[0]?.id || '',
+        project_type: 'Client',
         status: 'in_progress',
         priority: 'medium',
-        progress: 0,
-        color: '#6366f1',
-        description: '',
-        start_date: new Date().toISOString().slice(0, 10),
-        due_date: '',
+        color: '#0ea5e9',
       });
     }
-  }, [currentInitial, brands]);
+  }, [currentInitial]);
 
   if (!isOpen) return null;
 
@@ -100,7 +91,15 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
 
     setSaving(true);
     try {
-      await onSave(formData);
+      const type = formData.project_type || 'Client';
+      const color = type === 'Internal' ? '#6366f1' : '#0ea5e9';
+      await onSave({
+        ...formData,
+        project_type: type,
+        color: formData.color || color,
+        status: formData.status || 'in_progress',
+        priority: formData.priority || 'medium',
+      });
       onClose();
     } finally {
       setSaving(false);
@@ -122,8 +121,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   const handleSelectToEdit = (proj: Project) => {
     setFormData({
       ...proj,
-      start_date: proj.start_date ? proj.start_date.slice(0, 10) : '',
-      due_date: proj.due_date ? proj.due_date.slice(0, 10) : '',
+      project_type: proj.project_type || 'Client',
     });
     setActiveTab('form');
   };
@@ -131,14 +129,10 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   const handleAddNewProject = () => {
     setFormData({
       title: '',
-      brand_id: brands[0]?.id || '',
+      project_type: 'Client',
       status: 'in_progress',
       priority: 'medium',
-      progress: 0,
-      color: '#6366f1',
-      description: '',
-      start_date: new Date().toISOString().slice(0, 10),
-      due_date: '',
+      color: '#0ea5e9',
     });
     setActiveTab('form');
   };
@@ -237,8 +231,12 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
                       {proj.title}
                     </h4>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[10px] text-slate-400 truncate">
-                        {proj.brand_name || brands.find((b) => b.id === proj.brand_id)?.name || 'General'}
+                      <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-semibold ${
+                        proj.project_type === 'Internal'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}>
+                        {proj.project_type === 'Internal' ? 'Internal' : 'Client'}
                       </span>
                       <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-semibold ${statusInfo.badge}`}>
                         {statusInfo.label}
@@ -258,122 +256,68 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
         /* Tab: Form */
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
-            {/* Project Title */}
+            {/* Nama Project */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Nama Proyek / Kampanye <span className="text-rose-500">*</span>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>Nama Project <span className="text-rose-500">*</span></span>
               </label>
               <input
                 type="text"
                 required
+                autoFocus
                 value={formData.title || ''}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Contoh: Kampanye 9.9 Mega Super Brand Sale"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-xs font-medium placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-800 text-xs font-medium placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
               />
             </div>
 
-            {/* Brand & Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Brand / Klien
-                </label>
-                <select
-                  value={formData.brand_id || ''}
-                  onChange={(e) => setFormData({ ...formData, brand_id: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
-                >
-                  <option value="">Pilih Brand...</option>
-                  {brands.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Status Proyek
-                </label>
-                <select
-                  value={formData.status || 'in_progress'}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as ProjectStatus })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
-                >
-                  <option value="planning">Perencanaan</option>
-                  <option value="in_progress">Sedang Berjalan</option>
-                  <option value="review">Review Klien</option>
-                  <option value="completed">Selesai</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Color Accent Picker */}
+            {/* Jenis Project (Internal / Client) */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Warna Aksen Proyek
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Jenis Project <span className="text-rose-500">*</span>
               </label>
-              <div className="flex items-center gap-2">
-                {COLORS.map((c) => (
-                  <button
-                    type="button"
-                    key={c.value}
-                    onClick={() => setFormData({ ...formData, color: c.value })}
-                    style={{ backgroundColor: c.value }}
-                    className={`w-7 h-7 rounded-xl transition-all cursor-pointer flex items-center justify-center ${
-                      formData.color === c.value
-                        ? 'ring-2 ring-offset-2 ring-indigo-500 scale-105 shadow-xs'
-                        : 'opacity-70 hover:opacity-100'
-                    }`}
-                    title={c.label}
-                  >
-                    {formData.color === c.value && <Check className="w-3.5 h-3.5 text-white" />}
-                  </button>
-                ))}
-              </div>
-            </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, project_type: 'Internal' })}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    formData.project_type === 'Internal'
+                      ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20 shadow-2xs'
+                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <span className="text-xs font-bold text-slate-800">Internal</span>
+                    {formData.project_type === 'Internal' && (
+                      <Check className="w-3.5 h-3.5 text-indigo-600 stroke-[3]" />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500 leading-snug">
+                    Proyek tim internal Liva Media
+                  </span>
+                </button>
 
-            {/* Dates: Start & Due Date */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Tanggal Mulai
-                </label>
-                <input
-                  type="date"
-                  value={formData.start_date || ''}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
-                />
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, project_type: 'Client' })}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    (formData.project_type || 'Client') === 'Client'
+                      ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20 shadow-2xs'
+                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <span className="text-xs font-bold text-slate-800">Client</span>
+                    {(formData.project_type || 'Client') === 'Client' && (
+                      <Check className="w-3.5 h-3.5 text-indigo-600 stroke-[3]" />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500 leading-snug">
+                    Proyek brand / klien eksternal
+                  </span>
+                </button>
               </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Target Selesai (Deadline)
-                </label>
-                <input
-                  type="date"
-                  value={formData.due_date || ''}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Deskripsi Singkat
-              </label>
-              <textarea
-                rows={3}
-                value={formData.description || ''}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Tujuan proyek, target KPI, atau catatan tim..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 text-xs placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none"
-              />
             </div>
           </div>
 
