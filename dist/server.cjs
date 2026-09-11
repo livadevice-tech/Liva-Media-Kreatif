@@ -1777,6 +1777,45 @@ projectAppRouter.delete("/content-posts/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+projectAppRouter.post("/login", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username dan password wajib diisi." });
+    }
+    const [rows] = await pool2.query(
+      `SELECT id, username, password_hash, full_name, position, role, avatar_url, is_active
+       FROM app_users
+       WHERE LOWER(username) = LOWER(?) LIMIT 1`,
+      [String(username).trim()]
+    );
+    if (rows.length === 0) {
+      return res.status(401).json({ error: "Username atau password salah." });
+    }
+    const user = rows[0];
+    if (!user.is_active) {
+      return res.status(403).json({ error: "Akun Anda dinonaktifkan. Silakan hubungi Master Admin." });
+    }
+    if (user.password_hash !== password) {
+      return res.status(401).json({ error: "Username atau password salah." });
+    }
+    res.json({
+      success: true,
+      message: "Login berhasil!",
+      user: {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name,
+        position: user.position,
+        role: user.role,
+        avatar_url: user.avatar_url
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 projectAppRouter.get("/accounts", async (_req, res) => {
   try {
     const pool2 = getPool();

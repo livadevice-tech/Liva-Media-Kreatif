@@ -126,4 +126,12 @@ export const appApi = {
     }).then(handleResponse<{ success: boolean }>),
   deleteAccount: (id: string): Promise<{ success: boolean }> =>
     fetch(`${API_BASE}/project-app/accounts/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean }>),
+
+  // Auth
+  login: (credentials: { username: string; password: string }): Promise<{ success: boolean; user: UserAccount; message?: string }> =>
+    fetch(`${API_BASE}/project-app/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    }).then(handleResponse<{ success: boolean; user: UserAccount; message?: string }>),
 };

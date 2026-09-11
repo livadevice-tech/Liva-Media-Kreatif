@@ -18,7 +18,8 @@ import {
   Loader2, 
   Database,
   ExternalLink,
-  Users
+  Users,
+  LogOut
 } from 'lucide-react';
 import { appApi } from './services/appApi';
 import { 
@@ -35,10 +36,20 @@ import {
 import { ContentCalendarView } from './components/calendar/ContentCalendarView';
 import { ProjectKanbanView } from './components/projects/ProjectKanbanView';
 import { AccountManagementView } from './components/accounts/AccountManagementView';
+import { LoginPage } from './components/auth/LoginPage';
 
 type NavigationTab = 'home' | 'calendar' | 'tasks' | 'accounts' | 'reports' | 'automation' | 'ai';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    try {
+      const saved = localStorage.getItem('liva_user_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [activeTab, setActiveTab] = useState<NavigationTab>('calendar');
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -62,6 +73,14 @@ export default function App() {
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('Apakah Anda yakin ingin keluar dari sistem (Logout)?')) {
+      localStorage.removeItem('liva_user_session');
+      setCurrentUser(null);
+      showToast('Anda telah berhasil keluar dari sistem.', 'success');
+    }
   };
 
   // Database status check
@@ -244,6 +263,36 @@ export default function App() {
       showToast(err.message || 'Gagal menghapus akun', 'error');
     }
   };
+
+  if (!currentUser) {
+    return (
+      <>
+        {toast && (
+          <div
+            className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center space-x-2 transition-all duration-200 ${
+              toast.type === 'success'
+                ? 'bg-emerald-600 text-white shadow-emerald-500/20'
+                : 'bg-rose-600 text-white shadow-rose-500/20'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
+            <span>{toast.message}</span>
+          </div>
+        )}
+        <LoginPage
+          onLoginSuccess={(user) => {
+            setCurrentUser(user);
+            showToast(`Selamat datang kembali, ${user.full_name}!`, 'success');
+          }}
+          dbConnected={dbStatus?.success !== false}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="h-screen w-screen flex bg-[#fbfbfb] text-slate-800 font-sans antialiased overflow-hidden select-none">
@@ -466,6 +515,41 @@ export default function App() {
                 </span>
               )}
             </button>
+
+            {/* User Profile & Logout Button */}
+            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                  {currentUser?.full_name
+                    ? currentUser.full_name
+                        .split(' ')
+                        .map((w) => w[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase()
+                    : 'AD'}
+                </div>
+                {isSidebarOpen && (
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-800 truncate leading-tight">
+                      {currentUser?.full_name || 'Admin User'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                      <span className="font-semibold text-indigo-600">{currentUser?.role || 'Admin'}</span>
+                      {currentUser?.position && <span>• {currentUser.position}</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                title="Keluar / Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
