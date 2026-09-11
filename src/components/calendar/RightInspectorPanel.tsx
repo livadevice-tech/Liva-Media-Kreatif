@@ -19,7 +19,10 @@ import {
   PenTool,
   Palette,
   AlignLeft,
-  CheckCircle2
+  CheckCircle2,
+  Settings2,
+  Edit2,
+  Plus
 } from 'lucide-react';
 import { ContentPost, ContentStatus, ContentPlatform, ContentType, UserAccount, ContentPillar } from '../../types/app';
 
@@ -29,6 +32,8 @@ interface RightInspectorPanelProps {
   onClose: () => void;
   onSave: (post: Partial<ContentPost>) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
+  onSavePillar?: (pillar: Partial<ContentPillar>) => Promise<void>;
+  onDeletePillar?: (id: string) => Promise<void>;
   accounts?: UserAccount[];
   pillars?: ContentPillar[];
 }
@@ -73,6 +78,8 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   onClose,
   onSave,
   onDelete,
+  onSavePillar,
+  onDeletePillar,
   accounts = [],
   pillars = [],
 }) => {
@@ -94,6 +101,88 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Manage Pillars Modal state
+  const [isManagePillarsOpen, setIsManagePillarsOpen] = useState(false);
+  const [editingPillar, setEditingPillar] = useState<{
+    id?: string;
+    name: string;
+    color: string;
+    description: string;
+  }>({
+    name: '',
+    color: '#3b82f6',
+    description: '',
+  });
+  const [savingPillar, setSavingPillar] = useState(false);
+  const [deletingPillarId, setDeletingPillarId] = useState<string | null>(null);
+
+  const COLOR_PRESETS = [
+    { hex: '#3b82f6', name: 'Biru' },
+    { hex: '#10b981', name: 'Hijau Emerald' },
+    { hex: '#f43f5e', name: 'Merah Rose' },
+    { hex: '#ef4444', name: 'Merah' },
+    { hex: '#f59e0b', name: 'Kuning Amber' },
+    { hex: '#a855f7', name: 'Ungu' },
+    { hex: '#6366f1', name: 'Indigo' },
+    { hex: '#06b6d4', name: 'Sian' },
+    { hex: '#ec4899', name: 'Pink' },
+    { hex: '#64748b', name: 'Slate' },
+  ];
+
+  const handleSavePillarSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editingPillar.name.trim()) return;
+
+    setSavingPillar(true);
+    try {
+      if (onSavePillar) {
+        await onSavePillar(editingPillar);
+      }
+      if (editingPillar.id && formData.pillar_name) {
+        setFormData((prev) => ({
+          ...prev,
+          pillar_name: editingPillar.name.trim(),
+          color: editingPillar.color,
+        }));
+      } else if (!editingPillar.id) {
+        setFormData((prev) => ({
+          ...prev,
+          pillar_name: editingPillar.name.trim(),
+          color: editingPillar.color,
+        }));
+      }
+      setEditingPillar({ name: '', color: '#3b82f6', description: '' });
+    } finally {
+      setSavingPillar(false);
+    }
+  };
+
+  const handleDeletePillarClick = async (pillarId: string, pillarName: string) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus pillar "${pillarName}"?`)) return;
+
+    setDeletingPillarId(pillarId);
+    try {
+      if (onDeletePillar) {
+        await onDeletePillar(pillarId);
+      }
+      if (formData.pillar_name === pillarName) {
+        const remaining = (pillars.length > 0 ? pillars : DEFAULT_PILLARS).filter((p) => p.id !== pillarId);
+        if (remaining.length > 0) {
+          setFormData((prev) => ({
+            ...prev,
+            pillar_name: remaining[0].name,
+            color: remaining[0].color || '#3b82f6',
+          }));
+        }
+      }
+      if (editingPillar.id === pillarId) {
+        setEditingPillar({ name: '', color: '#3b82f6', description: '' });
+      }
+    } finally {
+      setDeletingPillarId(null);
+    }
+  };
 
   useEffect(() => {
     if (post) {
@@ -207,13 +296,24 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
               />
             </div>
 
-            {/* 2. Pillar Konten (Interactive Grid of Badges) */}
+            {/* 2. Pillar Konten (Interactive Grid of Badges + Kelola Button) */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-bold text-slate-700">
-                  Pillar Konten
-                </label>
-                <span className="text-[10px] text-slate-400 font-medium">Pilih salah satu pilar</span>
+                <div className="flex items-center gap-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Pillar Konten
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">({availablePillars.length} pilar)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsManagePillarsOpen(true)}
+                  className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/80 px-2.5 py-1 rounded-lg transition-colors cursor-pointer border border-indigo-100"
+                  title="Edit isi, nama, warna, atau tambah pilar konten baru"
+                >
+                  <Settings2 className="w-3.5 h-3.5" />
+                  <span>Kelola / Edit Pillar</span>
+                </button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {availablePillars.map((pil) => {
@@ -229,7 +329,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                           color: pil.color || '#3b82f6'
                         });
                       }}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer group ${
                         isSelected
                           ? 'bg-indigo-50/90 border-indigo-500 text-indigo-900 ring-2 ring-indigo-500/20 shadow-2xs font-bold'
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
@@ -240,10 +340,43 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                         style={{ backgroundColor: pil.color || '#3b82f6' }} 
                       />
                       <span className="truncate">{pil.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 ml-auto text-indigo-600 shrink-0 stroke-[3]" />}
+                      {isSelected ? (
+                        <Check className="w-3.5 h-3.5 ml-auto text-indigo-600 shrink-0 stroke-[3]" />
+                      ) : (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingPillar({
+                              id: pil.id,
+                              name: pil.name,
+                              color: pil.color || '#3b82f6',
+                              description: pil.description || ''
+                            });
+                            setIsManagePillarsOpen(true);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 text-slate-400 hover:text-indigo-600 rounded transition-opacity"
+                          title="Edit nama/warna pilar ini"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </span>
+                      )}
                     </button>
                   );
                 })}
+
+                {/* Direct + Tambah Pillar Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingPillar({ name: '', color: '#3b82f6', description: '' });
+                    setIsManagePillarsOpen(true);
+                  }}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-dashed border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all cursor-pointer"
+                  title="Tambah Kategori Pillar Baru"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Tambah</span>
+                </button>
               </div>
             </div>
 
@@ -620,6 +753,183 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
           </div>
         </div>
       </form>
+
+      {/* Modal Dialog: Kelola Pillar Konten */}
+      {isManagePillarsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">Kelola Pillar Konten</h3>
+                  <p className="text-[11px] text-slate-400">Ubah nama, warna, atau tambah pilar baru</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsManagePillarsOpen(false);
+                  setEditingPillar({ name: '', color: '#3b82f6', description: '' });
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input / Edit Form Card */}
+            <div className="p-4 my-4 bg-slate-50/90 border border-slate-200/90 rounded-2xl shrink-0 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                  {editingPillar.id ? `Edit: ${editingPillar.name}` : '+ Tambah Pillar Baru'}
+                </span>
+                {editingPillar.id && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingPillar({ name: '', color: '#3b82f6', description: '' })}
+                    className="text-[10px] text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                  >
+                    Batal Edit (Buat Baru)
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Nama Pillar <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editingPillar.name}
+                    onChange={(e) => setEditingPillar({ ...editingPillar, name: e.target.value })}
+                    placeholder="Contoh: Edukasi & Tips, Promo Kilat, BTS..."
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Warna Aksen
+                  </label>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {COLOR_PRESETS.map((col) => {
+                      const isColSelected = editingPillar.color === col.hex;
+                      return (
+                        <button
+                          type="button"
+                          key={col.hex}
+                          onClick={() => setEditingPillar({ ...editingPillar, color: col.hex })}
+                          title={col.name}
+                          className={`w-6 h-6 rounded-full transition-transform flex items-center justify-center cursor-pointer ${
+                            isColSelected
+                              ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110'
+                              : 'hover:scale-105 opacity-85 hover:opacity-100'
+                          }`}
+                          style={{ backgroundColor: col.hex }}
+                        >
+                          {isColSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={savingPillar || !editingPillar.name.trim()}
+                    onClick={handleSavePillarSubmit}
+                    className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  >
+                    {savingPillar ? (
+                      <>
+                        <span className="animate-spin text-xs">⏳</span>
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{editingPillar.id ? 'Simpan Perubahan' : 'Tambah Pillar'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* List Existing Pillars */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                Daftar Pillar Aktif ({availablePillars.length})
+              </p>
+              {availablePillars.map((p) => {
+                const isBeingEdited = editingPillar.id === p.id;
+                return (
+                  <div
+                    key={p.id || p.name}
+                    className={`flex items-center justify-between p-2.5 px-3 rounded-xl border transition-all ${
+                      isBeingEdited
+                        ? 'bg-indigo-50/50 border-indigo-300 ring-1 ring-indigo-300'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="w-3 h-3 rounded-full shrink-0 shadow-2xs"
+                        style={{ backgroundColor: p.color || '#3b82f6' }}
+                      />
+                      <p className="text-xs font-bold text-slate-800 truncate">{p.name}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0 ml-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingPillar({
+                            id: p.id,
+                            name: p.name,
+                            color: p.color || '#3b82f6',
+                            description: p.description || '',
+                          });
+                        }}
+                        className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                        title="Edit Nama / Warna Pillar"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={deletingPillarId === p.id}
+                        onClick={() => handleDeletePillarClick(p.id, p.name)}
+                        className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                        title="Hapus Pillar"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-4 border-t border-slate-100 flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsManagePillarsOpen(false)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Selesai
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

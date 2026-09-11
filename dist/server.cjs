@@ -1537,6 +1537,58 @@ projectAppRouter.get("/content-pillars", async (_req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+projectAppRouter.post("/content-pillars", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { name, color, description } = req.body;
+    if (!name?.trim()) {
+      return res.status(400).json({ error: "Nama pillar wajib diisi." });
+    }
+    const id = `pil-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    await pool2.query(
+      `INSERT INTO sm_content_pillars (id, name, color, description) VALUES (?, ?, ?, ?)`,
+      [id, name.trim(), color || "#3b82f6", description || ""]
+    );
+    res.status(201).json({ success: true, id, message: "Pillar berhasil ditambahkan" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.put("/content-pillars/:id", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { id } = req.params;
+    const { name, color, description } = req.body;
+    if (!name?.trim()) {
+      return res.status(400).json({ error: "Nama pillar wajib diisi." });
+    }
+    const [existing] = await pool2.query(`SELECT name FROM sm_content_pillars WHERE id = ?`, [id]);
+    const oldName = existing?.[0]?.name;
+    await pool2.query(
+      `UPDATE sm_content_pillars SET name = ?, color = ?, description = ? WHERE id = ?`,
+      [name.trim(), color || "#3b82f6", description || "", id]
+    );
+    if (oldName && oldName !== name.trim()) {
+      await pool2.query(
+        `UPDATE sm_content_posts SET pillar_name = ?, color = ? WHERE pillar_id = ? OR pillar_name = ?`,
+        [name.trim(), color || "#3b82f6", id, oldName]
+      );
+    }
+    res.json({ success: true, message: "Pillar berhasil diperbarui" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.delete("/content-pillars/:id", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { id } = req.params;
+    await pool2.query(`DELETE FROM sm_content_pillars WHERE id = ?`, [id]);
+    res.json({ success: true, message: "Pillar berhasil dihapus" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 projectAppRouter.get("/content-posts", async (req, res) => {
   try {
     const pool2 = getPool();

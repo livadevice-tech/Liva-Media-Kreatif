@@ -38,6 +38,20 @@ export const appApi = {
   // Content Pillars
   getPillars: (): Promise<ContentPillar[]> =>
     fetch(`${API_BASE}/project-app/content-pillars`).then(handleResponse<ContentPillar[]>),
+  createPillar: (data: Partial<ContentPillar>): Promise<{ success: boolean; id: string }> =>
+    fetch(`${API_BASE}/project-app/content-pillars`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean; id: string }>),
+  updatePillar: (id: string, data: Partial<ContentPillar>): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/project-app/content-pillars/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean }>),
+  deletePillar: (id: string): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/project-app/content-pillars/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean }>),
 
   // Projects
   getProjects: (): Promise<Project[]> =>

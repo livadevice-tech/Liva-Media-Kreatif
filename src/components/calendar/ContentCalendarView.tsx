@@ -28,6 +28,8 @@ interface ContentCalendarViewProps {
   onDeletePost: (id: string) => Promise<void>;
   onDeleteMonthPosts?: (year: number, month: number) => Promise<void>;
   onDeleteAllPosts?: () => Promise<void>;
+  onSavePillar?: (pillar: Partial<ContentPillar>) => Promise<void>;
+  onDeletePillar?: (id: string) => Promise<void>;
   onUpdateStatus: (id: string, status: ContentStatus) => Promise<void>;
   onOpenQuickAdd?: () => void;
 }
@@ -46,6 +48,8 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   onDeletePost,
   onDeleteMonthPosts,
   onDeleteAllPosts,
+  onSavePillar,
+  onDeletePillar,
   onUpdateStatus,
   onOpenQuickAdd
 }) => {
@@ -582,6 +586,8 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
         onClose={() => setIsInspectorOpen(false)}
         onSave={handleSaveInspectorPost}
         onDelete={onDeletePost}
+        onSavePillar={onSavePillar}
+        onDeletePillar={onDeletePillar}
         accounts={accounts}
         pillars={pillars}
       />

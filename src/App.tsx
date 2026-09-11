@@ -201,6 +201,35 @@ export default function App() {
     }
   };
 
+  // Pillar Actions
+  const handleSavePillar = async (pillarData: Partial<ContentPillar>) => {
+    try {
+      if (pillarData.id && !pillarData.id.startsWith('demo-')) {
+        await appApi.updatePillar(pillarData.id, pillarData);
+        showToast('Pillar konten berhasil diperbarui');
+      } else {
+        await appApi.createPillar(pillarData);
+        showToast('Pillar konten baru berhasil ditambahkan');
+      }
+      const updatedPillars = await appApi.getPillars();
+      setPillars(updatedPillars);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menyimpan pillar konten', 'error');
+    }
+  };
+
+  const handleDeletePillar = async (id: string) => {
+    try {
+      await appApi.deletePillar(id);
+      showToast('Pillar konten berhasil dihapus');
+      setPillars((prev) => prev.filter((p) => p.id !== id));
+      const updatedPillars = await appApi.getPillars();
+      setPillars(updatedPillars);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menghapus pillar konten', 'error');
+    }
+  };
+
   // Task Actions
   const handleSaveTask = async (taskData: Partial<Task>) => {
     try {
@@ -592,6 +621,8 @@ export default function App() {
             onDeletePost={handleDeletePost}
             onDeleteMonthPosts={handleDeleteMonthPosts}
             onDeleteAllPosts={handleDeleteAllPosts}
+            onSavePillar={handleSavePillar}
+            onDeletePillar={handleDeletePillar}
             onUpdateStatus={handleUpdateContentStatus}
           />
         ) : activeTab === 'tasks' ? (
