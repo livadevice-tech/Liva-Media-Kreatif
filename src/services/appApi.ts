@@ -108,6 +108,16 @@ export const appApi = {
     }).then(handleResponse<{ success: boolean }>),
   deleteContentPost: (id: string): Promise<{ success: boolean }> =>
     fetch(`${API_BASE}/project-app/content-posts/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean }>),
+  deleteContentPostsBulk: (params: { scope: 'all' | 'month'; month?: number; year?: number; brand_id?: string }): Promise<{ success: boolean; message: string; affectedRows: number }> => {
+    const query = new URLSearchParams();
+    query.set('scope', params.scope);
+    if (params.month !== undefined) query.set('month', String(params.month));
+    if (params.year !== undefined) query.set('year', String(params.year));
+    if (params.brand_id) query.set('brand_id', params.brand_id);
+    return fetch(`${API_BASE}/project-app/content-posts?${query.toString()}`, {
+      method: 'DELETE',
+    }).then(handleResponse<{ success: boolean; message: string; affectedRows: number }>);
+  },
 
   // User Accounts Management
   getAccounts: (): Promise<UserAccount[]> =>

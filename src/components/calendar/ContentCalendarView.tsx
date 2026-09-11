@@ -7,7 +7,11 @@ import {
   Filter, 
   Download, 
   Calendar as CalendarIcon,
-  ChevronDown
+  ChevronDown,
+  Trash2,
+  CalendarX,
+  AlertTriangle,
+  Layers
 } from 'lucide-react';
 import { ContentPost, Brand, ContentPillar, ContentStatus, UserAccount } from '../../types/app';
 import { MonthGridView } from './MonthGridView';
@@ -22,6 +26,8 @@ interface ContentCalendarViewProps {
   accounts?: UserAccount[];
   onSavePost: (post: Partial<ContentPost>) => Promise<void>;
   onDeletePost: (id: string) => Promise<void>;
+  onDeleteMonthPosts?: (year: number, month: number) => Promise<void>;
+  onDeleteAllPosts?: () => Promise<void>;
   onUpdateStatus: (id: string, status: ContentStatus) => Promise<void>;
   onOpenQuickAdd?: () => void;
 }
@@ -38,6 +44,8 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   accounts = [],
   onSavePost,
   onDeletePost,
+  onDeleteMonthPosts,
+  onDeleteAllPosts,
   onUpdateStatus,
   onOpenQuickAdd
 }) => {
@@ -45,8 +53,35 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   const [currentDate, setCurrentDate] = useState(new Date(2025, 6, 18));
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showDeleteDropdown, setShowDeleteDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('all');
+
+  // Confirmation modal state for bulk deletion
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState<{
+    isOpen: boolean;
+    type: 'month' | 'all';
+    title: string;
+    message: string;
+    count: number;
+  }>({
+    isOpen: false,
+    type: 'month',
+    title: '',
+    message: '',
+    count: 0,
+  });
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
+
+  // Track deleted demo IDs so they don't reappear after being cleared
+  const [deletedDemoIds, setDeletedDemoIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('liva_deleted_demo_content_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Inspector state
   const [selectedPost, setSelectedPost] = useState<Partial<ContentPost> | null>(null);
@@ -86,32 +121,30 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   };
 
   const goToday = () => {
-    setCurrentDate(new Date());
+    setCurrentDate(new Date(2025, 6, 18));
   };
 
-  // Enriched creative agency content posts matching July 2025 layout with real content calendar items
+  // Pre-populate mock agency content for July 2025
   const enrichedPosts = useMemo(() => {
     const referenceDemoList: Partial<ContentPost>[] = [
       // Row 1
-      { id: 'ref-1', title: 'Reels: 5 Hook Konten FYP Bikin Melejit', pillar_name: 'Educational', caption: 'Hook: Jangan skip kalau gamau views kontenmu anjlok! Visual: Fast cut video editor workflow.', media_urls: 'https://drive.google.com/drive/folders/liva-reels-hook-fyp', scheduled_at: '2025-07-01', start_time: '09:00', end_time: '10:00', color: '#3b82f6', assignee_copy: 'Nazmi Javier', assignee_design: 'Emilia Inder', platform: 'instagram', content_type: 'reels', status: 'scheduled' },
-      { id: 'ref-2', title: 'TikTok: A Day in The Life of Video Editor', pillar_name: 'Behind The Scene', caption: 'Behind the scenes keseruan dan tantangan tim produksi di studio Liva.', media_urls: 'https://drive.google.com/drive/folders/liva-tiktok-editor', scheduled_at: '2025-07-03', start_time: '11:00', end_time: '12:00', color: '#f43f5e', assignee_copy: 'Emilia Inder', platform: 'tiktok', content_type: 'tiktok_video', status: 'approved' },
-      { id: 'ref-3', title: 'Carousel: Studi Kasus Rebranding Client A', pillar_name: 'Authority', caption: 'Bedah transformasi brand identity dan kenaikan penjualan 240% dalam 3 bulan.', media_urls: 'https://figma.com/file/rebranding-client-a', scheduled_at: '2025-07-04', start_time: '10:00', end_time: '11:30', color: '#10b981', assignee_copy: 'Nazmi Javier', assignee_design: 'EI', platform: 'instagram', content_type: 'carousel', status: 'scheduled' },
-      { id: 'ref-3-extra-1', title: 'Story: Q&A Jasa Branding', pillar_name: 'Engagement', scheduled_at: '2025-07-04', start_time: '13:00', color: '#6366f1' },
-      { id: 'ref-3-extra-2', title: 'Feed: Quotes Motivasi Bisnis', pillar_name: 'Entertainment', scheduled_at: '2025-07-04', start_time: '15:00', color: '#a855f7' },
-      { id: 'ref-3-extra-3', title: 'Reels: Tips Pencahayaan Studio', pillar_name: 'Educational', scheduled_at: '2025-07-04', start_time: '16:30', color: '#3b82f6' },
-      { id: 'ref-4', title: 'Story: Polling Ide Konten Minggu Depan', pillar_name: 'Engagement', caption: 'Pilih topik yang paling ingin dibahas minggu ini di IG Story.', scheduled_at: '2025-07-06', start_time: '15:00', end_time: '16:00', color: '#6366f1', assignee_copy: 'Nazmi Javier', platform: 'instagram', content_type: 'story', status: 'scheduled' },
+      { id: 'ref-1', title: 'Reels: 5 Tips Hook Konten FYP', pillar_name: 'Educational', caption: 'Bedah 5 formula hook video 3 detik pertama yang bikin audiens auto stop scrolling.', media_urls: 'https://drive.google.com/drive/folders/hook-konten-fyp', scheduled_at: '2025-07-01', start_time: '09:00', end_time: '10:00', color: '#3b82f6', assignee_copy: 'Nazmi Javier', assignee_design: 'EI', platform: 'instagram', content_type: 'reels', status: 'scheduled' },
+      { id: 'ref-2', title: 'Carousel: Panduan Desain Brand Guide', pillar_name: 'Educational', caption: 'Langkah praktis menyusun color palette dan typography hierarchy untuk UMKM.', media_urls: 'https://figma.com/file/brand-guide-template', scheduled_at: '2025-07-03', start_time: '11:00', end_time: '12:00', color: '#10b981', assignee_copy: 'Emilia Inder', platform: 'instagram', content_type: 'carousel', status: 'approved' },
+      { id: 'ref-3', title: 'Feed: Case Study Brand Skincare Viral', pillar_name: 'Authority', caption: 'Analisis strategi konten peluncuran serum pencerah yang tembus 10.000 orderan.', media_urls: 'https://drive.google.com/drive/folders/case-study-skincare', scheduled_at: '2025-07-04', start_time: '10:00', end_time: '11:00', color: '#3b82f6', assignee_copy: 'Nazmi Javier', assignee_design: 'EI', platform: 'instagram', content_type: 'feed_single', status: 'scheduled' },
+      { id: 'ref-4', title: 'Shorts: Behind The Scene Voice Over', pillar_name: 'Behind The Scene', caption: 'Proses recording talent VO di studio rekaman audio Liva Media.', media_urls: 'https://drive.google.com/drive/folders/bts-vo-talent', scheduled_at: '2025-07-04', start_time: '13:00', end_time: '14:00', color: '#3b82f6', assignee_copy: 'Nazmi Javier', platform: 'youtube', content_type: 'short', status: 'review' },
+      { id: 'ref-4-extra', title: 'Story: Q&A Seputar Desain Logo', pillar_name: 'Engagement', scheduled_at: '2025-07-04', start_time: '15:30', color: '#6366f1' },
+      { id: 'ref-5', title: 'TikTok: Mitos vs Fakta Live TikTok', pillar_name: 'Educational', caption: 'Membongkar anggapan salah soal durasi live streaming dan shadowban.', media_urls: 'https://drive.google.com/drive/folders/live-stream-hacks', scheduled_at: '2025-07-06', start_time: '15:00', end_time: '16:00', color: '#f59e0b', assignee_copy: 'Nazmi Javier', platform: 'tiktok', content_type: 'tiktok_video', status: 'scheduled' },
 
       // Row 2
-      { id: 'ref-5', title: 'Feed: Promo Bundling Social Media 9.9', pillar_name: 'Promotional', caption: 'Promo paket komplit kelola Instagram & TikTok hemat hingga 35%.', media_urls: 'https://canva.com/design/liva-promo-99', scheduled_at: '2025-07-07', start_time: '09:00', end_time: '10:00', color: '#f59e0b', assignee_copy: 'Galang Taufik', platform: 'instagram', content_type: 'feed_single', status: 'scheduled' },
-      { id: 'ref-6', title: 'Shorts: Rahasia Lighting Murah Hasil Pro', pillar_name: 'Educational', caption: 'Setup 3-point lighting cuma pakai perlengkapan terjangkau.', media_urls: 'https://drive.google.com/drive/folders/lighting-tutorial', scheduled_at: '2025-07-09', start_time: '13:00', end_time: '14:30', color: '#3b82f6', assignee_copy: 'Emilia Inder', platform: 'youtube', content_type: 'short', status: 'drafting' },
-      { id: 'ref-7', title: 'Carousel: 7 Font Populer untuk Desain 2026', pillar_name: 'Educational', caption: 'Rekomendasi font modern sans-serif gratis untuk desainer grafis.', media_urls: 'https://figma.com/file/fonts-2026', scheduled_at: '2025-07-10', start_time: '09:30', end_time: '10:30', color: '#3b82f6', assignee_copy: 'Nazmi Javier', platform: 'instagram', content_type: 'carousel', status: 'scheduled' },
-      { id: 'ref-7-extra-1', title: 'TikTok: Tips Mic Wireless Budget', pillar_name: 'Educational', scheduled_at: '2025-07-10', start_time: '13:00', color: '#3b82f6' },
-      { id: 'ref-7-extra-2', title: 'Story: Share Spotify Playlist Editing', pillar_name: 'Behind The Scene', scheduled_at: '2025-07-10', start_time: '15:00', color: '#f43f5e' },
-      { id: 'ref-7-extra-3', title: 'Feed: Infografis Algoritma IG Terbaru', pillar_name: 'Authority', scheduled_at: '2025-07-10', start_time: '17:00', color: '#10b981' },
-      { id: 'ref-8', title: 'Meme: Klien Minta Revisi Jam 12 Malam', pillar_name: 'Entertainment', caption: 'POV desainer saat mau tidur tapi notifikasi revisi berdering.', media_urls: 'https://drive.google.com/drive/folders/meme-revisi', scheduled_at: '2025-07-12', start_time: '09:00', end_time: '10:00', color: '#a855f7', assignee_copy: 'Emilia Inder', platform: 'instagram', content_type: 'reels', status: 'scheduled' },
-      { id: 'ref-8-extra-1', title: 'Reels: 3 Trik Transisi Smooth CapCut', pillar_name: 'Educational', scheduled_at: '2025-07-12', start_time: '11:00', color: '#3b82f6' },
-      { id: 'ref-8-extra-2', title: 'Story: Cuplikan Shooting Klien F&B', pillar_name: 'Behind The Scene', scheduled_at: '2025-07-12', start_time: '14:00', color: '#f43f5e' },
-      { id: 'ref-9', title: 'Reels: Cara Riset Hashtag & Sound Viral', pillar_name: 'Educational', caption: 'Step by step cara cari sound yang berpotensi trending sebelum ramai dipakai.', scheduled_at: '2025-07-13', start_time: '09:00', end_time: '11:00', color: '#3b82f6', assignee_copy: 'Nazmi Javier', assignee_design: 'EI', platform: 'instagram', content_type: 'reels', status: 'scheduled' },
+      { id: 'ref-6', title: 'Feed: 3 Kesalahan Visual Feed Instagram', pillar_name: 'Educational', caption: 'Kenapa feed bisnismu terlihat berantakan dan solusinya dalam 3 langkah.', media_urls: 'https://canva.com/design/feed-tips', scheduled_at: '2025-07-07', start_time: '09:00', end_time: '10:00', color: '#3b82f6', assignee_copy: 'Nazmi Javier', platform: 'instagram', content_type: 'feed_single', status: 'scheduled' },
+      { id: 'ref-7', title: 'Carousel: Strategi Social Media Q3', pillar_name: 'Promotional', caption: 'Paket bundling manajemen akun Instagram & TikTok spesial pertengahan tahun.', media_urls: 'https://drive.google.com/drive/folders/promo-q3', scheduled_at: '2025-07-09', start_time: '13:00', end_time: '14:00', color: '#f59e0b', assignee_copy: 'Emilia Inder', platform: 'instagram', content_type: 'carousel', status: 'drafting' },
+      { id: 'ref-8', title: 'Reels: Tren Audio Instagram Minggu Ini', pillar_name: 'Entertainment', caption: 'Kumpulan 4 audio trending dengan ritme cepat cocok untuk video katalog produk.', media_urls: 'https://instagram.com/reels/audio-trending', scheduled_at: '2025-07-10', start_time: '09:30', end_time: '10:30', color: '#3b82f6', assignee_copy: 'Nazmi Javier', platform: 'instagram', content_type: 'reels', status: 'scheduled' },
+      { id: 'ref-9', title: 'Feed: Promo Flash Sale Jasa Foto Produk', pillar_name: 'Promotional', caption: 'Slot terbatas untuk 5 brand UMKM pertama di bulan Juli.', media_urls: 'https://drive.google.com/drive/folders/promo-foto-produk', scheduled_at: '2025-07-10', start_time: '13:00', end_time: '14:00', color: '#f59e0b', assignee_copy: 'Nazmi Javier', platform: 'instagram', content_type: 'feed_single', status: 'approved' },
+      { id: 'ref-9-extra-1', title: 'TikTok: POV Bikin Desain Minta Revisi', pillar_name: 'Entertainment', scheduled_at: '2025-07-10', start_time: '16:00', color: '#a855f7' },
+      { id: 'ref-9-extra-2', title: 'Reels: Behind The Scene Lighting Set', pillar_name: 'Behind The Scene', caption: 'Setup 3-point lighting untuk video interview profesional.', scheduled_at: '2025-07-12', start_time: '09:00', end_time: '10:00', color: '#f43f5e', assignee_copy: 'Emilia Inder', platform: 'instagram', content_type: 'reels', status: 'scheduled' },
+      { id: 'ref-9-extra-3', title: 'TikTok: Tips Copywriting Headline Iklan', pillar_name: 'Educational', caption: 'Cara bikin judul iklan yang menarik rasa penasaran audiens dalam 2 detik.', scheduled_at: '2025-07-12', start_time: '11:00', end_time: '12:00', color: '#f43f5e', assignee_copy: 'Nazmi Javier', platform: 'tiktok', content_type: 'tiktok_video', status: 'scheduled' },
+      { id: 'ref-9-extra-4', title: 'Story: Polling Topik Pembahasan Besok', pillar_name: 'Engagement', scheduled_at: '2025-07-12', start_time: '14:00', color: '#6366f1' },
+      { id: 'ref-9-extra-5', title: 'Carousel: Teori Warna untuk Marketing', pillar_name: 'Educational', caption: 'Kenapa warna merah memicu nafsu makan dan biru menumbuhkan rasa percaya.', media_urls: 'https://figma.com/file/color-psychology', scheduled_at: '2025-07-13', start_time: '09:00', end_time: '10:00', color: '#3b82f6', assignee_copy: 'Nazmi Javier', assignee_design: 'EI', platform: 'instagram', content_type: 'carousel', status: 'scheduled' },
 
       // Row 3
       { id: 'ref-10', title: 'Testimoni: Review Klien F&B Omset Naik', pillar_name: 'Authority', caption: 'Kompilasi hasil engagement dan lonjakan penjualan dari video promosi.', media_urls: 'https://drive.google.com/drive/folders/testimoni-fnb', scheduled_at: '2025-07-15', start_time: '14:30', end_time: '15:30', color: '#10b981', assignee_copy: 'Emilia Inder', platform: 'instagram', content_type: 'carousel', status: 'approved' },
@@ -144,14 +177,15 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
     ];
 
     const realIds = new Set(posts.map(p => p.id));
+    const deletedSet = new Set(deletedDemoIds);
     const merged = [...posts];
     for (const d of referenceDemoList) {
-      if (!realIds.has(d.id!)) {
+      if (!realIds.has(d.id!) && !deletedSet.has(d.id!)) {
         merged.push(d as ContentPost);
       }
     }
     return merged;
-  }, [posts]);
+  }, [posts, deletedDemoIds]);
 
   // Filter posts
   const filteredPosts = useMemo(() => {
@@ -165,6 +199,17 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
     });
   }, [enrichedPosts, selectedBrand, searchQuery]);
 
+  // Current month count for bulk delete statistics
+  const currentMonthPostsCount = useMemo(() => {
+    return filteredPosts.filter((p) => {
+      if (!p.scheduled_at) return false;
+      const d = new Date(p.scheduled_at);
+      return d.getFullYear() === year && d.getMonth() === month;
+    }).length;
+  }, [filteredPosts, year, month]);
+
+  const totalPostsCount = filteredPosts.length;
+
   const handleSlotClick = (dateStr: string, timeStr = '09:00') => {
     setSelectedPost({
       title: '',
@@ -174,13 +219,12 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
       media_urls: '',
       assignee_copy: 'Nazmi Javier',
       assignee_design: 'Emilia Inder',
-      platform: 'instagram',
-      content_type: 'reels',
       scheduled_at: dateStr,
       start_time: timeStr,
-      end_time: `${String(parseInt(timeStr.slice(0, 2), 10) + 1).padStart(2, '0')}:00`,
+      platform: 'instagram',
+      content_type: 'reels',
       status: 'scheduled',
-      color: '#3b82f6'
+      color: '#3b82f6',
     });
     setIsInspectorOpen(true);
   };
@@ -191,12 +235,66 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   };
 
   const handleOpenNewEvent = () => {
-    const todayStr = currentDate.toISOString().slice(0, 10);
-    handleSlotClick(todayStr, '09:00');
+    const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-18`;
+    setSelectedPost({
+      title: '',
+      pillar_name: 'Educational',
+      caption: '',
+      notes: '',
+      media_urls: '',
+      assignee_copy: 'Nazmi Javier',
+      assignee_design: 'Emilia Inder',
+      scheduled_at: todayStr,
+      start_time: '09:00',
+      platform: 'instagram',
+      content_type: 'reels',
+      status: 'scheduled',
+      color: '#3b82f6',
+    });
+    setIsInspectorOpen(true);
   };
 
-  const handleSaveInspectorPost = async (postData: Partial<ContentPost>) => {
-    await onSavePost(postData);
+  const handleSaveInspectorPost = async (updatedData: Partial<ContentPost>) => {
+    await onSavePost(updatedData);
+  };
+
+  // Bulk Delete Execution
+  const handleConfirmBulkDelete = async () => {
+    setIsDeletingBulk(true);
+    try {
+      if (confirmDeleteModal.type === 'month') {
+        // Find demo IDs in this month
+        const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const toDeleteDemoIds = enrichedPosts
+          .filter(p => p.id?.startsWith('ref-') && p.scheduled_at?.startsWith(monthPrefix))
+          .map(p => p.id!);
+
+        const updatedDeleted = Array.from(new Set([...deletedDemoIds, ...toDeleteDemoIds]));
+        setDeletedDemoIds(updatedDeleted);
+        localStorage.setItem('liva_deleted_demo_content_ids', JSON.stringify(updatedDeleted));
+
+        if (onDeleteMonthPosts) {
+          await onDeleteMonthPosts(year, month + 1);
+        }
+      } else if (confirmDeleteModal.type === 'all') {
+        // Mark all demo items as deleted
+        const allDemoIds = enrichedPosts
+          .filter(p => p.id?.startsWith('ref-'))
+          .map(p => p.id!);
+
+        const updatedDeleted = Array.from(new Set([...deletedDemoIds, ...allDemoIds]));
+        setDeletedDemoIds(updatedDeleted);
+        localStorage.setItem('liva_deleted_demo_content_ids', JSON.stringify(updatedDeleted));
+
+        if (onDeleteAllPosts) {
+          await onDeleteAllPosts();
+        }
+      }
+      setConfirmDeleteModal(prev => ({ ...prev, isOpen: false }));
+      setShowDeleteDropdown(false);
+    } finally {
+      setIsDeletingBulk(false);
+    }
   };
 
   // Top header date card details
@@ -236,8 +334,8 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
             </div>
           </div>
 
-          {/* Right: Controls (Arrows, View Switcher Pill, + Buat Konten) */}
-          <div className="flex items-center space-x-3">
+          {/* Right: Controls (Filter, Hapus Data, Arrows, View Switcher Pill, + Buat Konten) */}
+          <div className="flex items-center space-x-2.5">
             {/* Filter Toggle Button */}
             <div className="relative">
               <button
@@ -253,43 +351,132 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
               </button>
 
               {showFilterDropdown && (
-                <div className="absolute right-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-3 text-xs space-y-2.5">
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 block mb-1">Cari Konten / Pillar</label>
-                    <input
-                      type="text"
-                      placeholder="Cari judul atau pillar..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 block mb-1">Brand</label>
-                    <select
-                      value={selectedBrand}
-                      onChange={(e) => setSelectedBrand(e.target.value)}
-                      className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs"
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setShowFilterDropdown(false)} />
+                  <div className="absolute right-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-30 p-3 text-xs space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-500 block mb-1">Cari Konten / Pillar</label>
+                      <input
+                        type="text"
+                        placeholder="Cari judul atau pillar..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-500 block mb-1">Brand</label>
+                      <select
+                        value={selectedBrand}
+                        onChange={(e) => setSelectedBrand(e.target.value)}
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs"
+                      >
+                        <option value="all">Semua Brand</option>
+                        {brands.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedBrand('all');
+                        setShowFilterDropdown(false);
+                      }}
+                      className="w-full py-1 text-center text-xs text-blue-600 font-medium hover:underline cursor-pointer"
                     >
-                      <option value="all">Semua Brand</option>
-                      {brands.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
+                      Reset Filter
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      setSearchQuery('');
-                      setSelectedBrand('all');
-                      setShowFilterDropdown(false);
-                    }}
-                    className="w-full py-1 text-center text-xs text-blue-600 font-medium hover:underline"
-                  >
-                    Reset Filter
-                  </button>
-                </div>
+                </>
+              )}
+            </div>
+
+            {/* Hapus Data Dropdown (Hapus Data All & Data Bulan) */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowDeleteDropdown(!showDeleteDropdown)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs font-semibold transition-colors cursor-pointer shadow-2xs ${
+                  showDeleteDropdown
+                    ? 'border-rose-300 bg-rose-50 text-rose-700 ring-2 ring-rose-500/20'
+                    : 'border-slate-200/90 text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 bg-white'
+                }`}
+                title="Pilihan Hapus Data Konten"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Hapus Data</span>
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              </button>
+
+              {showDeleteDropdown && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setShowDeleteDropdown(false)} />
+                  <div className="absolute right-0 mt-1 w-72 bg-white border border-slate-200/90 rounded-2xl shadow-xl z-30 p-2 text-xs space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-2 border-b border-slate-100">
+                      <p className="font-bold text-slate-800 text-xs">Pembersihan Data Kalender</p>
+                      <p className="text-[10px] text-slate-400">Pilih rentang data yang ingin dihapus</p>
+                    </div>
+
+                    {/* Opsi 1: Hapus Data Bulan Ini */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDeleteDropdown(false);
+                        setConfirmDeleteModal({
+                          isOpen: true,
+                          type: 'month',
+                          title: `Hapus Konten Bulan ${MONTH_NAMES[month]} ${year}`,
+                          message: `Apakah Anda yakin ingin menghapus seluruh data konten pada bulan ${MONTH_NAMES[month]} ${year} (${currentMonthPostsCount} konten)? Data pada bulan lain tidak akan terhapus.`,
+                          count: currentMonthPostsCount,
+                        });
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-rose-50/80 transition-colors flex items-start gap-2.5 group cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-rose-100/70 text-rose-600 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-rose-600 group-hover:text-white transition-colors shadow-2xs">
+                        <CalendarX className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800 group-hover:text-rose-700 transition-colors">
+                          Hapus Data Bulan Ini
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {currentMonthPostsCount} konten pada {MONTH_NAMES[month]} {year}
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* Opsi 2: Hapus Semua Data (All) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDeleteDropdown(false);
+                        setConfirmDeleteModal({
+                          isOpen: true,
+                          type: 'all',
+                          title: 'Hapus SEMUA Data Konten (All)',
+                          message: `PERINGATAN: Anda akan menghapus seluruh ${totalPostsCount} konten di SEMUA bulan secara permanen dari kalender. Tindakan ini tidak dapat dibatalkan.`,
+                          count: totalPostsCount,
+                        });
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-rose-50/80 transition-colors flex items-start gap-2.5 group cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-rose-100/70 text-rose-600 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-rose-600 group-hover:text-white transition-colors shadow-2xs">
+                        <Trash2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-rose-600 group-hover:text-rose-700 transition-colors">
+                          Hapus Semua Data (All)
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Total {totalPostsCount} konten di seluruh bulan
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                </>
               )}
             </div>
 
@@ -398,6 +585,54 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
         accounts={accounts}
         pillars={pillars}
       />
+
+      {/* Confirmation Modal for Bulk Delete (Month or All) */}
+      {confirmDeleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4 shadow-2xs">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-bold text-slate-900 mb-2">
+              {confirmDeleteModal.title}
+            </h3>
+
+            <p className="text-xs text-slate-600 leading-relaxed mb-6">
+              {confirmDeleteModal.message}
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteModal(prev => ({ ...prev, isOpen: false }))}
+                disabled={isDeletingBulk}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBulkDelete}
+                disabled={isDeletingBulk}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md hover:shadow-rose-500/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isDeletingBulk ? (
+                  <>
+                    <span className="animate-spin text-xs">⏳</span>
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Ya, Hapus Sekarang</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -152,13 +152,39 @@ export default function App() {
 
   const handleDeletePost = async (id: string) => {
     try {
-      if (!id.startsWith('demo-')) {
+      if (!id.startsWith('demo-') && !id.startsWith('ref-')) {
         await appApi.deleteContentPost(id);
       }
-      showToast('Event removed');
+      showToast('Konten berhasil dihapus');
       setPosts((prev) => prev.filter((p) => p.id !== id));
     } catch (err: any) {
-      showToast(err.message || 'Failed to delete event', 'error');
+      showToast(err.message || 'Gagal menghapus konten', 'error');
+    }
+  };
+
+  const handleDeleteMonthPosts = async (year: number, month: number) => {
+    try {
+      await appApi.deleteContentPostsBulk({ scope: 'month', year, month });
+      showToast(`Data konten bulan ${month}/${year} berhasil dibersihkan`);
+      setPosts((prev) => prev.filter((p) => {
+        if (!p.scheduled_at) return true;
+        const d = new Date(p.scheduled_at);
+        return !(d.getFullYear() === year && (d.getMonth() + 1) === month);
+      }));
+      loadAllData();
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menghapus data konten bulan ini', 'error');
+    }
+  };
+
+  const handleDeleteAllPosts = async () => {
+    try {
+      await appApi.deleteContentPostsBulk({ scope: 'all' });
+      showToast('Semua data konten kalender berhasil dihapus');
+      setPosts([]);
+      loadAllData();
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menghapus semua data konten', 'error');
     }
   };
 
@@ -564,6 +590,8 @@ export default function App() {
             accounts={accounts}
             onSavePost={handleSavePost}
             onDeletePost={handleDeletePost}
+            onDeleteMonthPosts={handleDeleteMonthPosts}
+            onDeleteAllPosts={handleDeleteAllPosts}
             onUpdateStatus={handleUpdateContentStatus}
           />
         ) : activeTab === 'tasks' ? (

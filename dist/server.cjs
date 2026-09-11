@@ -1767,6 +1767,37 @@ Tag temen kalian yang relate banget sama kondisi ini!`,
     res.status(500).json({ error: error.message });
   }
 });
+projectAppRouter.delete("/content-posts", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { scope, month, year, brand_id } = req.query;
+    let query = `DELETE FROM sm_content_posts WHERE 1=1`;
+    const params = [];
+    if (scope === "month" && month && year) {
+      query += ` AND (
+        (MONTH(scheduled_at) = ? AND YEAR(scheduled_at) = ?)
+        OR scheduled_at LIKE ?
+      )`;
+      const paddedMonth = String(month).padStart(2, "0");
+      params.push(month, year, `${year}-${paddedMonth}%`);
+    } else if (scope === "all") {
+    } else {
+      return res.status(400).json({ error: "Scope wajib dispesifikasikan (all atau month)." });
+    }
+    if (brand_id && brand_id !== "all") {
+      query += ` AND brand_id = ?`;
+      params.push(brand_id);
+    }
+    const [result] = await pool2.query(query, params);
+    res.json({
+      success: true,
+      message: scope === "month" ? `Data konten bulan ${month}/${year} berhasil dihapus` : "Semua data konten berhasil dihapus",
+      affectedRows: result?.affectedRows || 0
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 projectAppRouter.delete("/content-posts/:id", async (req, res) => {
   try {
     const pool2 = getPool();

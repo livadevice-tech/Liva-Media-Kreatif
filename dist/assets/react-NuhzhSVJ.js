@@ -1,4 +1,4 @@
-import{V as O}from"./icons-FowSaWPN.js";var y={exports:{}},n={};/**
+import{Y as O}from"./icons-BrnvRPjo.js";var y={exports:{}},n={};/**
  * @license React
  * react-dom.production.js
  *
