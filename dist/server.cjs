@@ -24,7 +24,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 // server.ts
 var import_nodemailer = __toESM(require("nodemailer"), 1);
 var import_express2 = __toESM(require("express"), 1);
-var import_path4 = __toESM(require("path"), 1);
+var import_path5 = __toESM(require("path"), 1);
 var import_dns = __toESM(require("dns"), 1);
 var import_vite = require("vite");
 var import_genai = require("@google/genai");
@@ -112,38 +112,38 @@ function hashPasswordForStorage(password) {
   const hash = (0, import_node_crypto.scryptSync)(password, salt, 64);
   return `scrypt:${salt.toString("base64url")}:${hash.toString("base64url")}`;
 }
-function isPathUnder(path5, prefix) {
-  return path5 === prefix || path5.startsWith(`${prefix}/`);
+function isPathUnder(path6, prefix) {
+  return path6 === prefix || path6.startsWith(`${prefix}/`);
 }
-function getAdminRequiredTabs(path5) {
-  if (isPathUnder(path5, "/admin-accounts")) return MODULE_TAB_REQUIREMENTS.adminAccounts;
-  if (isPathUnder(path5, "/hosts")) return MODULE_TAB_REQUIREMENTS.hosts;
-  if (isPathUnder(path5, "/violations")) return MODULE_TAB_REQUIREMENTS.hosts;
-  if (isPathUnder(path5, "/logs")) return MODULE_TAB_REQUIREMENTS.logs;
-  if (isPathUnder(path5, "/schedules")) return MODULE_TAB_REQUIREMENTS.schedules;
-  if (isPathUnder(path5, "/alerts")) return MODULE_TAB_REQUIREMENTS.alerts;
-  if (isPathUnder(path5, "/client-brands")) return MODULE_TAB_REQUIREMENTS.clientBrands;
-  if (isPathUnder(path5, "/client-leads")) return MODULE_TAB_REQUIREMENTS.clientLeads;
-  if (isPathUnder(path5, "/client-reporting")) return MODULE_TAB_REQUIREMENTS.clientReporting;
-  if (isPathUnder(path5, "/reporting/brand")) return MODULE_TAB_REQUIREMENTS.reportingBrand;
-  if (isPathUnder(path5, "/settings")) return MODULE_TAB_REQUIREMENTS.settings;
-  if (isPathUnder(path5, "/invoice")) return MODULE_TAB_REQUIREMENTS.invoice;
-  if (isPathUnder(path5, "/chat")) return MODULE_TAB_REQUIREMENTS.chat;
-  if (isPathUnder(path5, "/ai")) return MODULE_TAB_REQUIREMENTS.ai;
+function getAdminRequiredTabs(path6) {
+  if (isPathUnder(path6, "/admin-accounts")) return MODULE_TAB_REQUIREMENTS.adminAccounts;
+  if (isPathUnder(path6, "/hosts")) return MODULE_TAB_REQUIREMENTS.hosts;
+  if (isPathUnder(path6, "/violations")) return MODULE_TAB_REQUIREMENTS.hosts;
+  if (isPathUnder(path6, "/logs")) return MODULE_TAB_REQUIREMENTS.logs;
+  if (isPathUnder(path6, "/schedules")) return MODULE_TAB_REQUIREMENTS.schedules;
+  if (isPathUnder(path6, "/alerts")) return MODULE_TAB_REQUIREMENTS.alerts;
+  if (isPathUnder(path6, "/client-brands")) return MODULE_TAB_REQUIREMENTS.clientBrands;
+  if (isPathUnder(path6, "/client-leads")) return MODULE_TAB_REQUIREMENTS.clientLeads;
+  if (isPathUnder(path6, "/client-reporting")) return MODULE_TAB_REQUIREMENTS.clientReporting;
+  if (isPathUnder(path6, "/reporting/brand")) return MODULE_TAB_REQUIREMENTS.reportingBrand;
+  if (isPathUnder(path6, "/settings")) return MODULE_TAB_REQUIREMENTS.settings;
+  if (isPathUnder(path6, "/invoice")) return MODULE_TAB_REQUIREMENTS.invoice;
+  if (isPathUnder(path6, "/chat")) return MODULE_TAB_REQUIREMENTS.chat;
+  if (isPathUnder(path6, "/ai")) return MODULE_TAB_REQUIREMENTS.ai;
   return null;
 }
-function isRequestAllowed(session, method, path5) {
-  if (method === "GET" && path5 === "/client-brands/public") return true;
-  if (method === "GET" && path5 === "/client-brands/public-list") return true;
+function isRequestAllowed(session, method, path6) {
+  if (method === "GET" && path6 === "/client-brands/public") return true;
+  if (method === "GET" && path6 === "/client-brands/public-list") return true;
   if (session.role === "master") return true;
   if (session.role === "admin") {
-    const requiredTabs = getAdminRequiredTabs(path5);
+    const requiredTabs = getAdminRequiredTabs(path6);
     return requiredTabs ? canAccessAnyTab(session.accessTabs, requiredTabs) : false;
   }
   if (session.role === "host") {
-    return method === "GET" && path5 === `/hosts/${session.subjectId}` || method === "GET" && path5 === "/client-brands" || method === "GET" && path5 === "/reporting/brand" || method === "GET" && path5 === "/reporting/brand/analyses" || method === "GET" && path5 === "/violations" || method === "GET" && path5 === "/logs" || method === "POST" && path5 === "/logs" || method === "GET" && path5 === "/schedules" || method === "GET" && path5 === "/settings/liva_global_configs";
+    return method === "GET" && path6 === `/hosts/${session.subjectId}` || method === "GET" && path6 === "/client-brands" || method === "GET" && path6 === "/reporting/brand" || method === "GET" && path6 === "/reporting/brand/analyses" || method === "GET" && path6 === "/violations" || method === "GET" && path6 === "/logs" || method === "POST" && path6 === "/logs" || method === "GET" && path6 === "/schedules" || method === "GET" && path6 === "/settings/liva_global_configs";
   }
-  return method === "GET" && path5 === `/client-brands/${session.subjectId}` || method === "GET" && path5 === "/schedules" || method === "GET" && path5 === "/client-reporting" || method === "GET" && path5.startsWith("/reporting/brand") || method === "GET" && path5 === "/settings/liva_global_configs";
+  return method === "GET" && path6 === `/client-brands/${session.subjectId}` || method === "GET" && path6 === "/schedules" || method === "GET" && path6 === "/client-reporting" || method === "GET" && path6.startsWith("/reporting/brand") || method === "GET" && path6 === "/settings/liva_global_configs";
 }
 function readCookie(header, name) {
   if (!header) return null;
@@ -1175,14 +1175,207 @@ function validateProductionConfig(env) {
 // server/routes/projectApp.ts
 var import_express = require("express");
 var import_multer3 = __toESM(require("multer"), 1);
-var import_path3 = __toESM(require("path"), 1);
+var import_path4 = __toESM(require("path"), 1);
+var import_fs4 = __toESM(require("fs"), 1);
+
+// server/pdfSigner.ts
+var import_pdf_lib = require("pdf-lib");
 var import_fs3 = __toESM(require("fs"), 1);
+var import_path3 = __toESM(require("path"), 1);
+async function stampDocumentWithSignature(params) {
+  const { documentId, originalFileUrl, documentTitle, signatureDataUrl, position } = params;
+  try {
+    const assetsDir = import_path3.default.join(process.cwd(), "uploads", "assets");
+    if (!import_fs3.default.existsSync(assetsDir)) {
+      import_fs3.default.mkdirSync(assetsDir, { recursive: true });
+    }
+    const timestamp = Date.now();
+    const outputFileName = `signed_${documentId}_${timestamp}.pdf`;
+    const outputPath = import_path3.default.join(assetsDir, outputFileName);
+    const outputUrl = `/uploads/assets/${outputFileName}`;
+    const base64Data = signatureDataUrl.replace(/^data:image\/\w+;base64,/, "");
+    const signatureBytes = Buffer.from(base64Data, "base64");
+    let pdfDoc;
+    let isExistingPdf = false;
+    if (originalFileUrl && originalFileUrl.startsWith("/uploads/")) {
+      const localFilePath = import_path3.default.join(process.cwd(), originalFileUrl);
+      if (import_fs3.default.existsSync(localFilePath)) {
+        const ext = import_path3.default.extname(localFilePath).toLowerCase();
+        if (ext === ".pdf") {
+          try {
+            const existingBytes = import_fs3.default.readFileSync(localFilePath);
+            pdfDoc = await import_pdf_lib.PDFDocument.load(existingBytes);
+            isExistingPdf = true;
+          } catch (e) {
+            console.warn("Failed to load existing PDF, creating new signed PDF:", e);
+          }
+        } else if ([".png", ".jpg", ".jpeg"].includes(ext)) {
+          try {
+            const imgBytes = import_fs3.default.readFileSync(localFilePath);
+            pdfDoc = await import_pdf_lib.PDFDocument.create();
+            const img = ext === ".png" ? await pdfDoc.embedPng(imgBytes) : await pdfDoc.embedJpg(imgBytes);
+            const imgPage = pdfDoc.addPage([img.width, img.height]);
+            imgPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+            isExistingPdf = true;
+          } catch (e) {
+            console.warn("Failed to embed image into PDF:", e);
+          }
+        }
+      }
+    }
+    if (!pdfDoc) {
+      pdfDoc = await import_pdf_lib.PDFDocument.create();
+      const page = pdfDoc.addPage([595.28, 841.89]);
+      const fontRegular2 = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.Helvetica);
+      const fontBold2 = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.HelveticaBold);
+      const { width, height } = page.getSize();
+      page.drawRectangle({
+        x: 40,
+        y: height - 120,
+        width: width - 80,
+        height: 70,
+        color: (0, import_pdf_lib.rgb)(0.96, 0.97, 1),
+        borderColor: (0, import_pdf_lib.rgb)(0.8, 0.85, 0.98),
+        borderWidth: 1
+      });
+      page.drawText("LIVA MEDIA KREATIF", {
+        x: 60,
+        y: height - 80,
+        size: 14,
+        font: fontBold2,
+        color: (0, import_pdf_lib.rgb)(0.2, 0.25, 0.6)
+      });
+      page.drawText("SERTIFIKAT & LEMBAR PENGESAHAN DOKUMEN DIGITAL", {
+        x: 60,
+        y: height - 100,
+        size: 9,
+        font: fontRegular2,
+        color: (0, import_pdf_lib.rgb)(0.4, 0.45, 0.55)
+      });
+      page.drawText("Judul Dokumen / Berkas:", {
+        x: 40,
+        y: height - 155,
+        size: 10,
+        font: fontBold2,
+        color: (0, import_pdf_lib.rgb)(0.3, 0.35, 0.45)
+      });
+      page.drawText(documentTitle || "Dokumen Resmi", {
+        x: 40,
+        y: height - 180,
+        size: 14,
+        font: fontBold2,
+        color: (0, import_pdf_lib.rgb)(0.1, 0.12, 0.18)
+      });
+      const metaY = height - 260;
+      page.drawRectangle({
+        x: 40,
+        y: metaY,
+        width: width - 80,
+        height: 65,
+        color: (0, import_pdf_lib.rgb)(0.98, 0.98, 0.99),
+        borderColor: (0, import_pdf_lib.rgb)(0.9, 0.92, 0.95),
+        borderWidth: 1
+      });
+      page.drawText(`ID Dokumen: ${documentId}`, { x: 55, y: metaY + 45, size: 9, font: fontRegular2, color: (0, import_pdf_lib.rgb)(0.3, 0.3, 0.3) });
+      page.drawText(`Penandatangan: ${position?.signerName || "Pihak Berwenang"}`, { x: 55, y: metaY + 28, size: 9, font: fontRegular2, color: (0, import_pdf_lib.rgb)(0.3, 0.3, 0.3) });
+      page.drawText(`Waktu Tanda Tangan: ${position?.signedAt || (/* @__PURE__ */ new Date()).toLocaleString("id-ID")}`, { x: 55, y: metaY + 11, size: 9, font: fontRegular2, color: (0, import_pdf_lib.rgb)(0.3, 0.3, 0.3) });
+      page.drawText("Dokumen ini telah diverifikasi dan dibubuhi tanda tangan digital yang sah secara elektronik.", {
+        x: 40,
+        y: metaY - 30,
+        size: 9,
+        font: fontRegular2,
+        color: (0, import_pdf_lib.rgb)(0.4, 0.4, 0.4)
+      });
+    }
+    const pages = pdfDoc.getPages();
+    const targetPageIndex = Math.max(0, Math.min((position?.page || 1) - 1, pages.length - 1));
+    const targetPage = pages[targetPageIndex];
+    const { width: pageWidth, height: pageHeight } = targetPage.getSize();
+    const signatureImage = await pdfDoc.embedPng(signatureBytes);
+    const xPercent = position?.xPercent !== void 0 ? position.xPercent : 0.62;
+    const yPercent = position?.yPercent !== void 0 ? position.yPercent : 0.72;
+    const widthPercent = position?.widthPercent || 0.26;
+    const sigWidth = pageWidth * widthPercent;
+    const sigHeight = sigWidth / signatureImage.width * signatureImage.height;
+    const sigX = Math.max(20, Math.min(pageWidth * xPercent, pageWidth - sigWidth - 20));
+    const sigY = Math.max(20, Math.min(pageHeight - pageHeight * yPercent - sigHeight, pageHeight - sigHeight - 20));
+    targetPage.drawImage(signatureImage, {
+      x: sigX,
+      y: sigY,
+      width: sigWidth,
+      height: sigHeight
+    });
+    const fontRegular = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.HelveticaBold);
+    targetPage.drawLine({
+      start: { x: sigX, y: sigY - 2 },
+      end: { x: sigX + sigWidth, y: sigY - 2 },
+      thickness: 1,
+      color: (0, import_pdf_lib.rgb)(0.3, 0.35, 0.45)
+    });
+    if (position?.signerName) {
+      targetPage.drawText(position.signerName, {
+        x: sigX,
+        y: sigY - 14,
+        size: 9,
+        font: fontBold,
+        color: (0, import_pdf_lib.rgb)(0.1, 0.12, 0.18)
+      });
+    }
+    if (position?.signerRole) {
+      targetPage.drawText(position.signerRole, {
+        x: sigX,
+        y: sigY - 25,
+        size: 8,
+        font: fontRegular,
+        color: (0, import_pdf_lib.rgb)(0.4, 0.45, 0.5)
+      });
+    }
+    if (position?.withCompanyStamp) {
+      const stampX = sigX - 25;
+      const stampY = sigY - 15;
+      targetPage.drawRectangle({
+        x: stampX,
+        y: stampY,
+        width: 80,
+        height: 24,
+        color: (0, import_pdf_lib.rgb)(0.9, 0.95, 0.92),
+        borderColor: (0, import_pdf_lib.rgb)(0.05, 0.6, 0.3),
+        borderWidth: 1,
+        opacity: 0.85
+      });
+      targetPage.drawText("VERIFIED / SAH", {
+        x: stampX + 8,
+        y: stampY + 14,
+        size: 7,
+        font: fontBold,
+        color: (0, import_pdf_lib.rgb)(0.05, 0.55, 0.25)
+      });
+      targetPage.drawText("LIVA MEDIA", {
+        x: stampX + 8,
+        y: stampY + 5,
+        size: 6,
+        font: fontRegular,
+        color: (0, import_pdf_lib.rgb)(0.05, 0.55, 0.25)
+      });
+    }
+    const modifiedPdfBytes = await pdfDoc.save();
+    import_fs3.default.writeFileSync(outputPath, modifiedPdfBytes);
+    console.log(`[pdfSigner] Successfully stamped PDF at ${outputPath} (${modifiedPdfBytes.length} bytes)`);
+    return outputUrl;
+  } catch (error) {
+    console.error("[pdfSigner] Error stamping PDF document:", error);
+    return null;
+  }
+}
+
+// server/routes/projectApp.ts
 var projectAppRouter = (0, import_express.Router)();
 var assetStorage = import_multer3.default.diskStorage({
   destination: (req, file, cb) => {
-    const dir = import_path3.default.join(process.cwd(), "uploads", "assets");
-    if (!import_fs3.default.existsSync(dir)) {
-      import_fs3.default.mkdirSync(dir, { recursive: true });
+    const dir = import_path4.default.join(process.cwd(), "uploads", "assets");
+    if (!import_fs4.default.existsSync(dir)) {
+      import_fs4.default.mkdirSync(dir, { recursive: true });
     }
     cb(null, dir);
   },
@@ -2343,6 +2536,7 @@ projectAppRouter.post("/documents", async (req, res) => {
       signer_phone = "",
       signer_notes = "",
       signature_data_url = null,
+      signature_position = null,
       created_by = "User"
     } = req.body;
     if (!title || !title.trim()) {
@@ -2353,12 +2547,33 @@ projectAppRouter.post("/documents", async (req, res) => {
     const isDirectSigned = sign_type === "internal" && !!signature_data_url;
     const initialStatus = isDirectSigned ? "signed" : "pending";
     const signedAt = isDirectSigned ? /* @__PURE__ */ new Date() : null;
+    let signedFileUrl = null;
+    if (isDirectSigned && signature_data_url) {
+      try {
+        const parsedPos = typeof signature_position === "string" ? JSON.parse(signature_position) : signature_position;
+        signedFileUrl = await stampDocumentWithSignature({
+          documentId: docId,
+          originalFileUrl: file_url,
+          documentTitle: title.trim(),
+          signatureDataUrl: signature_data_url,
+          position: {
+            ...parsedPos,
+            signerName: signer_name || "Penandatangan Internal",
+            signerRole: signer_role || "",
+            signedAt: (/* @__PURE__ */ new Date()).toLocaleString("id-ID")
+          }
+        });
+      } catch (err) {
+        console.error("Error stamping direct signed document:", err);
+      }
+    }
+    const posString = signature_position ? typeof signature_position === "string" ? signature_position : JSON.stringify(signature_position) : null;
     await pool2.query(`
       INSERT INTO app_signed_documents (
         id, title, file_url, file_name, file_source, sign_type, status,
         signing_token, signer_name, signer_role, signer_email, signer_phone,
-        signer_notes, signature_data_url, signed_at, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        signer_notes, signature_data_url, signed_file_url, signature_position, signed_at, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       docId,
       title.trim(),
@@ -2374,6 +2589,8 @@ projectAppRouter.post("/documents", async (req, res) => {
       signer_phone || "",
       signer_notes || "",
       signature_data_url || null,
+      signedFileUrl,
+      posString,
       signedAt,
       created_by
     ]);
@@ -2382,7 +2599,8 @@ projectAppRouter.post("/documents", async (req, res) => {
       id: docId,
       signing_token: signingToken,
       status: initialStatus,
-      message: isDirectSigned ? "Dokumen berhasil ditandatangani dan disimpan!" : "Permintaan tanda tangan berkas berhasil dibuat."
+      signed_file_url: signedFileUrl,
+      message: isDirectSigned ? "Dokumen berhasil ditandatangani dan dibubuhkan langsung ke file PDF!" : "Permintaan tanda tangan berkas berhasil dibuat."
     });
   } catch (error) {
     console.error("Error creating document signature:", error);
@@ -2397,7 +2615,7 @@ projectAppRouter.get("/documents/public/:token", async (req, res) => {
       SELECT 
         id, title, file_url, file_name, file_source, sign_type, status,
         signing_token, signer_name, signer_role, signer_email, signer_notes,
-        signature_data_url, signed_at, created_at, created_by
+        signature_data_url, signed_file_url, signature_position, signed_at, created_at, created_by
       FROM app_signed_documents 
       WHERE signing_token = ?
     `, [token]);
@@ -2416,32 +2634,55 @@ projectAppRouter.get("/documents/public/:token", async (req, res) => {
 projectAppRouter.post("/documents/public/:token/sign", async (req, res) => {
   try {
     const { token } = req.params;
-    const { signature_data_url, signer_name, signer_role } = req.body;
+    const { signature_data_url, signer_name, signer_role, signature_position } = req.body;
     if (!signature_data_url) {
       return res.status(400).json({ error: "Goresan tanda tangan digital wajib dibubuhkan." });
     }
     const pool2 = getPool();
     const [existing] = await pool2.query(`
-      SELECT id, status, signer_name, signer_role FROM app_signed_documents WHERE signing_token = ?
+      SELECT id, title, file_url, status, signer_name, signer_role, signature_position FROM app_signed_documents WHERE signing_token = ?
     `, [token]);
     if (!existing || existing.length === 0) {
       return res.status(404).json({ error: "Dokumen tidak ditemukan." });
     }
-    const finalSignerName = signer_name?.trim() || existing[0].signer_name || "Pihak Eksternal";
-    const finalSignerRole = signer_role?.trim() || existing[0].signer_role || "Penerima Berkas";
+    const doc = existing[0];
+    const finalSignerName = signer_name?.trim() || doc.signer_name || "Pihak Eksternal";
+    const finalSignerRole = signer_role?.trim() || doc.signer_role || "Penerima Berkas";
+    const parsedPos = signature_position ? typeof signature_position === "string" ? JSON.parse(signature_position) : signature_position : doc.signature_position ? typeof doc.signature_position === "string" ? JSON.parse(doc.signature_position) : doc.signature_position : null;
+    let signedFileUrl = null;
+    try {
+      signedFileUrl = await stampDocumentWithSignature({
+        documentId: doc.id,
+        originalFileUrl: doc.file_url,
+        documentTitle: doc.title,
+        signatureDataUrl: signature_data_url,
+        position: {
+          ...parsedPos,
+          signerName: finalSignerName,
+          signerRole: finalSignerRole,
+          signedAt: (/* @__PURE__ */ new Date()).toLocaleString("id-ID")
+        }
+      });
+    } catch (e) {
+      console.warn("Error stamping public signed document:", e);
+    }
+    const posString = parsedPos ? JSON.stringify(parsedPos) : null;
     await pool2.query(`
       UPDATE app_signed_documents 
       SET 
         status = 'signed',
         signature_data_url = ?,
+        signed_file_url = COALESCE(?, signed_file_url),
+        signature_position = COALESCE(?, signature_position),
         signer_name = ?,
         signer_role = ?,
         signed_at = NOW()
       WHERE signing_token = ?
-    `, [signature_data_url, finalSignerName, finalSignerRole, token]);
+    `, [signature_data_url, signedFileUrl, posString, finalSignerName, finalSignerRole, token]);
     res.json({
       success: true,
-      message: "Tanda tangan berhasil dibubuhkan ke dokumen.",
+      message: "Tanda tangan berhasil dibubuhkan langsung ke berkas dokumen!",
+      signed_file_url: signedFileUrl,
       signer_name: finalSignerName,
       signed_at: (/* @__PURE__ */ new Date()).toISOString()
     });
@@ -2453,22 +2694,56 @@ projectAppRouter.post("/documents/public/:token/sign", async (req, res) => {
 projectAppRouter.post("/documents/:id/internal-sign", async (req, res) => {
   try {
     const { id } = req.params;
-    const { signature_data_url, signer_name, signer_role } = req.body;
+    const { signature_data_url, signer_name, signer_role, signature_position } = req.body;
     if (!signature_data_url) {
       return res.status(400).json({ error: "Goresan tanda tangan digital wajib dibubuhkan." });
     }
     const pool2 = getPool();
+    const [existing] = await pool2.query(`
+      SELECT id, title, file_url, signer_name, signer_role, signature_position FROM app_signed_documents WHERE id = ?
+    `, [id]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ error: "Dokumen tidak ditemukan." });
+    }
+    const doc = existing[0];
+    const finalSignerName = signer_name || doc.signer_name || "Penandatangan Internal";
+    const finalSignerRole = signer_role || doc.signer_role || "";
+    const parsedPos = signature_position ? typeof signature_position === "string" ? JSON.parse(signature_position) : signature_position : doc.signature_position ? typeof doc.signature_position === "string" ? JSON.parse(doc.signature_position) : doc.signature_position : null;
+    let signedFileUrl = null;
+    try {
+      signedFileUrl = await stampDocumentWithSignature({
+        documentId: doc.id,
+        originalFileUrl: doc.file_url,
+        documentTitle: doc.title,
+        signatureDataUrl: signature_data_url,
+        position: {
+          ...parsedPos,
+          signerName: finalSignerName,
+          signerRole: finalSignerRole,
+          signedAt: (/* @__PURE__ */ new Date()).toLocaleString("id-ID")
+        }
+      });
+    } catch (e) {
+      console.warn("Error stamping internal signed document:", e);
+    }
+    const posString = parsedPos ? JSON.stringify(parsedPos) : null;
     await pool2.query(`
       UPDATE app_signed_documents 
       SET 
         status = 'signed',
         signature_data_url = ?,
-        signer_name = COALESCE(?, signer_name),
-        signer_role = COALESCE(?, signer_role),
+        signed_file_url = COALESCE(?, signed_file_url),
+        signature_position = COALESCE(?, signature_position),
+        signer_name = ?,
+        signer_role = ?,
         signed_at = NOW()
       WHERE id = ?
-    `, [signature_data_url, signer_name || null, signer_role || null, id]);
-    res.json({ success: true, message: "Dokumen internal berhasil ditandatangani!" });
+    `, [signature_data_url, signedFileUrl, posString, finalSignerName, finalSignerRole, id]);
+    res.json({
+      success: true,
+      message: "Dokumen internal berhasil ditandatangani dan dibubuhkan langsung ke file PDF!",
+      signed_file_url: signedFileUrl
+    });
   } catch (error) {
     console.error("Error signing internal document:", error);
     res.status(500).json({ error: error.message });
@@ -2684,6 +2959,8 @@ async function runProjectAppMigrations() {
       signer_phone VARCHAR(50),
       signer_notes TEXT,
       signature_data_url LONGTEXT,
+      signed_file_url TEXT,
+      signature_position TEXT,
       signed_at DATETIME,
       created_by VARCHAR(100),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -2692,6 +2969,14 @@ async function runProjectAppMigrations() {
       INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+  try {
+    await pool2.execute(`ALTER TABLE app_signed_documents ADD COLUMN signed_file_url TEXT`);
+  } catch (e) {
+  }
+  try {
+    await pool2.execute(`ALTER TABLE app_signed_documents ADD COLUMN signature_position TEXT`);
+  } catch (e) {
+  }
   console.log("\u2705 Seluruh tabel berhasil diverifikasi/dibuat!");
   await seedInitialData();
   await seedDraftsIfEmpty();
@@ -2824,7 +3109,7 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use("/uploads", import_express2.default.static(import_path4.default.join(process.cwd(), "uploads")));
+app.use("/uploads", import_express2.default.static(import_path5.default.join(process.cwd(), "uploads")));
 app.post("/api/auth/login", asyncHandler(async (req, res) => {
   const role = String(req.body?.role || "");
   const username = String(req.body?.username || "").trim();
@@ -3857,10 +4142,10 @@ async function bootstrap() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = import_path4.default.join(process.cwd(), "dist");
+    const distPath = import_path5.default.join(process.cwd(), "dist");
     app.use(import_express2.default.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(import_path4.default.join(distPath, "index.html"));
+      res.sendFile(import_path5.default.join(distPath, "index.html"));
     });
   }
   if (typeof PORT === "string" && isNaN(Number(PORT))) {

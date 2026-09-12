@@ -214,6 +214,8 @@ export async function runProjectAppMigrations() {
       signer_phone VARCHAR(50),
       signer_notes TEXT,
       signature_data_url LONGTEXT,
+      signed_file_url TEXT,
+      signature_position TEXT,
       signed_at DATETIME,
       created_by VARCHAR(100),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -222,6 +224,18 @@ export async function runProjectAppMigrations() {
       INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+
+  // Pastikan kolom baru ada di database yang sudah ada sebelumnya
+  try {
+    await pool.execute(`ALTER TABLE app_signed_documents ADD COLUMN signed_file_url TEXT`);
+  } catch (e: any) {
+    // Ignore error jika kolom sudah ada
+  }
+  try {
+    await pool.execute(`ALTER TABLE app_signed_documents ADD COLUMN signature_position TEXT`);
+  } catch (e: any) {
+    // Ignore error jika kolom sudah ada
+  }
 
   console.log("✅ Seluruh tabel berhasil diverifikasi/dibuat!");
 

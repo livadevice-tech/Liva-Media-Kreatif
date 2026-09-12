@@ -188,6 +188,8 @@ export interface SignedDocument {
   signer_phone?: string;
   signer_notes?: string;
   signature_data_url?: string;
+  signed_file_url?: string;
+  signature_position?: string;
   signed_at?: string;
   created_by?: string;
   created_at?: string;

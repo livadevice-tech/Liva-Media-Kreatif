@@ -3,6 +3,7 @@ import { getPool } from '../db';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { stampDocumentWithSignature } from '../pdfSigner';
 
 export const projectAppRouter = Router();
 
@@ -1202,6 +1203,7 @@ projectAppRouter.post('/documents', async (req: Request, res: Response) => {
       signer_phone = '',
       signer_notes = '',
       signature_data_url = null,
+      signature_position = null,
       created_by = 'User',
     } = req.body;
 
@@ -1215,12 +1217,37 @@ projectAppRouter.post('/documents', async (req: Request, res: Response) => {
     const initialStatus = isDirectSigned ? 'signed' : 'pending';
     const signedAt = isDirectSigned ? new Date() : null;
 
+    let signedFileUrl: string | null = null;
+    if (isDirectSigned && signature_data_url) {
+      try {
+        const parsedPos = typeof signature_position === 'string' ? JSON.parse(signature_position) : signature_position;
+        signedFileUrl = await stampDocumentWithSignature({
+          documentId: docId,
+          originalFileUrl: file_url,
+          documentTitle: title.trim(),
+          signatureDataUrl: signature_data_url,
+          position: {
+            ...parsedPos,
+            signerName: signer_name || 'Penandatangan Internal',
+            signerRole: signer_role || '',
+            signedAt: new Date().toLocaleString('id-ID'),
+          },
+        });
+      } catch (err) {
+        console.error('Error stamping direct signed document:', err);
+      }
+    }
+
+    const posString = signature_position 
+      ? (typeof signature_position === 'string' ? signature_position : JSON.stringify(signature_position))
+      : null;
+
     await pool.query(`
       INSERT INTO app_signed_documents (
         id, title, file_url, file_name, file_source, sign_type, status,
         signing_token, signer_name, signer_role, signer_email, signer_phone,
-        signer_notes, signature_data_url, signed_at, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        signer_notes, signature_data_url, signed_file_url, signature_position, signed_at, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       docId,
       title.trim(),
@@ -1236,6 +1263,8 @@ projectAppRouter.post('/documents', async (req: Request, res: Response) => {
       signer_phone || '',
       signer_notes || '',
       signature_data_url || null,
+      signedFileUrl,
+      posString,
       signedAt,
       created_by,
     ]);
@@ -1245,8 +1274,9 @@ projectAppRouter.post('/documents', async (req: Request, res: Response) => {
       id: docId,
       signing_token: signingToken,
       status: initialStatus,
+      signed_file_url: signedFileUrl,
       message: isDirectSigned 
-        ? 'Dokumen berhasil ditandatangani dan disimpan!' 
+        ? 'Dokumen berhasil ditandatangani dan dibubuhkan langsung ke file PDF!' 
         : 'Permintaan tanda tangan berkas berhasil dibuat.',
     });
   } catch (error: any) {
@@ -1264,7 +1294,7 @@ projectAppRouter.get('/documents/public/:token', async (req: Request, res: Respo
       SELECT 
         id, title, file_url, file_name, file_source, sign_type, status,
         signing_token, signer_name, signer_role, signer_email, signer_notes,
-        signature_data_url, signed_at, created_at, created_by
+        signature_data_url, signed_file_url, signature_position, signed_at, created_at, created_by
       FROM app_signed_documents 
       WHERE signing_token = ?
     `, [token]);
@@ -1287,7 +1317,7 @@ projectAppRouter.get('/documents/public/:token', async (req: Request, res: Respo
 projectAppRouter.post('/documents/public/:token/sign', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-    const { signature_data_url, signer_name, signer_role } = req.body;
+    const { signature_data_url, signer_name, signer_role, signature_position } = req.body;
 
     if (!signature_data_url) {
       return res.status(400).json({ error: 'Goresan tanda tangan digital wajib dibubuhkan.' });
@@ -1295,30 +1325,58 @@ projectAppRouter.post('/documents/public/:token/sign', async (req: Request, res:
 
     const pool = getPool();
     const [existing]: any = await pool.query(`
-      SELECT id, status, signer_name, signer_role FROM app_signed_documents WHERE signing_token = ?
+      SELECT id, title, file_url, status, signer_name, signer_role, signature_position FROM app_signed_documents WHERE signing_token = ?
     `, [token]);
 
     if (!existing || existing.length === 0) {
       return res.status(404).json({ error: 'Dokumen tidak ditemukan.' });
     }
 
-    const finalSignerName = signer_name?.trim() || existing[0].signer_name || 'Pihak Eksternal';
-    const finalSignerRole = signer_role?.trim() || existing[0].signer_role || 'Penerima Berkas';
+    const doc = existing[0];
+    const finalSignerName = signer_name?.trim() || doc.signer_name || 'Pihak Eksternal';
+    const finalSignerRole = signer_role?.trim() || doc.signer_role || 'Penerima Berkas';
+
+    const parsedPos = signature_position 
+      ? (typeof signature_position === 'string' ? JSON.parse(signature_position) : signature_position)
+      : (doc.signature_position ? (typeof doc.signature_position === 'string' ? JSON.parse(doc.signature_position) : doc.signature_position) : null);
+
+    let signedFileUrl: string | null = null;
+    try {
+      signedFileUrl = await stampDocumentWithSignature({
+        documentId: doc.id,
+        originalFileUrl: doc.file_url,
+        documentTitle: doc.title,
+        signatureDataUrl: signature_data_url,
+        position: {
+          ...parsedPos,
+          signerName: finalSignerName,
+          signerRole: finalSignerRole,
+          signedAt: new Date().toLocaleString('id-ID'),
+        },
+      });
+    } catch (e) {
+      console.warn('Error stamping public signed document:', e);
+    }
+
+    const posString = parsedPos ? JSON.stringify(parsedPos) : null;
 
     await pool.query(`
       UPDATE app_signed_documents 
       SET 
         status = 'signed',
         signature_data_url = ?,
+        signed_file_url = COALESCE(?, signed_file_url),
+        signature_position = COALESCE(?, signature_position),
         signer_name = ?,
         signer_role = ?,
         signed_at = NOW()
       WHERE signing_token = ?
-    `, [signature_data_url, finalSignerName, finalSignerRole, token]);
+    `, [signature_data_url, signedFileUrl, posString, finalSignerName, finalSignerRole, token]);
 
     res.json({
       success: true,
-      message: 'Tanda tangan berhasil dibubuhkan ke dokumen.',
+      message: 'Tanda tangan berhasil dibubuhkan langsung ke berkas dokumen!',
+      signed_file_url: signedFileUrl,
       signer_name: finalSignerName,
       signed_at: new Date().toISOString(),
     });
@@ -1332,25 +1390,67 @@ projectAppRouter.post('/documents/public/:token/sign', async (req: Request, res:
 projectAppRouter.post('/documents/:id/internal-sign', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { signature_data_url, signer_name, signer_role } = req.body;
+    const { signature_data_url, signer_name, signer_role, signature_position } = req.body;
 
     if (!signature_data_url) {
       return res.status(400).json({ error: 'Goresan tanda tangan digital wajib dibubuhkan.' });
     }
 
     const pool = getPool();
+    const [existing]: any = await pool.query(`
+      SELECT id, title, file_url, signer_name, signer_role, signature_position FROM app_signed_documents WHERE id = ?
+    `, [id]);
+
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ error: 'Dokumen tidak ditemukan.' });
+    }
+
+    const doc = existing[0];
+    const finalSignerName = signer_name || doc.signer_name || 'Penandatangan Internal';
+    const finalSignerRole = signer_role || doc.signer_role || '';
+
+    const parsedPos = signature_position 
+      ? (typeof signature_position === 'string' ? JSON.parse(signature_position) : signature_position)
+      : (doc.signature_position ? (typeof doc.signature_position === 'string' ? JSON.parse(doc.signature_position) : doc.signature_position) : null);
+
+    let signedFileUrl: string | null = null;
+    try {
+      signedFileUrl = await stampDocumentWithSignature({
+        documentId: doc.id,
+        originalFileUrl: doc.file_url,
+        documentTitle: doc.title,
+        signatureDataUrl: signature_data_url,
+        position: {
+          ...parsedPos,
+          signerName: finalSignerName,
+          signerRole: finalSignerRole,
+          signedAt: new Date().toLocaleString('id-ID'),
+        },
+      });
+    } catch (e) {
+      console.warn('Error stamping internal signed document:', e);
+    }
+
+    const posString = parsedPos ? JSON.stringify(parsedPos) : null;
+
     await pool.query(`
       UPDATE app_signed_documents 
       SET 
         status = 'signed',
         signature_data_url = ?,
-        signer_name = COALESCE(?, signer_name),
-        signer_role = COALESCE(?, signer_role),
+        signed_file_url = COALESCE(?, signed_file_url),
+        signature_position = COALESCE(?, signature_position),
+        signer_name = ?,
+        signer_role = ?,
         signed_at = NOW()
       WHERE id = ?
-    `, [signature_data_url, signer_name || null, signer_role || null, id]);
+    `, [signature_data_url, signedFileUrl, posString, finalSignerName, finalSignerRole, id]);
 
-    res.json({ success: true, message: 'Dokumen internal berhasil ditandatangani!' });
+    res.json({ 
+      success: true, 
+      message: 'Dokumen internal berhasil ditandatangani dan dibubuhkan langsung ke file PDF!',
+      signed_file_url: signedFileUrl,
+    });
   } catch (error: any) {
     console.error('Error signing internal document:', error);
     res.status(500).json({ error: error.message });

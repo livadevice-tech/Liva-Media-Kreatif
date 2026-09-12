@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { appApi } from '../../services/appApi';
 import { SignedDocument, AssetFileItem, UserAccount } from '../../types/app';
+import { InteractivePdfDocumentSigner, SignaturePlacement } from './InteractivePdfDocumentSigner';
 
 interface DocumentSigningStudioModalProps {
   isOpen: boolean;
@@ -69,6 +70,10 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
 
+  // Placed Signature on PDF state
+  const [placedSignatureData, setPlacedSignatureData] = useState<string | null>(null);
+  const [placedPosition, setPlacedPosition] = useState<SignaturePlacement | null>(null);
+
   // External Signer fields
   const [externalRecipientName, setExternalRecipientName] = useState('');
   const [externalRecipientRole, setExternalRecipientRole] = useState('');
@@ -82,6 +87,7 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
     sign_type: 'internal' | 'external';
     title: string;
     share_url: string;
+    signed_file_url?: string;
   } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -290,15 +296,15 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
 
     let signatureDataUrl: string | null = null;
     if (signType === 'internal') {
-      if (!hasDrawn || !canvasRef.current) {
-        alert('Silakan bubuhkan goresan tanda tangan Anda pada kolom tanda tangan digital.');
+      signatureDataUrl = placedSignatureData || (hasDrawn && canvasRef.current ? canvasRef.current.toDataURL('image/png') : null);
+      if (!signatureDataUrl) {
+        alert('Silakan bubuhkan goresan tanda tangan Anda langsung pada dokumen PDF.');
         return;
       }
       if (!internalSignerName.trim()) {
         alert('Silakan masukkan nama penandatangan internal.');
         return;
       }
-      signatureDataUrl = canvasRef.current.toDataURL('image/png');
     } else {
       if (!externalRecipientName.trim()) {
         alert('Silakan masukkan nama pihak penerima eksternal yang akan menandatangani.');
@@ -308,7 +314,7 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
 
     setSubmitting(true);
     try {
-      const payload: Partial<SignedDocument> = {
+      const payload: Partial<SignedDocument> & { signature_position?: any } = {
         title: docTitle,
         file_url: docUrl,
         file_name: docFileName,
@@ -319,6 +325,11 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
         signer_phone: externalRecipientPhone.trim(),
         signer_notes: externalNotes.trim(),
         signature_data_url: signatureDataUrl || undefined,
+        signature_position: placedPosition ? {
+          ...placedPosition,
+          signerName: signType === 'internal' ? internalSignerName.trim() : externalRecipientName.trim(),
+          signerRole: signType === 'internal' ? internalSignerRole.trim() : externalRecipientRole.trim(),
+        } : undefined,
         created_by: currentUser?.full_name || 'Tim Liva',
       };
 
@@ -334,6 +345,7 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
           sign_type: signType,
           title: docTitle,
           share_url: shareUrl,
+          signed_file_url: res.signed_file_url,
         });
 
         loadDocuments();
@@ -364,11 +376,17 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
     }
   };
 
+  // Active document helper
+  const selectedAsset = savedAssets.find((a) => a.id === selectedAssetId);
+  const activeDocumentUrl = fileSource === 'asset' ? selectedAsset?.url : customUrl;
+  const activeDocumentTitle = fileSource === 'asset' ? selectedAsset?.title || 'Dokumen' : (customTitle || customFileName || 'Dokumen');
+  const activeDocumentFileName = fileSource === 'asset' ? (selectedAsset?.file_name || selectedAsset?.title) : (customFileName || customTitle);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-6 animate-in fade-in duration-150">
-      <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-4xl w-full h-[92vh] max-h-[850px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-2 sm:p-5 animate-in fade-in duration-150">
+      <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-5xl w-full h-[95vh] max-h-[920px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Modal Top Header */}
         <div className="h-18 px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
@@ -509,20 +527,50 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
                     </div>
                   </div>
                 ) : (
-                  /* Internal Signed Certificate */
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-left text-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Penandatangan:</span>
-                      <span className="font-bold text-slate-800">{internalSignerName}</span>
+                  /* Internal Signed Certificate & Live Stamped PDF Preview */
+                  <div className="space-y-4 text-left">
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Penandatangan:</span>
+                        <span className="font-bold text-slate-800">{internalSignerName}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Jabatan:</span>
+                        <span className="font-medium text-slate-700">{internalSignerRole}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Status Dokumen:</span>
+                        <span className="font-bold text-emerald-600">Sah & Selesai Ditandatangani Langsung di PDF</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Jabatan:</span>
-                      <span className="font-medium text-slate-700">{internalSignerRole}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Status Dokumen:</span>
-                      <span className="font-bold text-emerald-600">Sah & Selesai Ditandatangani</span>
-                    </div>
+
+                    {createdDocResult.signed_file_url && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                            <span>Pratinjau Dokumen PDF Resmi Bertanda Tangan:</span>
+                          </span>
+                          <a
+                            href={createdDocResult.signed_file_url}
+                            download
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Unduh PDF Resmi</span>
+                          </a>
+                        </div>
+                        <InteractivePdfDocumentSigner
+                          isReadOnlyPreview={true}
+                          signedPdfUrl={createdDocResult.signed_file_url}
+                          documentTitle={createdDocResult.title}
+                          signerName={internalSignerName}
+                          signerRole={internalSignerRole}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -867,80 +915,8 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
                         </div>
                       </div>
 
-                      {/* Canvas Pad */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                            <PenTool className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Goreskan Tanda Tangan Digital Anda</span>
-                            <span className="text-rose-500">*</span>
-                          </label>
-
-                          <div className="flex items-center gap-2">
-                            {/* Ink Color */}
-                            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                              <button
-                                type="button"
-                                onClick={() => setInkColor('#0f172a')}
-                                className={`w-5 h-5 rounded-md flex items-center justify-center cursor-pointer ${
-                                  inkColor === '#0f172a' ? 'bg-white shadow-2xs' : ''
-                                }`}
-                                title="Tinta Hitam Formal"
-                              >
-                                <div className="w-2.5 h-2.5 rounded-full bg-slate-900" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setInkColor('#1e3a8a')}
-                                className={`w-5 h-5 rounded-md flex items-center justify-center cursor-pointer ${
-                                  inkColor === '#1e3a8a' ? 'bg-white shadow-2xs' : ''
-                                }`}
-                                title="Tinta Biru Resmi"
-                              >
-                                <div className="w-2.5 h-2.5 rounded-full bg-blue-900" />
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={clearCanvas}
-                              disabled={!hasDrawn}
-                              className="px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-40"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                              <span>Ulangi</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="relative border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-2xl bg-white p-2 transition-colors touch-none overflow-hidden">
-                          <canvas
-                            ref={canvasRef}
-                            onMouseDown={startDrawing}
-                            onMouseMove={draw}
-                            onMouseUp={stopDrawing}
-                            onMouseLeave={stopDrawing}
-                            onTouchStart={startDrawing}
-                            onTouchMove={draw}
-                            onTouchEnd={stopDrawing}
-                            className="w-full h-36 bg-slate-50/50 rounded-xl cursor-crosshair shadow-inner"
-                          />
-
-                          {!hasDrawn && (
-                            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-slate-400 text-xs gap-1">
-                              <PenTool className="w-5 h-5 text-slate-300" />
-                              <span>Goreskan tanda tangan dengan mouse atau sentuhan jari</span>
-                            </div>
-                          )}
-
-                          <div className="absolute bottom-3 left-5 pointer-events-none text-[9px] text-slate-300 font-bold uppercase tracking-wider">
-                            Signature Pad Liva Agency
-                          </div>
-                        </div>
-                      </div>
-
                       {/* Optional Seal / Stamp Checkbox */}
-                      <div className="flex items-center gap-2 pt-1">
+                      <div className="flex items-center gap-2 pt-1 pb-1">
                         <input
                           type="checkbox"
                           id="stamp_check"
@@ -948,9 +924,43 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
                           onChange={(e) => setWithCompanyStamp(e.target.checked)}
                           className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
                         />
-                        <label htmlFor="stamp_check" className="text-xs text-slate-600 cursor-pointer select-none">
+                        <label htmlFor="stamp_check" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
                           Bubuhkan stempel digital resmi & cap verifikasi otomatis Liva Media Kreatif
                         </label>
+                      </div>
+
+                      {/* Interactive PDF Document Signer */}
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <PenTool className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Pratinjau Lembar Berkas & Bubuhkan Tanda Tangan Langsung di PDF</span>
+                            <span className="text-rose-500">*</span>
+                          </label>
+                          {placedSignatureData && (
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 flex items-center gap-1">
+                              <Check className="w-3 h-3" /> Tanda Tangan Tertempel di Lembar PDF
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          Klik langsung pada lembar dokumen atau geser kotak tanda tangan ke posisi yang Anda inginkan (misal di kolom pihak penandatangan). Tekan tombol <strong>"Goreskan Ttd"</strong> untuk menandatangani.
+                        </p>
+
+                        <InteractivePdfDocumentSigner
+                          fileUrl={activeDocumentUrl}
+                          fileName={activeDocumentFileName}
+                          documentTitle={activeDocumentTitle}
+                          signerName={internalSignerName}
+                          signerRole={internalSignerRole}
+                          initialSignatureDataUrl={placedSignatureData}
+                          initialPosition={placedPosition}
+                          onSignatureChange={(sig) => {
+                            setPlacedSignatureData(sig);
+                            setHasDrawn(!!sig);
+                          }}
+                          onPositionChange={(pos) => setPlacedPosition(pos)}
+                        />
                       </div>
                     </div>
                   ) : (
@@ -1016,6 +1026,32 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
                         <div className="leading-relaxed">
                           <strong>Tautan Khusus Tanpa Perlu Login:</strong> Setelah tombol di bawah ditekan, sistem akan mengenerate link khusus. Pihak penerima dapat langsung membuka link tersebut dari ponsel atau laptop mereka tanpa harus memiliki akun atau login ke sistem.
                         </div>
+                      </div>
+
+                      {/* Interactive PDF Document Preview for External Mode */}
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Pratinjau Lembar Dokumen & Penentuan Posisi TTD Penerima (Opsional)</span>
+                          </label>
+                          <span className="text-[10px] font-semibold text-slate-500">
+                            Geser kotak untuk menandai kolom tanda tangan
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          Penerima link akan melihat berkas ini secara langsung dan dapat menandatangani di posisi yang telah Anda tandai di lembar PDF.
+                        </p>
+
+                        <InteractivePdfDocumentSigner
+                          fileUrl={activeDocumentUrl}
+                          fileName={activeDocumentFileName}
+                          documentTitle={activeDocumentTitle}
+                          signerName={externalRecipientName || 'Pihak Eksternal'}
+                          signerRole={externalRecipientRole || 'Penerima Berkas'}
+                          initialPosition={placedPosition}
+                          onPositionChange={(pos) => setPlacedPosition(pos)}
+                        />
                       </div>
                     </div>
                   )}
@@ -1237,68 +1273,103 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
 
       {/* PREVIEW SIGNED DOCUMENT MODAL */}
       {previewDoc && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h4 className="text-sm font-bold text-slate-900">Bukti Tanda Tangan Digital</h4>
-                <p className="text-[10px] text-slate-400">{previewDoc.title}</p>
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-2 sm:p-5 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-5xl w-full h-[95vh] max-h-[920px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Top Bar */}
+            <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-2xs">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 truncate max-w-md">
+                      {previewDoc.title}
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                      ✓ Sah Ditandatangani
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Ditandatangani oleh {previewDoc.signer_name} {previewDoc.signer_role ? `(${previewDoc.signer_role})` : ''}
+                  </p>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setPreviewDoc(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="flex items-center gap-2">
+                {previewDoc.signed_file_url && (
+                  <a
+                    href={previewDoc.signed_file_url}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Unduh PDF Resmi</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPreviewDoc(null)}
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-4 text-xs space-y-2 border border-slate-200/80">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Penandatangan:</span>
-                <span className="font-bold text-slate-800">{previewDoc.signer_name}</span>
-              </div>
-              {previewDoc.signer_role && (
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Jabatan:</span>
-                  <span className="font-medium text-slate-700">{previewDoc.signer_role}</span>
+            {/* Scrollable Document Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 custom-scrollbar bg-slate-50/20">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">PENANDATANGAN:</span>
+                  <span className="font-bold text-slate-900">{previewDoc.signer_name}</span>
                 </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Tanggal Ditandatangani:</span>
-                <span className="font-medium text-slate-700">
-                  {previewDoc.signed_at ? new Date(previewDoc.signed_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
-                </span>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">JABATAN:</span>
+                  <span className="font-semibold text-slate-800">{previewDoc.signer_role || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">WAKTU TTD:</span>
+                  <span className="font-medium text-slate-800">
+                    {previewDoc.signed_at ? new Date(previewDoc.signed_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">KODE VERIFIKASI:</span>
+                  <span className="font-mono text-[10px] text-indigo-600 font-bold truncate block">{previewDoc.signing_token}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Token Verifikasi:</span>
-                <span className="font-mono text-[10px] text-indigo-600 font-semibold">{previewDoc.signing_token}</span>
-              </div>
-            </div>
 
-            {previewDoc.signature_data_url && (
-              <div className="p-4 bg-white border border-slate-200 rounded-2xl text-center space-y-2 shadow-inner">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Spesimen Tanda Tangan
-                </div>
-                <img
-                  src={previewDoc.signature_data_url}
-                  alt="Tanda Tangan"
-                  className="max-h-24 mx-auto object-contain"
+              {/* Full Document Viewer with Live Stamped PDF */}
+              <div className="space-y-2">
+                <InteractivePdfDocumentSigner
+                  isReadOnlyPreview={true}
+                  signedPdfUrl={previewDoc.signed_file_url || (previewDoc.file_url?.toLowerCase().endsWith('.pdf') ? previewDoc.file_url : undefined)}
+                  fileUrl={previewDoc.file_url}
+                  fileName={previewDoc.file_name}
+                  documentTitle={previewDoc.title}
+                  signerName={previewDoc.signer_name || 'Penandatangan'}
+                  signerRole={previewDoc.signer_role || ''}
+                  initialSignatureDataUrl={previewDoc.signature_data_url}
+                  initialPosition={previewDoc.signature_position ? (typeof previewDoc.signature_position === 'string' ? JSON.parse(previewDoc.signature_position) : previewDoc.signature_position) : undefined}
                 />
-                <div className="text-xs font-bold text-slate-800 border-t border-slate-100 pt-2">
-                  ( {previewDoc.signer_name} )
-                </div>
               </div>
-            )}
+            </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            {/* Footer */}
+            <div className="h-14 px-6 border-t border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50 text-xs">
+              <div className="text-slate-400 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Dokumen legal digital tersertifikasi oleh sistem Liva Media Kreatif</span>
+              </div>
               <button
                 type="button"
                 onClick={() => setPreviewDoc(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition-colors cursor-pointer"
               >
-                Tutup
+                Tutup Pratinjau
               </button>
             </div>
           </div>

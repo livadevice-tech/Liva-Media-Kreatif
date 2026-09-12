@@ -232,26 +232,26 @@ export const appApi = {
   // Digital Signed Documents (Ttd Berkas)
   getSignedDocuments: (): Promise<SignedDocument[]> =>
     fetch(`${API_BASE}/project-app/documents`).then(handleResponse<SignedDocument[]>),
-  createSignedDocument: (data: Partial<SignedDocument>): Promise<{ success: boolean; id: string; signing_token: string; message?: string }> =>
+  createSignedDocument: (data: Partial<SignedDocument> & { signature_position?: any }): Promise<{ success: boolean; id: string; signing_token: string; signed_file_url?: string; message?: string }> =>
     fetch(`${API_BASE}/project-app/documents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(handleResponse<{ success: boolean; id: string; signing_token: string; message?: string }>),
+    }).then(handleResponse<{ success: boolean; id: string; signing_token: string; signed_file_url?: string; message?: string }>),
   getPublicDocumentForSigning: (token: string): Promise<{ success: boolean; document: SignedDocument }> =>
     fetch(`${API_BASE}/project-app/documents/public/${token}`).then(handleResponse<{ success: boolean; document: SignedDocument }>),
-  submitPublicSignature: (token: string, data: { signature_data_url: string; signer_name?: string; signer_role?: string }): Promise<{ success: boolean; message: string; signer_name?: string; signed_at?: string }> =>
+  submitPublicSignature: (token: string, data: { signature_data_url: string; signer_name?: string; signer_role?: string; signature_position?: any }): Promise<{ success: boolean; message: string; signed_file_url?: string; signer_name?: string; signed_at?: string }> =>
     fetch(`${API_BASE}/project-app/documents/public/${token}/sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(handleResponse<{ success: boolean; message: string; signer_name?: string; signed_at?: string }>),
-  signDocumentInternal: (id: string, data: { signature_data_url: string; signer_name?: string; signer_role?: string }): Promise<{ success: boolean; message: string }> =>
+    }).then(handleResponse<{ success: boolean; message: string; signed_file_url?: string; signer_name?: string; signed_at?: string }>),
+  signDocumentInternal: (id: string, data: { signature_data_url: string; signer_name?: string; signer_role?: string; signature_position?: any }): Promise<{ success: boolean; signed_file_url?: string; message: string }> =>
     fetch(`${API_BASE}/project-app/documents/${id}/internal-sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(handleResponse<{ success: boolean; message: string }>),
+    }).then(handleResponse<{ success: boolean; signed_file_url?: string; message: string }>),
   deleteSignedDocument: (id: string): Promise<{ success: boolean; message: string }> =>
     fetch(`${API_BASE}/project-app/documents/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean; message: string }>),
 };
