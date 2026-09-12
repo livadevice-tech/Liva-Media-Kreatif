@@ -294,6 +294,35 @@ export default function App() {
     }
   };
 
+  // Brand Actions (Add, Edit, Delete)
+  const handleSaveBrand = async (brandData: Partial<Brand>) => {
+    try {
+      if (brandData.id && !brandData.id.startsWith('demo-')) {
+        await appApi.updateBrand(brandData.id, brandData);
+        showToast('Brand berhasil diperbarui');
+      } else {
+        await appApi.createBrand(brandData);
+        showToast('Brand baru berhasil ditambahkan');
+      }
+      const updatedBrands = await appApi.getBrands();
+      setBrands(updatedBrands);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menyimpan brand', 'error');
+    }
+  };
+
+  const handleDeleteBrand = async (id: string) => {
+    try {
+      await appApi.deleteBrand(id);
+      showToast('Brand berhasil dihapus');
+      setBrands((prev) => prev.filter((b) => b.id !== id));
+      const updatedBrands = await appApi.getBrands();
+      setBrands(updatedBrands);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menghapus brand', 'error');
+    }
+  };
+
   // Content Draft Actions (Bank Ide & Referensi)
   const handleSaveDraft = async (draftData: Partial<ContentDraftItem>) => {
     try {
@@ -596,6 +625,8 @@ export default function App() {
                 accounts={accounts}
                 onSavePost={handleSavePost}
                 onDeletePost={handleDeletePost}
+                onSaveBrand={handleSaveBrand}
+                onDeleteBrand={handleDeleteBrand}
                 onUpdateStatus={handleUpdateContentStatus}
                 onOpenCalendar={() => setActiveTab('calendar')}
               />
@@ -1053,6 +1084,8 @@ export default function App() {
             onDeleteAllPosts={handleDeleteAllPosts}
             onSavePillar={handleSavePillar}
             onDeletePillar={handleDeletePillar}
+            onSaveBrand={handleSaveBrand}
+            onDeleteBrand={handleDeleteBrand}
             onUpdateStatus={handleUpdateContentStatus}
           />
         ) : activeTab === 'drafts' ? (
@@ -1064,6 +1097,8 @@ export default function App() {
             accounts={accounts}
             onSavePost={handleSavePost}
             onDeletePost={handleDeletePost}
+            onSaveBrand={handleSaveBrand}
+            onDeleteBrand={handleDeleteBrand}
             onUpdateStatus={handleUpdateContentStatus}
             onOpenCalendar={() => setActiveTab('calendar')}
           />

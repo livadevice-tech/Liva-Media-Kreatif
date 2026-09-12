@@ -43,6 +43,8 @@ interface ContentDraftViewProps {
   accounts?: UserAccount[];
   onSavePost: (post: Partial<ContentPost>) => Promise<void>;
   onDeletePost: (id: string) => Promise<void>;
+  onSaveBrand?: (brand: Partial<Brand>) => Promise<void>;
+  onDeleteBrand?: (id: string) => Promise<void>;
   onUpdateStatus?: (id: string, status: ContentStatus) => Promise<void>;
   onOpenCalendar?: () => void;
 }
@@ -73,6 +75,8 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
   accounts = [],
   onSavePost,
   onDeletePost,
+  onSaveBrand,
+  onDeleteBrand,
   onUpdateStatus,
   onOpenCalendar,
 }) => {
@@ -200,7 +204,7 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex h-full overflow-hidden bg-slate-50/50">
+    <div className="relative flex-1 flex h-full overflow-hidden bg-slate-50/50">
       {/* Main Content Area (Header Toolbar + Cards / Table) */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         {/* 1. Header Toolbar */}
@@ -460,12 +464,6 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                       </div>
                     )}
 
-                    {/* Caption Preview */}
-                    {post.caption && (
-                      <div className="text-xs text-slate-600 line-clamp-3 leading-relaxed bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
-                        {post.caption}
-                      </div>
-                    )}
 
                     {/* Media / Reference Link Chips */}
                     {mediaList.length > 0 && (
@@ -719,6 +717,8 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
         onClose={() => setIsDraftModalOpen(false)}
         onSave={onSavePost}
         onDelete={onDeletePost}
+        onSaveBrand={onSaveBrand}
+        onDeleteBrand={onDeleteBrand}
         accounts={accounts}
         pillars={pillars}
         brands={brands}

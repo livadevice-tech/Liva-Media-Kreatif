@@ -35,6 +35,14 @@ export const appApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }).then(handleResponse<{ success: boolean; id: string }>),
+  updateBrand: (id: string, data: Partial<Brand>): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/project-app/brands/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean }>),
+  deleteBrand: (id: string): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/project-app/brands/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean }>),
 
   // Content Pillars
   getPillars: (): Promise<ContentPillar[]> =>

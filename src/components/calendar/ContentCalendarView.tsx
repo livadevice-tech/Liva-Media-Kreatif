@@ -30,6 +30,8 @@ interface ContentCalendarViewProps {
   onDeleteAllPosts?: () => Promise<void>;
   onSavePillar?: (pillar: Partial<ContentPillar>) => Promise<void>;
   onDeletePillar?: (id: string) => Promise<void>;
+  onSaveBrand?: (brand: Partial<Brand>) => Promise<void>;
+  onDeleteBrand?: (id: string) => Promise<void>;
   onUpdateStatus: (id: string, status: ContentStatus) => Promise<void>;
   onOpenQuickAdd?: () => void;
 }
@@ -50,6 +52,8 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   onDeleteAllPosts,
   onSavePillar,
   onDeletePillar,
+  onSaveBrand,
+  onDeleteBrand,
   onUpdateStatus,
   onOpenQuickAdd
 }) => {
@@ -313,7 +317,7 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
   const displayDayNum = isCurrentMonthView ? today.getDate() : 1;
 
   return (
-    <div className="flex-1 flex h-full overflow-hidden bg-slate-50/50">
+    <div className="relative flex-1 flex h-full overflow-hidden bg-slate-50/50">
       {/* Main Calendar View Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         {/* Top Header Bar Matching Reference Image */}
@@ -596,8 +600,11 @@ export const ContentCalendarView: React.FC<ContentCalendarViewProps> = ({
         onDelete={onDeletePost}
         onSavePillar={onSavePillar}
         onDeletePillar={onDeletePillar}
+        onSaveBrand={onSaveBrand}
+        onDeleteBrand={onDeleteBrand}
         accounts={accounts}
         pillars={pillars}
+        brands={brands}
       />
 
       {/* Confirmation Modal for Bulk Delete (Month or All) */}

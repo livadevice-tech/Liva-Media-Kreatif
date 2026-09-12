@@ -24,7 +24,10 @@ import {
   Settings2,
   Edit2,
   Plus,
-  Globe
+  Globe,
+  Maximize2,
+  Minimize2,
+  ChevronDown
 } from 'lucide-react';
 import { ContentPost, ContentStatus, ContentPlatform, ContentType, UserAccount, ContentPillar, Brand } from '../../types/app';
 
@@ -36,6 +39,8 @@ interface RightInspectorPanelProps {
   onDelete?: (id: string) => Promise<void>;
   onSavePillar?: (pillar: Partial<ContentPillar>) => Promise<void>;
   onDeletePillar?: (id: string) => Promise<void>;
+  onSaveBrand?: (brand: Partial<Brand>) => Promise<void>;
+  onDeleteBrand?: (id: string) => Promise<void>;
   accounts?: UserAccount[];
   pillars?: ContentPillar[];
   brands?: Brand[];
@@ -84,6 +89,8 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   onDelete,
   onSavePillar,
   onDeletePillar,
+  onSaveBrand,
+  onDeleteBrand,
   accounts = [],
   pillars = [],
   brands = [],
@@ -109,6 +116,62 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Full workspace area mode (default to true for full spacious view in the main area)
+  const [isFullWidth, setIsFullWidth] = useState(true);
+
+  // Brand Management State (Add, Edit, Delete right from dropdown)
+  const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
+  const [editingBrand, setEditingBrand] = useState<{
+    id?: string;
+    name: string;
+    color: string;
+    tone_of_voice: string;
+    target_audience: string;
+  } | null>(null);
+  const [isSavingBrand, setIsSavingBrand] = useState(false);
+  const [confirmDeleteBrand, setConfirmDeleteBrand] = useState<Brand | null>(null);
+  const [isDeletingBrand, setIsDeletingBrand] = useState(false);
+
+  const BRAND_COLOR_PRESETS = [
+    { name: 'Indigo', hex: '#6366f1' },
+    { name: 'Blue', hex: '#3b82f6' },
+    { name: 'Emerald', hex: '#10b981' },
+    { name: 'Purple', hex: '#a855f7' },
+    { name: 'Rose', hex: '#f43f5e' },
+    { name: 'Amber', hex: '#f59e0b' },
+    { name: 'Cyan', hex: '#06b6d4' },
+    { name: 'Slate', hex: '#64748b' },
+  ];
+
+  const handleSaveBrandForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBrand || !editingBrand.name.trim() || !onSaveBrand) return;
+    setIsSavingBrand(true);
+    try {
+      await onSaveBrand(editingBrand);
+      setEditingBrand(null);
+      setIsBrandDropdownOpen(false);
+    } finally {
+      setIsSavingBrand(false);
+    }
+  };
+
+  const handleDeleteBrandAction = async () => {
+    if (!confirmDeleteBrand || !onDeleteBrand) return;
+    setIsDeletingBrand(true);
+    try {
+      await onDeleteBrand(confirmDeleteBrand.id);
+      if (formData.brand_id === confirmDeleteBrand.id) {
+        const remaining = (brands || []).filter(b => b.id !== confirmDeleteBrand.id);
+        setFormData(prev => ({ ...prev, brand_id: remaining[0]?.id || '' }));
+      }
+      setConfirmDeleteBrand(null);
+      setIsBrandDropdownOpen(false);
+    } finally {
+      setIsDeletingBrand(false);
+    }
+  };
 
   // Inline Pillar Management state (no separate modal form)
   const [isManageMode, setIsManageMode] = useState(false);
@@ -345,10 +408,16 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   const currentStatusObj = STATUS_LIST.find(s => s.id === formData.status) || STATUS_LIST[0];
 
   return (
-    <aside className="w-full sm:w-[520px] md:w-[600px] lg:w-[660px] xl:w-[720px] shrink-0 border-l border-slate-200/90 bg-white flex flex-col h-full max-sm:fixed max-sm:inset-0 max-sm:z-50 z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-all animate-in slide-in-from-right duration-200">
+    <aside 
+      className={
+        isFullWidth
+          ? "absolute inset-0 z-30 bg-white flex flex-col h-full animate-in fade-in duration-150"
+          : "absolute inset-y-0 right-0 z-30 w-full sm:w-[560px] md:w-[640px] lg:w-[720px] bg-white border-l border-slate-200/90 shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-200"
+      }
+    >
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         {/* Modern Header with Status Indicator */}
-        <div className="h-18 px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/40">
+        <div className="h-16 px-6 sm:px-8 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/40">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
               <Layers className="w-5 h-5" />
@@ -369,6 +438,16 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            {/* Toggle Full Area / Sidebar Button */}
+            <button
+              type="button"
+              onClick={() => setIsFullWidth(!isFullWidth)}
+              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              title={isFullWidth ? "Ubah ke Tampilan Panel Samping" : "Perbesar ke Tampilan Penuh (Full Area)"}
+            >
+              {isFullWidth ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+
             {formData.id && onDelete && (
               <button
                 type="button"
@@ -392,7 +471,8 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         </div>
 
         {/* Scrollable Form Body with Clean Spacing & Cards */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/20">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar bg-slate-50/20">
+          <div className={isFullWidth ? "max-w-5xl mx-auto space-y-6" : "space-y-6"}>
           
           {/* SECTION 1: INFORMASI UTAMA */}
           <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
@@ -401,28 +481,178 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Informasi Utama Konten</h4>
             </div>
 
-            {/* Brand / Klien */}
-            {brands && brands.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
+            {/* Brand / Klien with Interactive Add / Edit / Delete */}
+            <div className="relative">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
                   <label className="block text-xs font-bold text-slate-700">
                     Brand / Klien <span className="text-rose-500">*</span>
                   </label>
-                  <span className="text-[10px] text-slate-400 font-medium">Klien Pemilik Konten</span>
+                  <span className="text-[10px] text-slate-400 font-medium">({(brands || []).length} brand)</span>
                 </div>
-                <select
-                  value={formData.brand_id || (brands[0]?.id || '')}
-                  onChange={(e) => setFormData({ ...formData, brand_id: e.target.value })}
-                  className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingBrand({
+                      name: '',
+                      color: '#6366f1',
+                      tone_of_voice: '',
+                      target_audience: ''
+                    });
+                    setIsBrandDropdownOpen(false);
+                  }}
+                  className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-colors cursor-pointer"
+                  title="Tambah Brand Baru"
                 >
-                  {brands.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Tambah Brand</span>
+                </button>
               </div>
-            )}
+
+              {/* Custom Interactive Dropdown */}
+              {(() => {
+                const currentBrand = (brands || []).find(b => b.id === formData.brand_id) || (brands && brands[0]);
+                return (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsBrandDropdownOpen(!isBrandDropdownOpen)}
+                      className="w-full bg-slate-50/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 flex items-center justify-between transition-all cursor-pointer shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span 
+                          className="w-3 h-3 rounded-full shrink-0 shadow-2xs" 
+                          style={{ backgroundColor: currentBrand?.color || '#6366f1' }} 
+                        />
+                        <span className="truncate text-slate-900 font-bold">
+                          {currentBrand?.name || 'Pilih Brand / Klien'}
+                        </span>
+                        {currentBrand?.tone_of_voice && (
+                          <span className="hidden sm:inline-block text-[10px] text-slate-400 font-normal truncate max-w-[200px]">
+                            • {currentBrand.tone_of_voice}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-slate-400 shrink-0 ml-2">
+                        <span className="text-[10px] font-medium bg-slate-200/60 px-1.5 py-0.5 rounded text-slate-600">
+                          Pilih / Kelola
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isBrandDropdownOpen ? 'rotate-180 text-indigo-600' : ''}`} />
+                      </div>
+                    </button>
+
+                    {/* Popover Dropdown Menu with Add / Edit / Delete */}
+                    {isBrandDropdownOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setIsBrandDropdownOpen(false)} 
+                        />
+                        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-2 space-y-1 animate-in fade-in zoom-in-95 duration-100 max-h-72 overflow-y-auto custom-scrollbar">
+                          <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                            <span>Daftar Brand / Klien</span>
+                            <span>Aksi</span>
+                          </div>
+
+                          {(brands || []).map((b) => {
+                            const isSelected = (formData.brand_id === b.id) || (!formData.brand_id && b.id === (brands && brands[0]?.id));
+                            return (
+                              <div
+                                key={b.id}
+                                className={`w-full flex items-center justify-between p-2 rounded-xl transition-all group/item ${
+                                  isSelected 
+                                    ? 'bg-indigo-50/80 text-indigo-900 font-bold' 
+                                    : 'hover:bg-slate-50 text-slate-700 font-medium'
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData({ ...formData, brand_id: b.id });
+                                    setIsBrandDropdownOpen(false);
+                                  }}
+                                  className="flex-1 flex items-center gap-2.5 min-w-0 text-left cursor-pointer"
+                                >
+                                  <span 
+                                    className="w-2.5 h-2.5 rounded-full shrink-0" 
+                                    style={{ backgroundColor: b.color || '#6366f1' }} 
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="text-xs truncate flex items-center gap-1.5">
+                                      <span>{b.name}</span>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                                    </div>
+                                    {b.tone_of_voice && (
+                                      <div className="text-[10px] text-slate-400 font-normal truncate max-w-[240px]">
+                                        {b.tone_of_voice}
+                                      </div>
+                                    )}
+                                  </div>
+                                </button>
+
+                                {/* Action Buttons: Edit and Delete */}
+                                <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover/item:opacity-100">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingBrand({
+                                        id: b.id,
+                                        name: b.name,
+                                        color: b.color || '#6366f1',
+                                        tone_of_voice: b.tone_of_voice || '',
+                                        target_audience: b.target_audience || ''
+                                      });
+                                      setIsBrandDropdownOpen(false);
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                                    title={`Edit Brand: ${b.name}`}
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setConfirmDeleteBrand(b);
+                                      setIsBrandDropdownOpen(false);
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                    title={`Hapus Brand: ${b.name}`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {/* Bottom Action: Tambah Brand Baru */}
+                          <div className="pt-1.5 border-t border-slate-100 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingBrand({
+                                  name: '',
+                                  color: '#6366f1',
+                                  tone_of_voice: '',
+                                  target_audience: ''
+                                });
+                                setIsBrandDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100/70 transition-colors cursor-pointer"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>+ Tambah Brand Baru</span>
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
 
             {/* 1. Name Content */}
             <div>
@@ -1216,50 +1446,53 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
             </div>
           </div>
 
+          </div>
         </div>
 
         {/* Sticky Footer Actions with High Contrast */}
-        <div className="p-4 px-6 border-t border-slate-100 bg-white flex items-center justify-between shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.02)]">
-          {formData.id && onDelete ? (
-            <button
-              type="button"
-              onClick={() => setIsConfirmDeletePost(true)}
-              disabled={deleting}
-              className="px-3 py-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-              title="Hapus Konten"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Hapus Konten</span>
-            </button>
-          ) : (
-            <div />
-          )}
+        <div className="p-4 px-6 sm:px-8 border-t border-slate-100 bg-white shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.02)]">
+          <div className={isFullWidth ? "max-w-5xl mx-auto flex items-center justify-between" : "flex items-center justify-between"}>
+            {formData.id && onDelete ? (
+              <button
+                type="button"
+                onClick={() => setIsConfirmDeletePost(true)}
+                disabled={deleting}
+                className="px-3 py-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+                title="Hapus Konten"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Hapus Konten</span>
+              </button>
+            ) : (
+              <div />
+            )}
 
-          <div className="flex items-center space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !formData.title}
-              className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md hover:shadow-indigo-500/25 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
-            >
-              {saving ? (
-                <>
-                  <span className="animate-spin text-xs">⏳</span>
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{formData.id ? 'Simpan Perubahan' : 'Buat Konten'}</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={saving || !formData.title}
+                className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md hover:shadow-indigo-500/25 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {saving ? (
+                  <>
+                    <span className="animate-spin text-xs">⏳</span>
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{formData.id ? 'Simpan Perubahan' : 'Buat Konten'}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </form>
@@ -1328,6 +1561,156 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                 className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
                 {deleting ? 'Menghapus...' : 'Ya, Hapus Konten'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal / Dialog: Tambah / Edit Brand Langsung */}
+      {editingBrand && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Palette className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">
+                    {editingBrand.id ? 'Edit Data Brand' : 'Tambah Brand Klien Baru'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Kelola nama, warna aksen, dan pedoman brand
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingBrand(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nama Brand / Klien <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={editingBrand.name}
+                  onChange={(e) => setEditingBrand({ ...editingBrand, name: e.target.value })}
+                  placeholder="Contoh: Scarlett Whitening, Erigo, dll"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Warna Identitas Brand
+                </label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {BRAND_COLOR_PRESETS.map((preset) => {
+                    const isSelected = editingBrand.color === preset.hex;
+                    return (
+                      <button
+                        key={preset.hex}
+                        type="button"
+                        onClick={() => setEditingBrand({ ...editingBrand, color: preset.hex })}
+                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform cursor-pointer ${isSelected ? 'scale-110 ring-2 ring-offset-2 ring-indigo-500' : 'hover:scale-105'}`}
+                        style={{ backgroundColor: preset.hex }}
+                        title={preset.name}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tone of Voice / Gaya Bahasa (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={editingBrand.tone_of_voice}
+                  onChange={(e) => setEditingBrand({ ...editingBrand, tone_of_voice: e.target.value })}
+                  placeholder="Contoh: Enerjik, Relatable, Formal, Edukatif"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Target Audiens (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={editingBrand.target_audience}
+                  onChange={(e) => setEditingBrand({ ...editingBrand, target_audience: e.target.value })}
+                  placeholder="Contoh: Remaja Gen-Z, Ibu Muda, Mahasiswa"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEditingBrand(null)}
+                disabled={isSavingBrand}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveBrandForm}
+                disabled={isSavingBrand || !editingBrand.name.trim()}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isSavingBrand ? 'Menyimpan...' : 'Simpan Brand'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Brand */}
+      {confirmDeleteBrand && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4 shadow-2xs">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-1.5">
+              Hapus Brand?
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed mb-5">
+              Apakah Anda yakin ingin menghapus brand <strong>"{confirmDeleteBrand.name}"</strong>?
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteBrand(null)}
+                disabled={isDeletingBrand}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteBrandAction}
+                disabled={isDeletingBrand}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                {isDeletingBrand ? 'Menghapus...' : 'Ya, Hapus'}
               </button>
             </div>
           </div>
