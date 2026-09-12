@@ -23,6 +23,7 @@ import { Task, Project, Brand, TaskStatus, TaskPriority, UserAccount } from '../
 import { TaskInspectorPanel } from './TaskInspectorPanel';
 import { ProjectModal } from './ProjectModal';
 import { TaskCalendarView } from './TaskCalendarView';
+import { getDeadlineInfo } from '../../utils/taskDate';
 
 interface ProjectKanbanViewProps {
   tasks: Task[];
@@ -353,60 +354,70 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                         No tasks
                       </div>
                     ) : (
-                      colTasks.map((task) => (
-                        <div
-                          key={task.id}
-                          onClick={(e) => handleEditTask(task, e)}
-                          className="bg-white border border-slate-200/90 hover:border-indigo-400/80 rounded-xl p-3.5 shadow-2xs hover:shadow-sm transition-all cursor-pointer group"
-                        >
-                          {/* Project Tag & Priority */}
-                          <div className="flex items-center justify-between gap-2 mb-2">
-                            {task.project_title ? (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 truncate max-w-[130px]">
-                                {task.project_title}
+                      colTasks.map((task) => {
+                        const deadlineInfo = getDeadlineInfo(task.due_date, task.status);
+                        return (
+                          <div
+                            key={task.id}
+                            onClick={(e) => handleEditTask(task, e)}
+                            className="bg-white border border-slate-200/90 hover:border-indigo-400/80 rounded-xl p-3.5 shadow-2xs hover:shadow-sm transition-all cursor-pointer group"
+                          >
+                            {/* Project Tag & Priority */}
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              {task.project_title ? (
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 truncate max-w-[130px]">
+                                  {task.project_title}
+                                </span>
+                              ) : <span />}
+
+                              <span className={`text-[10px] px-2 py-0.5 rounded-md ${PRIORITY_CONFIG[task.priority]?.badge || 'bg-slate-100 text-slate-600'}`}>
+                                {PRIORITY_CONFIG[task.priority]?.label || 'Normal'}
                               </span>
-                            ) : <span />}
-
-                            <span className={`text-[10px] px-2 py-0.5 rounded-md ${PRIORITY_CONFIG[task.priority]?.badge || 'bg-slate-100 text-slate-600'}`}>
-                              {PRIORITY_CONFIG[task.priority]?.label || 'Normal'}
-                            </span>
-                          </div>
-
-                          {/* Title */}
-                          <h3 className="font-semibold text-xs text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-relaxed">
-                            {task.title}
-                          </h3>
-
-
-
-                          {/* Due Date & Assignee */}
-                          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3 h-3 text-slate-400" />
-                              <span>{task.due_date ? task.due_date.slice(5) : 'No date'}</span>
                             </div>
 
-                            <div className="flex items-center -space-x-1.5 overflow-hidden">
-                              {task.assignee_name ? (
-                                task.assignee_name.split(',').map((name, idx) => {
-                                  const trimmed = name.trim();
-                                  if (!trimmed) return null;
-                                  const initials = trimmed.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-                                  return (
-                                    <div 
-                                      key={idx} 
-                                      className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[8px] flex items-center justify-center ring-2 ring-white shrink-0 shadow-2xs" 
-                                      title={trimmed}
-                                    >
-                                      {initials}
-                                    </div>
-                                  );
-                                })
-                              ) : (
-                                <User className="w-3.5 h-3.5 text-slate-400" />
-                              )}
+                            {/* Title */}
+                            <h3 className="font-semibold text-xs text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-relaxed">
+                              {task.title}
+                            </h3>
+
+                            {/* Due Date & Assignee */}
+                            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 gap-2">
+                              <div 
+                                className="flex items-center gap-1.5 min-w-0" 
+                                title={task.due_date ? `Deadline: ${task.due_date}${deadlineInfo ? ` (${deadlineInfo.text})` : ''}` : 'No deadline'}
+                              >
+                                <Calendar className={`w-3.5 h-3.5 shrink-0 ${deadlineInfo?.isOverdue ? 'text-rose-500' : 'text-slate-400'}`} />
+                                <span className="shrink-0 font-medium text-slate-700">
+                                  {task.due_date ? task.due_date.slice(5) : 'No date'}
+                                </span>
+                                {deadlineInfo && (
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium truncate ${deadlineInfo.badgeClass}`}>
+                                    {deadlineInfo.text}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center -space-x-1.5 overflow-hidden shrink-0">
+                                {task.assignee_name ? (
+                                  task.assignee_name.split(',').map((name, idx) => {
+                                    const trimmed = name.trim();
+                                    if (!trimmed) return null;
+                                    const initials = trimmed.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+                                    return (
+                                      <div 
+                                        key={idx} 
+                                        className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[8px] flex items-center justify-center ring-2 ring-white shrink-0 shadow-2xs" 
+                                        title={trimmed}
+                                      >
+                                        {initials}
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <User className="w-3.5 h-3.5 text-slate-400" />
+                                )}
+                              </div>
                             </div>
-                          </div>
 
                           {/* Quick Move Buttons on Hover */}
                           <div className="mt-2 pt-2 flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -440,7 +451,8 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                             </button>
                           </div>
                         </div>
-                      ))
+                      );
+                    })
                     )}
                   </div>
                 </div>
@@ -472,7 +484,21 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                     <td className="p-3.5 font-semibold text-slate-800">{task.title}</td>
                     <td className="p-3.5 text-slate-600">{task.project_title || '-'}</td>
                     <td className="p-3.5 text-slate-600">{task.assignee_name || '-'}</td>
-                    <td className="p-3.5 text-slate-600">{task.due_date || '-'}</td>
+                    <td className="p-3.5 text-slate-600">
+                      {task.due_date ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs">{task.due_date}</span>
+                          {(() => {
+                            const dInfo = getDeadlineInfo(task.due_date, task.status);
+                            return dInfo ? (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${dInfo.badgeClass}`}>
+                                {dInfo.text}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
+                      ) : '-'}
+                    </td>
                     <td className="p-3.5">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] ${PRIORITY_CONFIG[task.priority]?.badge}`}>
                         {PRIORITY_CONFIG[task.priority]?.label}

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Task, Project, TaskStatus, TaskPriority, UserAccount } from '../../types/app';
 import { appApi } from '../../services/appApi';
+import { getDeadlineInfo } from '../../utils/taskDate';
 
 interface TaskInspectorPanelProps {
   isOpen: boolean;
@@ -933,6 +934,18 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
               onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
               className="w-full text-xs font-semibold text-slate-800 bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono cursor-pointer"
             />
+
+            {(() => {
+              const dInfo = getDeadlineInfo(formData.due_date, formData.status);
+              return dInfo ? (
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className="text-[11px] text-slate-400 font-medium">Keterangan:</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium ${dInfo.badgeClass}`}>
+                    {dInfo.text}
+                  </span>
+                </div>
+              ) : null;
+            })()}
           </div>
 
 

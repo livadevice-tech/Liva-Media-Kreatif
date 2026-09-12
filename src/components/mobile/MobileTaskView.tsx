@@ -18,6 +18,7 @@ import {
 import { Task, Project, Brand, TaskStatus, TaskPriority, UserAccount } from '../../types/app';
 import { TaskInspectorPanel } from '../projects/TaskInspectorPanel';
 import { TaskCalendarView } from '../projects/TaskCalendarView';
+import { getDeadlineInfo } from '../../utils/taskDate';
 
 interface MobileTaskViewProps {
   tasks: Task[];
@@ -400,15 +401,28 @@ export const MobileTaskView: React.FC<MobileTaskViewProps> = ({
                   </h3>
 
                   {/* Bottom Row: Due Date & Right Action Group */}
-                  <div className="flex items-center justify-between pt-1">
-                    {/* Due Date */}
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-                      <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatDueDate(task.due_date)}</span>
-                    </div>
+                  <div className="flex items-center justify-between pt-1 gap-2">
+                    {/* Due Date & Deadline Info */}
+                    {(() => {
+                      const dInfo = getDeadlineInfo(task.due_date, task.status);
+                      return (
+                        <div 
+                          className="flex items-center gap-1.5 text-xs text-slate-500 font-medium min-w-0"
+                          title={task.due_date ? `Deadline: ${task.due_date}${dInfo ? ` (${dInfo.text})` : ''}` : 'No deadline'}
+                        >
+                          <CalendarIcon className={`w-3.5 h-3.5 shrink-0 ${dInfo?.isOverdue ? 'text-rose-500' : 'text-slate-400'}`} />
+                          <span className="shrink-0 font-medium text-slate-700">{formatDueDate(task.due_date)}</span>
+                          {dInfo && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium truncate ${dInfo.badgeClass}`}>
+                              {dInfo.text}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Right Group: Assignee Avatar, Arrow Next, Delete Trash */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
                       {/* Assignee Avatar */}
                       <div
                         className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center shadow-xs"
@@ -459,12 +473,22 @@ export const MobileTaskView: React.FC<MobileTaskViewProps> = ({
                   <div className="font-bold text-xs text-slate-900 truncate">
                     {task.title}
                   </div>
-                  <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                  <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 flex-wrap">
                     <span className="text-blue-600 font-medium">
                       {task.project_title || 'General'}
                     </span>
                     <span>•</span>
-                    <span>{formatDueDate(task.due_date)}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>{formatDueDate(task.due_date)}</span>
+                      {(() => {
+                        const dInfo = getDeadlineInfo(task.due_date, task.status);
+                        return dInfo ? (
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-medium ${dInfo.badgeClass}`}>
+                            {dInfo.text}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
                   </div>
                 </div>
 
