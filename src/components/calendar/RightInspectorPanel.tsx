@@ -27,8 +27,11 @@ import {
   Globe,
   Maximize2,
   Minimize2,
-  ChevronDown
+  ChevronDown,
+  SlidersHorizontal
 } from 'lucide-react';
+import { ManageDropdownModal, DropdownOption } from '../shared/ManageDropdownModal';
+import { appApi } from '../../services/appApi';
 import { ContentPost, ContentStatus, ContentPlatform, ContentType, UserAccount, ContentPillar, Brand } from '../../types/app';
 
 interface RightInspectorPanelProps {
@@ -56,15 +59,15 @@ const DEFAULT_PILLARS = [
   { id: 'eng', name: 'Engagement', color: '#6366f1', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
 ];
 
-const PLATFORMS: { id: ContentPlatform; label: string; iconColor: string }[] = [
-  { id: 'instagram', label: 'Instagram', iconColor: 'text-pink-600' },
-  { id: 'tiktok', label: 'TikTok', iconColor: 'text-slate-900' },
-  { id: 'youtube', label: 'YouTube', iconColor: 'text-rose-600' },
-  { id: 'linkedin', label: 'LinkedIn', iconColor: 'text-blue-700' },
-  { id: 'facebook', label: 'Facebook', iconColor: 'text-blue-600' },
+const DEFAULT_PLATFORMS: DropdownOption[] = [
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'tiktok', label: 'TikTok' },
+  { id: 'youtube', label: 'YouTube' },
+  { id: 'linkedin', label: 'LinkedIn' },
+  { id: 'facebook', label: 'Facebook' },
 ];
 
-const CONTENT_TYPES: { id: ContentType; label: string; desc: string }[] = [
+const DEFAULT_CONTENT_TYPES: DropdownOption[] = [
   { id: 'reels', label: 'Reels / Video', desc: '9:16 Video' },
   { id: 'carousel', label: 'Carousel', desc: 'Slide Post' },
   { id: 'feed_single', label: 'Single Feed', desc: '1:1 / 4:5 Post' },
@@ -119,6 +122,39 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
 
   // Full workspace area mode (default to true for full spacious view in the main area)
   const [isFullWidth, setIsFullWidth] = useState(true);
+
+  // Dynamic dropdown options (Platform Media & Format Konten)
+  const [platforms, setPlatforms] = useState<DropdownOption[]>(DEFAULT_PLATFORMS);
+  const [contentTypes, setContentTypes] = useState<DropdownOption[]>(DEFAULT_CONTENT_TYPES);
+  const [isManagePlatformOpen, setIsManagePlatformOpen] = useState(false);
+  const [isManageContentTypeOpen, setIsManageContentTypeOpen] = useState(false);
+
+  // Load dynamic options from server settings on mount
+  useEffect(() => {
+    appApi.getSettings<DropdownOption[]>('platform_options').then((saved) => {
+      if (saved && Array.isArray(saved) && saved.length > 0) setPlatforms(saved);
+    }).catch(() => {});
+    appApi.getSettings<DropdownOption[]>('content_type_options').then((saved) => {
+      if (saved && Array.isArray(saved) && saved.length > 0) setContentTypes(saved);
+    }).catch(() => {});
+  }, []);
+
+  const handleSavePlatformOptions = async (opts: DropdownOption[]) => {
+    await appApi.saveSettings('platform_options', opts);
+    setPlatforms(opts);
+    // If current platform value is no longer valid, reset to first
+    if (!opts.find(o => o.id === formData.platform)) {
+      setFormData(prev => ({ ...prev, platform: opts[0]?.id as ContentPlatform }));
+    }
+  };
+
+  const handleSaveContentTypeOptions = async (opts: DropdownOption[]) => {
+    await appApi.saveSettings('content_type_options', opts);
+    setContentTypes(opts);
+    if (!opts.find(o => o.id === formData.content_type)) {
+      setFormData(prev => ({ ...prev, content_type: opts[0]?.id as ContentType }));
+    }
+  };
 
   // Brand Management State (Add, Edit, Delete right from dropdown)
   const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
@@ -408,6 +444,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   const currentStatusObj = STATUS_LIST.find(s => s.id === formData.status) || STATUS_LIST[0];
 
   return (
+    <>
     <aside 
       className={
         isFullWidth
@@ -949,34 +986,50 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
             {/* Platform & Format Konten in 2 Columns */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Platform Media
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">Platform Media</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsManagePlatformOpen(true)}
+                    title="Kelola opsi Platform Media"
+                    className="flex items-center gap-1 text-[10px] font-medium text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 px-1.5 py-0.5 rounded-md transition-colors"
+                  >
+                    <SlidersHorizontal className="w-3 h-3" />
+                    Kelola
+                  </button>
+                </div>
                 <select
-                  value={formData.platform || 'instagram'}
+                  value={formData.platform || platforms[0]?.id || 'instagram'}
                   onChange={(e) => setFormData({ ...formData, platform: e.target.value as ContentPlatform })}
                   className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
                 >
-                  {PLATFORMS.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                    </option>
+                  {platforms.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Format Konten
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">Format Konten</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsManageContentTypeOpen(true)}
+                    title="Kelola opsi Format Konten"
+                    className="flex items-center gap-1 text-[10px] font-medium text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 px-1.5 py-0.5 rounded-md transition-colors"
+                  >
+                    <SlidersHorizontal className="w-3 h-3" />
+                    Kelola
+                  </button>
+                </div>
                 <select
-                  value={formData.content_type || 'reels'}
+                  value={formData.content_type || contentTypes[0]?.id || 'reels'}
                   onChange={(e) => setFormData({ ...formData, content_type: e.target.value as ContentType })}
                   className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
                 >
-                  {CONTENT_TYPES.map((t) => (
+                  {contentTypes.map((t) => (
                     <option key={t.id} value={t.id}>
-                      {t.label} ({t.desc})
+                      {t.label}{t.desc ? ` (${t.desc})` : ''}
                     </option>
                   ))}
                 </select>
@@ -1718,5 +1771,28 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
       )}
 
     </aside>
+
+    {/* Manage Platform Options Modal */}
+    <ManageDropdownModal
+      isOpen={isManagePlatformOpen}
+      onClose={() => setIsManagePlatformOpen(false)}
+      title="Kelola Platform Media"
+      subtitle="Tambah, edit, hapus, atau ubah urutan opsi Platform Media"
+      options={platforms}
+      onSave={handleSavePlatformOptions}
+    />
+
+    {/* Manage Content Type Options Modal */}
+    <ManageDropdownModal
+      isOpen={isManageContentTypeOpen}
+      onClose={() => setIsManageContentTypeOpen(false)}
+      title="Kelola Format Konten"
+      subtitle="Tambah, edit, hapus, atau ubah urutan opsi Format Konten"
+      options={contentTypes}
+      onSave={handleSaveContentTypeOptions}
+      allowDesc
+      descPlaceholder="Rasio / Format"
+    />
+    </>
   );
 };
