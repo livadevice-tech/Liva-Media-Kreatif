@@ -4,23 +4,24 @@ import {
   PenTool, 
   Download, 
   RotateCcw, 
-  Check, 
   FileText, 
   ChevronLeft, 
   ChevronRight, 
   ZoomIn, 
   ZoomOut, 
   Move, 
-  X, 
   Loader2,
   CheckCircle2,
   AlertCircle,
   ExternalLink,
   Trash2,
-  ArrowRight
+  Maximize2,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeft
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import { UserAccount } from '../../types/app';
 
 // Configure PDF.js worker
@@ -31,9 +32,15 @@ if (typeof window !== 'undefined') {
 interface ToolsViewProps {
   currentUser?: UserAccount | null;
   onNavigateToAssets?: () => void;
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
 }
 
-export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
+export const ToolsView: React.FC<ToolsViewProps> = ({ 
+  currentUser,
+  isSidebarOpen,
+  onToggleSidebar,
+}) => {
   // Step 1: File State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
@@ -43,23 +50,23 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Focus / Fullscreen Mode (collapses app sidebar if open)
+  const [isFocusedMode, setIsFocusedMode] = useState(false);
+
   // PDF Viewer Navigation & Zoom
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(1);
-  const [zoomScale, setZoomScale] = useState(1.1);
+  const [zoomScale, setZoomScale] = useState(1.15);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [pdfLoadError, setPdfLoadError] = useState<string | null>(null);
   const pdfCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Signature Pad State
+  // Signature Pad State (ONLY SIGNATURE)
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [inkColor, setInkColor] = useState<'#0f172a' | '#1e3a8a'>('#0f172a');
-  const [signerName, setSignerName] = useState(() => currentUser?.full_name || 'Galang Taufik');
-  const [signerRole, setSignerRole] = useState(() => currentUser?.position || 'Director / Founder');
-  const [withCompanyStamp, setWithCompanyStamp] = useState(true);
   const padCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Signature Position on Document (Relative 0 to 1)
@@ -70,9 +77,9 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
     widthPercent: number;
   }>({
     page: 1,
-    xPercent: 0.62,
-    yPercent: 0.72,
-    widthPercent: 0.28,
+    xPercent: 0.65,
+    yPercent: 0.75,
+    widthPercent: 0.22,
   });
 
   // Dragging Signature Box State
@@ -80,14 +87,21 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
   const dragStartRef = useRef<{ startX: number; startY: number; initialXPercent: number; initialYPercent: number }>({
     startX: 0,
     startY: 0,
-    initialXPercent: 0.62,
-    initialYPercent: 0.72,
+    initialXPercent: 0.65,
+    initialYPercent: 0.75,
   });
 
   // Export / Download State
   const [isExporting, setIsExporting] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [exportSuccess, setExportSuccess] = useState(false);
+
+  // Auto-collapse main sidebar on file upload so preview gets maximum full space
+  useEffect(() => {
+    if (selectedFile && isSidebarOpen && onToggleSidebar) {
+      onToggleSidebar();
+    }
+  }, [selectedFile]);
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -101,7 +115,6 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
   const handleFileChange = async (file: File) => {
     if (!file) return;
 
-    // Reset previous
     if (fileUrl) URL.revokeObjectURL(fileUrl);
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
     setDownloadUrl(null);
@@ -183,7 +196,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
     };
   }, [fileUrl, isPdf, currentPage, zoomScale]);
 
-  // Setup / Redraw Signature Pad Canvas
+  // Setup Signature Pad Canvas
   useEffect(() => {
     const canvas = padCanvasRef.current;
     if (!canvas) return;
@@ -200,7 +213,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
     ctx.lineJoin = 'round';
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = inkColor;
-  }, [inkColor]);
+  }, [inkColor, selectedFile]);
 
   // Signature Drawing Handlers
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -289,8 +302,8 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
       const deltaX = e.clientX - dragStartRef.current.startX;
       const deltaY = e.clientY - dragStartRef.current.startY;
 
-      const newXPercent = Math.max(0.02, Math.min(0.95 - signaturePlacement.widthPercent, dragStartRef.current.initialXPercent + deltaX / rect.width));
-      const newYPercent = Math.max(0.02, Math.min(0.92, dragStartRef.current.initialYPercent + deltaY / rect.height));
+      const newXPercent = Math.max(0.01, Math.min(0.98 - signaturePlacement.widthPercent, dragStartRef.current.initialXPercent + deltaX / rect.width));
+      const newYPercent = Math.max(0.01, Math.min(0.95, dragStartRef.current.initialYPercent + deltaY / rect.height));
 
       setSignaturePlacement((p) => ({
         ...p,
@@ -307,8 +320,8 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
       const deltaX = e.touches[0].clientX - dragStartRef.current.startX;
       const deltaY = e.touches[0].clientY - dragStartRef.current.startY;
 
-      const newXPercent = Math.max(0.02, Math.min(0.95 - signaturePlacement.widthPercent, dragStartRef.current.initialXPercent + deltaX / rect.width));
-      const newYPercent = Math.max(0.02, Math.min(0.92, dragStartRef.current.initialYPercent + deltaY / rect.height));
+      const newXPercent = Math.max(0.01, Math.min(0.98 - signaturePlacement.widthPercent, dragStartRef.current.initialXPercent + deltaX / rect.width));
+      const newYPercent = Math.max(0.01, Math.min(0.95, dragStartRef.current.initialYPercent + deltaY / rect.height));
 
       setSignaturePlacement((p) => ({
         ...p,
@@ -333,7 +346,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
     };
   }, [isDraggingBox, currentPage, signaturePlacement.widthPercent]);
 
-  // Click on Document to move signature box
+  // Click on Document to immediately move signature box there
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -343,15 +356,15 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
     setSignaturePlacement((p) => ({
       ...p,
       page: currentPage,
-      xPercent: Math.max(0.02, Math.min(0.95 - p.widthPercent, x - p.widthPercent / 2)),
-      yPercent: Math.max(0.02, Math.min(0.92, y - 0.05)),
+      xPercent: Math.max(0.01, Math.min(0.98 - p.widthPercent, x - p.widthPercent / 2)),
+      yPercent: Math.max(0.01, Math.min(0.95, y - 0.04)),
     }));
   };
 
-  // Stamping and Saving PDF directly on client with pdf-lib
+  // Stamping ONLY SIGNATURE directly on PDF
   const handleStampAndDownload = async () => {
     if (!signatureDataUrl) {
-      alert('Silakan goreskan tanda tangan Anda terlebih dahulu di kolom tanda tangan.');
+      alert('Silakan goreskan tanda tangan Anda terlebih dahulu di kotak sebelah kiri.');
       return;
     }
 
@@ -360,10 +373,8 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
       let finalPdfDoc: PDFDocument;
 
       if (isPdf && pdfBytes) {
-        // Load original uploaded PDF
         finalPdfDoc = await PDFDocument.load(pdfBytes);
       } else if (isImage && pdfBytes) {
-        // Convert image file to PDF
         finalPdfDoc = await PDFDocument.create();
         const img = selectedFile?.name.toLowerCase().endsWith('.png')
           ? await finalPdfDoc.embedPng(pdfBytes)
@@ -371,30 +382,10 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
         const imgPage = finalPdfDoc.addPage([img.width, img.height]);
         imgPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
       } else {
-        // Create standard A4 document
-        finalPdfDoc = await PDFDocument.create();
-        const page = finalPdfDoc.addPage([595.28, 841.89]);
-        const fontBold = await finalPdfDoc.embedFont(StandardFonts.HelveticaBold);
-        const fontRegular = await finalPdfDoc.embedFont(StandardFonts.Helvetica);
-        const { width, height } = page.getSize();
-
-        page.drawText('LIVA MEDIA KREATIF', {
-          x: 50,
-          y: height - 80,
-          size: 16,
-          font: fontBold,
-          color: rgb(0.2, 0.25, 0.6),
-        });
-        page.drawText('DOKUMEN PENGESAHAN RESMI', {
-          x: 50,
-          y: height - 105,
-          size: 11,
-          font: fontRegular,
-          color: rgb(0.4, 0.45, 0.5),
-        });
+        throw new Error('File berkas tidak valid.');
       }
 
-      // Embed signature image
+      // Embed signature image ONLY (pure transparent PNG)
       const cleanBase64 = signatureDataUrl.replace(/^data:image\/\w+;base64,/, '');
       const sigBytes = Uint8Array.from(atob(cleanBase64), (c) => c.charCodeAt(0));
       const embeddedSig = await finalPdfDoc.embedPng(sigBytes);
@@ -407,79 +398,17 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
       const sigWidth = pageWidth * signaturePlacement.widthPercent;
       const sigHeight = (sigWidth / embeddedSig.width) * embeddedSig.height;
 
-      const sigX = Math.max(15, Math.min(pageWidth * signaturePlacement.xPercent, pageWidth - sigWidth - 15));
-      // In PDF coordinate system, Y=0 is bottom-left
-      const sigY = Math.max(15, Math.min(pageHeight - (pageHeight * signaturePlacement.yPercent) - sigHeight, pageHeight - sigHeight - 15));
+      const sigX = Math.max(10, Math.min(pageWidth * signaturePlacement.xPercent, pageWidth - sigWidth - 10));
+      // In PDF coordinate system, Y=0 is bottom-left, DOM Y=0 is top-left
+      const sigY = Math.max(10, Math.min(pageHeight - (pageHeight * signaturePlacement.yPercent) - sigHeight, pageHeight - sigHeight - 10));
 
-      // Draw Signature
+      // Draw ONLY the signature graphic (NO text, NO names, NO stamps, NO underlines)
       targetPage.drawImage(embeddedSig, {
         x: sigX,
         y: sigY,
         width: sigWidth,
         height: sigHeight,
       });
-
-      const fontBold = await finalPdfDoc.embedFont(StandardFonts.HelveticaBold);
-      const fontRegular = await finalPdfDoc.embedFont(StandardFonts.Helvetica);
-
-      // Underline
-      targetPage.drawLine({
-        start: { x: sigX, y: sigY - 2 },
-        end: { x: sigX + sigWidth, y: sigY - 2 },
-        thickness: 1,
-        color: rgb(0.2, 0.25, 0.35),
-      });
-
-      // Name & Role
-      if (signerName.trim()) {
-        targetPage.drawText(signerName.trim(), {
-          x: sigX,
-          y: sigY - 14,
-          size: 9.5,
-          font: fontBold,
-          color: rgb(0.1, 0.12, 0.18),
-        });
-      }
-
-      if (signerRole.trim()) {
-        targetPage.drawText(signerRole.trim(), {
-          x: sigX,
-          y: sigY - 25,
-          size: 8,
-          font: fontRegular,
-          color: rgb(0.4, 0.45, 0.5),
-        });
-      }
-
-      // Stamp
-      if (withCompanyStamp) {
-        const stampX = sigX - 25;
-        const stampY = sigY - 15;
-        targetPage.drawRectangle({
-          x: stampX,
-          y: stampY,
-          width: 80,
-          height: 24,
-          color: rgb(0.9, 0.96, 0.93),
-          borderColor: rgb(0.05, 0.6, 0.3),
-          borderWidth: 1,
-          opacity: 0.85,
-        });
-        targetPage.drawText('VERIFIED / SAH', {
-          x: stampX + 8,
-          y: stampY + 14,
-          size: 7,
-          font: fontBold,
-          color: rgb(0.05, 0.55, 0.25),
-        });
-        targetPage.drawText('LIVA MEDIA', {
-          x: stampX + 8,
-          y: stampY + 5,
-          size: 6,
-          font: fontRegular,
-          color: rgb(0.05, 0.55, 0.25),
-        });
-      }
 
       const stampedPdfBytes = await finalPdfDoc.save();
       const blob = new Blob([stampedPdfBytes], { type: 'application/pdf' });
@@ -504,30 +433,41 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-100/70 overflow-hidden font-sans">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200/90 px-6 py-4 shrink-0 flex items-center justify-between gap-4">
+    <div className="flex-1 flex flex-col h-full bg-slate-100/80 overflow-hidden font-sans">
+      {/* Header Bar */}
+      <div className="bg-white border-b border-slate-200/90 px-5 py-3.5 shrink-0 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
-            <PenTool className="w-5 h-5" />
+          {onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              title={isSidebarOpen ? 'Sembunyikan Sidebar Menu' : 'Tampilkan Sidebar Menu'}
+            >
+              {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+            </button>
+          )}
+
+          <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+            <PenTool className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-slate-900 tracking-tight">
+              <h1 className="text-sm font-bold text-slate-900 tracking-tight">
                 Tanda Tangan Dokumen (TTD PDF)
               </h1>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Simpel & Cepat
+              <span className="px-2 py-0.2 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Only Tanda Tangan
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Alur 3 langkah mudah: 1. Upload File PDF &rarr; 2. Gores Tanda Tangan & Tentukan Posisi &rarr; 3. Unduh Dokumen Bertanda Tangan.
+            <p className="text-[11px] text-slate-500">
+              Upload file &rarr; Gores tanda tangan &rarr; Tempelkan di posisi yang pas &rarr; Unduh.
             </p>
           </div>
         </div>
 
         {selectedFile && (
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => {
@@ -537,7 +477,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
                 setDownloadUrl(null);
                 setExportSuccess(false);
               }}
-              className="px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Ganti File</span>
@@ -547,16 +487,16 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
               type="button"
               onClick={handleStampAndDownload}
               disabled={isExporting}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               {isExporting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Membubuhkan Ttd...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Membubuhkan...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                   <span>Selesai & Unduh PDF</span>
                 </>
               )}
@@ -608,7 +548,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
                 Pilih atau Tarik File PDF ke Sini
               </h3>
               <p className="text-xs text-slate-500 mt-1.5 max-w-sm mx-auto leading-relaxed">
-                Mendukung dokumen format <strong>PDF</strong> atau gambar invoice/surat (PNG, JPG). Berkas akan diproses langsung secara aman di browser Anda.
+                Mendukung dokumen format <strong>PDF</strong> atau gambar invoice/surat (PNG, JPG). Berkas diproses langsung secara lokal di browser Anda.
               </p>
 
               <button
@@ -623,37 +563,40 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
             <div className="flex items-center justify-center gap-6 text-xs text-slate-500">
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Tanpa batas ukuran berkas
+                Hanya murni tanda tangan Anda
               </span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Tanda tangan langsung menempel di PDF
+                Tanpa stempel atau teks tambahan
               </span>
             </div>
           </div>
         </div>
       ) : (
-        /* STEP 2: SPLIT SCREEN (LEFT: SIGNATURE CONTROLS, RIGHT: VISUAL PDF VIEWER) */
+        /* STEP 2: FULL PREVIEW & COMPACT SIGNATURE PAD */
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          {/* Left Panel: Drawing Signature & Information */}
-          <div className="w-full lg:w-96 shrink-0 bg-white border-r border-slate-200/90 flex flex-col h-full overflow-y-auto custom-scrollbar p-5 space-y-5">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Langkah 1: Goreskan Tanda Tangan
-                </h3>
-                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
-                  {hasDrawn ? 'Sudah Ada Goresan' : 'Wajib Diisi'}
-                </span>
+          {/* Left Panel: Compact Signature Drawer */}
+          <div className="w-full lg:w-80 shrink-0 bg-white border-r border-slate-200/90 flex flex-col justify-between h-full p-4 overflow-y-auto custom-scrollbar">
+            <div className="space-y-3.5">
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <PenTool className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Gores Tanda Tangan</span>
+                  </h3>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                    hasDrawn ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    {hasDrawn ? 'Siap Ditempel' : 'Wajib Diisi'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Hanya goresan tanda tangan ini yang akan ditempelkan ke PDF.
+                </p>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Gunakan kursor mouse atau jari di layar sentuh untuk membuat tanda tangan.
-              </p>
-            </div>
 
-            {/* Canvas Sign Pad */}
-            <div className="space-y-2">
-              <div className="relative border-2 border-dashed border-slate-300 hover:border-emerald-400 rounded-2xl overflow-hidden bg-slate-50/70 transition-colors">
+              {/* Canvas Pad */}
+              <div className="relative border-2 border-dashed border-slate-300 hover:border-emerald-400 rounded-2xl overflow-hidden bg-slate-50 transition-colors">
                 <canvas
                   ref={padCanvasRef}
                   onMouseDown={startDrawing}
@@ -669,19 +612,20 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
                 {!hasDrawn && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-400 text-xs gap-1">
                     <PenTool className="w-4 h-4 text-slate-400" />
-                    <span>Gores tanda tangan di kotak ini...</span>
+                    <span>Gores tanda tangan di sini...</span>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center justify-between pt-1">
+              {/* Pad Controls */}
+              <div className="flex items-center justify-between">
                 <button
                   type="button"
                   onClick={clearPad}
                   className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  <span>Ulang / Bersihkan</span>
+                  <span>Bersihkan</span>
                 </button>
 
                 {/* Ink Color */}
@@ -705,89 +649,48 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
                   />
                 </div>
               </div>
+
+              {/* Instruction Box */}
+              <div className="bg-emerald-50 border border-emerald-200/90 rounded-xl p-3 text-xs text-emerald-800 space-y-1">
+                <div className="font-bold flex items-center gap-1 text-[11px]">
+                  <Move className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Cara Menempelkan ke Berkas:</span>
+                </div>
+                <p className="text-[11px] text-emerald-700 leading-relaxed">
+                  Pada pratinjau lembar PDF di sebelah kanan, <strong>klik posisi mana saja</strong> atau <strong>tarik kotak hijau</strong> ke area tanda tangan yang diinginkan.
+                </p>
+              </div>
             </div>
 
-            <div className="border-t border-slate-100 pt-4 space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Langkah 2: Data Penandatangan
-              </h3>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700">Nama Terang</label>
-                <input
-                  type="text"
-                  value={signerName}
-                  onChange={(e) => setSignerName(e.target.value)}
-                  placeholder="Misal: Galang Taufik"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700">Jabatan / Keterangan (Opsional)</label>
-                <input
-                  type="text"
-                  value={signerRole}
-                  onChange={(e) => setSignerRole(e.target.value)}
-                  placeholder="Misal: Direktur Utama / Founder"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
-                />
-              </div>
-
-              {/* Company Stamp Checkbox */}
-              <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={withCompanyStamp}
-                  onChange={(e) => setWithCompanyStamp(e.target.checked)}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
-                />
-                <span className="text-xs font-medium text-slate-700">
-                  Sertakan Stempel Validasi Resmi (VERIFIED)
-                </span>
-              </label>
-            </div>
-
-            {/* Instruction Banner */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-xs text-emerald-800 space-y-1">
-              <div className="font-bold flex items-center gap-1.5">
-                <Move className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Langkah 3: Tempelkan Tanda Tangan</span>
-              </div>
-              <p className="text-[11px] text-emerald-700 leading-relaxed">
-                Di panel sebelah kanan, <strong>klik di mana saja pada lembar berkas</strong> atau <strong>tarik kotak tanda tangan</strong> untuk meletakkannya di posisi yang pas.
-              </p>
-            </div>
-
-            {/* Finish & Download CTA Button */}
-            <div className="pt-2">
+            {/* Bottom CTA Button */}
+            <div className="pt-4 border-t border-slate-100 space-y-2">
               <button
                 type="button"
                 onClick={handleStampAndDownload}
                 disabled={isExporting}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-2xl shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01]"
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isExporting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Sedang Menyematkan ke Dokumen...</span>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Menempelkan Ttd...</span>
                   </>
                 ) : (
                   <>
-                    <Download className="w-4 h-4" />
-                    <span>Selesai & Unduh PDF Sekarang</span>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Selesai & Unduh PDF</span>
                   </>
                 )}
               </button>
 
               {exportSuccess && downloadUrl && (
-                <div className="mt-2 text-center">
+                <div className="text-center">
                   <a
                     href={downloadUrl}
                     download={`${selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, '') : 'dokumen'}_bertandatangan.pdf`}
-                    className="text-[11px] font-semibold text-emerald-600 hover:underline inline-flex items-center gap-1"
+                    className="text-[10px] font-semibold text-emerald-600 hover:underline inline-flex items-center gap-1"
                   >
-                    <span>Klik di sini jika download tidak berjalan otomatis</span>
+                    <span>Unduh ulang berkas</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
@@ -795,10 +698,10 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
             </div>
           </div>
 
-          {/* Right Panel: Interactive PDF Viewport with Stamping Box */}
+          {/* Right Panel: Full-Width PDF Workspace */}
           <div className="flex-1 flex flex-col h-full bg-slate-900 overflow-hidden">
-            {/* Toolbar Above PDF Canvas */}
-            <div className="bg-slate-800/90 border-b border-slate-700/80 px-4 py-2.5 flex items-center justify-between text-xs text-white shrink-0">
+            {/* Control Toolbar */}
+            <div className="bg-slate-800/95 border-b border-slate-700 px-4 py-2 flex items-center justify-between text-xs text-white shrink-0">
               <div className="flex items-center gap-2 truncate max-w-sm">
                 <FileText className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold truncate">{selectedFile.name}</span>
@@ -809,7 +712,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
 
               {/* Page Navigator */}
               {isPdf && (
-                <div className="flex items-center gap-2 bg-slate-900/80 px-2 py-1 rounded-xl border border-slate-700">
+                <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-xl border border-slate-700">
                   <button
                     type="button"
                     onClick={() => {
@@ -842,11 +745,11 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
                 </div>
               )}
 
-              {/* Zoom Controls */}
-              <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-xl border border-slate-700">
+              {/* Zoom & Full View Controls */}
+              <div className="flex items-center gap-1.5 bg-slate-900/80 px-1.5 py-1 rounded-xl border border-slate-700">
                 <button
                   type="button"
-                  onClick={() => setZoomScale((z) => Math.max(0.7, Number((z - 0.15).toFixed(2))))}
+                  onClick={() => setZoomScale((z) => Math.max(0.6, Number((z - 0.15).toFixed(2))))}
                   className="p-1 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
                   title="Perkecil"
                 >
@@ -857,7 +760,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setZoomScale((z) => Math.min(1.8, Number((z + 0.15).toFixed(2))))}
+                  onClick={() => setZoomScale((z) => Math.min(2.0, Number((z + 0.15).toFixed(2))))}
                   className="p-1 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
                   title="Perbesar"
                 >
@@ -866,12 +769,12 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
               </div>
             </div>
 
-            {/* Scrollable Viewport */}
-            <div className="flex-1 overflow-auto p-4 sm:p-8 flex items-center justify-center custom-scrollbar">
+            {/* Scrollable Document Canvas Viewport */}
+            <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center custom-scrollbar">
               {isLoadingPdf && (
                 <div className="flex flex-col items-center justify-center gap-2 text-white">
                   <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
-                  <span className="text-xs text-slate-400">Memuat halaman dokumen PDF...</span>
+                  <span className="text-xs text-slate-400">Memuat halaman PDF...</span>
                 </div>
               )}
 
@@ -882,11 +785,11 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
                 </div>
               )}
 
-              {/* PDF / Image Page Sheet */}
+              {/* Document Sheet */}
               <div
                 ref={containerRef}
                 onClick={handleContainerClick}
-                className="relative bg-white shadow-2xl rounded-sm transition-all overflow-hidden cursor-crosshair shrink-0"
+                className="relative bg-white shadow-2xl rounded-xs transition-all overflow-hidden cursor-crosshair shrink-0"
               >
                 {isPdf ? (
                   <canvas ref={pdfCanvasRef} className="block select-none pointer-events-none" />
@@ -898,7 +801,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
                   />
                 ) : null}
 
-                {/* SIGNATURE PLACEMENT BOX (DRAGGABLE) */}
+                {/* SIGNATURE PLACEMENT BOX (ONLY TANDA TANGAN) */}
                 {signaturePlacement.page === currentPage && (
                   <div
                     onMouseDown={handleMouseDownOnBox}
@@ -908,46 +811,27 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ currentUser }) => {
                       top: `${signaturePlacement.yPercent * 100}%`,
                       width: `${signaturePlacement.widthPercent * 100}%`,
                     }}
-                    className="absolute select-none z-20 group cursor-grab active:cursor-grabbing border-2 border-emerald-500 bg-emerald-50/20 hover:bg-emerald-50/40 rounded-xl p-2 shadow-xl ring-4 ring-emerald-500/10"
+                    className="absolute select-none z-20 group cursor-grab active:cursor-grabbing border-2 border-dashed border-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg p-1.5 shadow-lg"
                   >
-                    {/* Move Badge */}
-                    <div className="absolute -top-3 left-2 px-2 py-0.5 bg-emerald-600 text-white text-[9px] font-bold rounded-md shadow flex items-center gap-1 pointer-events-none">
+                    {/* Badge Handle */}
+                    <div className="absolute -top-3 left-1 px-1.5 py-0.2 bg-emerald-600 text-white text-[8px] font-bold rounded shadow flex items-center gap-1 pointer-events-none">
                       <Move className="w-2.5 h-2.5" />
-                      <span>Geser Posisi Ttd</span>
+                      <span>Geser Posisi</span>
                     </div>
 
-                    {/* Signature Preview */}
+                    {/* ONLY SIGNATURE IMAGE */}
                     {signatureDataUrl ? (
-                      <div className="relative">
-                        <img
-                          src={signatureDataUrl}
-                          alt="Tanda Tangan"
-                          className="w-full h-auto max-h-20 object-contain drop-shadow-xs"
-                        />
-                        {withCompanyStamp && (
-                          <div className="absolute right-0 -bottom-2 px-1.5 py-0.2 bg-emerald-50 border border-emerald-600 text-emerald-700 text-[7px] font-black rounded rotate-[-4deg] shadow-2xs">
-                            VERIFIED OFFICIAL
-                          </div>
-                        )}
-                      </div>
+                      <img
+                        src={signatureDataUrl}
+                        alt="Tanda Tangan"
+                        className="w-full h-auto max-h-24 object-contain drop-shadow-xs"
+                      />
                     ) : (
-                      <div className="py-3 border border-dashed border-emerald-400 bg-white/80 rounded-lg flex flex-col items-center justify-center text-emerald-700">
+                      <div className="py-3 bg-white/80 rounded flex flex-col items-center justify-center text-emerald-700">
                         <PenTool className="w-4 h-4 text-emerald-600" />
-                        <span className="text-[9px] font-bold mt-1">Gores Tanda Tangan di Kiri</span>
+                        <span className="text-[9px] font-bold mt-0.5">Gores Ttd di Samping</span>
                       </div>
                     )}
-
-                    {/* Signer Underline & Details */}
-                    <div className="mt-1 border-t border-slate-800/80 pt-1 text-left">
-                      <p className="text-[10px] font-black text-slate-900 leading-tight">
-                        {signerName || 'Penandatangan'}
-                      </p>
-                      {signerRole && (
-                        <p className="text-[8px] text-slate-500 leading-tight">
-                          {signerRole}
-                        </p>
-                      )}
-                    </div>
                   </div>
                 )}
               </div>

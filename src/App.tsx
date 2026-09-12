@@ -1178,6 +1178,8 @@ export default function App() {
           <ToolsView
             currentUser={currentUser}
             onNavigateToAssets={() => setActiveTab('assets')}
+            isSidebarOpen={isSidebarOpen}
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           />
         ) : activeTab === 'accounts' ? (
           currentUser?.role === 'Master Admin' ? (
