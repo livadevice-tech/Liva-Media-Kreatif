@@ -180,69 +180,7 @@ export async function stampDocumentWithSignature(params: {
       height: sigHeight,
     });
 
-    const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-    // Draw Line under signature
-    targetPage.drawLine({
-      start: { x: sigX, y: sigY - 2 },
-      end: { x: sigX + sigWidth, y: sigY - 2 },
-      thickness: 1,
-      color: rgb(0.3, 0.35, 0.45),
-    });
-
-    // Draw Signer Name & Role
-    if (position?.signerName) {
-      targetPage.drawText(position.signerName, {
-        x: sigX,
-        y: sigY - 14,
-        size: 9,
-        font: fontBold,
-        color: rgb(0.1, 0.12, 0.18),
-      });
-    }
-
-    if (position?.signerRole) {
-      targetPage.drawText(position.signerRole, {
-        x: sigX,
-        y: sigY - 25,
-        size: 8,
-        font: fontRegular,
-        color: rgb(0.4, 0.45, 0.5),
-      });
-    }
-
-    // Official Stamp if enabled
-    if (position?.withCompanyStamp) {
-      const stampX = sigX - 25;
-      const stampY = sigY - 15;
-      targetPage.drawRectangle({
-        x: stampX,
-        y: stampY,
-        width: 80,
-        height: 24,
-        color: rgb(0.9, 0.95, 0.92),
-        borderColor: rgb(0.05, 0.6, 0.3),
-        borderWidth: 1,
-        opacity: 0.85,
-      });
-
-      targetPage.drawText('VERIFIED / SAH', {
-        x: stampX + 8,
-        y: stampY + 14,
-        size: 7,
-        font: fontBold,
-        color: rgb(0.05, 0.55, 0.25),
-      });
-
-      targetPage.drawText('LIVA MEDIA', {
-        x: stampX + 8,
-        y: stampY + 5,
-        size: 6,
-        font: fontRegular,
-        color: rgb(0.05, 0.55, 0.25),
-      });
-    }
+    // Draw ONLY pure signature image (no underline, no names, no extra stamps)
 
     // Save stamped PDF
     const modifiedPdfBytes = await pdfDoc.save();

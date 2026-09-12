@@ -15,14 +15,29 @@ import {
   AlertCircle,
   ExternalLink,
   Trash2,
-  Maximize2,
-  Minimize2,
+  Copy,
+  Check,
+  Share2,
+  Clock,
+  Eye,
+  Sparkles,
+  Layers,
+  ArrowRight,
+  FolderArchive,
+  QrCode,
+  MessageCircle,
+  FileCheck,
+  UserCheck,
+  Send,
+  HelpCircle,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  X
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
-import { UserAccount } from '../../types/app';
+import { UserAccount, SignedDocument } from '../../types/app';
+import { appApi } from '../../services/appApi';
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined') {
@@ -36,12 +51,23 @@ interface ToolsViewProps {
   onToggleSidebar?: () => void;
 }
 
+type ActiveToolId = 'hub' | 'pdf-sign' | 'sign-history';
+
 export const ToolsView: React.FC<ToolsViewProps> = ({ 
   currentUser,
+  onNavigateToAssets,
   isSidebarOpen,
   onToggleSidebar,
 }) => {
-  // Step 1: File State
+  // Current view state: 'hub' (List/Cards of Tools) vs specific tool view
+  const [activeTool, setActiveTool] = useState<ActiveToolId>('hub');
+
+  // Mode in E-Sign: 'internal' (Langsung di tempat) vs 'external' (Kirim link eksternal tanpa login)
+  const [signMode, setSignMode] = useState<'internal' | 'external'>('internal');
+
+  // ==========================================
+  // E-SIGN STATE
+  // ==========================================
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
@@ -49,9 +75,6 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   const [isImage, setIsImage] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Focus / Fullscreen Mode (collapses app sidebar if open)
-  const [isFocusedMode, setIsFocusedMode] = useState(false);
 
   // PDF Viewer Navigation & Zoom
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,14 +85,14 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   const pdfCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Signature Pad State (ONLY SIGNATURE)
+  // Signature Pad State (ONLY SIGNATURE GRAPHIC)
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [inkColor, setInkColor] = useState<'#0f172a' | '#1e3a8a'>('#0f172a');
   const padCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Signature Position on Document (Relative 0 to 1)
+  // Signature Placement Box on Document (Relative 0 to 1)
   const [signaturePlacement, setSignaturePlacement] = useState<{
     page: number;
     xPercent: number;
@@ -91,17 +114,38 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     initialYPercent: 0.75,
   });
 
-  // Export / Download State
+  // Internal Sign & Download State
   const [isExporting, setIsExporting] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [exportSuccess, setExportSuccess] = useState(false);
 
-  // Auto-collapse main sidebar on file upload so preview gets maximum full space
+  // External Sign Request Fields
+  const [externalTitle, setExternalTitle] = useState('');
+  const [externalRecipientName, setExternalRecipientName] = useState('');
+  const [externalRecipientRole, setExternalRecipientRole] = useState('');
+  const [externalRecipientPhone, setExternalRecipientPhone] = useState('');
+  const [externalNotes, setExternalNotes] = useState('');
+  const [isCreatingLink, setIsCreatingLink] = useState(false);
+  const [createdExternalResult, setCreatedExternalResult] = useState<{
+    id: string;
+    signing_token: string;
+    share_url: string;
+    title: string;
+    recipientName: string;
+  } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Document List & History State
+  const [documentList, setDocumentList] = useState<SignedDocument[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [selectedPreviewDoc, setSelectedPreviewDoc] = useState<SignedDocument | null>(null);
+
+  // Auto-collapse sidebar when opening studio with file
   useEffect(() => {
-    if (selectedFile && isSidebarOpen && onToggleSidebar) {
+    if (activeTool === 'pdf-sign' && selectedFile && isSidebarOpen && onToggleSidebar) {
       onToggleSidebar();
     }
-  }, [selectedFile]);
+  }, [activeTool, selectedFile]);
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -111,6 +155,25 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     };
   }, [fileUrl, downloadUrl]);
 
+  // Load document list when visiting history or switching tools
+  const loadDocuments = async () => {
+    setLoadingList(true);
+    try {
+      const docs = await appApi.getSignedDocuments();
+      setDocumentList(docs || []);
+    } catch (err) {
+      console.error('Failed to load signed documents:', err);
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTool === 'sign-history' || activeTool === 'hub') {
+      loadDocuments();
+    }
+  }, [activeTool]);
+
   // Handle file selection
   const handleFileChange = async (file: File) => {
     if (!file) return;
@@ -119,6 +182,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
     setDownloadUrl(null);
     setExportSuccess(false);
+    setCreatedExternalResult(null);
     setSelectedFile(file);
 
     const url = URL.createObjectURL(file);
@@ -131,11 +195,15 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     setIsImage(isImgFile);
     setCurrentPage(1);
 
+    if (!externalTitle.trim()) {
+      setExternalTitle(file.name.replace(/\.[^/.]+$/, ''));
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     setPdfBytes(new Uint8Array(arrayBuffer));
   };
 
-  // Render PDF using PDF.js
+  // Render PDF page
   useEffect(() => {
     if (!fileUrl || !isPdf) return;
 
@@ -196,8 +264,9 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     };
   }, [fileUrl, isPdf, currentPage, zoomScale]);
 
-  // Setup Signature Pad Canvas
+  // Setup Signature Pad Canvas for Internal Mode
   useEffect(() => {
+    if (activeTool !== 'pdf-sign' || signMode !== 'internal') return;
     const canvas = padCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -213,7 +282,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     ctx.lineJoin = 'round';
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = inkColor;
-  }, [inkColor, selectedFile]);
+  }, [inkColor, selectedFile, activeTool, signMode]);
 
   // Signature Drawing Handlers
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -361,8 +430,8 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     }));
   };
 
-  // Stamping ONLY SIGNATURE directly on PDF
-  const handleStampAndDownload = async () => {
+  // 1. TTD INTERNAL: Stamping ONLY pure signature directly onto PDF & download
+  const handleInternalStampAndDownload = async () => {
     if (!signatureDataUrl) {
       alert('Silakan goreskan tanda tangan Anda terlebih dahulu di kotak sebelah kiri.');
       return;
@@ -382,7 +451,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
         const imgPage = finalPdfDoc.addPage([img.width, img.height]);
         imgPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
       } else {
-        throw new Error('File berkas tidak valid.');
+        throw new Error('Berkas file tidak valid.');
       }
 
       // Embed signature image ONLY (pure transparent PNG)
@@ -402,7 +471,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
       // In PDF coordinate system, Y=0 is bottom-left, DOM Y=0 is top-left
       const sigY = Math.max(10, Math.min(pageHeight - (pageHeight * signaturePlacement.yPercent) - sigHeight, pageHeight - sigHeight - 10));
 
-      // Draw ONLY the signature graphic (NO text, NO names, NO stamps, NO underlines)
+      // Draw ONLY the pure signature graphic (NO text, NO names, NO stamps, NO underlines)
       targetPage.drawImage(embeddedSig, {
         x: sigX,
         y: sigY,
@@ -424,6 +493,30 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      // Optionally record to backend if user is logged in
+      try {
+        if (selectedFile) {
+          const uploadRes = await appApi.uploadAssetFile(selectedFile);
+          if (uploadRes.success) {
+            await appApi.createSignedDocument({
+              title: baseName,
+              file_url: uploadRes.url,
+              file_name: selectedFile.name,
+              file_source: 'external',
+              sign_type: 'internal',
+              signer_name: currentUser?.full_name || 'Penandatangan Internal',
+              signer_role: currentUser?.position || 'Internal',
+              signature_data_url: signatureDataUrl,
+              signature_position: signaturePlacement,
+              created_by: currentUser?.full_name || 'Tim Liva',
+            });
+            loadDocuments();
+          }
+        }
+      } catch (logErr) {
+        console.warn('Could not auto-save signed log to database:', logErr);
+      }
     } catch (err: any) {
       console.error('Error stamping PDF:', err);
       alert('Gagal membubuhkan tanda tangan ke PDF: ' + (err.message || 'Terjadi kesalahan sistem'));
@@ -432,411 +525,1234 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     }
   };
 
+  // 2. TTD EKSTERNAL: Upload file to server -> Generate public link without login
+  const handleGenerateExternalLink = async () => {
+    if (!selectedFile) {
+      alert('Silakan pilih berkas PDF terlebih dahulu.');
+      return;
+    }
+    if (!externalRecipientName.trim()) {
+      alert('Silakan isi nama penerima eksternal yang akan menandatangani.');
+      return;
+    }
+
+    setIsCreatingLink(true);
+    try {
+      // Step 1: Upload file to server so it has a permanent public URL
+      const uploadRes = await appApi.uploadAssetFile(selectedFile);
+      if (!uploadRes.success || !uploadRes.url) {
+        throw new Error('Gagal mengunggah berkas ke server.');
+      }
+
+      // Step 2: Create signed document record with pending status
+      const docTitle = externalTitle.trim() || selectedFile.name.replace(/\.[^/.]+$/, '');
+      const createRes = await appApi.createSignedDocument({
+        title: docTitle,
+        file_url: uploadRes.url,
+        file_name: selectedFile.name,
+        file_source: 'external',
+        sign_type: 'external',
+        signer_name: externalRecipientName.trim(),
+        signer_role: externalRecipientRole.trim(),
+        signer_phone: externalRecipientPhone.trim(),
+        signer_notes: externalNotes.trim(),
+        signature_position: signaturePlacement,
+        created_by: currentUser?.full_name || 'Tim Liva',
+      });
+
+      if (createRes.success && createRes.signing_token) {
+        const baseUrl = window.location.origin;
+        const publicShareUrl = `${baseUrl}/?sign_token=${createRes.signing_token}`;
+
+        setCreatedExternalResult({
+          id: createRes.id,
+          signing_token: createRes.signing_token,
+          share_url: publicShareUrl,
+          title: docTitle,
+          recipientName: externalRecipientName.trim(),
+        });
+
+        loadDocuments();
+      } else {
+        throw new Error('Gagal membuat tautan tanda tangan eksternal.');
+      }
+    } catch (err: any) {
+      console.error('Error creating external signing request:', err);
+      alert(err.message || 'Terjadi kesalahan saat membuat link tanda tangan eksternal.');
+    } finally {
+      setIsCreatingLink(false);
+    }
+  };
+
+  const handleCopyLink = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleShareWhatsApp = (url: string, recipientName: string, title: string) => {
+    const text = encodeURIComponent(
+      `Halo ${recipientName || 'Bapak/Ibu'},\n\nBerikut tautan untuk menandatangani dokumen "${title}" dari Liva Media Kreatif:\n\n${url}\n\nAnda dapat menandatangani langsung di HP atau laptop tanpa perlu login akun. Terima kasih.`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handleDeleteDocument = async (id: string, title: string) => {
+    if (!confirm(`Hapus riwayat berkas "${title}"?`)) return;
+    try {
+      await appApi.deleteSignedDocument(id);
+      loadDocuments();
+    } catch (err: any) {
+      alert(err.message || 'Gagal menghapus berkas.');
+    }
+  };
+
+  // Reset file selection
+  const handleResetFile = () => {
+    setSelectedFile(null);
+    setFileUrl(null);
+    setPdfBytes(null);
+    setDownloadUrl(null);
+    setExportSuccess(false);
+    setCreatedExternalResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-100/80 overflow-hidden font-sans">
-      {/* Header Bar */}
-      <div className="bg-white border-b border-slate-200/90 px-5 py-3.5 shrink-0 flex items-center justify-between gap-4">
+    <div className="flex-1 flex flex-col h-full bg-slate-100/70 overflow-hidden font-sans">
+      {/* Top Header Navigation */}
+      <div className="bg-white border-b border-slate-200/90 px-6 py-3.5 shrink-0 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           {onToggleSidebar && (
             <button
               type="button"
               onClick={onToggleSidebar}
               className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-              title={isSidebarOpen ? 'Sembunyikan Sidebar Menu' : 'Tampilkan Sidebar Menu'}
+              title={isSidebarOpen ? 'Sembunyikan Sidebar' : 'Tampilkan Sidebar'}
             >
               {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
             </button>
           )}
 
-          <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-            <PenTool className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-slate-900 tracking-tight">
-                Tanda Tangan Dokumen (TTD PDF)
-              </h1>
-              <span className="px-2 py-0.2 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Only Tanda Tangan
-              </span>
+          {activeTool !== 'hub' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTool('hub');
+                handleResetFile();
+              }}
+              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Semua Tools</span>
+            </button>
+          ) : (
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+              <Layers className="w-4 h-4" />
             </div>
+          )}
+
+          <div>
+            <h1 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              {activeTool === 'hub' && 'Liva Tools Hub'}
+              {activeTool === 'pdf-sign' && 'E-Sign — Tanda Tangan Dokumen (TTD PDF)'}
+              {activeTool === 'sign-history' && 'Riwayat Berkas TTD & Link Eksternal'}
+            </h1>
             <p className="text-[11px] text-slate-500">
-              Upload file &rarr; Gores tanda tangan &rarr; Tempelkan di posisi yang pas &rarr; Unduh.
+              {activeTool === 'hub' && 'Pusat peralatan kerja digital, e-sign dokumen, utilitas konten & media.'}
+              {activeTool === 'pdf-sign' && 'Pilih TTD Internal langsung atau minta TTD Eksternal tanpa perlu login.'}
+              {activeTool === 'sign-history' && 'Pantau dokumen yang telah ditandatangani atau menunggu pihak luar.'}
             </p>
           </div>
         </div>
 
-        {selectedFile && (
-          <div className="flex items-center gap-2">
+        {/* Header Right Actions */}
+        <div className="flex items-center gap-2">
+          {activeTool === 'hub' && (
             <button
               type="button"
-              onClick={() => {
-                setSelectedFile(null);
-                setFileUrl(null);
-                setPdfBytes(null);
-                setDownloadUrl(null);
-                setExportSuccess(false);
-              }}
-              className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+              onClick={() => setActiveTool('sign-history')}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Ganti File</span>
+              <Clock className="w-3.5 h-3.5 text-slate-500" />
+              <span>Riwayat TTD ({documentList.length})</span>
             </button>
+          )}
 
-            <button
-              type="button"
-              onClick={handleStampAndDownload}
-              disabled={isExporting}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Membubuhkan...</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Selesai & Unduh PDF</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Main Workspace */}
-      {!selectedFile ? (
-        /* STEP 1: UPLOAD FILE AREA */
-        <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-y-auto">
-          <div className="max-w-xl w-full text-center space-y-5">
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDraggingFile(true);
-              }}
-              onDragLeave={() => setIsDraggingFile(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsDraggingFile(false);
-                const file = e.dataTransfer.files?.[0];
-                if (file) handleFileChange(file);
-              }}
-              onClick={() => fileInputRef.current?.click()}
-              className={`p-10 border-2 border-dashed rounded-3xl transition-all cursor-pointer bg-white shadow-xs ${
-                isDraggingFile
-                  ? 'border-emerald-500 bg-emerald-50/50 scale-[1.01]'
-                  : 'border-slate-300 hover:border-emerald-400 hover:bg-slate-50/80'
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,image/png,image/jpeg,image/jpg"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFileChange(file);
-                }}
-              />
-
-              <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 flex items-center justify-center mx-auto mb-4 shadow-xs">
-                <UploadCloud className="w-8 h-8" />
-              </div>
-
-              <h3 className="text-base font-bold text-slate-800">
-                Pilih atau Tarik File PDF ke Sini
-              </h3>
-              <p className="text-xs text-slate-500 mt-1.5 max-w-sm mx-auto leading-relaxed">
-                Mendukung dokumen format <strong>PDF</strong> atau gambar invoice/surat (PNG, JPG). Berkas diproses langsung secara lokal di browser Anda.
-              </p>
-
+          {activeTool === 'pdf-sign' && selectedFile && (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="mt-5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all inline-flex items-center gap-2 pointer-events-none"
+                onClick={handleResetFile}
+                className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                <PenTool className="w-4 h-4" />
-                <span>Pilih File PDF dari Komputer</span>
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Ganti File</span>
               </button>
+
+              {signMode === 'internal' ? (
+                <button
+                  type="button"
+                  onClick={handleInternalStampAndDownload}
+                  disabled={isExporting}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Membubuhkan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Selesai & Unduh PDF</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleGenerateExternalLink}
+                  disabled={isCreatingLink || !externalRecipientName.trim()}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isCreatingLink ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Membuat Link...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Buat Link TTD Eksternal</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* VIEW 1: TOOLS HUB (LIST / CARD VIEW OF AVAILABLE & UPCOMING TOOLS)       */}
+      {/* ========================================================================= */}
+      {activeTool === 'hub' && (
+        <div className="flex-1 overflow-y-auto p-6 max-w-7xl mx-auto w-full space-y-6">
+          {/* Welcome Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white shadow-xl">
+            <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 max-w-2xl space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-medium">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Productivity & Automation Suite</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                Peralatan Kerja Kreatif & Digital Liva
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Akses berbagai modul utilitas untuk mempercepat operasional. Mulai dari tanda tangan berkas PDF resmi (internal maupun minta ttd eksternal tanpa login), pengelolaan media, hingga generator aset.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center gap-4 shadow-xs">
+              <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <PenTool className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs text-slate-500 font-medium">Tools E-Sign Aktif</div>
+                <div className="text-lg font-bold text-slate-900">Dual Signing Mode</div>
+                <div className="text-[11px] text-emerald-600 font-medium">Internal & Eksternal (No Login)</div>
+              </div>
             </div>
 
-            <div className="flex items-center justify-center gap-6 text-xs text-slate-500">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Hanya murni tanda tangan Anda
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Tanpa stempel atau teks tambahan
-              </span>
+            <div 
+              onClick={() => setActiveTool('sign-history')}
+              className="bg-white border border-slate-200/90 hover:border-indigo-300 rounded-2xl p-4 flex items-center gap-4 shadow-xs cursor-pointer transition-all"
+            >
+              <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <FileCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs text-slate-500 font-medium">Total Berkas TTD</div>
+                <div className="text-lg font-bold text-slate-900">{documentList.length} Dokumen</div>
+                <div className="text-[11px] text-indigo-600 font-medium">
+                  {documentList.filter(d => d.status === 'signed').length} selesai · {documentList.filter(d => d.status === 'pending').length} menunggu
+                </div>
+              </div>
+            </div>
+
+            <div 
+              onClick={onNavigateToAssets}
+              className="bg-white border border-slate-200/90 hover:border-violet-300 rounded-2xl p-4 flex items-center gap-4 shadow-xs cursor-pointer transition-all"
+            >
+              <div className="w-11 h-11 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                <FolderArchive className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs text-slate-500 font-medium">Penyimpanan Berkas</div>
+                <div className="text-lg font-bold text-slate-900">Asset File Hub</div>
+                <div className="text-[11px] text-violet-600 font-medium">Buka Manajemen File &rarr;</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Available & Planned Tools Cards */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 tracking-tight">Katalog Tools</h3>
+                <p className="text-xs text-slate-500">Pilih tool yang ingin Anda gunakan</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {/* TOOL CARD 1: E-SIGN TTD PDF (ACTIVE & PRIMARY) */}
+              <div className="group relative bg-white border-2 border-emerald-500/80 hover:border-emerald-600 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 group-hover:scale-105 transition-transform">
+                      <PenTool className="w-6 h-6" />
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Aktif & Siap Digunakan
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                      E-Sign (TTD PDF)
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                      Bubuhkan tanda tangan murni pada PDF secara langsung di tempat, atau buat tautan tanda tangan untuk pihak luar/klien tanpa perlu mereka memiliki akun atau login.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span><strong>TTD Internal:</strong> Gores & tempelkan di PDF &rarr; download instan.</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span><strong>TTD Eksternal:</strong> Kirim link publik via WhatsApp / Salin Link.</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span><strong>Only Tanda Tangan:</strong> Hasil bersih tanpa coretan teks/stempel otomatis.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTool('pdf-sign')}
+                    className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Buka Tool E-Sign</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* TOOL CARD 2: RIWAYAT & LINK TTD EKSTERNAL */}
+              <div className="group bg-white border border-slate-200/90 hover:border-indigo-400 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/30 group-hover:scale-105 transition-transform">
+                      <FileCheck className="w-6 h-6" />
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {documentList.length} Berkas Tersimpan
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                      Daftar Status Berkas TTD
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                      Pantau progres tanda tangan pihak eksternal, salin kembali link tanda tangan, dan unduh berkas yang sudah berhasil ditandatangani oleh penerima.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span>Lihat dokumen yang masih pending / menunggu tanda tangan.</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Share2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span>Salin tautan atau bagikan langsung ke WhatsApp klien.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTool('sign-history')}
+                    className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Lihat Riwayat & Link</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* TOOL CARD 3: ASSET & MEDIA HUB */}
+              <div className="group bg-white border border-slate-200/90 hover:border-violet-400 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-600/30 group-hover:scale-105 transition-transform">
+                      <FolderArchive className="w-6 h-6" />
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-violet-50 text-violet-700 border border-violet-200">
+                      Terintegrasi
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-bold text-slate-900 group-hover:text-violet-600 transition-colors">
+                      Asset & Media Library
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                      Penyimpanan terpusat untuk berkas gambar, logo brand, video, PDF kontrak, dan dokumen penting Liva Media Kreatif dengan fitur CRUD lengkap.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+                      <span>Kategori Brand, Project & Dokumen Legal.</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+                      <span>Pratinjau cepat gambar dan dokumen.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-4">
+                  <button
+                    type="button"
+                    onClick={onNavigateToAssets}
+                    className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Buka Asset File</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* TOOL CARD 4: QR CODE & SHORTENER (UPCOMING / PLANNED) */}
+              <div className="bg-slate-50/80 border border-dashed border-slate-300 rounded-3xl p-6 flex flex-col justify-between opacity-80 hover:opacity-100 transition-opacity">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-200 text-slate-600 flex items-center justify-center">
+                      <QrCode className="w-6 h-6" />
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-slate-200 text-slate-600">
+                      Rencana Rilis Berikutnya
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-bold text-slate-800">
+                      QR Code & Smart Link Generator
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                      Pembuat kode QR dinamis dengan logo Liva/Brand untuk materi cetak, kemasan, profil sosial media, dan landing page kampanye.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-4">
+                  <button
+                    disabled
+                    className="w-full py-3 px-4 bg-slate-200 text-slate-400 text-xs font-semibold rounded-2xl cursor-not-allowed"
+                  >
+                    Segera Hadir
+                  </button>
+                </div>
+              </div>
+
+              {/* TOOL CARD 5: AI BRIEF & CONTENT ASSISTANT (UPCOMING / PLANNED) */}
+              <div className="bg-slate-50/80 border border-dashed border-slate-300 rounded-3xl p-6 flex flex-col justify-between opacity-80 hover:opacity-100 transition-opacity">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-200 text-slate-600 flex items-center justify-center">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-slate-200 text-slate-600">
+                      Rencana Rilis Berikutnya
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-bold text-slate-800">
+                      AI Content & Copywriting Studio
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                      Bantu tim merancang konsep feed Instagram, copy caption, hook TikTok, hingga struktur brief video dalam hitungan detik.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-4">
+                  <button
+                    disabled
+                    className="w-full py-3 px-4 bg-slate-200 text-slate-400 text-xs font-semibold rounded-2xl cursor-not-allowed"
+                  >
+                    Segera Hadir
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      ) : (
-        /* STEP 2: FULL PREVIEW & COMPACT SIGNATURE PAD */
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          {/* Left Panel: Compact Signature Drawer */}
-          <div className="w-full lg:w-80 shrink-0 bg-white border-r border-slate-200/90 flex flex-col justify-between h-full p-4 overflow-y-auto custom-scrollbar">
-            <div className="space-y-3.5">
-              <div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                    <PenTool className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Gores Tanda Tangan</span>
-                  </h3>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                    hasDrawn ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                  }`}>
-                    {hasDrawn ? 'Siap Ditempel' : 'Wajib Diisi'}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Hanya goresan tanda tangan ini yang akan ditempelkan ke PDF.
-                </p>
-              </div>
+      )}
 
-              {/* Canvas Pad */}
-              <div className="relative border-2 border-dashed border-slate-300 hover:border-emerald-400 rounded-2xl overflow-hidden bg-slate-50 transition-colors">
-                <canvas
-                  ref={padCanvasRef}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={stopDrawing}
-                  style={{ width: '100%', height: '170px' }}
-                  className="block cursor-crosshair touch-none"
-                />
-                {!hasDrawn && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-400 text-xs gap-1">
-                    <PenTool className="w-4 h-4 text-slate-400" />
-                    <span>Gores tanda tangan di sini...</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Pad Controls */}
-              <div className="flex items-center justify-between">
+      {/* ========================================================================= */}
+      {/* VIEW 2: E-SIGN STUDIO (TTD INTERNAL & TTD EKSTERNAAL NO-LOGIN)            */}
+      {/* ========================================================================= */}
+      {activeTool === 'pdf-sign' && (
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          {/* Studio Sub-Header with Flow Switcher */}
+          <div className="bg-white border-b border-slate-200 px-6 py-2.5 flex items-center justify-between gap-4 shrink-0 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700">Pilih Mode TTD:</span>
+              <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200">
                 <button
                   type="button"
-                  onClick={clearPad}
-                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+                  onClick={() => setSignMode('internal')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                    signMode === 'internal'
+                      ? 'bg-white text-emerald-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Bersihkan</span>
+                  <PenTool className="w-3.5 h-3.5" />
+                  <span>1. TTD Internal (Langsung di Tempat)</span>
                 </button>
 
-                {/* Ink Color */}
-                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-slate-500 font-medium">Tinta:</span>
-                  <button
-                    type="button"
-                    onClick={() => setInkColor('#0f172a')}
-                    className={`w-4 h-4 rounded-full border ${
-                      inkColor === '#0f172a' ? 'border-emerald-600 ring-2 ring-emerald-400' : 'border-slate-300'
-                    } bg-slate-900 cursor-pointer`}
-                    title="Hitam"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setInkColor('#1e3a8a')}
-                    className={`w-4 h-4 rounded-full border ${
-                      inkColor === '#1e3a8a' ? 'border-emerald-600 ring-2 ring-emerald-400' : 'border-slate-300'
-                    } bg-blue-900 cursor-pointer`}
-                    title="Biru"
-                  />
-                </div>
-              </div>
-
-              {/* Instruction Box */}
-              <div className="bg-emerald-50 border border-emerald-200/90 rounded-xl p-3 text-xs text-emerald-800 space-y-1">
-                <div className="font-bold flex items-center gap-1 text-[11px]">
-                  <Move className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Cara Menempelkan ke Berkas:</span>
-                </div>
-                <p className="text-[11px] text-emerald-700 leading-relaxed">
-                  Pada pratinjau lembar PDF di sebelah kanan, <strong>klik posisi mana saja</strong> atau <strong>tarik kotak hijau</strong> ke area tanda tangan yang diinginkan.
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setSignMode('external')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                    signMode === 'external'
+                      ? 'bg-white text-indigo-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>2. TTD Eksternal (Kirim Link Tanpa Login)</span>
+                </button>
               </div>
             </div>
 
-            {/* Bottom CTA Button */}
-            <div className="pt-4 border-t border-slate-100 space-y-2">
-              <button
-                type="button"
-                onClick={handleStampAndDownload}
-                disabled={isExporting}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {isExporting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Menempelkan Ttd...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Selesai & Unduh PDF</span>
-                  </>
-                )}
-              </button>
-
-              {exportSuccess && downloadUrl && (
-                <div className="text-center">
-                  <a
-                    href={downloadUrl}
-                    download={`${selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, '') : 'dokumen'}_bertandatangan.pdf`}
-                    className="text-[10px] font-semibold text-emerald-600 hover:underline inline-flex items-center gap-1"
-                  >
-                    <span>Unduh ulang berkas</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              )}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-500">
+                {signMode === 'internal'
+                  ? 'Goreskan tanda tangan & unduh PDF berstempel instan.'
+                  : 'Tentukan posisi tanda tangan & dapatkan link publik untuk klien.'}
+              </span>
             </div>
           </div>
 
-          {/* Right Panel: Full-Width PDF Workspace */}
-          <div className="flex-1 flex flex-col h-full bg-slate-900 overflow-hidden">
-            {/* Control Toolbar */}
-            <div className="bg-slate-800/95 border-b border-slate-700 px-4 py-2 flex items-center justify-between text-xs text-white shrink-0">
-              <div className="flex items-center gap-2 truncate max-w-sm">
-                <FileText className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-semibold truncate">{selectedFile.name}</span>
-                <span className="text-[10px] text-slate-400 shrink-0">
-                  ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
-                </span>
-              </div>
+          {/* If No File Selected: Upload Screen */}
+          {!selectedFile ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-y-auto">
+              <div className="max-w-xl w-full text-center space-y-5">
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingFile(true);
+                  }}
+                  onDragLeave={() => setIsDraggingFile(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingFile(false);
+                    const files = e.dataTransfer.files;
+                    if (files && files.length > 0) {
+                      handleFileChange(files[0]);
+                    }
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-3xl p-10 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center gap-3 bg-white shadow-sm ${
+                    isDraggingFile
+                      ? 'border-emerald-500 bg-emerald-50/50 scale-[1.01]'
+                      : 'border-slate-300 hover:border-emerald-500 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg,image/jpg"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileChange(file);
+                    }}
+                  />
 
-              {/* Page Navigator */}
-              {isPdf && (
-                <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-xl border border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const prev = Math.max(1, currentPage - 1);
-                      setCurrentPage(prev);
-                      setSignaturePlacement((p) => ({ ...p, page: prev }));
-                    }}
-                    disabled={currentPage <= 1 || isLoadingPdf}
-                    className="p-1 hover:bg-slate-700 disabled:opacity-30 rounded-lg cursor-pointer"
-                    title="Halaman Sebelumnya"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="text-[11px] font-semibold text-slate-300">
-                    Hal {currentPage} / {numPages}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = Math.min(numPages, currentPage + 1);
-                      setCurrentPage(next);
-                      setSignaturePlacement((p) => ({ ...p, page: next }));
-                    }}
-                    disabled={currentPage >= numPages || isLoadingPdf}
-                    className="p-1 hover:bg-slate-700 disabled:opacity-30 rounded-lg cursor-pointer"
-                    title="Halaman Selanjutnya"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-100/70 text-emerald-600 flex items-center justify-center shadow-xs">
+                    <UploadCloud className="w-8 h-8" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-slate-800">
+                      Pilih Dokumen PDF yang Ingin Ditandatangani
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Tarik & lepas berkas ke sini, atau klik untuk memilih dari komputer Anda
+                    </p>
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full text-[11px] text-slate-600 font-medium">
+                    <FileText className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Mendukung PDF, PNG, JPG (Maks 25MB)</span>
+                  </div>
                 </div>
-              )}
 
-              {/* Zoom & Full View Controls */}
-              <div className="flex items-center gap-1.5 bg-slate-900/80 px-1.5 py-1 rounded-xl border border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setZoomScale((z) => Math.max(0.6, Number((z - 0.15).toFixed(2))))}
-                  className="p-1 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
-                  title="Perkecil"
-                >
-                  <ZoomOut className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {Math.round(zoomScale * 100)}%
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setZoomScale((z) => Math.min(2.0, Number((z + 0.15).toFixed(2))))}
-                  className="p-1 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
-                  title="Perbesar"
-                >
-                  <ZoomIn className="w-3.5 h-3.5" />
-                </button>
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 text-left shadow-xs flex items-start gap-3">
+                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <div className="font-bold text-slate-800">Alur Sangat Simpel & Fleksibel:</div>
+                    <ul className="list-disc list-inside space-y-0.5 text-slate-600">
+                      <li><strong>Mode Internal:</strong> Upload PDF &rarr; gores tanda tangan &rarr; geser posisi &rarr; unduh langsung.</li>
+                      <li><strong>Mode Eksternal:</strong> Upload PDF &rarr; atur posisi tanda tangan pihak luar &rarr; bagikan tautan tanpa login via WhatsApp.</li>
+                      <li><strong>Only Tanda Tangan:</strong> Menghasilkan goresan tanda tangan murni tanpa teks/stempel otomatis.</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Scrollable Document Canvas Viewport */}
-            <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center custom-scrollbar">
-              {isLoadingPdf && (
-                <div className="flex flex-col items-center justify-center gap-2 text-white">
-                  <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
-                  <span className="text-xs text-slate-400">Memuat halaman PDF...</span>
-                </div>
-              )}
-
-              {pdfLoadError && (
-                <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl p-4 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{pdfLoadError}</span>
-                </div>
-              )}
-
-              {/* Document Sheet */}
-              <div
-                ref={containerRef}
-                onClick={handleContainerClick}
-                className="relative bg-white shadow-2xl rounded-xs transition-all overflow-hidden cursor-crosshair shrink-0"
-              >
-                {isPdf ? (
-                  <canvas ref={pdfCanvasRef} className="block select-none pointer-events-none" />
-                ) : isImage && fileUrl ? (
-                  <img
-                    src={fileUrl}
-                    alt="Pratinjau Dokumen"
-                    className="block max-w-2xl h-auto select-none pointer-events-none"
-                  />
-                ) : null}
-
-                {/* SIGNATURE PLACEMENT BOX (ONLY TANDA TANGAN) */}
-                {signaturePlacement.page === currentPage && (
-                  <div
-                    onMouseDown={handleMouseDownOnBox}
-                    onTouchStart={handleTouchStartOnBox}
-                    style={{
-                      left: `${signaturePlacement.xPercent * 100}%`,
-                      top: `${signaturePlacement.yPercent * 100}%`,
-                      width: `${signaturePlacement.widthPercent * 100}%`,
-                    }}
-                    className="absolute select-none z-20 group cursor-grab active:cursor-grabbing border-2 border-dashed border-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg p-1.5 shadow-lg"
+          ) : (
+            /* STEP 2: WORKSPACE PREVIEW & CONTROLS */
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-900">
+              {/* SIDEBAR PANEL */}
+              <div className="w-full md:w-84 bg-white border-r border-slate-200 p-4 shrink-0 flex flex-col overflow-y-auto space-y-4 shadow-xl z-20">
+                {/* File info */}
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                  <div className="min-w-0 pr-2">
+                    <div className="text-[10px] uppercase font-bold text-slate-400">Berkas Terpilih</div>
+                    <div className="text-xs font-bold text-slate-800 truncate" title={selectedFile.name}>
+                      {selectedFile.name}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleResetFile}
+                    className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 cursor-pointer"
+                    title="Hapus / Ganti File"
                   >
-                    {/* Badge Handle */}
-                    <div className="absolute -top-3 left-1 px-1.5 py-0.2 bg-emerald-600 text-white text-[8px] font-bold rounded shadow flex items-center gap-1 pointer-events-none">
-                      <Move className="w-2.5 h-2.5" />
-                      <span>Geser Posisi</span>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* MODE 1: INTERNAL SIGN PAD */}
+                {signMode === 'internal' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <PenTool className="w-4 h-4 text-emerald-600" />
+                        <span className="text-xs font-bold text-slate-800">Gores Tanda Tangan Anda</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearPad}
+                        className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Hapus</span>
+                      </button>
                     </div>
 
-                    {/* ONLY SIGNATURE IMAGE */}
-                    {signatureDataUrl ? (
-                      <img
-                        src={signatureDataUrl}
-                        alt="Tanda Tangan"
-                        className="w-full h-auto max-h-24 object-contain drop-shadow-xs"
+                    {/* Canvas Area */}
+                    <div className="relative border-2 border-dashed border-slate-300 rounded-2xl bg-white p-1 overflow-hidden shadow-inner">
+                      <canvas
+                        ref={padCanvasRef}
+                        onMouseDown={startDrawing}
+                        onMouseMove={draw}
+                        onMouseUp={stopDrawing}
+                        onMouseLeave={stopDrawing}
+                        onTouchStart={startDrawing}
+                        onTouchMove={draw}
+                        onTouchEnd={stopDrawing}
+                        className="w-full h-36 bg-slate-50/50 rounded-xl cursor-crosshair touch-none"
                       />
-                    ) : (
-                      <div className="py-3 bg-white/80 rounded flex flex-col items-center justify-center text-emerald-700">
-                        <PenTool className="w-4 h-4 text-emerald-600" />
-                        <span className="text-[9px] font-bold mt-0.5">Gores Ttd di Samping</span>
+                      {!hasDrawn && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-xs">
+                          Tulis tanda tangan Anda di sini
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Ink Selector & Placement Notice */}
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500 text-[11px]">Warna Tinta:</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setInkColor('#0f172a')}
+                          className={`w-5 h-5 rounded-full bg-slate-900 border ${
+                            inkColor === '#0f172a' ? 'ring-2 ring-emerald-500 border-white' : 'border-slate-300'
+                          } cursor-pointer`}
+                          title="Hitam"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setInkColor('#1e3a8a')}
+                          className={`w-5 h-5 rounded-full bg-blue-900 border ${
+                            inkColor === '#1e3a8a' ? 'ring-2 ring-emerald-500 border-white' : 'border-slate-300'
+                          } cursor-pointer`}
+                          title="Biru Gelap"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] space-y-1">
+                      <div className="font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Only Tanda Tangan:</span>
+                      </div>
+                      <p>
+                        Kotak hijau di pratinjau PDF dapat Anda klik atau geser ke halaman dan posisi yang Anda inginkan.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleInternalStampAndDownload}
+                      disabled={isExporting || !hasDrawn}
+                      className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-2xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {isExporting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Membubuhkan TTD...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>Tempelkan & Unduh PDF Sekarang</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* MODE 2: EXTERNAL RECIPIENT SETTINGS */}
+                {signMode === 'external' && (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-indigo-50 border border-indigo-200/80 rounded-2xl text-indigo-900 text-xs space-y-1">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <Share2 className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Minta Tanda Tangan Eksternal</span>
+                      </div>
+                      <p className="text-[11px] text-indigo-700 leading-relaxed">
+                        Penerima dapat membuka tautan tanda tangan dari HP atau komputer mereka <strong>tanpa harus login</strong>.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Judul Dokumen
+                        </label>
+                        <input
+                          type="text"
+                          value={externalTitle}
+                          onChange={(e) => setExternalTitle(e.target.value)}
+                          placeholder="Nama berkas / Surat Kerjasama..."
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-indigo-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Nama Penerima Eksternal <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={externalRecipientName}
+                          onChange={(e) => setExternalRecipientName(e.target.value)}
+                          placeholder="Contoh: Bpk. Bambang Pamungkas"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-indigo-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Jabatan / Instansi (Opsional)
+                        </label>
+                        <input
+                          type="text"
+                          value={externalRecipientRole}
+                          onChange={(e) => setExternalRecipientRole(e.target.value)}
+                          placeholder="Contoh: Direktur PT Mitra Kreatif"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-indigo-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          No. WhatsApp / Kontak (Opsional)
+                        </label>
+                        <input
+                          type="text"
+                          value={externalRecipientPhone}
+                          onChange={(e) => setExternalRecipientPhone(e.target.value)}
+                          placeholder="Contoh: 081234567890"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-indigo-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Catatan Tambahan untuk Penerima
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={externalNotes}
+                          onChange={(e) => setExternalNotes(e.target.value)}
+                          placeholder="Silakan tanda tangani berkas di atas pada kolom yang telah disiapkan..."
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-indigo-600"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-100 text-slate-600 text-[10.5px]">
+                      💡 <strong>Posisi Tanda Tangan:</strong> Geser kotak penanda di lembar PDF ke posisi tempat penerima harus menandatangani.
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGenerateExternalLink}
+                      disabled={isCreatingLink || !externalRecipientName.trim()}
+                      className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-2xl shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {isCreatingLink ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Membuat Tautan Publik...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          <span>Buat Link Tanda Tangan</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Result Link Modal / Box */}
+                    {createdExternalResult && (
+                      <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl space-y-3 animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2 text-emerald-800 text-xs font-bold">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>Link Tanda Tangan Siap Dikirim!</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
+                          Pihak luar dapat membuka link ini langsung tanpa perlu login:
+                        </p>
+                        <div className="p-2 bg-white rounded-xl border border-slate-200 text-[10px] font-mono text-slate-700 break-all select-all">
+                          {createdExternalResult.share_url}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyLink(createdExternalResult.share_url)}
+                            className="py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          >
+                            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{copiedLink ? 'Tersalin!' : 'Salin Link'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleShareWhatsApp(
+                                createdExternalResult.share_url,
+                                createdExternalResult.recipientName,
+                                createdExternalResult.title
+                              )
+                            }
+                            className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>WhatsApp</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
               </div>
+
+              {/* DOCUMENT VIEWPORT & CANVAS VIEWER */}
+              <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-950 relative">
+                {/* PDF Viewer Bar */}
+                <div className="bg-slate-900/90 border-b border-slate-800 px-4 py-2 shrink-0 flex items-center justify-between text-xs text-white z-10">
+                  <div className="flex items-center gap-2">
+                    {numPages > 1 && (
+                      <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={currentPage <= 1}
+                          className="p-1 hover:bg-slate-700 disabled:opacity-30 rounded-lg cursor-pointer"
+                          title="Halaman Sebelumnya"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-[11px] font-mono px-1">
+                          Hal {currentPage} dari {numPages}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((p) => Math.min(numPages, p + 1))}
+                          disabled={currentPage >= numPages}
+                          className="p-1 hover:bg-slate-700 disabled:opacity-30 rounded-lg cursor-pointer"
+                          title="Halaman Selanjutnya"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    <span className="text-slate-400 text-[11px] hidden sm:inline">
+                      Klik pada halaman PDF untuk memindahkan kotak tanda tangan
+                    </span>
+                  </div>
+
+                  {/* Zoom controls */}
+                  <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setZoomScale((z) => Math.max(0.6, Number((z - 0.15).toFixed(2))))}
+                      className="p-1 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
+                      title="Perkecil"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {Math.round(zoomScale * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setZoomScale((z) => Math.min(2.0, Number((z + 0.15).toFixed(2))))}
+                      className="p-1 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
+                      title="Perbesar"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scrollable Document Canvas Viewport */}
+                <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center custom-scrollbar">
+                  {isLoadingPdf && (
+                    <div className="flex flex-col items-center justify-center gap-2 text-white">
+                      <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+                      <span className="text-xs text-slate-400">Memuat halaman PDF...</span>
+                    </div>
+                  )}
+
+                  {pdfLoadError && (
+                    <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl p-4 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>{pdfLoadError}</span>
+                    </div>
+                  )}
+
+                  {/* Document Sheet */}
+                  <div
+                    ref={containerRef}
+                    onClick={handleContainerClick}
+                    className="relative bg-white shadow-2xl rounded-xs transition-all overflow-hidden cursor-crosshair shrink-0"
+                  >
+                    {isPdf ? (
+                      <canvas ref={pdfCanvasRef} className="block select-none pointer-events-none" />
+                    ) : isImage && fileUrl ? (
+                      <img
+                        src={fileUrl}
+                        alt="Pratinjau Dokumen"
+                        className="block max-w-2xl h-auto select-none pointer-events-none"
+                      />
+                    ) : null}
+
+                    {/* SIGNATURE PLACEMENT BOX (ONLY TANDA TANGAN) */}
+                    {signaturePlacement.page === currentPage && (
+                      <div
+                        onMouseDown={handleMouseDownOnBox}
+                        onTouchStart={handleTouchStartOnBox}
+                        style={{
+                          left: `${signaturePlacement.xPercent * 100}%`,
+                          top: `${signaturePlacement.yPercent * 100}%`,
+                          width: `${signaturePlacement.widthPercent * 100}%`,
+                        }}
+                        className={`absolute select-none z-20 group cursor-grab active:cursor-grabbing border-2 border-dashed rounded-lg p-1.5 shadow-lg ${
+                          signMode === 'internal'
+                            ? 'border-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20'
+                            : 'border-indigo-500 bg-indigo-500/10 hover:bg-indigo-500/20'
+                        }`}
+                      >
+                        {/* Badge Handle */}
+                        <div
+                          className={`absolute -top-3 left-1 px-1.5 py-0.2 text-white text-[8px] font-bold rounded shadow flex items-center gap-1 pointer-events-none ${
+                            signMode === 'internal' ? 'bg-emerald-600' : 'bg-indigo-600'
+                          }`}
+                        >
+                          <Move className="w-2.5 h-2.5" />
+                          <span>{signMode === 'internal' ? 'Posisi TTD Anda' : 'Posisi TTD Pihak Luar'}</span>
+                        </div>
+
+                        {/* ONLY SIGNATURE IMAGE OR EXTERNAL PLACEHOLDER */}
+                        {signMode === 'internal' ? (
+                          signatureDataUrl ? (
+                            <img
+                              src={signatureDataUrl}
+                              alt="Tanda Tangan"
+                              className="w-full h-auto max-h-24 object-contain drop-shadow-xs"
+                            />
+                          ) : (
+                            <div className="py-3 bg-white/80 rounded flex flex-col items-center justify-center text-emerald-700">
+                              <PenTool className="w-4 h-4 text-emerald-600" />
+                              <span className="text-[9px] font-bold mt-0.5">Gores Ttd di Samping</span>
+                            </div>
+                          )
+                        ) : (
+                          <div className="py-3 bg-white/90 rounded flex flex-col items-center justify-center text-indigo-700 text-center p-2">
+                            <PenTool className="w-4 h-4 text-indigo-600" />
+                            <span className="text-[9px] font-bold mt-0.5">
+                              Area Tanda Tangan {externalRecipientName ? `(${externalRecipientName})` : 'Penerima Eksternal'}
+                            </span>
+                            <span className="text-[8px] text-slate-500">
+                              Penerima akan menandatangani di titik ini
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW 3: DAFTAR RIWAYAT BERKAS TTD & MONITOR STATUS LINK EKSTERNAL         */}
+      {/* ========================================================================= */}
+      {activeTool === 'sign-history' && (
+        <div className="flex-1 overflow-y-auto p-6 max-w-7xl mx-auto w-full space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">
+                Daftar Dokumen & Tanda Tangan Digital
+              </h2>
+              <p className="text-xs text-slate-500">
+                Kelola berkas yang telah ditandatangani serta tautan tanda tangan untuk pihak eksternal.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={loadDocuments}
+                className="p-2 text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-xl transition-colors cursor-pointer"
+                title="Muat Ulang"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTool('pdf-sign')}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <PenTool className="w-3.5 h-3.5" />
+                <span>Buat TTD Baru</span>
+              </button>
             </div>
           </div>
+
+          {loadingList ? (
+            <div className="p-12 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-slate-200">
+              <Loader2 className="w-7 h-7 animate-spin text-indigo-600" />
+              <span className="text-xs text-slate-500">Memuat daftar berkas tanda tangan...</span>
+            </div>
+          ) : documentList.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                <FileCheck className="w-7 h-7" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Belum Ada Berkas Tanda Tangan</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Anda belum membuat berkas tanda tangan digital. Mulai sekarang dengan mengunggah PDF dan pilih tanda tangan internal atau kirim tautan ke pihak eksternal.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTool('pdf-sign')}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-2 cursor-pointer"
+              >
+                <PenTool className="w-3.5 h-3.5" />
+                <span>Mulai Tanda Tangan PDF</span>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold">
+                      <th className="py-3.5 px-4">Nama Dokumen</th>
+                      <th className="py-3.5 px-4">Tipe TTD</th>
+                      <th className="py-3.5 px-4">Penandatangan</th>
+                      <th className="py-3.5 px-4">Status</th>
+                      <th className="py-3.5 px-4">Waktu</th>
+                      <th className="py-3.5 px-4 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {documentList.map((doc) => {
+                      const shareUrl = `${window.location.origin}/?sign_token=${doc.signing_token}`;
+                      return (
+                        <tr key={doc.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold text-slate-900 truncate max-w-xs" title={doc.title}>
+                                  {doc.title}
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {doc.file_name || 'Dokumen PDF'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            {doc.sign_type === 'internal' ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                                <PenTool className="w-2.5 h-2.5" />
+                                <span>Internal</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-200">
+                                <Share2 className="w-2.5 h-2.5" />
+                                <span>Eksternal Link</span>
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            <div className="font-medium text-slate-800">
+                              {doc.signer_name || '-'}
+                            </div>
+                            {doc.signer_role && (
+                              <div className="text-[10px] text-slate-400">{doc.signer_role}</div>
+                            )}
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            {doc.status === 'signed' ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Ditandatangani</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
+                                <Clock className="w-3 h-3" />
+                                <span>Menunggu Pihak Luar</span>
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                            {doc.signed_at 
+                              ? new Date(doc.signed_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                              : (doc.created_at ? new Date(doc.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-')}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="inline-flex items-center gap-1.5 justify-end">
+                              {/* If external pending: copy link button */}
+                              {doc.status === 'pending' && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyLink(shareUrl)}
+                                    className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Salin Link Tanda Tangan"
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleShareWhatsApp(shareUrl, doc.signer_name || 'Klien', doc.title)}
+                                    className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Bagikan via WhatsApp"
+                                  >
+                                    <MessageCircle className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+
+                              {/* Download signed PDF if available */}
+                              {doc.signed_file_url && (
+                                <a
+                                  href={doc.signed_file_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  download
+                                  className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Unduh PDF Bertanda Tangan"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </a>
+                              )}
+
+                              {/* View original file */}
+                              {doc.file_url && (
+                                <a
+                                  href={doc.file_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                                  title="Buka Berkas"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </a>
+                              )}
+
+                              {/* Delete button */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDocument(doc.id, doc.title)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="Hapus Berkas"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

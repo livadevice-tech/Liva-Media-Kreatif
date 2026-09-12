@@ -1226,8 +1226,8 @@ async function stampDocumentWithSignature(params) {
     if (!pdfDoc) {
       pdfDoc = await import_pdf_lib.PDFDocument.create();
       const page = pdfDoc.addPage([595.28, 841.89]);
-      const fontRegular2 = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.Helvetica);
-      const fontBold2 = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.HelveticaBold);
+      const fontRegular = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.Helvetica);
+      const fontBold = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.HelveticaBold);
       const { width, height } = page.getSize();
       page.drawRectangle({
         x: 40,
@@ -1242,28 +1242,28 @@ async function stampDocumentWithSignature(params) {
         x: 60,
         y: height - 80,
         size: 14,
-        font: fontBold2,
+        font: fontBold,
         color: (0, import_pdf_lib.rgb)(0.2, 0.25, 0.6)
       });
       page.drawText("SERTIFIKAT & LEMBAR PENGESAHAN DOKUMEN DIGITAL", {
         x: 60,
         y: height - 100,
         size: 9,
-        font: fontRegular2,
+        font: fontRegular,
         color: (0, import_pdf_lib.rgb)(0.4, 0.45, 0.55)
       });
       page.drawText("Judul Dokumen / Berkas:", {
         x: 40,
         y: height - 155,
         size: 10,
-        font: fontBold2,
+        font: fontBold,
         color: (0, import_pdf_lib.rgb)(0.3, 0.35, 0.45)
       });
       page.drawText(documentTitle || "Dokumen Resmi", {
         x: 40,
         y: height - 180,
         size: 14,
-        font: fontBold2,
+        font: fontBold,
         color: (0, import_pdf_lib.rgb)(0.1, 0.12, 0.18)
       });
       const metaY = height - 260;
@@ -1276,14 +1276,14 @@ async function stampDocumentWithSignature(params) {
         borderColor: (0, import_pdf_lib.rgb)(0.9, 0.92, 0.95),
         borderWidth: 1
       });
-      page.drawText(`ID Dokumen: ${documentId}`, { x: 55, y: metaY + 45, size: 9, font: fontRegular2, color: (0, import_pdf_lib.rgb)(0.3, 0.3, 0.3) });
-      page.drawText(`Penandatangan: ${position?.signerName || "Pihak Berwenang"}`, { x: 55, y: metaY + 28, size: 9, font: fontRegular2, color: (0, import_pdf_lib.rgb)(0.3, 0.3, 0.3) });
-      page.drawText(`Waktu Tanda Tangan: ${position?.signedAt || (/* @__PURE__ */ new Date()).toLocaleString("id-ID")}`, { x: 55, y: metaY + 11, size: 9, font: fontRegular2, color: (0, import_pdf_lib.rgb)(0.3, 0.3, 0.3) });
+      page.drawText(`ID Dokumen: ${documentId}`, { x: 55, y: metaY + 45, size: 9, font: fontRegular, color: (0, import_pdf_lib.rgb)(0.3, 0.3, 0.3) });
+      page.drawText(`Penandatangan: ${position?.signerName || "Pihak Berwenang"}`, { x: 55, y: metaY + 28, size: 9, font: fontRegular, color: (0, import_pdf_lib.rgb)(0.3, 0.3, 0.3) });
+      page.drawText(`Waktu Tanda Tangan: ${position?.signedAt || (/* @__PURE__ */ new Date()).toLocaleString("id-ID")}`, { x: 55, y: metaY + 11, size: 9, font: fontRegular, color: (0, import_pdf_lib.rgb)(0.3, 0.3, 0.3) });
       page.drawText("Dokumen ini telah diverifikasi dan dibubuhi tanda tangan digital yang sah secara elektronik.", {
         x: 40,
         y: metaY - 30,
         size: 9,
-        font: fontRegular2,
+        font: fontRegular,
         color: (0, import_pdf_lib.rgb)(0.4, 0.4, 0.4)
       });
     }
@@ -1305,60 +1305,6 @@ async function stampDocumentWithSignature(params) {
       width: sigWidth,
       height: sigHeight
     });
-    const fontRegular = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(import_pdf_lib.StandardFonts.HelveticaBold);
-    targetPage.drawLine({
-      start: { x: sigX, y: sigY - 2 },
-      end: { x: sigX + sigWidth, y: sigY - 2 },
-      thickness: 1,
-      color: (0, import_pdf_lib.rgb)(0.3, 0.35, 0.45)
-    });
-    if (position?.signerName) {
-      targetPage.drawText(position.signerName, {
-        x: sigX,
-        y: sigY - 14,
-        size: 9,
-        font: fontBold,
-        color: (0, import_pdf_lib.rgb)(0.1, 0.12, 0.18)
-      });
-    }
-    if (position?.signerRole) {
-      targetPage.drawText(position.signerRole, {
-        x: sigX,
-        y: sigY - 25,
-        size: 8,
-        font: fontRegular,
-        color: (0, import_pdf_lib.rgb)(0.4, 0.45, 0.5)
-      });
-    }
-    if (position?.withCompanyStamp) {
-      const stampX = sigX - 25;
-      const stampY = sigY - 15;
-      targetPage.drawRectangle({
-        x: stampX,
-        y: stampY,
-        width: 80,
-        height: 24,
-        color: (0, import_pdf_lib.rgb)(0.9, 0.95, 0.92),
-        borderColor: (0, import_pdf_lib.rgb)(0.05, 0.6, 0.3),
-        borderWidth: 1,
-        opacity: 0.85
-      });
-      targetPage.drawText("VERIFIED / SAH", {
-        x: stampX + 8,
-        y: stampY + 14,
-        size: 7,
-        font: fontBold,
-        color: (0, import_pdf_lib.rgb)(0.05, 0.55, 0.25)
-      });
-      targetPage.drawText("LIVA MEDIA", {
-        x: stampX + 8,
-        y: stampY + 5,
-        size: 6,
-        font: fontRegular,
-        color: (0, import_pdf_lib.rgb)(0.05, 0.55, 0.25)
-      });
-    }
     const modifiedPdfBytes = await pdfDoc.save();
     import_fs3.default.writeFileSync(outputPath, modifiedPdfBytes);
     console.log(`[pdfSigner] Successfully stamped PDF at ${outputPath} (${modifiedPdfBytes.length} bytes)`);

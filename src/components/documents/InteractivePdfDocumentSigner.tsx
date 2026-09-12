@@ -573,11 +573,6 @@ export const InteractivePdfDocumentSigner: React.FC<InteractivePdfDocumentSigner
                     alt="Tanda Tangan Digital"
                     className="w-full h-auto max-h-24 object-contain filter drop-shadow-xs"
                   />
-                  {signaturePlacement.withCompanyStamp && (
-                    <div className="absolute right-0 -bottom-2 px-2 py-0.5 bg-emerald-50 border border-emerald-500 text-emerald-700 text-[8px] font-black rounded-md rotate-[-4deg] shadow-2xs">
-                      VERIFIED OFFICIAL
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div
@@ -591,18 +586,6 @@ export const InteractivePdfDocumentSigner: React.FC<InteractivePdfDocumentSigner
                   <span className="text-[10px] font-bold">Klik untuk Tanda Tangan</span>
                 </div>
               )}
-
-              {/* Signer Underline & Details */}
-              <div className="mt-1.5 border-t border-slate-700/80 pt-1 text-left">
-                <p className="text-[10px] font-black text-slate-900 leading-tight">
-                  {signaturePlacement.signerName || signerName || 'Penandatangan'}
-                </p>
-                {(signaturePlacement.signerRole || signerRole) && (
-                  <p className="text-[8px] text-slate-500 leading-tight">
-                    {signaturePlacement.signerRole || signerRole}
-                  </p>
-                )}
-              </div>
             </div>
           )}
         </div>
