@@ -23,7 +23,8 @@ import {
   Lock,
   ShieldAlert,
   FolderArchive,
-  Lightbulb
+  Lightbulb,
+  Wrench
 } from 'lucide-react';
 import { appApi } from './services/appApi';
 import { 
@@ -44,6 +45,7 @@ import { AccountManagementView } from './components/accounts/AccountManagementVi
 import { SettingsView, AppSettings, DEFAULT_SETTINGS } from './components/settings/SettingsView';
 import { LoginPage } from './components/auth/LoginPage';
 import { AssetFileView } from './components/assets/AssetFileView';
+import { ToolsView } from './components/tools/ToolsView';
 import { ContentDraftView } from './components/drafts/ContentDraftView';
 import { MobileLayout, MobileTab } from './components/mobile/MobileLayout';
 import { MobileCalendarView } from './components/mobile/MobileCalendarView';
@@ -51,7 +53,7 @@ import { MobileTaskView } from './components/mobile/MobileTaskView';
 import { MobileHomeView } from './components/mobile/MobileHomeView';
 import { PublicDocumentSigningView } from './components/documents/PublicDocumentSigningView';
 
-type NavigationTab = 'home' | 'calendar' | 'drafts' | 'tasks' | 'assets' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
+type NavigationTab = 'home' | 'calendar' | 'drafts' | 'tasks' | 'assets' | 'tools' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
@@ -683,6 +685,13 @@ export default function App() {
                 onOpenCalendar={() => setActiveTab('calendar')}
               />
             </div>
+          ) : activeTab === 'tools' ? (
+            <div className="pb-16 h-full flex flex-col">
+              <ToolsView
+                currentUser={currentUser}
+                onNavigateToAssets={() => setActiveTab('assets')}
+              />
+            </div>
           ) : activeTab === 'accounts' ? (
             currentUser?.role === 'Master Admin' ? (
               <div className="p-3 pb-16">
@@ -911,6 +920,26 @@ export default function App() {
                 <FolderArchive className="w-4 h-4 text-slate-500" />
                 {isSidebarOpen && <span>Asset File</span>}
               </div>
+            </button>
+
+            {/* Tools (E-Sign & Productivity Utilities) */}
+            <button
+              onClick={() => setActiveTab('tools')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                activeTab === 'tools'
+                  ? 'bg-slate-100 text-slate-900 font-semibold shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Wrench className="w-4 h-4 text-emerald-600" />
+                {isSidebarOpen && <span>Tools</span>}
+              </div>
+              {isSidebarOpen && (
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                  E-Sign
+                </span>
+              )}
             </button>
 
             {/* Manajemen Akun (Hanya Master Admin) */}
@@ -1144,6 +1173,11 @@ export default function App() {
             tasks={tasks}
             currentUser={currentUser}
             onOpenCalendar={() => setActiveTab('calendar')}
+          />
+        ) : activeTab === 'tools' ? (
+          <ToolsView
+            currentUser={currentUser}
+            onNavigateToAssets={() => setActiveTab('assets')}
           />
         ) : activeTab === 'accounts' ? (
           currentUser?.role === 'Master Admin' ? (

@@ -16,12 +16,13 @@ import {
   CheckCircle2, 
   X, 
   ExternalLink,
-  Lightbulb
+  Lightbulb,
+  Wrench
 } from 'lucide-react';
 import { UserAccount, DbStatus } from '../../types/app';
 import { AppSettings } from '../settings/SettingsView';
 
-export type MobileTab = 'home' | 'calendar' | 'tasks' | 'reports' | 'more' | 'assets' | 'accounts' | 'settings' | 'automation' | 'ai' | 'drafts';
+export type MobileTab = 'home' | 'calendar' | 'tasks' | 'reports' | 'more' | 'assets' | 'tools' | 'accounts' | 'settings' | 'automation' | 'ai' | 'drafts';
 
 interface MobileLayoutProps {
   activeTab: MobileTab;
@@ -332,6 +333,29 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
                   <span>Asset File (Media Hub)</span>
                 </div>
                 <span className="text-[10px] text-slate-400 font-medium">Buka File</span>
+              </button>
+
+              {/* Tools (E-Sign & Studio Utilitas) */}
+              <button
+                onClick={() => handleMoreNavigation('tools')}
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-semibold transition-colors ${
+                  activeTab === 'tools'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <Wrench className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-slate-900">Tools & E-Sign</div>
+                    <div className="text-[10px] text-slate-400 font-normal">Ttd Berkas & Utilitas</div>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                  E-Sign
+                </span>
               </button>
 
               {/* Manajemen Akun (Khusus Master Admin) */}
