@@ -158,7 +158,9 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
       pillar_name: pillars[0]?.name || 'Educational',
       platform: 'instagram',
       content_type: 'reels',
-      status: 'idea',
+      status: 'drafting',
+      scheduled_at: '',
+      start_time: '',
       notes: '',
       caption: '',
       media_urls: '',
@@ -696,6 +698,7 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
         accounts={accounts}
         pillars={pillars}
         brands={brands}
+        isDraftMode={true}
       />
 
       {/* 5. Quick Schedule to Calendar Modal */}

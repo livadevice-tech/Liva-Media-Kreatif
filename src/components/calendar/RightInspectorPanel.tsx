@@ -39,6 +39,7 @@ interface RightInspectorPanelProps {
   accounts?: UserAccount[];
   pillars?: ContentPillar[];
   brands?: Brand[];
+  isDraftMode?: boolean;
 }
 
 const DEFAULT_PILLARS = [
@@ -86,6 +87,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   accounts = [],
   pillars = [],
   brands = [],
+  isDraftMode = false,
 }) => {
   const [formData, setFormData] = useState<Partial<ContentPost>>({
     title: '',
@@ -98,9 +100,9 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
     assignee_design: 'Emilia Inder',
     platform: 'instagram',
     content_type: 'reels',
-    scheduled_at: new Date().toISOString().slice(0, 10),
-    start_time: '09:00',
-    status: 'scheduled',
+    scheduled_at: isDraftMode ? '' : new Date().toISOString().slice(0, 10),
+    start_time: isDraftMode ? '' : '09:00',
+    status: isDraftMode ? 'drafting' : 'scheduled',
     color: '#3b82f6',
     published_link: '',
   });
@@ -278,14 +280,14 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         media_urls: typeof post.media_urls === 'string' ? post.media_urls : '',
         platform: post.platform || 'instagram',
         content_type: post.content_type || 'reels',
-        scheduled_at: post.scheduled_at ? post.scheduled_at.slice(0, 10) : (post.status === 'idea' || post.status === 'drafting' ? '' : new Date().toISOString().slice(0, 10)),
-        start_time: post.start_time || '09:00',
-        status: post.status || 'scheduled',
+        scheduled_at: post.scheduled_at ? post.scheduled_at.slice(0, 10) : '',
+        start_time: post.start_time || (post.scheduled_at ? '09:00' : ''),
+        status: post.status || (isDraftMode ? 'drafting' : 'scheduled'),
         color: post.color || '#3b82f6',
         published_link: post.published_link || '',
       });
     } else {
-      setSelectedAssignees([]);
+      setSelectedAssignees(['Nazmi Javier', 'Emilia Inder']);
       setFormData({
         title: '',
         brand_id: (brands && brands[0]?.id) || '',
@@ -295,14 +297,14 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         media_urls: '',
         platform: 'instagram',
         content_type: 'reels',
-        scheduled_at: new Date().toISOString().slice(0, 10),
-        start_time: '09:00',
-        status: 'scheduled',
+        scheduled_at: isDraftMode ? '' : new Date().toISOString().slice(0, 10),
+        start_time: isDraftMode ? '' : '09:00',
+        status: isDraftMode ? 'drafting' : 'scheduled',
         color: '#3b82f6',
         published_link: '',
       });
     }
-  }, [post, brands]);
+  }, [post, brands, isDraftMode]);
 
   if (!isOpen) return null;
 
@@ -354,7 +356,9 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm text-slate-800 tracking-tight">
-                  {formData.id ? 'Edit Konten Kalender' : 'Buat Konten Baru'}
+                  {formData.id 
+                    ? 'Edit Konten'
+                    : (isDraftMode ? 'Buat Draft Konten Baru' : 'Buat Konten Baru')}
                 </h3>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border ${currentStatusObj.activeBadge}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${currentStatusObj.dot}`} />
@@ -414,26 +418,6 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                 className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
               />
             </div>
-
-            {/* Brand / Klien Selector (Shown when brands available) */}
-            {brands && brands.length > 0 && (
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Brand / Klien
-                </label>
-                <select
-                  value={formData.brand_id || brands[0]?.id || ''}
-                  onChange={(e) => setFormData({ ...formData, brand_id: e.target.value })}
-                  className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
-                >
-                  {brands.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             {/* 2. Pillar Konten (Interactive Grid of Badges with Direct Inline Edit & Delete) */}
             <div>
@@ -1081,16 +1065,51 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
             {/* Jadwal Tayang: Tanggal & Jam in 2 Columns */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                  <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Tanggal Tayang</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.scheduled_at || ''}
-                  onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
-                  className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Tanggal Tayang</span>
+                  </label>
+                  {isDraftMode && (
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                      formData.scheduled_at 
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      {formData.scheduled_at ? 'Terjadwal' : 'Belum Ada Tanggal'}
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={formData.scheduled_at || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        scheduled_at: val,
+                        status: val && (formData.status === 'drafting' || formData.status === 'idea') ? 'scheduled' : formData.status
+                      });
+                    }}
+                    className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
+                  />
+                  {formData.scheduled_at && isDraftMode && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, scheduled_at: '', status: 'drafting' })}
+                      className="absolute right-8 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-rose-600 p-1 cursor-pointer font-bold"
+                      title="Kosongkan tanggal tayang (Jadikan Draft)"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                {isDraftMode && !formData.scheduled_at && (
+                  <p className="text-[10px] text-amber-600 font-medium mt-1">
+                    * Draft konten disimpan tanpa tanggal tayang.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -1100,8 +1119,9 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                 </label>
                 <input
                   type="time"
-                  value={formData.start_time || '09:00'}
+                  value={formData.start_time || ''}
                   onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                  placeholder="09:00"
                   className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
                 />
               </div>
