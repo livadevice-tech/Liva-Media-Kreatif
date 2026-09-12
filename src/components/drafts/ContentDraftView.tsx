@@ -78,8 +78,6 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState<string>('all');
-  const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
   const [selectedStatusTab, setSelectedStatusTab] = useState<string>('all_drafts');
 
   // Modal states
@@ -110,16 +108,6 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
         if (p.status !== selectedStatusTab) return false;
       }
 
-      // Brand filter
-      if (selectedBrand !== 'all') {
-        if (p.brand_id !== selectedBrand) return false;
-      }
-
-      // Platform filter
-      if (selectedPlatform !== 'all') {
-        if (p.platform !== selectedPlatform) return false;
-      }
-
       // Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -136,7 +124,7 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
 
       return true;
     });
-  }, [posts, selectedStatusTab, selectedBrand, selectedPlatform, searchQuery, brands]);
+  }, [posts, selectedStatusTab, searchQuery, brands]);
 
   // Counts for tabs
   const counts = useMemo(() => {
@@ -166,7 +154,7 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
   const handleOpenAddModal = () => {
     setEditingPost({
       title: '',
-      brand_id: selectedBrand !== 'all' ? selectedBrand : brands[0]?.id || '',
+      brand_id: brands[0]?.id || '',
       pillar_name: pillars[0]?.name || 'Educational',
       platform: 'instagram',
       content_type: 'reels',
@@ -338,55 +326,24 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
             </button>
           </div>
 
-          {/* Search, Brand, & Platform Dropdowns */}
-          <div className="flex items-center gap-2">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-60">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder="Cari draft, hook, naskah..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-100/80 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Brand Filter */}
-            <select
-              value={selectedBrand}
-              onChange={(e) => setSelectedBrand(e.target.value)}
-              className="bg-slate-100/80 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:bg-white focus:outline-none cursor-pointer"
-            >
-              <option value="all">Semua Brand</option>
-              {brands.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Platform Filter */}
-            <select
-              value={selectedPlatform}
-              onChange={(e) => setSelectedPlatform(e.target.value)}
-              className="bg-slate-100/80 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:bg-white focus:outline-none cursor-pointer"
-            >
-              <option value="all">Semua Platform</option>
-              <option value="instagram">Instagram</option>
-              <option value="tiktok">TikTok</option>
-              <option value="youtube">YouTube</option>
-              <option value="facebook">Facebook</option>
-              <option value="linkedin">LinkedIn</option>
-            </select>
+          {/* Search Input */}
+          <div className="relative w-full sm:w-72">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Cari draft, hook, naskah..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-100/80 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -402,8 +359,8 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
               Tidak Ada Draft Konten yang Sesuai
             </h3>
             <p className="text-xs text-slate-400 max-w-sm mt-1.5 mb-5 leading-relaxed">
-              {searchQuery || selectedBrand !== 'all' || selectedPlatform !== 'all'
-                ? 'Tidak ada hasil untuk filter pencarian Anda. Coba reset filter.'
+              {searchQuery
+                ? 'Tidak ada hasil untuk pencarian Anda. Coba kata kunci lain.'
                 : 'Mulai buat draft konten baru dengan isi lengkap seperti di Content Calendar!'}
             </p>
             <button
