@@ -26,7 +26,7 @@ import {
   Plus,
   Globe
 } from 'lucide-react';
-import { ContentPost, ContentStatus, ContentPlatform, ContentType, UserAccount, ContentPillar } from '../../types/app';
+import { ContentPost, ContentStatus, ContentPlatform, ContentType, UserAccount, ContentPillar, Brand } from '../../types/app';
 
 interface RightInspectorPanelProps {
   post: Partial<ContentPost> | null;
@@ -38,6 +38,7 @@ interface RightInspectorPanelProps {
   onDeletePillar?: (id: string) => Promise<void>;
   accounts?: UserAccount[];
   pillars?: ContentPillar[];
+  brands?: Brand[];
 }
 
 const DEFAULT_PILLARS = [
@@ -84,9 +85,11 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   onDeletePillar,
   accounts = [],
   pillars = [],
+  brands = [],
 }) => {
   const [formData, setFormData] = useState<Partial<ContentPost>>({
     title: '',
+    brand_id: brands[0]?.id || '',
     pillar_name: 'Educational',
     caption: '',
     notes: '',
@@ -266,7 +269,8 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
       setSelectedAssignees(parsedAssignees);
 
       setFormData({
-        ...post,
+        id: post.id,
+        brand_id: post.brand_id || (brands && brands[0]?.id) || '',
         title: post.title || '',
         pillar_name: post.pillar_name || 'Educational',
         caption: post.caption || '',
@@ -274,7 +278,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         media_urls: typeof post.media_urls === 'string' ? post.media_urls : '',
         platform: post.platform || 'instagram',
         content_type: post.content_type || 'reels',
-        scheduled_at: post.scheduled_at ? post.scheduled_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        scheduled_at: post.scheduled_at ? post.scheduled_at.slice(0, 10) : (post.status === 'idea' || post.status === 'drafting' ? '' : new Date().toISOString().slice(0, 10)),
         start_time: post.start_time || '09:00',
         status: post.status || 'scheduled',
         color: post.color || '#3b82f6',
@@ -284,6 +288,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
       setSelectedAssignees([]);
       setFormData({
         title: '',
+        brand_id: (brands && brands[0]?.id) || '',
         pillar_name: 'Educational',
         caption: '',
         notes: '',
@@ -297,7 +302,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         published_link: '',
       });
     }
-  }, [post]);
+  }, [post, brands]);
 
   if (!isOpen) return null;
 
@@ -338,7 +343,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
   const currentStatusObj = STATUS_LIST.find(s => s.id === formData.status) || STATUS_LIST[0];
 
   return (
-    <aside className="w-full sm:w-[520px] md:w-[600px] lg:w-[660px] xl:w-[720px] shrink-0 border-l border-slate-200/90 bg-white flex flex-col h-full z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-all animate-in slide-in-from-right duration-200">
+    <aside className="w-full sm:w-[520px] md:w-[600px] lg:w-[660px] xl:w-[720px] shrink-0 border-l border-slate-200/90 bg-white flex flex-col h-full max-sm:fixed max-sm:inset-0 max-sm:z-50 z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-all animate-in slide-in-from-right duration-200">
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         {/* Modern Header with Status Indicator */}
         <div className="h-18 px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/40">
@@ -409,6 +414,26 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                 className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
               />
             </div>
+
+            {/* Brand / Klien Selector (Shown when brands available) */}
+            {brands && brands.length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Brand / Klien
+                </label>
+                <select
+                  value={formData.brand_id || brands[0]?.id || ''}
+                  onChange={(e) => setFormData({ ...formData, brand_id: e.target.value })}
+                  className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+                >
+                  {brands.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* 2. Pillar Konten (Interactive Grid of Badges with Direct Inline Edit & Delete) */}
             <div>

@@ -32,7 +32,7 @@ import {
   ContentPlatform,
   UserAccount 
 } from '../../types/app';
-import { ContentDraftModal } from './ContentDraftModal';
+import { RightInspectorPanel } from '../calendar/RightInspectorPanel';
 import { ScheduleToCalendarModal } from './ScheduleToCalendarModal';
 
 interface ContentDraftViewProps {
@@ -166,15 +166,14 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
   const handleOpenAddModal = () => {
     setEditingPost({
       title: '',
-      brand_id: brands[0]?.id || '',
-      pillar_name: pillars[0]?.name || 'Edukasi & Tips',
+      brand_id: selectedBrand !== 'all' ? selectedBrand : brands[0]?.id || '',
+      pillar_name: pillars[0]?.name || 'Educational',
       platform: 'instagram',
       content_type: 'reels',
-      status: 'drafting',
-      hook: '',
+      status: 'idea',
+      notes: '',
       caption: '',
-      assignee_copy: '',
-      assignee_design: '',
+      media_urls: '',
     });
     setIsDraftModalOpen(true);
   };
@@ -211,9 +210,11 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50/50">
-      {/* 1. Header Toolbar */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 shrink-0">
+    <div className="flex-1 flex h-full overflow-hidden bg-slate-50/50">
+      {/* Main Content Area (Header Toolbar + Cards / Table) */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+        {/* 1. Header Toolbar */}
+        <div className="bg-white border-b border-slate-200 px-6 py-4 shrink-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
@@ -726,19 +727,19 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
           </div>
         )}
       </div>
+      </div>
 
-      {/* 4. Content Draft Edit / Create Modal */}
-      {isDraftModalOpen && (
-        <ContentDraftModal
-          isOpen={isDraftModalOpen}
-          onClose={() => setIsDraftModalOpen(false)}
-          onSave={onSavePost}
-          initialPost={editingPost}
-          brands={brands}
-          pillars={pillars}
-          accounts={accounts}
-        />
-      )}
+      {/* 4. Right Inspector Panel Drawer (Sidebar) - Identical to Content Calendar */}
+      <RightInspectorPanel
+        post={editingPost}
+        isOpen={isDraftModalOpen}
+        onClose={() => setIsDraftModalOpen(false)}
+        onSave={onSavePost}
+        onDelete={onDeletePost}
+        accounts={accounts}
+        pillars={pillars}
+        brands={brands}
+      />
 
       {/* 5. Quick Schedule to Calendar Modal */}
       {isScheduleModalOpen && (
