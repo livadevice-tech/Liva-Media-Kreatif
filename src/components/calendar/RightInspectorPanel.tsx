@@ -448,38 +448,38 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
     <aside 
       className={
         isFullWidth
-          ? "absolute inset-0 z-30 bg-white flex flex-col h-full animate-in fade-in duration-150"
-          : "absolute inset-y-0 right-0 z-30 w-full sm:w-[560px] md:w-[640px] lg:w-[720px] bg-white border-l border-slate-200/90 shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-200"
+          ? "fixed inset-0 sm:absolute z-50 sm:z-30 bg-white flex flex-col h-full animate-in fade-in duration-150"
+          : "fixed inset-y-0 right-0 sm:absolute z-50 sm:z-30 w-full sm:w-[560px] md:w-[640px] lg:w-[720px] bg-white border-l border-slate-200/90 shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-200"
       }
     >
-      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+      <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
         {/* Modern Header with Status Indicator */}
-        <div className="h-16 px-6 sm:px-8 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/40">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
-              <Layers className="w-5 h-5" />
+        <div className="h-16 px-4 sm:px-8 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/40 gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-slate-800 tracking-tight">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
+                <h3 className="font-bold text-xs sm:text-sm text-slate-800 tracking-tight truncate max-w-[180px] sm:max-w-none">
                   {formData.id 
                     ? 'Edit Konten'
                     : (isDraftMode ? 'Buat Draft Konten Baru' : 'Buat Konten Baru')}
                 </h3>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border ${currentStatusObj.activeBadge}`}>
+                <span className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold border shrink-0 ${currentStatusObj.activeBadge}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${currentStatusObj.dot}`} />
                   {currentStatusObj.label}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">Content Planner • Liva Media Kreatif</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">Content Planner • Liva Media Kreatif</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 shrink-0">
             {/* Toggle Full Area / Sidebar Button */}
             <button
               type="button"
               onClick={() => setIsFullWidth(!isFullWidth)}
-              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               title={isFullWidth ? "Ubah ke Tampilan Panel Samping" : "Perbesar ke Tampilan Penuh (Full Area)"}
             >
               {isFullWidth ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -490,7 +490,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                 type="button"
                 onClick={() => setIsConfirmDeletePost(true)}
                 disabled={deleting}
-                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                 title="Hapus Konten Ini"
               >
                 <Trash2 className="w-4 h-4" />
@@ -499,7 +499,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               title="Tutup Panel"
             >
               <X className="w-4 h-4" />
@@ -508,11 +508,11 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         </div>
 
         {/* Scrollable Form Body with Clean Spacing & Cards */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar bg-slate-50/20">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar bg-slate-50/20">
           <div className={isFullWidth ? "max-w-5xl mx-auto space-y-6" : "space-y-6"}>
           
           {/* SECTION 1: INFORMASI UTAMA */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
               <Sparkles className="w-4 h-4 text-indigo-600" />
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Informasi Utama Konten</h4>
@@ -554,9 +554,9 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsBrandDropdownOpen(!isBrandDropdownOpen)}
-                      className="w-full bg-slate-50/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 flex items-center justify-between transition-all cursor-pointer shadow-2xs"
+                      className="w-full bg-slate-50/80 hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl px-3 sm:px-3.5 py-2.5 text-xs font-semibold text-slate-800 flex items-center justify-between transition-all cursor-pointer shadow-2xs gap-2"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span 
                           className="w-3 h-3 rounded-full shrink-0 shadow-2xs" 
                           style={{ backgroundColor: currentBrand?.color || '#6366f1' }} 
@@ -570,11 +570,11 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-slate-400 shrink-0 ml-2">
-                        <span className="text-[10px] font-medium bg-slate-200/60 px-1.5 py-0.5 rounded text-slate-600">
+                      <div className="flex items-center gap-1 sm:gap-1.5 text-slate-400 shrink-0">
+                        <span className="text-[9px] sm:text-[10px] font-medium bg-slate-200/60 px-1.5 py-0.5 rounded text-slate-600 shrink-0">
                           Pilih / Kelola
                         </span>
-                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isBrandDropdownOpen ? 'rotate-180 text-indigo-600' : ''}`} />
+                        <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isBrandDropdownOpen ? 'rotate-180 text-indigo-600' : ''}`} />
                       </div>
                     </button>
 
@@ -749,7 +749,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {availablePillars.map((pil) => {
                   const isSelected = formData.pillar_name === pil.name;
                   const isInlineEditing = inlineEditingId === (pil.id || pil.name);
@@ -758,7 +758,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                     return (
                       <div
                         key={pil.id || pil.name}
-                        className="col-span-full sm:col-span-2 lg:col-span-3 p-2.5 bg-indigo-50/90 border-2 border-indigo-500 rounded-xl space-y-2 shadow-2xs animate-in fade-in zoom-in-95 duration-150"
+                        className="col-span-full p-2.5 bg-indigo-50/90 border-2 border-indigo-500 rounded-xl space-y-2 shadow-2xs animate-in fade-in zoom-in-95 duration-150"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1 flex-wrap">
@@ -782,7 +782,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                           <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">Edit Langsung</span>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
                           <input
                             type="text"
                             autoFocus
@@ -797,39 +797,41 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                               }
                             }}
                             placeholder="Nama pilar..."
-                            className="flex-1 min-w-0 bg-white border border-indigo-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="flex-1 min-w-[140px] bg-white border border-indigo-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
-                          <button
-                            type="button"
-                            disabled={savingPillar || !inlineEditingPillar.name.trim()}
-                            onClick={() => handleSaveInlineEdit(pil.id)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
-                            title="Simpan Perubahan Langsung"
-                          >
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            <span className="text-[11px] hidden sm:inline">Simpan</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setInlineEditingId(null)}
-                            className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0"
-                            title="Batal"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={deletingPillarId === pil.id}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setConfirmDeletePillar({ id: pil.id, name: pil.name });
-                            }}
-                            className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
-                            title="Hapus Pilar Langsung"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              disabled={savingPillar || !inlineEditingPillar.name.trim()}
+                              onClick={() => handleSaveInlineEdit(pil.id)}
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
+                              title="Simpan Perubahan Langsung"
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <span className="text-[11px]">Simpan</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setInlineEditingId(null)}
+                              className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                              title="Batal"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={deletingPillarId === pil.id}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setConfirmDeletePillar({ id: pil.id, name: pil.name });
+                              }}
+                              className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                              title="Hapus Pilar Langsung"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -838,7 +840,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                   return (
                     <div
                       key={pil.id || pil.name}
-                      className={`group relative flex items-center justify-between gap-1 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                      className={`group relative flex items-center justify-between gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
                         isSelected
                           ? 'bg-indigo-50/90 border-indigo-500 text-indigo-900 ring-2 ring-indigo-500/20 shadow-2xs font-bold'
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
@@ -854,13 +856,13 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                             color: pil.color || '#3b82f6'
                           });
                         }}
-                        className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer overflow-hidden py-0.5"
+                        className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer py-0.5"
                       >
                         <span 
                           className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs" 
                           style={{ backgroundColor: pil.color || '#3b82f6' }} 
                         />
-                        <span className="truncate">{pil.name}</span>
+                        <span className="break-words line-clamp-2 leading-tight flex-1 min-w-0">{pil.name}</span>
                         {isSelected && (
                           <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0 stroke-[3] ml-1" />
                         )}
@@ -907,7 +909,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
 
                 {/* Direct + Tambah Button or Inline Input */}
                 {isAddingInline ? (
-                  <div className="col-span-full sm:col-span-2 lg:col-span-3 p-2.5 bg-emerald-50/90 border-2 border-emerald-500 rounded-xl space-y-2 shadow-2xs animate-in fade-in zoom-in-95 duration-150">
+                  <div className="col-span-full p-2.5 bg-emerald-50/90 border-2 border-emerald-500 rounded-xl space-y-2 shadow-2xs animate-in fade-in zoom-in-95 duration-150">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1 flex-wrap">
                         <span className="text-[10px] font-bold text-emerald-900 mr-1">Pilih Warna:</span>
@@ -927,10 +929,10 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                           );
                         })}
                       </div>
-                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">+ Tambah Langsung</span>
+                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Tambah Langsung</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
                       <input
                         type="text"
                         autoFocus
@@ -945,25 +947,27 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                           }
                         }}
                         placeholder="Ketik nama pilar baru..."
-                        className="flex-1 min-w-0 bg-white border border-emerald-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="flex-1 min-w-[140px] bg-white border border-emerald-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
-                      <button
-                        type="button"
-                        disabled={savingPillar || !newPillarData.name.trim()}
-                        onClick={handleCreateInlinePillar}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
-                      >
-                        <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                        <span className="text-[11px]">Tambah</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsAddingInline(false)}
-                        className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0"
-                        title="Batal"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          disabled={savingPillar || !newPillarData.name.trim()}
+                          onClick={handleCreateInlinePillar}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
+                        >
+                          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                          <span className="text-[11px]">Tambah</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingInline(false)}
+                          className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                          title="Batal"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -1449,14 +1453,14 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                       type="button"
                       key={st.id}
                       onClick={() => setFormData({ ...formData, status: st.id })}
-                      className={`flex items-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-left ${
+                      className={`flex items-center gap-1.5 sm:gap-2 py-2 px-2.5 sm:px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-left ${
                         isSelected
                           ? `${st.activeBadge} ring-2 shadow-2xs font-bold`
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                       }`}
                     >
                       <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
-                      <span className="truncate">{st.label}</span>
+                      <span className="truncate flex-1 min-w-0">{st.label}</span>
                       {isSelected && <Check className="w-3.5 h-3.5 ml-auto text-indigo-600 shrink-0 stroke-[3]" />}
                     </button>
                   );
@@ -1503,35 +1507,35 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
         </div>
 
         {/* Sticky Footer Actions with High Contrast */}
-        <div className="p-4 px-6 sm:px-8 border-t border-slate-100 bg-white shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.02)]">
-          <div className={isFullWidth ? "max-w-5xl mx-auto flex items-center justify-between" : "flex items-center justify-between"}>
+        <div className="p-3 sm:p-4 px-4 sm:px-8 border-t border-slate-100 bg-white shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.02)] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+          <div className={isFullWidth ? "max-w-5xl mx-auto flex items-center justify-between gap-2" : "flex items-center justify-between gap-2"}>
             {formData.id && onDelete ? (
               <button
                 type="button"
                 onClick={() => setIsConfirmDeletePost(true)}
                 disabled={deleting}
-                className="px-3 py-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+                className="px-2.5 sm:px-3 py-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1 sm:gap-1.5 text-xs font-semibold shrink-0"
                 title="Hapus Konten"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>Hapus Konten</span>
+                <span className="hidden xs:inline sm:inline">Hapus</span>
               </button>
             ) : (
               <div />
             )}
 
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3 ml-auto">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={saving || !formData.title}
-                className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md hover:shadow-indigo-500/25 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-bold px-4 sm:px-6 py-2.5 rounded-xl shadow-md hover:shadow-indigo-500/25 transition-all flex items-center gap-1.5 sm:gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {saving ? (
                   <>
@@ -1540,7 +1544,7 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4" />
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>{formData.id ? 'Simpan Perubahan' : 'Buat Konten'}</span>
                   </>
                 )}

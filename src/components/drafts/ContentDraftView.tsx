@@ -208,28 +208,28 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
       {/* Main Content Area (Header Toolbar + Cards / Table) */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         {/* 1. Header Toolbar */}
-        <div className="bg-white border-b border-slate-200 px-6 py-4 shrink-0">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
-              <FileText className="w-5 h-5" />
+        <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                   Draft Konten
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
                   {counts.all_drafts} Draft Belum Terjadwal
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate sm:whitespace-normal">
                 Bank konten & ide yang sedang disusun sebelum dijadwalkan ke Kalender Konten
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 justify-between sm:justify-end">
             {/* View Mode Toggle: Card vs List */}
             <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80">
               <button
@@ -243,7 +243,7 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                 title="Tampilan Card (Grid)"
               >
                 <LayoutGrid className="w-4 h-4" />
-                <span className="hidden sm:inline">Card</span>
+                <span className="hidden xs:inline sm:inline">Card</span>
               </button>
               <button
                 type="button"
@@ -256,14 +256,14 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                 title="Tampilan Tabel (List)"
               >
                 <ListIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">List</span>
+                <span className="hidden xs:inline sm:inline">List</span>
               </button>
             </div>
 
             {/* Buat Draft Baru Button */}
             <button
               onClick={handleOpenAddModal}
-              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+              className="px-3.5 sm:px-4 py-2 sm:py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>+ Buat Draft Baru</span>
@@ -355,13 +355,13 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
       </div>
 
       {/* 3. Main Content: Card Grid vs List Table */}
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
         {filteredDrafts.length === 0 ? (
-          <div className="h-96 flex flex-col items-center justify-center text-center p-8 bg-white border border-slate-200 rounded-3xl shadow-xs">
-            <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mb-4 shadow-sm">
-              <Sparkles className="w-8 h-8" />
+          <div className="h-96 flex flex-col items-center justify-center text-center p-6 sm:p-8 bg-white border border-slate-200 rounded-3xl shadow-xs">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mb-4 shadow-sm">
+              <Sparkles className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
-            <h3 className="text-base font-bold text-slate-800">
+            <h3 className="text-sm sm:text-base font-bold text-slate-800">
               Tidak Ada Draft Konten yang Sesuai
             </h3>
             <p className="text-xs text-slate-400 max-w-sm mt-1.5 mb-5 leading-relaxed">
@@ -379,7 +379,7 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
           </div>
         ) : viewMode === 'grid' ? (
           /* CARD MODE (GRID) */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {filteredDrafts.map((post) => {
               const platformInfo = PLATFORM_CONFIG[post.platform] || { label: post.platform, icon: '📱', badge: 'bg-slate-100 text-slate-700' };
               const statusInfo = STATUS_CONFIG[post.status] || { label: post.status, badge: 'bg-slate-100 text-slate-700', icon: '📝' };
