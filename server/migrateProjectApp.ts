@@ -166,10 +166,59 @@ export async function runProjectAppMigrations() {
     await pool.execute(`UPDATE app_users SET role = 'Team' WHERE role IN ('Admin', 'Staff')`);
   } catch (e) {}
 
+  // 8. Content Drafts Table (Bank Ide & Referensi yang belum masuk ke kalender)
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS sm_content_drafts (
+      id VARCHAR(50) PRIMARY KEY,
+      brand_id VARCHAR(50),
+      project_id VARCHAR(50),
+      title VARCHAR(250) NOT NULL,
+      hook TEXT,
+      concept TEXT,
+      reference_urls TEXT,
+      reference_attachments TEXT,
+      platform VARCHAR(50) DEFAULT 'instagram',
+      content_type VARCHAR(50) DEFAULT 'reels',
+      pillar_id VARCHAR(50),
+      pillar_name VARCHAR(100),
+      status VARCHAR(50) DEFAULT 'idea',
+      scheduled_post_id VARCHAR(50),
+      scheduled_at DATETIME,
+      notes TEXT,
+      tags VARCHAR(255),
+      assignee_name VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_brand (brand_id),
+      INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
   console.log("✅ Seluruh tabel berhasil diverifikasi/dibuat!");
 
   // Auto Seeding jika data masih kosong
   await seedInitialData();
+  await seedDraftsIfEmpty();
+}
+
+async function seedDraftsIfEmpty() {
+  const pool = getPool();
+  try {
+    const [draftRows] = await pool.query<any[]>("SELECT COUNT(*) as count FROM sm_content_drafts");
+    const draftCount = (draftRows[0] as any)?.count || 0;
+    if (draftCount === 0) {
+      await pool.query(`
+        INSERT INTO sm_content_drafts 
+        (id, brand_id, project_id, title, hook, concept, reference_urls, platform, content_type, pillar_name, status, notes) VALUES
+        ('draft-1', 'b-liva', 'proj-rebrand', 'Behind The Scene Setup Studio Live 12 Jam', 'Pernah kepikiran gak gimana ribetnya siapin 12 jam live tanpa jeda?', 'Video transisi sinematik tim setup lighting, audio mixer, dan briefing host sebelum live dimulai.', 'https://www.tiktok.com/@tiktokcreators/video/example1, https://instagram.com/p/reel_agency_example', 'tiktok', 'tiktok_video', 'Entertainment & Tren', 'idea', 'Gunakan audio trending bertempo cepat. Highlight ekspresi antusias tim.'),
+        ('draft-2', 'b-wardah', 'proj-99', 'Formula 3 Detik: Cara Mengetahui Skin Barrier Sedang Rusak', 'Jangan coba produk baru kalau kulitmu masih punya 3 tanda ini!', 'Edukasi carousell 6 slide yang menjelaskan tanda skin barrier rusak dan solusinya menggunakan serum ceramide.', 'https://www.instagram.com/reel/example_skincare_tips', 'instagram', 'carousel', 'Edukasi & Tips', 'research', 'Slide 1: Hook tegas. Slide 2-4: Tanda-tanda. Slide 5: Solusi produk. Slide 6: CTA.'),
+        ('draft-3', 'b-somethinc', 'proj-viraltrend', 'Blind Test Sunscreen Murah vs Sunscreen Formula Baru', 'Kira-kira orang awam bisa bedain gak mana sunscreen 50rb vs 150rb?', 'Street interview di mall atau coffee shop menguji tekstur, whitecast, dan aroma sunscreen di punggung tangan responden.', 'https://youtube.com/shorts/example_blind_test', 'youtube', 'short', 'Social Proof & Testi', 'ready', 'Talent host: Sarah. Bawa microphone clip-on wireless.')
+      `);
+      console.log("✅ Starter sample draft ide konten berhasil diisikan!");
+    }
+  } catch (e) {
+    console.warn("Notice seeding drafts:", e);
+  }
 }
 
 async function seedInitialData() {

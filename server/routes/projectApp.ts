@@ -690,6 +690,172 @@ projectAppRouter.put('/content-posts/:id', async (req: Request, res: Response) =
 });
 
 // ==========================================
+// 7B. CONTENT DRAFTS (BANK IDE & REFERENSI)
+// ==========================================
+projectAppRouter.get('/drafts', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const { brand_id, status, search } = req.query;
+
+    let query = `
+      SELECT d.*, b.name as brand_name, b.color as brand_color, b.logo_url as brand_logo,
+             p.title as project_title, p.color as project_color
+      FROM sm_content_drafts d
+      LEFT JOIN sm_brands b ON d.brand_id = b.id
+      LEFT JOIN pm_projects p ON d.project_id = p.id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (brand_id && brand_id !== 'all') {
+      query += ` AND d.brand_id = ?`;
+      params.push(brand_id);
+    }
+    if (status && status !== 'all') {
+      query += ` AND d.status = ?`;
+      params.push(status);
+    }
+    if (search) {
+      query += ` AND (d.title LIKE ? OR d.hook LIKE ? OR d.concept LIKE ? OR d.reference_urls LIKE ?)`;
+      const term = `%${search}%`;
+      params.push(term, term, term, term);
+    }
+
+    query += ` ORDER BY d.created_at DESC`;
+
+    const [rows]: any = await pool.query(query, params);
+    res.json(rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+projectAppRouter.post('/drafts', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const {
+      brand_id, project_id, title, hook, concept, reference_urls, reference_attachments,
+      platform, content_type, pillar_id, pillar_name, status, notes, tags, assignee_name
+    } = req.body;
+
+    if (!title?.trim()) {
+      return res.status(400).json({ error: 'Judul ide konten wajib diisi.' });
+    }
+
+    const id = `draft-${Date.now().toString(36)}`;
+    await pool.query(
+      `INSERT INTO sm_content_drafts 
+       (id, brand_id, project_id, title, hook, concept, reference_urls, reference_attachments,
+        platform, content_type, pillar_id, pillar_name, status, notes, tags, assignee_name)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, brand_id || null, project_id || null, title.trim(), hook || '', concept || '',
+        reference_urls || '', reference_attachments || '', platform || 'instagram',
+        content_type || 'reels', pillar_id || null, pillar_name || 'Edukasi & Tips',
+        status || 'idea', notes || '', tags || '', assignee_name || ''
+      ]
+    );
+
+    res.json({ success: true, id, message: 'Draft ide konten berhasil ditambahkan' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+projectAppRouter.put('/drafts/:id', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const { id } = req.params;
+    const {
+      brand_id, project_id, title, hook, concept, reference_urls, reference_attachments,
+      platform, content_type, pillar_id, pillar_name, status, notes, tags, assignee_name
+    } = req.body;
+
+    await pool.query(
+      `UPDATE sm_content_drafts 
+       SET brand_id = ?, project_id = ?, title = ?, hook = ?, concept = ?,
+           reference_urls = ?, reference_attachments = ?, platform = ?, content_type = ?,
+           pillar_id = ?, pillar_name = ?, status = ?, notes = ?, tags = ?, assignee_name = ?
+       WHERE id = ?`,
+      [
+        brand_id || null, project_id || null, title, hook || '', concept || '',
+        reference_urls || '', reference_attachments || '', platform || 'instagram',
+        content_type || 'reels', pillar_id || null, pillar_name || 'Edukasi & Tips',
+        status || 'idea', notes || '', tags || '', assignee_name || '', id
+      ]
+    );
+
+    res.json({ success: true, message: 'Draft ide konten berhasil diperbarui' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+projectAppRouter.delete('/drafts/:id', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const { id } = req.params;
+    await pool.query(`DELETE FROM sm_content_drafts WHERE id = ?`, [id]);
+    res.json({ success: true, message: 'Draft ide konten berhasil dihapus' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+projectAppRouter.post('/drafts/:id/schedule', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const { id } = req.params;
+    const { scheduled_at, brand_id, platform, content_type } = req.body;
+
+    if (!scheduled_at) {
+      return res.status(400).json({ error: 'Tanggal dan jam jadwal (scheduled_at) wajib diisi.' });
+    }
+
+    const [draftRows]: any = await pool.query(`SELECT * FROM sm_content_drafts WHERE id = ?`, [id]);
+    const draft = draftRows?.[0];
+    if (!draft) {
+      return res.status(404).json({ error: 'Draft ide konten tidak ditemukan.' });
+    }
+
+    const postId = `post-${Date.now().toString(36)}`;
+    const finalBrandId = brand_id || draft.brand_id;
+    const finalPlatform = platform || draft.platform || 'instagram';
+    const finalContentType = content_type || draft.content_type || 'reels';
+
+    // Insert into sm_content_posts
+    await pool.query(
+      `INSERT INTO sm_content_posts 
+       (id, brand_id, project_id, title, pillar_name, platform, content_type,
+        hook, caption, hashtags, scheduled_at, status, notes, media_urls)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        postId, finalBrandId || null, draft.project_id || null, draft.title,
+        draft.pillar_name || 'Edukasi & Tips', finalPlatform, finalContentType,
+        draft.hook || '', draft.concept || '', '', scheduled_at, 'scheduled',
+        draft.notes || '', JSON.stringify(draft.reference_attachments ? [draft.reference_attachments] : [])
+      ]
+    );
+
+    // Update draft status to scheduled
+    await pool.query(
+      `UPDATE sm_content_drafts 
+       SET status = 'scheduled', scheduled_post_id = ?, scheduled_at = ?
+       WHERE id = ?`,
+      [postId, scheduled_at, id]
+    );
+
+    res.json({
+      success: true,
+      postId,
+      message: 'Ide konten berhasil dijadwalkan ke Calender Content!'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
 // 8. AI COPYWRITING ASSISTANT
 // ==========================================
 projectAppRouter.post('/ai-generate', async (req: Request, res: Response) => {

@@ -1837,6 +1837,207 @@ projectAppRouter.put("/content-posts/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+projectAppRouter.get("/drafts", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { brand_id, status, search } = req.query;
+    let query = `
+      SELECT d.*, b.name as brand_name, b.color as brand_color, b.logo_url as brand_logo,
+             p.title as project_title, p.color as project_color
+      FROM sm_content_drafts d
+      LEFT JOIN sm_brands b ON d.brand_id = b.id
+      LEFT JOIN pm_projects p ON d.project_id = p.id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (brand_id && brand_id !== "all") {
+      query += ` AND d.brand_id = ?`;
+      params.push(brand_id);
+    }
+    if (status && status !== "all") {
+      query += ` AND d.status = ?`;
+      params.push(status);
+    }
+    if (search) {
+      query += ` AND (d.title LIKE ? OR d.hook LIKE ? OR d.concept LIKE ? OR d.reference_urls LIKE ?)`;
+      const term = `%${search}%`;
+      params.push(term, term, term, term);
+    }
+    query += ` ORDER BY d.created_at DESC`;
+    const [rows] = await pool2.query(query, params);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.post("/drafts", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const {
+      brand_id,
+      project_id,
+      title,
+      hook,
+      concept,
+      reference_urls,
+      reference_attachments,
+      platform,
+      content_type,
+      pillar_id,
+      pillar_name,
+      status,
+      notes,
+      tags,
+      assignee_name
+    } = req.body;
+    if (!title?.trim()) {
+      return res.status(400).json({ error: "Judul ide konten wajib diisi." });
+    }
+    const id = `draft-${Date.now().toString(36)}`;
+    await pool2.query(
+      `INSERT INTO sm_content_drafts 
+       (id, brand_id, project_id, title, hook, concept, reference_urls, reference_attachments,
+        platform, content_type, pillar_id, pillar_name, status, notes, tags, assignee_name)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        brand_id || null,
+        project_id || null,
+        title.trim(),
+        hook || "",
+        concept || "",
+        reference_urls || "",
+        reference_attachments || "",
+        platform || "instagram",
+        content_type || "reels",
+        pillar_id || null,
+        pillar_name || "Edukasi & Tips",
+        status || "idea",
+        notes || "",
+        tags || "",
+        assignee_name || ""
+      ]
+    );
+    res.json({ success: true, id, message: "Draft ide konten berhasil ditambahkan" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.put("/drafts/:id", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { id } = req.params;
+    const {
+      brand_id,
+      project_id,
+      title,
+      hook,
+      concept,
+      reference_urls,
+      reference_attachments,
+      platform,
+      content_type,
+      pillar_id,
+      pillar_name,
+      status,
+      notes,
+      tags,
+      assignee_name
+    } = req.body;
+    await pool2.query(
+      `UPDATE sm_content_drafts 
+       SET brand_id = ?, project_id = ?, title = ?, hook = ?, concept = ?,
+           reference_urls = ?, reference_attachments = ?, platform = ?, content_type = ?,
+           pillar_id = ?, pillar_name = ?, status = ?, notes = ?, tags = ?, assignee_name = ?
+       WHERE id = ?`,
+      [
+        brand_id || null,
+        project_id || null,
+        title,
+        hook || "",
+        concept || "",
+        reference_urls || "",
+        reference_attachments || "",
+        platform || "instagram",
+        content_type || "reels",
+        pillar_id || null,
+        pillar_name || "Edukasi & Tips",
+        status || "idea",
+        notes || "",
+        tags || "",
+        assignee_name || "",
+        id
+      ]
+    );
+    res.json({ success: true, message: "Draft ide konten berhasil diperbarui" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.delete("/drafts/:id", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { id } = req.params;
+    await pool2.query(`DELETE FROM sm_content_drafts WHERE id = ?`, [id]);
+    res.json({ success: true, message: "Draft ide konten berhasil dihapus" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.post("/drafts/:id/schedule", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { id } = req.params;
+    const { scheduled_at, brand_id, platform, content_type } = req.body;
+    if (!scheduled_at) {
+      return res.status(400).json({ error: "Tanggal dan jam jadwal (scheduled_at) wajib diisi." });
+    }
+    const [draftRows] = await pool2.query(`SELECT * FROM sm_content_drafts WHERE id = ?`, [id]);
+    const draft = draftRows?.[0];
+    if (!draft) {
+      return res.status(404).json({ error: "Draft ide konten tidak ditemukan." });
+    }
+    const postId = `post-${Date.now().toString(36)}`;
+    const finalBrandId = brand_id || draft.brand_id;
+    const finalPlatform = platform || draft.platform || "instagram";
+    const finalContentType = content_type || draft.content_type || "reels";
+    await pool2.query(
+      `INSERT INTO sm_content_posts 
+       (id, brand_id, project_id, title, pillar_name, platform, content_type,
+        hook, caption, hashtags, scheduled_at, status, notes, media_urls)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        postId,
+        finalBrandId || null,
+        draft.project_id || null,
+        draft.title,
+        draft.pillar_name || "Edukasi & Tips",
+        finalPlatform,
+        finalContentType,
+        draft.hook || "",
+        draft.concept || "",
+        "",
+        scheduled_at,
+        "scheduled",
+        draft.notes || "",
+        JSON.stringify(draft.reference_attachments ? [draft.reference_attachments] : [])
+      ]
+    );
+    await pool2.query(
+      `UPDATE sm_content_drafts 
+       SET status = 'scheduled', scheduled_post_id = ?, scheduled_at = ?
+       WHERE id = ?`,
+      [postId, scheduled_at, id]
+    );
+    res.json({
+      success: true,
+      postId,
+      message: "Ide konten berhasil dijadwalkan ke Calender Content!"
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 projectAppRouter.post("/ai-generate", async (req, res) => {
   try {
     const { topic, pillar, platform, brand_tone } = req.body;
@@ -2267,8 +2468,54 @@ async function runProjectAppMigrations() {
     await pool2.execute(`UPDATE app_users SET role = 'Team' WHERE role IN ('Admin', 'Staff')`);
   } catch (e) {
   }
+  await pool2.execute(`
+    CREATE TABLE IF NOT EXISTS sm_content_drafts (
+      id VARCHAR(50) PRIMARY KEY,
+      brand_id VARCHAR(50),
+      project_id VARCHAR(50),
+      title VARCHAR(250) NOT NULL,
+      hook TEXT,
+      concept TEXT,
+      reference_urls TEXT,
+      reference_attachments TEXT,
+      platform VARCHAR(50) DEFAULT 'instagram',
+      content_type VARCHAR(50) DEFAULT 'reels',
+      pillar_id VARCHAR(50),
+      pillar_name VARCHAR(100),
+      status VARCHAR(50) DEFAULT 'idea',
+      scheduled_post_id VARCHAR(50),
+      scheduled_at DATETIME,
+      notes TEXT,
+      tags VARCHAR(255),
+      assignee_name VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_brand (brand_id),
+      INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
   console.log("\u2705 Seluruh tabel berhasil diverifikasi/dibuat!");
   await seedInitialData();
+  await seedDraftsIfEmpty();
+}
+async function seedDraftsIfEmpty() {
+  const pool2 = getPool();
+  try {
+    const [draftRows] = await pool2.query("SELECT COUNT(*) as count FROM sm_content_drafts");
+    const draftCount = draftRows[0]?.count || 0;
+    if (draftCount === 0) {
+      await pool2.query(`
+        INSERT INTO sm_content_drafts 
+        (id, brand_id, project_id, title, hook, concept, reference_urls, platform, content_type, pillar_name, status, notes) VALUES
+        ('draft-1', 'b-liva', 'proj-rebrand', 'Behind The Scene Setup Studio Live 12 Jam', 'Pernah kepikiran gak gimana ribetnya siapin 12 jam live tanpa jeda?', 'Video transisi sinematik tim setup lighting, audio mixer, dan briefing host sebelum live dimulai.', 'https://www.tiktok.com/@tiktokcreators/video/example1, https://instagram.com/p/reel_agency_example', 'tiktok', 'tiktok_video', 'Entertainment & Tren', 'idea', 'Gunakan audio trending bertempo cepat. Highlight ekspresi antusias tim.'),
+        ('draft-2', 'b-wardah', 'proj-99', 'Formula 3 Detik: Cara Mengetahui Skin Barrier Sedang Rusak', 'Jangan coba produk baru kalau kulitmu masih punya 3 tanda ini!', 'Edukasi carousell 6 slide yang menjelaskan tanda skin barrier rusak dan solusinya menggunakan serum ceramide.', 'https://www.instagram.com/reel/example_skincare_tips', 'instagram', 'carousel', 'Edukasi & Tips', 'research', 'Slide 1: Hook tegas. Slide 2-4: Tanda-tanda. Slide 5: Solusi produk. Slide 6: CTA.'),
+        ('draft-3', 'b-somethinc', 'proj-viraltrend', 'Blind Test Sunscreen Murah vs Sunscreen Formula Baru', 'Kira-kira orang awam bisa bedain gak mana sunscreen 50rb vs 150rb?', 'Street interview di mall atau coffee shop menguji tekstur, whitecast, dan aroma sunscreen di punggung tangan responden.', 'https://youtube.com/shorts/example_blind_test', 'youtube', 'short', 'Social Proof & Testi', 'ready', 'Talent host: Sarah. Bawa microphone clip-on wireless.')
+      `);
+      console.log("\u2705 Starter sample draft ide konten berhasil diisikan!");
+    }
+  } catch (e) {
+    console.warn("Notice seeding drafts:", e);
+  }
 }
 async function seedInitialData() {
   const pool2 = getPool();

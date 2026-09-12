@@ -7,7 +7,8 @@ import {
   DbStatus, 
   TaskStatus, 
   ContentStatus,
-  UserAccount
+  UserAccount,
+  ContentDraftItem
 } from '../types/app';
 
 const API_BASE = '/api';
@@ -132,6 +133,32 @@ export const appApi = {
       method: 'DELETE',
     }).then(handleResponse<{ success: boolean; message: string; affectedRows: number }>);
   },
+
+  // Content Drafts (Bank Ide & Referensi)
+  getDrafts: (params?: { brand_id?: string; status?: string; search?: string }): Promise<ContentDraftItem[]> => {
+    const query = new URLSearchParams(params as any).toString();
+    return fetch(`${API_BASE}/project-app/drafts?${query}`).then(handleResponse<ContentDraftItem[]>);
+  },
+  createDraft: (data: Partial<ContentDraftItem>): Promise<{ success: boolean; id: string }> =>
+    fetch(`${API_BASE}/project-app/drafts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean; id: string }>),
+  updateDraft: (id: string, data: Partial<ContentDraftItem>): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/project-app/drafts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean }>),
+  deleteDraft: (id: string): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/project-app/drafts/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean }>),
+  scheduleDraftToCalendar: (id: string, payload: { scheduled_at: string; brand_id?: string; platform?: string; content_type?: string }): Promise<{ success: boolean; postId: string; message: string }> =>
+    fetch(`${API_BASE}/project-app/drafts/${id}/schedule`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(handleResponse<{ success: boolean; postId: string; message: string }>),
 
   // User Accounts Management
   getAccounts: (): Promise<UserAccount[]> =>

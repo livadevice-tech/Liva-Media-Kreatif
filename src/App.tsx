@@ -22,7 +22,8 @@ import {
   LogOut,
   Lock,
   ShieldAlert,
-  FolderArchive
+  FolderArchive,
+  Lightbulb
 } from 'lucide-react';
 import { appApi } from './services/appApi';
 import { 
@@ -34,7 +35,8 @@ import {
   DbStatus, 
   TaskStatus, 
   ContentStatus,
-  UserAccount
+  UserAccount,
+  ContentDraftItem
 } from './types/app';
 import { ContentCalendarView } from './components/calendar/ContentCalendarView';
 import { ProjectKanbanView } from './components/projects/ProjectKanbanView';
@@ -42,12 +44,13 @@ import { AccountManagementView } from './components/accounts/AccountManagementVi
 import { SettingsView, AppSettings, DEFAULT_SETTINGS } from './components/settings/SettingsView';
 import { LoginPage } from './components/auth/LoginPage';
 import { AssetFileView } from './components/assets/AssetFileView';
+import { ContentDraftView } from './components/drafts/ContentDraftView';
 import { MobileLayout, MobileTab } from './components/mobile/MobileLayout';
 import { MobileCalendarView } from './components/mobile/MobileCalendarView';
 import { MobileTaskView } from './components/mobile/MobileTaskView';
 import { MobileHomeView } from './components/mobile/MobileHomeView';
 
-type NavigationTab = 'home' | 'calendar' | 'tasks' | 'assets' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
+type NavigationTab = 'home' | 'calendar' | 'drafts' | 'tasks' | 'assets' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
@@ -83,6 +86,7 @@ export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [posts, setPosts] = useState<ContentPost[]>([]);
+  const [drafts, setDrafts] = useState<ContentDraftItem[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [pillars, setPillars] = useState<ContentPillar[]>([]);
   const [accounts, setAccounts] = useState<UserAccount[]>([]);
@@ -162,18 +166,20 @@ export default function App() {
   const loadAllData = useCallback(async () => {
     try {
       setLoading(true);
-      const [projectsData, tasksData, postsData, brandsData, pillarsData, accountsData] = await Promise.all([
+      const [projectsData, tasksData, postsData, brandsData, pillarsData, accountsData, draftsData] = await Promise.all([
         appApi.getProjects(),
         appApi.getTasks(),
         appApi.getContentPosts(),
         appApi.getBrands(),
         appApi.getPillars(),
         appApi.getAccounts().catch(() => []),
+        appApi.getDrafts().catch(() => []),
       ]);
 
       setProjects(projectsData);
       setTasks(tasksData);
       setPosts(postsData);
+      setDrafts(draftsData);
       setBrands(brandsData);
       setPillars(pillarsData);
       setAccounts(accountsData);
@@ -285,6 +291,53 @@ export default function App() {
       setPillars(updatedPillars);
     } catch (err: any) {
       showToast(err.message || 'Gagal menghapus pillar konten', 'error');
+    }
+  };
+
+  // Content Draft Actions (Bank Ide & Referensi)
+  const handleSaveDraft = async (draftData: Partial<ContentDraftItem>) => {
+    try {
+      if (draftData.id && !draftData.id.startsWith('demo-')) {
+        await appApi.updateDraft(draftData.id, draftData);
+        showToast('Draft ide konten berhasil diperbarui');
+      } else {
+        await appApi.createDraft(draftData);
+        showToast('Ide konten baru berhasil ditambahkan');
+      }
+      const updatedDrafts = await appApi.getDrafts();
+      setDrafts(updatedDrafts);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menyimpan ide konten', 'error');
+    }
+  };
+
+  const handleDeleteDraft = async (id: string) => {
+    try {
+      await appApi.deleteDraft(id);
+      showToast('Draft ide konten berhasil dihapus');
+      setDrafts((prev) => prev.filter((d) => d.id !== id));
+      const updatedDrafts = await appApi.getDrafts();
+      setDrafts(updatedDrafts);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menghapus draft ide konten', 'error');
+    }
+  };
+
+  const handleScheduleDraft = async (
+    id: string,
+    payload: { scheduled_at: string; brand_id?: string; platform?: string; content_type?: string }
+  ) => {
+    try {
+      await appApi.scheduleDraftToCalendar(id, payload);
+      showToast('Ide konten berhasil dijadwalkan ke Kalender Konten!');
+      const [updatedPosts, updatedDrafts] = await Promise.all([
+        appApi.getContentPosts(),
+        appApi.getDrafts(),
+      ]);
+      setPosts(updatedPosts);
+      setDrafts(updatedDrafts);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menjadwalkan ide konten ke kalender', 'error');
     }
   };
 
@@ -518,6 +571,7 @@ export default function App() {
           currentUser={currentUser}
           appSettings={appSettings}
           taskCount={tasks.length}
+          draftCount={drafts.filter((d) => d.status !== 'scheduled').length}
           dbStatus={dbStatus}
           onOpenDbModal={() => setShowDbModal(true)}
           onLogout={handleLogout}
@@ -532,6 +586,19 @@ export default function App() {
               onDeletePost={handleDeletePost}
               onUpdateStatus={handleUpdateContentStatus}
             />
+          ) : activeTab === 'drafts' ? (
+            <div className="p-2 pb-16">
+              <ContentDraftView
+                drafts={drafts}
+                brands={brands}
+                projects={projects}
+                pillars={pillars}
+                onSaveDraft={handleSaveDraft}
+                onDeleteDraft={handleDeleteDraft}
+                onScheduleDraft={handleScheduleDraft}
+                onOpenCalendar={() => setActiveTab('calendar')}
+              />
+            </div>
           ) : activeTab === 'tasks' ? (
             <MobileTaskView
               tasks={tasks}
@@ -732,6 +799,30 @@ export default function App() {
             >
               <CalendarIcon className="w-4 h-4 text-slate-600" />
               {isSidebarOpen && <span>Calender Content</span>}
+            </button>
+
+            {/* Draft Konten (Bank Ide & Referensi) */}
+            <button
+              onClick={() => setActiveTab('drafts')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                activeTab === 'drafts'
+                  ? 'bg-amber-50 text-amber-900 font-semibold shadow-2xs border border-amber-200/60'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Lightbulb className={`w-4 h-4 ${activeTab === 'drafts' ? 'text-amber-600' : 'text-slate-500'}`} />
+                {isSidebarOpen && <span>Draft Konten</span>}
+              </div>
+              {isSidebarOpen && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                  activeTab === 'drafts'
+                    ? 'bg-amber-200/70 text-amber-800'
+                    : 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                }`}>
+                  {drafts.filter((d) => d.status !== 'scheduled').length}
+                </span>
+              )}
             </button>
 
             {/* Task (With badge in screenshot) */}
@@ -962,6 +1053,17 @@ export default function App() {
             onSavePillar={handleSavePillar}
             onDeletePillar={handleDeletePillar}
             onUpdateStatus={handleUpdateContentStatus}
+          />
+        ) : activeTab === 'drafts' ? (
+          <ContentDraftView
+            drafts={drafts}
+            brands={brands}
+            projects={projects}
+            pillars={pillars}
+            onSaveDraft={handleSaveDraft}
+            onDeleteDraft={handleDeleteDraft}
+            onScheduleDraft={handleScheduleDraft}
+            onOpenCalendar={() => setActiveTab('calendar')}
           />
         ) : activeTab === 'tasks' ? (
           <ProjectKanbanView

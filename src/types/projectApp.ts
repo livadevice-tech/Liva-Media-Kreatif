@@ -118,3 +118,32 @@ export interface DashboardStats {
   upcomingPosts: ContentPost[];
   urgentTasks: Task[];
 }
+
+export type DraftStatus = 'idea' | 'research' | 'ready' | 'scheduled';
+
+export interface ContentDraftItem {
+  id: string;
+  brand_id?: string;
+  brand_name?: string;
+  brand_color?: string;
+  brand_logo?: string;
+  project_id?: string;
+  project_title?: string;
+  title: string;
+  hook?: string;
+  concept?: string;
+  reference_urls?: string;
+  reference_attachments?: string;
+  platform: PlatformType;
+  content_type: ContentType;
+  pillar_id?: string;
+  pillar_name?: string;
+  status: DraftStatus;
+  scheduled_post_id?: string;
+  scheduled_at?: string;
+  notes?: string;
+  tags?: string;
+  assignee_name?: string;
+  created_at?: string;
+  updated_at?: string;
+}

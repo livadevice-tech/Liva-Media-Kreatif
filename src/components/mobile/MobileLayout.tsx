@@ -13,14 +13,15 @@ import {
   Zap,
   LogOut,
   Database,
-  CheckCircle2,
-  X,
-  ExternalLink
+  CheckCircle2, 
+  X, 
+  ExternalLink,
+  Lightbulb
 } from 'lucide-react';
 import { UserAccount, DbStatus } from '../../types/app';
 import { AppSettings } from '../settings/SettingsView';
 
-export type MobileTab = 'home' | 'calendar' | 'tasks' | 'reports' | 'more' | 'assets' | 'accounts' | 'settings' | 'automation' | 'ai';
+export type MobileTab = 'home' | 'calendar' | 'tasks' | 'reports' | 'more' | 'assets' | 'accounts' | 'settings' | 'automation' | 'ai' | 'drafts';
 
 interface MobileLayoutProps {
   activeTab: MobileTab;
@@ -28,6 +29,7 @@ interface MobileLayoutProps {
   currentUser: UserAccount | null;
   appSettings: AppSettings;
   taskCount?: number;
+  draftCount?: number;
   dbStatus: DbStatus | null;
   onOpenDbModal: () => void;
   onLogout: () => void;
@@ -40,6 +42,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   currentUser,
   appSettings,
   taskCount = 0,
+  draftCount = 0,
   dbStatus,
   onOpenDbModal,
   onLogout,
@@ -289,6 +292,29 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
               <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1">
                 Fitur Tambahan
               </div>
+
+              {/* Draft Konten (Bank Ide) */}
+              <button
+                onClick={() => handleMoreNavigation('drafts')}
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-semibold transition-colors ${
+                  activeTab === 'drafts'
+                    ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                    <Lightbulb className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-slate-900">Draft Konten</div>
+                    <div className="text-[10px] text-slate-400 font-normal">Bank Ide & Referensi</div>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                  {draftCount} Ide
+                </span>
+              </button>
 
               {/* Asset File */}
               <button
