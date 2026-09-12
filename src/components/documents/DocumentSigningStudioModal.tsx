@@ -52,6 +52,8 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
   const [customTitle, setCustomTitle] = useState('');
   const [customUrl, setCustomUrl] = useState('');
   const [customFileName, setCustomFileName] = useState('');
+  const [customFileSize, setCustomFileSize] = useState<number | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -186,25 +188,76 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
     setHasDrawn(false);
   };
 
-  // Upload file from outside saved assets
-  const handleUploadCustomFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const formatFileSize = (bytes?: number | null) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Upload file from outside saved assets (via click or drag & drop)
+  const processUploadedFile = async (file: File) => {
     if (!file) return;
 
     setIsUploadingFile(true);
+    setCustomFileSize(file.size);
     try {
       const res = await appApi.uploadAssetFile(file);
       if (res.success && res.url) {
         setCustomUrl(res.url);
-        setCustomFileName(res.originalName);
-        if (!customTitle) {
-          setCustomTitle(res.originalName.replace(/\.[^/.]+$/, ''));
+        const fileName = res.originalName || file.name;
+        setCustomFileName(fileName);
+        if (!customTitle.trim()) {
+          setCustomTitle(fileName.replace(/\.[^/.]+$/, ''));
         }
+      } else {
+        alert('Gagal mengunggah berkas.');
       }
     } catch (err: any) {
       alert(err.message || 'Gagal mengunggah berkas.');
     } finally {
       setIsUploadingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processUploadedFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      processUploadedFile(files[0]);
+    }
+  };
+
+  const handleRemoveCustomFile = () => {
+    setCustomUrl('');
+    setCustomFileName('');
+    setCustomFileSize(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -601,51 +654,117 @@ export const DocumentSigningStudioModal: React.FC<DocumentSigningStudioModalProp
                         />
                       </div>
 
-                      {/* File Upload Button / URL Input */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                            Unggah Dokumen / PDF (Opsional)
-                          </label>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-                            onChange={handleUploadCustomFile}
-                            className="hidden"
-                          />
-                          <button
-                            type="button"
+                      {/* Drag and Drop or Select File (Link Input Dihapus) */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          File Dokumen <span className="text-slate-400 font-normal">(Drag & Drop atau Pilih File)</span>
+                        </label>
+
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
+                          onChange={handleFileInputChange}
+                          className="hidden"
+                        />
+
+                        {customFileName || customUrl ? (
+                          /* Card File Terunggah */
+                          <div className="bg-indigo-50/50 border border-indigo-200/90 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-2xs">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-xs font-bold text-slate-900 truncate max-w-xs sm:max-w-md">
+                                    {customFileName || 'Berkas Dokumen'}
+                                  </p>
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1 shrink-0">
+                                    <Check className="w-3 h-3" /> Berhasil Diunggah
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                  {customFileSize ? formatFileSize(customFileSize) : 'Berkas siap ditandatangani'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {customUrl && (
+                                <a
+                                  href={customUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-2 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-colors cursor-pointer"
+                                  title="Buka Pratinjau Berkas"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploadingFile}
+                                className="px-3 py-1.5 bg-white hover:bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                              >
+                                Ganti File
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleRemoveCustomFile}
+                                className="p-2 hover:bg-rose-100 text-rose-600 rounded-xl transition-colors cursor-pointer"
+                                title="Hapus Berkas"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Dropzone Area Drag & Drop / Pilih File */
+                          <div
+                            onDragOver={handleDragOver}
+                            onDragEnter={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploadingFile}
-                            className="w-full py-2.5 px-3 border border-dashed border-slate-300 hover:border-indigo-400 rounded-xl text-xs font-semibold text-slate-600 hover:text-indigo-600 bg-slate-50/50 hover:bg-indigo-50/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            className={`relative border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer select-none ${
+                              isDraggingFile
+                                ? 'border-indigo-500 bg-indigo-50/80 ring-4 ring-indigo-500/10 scale-[1.005]'
+                                : 'border-slate-300 hover:border-indigo-400 bg-slate-50/60 hover:bg-indigo-50/30'
+                            }`}
                           >
                             {isUploadingFile ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                                <span>Mengunggah berkas...</span>
-                              </>
+                              <div className="py-2 flex flex-col items-center justify-center gap-2">
+                                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                                <p className="text-xs font-bold text-slate-800">Sedang mengunggah berkas dokumen...</p>
+                                <p className="text-[11px] text-slate-400">Mohon tunggu sebentar hingga proses selesai</p>
+                              </div>
                             ) : (
-                              <>
-                                <UploadCloud className="w-4 h-4" />
-                                <span>{customFileName ? `Ganti: ${customFileName}` : 'Pilih File dari Komputer/HP'}</span>
-                              </>
+                              <div className="flex flex-col items-center justify-center gap-2.5">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
+                                  isDraggingFile ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-100/70 text-indigo-600'
+                                }`}>
+                                  <UploadCloud className="w-6 h-6" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-slate-800">
+                                    {isDraggingFile ? 'Lepaskan berkas di sini untuk mengunggah' : 'Tarik & lepas file berkas ke sini, atau klik untuk memilih file'}
+                                  </p>
+                                  <p className="text-[11px] text-slate-400 mt-0.5">
+                                    Mendukung PDF, Word (.docx), atau Gambar (PNG, JPG) hingga 25MB
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="mt-1 px-4 py-1.5 bg-white border border-slate-200 text-indigo-600 text-xs font-bold rounded-xl shadow-2xs pointer-events-none"
+                                >
+                                  Pilih File dari Komputer / HP
+                                </button>
+                              </div>
                             )}
-                          </button>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                            Atau Link File Online (Google Docs / Drive / PDF)
-                          </label>
-                          <input
-                            type="url"
-                            value={customUrl}
-                            onChange={(e) => setCustomUrl(e.target.value)}
-                            placeholder="https://drive.google.com/file/d/..."
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          />
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
