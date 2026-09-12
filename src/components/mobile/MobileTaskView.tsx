@@ -527,7 +527,7 @@ export const MobileTaskView: React.FC<MobileTaskViewProps> = ({
           onClick={() => setIsTaskModalOpen(false)}
         >
           <div 
-            className="w-full sm:max-w-xl h-full bg-white shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-200"
+            className="relative w-full sm:max-w-xl h-full bg-white shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <TaskInspectorPanel

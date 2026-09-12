@@ -133,6 +133,9 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
   });
   const [isResizing, setIsResizing] = useState(false);
 
+  // Full workspace area mode (default to true for full spacious view in the main area)
+  const [isFullWidth, setIsFullWidth] = useState(true);
+
   // 2. Form Data State
   const [formData, setFormData] = useState<Partial<Task>>({
     title: '',
@@ -460,25 +463,31 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
 
   return (
     <aside 
-      style={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : `${sidebarWidth}px` }}
-      className="relative shrink-0 max-w-full border-l border-slate-200/90 bg-white flex flex-col h-full z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-all animate-in slide-in-from-right duration-200"
+      style={isFullWidth ? undefined : { width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : `${sidebarWidth}px` }}
+      className={
+        isFullWidth
+          ? "absolute inset-0 z-30 bg-white flex flex-col h-full animate-in fade-in duration-150"
+          : "absolute inset-y-0 right-0 z-30 max-w-full border-l border-slate-200/90 bg-white flex flex-col h-full shadow-2xl transition-all animate-in slide-in-from-right duration-200"
+      }
     >
-      {/* Draggable Resize Handle on Left Border */}
-      <div
-        onMouseDown={(e) => {
-          e.preventDefault();
-          setIsResizing(true);
-        }}
-        onDoubleClick={() => setSidebarWidth(540)}
-        className="absolute left-0 top-0 bottom-0 w-2.5 -translate-x-1/2 cursor-col-resize z-30 group flex items-center justify-center hover:bg-indigo-500/20 active:bg-indigo-500/40 transition-colors"
-        title="Tarik untuk memperlebar / memperkecil lebar sidebar (Klik 2x untuk reset ukuran)"
-      >
-        <div className="w-1 h-10 rounded-full bg-slate-300 group-hover:bg-indigo-600 transition-colors" />
-      </div>
+      {/* Draggable Resize Handle on Left Border (only in side panel mode) */}
+      {!isFullWidth && (
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setIsResizing(true);
+          }}
+          onDoubleClick={() => setSidebarWidth(540)}
+          className="absolute left-0 top-0 bottom-0 w-2.5 -translate-x-1/2 cursor-col-resize z-30 group flex items-center justify-center hover:bg-indigo-500/20 active:bg-indigo-500/40 transition-colors"
+          title="Tarik untuk memperlebar / memperkecil lebar sidebar (Klik 2x untuk reset ukuran)"
+        >
+          <div className="w-1 h-10 rounded-full bg-slate-300 group-hover:bg-indigo-600 transition-colors" />
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
-        {/* Modern Header with Quick Width Toggles */}
-        <div className="h-16 px-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+        {/* Modern Header with Quick Width Toggles & Full Area Mode */}
+        <div className="h-16 px-5 sm:px-8 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
               <CheckSquare className="w-4 h-4" />
@@ -492,33 +501,45 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Quick Size Presets */}
-            <div className="hidden sm:flex items-center bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/70 text-[10px] font-semibold text-slate-600">
-              <button
-                type="button"
-                onClick={() => setSidebarWidth(440)}
-                className={`px-2 py-0.5 rounded-md cursor-pointer transition-colors ${sidebarWidth <= 460 ? 'bg-white text-indigo-600 shadow-2xs font-bold' : 'hover:text-slate-900'}`}
-                title="Lebar Ramping (440px)"
-              >
-                Kecil
-              </button>
-              <button
-                type="button"
-                onClick={() => setSidebarWidth(560)}
-                className={`px-2 py-0.5 rounded-md cursor-pointer transition-colors ${sidebarWidth > 460 && sidebarWidth < 700 ? 'bg-white text-indigo-600 shadow-2xs font-bold' : 'hover:text-slate-900'}`}
-                title="Lebar Standar (560px)"
-              >
-                Sedang
-              </button>
-              <button
-                type="button"
-                onClick={() => setSidebarWidth(780)}
-                className={`px-2 py-0.5 rounded-md cursor-pointer transition-colors ${sidebarWidth >= 700 ? 'bg-white text-indigo-600 shadow-2xs font-bold' : 'hover:text-slate-900'}`}
-                title="Lebar Luas (780px)"
-              >
-                Lebar
-              </button>
-            </div>
+            {/* Quick Size Presets (when in side panel mode) */}
+            {!isFullWidth && (
+              <div className="hidden sm:flex items-center bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/70 text-[10px] font-semibold text-slate-600">
+                <button
+                  type="button"
+                  onClick={() => setSidebarWidth(440)}
+                  className={`px-2 py-0.5 rounded-md cursor-pointer transition-colors ${sidebarWidth <= 460 ? 'bg-white text-indigo-600 shadow-2xs font-bold' : 'hover:text-slate-900'}`}
+                  title="Lebar Ramping (440px)"
+                >
+                  Kecil
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarWidth(560)}
+                  className={`px-2 py-0.5 rounded-md cursor-pointer transition-colors ${sidebarWidth > 460 && sidebarWidth < 700 ? 'bg-white text-indigo-600 shadow-2xs font-bold' : 'hover:text-slate-900'}`}
+                  title="Lebar Standar (560px)"
+                >
+                  Sedang
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarWidth(780)}
+                  className={`px-2 py-0.5 rounded-md cursor-pointer transition-colors ${sidebarWidth >= 700 ? 'bg-white text-indigo-600 shadow-2xs font-bold' : 'hover:text-slate-900'}`}
+                  title="Lebar Luas (780px)"
+                >
+                  Lebar
+                </button>
+              </div>
+            )}
+
+            {/* Toggle Full Area / Side Panel Mode */}
+            <button
+              type="button"
+              onClick={() => setIsFullWidth(!isFullWidth)}
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              title={isFullWidth ? "Tampilan Panel Samping" : "Tampilan Penuh (Full Area)"}
+            >
+              {isFullWidth ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
 
             <button
               type="button"
@@ -532,7 +553,8 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
         </div>
 
         {/* Scrollable Form Body with Clean Spacing & Cards */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar bg-slate-50/20">
+        <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-6 custom-scrollbar bg-slate-50/20">
+          <div className={`space-y-5 ${isFullWidth ? 'max-w-5xl mx-auto' : ''}`}>
           
           {/* CARD 1: TASK LIST & TITLE */}
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs space-y-3">
@@ -1107,54 +1129,57 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
             )}
           </div>
 
+          </div>
         </div>
 
         {/* Sticky Footer Actions */}
-        <div className="p-4 px-6 border-t border-slate-100 bg-white flex items-center justify-between shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.02)]">
-          {formData.id && onDelete ? (
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm(`Apakah Anda yakin ingin menghapus task "${formData.title}"?`)) {
-                  onDelete(formData.id!);
-                  onClose();
-                }
-              }}
-              className="px-3 py-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-              title="Hapus task ini"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Hapus Task</span>
-            </button>
-          ) : (
-            <div />
-          )}
+        <div className="p-4 sm:px-8 border-t border-slate-100 bg-white flex items-center justify-between shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.02)]">
+          <div className={`w-full flex items-center justify-between ${isFullWidth ? 'max-w-5xl mx-auto' : ''}`}>
+            {formData.id && onDelete ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Apakah Anda yakin ingin menghapus task "${formData.title}"?`)) {
+                    onDelete(formData.id!);
+                    onClose();
+                  }
+                }}
+                className="px-3 py-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+                title="Hapus task ini"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Hapus Task</span>
+              </button>
+            ) : (
+              <div />
+            )}
 
-          <div className="flex items-center space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !formData.title?.trim()}
-              className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md hover:shadow-indigo-500/25 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
-            >
-              {saving ? (
-                <>
-                  <span className="animate-spin text-xs">⏳</span>
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{formData.id ? 'Simpan Perubahan' : 'Buat Task'}</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={saving || !formData.title?.trim()}
+                className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md hover:shadow-indigo-500/25 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {saving ? (
+                  <>
+                    <span className="animate-spin text-xs">⏳</span>
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{formData.id ? 'Simpan Perubahan' : 'Buat Task'}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </form>

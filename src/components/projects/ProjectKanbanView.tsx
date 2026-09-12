@@ -167,7 +167,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex h-full overflow-hidden bg-white">
+    <div className="relative flex-1 flex h-full overflow-hidden bg-white">
       {/* Main Board Canvas */}
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         {/* Top Header Bar */}
