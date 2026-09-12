@@ -384,7 +384,8 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
               return (
                 <div
                   key={post.id}
-                  className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                  onClick={() => handleOpenEditModal(post)}
+                  className="bg-white border border-slate-200 hover:border-amber-400/80 rounded-3xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer"
                 >
                   <div className="space-y-3.5">
                     {/* Top Row: Brand, Platform, Status */}
@@ -433,7 +434,10 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                           </span>
                           <button
                             type="button"
-                            onClick={() => handleCopyHook(post.id, post.hook)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyHook(post.id, post.hook);
+                            }}
                             className="text-[10px] font-medium text-amber-700 hover:text-amber-900 flex items-center gap-1 transition-colors cursor-pointer"
                             title="Salin naskah hook"
                           >
@@ -484,6 +488,7 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                                 href={url}
                                 target="_blank"
                                 rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
                                 className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border border-slate-200 transition-colors"
                               >
                                 <span className="truncate max-w-[120px]">{label}</span>
@@ -523,7 +528,10 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                     {/* Jadwalkan ke Kalender Button */}
                     <button
                       type="button"
-                      onClick={() => handleOpenScheduleModal(post)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenScheduleModal(post);
+                      }}
                       className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         post.status === 'scheduled'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
@@ -539,7 +547,10 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                     {/* Edit Button */}
                     <button
                       type="button"
-                      onClick={() => handleOpenEditModal(post)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditModal(post);
+                      }}
                       className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                       title="Edit Draft Konten"
                     >
@@ -549,7 +560,10 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                     {/* Delete Button */}
                     <button
                       type="button"
-                      onClick={() => handleDelete(post.id, post.title)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(post.id, post.title);
+                      }}
                       className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                       title="Hapus Draft Konten"
                     >
@@ -585,11 +599,12 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                     return (
                       <tr 
                         key={post.id}
-                        className="hover:bg-slate-50/80 transition-colors"
+                        onClick={() => handleOpenEditModal(post)}
+                        className="hover:bg-amber-50/50 transition-colors cursor-pointer group"
                       >
                         {/* Judul & Hook */}
                         <td className="p-3.5 max-w-xs">
-                          <div className="font-bold text-slate-900 leading-snug line-clamp-2">
+                          <div className="font-bold text-slate-900 group-hover:text-amber-700 transition-colors leading-snug line-clamp-2">
                             {post.title}
                           </div>
                           {post.hook && (
@@ -650,7 +665,10 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
                           <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
-                              onClick={() => handleOpenScheduleModal(post)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenScheduleModal(post);
+                              }}
                               className="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
                               title="Jadwalkan ke Kalender"
                             >
@@ -660,7 +678,10 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
 
                             <button
                               type="button"
-                              onClick={() => handleOpenEditModal(post)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditModal(post);
+                              }}
                               className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                               title="Edit Konten"
                             >
@@ -669,7 +690,10 @@ export const ContentDraftView: React.FC<ContentDraftViewProps> = ({
 
                             <button
                               type="button"
-                              onClick={() => handleDelete(post.id, post.title)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(post.id, post.title);
+                              }}
                               className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                               title="Hapus Konten"
                             >

@@ -401,6 +401,29 @@ export const RightInspectorPanel: React.FC<RightInspectorPanelProps> = ({
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Informasi Utama Konten</h4>
             </div>
 
+            {/* Brand / Klien */}
+            {brands && brands.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Brand / Klien <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">Klien Pemilik Konten</span>
+                </div>
+                <select
+                  value={formData.brand_id || (brands[0]?.id || '')}
+                  onChange={(e) => setFormData({ ...formData, brand_id: e.target.value })}
+                  className="w-full bg-slate-50/70 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-3 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+                >
+                  {brands.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* 1. Name Content */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
