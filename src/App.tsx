@@ -922,7 +922,7 @@ export default function App() {
               </div>
             </button>
 
-            {/* Tools (E-Sign & Productivity Utilities) */}
+            {/* Tools (TTD PDF) */}
             <button
               onClick={() => setActiveTab('tools')}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
@@ -937,7 +937,7 @@ export default function App() {
               </div>
               {isSidebarOpen && (
                 <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                  E-Sign
+                  TTD PDF
                 </span>
               )}
             </button>

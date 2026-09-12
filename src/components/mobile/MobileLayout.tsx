@@ -335,7 +335,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
                 <span className="text-[10px] text-slate-400 font-medium">Buka File</span>
               </button>
 
-              {/* Tools (E-Sign & Studio Utilitas) */}
+              {/* Tools (TTD PDF) */}
               <button
                 onClick={() => handleMoreNavigation('tools')}
                 className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-semibold transition-colors ${
@@ -349,12 +349,12 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
                     <Wrench className="w-4 h-4" />
                   </div>
                   <div className="text-left">
-                    <div className="font-semibold text-slate-900">Tools & E-Sign</div>
-                    <div className="text-[10px] text-slate-400 font-normal">Ttd Berkas & Utilitas</div>
+                    <div className="font-semibold text-slate-900">Tools (TTD PDF)</div>
+                    <div className="text-[10px] text-slate-400 font-normal">Tanda Tangan Dokumen PDF</div>
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                  E-Sign
+                  TTD PDF
                 </span>
               </button>
 
