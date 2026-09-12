@@ -168,3 +168,29 @@ export interface ContentDraftItem {
   created_at?: string;
   updated_at?: string;
 }
+
+export type DocumentSignType = 'internal' | 'external';
+export type DocumentSignStatus = 'pending' | 'signed' | 'rejected';
+export type DocumentFileSource = 'asset' | 'external';
+
+export interface SignedDocument {
+  id: string;
+  title: string;
+  file_url?: string;
+  file_name?: string;
+  file_source: DocumentFileSource;
+  sign_type: DocumentSignType;
+  status: DocumentSignStatus;
+  signing_token?: string;
+  signer_name?: string;
+  signer_role?: string;
+  signer_email?: string;
+  signer_phone?: string;
+  signer_notes?: string;
+  signature_data_url?: string;
+  signed_at?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+

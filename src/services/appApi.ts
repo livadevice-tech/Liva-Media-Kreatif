@@ -8,7 +8,8 @@ import {
   TaskStatus, 
   ContentStatus,
   UserAccount,
-  ContentDraftItem
+  ContentDraftItem,
+  SignedDocument
 } from '../types/app';
 
 const API_BASE = '/api';
@@ -227,4 +228,30 @@ export const appApi = {
       fileType: 'image' | 'document' | 'other';
     }>);
   },
+
+  // Digital Signed Documents (Ttd Berkas)
+  getSignedDocuments: (): Promise<SignedDocument[]> =>
+    fetch(`${API_BASE}/project-app/documents`).then(handleResponse<SignedDocument[]>),
+  createSignedDocument: (data: Partial<SignedDocument>): Promise<{ success: boolean; id: string; signing_token: string; message?: string }> =>
+    fetch(`${API_BASE}/project-app/documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean; id: string; signing_token: string; message?: string }>),
+  getPublicDocumentForSigning: (token: string): Promise<{ success: boolean; document: SignedDocument }> =>
+    fetch(`${API_BASE}/project-app/documents/public/${token}`).then(handleResponse<{ success: boolean; document: SignedDocument }>),
+  submitPublicSignature: (token: string, data: { signature_data_url: string; signer_name?: string; signer_role?: string }): Promise<{ success: boolean; message: string; signer_name?: string; signed_at?: string }> =>
+    fetch(`${API_BASE}/project-app/documents/public/${token}/sign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean; message: string; signer_name?: string; signed_at?: string }>),
+  signDocumentInternal: (id: string, data: { signature_data_url: string; signer_name?: string; signer_role?: string }): Promise<{ success: boolean; message: string }> =>
+    fetch(`${API_BASE}/project-app/documents/${id}/internal-sign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean; message: string }>),
+  deleteSignedDocument: (id: string): Promise<{ success: boolean; message: string }> =>
+    fetch(`${API_BASE}/project-app/documents/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean; message: string }>),
 };

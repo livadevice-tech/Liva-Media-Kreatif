@@ -49,6 +49,7 @@ import { MobileLayout, MobileTab } from './components/mobile/MobileLayout';
 import { MobileCalendarView } from './components/mobile/MobileCalendarView';
 import { MobileTaskView } from './components/mobile/MobileTaskView';
 import { MobileHomeView } from './components/mobile/MobileHomeView';
+import { PublicDocumentSigningView } from './components/documents/PublicDocumentSigningView';
 
 type NavigationTab = 'home' | 'calendar' | 'drafts' | 'tasks' | 'assets' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
 
@@ -458,6 +459,26 @@ export default function App() {
       showToast(err.message || 'Gagal menghapus akun', 'error');
     }
   };
+
+  // Check for external public document signing token in URL (?sign_token=... or #sign?sign_token=...)
+  const [publicSignToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromQuery = urlParams.get('sign_token');
+    if (tokenFromQuery) return tokenFromQuery;
+
+    if (window.location.hash.includes('sign_token=')) {
+      const hashParts = window.location.hash.split('?');
+      if (hashParts[1]) {
+        return new URLSearchParams(hashParts[1]).get('sign_token');
+      }
+    }
+    return null;
+  });
+
+  if (publicSignToken) {
+    return <PublicDocumentSigningView token={publicSignToken} />;
+  }
 
   if (!currentUser) {
     return (

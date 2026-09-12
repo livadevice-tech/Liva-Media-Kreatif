@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FolderArchive, 
   Search, 
@@ -27,10 +27,13 @@ import {
   UploadCloud,
   Paperclip,
   FileCheck,
-  Loader2
+  Loader2,
+  PenTool,
+  ShieldCheck
 } from 'lucide-react';
 import { appApi } from '../../services/appApi';
 import { AssetFileItem, Brand, ContentPost, Task, Project, UserAccount } from '../../types/app';
+import { DocumentSigningStudioModal } from '../documents/DocumentSigningStudioModal';
 
 interface AssetFileViewProps {
   brands: Brand[];
@@ -58,6 +61,20 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Document Signing Studio Modal State
+  const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
+  const [signedDocsCount, setSignedDocsCount] = useState(0);
+
+  const loadSignedDocsCount = () => {
+    appApi.getSignedDocuments()
+      .then((docs) => setSignedDocsCount(docs.length))
+      .catch((e) => console.warn('Could not load signed docs count:', e));
+  };
+
+  useEffect(() => {
+    loadSignedDocsCount();
+  }, []);
 
   // Sidebar CRUD Asset state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -498,13 +515,57 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={openSidebarForCreate}
-          className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Asset File</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsSigningModalOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer group"
+            title="Tanda tangani berkas di tempat (internal) atau buat tautan tanda tangan untuk pihak eksternal tanpa login"
+          >
+            <PenTool className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+            <span>Ttd Berkas</span>
+            {signedDocsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-emerald-700 text-white text-[10px] font-black">
+                {signedDocsCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={openSidebarForCreate}
+            className="bg-[#4f46e5] hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Asset File</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Tools Bar at Top of Asset File */}
+      <div className="px-6 py-2.5 bg-gradient-to-r from-emerald-50/60 via-slate-50 to-indigo-50/60 border-b border-slate-200/70 flex items-center justify-between gap-3 text-xs shrink-0 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span className="font-bold text-slate-800 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Tools Dokumen:</span>
+          </span>
+          
+          <button
+            type="button"
+            onClick={() => setIsSigningModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white hover:bg-emerald-50 border border-slate-200/80 hover:border-emerald-300 text-slate-800 hover:text-emerald-700 font-bold shadow-2xs transition-all cursor-pointer"
+          >
+            <PenTool className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Ttd Berkas (Digital Signature)</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 font-semibold">
+              Internal & Eksternal
+            </span>
+          </button>
+        </div>
+
+        <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Tanda tangan eksternal dapat diakses langsung oleh penerima tanpa perlu login</span>
+        </div>
       </div>
 
       {/* Filter & Toolbar */}
@@ -1111,6 +1172,20 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Document Signing Studio Modal */}
+      <DocumentSigningStudioModal
+        isOpen={isSigningModalOpen}
+        onClose={() => {
+          setIsSigningModalOpen(false);
+          loadSignedDocsCount();
+        }}
+        savedAssets={allAssets}
+        currentUser={currentUser}
+        onDocumentSignedSuccess={() => {
+          loadSignedDocsCount();
+        }}
+      />
     </div>
   );
 };

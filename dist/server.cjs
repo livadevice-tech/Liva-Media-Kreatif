@@ -2315,6 +2315,176 @@ projectAppRouter.post("/settings/:key", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+projectAppRouter.get("/documents", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const [rows] = await pool2.query(`
+      SELECT * FROM app_signed_documents 
+      ORDER BY created_at DESC
+    `);
+    res.json(rows || []);
+  } catch (error) {
+    console.error("Error fetching signed documents:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.post("/documents", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const {
+      title,
+      file_url,
+      file_name,
+      file_source = "asset",
+      sign_type = "internal",
+      signer_name = "",
+      signer_role = "",
+      signer_email = "",
+      signer_phone = "",
+      signer_notes = "",
+      signature_data_url = null,
+      created_by = "User"
+    } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: "Judul dokumen wajib diisi." });
+    }
+    const docId = `doc-${Date.now()}`;
+    const signingToken = `st-${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`;
+    const isDirectSigned = sign_type === "internal" && !!signature_data_url;
+    const initialStatus = isDirectSigned ? "signed" : "pending";
+    const signedAt = isDirectSigned ? /* @__PURE__ */ new Date() : null;
+    await pool2.query(`
+      INSERT INTO app_signed_documents (
+        id, title, file_url, file_name, file_source, sign_type, status,
+        signing_token, signer_name, signer_role, signer_email, signer_phone,
+        signer_notes, signature_data_url, signed_at, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      docId,
+      title.trim(),
+      file_url || "",
+      file_name || "",
+      file_source,
+      sign_type,
+      initialStatus,
+      signingToken,
+      signer_name || "",
+      signer_role || "",
+      signer_email || "",
+      signer_phone || "",
+      signer_notes || "",
+      signature_data_url || null,
+      signedAt,
+      created_by
+    ]);
+    res.json({
+      success: true,
+      id: docId,
+      signing_token: signingToken,
+      status: initialStatus,
+      message: isDirectSigned ? "Dokumen berhasil ditandatangani dan disimpan!" : "Permintaan tanda tangan berkas berhasil dibuat."
+    });
+  } catch (error) {
+    console.error("Error creating document signature:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.get("/documents/public/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const pool2 = getPool();
+    const [rows] = await pool2.query(`
+      SELECT 
+        id, title, file_url, file_name, file_source, sign_type, status,
+        signing_token, signer_name, signer_role, signer_email, signer_notes,
+        signature_data_url, signed_at, created_at, created_by
+      FROM app_signed_documents 
+      WHERE signing_token = ?
+    `, [token]);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Tautan tanda tangan tidak ditemukan atau sudah kedaluwarsa." });
+    }
+    res.json({
+      success: true,
+      document: rows[0]
+    });
+  } catch (error) {
+    console.error("Error fetching public document for signing:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.post("/documents/public/:token/sign", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { signature_data_url, signer_name, signer_role } = req.body;
+    if (!signature_data_url) {
+      return res.status(400).json({ error: "Goresan tanda tangan digital wajib dibubuhkan." });
+    }
+    const pool2 = getPool();
+    const [existing] = await pool2.query(`
+      SELECT id, status, signer_name, signer_role FROM app_signed_documents WHERE signing_token = ?
+    `, [token]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ error: "Dokumen tidak ditemukan." });
+    }
+    const finalSignerName = signer_name?.trim() || existing[0].signer_name || "Pihak Eksternal";
+    const finalSignerRole = signer_role?.trim() || existing[0].signer_role || "Penerima Berkas";
+    await pool2.query(`
+      UPDATE app_signed_documents 
+      SET 
+        status = 'signed',
+        signature_data_url = ?,
+        signer_name = ?,
+        signer_role = ?,
+        signed_at = NOW()
+      WHERE signing_token = ?
+    `, [signature_data_url, finalSignerName, finalSignerRole, token]);
+    res.json({
+      success: true,
+      message: "Tanda tangan berhasil dibubuhkan ke dokumen.",
+      signer_name: finalSignerName,
+      signed_at: (/* @__PURE__ */ new Date()).toISOString()
+    });
+  } catch (error) {
+    console.error("Error signing public document:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.post("/documents/:id/internal-sign", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { signature_data_url, signer_name, signer_role } = req.body;
+    if (!signature_data_url) {
+      return res.status(400).json({ error: "Goresan tanda tangan digital wajib dibubuhkan." });
+    }
+    const pool2 = getPool();
+    await pool2.query(`
+      UPDATE app_signed_documents 
+      SET 
+        status = 'signed',
+        signature_data_url = ?,
+        signer_name = COALESCE(?, signer_name),
+        signer_role = COALESCE(?, signer_role),
+        signed_at = NOW()
+      WHERE id = ?
+    `, [signature_data_url, signer_name || null, signer_role || null, id]);
+    res.json({ success: true, message: "Dokumen internal berhasil ditandatangani!" });
+  } catch (error) {
+    console.error("Error signing internal document:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.delete("/documents/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool2 = getPool();
+    await pool2.query(`DELETE FROM app_signed_documents WHERE id = ?`, [id]);
+    res.json({ success: true, message: "Dokumen berhasil dihapus." });
+  } catch (error) {
+    console.error("Error deleting document:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // server/migrateProjectApp.ts
 async function runProjectAppMigrations() {
@@ -2495,6 +2665,30 @@ async function runProjectAppMigrations() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_brand (brand_id),
+      INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+  await pool2.execute(`
+    CREATE TABLE IF NOT EXISTS app_signed_documents (
+      id VARCHAR(50) PRIMARY KEY,
+      title VARCHAR(250) NOT NULL,
+      file_url TEXT,
+      file_name VARCHAR(250),
+      file_source VARCHAR(50) DEFAULT 'asset',
+      sign_type VARCHAR(50) DEFAULT 'internal',
+      status VARCHAR(50) DEFAULT 'pending',
+      signing_token VARCHAR(100) UNIQUE,
+      signer_name VARCHAR(150),
+      signer_role VARCHAR(100),
+      signer_email VARCHAR(150),
+      signer_phone VARCHAR(50),
+      signer_notes TEXT,
+      signature_data_url LONGTEXT,
+      signed_at DATETIME,
+      created_by VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_token (signing_token),
       INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);

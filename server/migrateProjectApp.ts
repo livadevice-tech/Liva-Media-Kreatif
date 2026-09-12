@@ -197,6 +197,32 @@ export async function runProjectAppMigrations() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
+  // 9. Digital Document Signatures Table (Ttd Berkas Internal & Eksternal)
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS app_signed_documents (
+      id VARCHAR(50) PRIMARY KEY,
+      title VARCHAR(250) NOT NULL,
+      file_url TEXT,
+      file_name VARCHAR(250),
+      file_source VARCHAR(50) DEFAULT 'asset',
+      sign_type VARCHAR(50) DEFAULT 'internal',
+      status VARCHAR(50) DEFAULT 'pending',
+      signing_token VARCHAR(100) UNIQUE,
+      signer_name VARCHAR(150),
+      signer_role VARCHAR(100),
+      signer_email VARCHAR(150),
+      signer_phone VARCHAR(50),
+      signer_notes TEXT,
+      signature_data_url LONGTEXT,
+      signed_at DATETIME,
+      created_by VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_token (signing_token),
+      INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
   console.log("✅ Seluruh tabel berhasil diverifikasi/dibuat!");
 
   // Auto Seeding jika data masih kosong
