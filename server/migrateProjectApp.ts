@@ -154,6 +154,9 @@ export async function runProjectAppMigrations() {
   try {
     await pool.execute(`ALTER TABLE sm_content_posts MODIFY COLUMN assignee_design TEXT NULL`);
   } catch (e) {}
+  try {
+    await pool.execute(`ALTER TABLE sm_content_posts MODIFY COLUMN scheduled_at DATETIME NULL`);
+  } catch (e) {}
 
   // Safe column migration for pm_projects
   try {

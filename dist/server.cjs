@@ -1754,15 +1754,15 @@ projectAppRouter.post("/content-posts", async (req, res) => {
         hashtags || "",
         call_to_action || "",
         JSON.stringify(media_urls || []),
-        scheduled_at,
-        status || "idea",
+        scheduled_at || null,
+        status || "drafting",
         finalAssigneeCopy,
         assignee_design || "",
         notes || "",
         published_link || ""
       ]
     );
-    res.json({ success: true, id, message: "Postingan konten berhasil dijadwalkan" });
+    res.json({ success: true, id, message: "Postingan konten berhasil disimpan" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1823,7 +1823,7 @@ projectAppRouter.put("/content-posts/:id", async (req, res) => {
         hashtags,
         call_to_action,
         JSON.stringify(media_urls || []),
-        scheduled_at,
+        scheduled_at || null,
         status,
         finalAssigneeCopy,
         assignee_design || "",
@@ -2457,6 +2457,10 @@ async function runProjectAppMigrations() {
   }
   try {
     await pool2.execute(`ALTER TABLE sm_content_posts MODIFY COLUMN assignee_design TEXT NULL`);
+  } catch (e) {
+  }
+  try {
+    await pool2.execute(`ALTER TABLE sm_content_posts MODIFY COLUMN scheduled_at DATETIME NULL`);
   } catch (e) {
   }
   try {

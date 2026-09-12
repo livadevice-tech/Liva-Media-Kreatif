@@ -571,7 +571,7 @@ export default function App() {
           currentUser={currentUser}
           appSettings={appSettings}
           taskCount={tasks.length}
-          draftCount={drafts.filter((d) => d.status !== 'scheduled').length}
+          draftCount={posts.filter((p) => p.status !== 'scheduled' && p.status !== 'published').length}
           dbStatus={dbStatus}
           onOpenDbModal={() => setShowDbModal(true)}
           onLogout={handleLogout}
@@ -589,13 +589,14 @@ export default function App() {
           ) : activeTab === 'drafts' ? (
             <div className="p-2 pb-16">
               <ContentDraftView
-                drafts={drafts}
+                posts={posts}
                 brands={brands}
                 projects={projects}
                 pillars={pillars}
-                onSaveDraft={handleSaveDraft}
-                onDeleteDraft={handleDeleteDraft}
-                onScheduleDraft={handleScheduleDraft}
+                accounts={accounts}
+                onSavePost={handleSavePost}
+                onDeletePost={handleDeletePost}
+                onUpdateStatus={handleUpdateContentStatus}
                 onOpenCalendar={() => setActiveTab('calendar')}
               />
             </div>
@@ -820,7 +821,7 @@ export default function App() {
                     ? 'bg-amber-200/70 text-amber-800'
                     : 'bg-amber-50 text-amber-700 border border-amber-200/60'
                 }`}>
-                  {drafts.filter((d) => d.status !== 'scheduled').length}
+                  {posts.filter((p) => p.status !== 'scheduled' && p.status !== 'published').length}
                 </span>
               )}
             </button>
@@ -1056,13 +1057,14 @@ export default function App() {
           />
         ) : activeTab === 'drafts' ? (
           <ContentDraftView
-            drafts={drafts}
+            posts={posts}
             brands={brands}
             projects={projects}
             pillars={pillars}
-            onSaveDraft={handleSaveDraft}
-            onDeleteDraft={handleDeleteDraft}
-            onScheduleDraft={handleScheduleDraft}
+            accounts={accounts}
+            onSavePost={handleSavePost}
+            onDeletePost={handleDeletePost}
+            onUpdateStatus={handleUpdateContentStatus}
             onOpenCalendar={() => setActiveTab('calendar')}
           />
         ) : activeTab === 'tasks' ? (

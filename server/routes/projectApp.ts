@@ -635,11 +635,11 @@ projectAppRouter.post('/content-posts', async (req: Request, res: Response) => {
         id, brand_id || null, social_account_id || null, project_id || null, title,
         pillar_name || 'Edukasi & Tips', platform || 'instagram', content_type || 'feed_single',
         hook || '', caption || '', hashtags || '', call_to_action || '',
-        JSON.stringify(media_urls || []), scheduled_at, status || 'idea',
+        JSON.stringify(media_urls || []), scheduled_at || null, status || 'drafting',
         finalAssigneeCopy, assignee_design || '', notes || '', published_link || ''
       ]
     );
-    res.json({ success: true, id, message: 'Postingan konten berhasil dijadwalkan' });
+    res.json({ success: true, id, message: 'Postingan konten berhasil disimpan' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -680,7 +680,7 @@ projectAppRouter.put('/content-posts/:id', async (req: Request, res: Response) =
       [
         brand_id, social_account_id, project_id, title, pillar_name, platform,
         content_type, hook, caption, hashtags, call_to_action, JSON.stringify(media_urls || []),
-        scheduled_at, status, finalAssigneeCopy, assignee_design || '', notes, published_link, id
+        scheduled_at || null, status, finalAssigneeCopy, assignee_design || '', notes, published_link, id
       ]
     );
     res.json({ success: true, message: 'Konten berhasil diperbarui' });
