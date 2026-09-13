@@ -32,6 +32,8 @@ import {
   HelpCircle,
   PanelLeftClose,
   PanelLeft,
+  Maximize2,
+  Minimize2,
   X
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -79,11 +81,13 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   // PDF Viewer Navigation & Zoom
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(1);
-  const [zoomScale, setZoomScale] = useState(1.15);
+  const [zoomScale, setZoomScale] = useState(1.0);
+  const [fitMode, setFitMode] = useState<'fit-width' | 'fit-page' | 'custom'>('fit-page');
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [pdfLoadError, setPdfLoadError] = useState<string | null>(null);
   const pdfCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewportWrapperRef = useRef<HTMLDivElement | null>(null);
 
   // Signature Pad State (ONLY SIGNATURE GRAPHIC)
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
@@ -203,6 +207,33 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     setPdfBytes(new Uint8Array(arrayBuffer));
   };
 
+  // Calculate & Apply Fit Scale (Fit ke Lebar / Fit ke Halaman Penuh)
+  const calculateAndApplyFit = (mode: 'fit-width' | 'fit-page', unscaledWidth?: number, unscaledHeight?: number) => {
+    const wrapper = viewportWrapperRef.current;
+    if (!wrapper) return;
+    const paddingX = 48; // safe margin
+    const paddingY = 48;
+    const availWidth = Math.max(300, wrapper.clientWidth - paddingX);
+    const availHeight = Math.max(300, wrapper.clientHeight - paddingY);
+
+    const pdfW = unscaledWidth || 595;
+    const pdfH = unscaledHeight || 842;
+
+    let targetScale = 1.0;
+    if (mode === 'fit-width') {
+      targetScale = availWidth / pdfW;
+    } else {
+      // fit-page: fits both width and height so the entire page is visible without overflow
+      const scaleX = availWidth / pdfW;
+      const scaleY = availHeight / pdfH;
+      targetScale = Math.min(scaleX, scaleY);
+    }
+
+    const clampedScale = Math.max(0.4, Math.min(2.5, Number(targetScale.toFixed(2))));
+    setZoomScale(clampedScale);
+    setFitMode(mode);
+  };
+
   // Render PDF page
   useEffect(() => {
     if (!fileUrl || !isPdf) return;
@@ -227,7 +258,30 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
         const page = await pdf.getPage(safePageNum);
         if (isCancelled) return;
 
-        const viewport = page.getViewport({ scale: zoomScale });
+        // Determine current effective zoom scale
+        let currentScale = zoomScale;
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+
+        // Auto-fit on first load or when fitMode is explicitly set
+        if (fitMode === 'fit-page' || fitMode === 'fit-width') {
+          const wrapper = viewportWrapperRef.current;
+          if (wrapper) {
+            const availW = Math.max(280, wrapper.clientWidth - 48);
+            const availH = Math.max(280, wrapper.clientHeight - 48);
+            if (fitMode === 'fit-width') {
+              currentScale = Math.max(0.4, Math.min(2.5, Number((availW / unscaledViewport.width).toFixed(2))));
+            } else {
+              const scaleX = availW / unscaledViewport.width;
+              const scaleY = availH / unscaledViewport.height;
+              currentScale = Math.max(0.4, Math.min(2.5, Number(Math.min(scaleX, scaleY).toFixed(2))));
+            }
+            if (currentScale !== zoomScale) {
+              setZoomScale(currentScale);
+            }
+          }
+        }
+
+        const viewport = page.getViewport({ scale: currentScale });
         const canvas = pdfCanvasRef.current;
         if (!canvas) return;
 
@@ -262,7 +316,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [fileUrl, isPdf, currentPage, zoomScale]);
+  }, [fileUrl, isPdf, currentPage, zoomScale, fitMode]);
 
   // Setup Signature Pad Canvas for Internal Mode
   useEffect(() => {
@@ -1413,22 +1467,62 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Zoom controls */}
-                  <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-xl">
+                  {/* Zoom & Fit controls */}
+                  <div className="flex items-center gap-1.5 bg-slate-800 px-2 py-1 rounded-xl">
                     <button
                       type="button"
-                      onClick={() => setZoomScale((z) => Math.max(0.6, Number((z - 0.15).toFixed(2))))}
+                      onClick={() => {
+                        setFitMode('fit-page');
+                        calculateAndApplyFit('fit-page');
+                      }}
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors cursor-pointer ${
+                        fitMode === 'fit-page'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                      }`}
+                      title="Sesuaikan ukuran penuh ke layar"
+                    >
+                      Fit Halaman
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFitMode('fit-width');
+                        calculateAndApplyFit('fit-width');
+                      }}
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors cursor-pointer ${
+                        fitMode === 'fit-width'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                      }`}
+                      title="Sesuaikan dengan lebar layar"
+                    >
+                      Fit Lebar
+                    </button>
+
+                    <div className="w-px h-3 bg-slate-700 mx-0.5" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFitMode('custom');
+                        setZoomScale((z) => Math.max(0.4, Number((z - 0.15).toFixed(2))));
+                      }}
                       className="p-1 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
                       title="Perkecil"
                     >
                       <ZoomOut className="w-3.5 h-3.5" />
                     </button>
-                    <span className="text-[10px] text-slate-400 font-mono">
+                    <span className="text-[10px] text-slate-400 font-mono min-w-8 text-center">
                       {Math.round(zoomScale * 100)}%
                     </span>
                     <button
                       type="button"
-                      onClick={() => setZoomScale((z) => Math.min(2.0, Number((z + 0.15).toFixed(2))))}
+                      onClick={() => {
+                        setFitMode('custom');
+                        setZoomScale((z) => Math.min(2.5, Number((z + 0.15).toFixed(2))));
+                      }}
                       className="p-1 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
                       title="Perbesar"
                     >
@@ -1438,7 +1532,10 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                 </div>
 
                 {/* Scrollable Document Canvas Viewport */}
-                <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center custom-scrollbar">
+                <div 
+                  ref={viewportWrapperRef}
+                  className="flex-1 overflow-auto p-4 sm:p-6 flex items-start justify-center custom-scrollbar"
+                >
                   {isLoadingPdf && (
                     <div className="flex flex-col items-center justify-center gap-2 text-white">
                       <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
