@@ -417,22 +417,63 @@ const ScheduleFilterHostDropdown: React.FC<{
     h.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // List of options: "" (Semua Host) followed by hosts
+  const hostOptions = ["", ...hosts.map(h => h.name)];
+  const currentIndex = hostOptions.indexOf(value);
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hostOptions.length <= 1) return;
+    const newIdx = currentIndex <= 0 ? hostOptions.length - 1 : currentIndex - 1;
+    onChange(hostOptions[newIdx]);
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hostOptions.length <= 1) return;
+    const newIdx = currentIndex < 0 || currentIndex >= hostOptions.length - 1 ? 0 : currentIndex + 1;
+    onChange(hostOptions[newIdx]);
+  };
+
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-[200px] bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer flex justify-between items-center text-left shadow-2xs"
-      >
-        <div className="flex items-center gap-2 truncate pr-1">
-          <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="truncate">{value || "Semua Host"}</span>
-        </div>
-        <ChevronDown className="w-3.5 h-3.5 text-slate-400 select-none ml-1 shrink-0" />
-      </button>
+    <div className="relative inline-flex items-center" ref={dropdownRef}>
+      <div className="flex items-center bg-white border border-slate-200/90 rounded-xl shadow-2xs hover:border-slate-300 transition-all overflow-hidden">
+        {/* Back Button */}
+        <button
+          type="button"
+          onClick={handlePrev}
+          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-slate-50 transition-colors cursor-pointer border-r border-slate-100"
+          title="Host Sebelumnya"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Dropdown Trigger */}
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-[175px] px-2.5 py-2 text-xs font-semibold text-slate-700 outline-none transition-all cursor-pointer flex justify-between items-center text-left"
+        >
+          <div className="flex items-center gap-1.5 truncate pr-1">
+            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="truncate">{value || "Semua Host"}</span>
+          </div>
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 select-none ml-1 shrink-0" />
+        </button>
+
+        {/* Next Button */}
+        <button
+          type="button"
+          onClick={handleNext}
+          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-slate-50 transition-colors cursor-pointer border-l border-slate-100"
+          title="Host Selanjutnya"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 flex flex-col gap-2 min-w-[220px]">
+        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 flex flex-col gap-2 min-w-[230px]">
           <div className="relative flex-shrink-0">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -508,22 +549,63 @@ const ScheduleFilterBrandDropdown: React.FC<{
     b.toLowerCase().includes(search.toLowerCase())
   );
 
+  // List of options: "" (Semua Brand) followed by unique brands
+  const brandOptions = ["", ...Array.from(new Set(allBrandNames))];
+  const currentIndex = brandOptions.indexOf(value);
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (brandOptions.length <= 1) return;
+    const newIdx = currentIndex <= 0 ? brandOptions.length - 1 : currentIndex - 1;
+    onChange(brandOptions[newIdx]);
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (brandOptions.length <= 1) return;
+    const newIdx = currentIndex < 0 || currentIndex >= brandOptions.length - 1 ? 0 : currentIndex + 1;
+    onChange(brandOptions[newIdx]);
+  };
+
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-[200px] bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer flex justify-between items-center text-left shadow-2xs"
-      >
-        <div className="flex items-center gap-2 truncate pr-1">
-          <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="truncate">{value || "Semua Brand"}</span>
-        </div>
-        <ChevronDown className="w-3.5 h-3.5 text-slate-400 select-none ml-1 shrink-0" />
-      </button>
+    <div className="relative inline-flex items-center" ref={dropdownRef}>
+      <div className="flex items-center bg-white border border-slate-200/90 rounded-xl shadow-2xs hover:border-slate-300 transition-all overflow-hidden">
+        {/* Back Button */}
+        <button
+          type="button"
+          onClick={handlePrev}
+          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-slate-50 transition-colors cursor-pointer border-r border-slate-100"
+          title="Brand Sebelumnya"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Dropdown Trigger */}
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-[175px] px-2.5 py-2 text-xs font-semibold text-slate-700 outline-none transition-all cursor-pointer flex justify-between items-center text-left"
+        >
+          <div className="flex items-center gap-1.5 truncate pr-1">
+            <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="truncate">{value || "Semua Brand"}</span>
+          </div>
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 select-none ml-1 shrink-0" />
+        </button>
+
+        {/* Next Button */}
+        <button
+          type="button"
+          onClick={handleNext}
+          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-slate-50 transition-colors cursor-pointer border-l border-slate-100"
+          title="Brand Selanjutnya"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 flex flex-col gap-2 min-w-[220px]">
+        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 flex flex-col gap-2 min-w-[230px]">
           <div className="relative flex-shrink-0">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input

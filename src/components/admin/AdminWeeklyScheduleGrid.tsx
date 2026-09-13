@@ -372,7 +372,8 @@ export function AdminWeeklyScheduleGrid({
                 return studio.shifts.map((shift, shiftIdx) => {
                   const isFirstRowInStudio = shiftIdx === 0;
                   const isLastRowInStudio = shiftIdx === studio.shifts.length - 1;
-                  const borderClass = isLastRowInStudio ? "border-b-2 border-b-slate-200" : "border-b border-slate-100";
+                  // Distinct studio border separator: thicker and distinctive slate-300 divider
+                  const borderClass = isLastRowInStudio ? "border-b-[3px] border-b-slate-300" : "border-b border-slate-100";
                   const { title: shiftTitle, hours: shiftHours } = parseShiftDisplay(shift);
 
                   return (
@@ -382,7 +383,7 @@ export function AdminWeeklyScheduleGrid({
                       {isFirstRowInStudio && (
                         <td 
                           rowSpan={studio.shifts.length} 
-                          className="border-r border-slate-200 p-1 text-center align-middle bg-white group/studio relative border-b-2 border-b-slate-200"
+                          className="border-r border-slate-200 p-1 text-center align-middle bg-white group/studio relative border-b-[3px] border-b-slate-300 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)]"
                         >
                           <button
                             type="button"
@@ -571,9 +572,10 @@ export function AdminWeeklyScheduleGrid({
                                        b.sessions?.some(s => s.host?.trim().toLowerCase() === sched.hostName?.trim().toLowerCase())
                                 );
                                 
-                                const cardBg = isNotRegularHost ? 'bg-rose-50' : brandColor.bg;
-                                const cardBorder = isNotRegularHost ? 'border-rose-200' : brandColor.border;
-                                const cardText = isNotRegularHost ? 'text-rose-600' : brandColor.text;
+                                // User request: warna tetap sama dengan warna brand tersebut tapi yang buat berbeda itu bordernya saja yang warna merah
+                                const cardBg = brandColor.bg;
+                                const cardBorder = isNotRegularHost ? 'border-red-500 border-[1.5px]' : brandColor.border;
+                                const cardText = brandColor.text;
 
                                 const platformClean = sched.platform ? sched.platform.replace(/ live/i, '').trim() : '';
 
@@ -601,12 +603,12 @@ export function AdminWeeklyScheduleGrid({
                                     className={`group relative ${cardBg} border ${cardBorder} ${cardText} px-1.5 py-1 rounded-md flex flex-col justify-center transition-all hover:shadow-2xs cursor-pointer ${
                                       isSelected ? 'ring-1 ring-indigo-400 font-semibold' : ''
                                     }`}
-                                    title={`${sched.brand}${platformClean ? ` - ${platformClean}` : ''} - ${sched.hostName}`}
+                                    title={`${sched.brand}${platformClean ? ` - ${platformClean}` : ''} - ${sched.hostName}${isNotRegularHost ? ' (Bukan Host Reguler)' : ''}`}
                                   >
                                     <div className="font-bold text-[10px] truncate leading-tight pr-2.5">
                                       {sched.brand}{platformClean ? ` - ${platformClean}` : ''}
                                     </div>
-                                    <div className={`text-[9.5px] truncate leading-tight mt-0.5 pr-2.5 ${isNotRegularHost ? 'font-bold text-rose-600' : 'text-slate-600 font-medium'}`}>
+                                    <div className={`text-[9.5px] truncate leading-tight mt-0.5 pr-2.5 ${isNotRegularHost ? 'font-bold text-red-600' : 'text-slate-600 font-medium'}`}>
                                       {sched.hostName}
                                     </div>
                                     {onDeleteSchedule && !isMultiSelectMode && selectedSlots.size === 0 && (
