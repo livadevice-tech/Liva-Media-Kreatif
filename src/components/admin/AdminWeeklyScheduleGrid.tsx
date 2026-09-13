@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ShiftSchedule, StudioItem, ClientBrand } from '../../types';
-import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, CheckSquare, Square, Trash2, Edit3, Check } from 'lucide-react';
 import { getBrandColor, compareShiftsByTime } from '../../shared/utils/appUi';
 
 interface AdminWeeklyScheduleGridProps {
@@ -46,6 +46,8 @@ export function AdminWeeklyScheduleGrid({
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragSelection, setDragSelection] = useState<Set<string>>(new Set());
+  const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   
   // State for manual shifts
   const [addedShifts, setAddedShifts] = useState<Record<string, Set<string>>>({});
@@ -75,15 +77,13 @@ export function AdminWeeklyScheduleGrid({
     const handleMouseUp = () => {
       if (isDragging) {
         setIsDragging(false);
-        if (dragSelection.size > 1 && onMassCellSelect) {
-          const slots = Array.from(dragSelection).map((val: string) => {
-            const [date, studio, shift] = val.split('|');
-            return { date, studio, shift };
+        if (dragSelection.size > 1) {
+          // If dragged across multiple cells, add to selectedSlots
+          setSelectedSlots(prev => {
+            const next = new Set(prev);
+            dragSelection.forEach(item => next.add(item));
+            return next;
           });
-          onMassCellSelect(slots);
-        } else if (dragSelection.size === 1) {
-            // single click is handled by onClick, but to prevent race conditions or if onClick doesn't fire, we can let onClick handle it.
-            // Wait, onClick handles it natively, so we just reset.
         }
         setDragSelection(new Set());
       }
@@ -91,11 +91,14 @@ export function AdminWeeklyScheduleGrid({
     
     window.addEventListener('mouseup', handleMouseUp);
     return () => window.removeEventListener('mouseup', handleMouseUp);
-  }, [isDragging, dragSelection, onMassCellSelect]);
+  }, [isDragging, dragSelection]);
 
-  const handleCellMouseDown = (date: string, studio: string, shift: string) => {
-    setIsDragging(true);
-    setDragSelection(new Set([`${date}|${studio}|${shift}`]));
+  const handleCellMouseDown = (e: React.MouseEvent, date: string, studio: string, shift: string) => {
+    // Only drag with left mouse button without ctrl/meta key
+    if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !isMultiSelectMode) {
+      setIsDragging(true);
+      setDragSelection(new Set([`${date}|${studio}|${shift}`]));
+    }
   };
 
   const handleCellMouseEnter = (date: string, studio: string, shift: string) => {
@@ -106,6 +109,23 @@ export function AdminWeeklyScheduleGrid({
         return next;
       });
     }
+  };
+
+  const toggleSlotSelection = (key: string) => {
+    setSelectedSlots(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedSlots(new Set());
+    setDragSelection(new Set());
   };
 
   // Generate 7 days for the current week
@@ -248,6 +268,33 @@ export function AdminWeeklyScheduleGrid({
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setIsMultiSelectMode(prev => {
+                if (prev) clearSelection();
+                return !prev;
+              });
+            }}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer border ${
+              isMultiSelectMode || selectedSlots.size > 0
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-100'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+            }`}
+            title="Klik untuk memilih banyak shift sekaligus"
+          >
+            {isMultiSelectMode || selectedSlots.size > 0 ? (
+              <CheckSquare className="w-3.5 h-3.5" />
+            ) : (
+              <Square className="w-3.5 h-3.5" />
+            )}
+            <span>{isMultiSelectMode ? 'Mode Pilih Aktif' : 'Pilih Massal'}</span>
+            {selectedSlots.size > 0 && (
+              <span className="ml-0.5 bg-white text-indigo-600 font-bold px-1.5 py-0.2 text-[10px] rounded-full">
+                {selectedSlots.size}
+              </span>
+            )}
+          </button>
           <button
             onClick={onCurrentWeek}
             className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
@@ -475,32 +522,43 @@ export function AdminWeeklyScheduleGrid({
                       {weekDays.map(day => {
                         const cellSchedules = scheduleMap.get(`${day.date}|${studio.name}|${shift}`) || [];
                         const hasData = cellSchedules.length > 0;
+                        const cellKey = `${day.date}|${studio.name}|${shift}`;
+                        const isSelected = selectedSlots.has(cellKey);
+                        const isDragSelected = dragSelection.has(cellKey);
 
                         return (
                           <td 
-                            key={`${day.date}-${studio.name}-${shift}`}
-                            onMouseDown={() => handleCellMouseDown(day.date, studio.name, shift)}
+                            key={cellKey}
+                            onMouseDown={(e) => handleCellMouseDown(e, day.date, studio.name, shift)}
                             onMouseEnter={() => handleCellMouseEnter(day.date, studio.name, shift)}
-                            onClick={() => {
-                              if (!dragSelection || dragSelection.size <= 1) {
-                                onCellClick(day.date, studio.name, shift);
+                            onClick={(e) => {
+                              // If Ctrl/Cmd/Shift is held or multi-select mode is active, toggle selection
+                              if (e.ctrlKey || e.metaKey || e.shiftKey || isMultiSelectMode || selectedSlots.size > 0) {
+                                toggleSlotSelection(cellKey);
+                              } else {
+                                if (!dragSelection || dragSelection.size <= 1) {
+                                  onCellClick(day.date, studio.name, shift);
+                                }
                               }
                             }}
-                            className={`${borderClass} border-r border-slate-200 p-1 cursor-pointer transition-colors align-middle relative group min-h-[48px] select-none ${
-                              dragSelection.has(`${day.date}|${studio.name}|${shift}`) 
-                                ? 'bg-blue-50 ring-2 ring-inset ring-blue-400' 
-                                : 'hover:bg-slate-50/60'
+                            className={`${borderClass} border-r border-slate-200 p-1 cursor-pointer transition-all align-middle relative group min-h-[48px] select-none ${
+                              isSelected || isDragSelected
+                                ? 'bg-indigo-50/80 ring-2 ring-inset ring-indigo-500 shadow-inner' 
+                                : 'hover:bg-slate-50/70'
                             }`}
                           >
-                            <div className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-blue-50/30 z-0 pointer-events-none">
-                              <Plus className="w-4 h-4 text-blue-400" />
-                            </div>
+                            {/* Hover Plus Icon (when not selected and no multi-select active) */}
+                            {!isSelected && !isDragSelected && !isMultiSelectMode && selectedSlots.size === 0 && (
+                              <div className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-blue-50/30 z-0 pointer-events-none">
+                                <Plus className="w-4 h-4 text-blue-400" />
+                              </div>
+                            )}
 
-                            {/* Selection Overlay */}
-                            {dragSelection.has(`${day.date}|${studio.name}|${shift}`) && (
-                              <div className="absolute inset-0 bg-blue-500/10 z-20 pointer-events-none flex items-center justify-center backdrop-blur-[1px]">
-                                <div className="bg-blue-600 text-white rounded-full p-1 shadow-md">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            {/* Selection Badge / Overlay */}
+                            {(isSelected || isDragSelected) && (
+                              <div className="absolute top-1 right-1 z-30 pointer-events-none">
+                                <div className="bg-indigo-600 text-white rounded-md p-0.5 shadow-sm flex items-center justify-center">
+                                  <Check className="w-3 h-3 stroke-[3]" />
                                 </div>
                               </div>
                             )}
@@ -525,6 +583,12 @@ export function AdminWeeklyScheduleGrid({
                                     onDragStart={(e) => e.preventDefault()}
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      // If in multi-select mode or holding modifier key, toggle the slot selection instead
+                                      if (e.ctrlKey || e.metaKey || e.shiftKey || isMultiSelectMode || selectedSlots.size > 0) {
+                                        toggleSlotSelection(cellKey);
+                                        return;
+                                      }
+                                      
                                       if (onScheduleClick) {
                                         onScheduleClick({
                                           ...sched,
@@ -534,7 +598,9 @@ export function AdminWeeklyScheduleGrid({
                                         });
                                       }
                                     }}
-                                    className={`group relative ${cardBg} border ${cardBorder} ${cardText} px-2 py-1.5 rounded-lg flex flex-col justify-center transition-all hover:shadow-2xs cursor-pointer`}
+                                    className={`group relative ${cardBg} border ${cardBorder} ${cardText} px-2 py-1.5 rounded-lg flex flex-col justify-center transition-all hover:shadow-2xs cursor-pointer ${
+                                      isSelected ? 'ring-1 ring-indigo-400 font-semibold' : ''
+                                    }`}
                                     title={`${sched.brand}${platformClean ? ` - ${platformClean}` : ''} - ${sched.hostName}`}
                                   >
                                     <div className="font-bold text-[11px] truncate leading-tight pr-3">
@@ -543,10 +609,10 @@ export function AdminWeeklyScheduleGrid({
                                     <div className={`text-[10px] truncate leading-tight mt-0.5 pr-3 ${isNotRegularHost ? 'font-bold text-rose-600' : 'text-slate-600 font-medium'}`}>
                                       {sched.hostName}
                                     </div>
-                                    {onDeleteSchedule && (
+                                    {onDeleteSchedule && !isMultiSelectMode && selectedSlots.size === 0 && (
                                       <button
                                         type="button"
-                                        title="Hapus Jadwal"
+                                        title="Hapus Jadwal Ini"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           onDeleteSchedule({
@@ -580,6 +646,89 @@ export function AdminWeeklyScheduleGrid({
           </tbody>
         </table>
       </div>
+
+      {/* Floating Action Bar for Selected Slots (Add, Edit, Delete) */}
+      {selectedSlots.size > 0 && (
+        <div className="sticky bottom-4 left-0 right-0 z-40 mx-4 my-2 animate-slideUp">
+          <div className="bg-slate-900/95 text-white rounded-2xl shadow-2xl p-3 px-5 border border-slate-700/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-600 text-white rounded-xl p-2 flex items-center justify-center font-bold text-sm min-w-[32px]">
+                {selectedSlots.size}
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                  <span>Slot Terpilih</span>
+                  <span className="text-[11px] font-normal text-indigo-300 bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-800/60">
+                    {Array.from(selectedSlots).some(k => (scheduleMap.get(k) || []).length > 0) ? 'Ada Jadwal Terisi' : 'Slot Kosong'}
+                  </span>
+                </h4>
+                <p className="text-[11px] text-slate-300">
+                  {selectedSlots.size} hari & shift dipilih. Pilih tindakan di samping:
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Button: Add / Fill Schedule */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (onMassCellSelect) {
+                    const slots = Array.from(selectedSlots).map((val: string) => {
+                      const [date, studio, shift] = val.split('|');
+                      return { date, studio, shift };
+                    });
+                    onMassCellSelect(slots);
+                  }
+                }}
+                className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer border border-indigo-500"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Isi / Ubah Jadwal ({selectedSlots.size})</span>
+              </button>
+
+              {/* Button: Delete Schedules in Selected Slots */}
+              {Array.from(selectedSlots).some(k => (scheduleMap.get(k) || []).length > 0) && onDeleteSchedule && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const slotsList = Array.from(selectedSlots);
+                    const toDeleteList: ShiftSchedule[] = [];
+                    slotsList.forEach(key => {
+                      const scheds = scheduleMap.get(key) || [];
+                      toDeleteList.push(...scheds);
+                    });
+
+                    if (toDeleteList.length === 0) {
+                      alert('Tidak ada jadwal terisi pada slot yang dipilih.');
+                      return;
+                    }
+
+                    if (window.confirm(`Hapus ${toDeleteList.length} jadwal pada ${selectedSlots.size} slot terpilih?`)) {
+                      toDeleteList.forEach(s => onDeleteSchedule(s));
+                      clearSelection();
+                    }
+                  }}
+                  className="bg-rose-600/90 hover:bg-rose-600 active:scale-95 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer border border-rose-500"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Jadwal Terisi</span>
+                </button>
+              )}
+
+              {/* Button: Clear / Cancel Selection */}
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs px-3 py-2 rounded-xl transition-all cursor-pointer border border-slate-600 flex items-center gap-1"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Batal</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7028,6 +7028,7 @@ export default function App() {
                                 setIsScheduleModalOpen(true);
                               }}
                               onMassCellSelect={(slots) => {
+                                setMassCreateSlots(slots);
                                 setScheduleForm(prev => ({
                                   ...prev,
                                   id: "",
@@ -7037,7 +7038,6 @@ export default function App() {
                                   isOffDay: false,
                                   isPindahStudio: false,
                                   backupHostId: "",
-                                  
                                   massSlots: slots,
                                 }));
                                 setIsScheduleModalOpen(true);
@@ -7651,7 +7651,10 @@ export default function App() {
                             </div>
                             <button
                               type="button"
-                              onClick={() => setIsScheduleModalOpen(false)}
+                              onClick={() => {
+                                setMassCreateSlots([]);
+                                setIsScheduleModalOpen(false);
+                              }}
                               className="bg-transparent hover:bg-white/10 text-white p-2 rounded-xl transition-all cursor-pointer border-0 flex items-center justify-center"
                             >
                               <X className="w-4 h-4" />
@@ -7705,6 +7708,20 @@ export default function App() {
                                   }
 
                                   if (massCreateSlots && massCreateSlots.length > 0) {
+                                    // Remove any existing schedules on these specific slots first so we don't create duplicates (supports mass edit)
+                                    const existingToDelete = computedSchedules.filter(s =>
+                                      massCreateSlots.some(slot =>
+                                        (s.date || "").split("T")[0] === slot.date &&
+                                        s.studio === slot.studio &&
+                                        s.timeSlot === slot.shift
+                                      )
+                                    );
+                                    if (existingToDelete.length > 0) {
+                                      existingToDelete.forEach(s => {
+                                        schedulesApi.delete(s.id).catch(console.error);
+                                      });
+                                    }
+
                                     const newSchedules = massCreateSlots.map((slot, idx) => ({
                                       id: `mass_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 5)}`,
                                       hostId: selectedHost.id,
@@ -7722,7 +7739,8 @@ export default function App() {
                                       backupHostName: scheduleForm.isOffDay || scheduleForm.isPindahStudio ? repHostName : "",
                                     }));
                                     
-                                    setSchedules(prev => [...prev, ...newSchedules]);
+                                    const existingIds = new Set(existingToDelete.map(e => e.id));
+                                    setSchedules(prev => [...prev.filter(p => !existingIds.has(p.id)), ...newSchedules]);
                                     
                                     // Save to database
                                     newSchedules.forEach(s => {
@@ -8052,6 +8070,7 @@ export default function App() {
                                           backupOption: "none",
                                           backupHostId: "",
                                         });
+                                        setMassCreateSlots([]);
                                         setIsScheduleModalOpen(false);
                                       }}
                                       className="px-5 py-2.5 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer border-0"
