@@ -252,45 +252,40 @@ export const PercentBadge = ({ cur, prev }: { cur: number; prev: number }) => {
 export const getBrandColor = (brandName: string) => {
   if (!brandName)
     return {
-      bg: "bg-emerald-100",
-      text: "text-emerald-800",
-      border: "border-emerald-300",
+      bg: "bg-emerald-50",
+      text: "text-emerald-700",
+      border: "border-emerald-200",
     };
   const colors = [
-    { bg: "bg-red-100", text: "text-red-800", border: "border-red-300" },
-    { bg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300" },
-    { bg: "bg-green-100", text: "text-green-800", border: "border-green-300" },
-    { bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-300" },
-    { bg: "bg-purple-100", text: "text-purple-800", border: "border-purple-300" },
-    { bg: "bg-cyan-100", text: "text-cyan-800", border: "border-cyan-300" },
-    { bg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300" },
-    { bg: "bg-pink-100", text: "text-pink-800", border: "border-pink-300" },
-    { bg: "bg-teal-100", text: "text-teal-800", border: "border-teal-300" },
-    { bg: "bg-indigo-100", text: "text-indigo-800", border: "border-indigo-300" },
-    { bg: "bg-lime-100", text: "text-lime-800", border: "border-lime-300" },
-    { bg: "bg-fuchsia-100", text: "text-fuchsia-800", border: "border-fuchsia-300" },
-    { bg: "bg-emerald-100", text: "text-emerald-800", border: "border-emerald-300" },
-    { bg: "bg-sky-100", text: "text-sky-800", border: "border-sky-300" },
-    { bg: "bg-rose-100", text: "text-rose-800", border: "border-rose-300" },
-    { bg: "bg-violet-100", text: "text-violet-800", border: "border-violet-300" },
-    { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300" },
-    { bg: "bg-blue-200", text: "text-blue-900", border: "border-blue-400" },
-    { bg: "bg-emerald-200", text: "text-emerald-900", border: "border-emerald-400" }
+    { bg: "bg-rose-50", text: "text-rose-600", border: "border-rose-200" },       // 0: RHC (red/coral)
+    { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200" },       // 1: Safi (blue)
+    { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200" }, // 2: Dewi Sri Spa (green)
+    { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" },     // 3: yellow/amber
+    { bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200" },  // 4: Isago (purple)
+    { bg: "bg-sky-50", text: "text-sky-600", border: "border-sky-200" },          // 5: Mirael (cyan/sky)
+    { bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-200" }, // 6: Sumber Ayu (orange)
+    { bg: "bg-pink-50", text: "text-pink-600", border: "border-pink-200" },       // 7: pink
+    { bg: "bg-teal-50", text: "text-teal-600", border: "border-teal-200" },       // 8: teal
+    { bg: "bg-indigo-50", text: "text-indigo-600", border: "border-indigo-200" }, // 9: Doremi / indigo
+    { bg: "bg-violet-50", text: "text-violet-600", border: "border-violet-200" }, // 10: violet
+    { bg: "bg-cyan-50", text: "text-cyan-600", border: "border-cyan-200" },       // 11: cyan
+    { bg: "bg-lime-50", text: "text-lime-600", border: "border-lime-200" },       // 12: lime
   ];
   let hash = 0;
   const normalizedBrand = brandName.trim().toLowerCase();
   
-  // Hardcode assignment for known brands to guarantee zero collisions
+  // Specific assignment for known brands to guarantee zero collisions
   const specificBrandColors: Record<string, number> = {
-    "rhc": 0, // red
+    "rhc": 0, // red/rose
     "safi": 1, // blue
     "dewi sri spa": 2, // green
     "kloa pos": 3, // yellow
     "isago": 4, // purple
-    "mirael": 5, // cyan
+    "mirael": 5, // sky/cyan
     "sumber ayu": 6, // orange
     "sari ayu": 7, // pink
     "soulyu": 8, // teal
+    "doremi": 9, // indigo
     "madu uray": 9, // indigo
   };
 

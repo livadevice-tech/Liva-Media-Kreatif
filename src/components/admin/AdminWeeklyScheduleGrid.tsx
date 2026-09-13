@@ -165,7 +165,7 @@ export function AdminWeeklyScheduleGrid({
 
     // Natural sort helper: handles names like "Studio A1", "Studio A2", "Studio B10"
     const naturalSort = (a: string, b: string) =>
-      a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' });
+      a.localeCompare('id', undefined, { numeric: true, sensitivity: 'base' });
 
     const sorted = Array.from(groupsMap.entries())
       .sort(([locA], [locB]) => naturalSort(locA, locB))
@@ -177,8 +177,31 @@ export function AdminWeeklyScheduleGrid({
     return sorted;
   }, [studios, computedSchedules, weekDays, addedShifts]);
 
+  // Studio badge color helper for pastel letter 'S'
+  const getStudioBadgeStyle = (name: string) => {
+    const s = name.toUpperCase();
+    if (s.includes("A3") || s.includes("3")) return { bg: "bg-blue-50 text-blue-600 border border-blue-200/60" };
+    if (s.includes("A1") || s.includes("1")) return { bg: "bg-emerald-50 text-emerald-600 border border-emerald-200/60" };
+    if (s.includes("A2") || s.includes("2")) return { bg: "bg-purple-50 text-purple-600 border border-purple-200/60" };
+    if (s.includes("B1")) return { bg: "bg-cyan-50 text-cyan-600 border border-cyan-200/60" };
+    if (s.includes("B2")) return { bg: "bg-amber-50 text-amber-600 border border-amber-200/60" };
+    return { bg: "bg-indigo-50 text-indigo-600 border border-indigo-200/60" };
+  };
 
-  
+  // Helper to split shift into title and time
+  const parseShiftDisplay = (shiftStr: string) => {
+    // Example: "Reg 2 (11.00-17.00)" or "Reg 2 11:00-17:00" or "Safi (01.00-07.00)"
+    const match = shiftStr.match(/^([^(]+?)\s*(\(.*?\))$/);
+    if (match) {
+      return { title: match[1].trim(), hours: match[2].trim() };
+    }
+    // Match pattern with hours like 11.00-17.00 or 11:00-17:00
+    const matchHours = shiftStr.match(/^(.*?)\s*([0-2]?\d[.:][0-5]\d\s*-\s*[0-2]?\d[.:][0-5]\d.*)$/);
+    if (matchHours) {
+      return { title: matchHours[1].trim(), hours: `(${matchHours[2].trim()})` };
+    }
+    return { title: shiftStr, hours: "" };
+  };
 
   // Create a fast lookup map: key = `${date}|${studio}|${shift}`
   const scheduleMap = useMemo(() => {
@@ -205,23 +228,33 @@ export function AdminWeeklyScheduleGrid({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-4">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden mt-4">
       {/* Header Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b border-slate-200 bg-slate-50/50 gap-4">
-        <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-          📅 Jadwal Mingguan
-          <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 py-4 border-b border-slate-200/80 bg-white gap-4">
+        <div className="flex items-center gap-3">
+          <div className="text-blue-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <h3 className="font-bold text-slate-800 text-sm tracking-tight flex items-center gap-2">
+            Jadwal Mingguan
+          </h3>
+          <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-semibold tracking-wide">
             {formatWeekRange()}
           </span>
-        </h3>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onCurrentWeek}
-            className="px-3 py-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
           >
             Minggu Ini
           </button>
-          <div className="flex border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+          <div className="flex border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
             <button
               onClick={onPrevWeek}
               className="px-2 py-1.5 bg-white hover:bg-slate-50 text-slate-600 transition-colors border-r border-slate-200 cursor-pointer"
@@ -239,12 +272,16 @@ export function AdminWeeklyScheduleGrid({
       </div>
 
       {/* Grid Table */}
-      <div className="overflow-x-auto w-full pb-2">
-        <table className="w-full text-[11px] text-left border-collapse">
+      <div className="overflow-x-auto w-full">
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr>
-              <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[80px] min-w-[80px]">Studio</th>
-              <th className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r w-[160px] min-w-[160px]">Shift</th>
+            <tr className="border-b border-slate-200 bg-slate-50/50">
+              <th className="py-2.5 px-2 text-center text-xs font-bold text-slate-600 border-r border-slate-200 w-[75px] min-w-[75px]">
+                Studio
+              </th>
+              <th className="py-2.5 px-2 text-center text-xs font-bold text-slate-600 border-r border-slate-200 w-[120px] min-w-[120px]">
+                Shift
+              </th>
               {weekDays.map(day => {
                 const daySchedules = computedSchedules.filter(s => (s.date || "").split('T')[0] === day.date);
                 const hostCounts = new Map<string, number>();
@@ -264,61 +301,63 @@ export function AdminWeeklyScheduleGrid({
                 });
 
                 return (
-                  <th key={day.date} className="border-b border-slate-200 p-1 text-center text-slate-700 bg-slate-100 font-bold border-r min-w-[120px] w-[calc((100%-240px)/7)]">
+                  <th key={day.date} className="py-2.5 px-1 text-center text-slate-700 border-r border-slate-200 min-w-[125px] w-[calc((100%-195px)/7)]">
                     <div className="flex items-center justify-center gap-1">
-                      <span>{day.name}</span>
+                      <span className="text-xs font-bold text-slate-700">{day.name}</span>
                       {hasDoubleHost && (
-                        <div title={`Peringatan: Host double (${doubleHostNames.join(', ')})`} className="text-red-500 bg-red-100 rounded-full w-[14px] h-[14px] flex items-center justify-center cursor-help">
+                        <div title={`Peringatan: Host double (${doubleHostNames.join(', ')})`} className="text-rose-500 bg-rose-100 rounded-full w-[14px] h-[14px] flex items-center justify-center cursor-help">
                           <AlertTriangle className="w-[9px] h-[9px] stroke-[3]" />
                         </div>
                       )}
                     </div>
-                    <div className="text-[9px] font-medium text-slate-500 leading-tight">{day.displayDate}</div>
+                    <div className="text-[11px] font-medium text-slate-400 leading-none mt-0.5">{day.displayDate}</div>
                   </th>
                 );
               })}
             </tr>
           </thead>
           <tbody>
-            {studioGroups.map((group, groupIdx) => {
-              // Calculate total rows for this location to handle rowspan
-              const totalLocationRows = group.studios.reduce((acc, studio) => acc + studio.shifts.length, 0);
+            {studioGroups.map((group) => {
+              return group.studios.map((studio) => {
+                const studioBadge = getStudioBadgeStyle(studio.name);
+                const studioInitials = getStudioInitials(studio.name);
 
-              return group.studios.map((studio, studioIdx) => {
                 return studio.shifts.map((shift, shiftIdx) => {
-                  const isFirstRowInLocation = studioIdx === 0 && shiftIdx === 0;
                   const isFirstRowInStudio = shiftIdx === 0;
                   const isLastRowInStudio = shiftIdx === studio.shifts.length - 1;
-                  const borderClass = isLastRowInStudio ? "border-b-[3px] border-b-slate-300" : "border-b border-slate-200";
+                  const borderClass = isLastRowInStudio ? "border-b-2 border-b-slate-200" : "border-b border-slate-100";
+                  const { title: shiftTitle, hours: shiftHours } = parseShiftDisplay(shift);
 
                   return (
-                    <tr key={`${group.location}-${studio.name}-${shift}`} className={`hover:bg-slate-50/50 transition-colors`}>
+                    <tr key={`${group.location}-${studio.name}-${shift}`} className="hover:bg-slate-50/40 transition-colors">
 
                       {/* Studio Cell (Rowspan) */}
                       {isFirstRowInStudio && (
                         <td 
                           rowSpan={studio.shifts.length} 
-                          className={`border-r border-slate-200 p-1 text-center align-middle bg-white group/studio relative border-b-[3px] border-b-slate-300`}
+                          className="border-r border-slate-200 p-2 text-center align-middle bg-white group/studio relative border-b-2 border-b-slate-200"
                         >
                           <button
                             type="button"
                             onClick={(e) => {
                                const rect = e.currentTarget.getBoundingClientRect();
-                               // If the element is in the bottom half of the window, open upwards
                                const align = rect.top > (window.innerHeight / 2) ? 'bottom' : 'top';
                                setStudioToAdjust({ name: studio.name, align });
                             }}
-                            className="w-full h-full min-h-[40px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors flex flex-col items-center justify-center p-1 rounded cursor-pointer group-hover/studio:ring-2 group-hover/studio:ring-inset group-hover/studio:ring-indigo-300"
+                            className="w-full h-full min-h-[50px] flex flex-col items-center justify-center p-1 rounded-lg cursor-pointer transition-all hover:bg-slate-50"
                             title="Klik untuk menambahkan shift"
                           >
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-2xs mb-1.5 ${studioBadge.bg}`}>
+                              S
+                            </div>
                             <span 
-                               className="break-words line-clamp-2 leading-tight" 
+                               className="font-bold text-slate-700 text-xs tracking-tight" 
                                title={studio.name}
                             >
-                               {getStudioInitials(studio.name)}
+                               {studioInitials}
                             </span>
                             <span className="opacity-0 group-hover/studio:opacity-100 text-[9px] mt-1 text-indigo-500 font-normal transition-opacity flex items-center">
-                              <Plus className="w-3 h-3 mr-0.5" /> Tambah Shift
+                              <Plus className="w-2.5 h-2.5 mr-0.5" /> Shift
                             </span>
                           </button>
                           
@@ -349,35 +388,35 @@ export function AdminWeeklyScheduleGrid({
                                 
                                 <div className="p-2 space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
                                   <div className="space-y-1">
-                                    {[...masterShifts].sort(compareShiftsByTime).map(shift => {
-                                      const isAlreadyVisible = studio.shifts.includes(shift);
+                                    {[...masterShifts].sort(compareShiftsByTime).map(mShift => {
+                                      const isAlreadyVisible = studio.shifts.includes(mShift);
                                       if (isAlreadyVisible) return null;
                                       
                                       return (
                                         <button
-                                          key={shift}
+                                          key={mShift}
                                           onClick={() => {
                                             fetch('/api/studio-shifts', {
                                               method: 'POST',
                                               headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({ studio: studio.name, shift })
+                                              body: JSON.stringify({ studio: studio.name, shift: mShift })
                                             }).catch(console.error);
 
                                             setAddedShifts(prev => {
                                                const newSet = new Set(prev[studio.name] || []);
-                                               newSet.add(shift);
+                                               newSet.add(mShift);
                                                return { ...prev, [studio.name]: newSet };
                                             });
                                             setStudioToAdjust(null);
                                           }}
                                           className="w-full text-left p-2 rounded-lg border border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all font-medium text-[11px] text-slate-700 flex items-center justify-between"
                                         >
-                                          <span className="truncate pr-2">{shift}</span>
+                                          <span className="truncate pr-2">{mShift}</span>
                                           <Plus className="w-3 h-3 text-indigo-500 shrink-0" />
                                         </button>
                                       );
                                     })}
-                                    {masterShifts.every(shift => studio.shifts.includes(shift)) && (
+                                    {masterShifts.every(mShift => studio.shifts.includes(mShift)) && (
                                       <div className="text-center text-[10px] text-slate-500 p-2">Semua shift master sudah ditampilkan.</div>
                                     )}
                                   </div>
@@ -389,8 +428,17 @@ export function AdminWeeklyScheduleGrid({
                       )}
 
                       {/* Shift Cell */}
-                      <td className={`${borderClass} border-r border-slate-200 p-1 pr-6 text-center font-bold text-slate-700 bg-slate-50/30 whitespace-nowrap group/shiftcell relative`}>
-                        {shift}
+                      <td className={`${borderClass} border-r border-slate-200 py-2 px-1.5 text-center bg-white whitespace-nowrap group/shiftcell relative`}>
+                        <div className="flex flex-col items-center justify-center">
+                          <span className="font-semibold text-xs text-slate-700 leading-tight">
+                            {shiftTitle}
+                          </span>
+                          {shiftHours && (
+                            <span className="text-[10px] text-slate-400 font-normal leading-tight mt-0.5">
+                              {shiftHours}
+                            </span>
+                          )}
+                        </div>
                         <button
                            type="button"
                            title="Hapus baris shift ini"
@@ -417,7 +465,7 @@ export function AdminWeeklyScheduleGrid({
                                  return { ...prev, [studio.name]: newSet };
                               });
                            }}
-                           className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/shiftcell:opacity-100 hover:bg-red-100 text-red-500 rounded p-1 transition-all cursor-pointer"
+                           className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/shiftcell:opacity-100 hover:bg-rose-100 text-rose-500 rounded p-1 transition-all cursor-pointer"
                         >
                            <X className="w-3 h-3" />
                         </button>
@@ -434,31 +482,30 @@ export function AdminWeeklyScheduleGrid({
                             onMouseDown={() => handleCellMouseDown(day.date, studio.name, shift)}
                             onMouseEnter={() => handleCellMouseEnter(day.date, studio.name, shift)}
                             onClick={() => {
-                              // If we didn't drag multiple, it's a single click
                               if (!dragSelection || dragSelection.size <= 1) {
                                 onCellClick(day.date, studio.name, shift);
                               }
                             }}
-                            className={`${borderClass} border-r border-slate-200 p-0.5 cursor-pointer transition-colors align-top relative group h-[40px] select-none ${
+                            className={`${borderClass} border-r border-slate-200 p-1 cursor-pointer transition-colors align-middle relative group min-h-[48px] select-none ${
                               dragSelection.has(`${day.date}|${studio.name}|${shift}`) 
-                                ? 'bg-indigo-100 ring-2 ring-inset ring-indigo-400' 
-                                : 'hover:bg-indigo-50'
+                                ? 'bg-blue-50 ring-2 ring-inset ring-blue-400' 
+                                : 'hover:bg-slate-50/60'
                             }`}
                           >
-                            <div className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-indigo-100/30 z-0 pointer-events-none">
-                              <Plus className="w-4 h-4 text-indigo-400" />
+                            <div className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-blue-50/30 z-0 pointer-events-none">
+                              <Plus className="w-4 h-4 text-blue-400" />
                             </div>
 
                             {/* Selection Overlay */}
                             {dragSelection.has(`${day.date}|${studio.name}|${shift}`) && (
-                              <div className="absolute inset-0 bg-indigo-500/20 z-20 pointer-events-none flex items-center justify-center backdrop-blur-[1px]">
-                                <div className="bg-indigo-600 text-white rounded-full p-1 shadow-md">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              <div className="absolute inset-0 bg-blue-500/10 z-20 pointer-events-none flex items-center justify-center backdrop-blur-[1px]">
+                                <div className="bg-blue-600 text-white rounded-full p-1 shadow-md">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                 </div>
                               </div>
                             )}
                             
-                            <div className="relative z-10 flex flex-col gap-0.5 w-full h-full min-h-[28px]">
+                            <div className="relative z-10 flex flex-col gap-1 w-full h-full min-h-[42px] justify-center">
                               {cellSchedules.map((sched, idx) => {
                                 const brandColor = getBrandColor(sched.brand);
                                 const isNotRegularHost = !clientBrands.some(
@@ -466,9 +513,11 @@ export function AdminWeeklyScheduleGrid({
                                        b.sessions?.some(s => s.host?.trim().toLowerCase() === sched.hostName?.trim().toLowerCase())
                                 );
                                 
-                                const cardBg = isNotRegularHost ? 'bg-red-50' : brandColor.bg;
-                                const cardBorder = isNotRegularHost ? 'border-pink-400' : brandColor.border;
-                                const cardText = isNotRegularHost ? brandColor.text : brandColor.text;
+                                const cardBg = isNotRegularHost ? 'bg-rose-50' : brandColor.bg;
+                                const cardBorder = isNotRegularHost ? 'border-rose-200' : brandColor.border;
+                                const cardText = isNotRegularHost ? 'text-rose-600' : brandColor.text;
+
+                                const platformClean = sched.platform ? sched.platform.replace(/ live/i, '').trim() : '';
 
                                 return (
                                   <div 
@@ -485,11 +534,15 @@ export function AdminWeeklyScheduleGrid({
                                         });
                                       }
                                     }}
-                                    className={`group relative ${cardBg} border ${cardBorder} ${cardText} text-[9px] px-1 py-0.5 rounded flex-1 flex flex-col justify-center shadow-sm hover:brightness-95 cursor-pointer transition-all overflow-hidden`}
-                                    title={`${sched.brand}${sched.platform ? ` - ${sched.platform.replace(/ live/i, '').trim()}` : ''} - ${sched.hostName}`}
+                                    className={`group relative ${cardBg} border ${cardBorder} ${cardText} px-2 py-1.5 rounded-lg flex flex-col justify-center transition-all hover:shadow-2xs cursor-pointer`}
+                                    title={`${sched.brand}${platformClean ? ` - ${platformClean}` : ''} - ${sched.hostName}`}
                                   >
-                                    <span className="font-bold truncate pr-3 leading-tight">{sched.brand}{sched.platform ? ` - ${sched.platform.replace(/ live/i, '').trim()}` : ''}</span>
-                                    <span className={`text-[8px] truncate leading-none mt-[1px] pr-3 ${isNotRegularHost ? '!text-red-500 !font-bold !opacity-100' : 'opacity-80'}`}>{sched.hostName}</span>
+                                    <div className="font-bold text-[11px] truncate leading-tight pr-3">
+                                      {sched.brand}{platformClean ? ` - ${platformClean}` : ''}
+                                    </div>
+                                    <div className={`text-[10px] truncate leading-tight mt-0.5 pr-3 ${isNotRegularHost ? 'font-bold text-rose-600' : 'text-slate-600 font-medium'}`}>
+                                      {sched.hostName}
+                                    </div>
                                     {onDeleteSchedule && (
                                       <button
                                         type="button"
@@ -503,7 +556,7 @@ export function AdminWeeklyScheduleGrid({
                                             timeSlot: shift
                                           });
                                         }}
-                                        className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/50 rounded-full p-0.5 transition-all text-red-500 hover:text-red-700"
+                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 hover:bg-white/80 rounded p-0.5 transition-all text-slate-400 hover:text-rose-600"
                                       >
                                         <X className="w-2.5 h-2.5" />
                                       </button>
@@ -513,7 +566,7 @@ export function AdminWeeklyScheduleGrid({
                               })}
                               
                               {!hasData && (
-                                <div className="w-full h-full text-transparent select-none">-</div>
+                                <div className="w-full text-center text-slate-300 font-medium select-none text-xs">-</div>
                               )}
                             </div>
                           </td>
@@ -527,7 +580,6 @@ export function AdminWeeklyScheduleGrid({
           </tbody>
         </table>
       </div>
-
-      </div>
+    </div>
   );
 }

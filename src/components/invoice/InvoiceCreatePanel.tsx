@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Building2, CheckSquare, Plus, Trash2, Search } from "lucide-react";
+import { Building2, CheckSquare, Plus, Trash2, Search, X } from "lucide-react";
 import { ClientBrand, BrandInvoice } from "../../types";
 
 type DraftInvoice = Partial<BrandInvoice>;
@@ -123,14 +123,30 @@ export const InvoiceCreatePanel: React.FC<InvoiceCreatePanelProps> = ({
   onCancel,
 }) => {
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 md:p-8 flex flex-col xl:flex-row gap-8 animate-fadeIn">
-      <div className="flex-1">
-        <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-          <h3 className="text-xl font-black text-slate-800">Visual Editor Invoice</h3>
-          <button onClick={onCancel} className="text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer">Batal</button>
+    <div className="fixed inset-0 z-[100] overflow-hidden flex justify-end">
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
+        onClick={onCancel}
+      />
+
+      {/* Right Drawer Panel */}
+      <div className="relative w-full max-w-2xl h-full bg-white shadow-2xl flex flex-col z-10 animate-slideInRight border-l border-slate-200">
+        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 tracking-tight">Buat Invoice Baru</h3>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">Pilih brand klien dan konfirmasi rincian tagihan</p>
+          </div>
+          <button 
+            onClick={onCancel} 
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+            title="Tutup (Esc)"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <div className="space-y-5">
+        <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
           <div>
             <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Pilih Brand Klien (Otomatis Deteksi Shift)</label>
             <SearchableBrandSelect 

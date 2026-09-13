@@ -22,13 +22,29 @@ export const InvoiceEditorModal: React.FC<InvoiceEditorModalProps> = ({
   if (!invoiceEditor) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex justify-end md:items-center md:justify-center p-0 md:p-4">
-      <div className="bg-white w-full h-[100dvh] md:h-auto md:rounded-3xl max-w-2xl overflow-hidden shadow-2xl flex flex-col md:max-h-[90vh] animate-slideInRight md:animate-fadeIn">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-           <h3 className="text-xl font-black text-slate-800">Edit Invoice</h3>
-           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-6 h-6" /></button>
+    <div className="fixed inset-0 z-[100] overflow-hidden flex justify-end">
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
+        onClick={onClose}
+      />
+
+      {/* Right Drawer Panel */}
+      <div className="relative w-full max-w-2xl h-full bg-white shadow-2xl flex flex-col z-10 animate-slideInRight border-l border-slate-200">
+        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 tracking-tight">Edit Invoice</h3>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">Perbarui rincian dan komponen tagihan invoice</p>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+            title="Tutup (Esc)"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div className="p-6 overflow-y-auto space-y-4 flex-1">
+        <div className="p-6 overflow-y-auto space-y-4 flex-1 custom-scrollbar">
           <div>
             <label className="block text-xs font-bold text-slate-500 mb-1">Invoice Number</label>
             <input type="text" className="w-full border border-slate-200 rounded-lg px-4 py-2 font-bold" value={invoiceEditor.invoiceNumber} onChange={e => setInvoiceEditor({...invoiceEditor, invoiceNumber: e.target.value})} />

@@ -965,7 +965,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({ clientBrands
           TAB CONTENTS
       ════════════════════════════════════════════ */}
       <div className="pb-12">
-      {activeTab === "overview" && (
+      {(activeTab === "overview" || activeTab === "create") && (
         <div className="hidden md:block space-y-6">
           <InvoiceTable 
             allInvoices={allInvoices}

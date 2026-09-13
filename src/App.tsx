@@ -421,10 +421,13 @@ const ScheduleFilterHostDropdown: React.FC<{
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-[180px] bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 focus:bg-white transition-all cursor-pointer flex justify-between items-center text-left"
+        className="w-[200px] bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer flex justify-between items-center text-left shadow-2xs"
       >
-        <span className="truncate">{value || "Semua Host"}</span>
-        <span className="text-[10px] text-slate-400 select-none ml-1 shrink-0">▼</span>
+        <div className="flex items-center gap-2 truncate pr-1">
+          <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="truncate">{value || "Semua Host"}</span>
+        </div>
+        <ChevronDown className="w-3.5 h-3.5 text-slate-400 select-none ml-1 shrink-0" />
       </button>
 
       {isOpen && (
@@ -509,10 +512,13 @@ const ScheduleFilterBrandDropdown: React.FC<{
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-[180px] bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-400 focus:bg-white transition-all cursor-pointer flex justify-between items-center text-left"
+        className="w-[200px] bg-white border border-slate-200/90 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer flex justify-between items-center text-left shadow-2xs"
       >
-        <span className="truncate">{value || "Semua Brand"}</span>
-        <span className="text-[10px] text-slate-400 select-none ml-1 shrink-0">▼</span>
+        <div className="flex items-center gap-2 truncate pr-1">
+          <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="truncate">{value || "Semua Brand"}</span>
+        </div>
+        <ChevronDown className="w-3.5 h-3.5 text-slate-400 select-none ml-1 shrink-0" />
       </button>
 
       {isOpen && (
@@ -6468,25 +6474,31 @@ export default function App() {
                           </div>
                           <div className="flex items-center gap-4">
                             <div className="flex -space-x-2">
-                              {hosts.slice(0, 4).map((h, i) => (
-                                <div
-                                  key={h.id}
-                                  className="w-8 h-8 rounded-full border-[3px] border-white flex items-center justify-center text-[10px] font-bold z-30 shadow-sm"
-                                  style={{
-                                    backgroundColor:
-                                      "#" +
-                                      Math.floor(Math.random() * 16777215)
-                                        .toString(16)
-                                        .padEnd(6, "0") +
-                                      "40",
-                                    color: "#1e293b",
-                                  }}
-                                >
-                                  {h.name.substring(0, 2).toUpperCase()}
-                                </div>
-                              ))}
+                              {(() => {
+                                const avatarPastels = [
+                                  { bg: "#d1fae5", text: "#065f46" }, // AD mint
+                                  { bg: "#fce7f3", text: "#9d174d" }, // AJ pink
+                                  { bg: "#dcfce7", text: "#166534" }, // AN light green
+                                  { bg: "#e0f2fe", text: "#075985" }, // AZ light blue
+                                ];
+                                return hosts.slice(0, 4).map((h, i) => {
+                                  const color = avatarPastels[i % avatarPastels.length];
+                                  return (
+                                    <div
+                                      key={h.id}
+                                      className="w-8 h-8 rounded-full border-[2.5px] border-white flex items-center justify-center text-[10px] font-bold z-30 shadow-2xs"
+                                      style={{
+                                        backgroundColor: color.bg,
+                                        color: color.text,
+                                      }}
+                                    >
+                                      {h.name.substring(0, 2).toUpperCase()}
+                                    </div>
+                                  );
+                                });
+                              })()}
                               {hosts.length > 4 && (
-                                <div className="w-8 h-8 rounded-full bg-slate-50 border-[3px] border-white flex items-center justify-center text-[10px] font-bold text-slate-600 z-0">
+                                <div className="w-8 h-8 rounded-full bg-slate-50 border-[2.5px] border-white flex items-center justify-center text-[10px] font-bold text-slate-500 z-0 shadow-2xs">
                                   +{hosts.length - 4}
                                 </div>
                               )}
@@ -6495,28 +6507,28 @@ export default function App() {
                         </div>
 
                         {/* Tabs & Filters */}
-                        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-5 border-b border-slate-100/80 pb-4">
-                          <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto pb-2 xl:pb-0 -mb-[17px]">
+                        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-5 border-b border-slate-100 pb-4">
+                          <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
                             <button
                               type="button"
-                              className="px-3 py-2.5 rounded-none border-b-2 border-slate-800 text-slate-800 font-bold text-[13px] flex items-center gap-2 whitespace-nowrap"
+                              className="px-3.5 py-2 rounded-xl border border-blue-600 bg-white text-blue-600 font-bold text-xs flex items-center gap-2 whitespace-nowrap shadow-2xs"
                             >
-                              <Calendar className="w-4 h-4" strokeWidth={2.5} />{" "}
+                              <Calendar className="w-4 h-4 text-blue-600" strokeWidth={2.2} />
                               Jadwal Aktif
                             </button>
 
-                            <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/60 ml-2">
+                            <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 ml-1">
                               <button
                                 type="button"
                                 onClick={() => setAdminScheduleViewMode('daily')}
-                                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${adminScheduleViewMode === 'daily' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${adminScheduleViewMode === 'daily' ? 'bg-white shadow-2xs text-slate-800 font-bold' : 'text-slate-500 hover:text-slate-700'}`}
                               >
                                 Harian
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setAdminScheduleViewMode('weekly')}
-                                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${adminScheduleViewMode === 'weekly' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${adminScheduleViewMode === 'weekly' ? 'bg-white shadow-2xs text-slate-800 font-bold' : 'text-slate-500 hover:text-slate-700'}`}
                               >
                                 Mingguan Grid
                               </button>
@@ -6745,9 +6757,9 @@ export default function App() {
                                   backupHostId: "",
                                 });
                               }}
-                              className="px-4 py-2 bg-[#1e1b2e] hover:bg-[#2c2844] border-0 rounded-xl text-xs font-bold text-white flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer shadow-sm"
+                              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 border-0 rounded-xl text-xs font-semibold text-white flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer shadow-sm shadow-blue-200"
                             >
-                              <Plus className="w-4 h-4" /> + Tambah Jadwal
+                              <Plus className="w-4 h-4 stroke-[2.5]" /> Tambah Jadwal
                             </button>
                           </div>
                         </div>
@@ -6757,297 +6769,209 @@ export default function App() {
                           id="schedules-on-selected-date"
                           className="space-y-3 mb-6 bg-white border border-slate-200 shadow-sm rounded-2xl p-6"
                         >
-                          <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-4 flex-wrap gap-2">
-                            <h5 className="text-[14px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1">
-                              <span></span> Jadwal Siaran Aktif Tanggal Ini
-                            </h5>
-                            <div className="flex items-center gap-2 relative">
-                              {/* Prev Day Button */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  try {
-                                    const d = new Date(selectedCalendarDate);
-                                    if (!isNaN(d.getTime())) {
-                                      d.setDate(d.getDate() - 1);
-                                      const y = d.getFullYear();
-                                      const m = String(
-                                        d.getMonth() + 1,
-                                      ).padStart(2, "0");
-                                      const dateStr = String(
-                                        d.getDate(),
-                                      ).padStart(2, "0");
-                                      setSelectedCalendarDate(
-                                        `${y}-${m}-${dateStr}`,
-                                      );
-                                    }
-                                  } catch (err) {
-                                    console.error(err);
-                                  }
-                                }}
-                                className="w-8 h-8 rounded-full bg-slate-50 border border-slate-205 hover:bg-[#eef2ff] hover:text-[#5642f5] hover:border-[#e0e7ff] text-slate-500 cursor-pointer transition-all active:scale-90 flex items-center justify-center shadow-xs"
-                                title="Hari Sebelumnya"
-                              >
-                                <ChevronLeft className="w-4 h-4" />
-                              </button>
-
-                              {/* The Trigger Pill (Styled exactly like the uploaded O Terdaftar badge) */}
-                              <div
-                                onClick={() => {
-                                  setIsCustomDatePickerOpen(
-                                    !isCustomDatePickerOpen,
-                                  );
-                                  if (!isCustomDatePickerOpen) {
-                                    try {
-                                      const parts =
-                                        selectedCalendarDate.split("-");
-                                      if (parts.length === 3) {
-                                        setPickerYear(parseInt(parts[0], 10));
-                                        setPickerMonth(
-                                          parseInt(parts[1], 10) - 1,
-                                        );
-                                        setPickerTempDate(selectedCalendarDate);
-                                      }
-                                    } catch (e) {
-                                      console.error(e);
-                                    }
-                                  }
-                                }}
-                                id="date-selection-badge"
-                                className="relative flex items-center gap-1.5 bg-[#eef2ff] hover:bg-[#e0e7ff]/80 px-4 py-1.5 rounded-full text-[11px] font-black text-[#5642f5] transition-all cursor-pointer select-none shadow-2xs border border-[#e0e7ff]/50 active:scale-[97%]"
-                              >
-                                <span>📅</span>
-                                <span className="pr-3 text-[11px] font-black text-[#5642f5] tracking-wide">
-                                  {(() => {
-                                    try {
-                                      const d = new Date(selectedCalendarDate);
-                                      if (isNaN(d.getTime()))
-                                        return selectedCalendarDate;
-                                      return d.toLocaleDateString("id-ID", {
-                                        weekday: "long",
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                      });
-                                    } catch (e) {
-                                      return selectedCalendarDate;
-                                    }
-                                  })()}
-                                </span>
-                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[8px] text-[#5642f5]/80">
-                                  ▼
-                                </span>
-                              </div>
-
-                              {/* Next Day Button */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  try {
-                                    const d = new Date(selectedCalendarDate);
-                                    if (!isNaN(d.getTime())) {
-                                      d.setDate(d.getDate() + 1);
-                                      const y = d.getFullYear();
-                                      const m = String(
-                                        d.getMonth() + 1,
-                                      ).padStart(2, "0");
-                                      const dateStr = String(
-                                        d.getDate(),
-                                      ).padStart(2, "0");
-                                      setSelectedCalendarDate(
-                                        `${y}-${m}-${dateStr}`,
-                                      );
-                                    }
-                                  } catch (err) {
-                                    console.error(err);
-                                  }
-                                }}
-                                className="w-8 h-8 rounded-full bg-slate-50 border border-slate-205 hover:bg-[#eef2ff] hover:text-[#5642f5] hover:border-[#e0e7ff] text-slate-500 cursor-pointer transition-all active:scale-90 flex items-center justify-center shadow-xs"
-                                title="Hari Selanjutnya"
-                              >
-                                <ChevronRight className="w-4 h-4" />
-                              </button>
-
-                              {/* Custom Floating Calendar Dropdown inspired by the reference design */}
-                              {isCustomDatePickerOpen && (
+                          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 pb-2">
+                            {/* Date Navigation */}
+                            <div className="flex items-center gap-2">
+                              {adminScheduleViewMode === 'weekly' ? (
                                 <>
-                                  <div
-                                    className="fixed inset-0 z-40 bg-transparent cursor-default"
-                                    onClick={() =>
-                                      setIsCustomDatePickerOpen(false)
-                                    }
-                                  />
-                                  <div
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="absolute right-[-10px] sm:right-0 top-full mt-3 w-[260px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 text-left animate-fadeIn origin-top-right"
+                                  {/* Prev Week Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const d = new Date(adminWeekStartDate);
+                                      d.setDate(d.getDate() - 7);
+                                      setAdminWeekStartDate(d);
+                                    }}
+                                    className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-500 cursor-pointer transition-all active:scale-95 flex items-center justify-center shadow-2xs"
+                                    title="Minggu Sebelumnya"
                                   >
-                                    {/* Month/Year and Next Month/Year navigation controls */}
-                                    <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
-                                      <span className="text-xs font-black text-slate-800 tracking-wider select-none">
-                                        {pickerYear} -{" "}
-                                        {String(pickerMonth + 1).padStart(
-                                          2,
-                                          "0",
-                                        )}
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </button>
+
+                                  {/* Weekly Pill Trigger */}
+                                  <div className="flex items-center gap-3 bg-white border border-slate-200/90 px-4 py-2 rounded-2xl shadow-2xs">
+                                    <div className="text-blue-600">
+                                      <Calendar className="w-5 h-5 stroke-[2.2]" />
+                                    </div>
+                                    <div className="flex flex-col text-left">
+                                      <span className="text-xs font-bold text-slate-800 leading-tight">
+                                        {(() => {
+                                          const first = new Date(adminWeekStartDate);
+                                          const last = new Date(adminWeekStartDate);
+                                          last.setDate(last.getDate() + 6);
+                                          const opt: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+                                          return `${first.toLocaleDateString('id-ID', opt)} - ${last.toLocaleDateString('id-ID', { ...opt, year: 'numeric' })}`;
+                                        })()}
                                       </span>
-                                      <div className="flex items-center gap-1 select-none">
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (pickerMonth === 0) {
-                                              setPickerMonth(11);
-                                              setPickerYear(pickerYear - 1);
-                                            } else {
-                                              setPickerMonth(pickerMonth - 1);
-                                            }
-                                          }}
-                                          className="p-1 hover:bg-slate-100 rounded text-slate-500 cursor-pointer transition-colors"
-                                          title="Sebelumnya"
-                                        >
-                                          <ChevronLeft className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (pickerMonth === 11) {
-                                              setPickerMonth(0);
-                                              setPickerYear(pickerYear + 1);
-                                            } else {
-                                              setPickerMonth(pickerMonth + 1);
-                                            }
-                                          }}
-                                          className="p-1 hover:bg-slate-100 rounded text-slate-500 cursor-pointer transition-colors"
-                                          title="Selanjutnya"
-                                        >
-                                          <ChevronRight className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    </div>
-
-                                    {/* Weekday indicator labels */}
-                                    <div className="grid grid-cols-7 text-center mb-1.5 select-none">
-                                      {[
-                                        "Sun",
-                                        "Mon",
-                                        "Tue",
-                                        "Wed",
-                                        "Thu",
-                                        "Fri",
-                                        "Sat",
-                                      ].map((day) => (
-                                        <span
-                                          key={day}
-                                          className="text-[9px] font-black uppercase text-slate-400 w-8 h-5 flex items-center justify-center tracking-wider"
-                                        >
-                                          {day}
-                                        </span>
-                                      ))}
-                                    </div>
-
-                                    {/* Days matrix grid */}
-                                    <div className="grid grid-cols-7 gap-y-1 gap-x-1 justify-items-center">
-                                      {(() => {
-                                        const dCells = getPickerDays(
-                                          pickerYear,
-                                          pickerMonth,
-                                        );
-                                        return dCells.map((dObj, idx) => {
-                                          const isSelectedInPicker =
-                                            pickerTempDate === dObj.dateString;
-                                          const isToday =
-                                            new Date()
-                                              .toISOString()
-                                              .split("T")[0] ===
-                                            dObj.dateString;
-
-                                          let textClass =
-                                            "text-slate-800 font-extrabold";
-                                          if (dObj.monthType !== "current") {
-                                            textClass =
-                                              "text-slate-300 font-bold";
-                                          }
-
-                                          return (
-                                            <div
-                                              key={idx}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDaySelect(dObj);
-                                              }}
-                                              className={`w-7 h-7 flex flex-col items-center justify-center text-[10px] rounded-lg transition-all cursor-pointer relative select-none ${
-                                                isSelectedInPicker
-                                                  ? "bg-[#009688] text-white font-black shadow-xs scale-105"
-                                                  : isToday
-                                                    ? "border border-[#009688]/30 text-[#009688] hover:bg-[#009688]/5 font-black"
-                                                    : "hover:bg-slate-100 font-bold"
-                                              } ${textClass}`}
-                                            >
-                                              <span>{dObj.day}</span>
-                                              {isToday &&
-                                                !isSelectedInPicker && (
-                                                  <span className="absolute bottom-1 w-1 h-1 bg-[#009688] rounded-full"></span>
-                                                )}
-                                            </div>
-                                          );
-                                        });
-                                      })()}
-                                    </div>
-
-                                    {/* Modal Actions Footer: Batal & Terapkan (Styled exactly like references) */}
-                                    <div className="flex items-center justify-end gap-1.5 mt-3 pt-2.5 border-t border-slate-100 select-none">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setIsCustomDatePickerOpen(false);
-                                        }}
-                                        className="px-3.5 py-1.5 bg-[#F5F5F5] hover:bg-slate-200 text-slate-600 rounded-xl font-black text-[10px] cursor-pointer transition-all active:scale-95"
-                                      >
-                                        Batal
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedCalendarDate(
-                                            pickerTempDate,
-                                          );
-                                          setIsCustomDatePickerOpen(false);
-                                        }}
-                                        className="px-4 py-1.5 bg-[#009688] hover:bg-[#00796B] text-white rounded-xl font-black text-[10px] cursor-pointer transition-all shadow-xs active:scale-95"
-                                      >
-                                        Terapkan
-                                      </button>
+                                      <span className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">
+                                        {(() => {
+                                          const d = new Date(adminWeekStartDate);
+                                          const startOfYear = new Date(d.getFullYear(), 0, 1);
+                                          const days = Math.floor((d.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+                                          const weekNum = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+                                          return `Minggu ke-${weekNum}, ${d.getFullYear()}`;
+                                        })()}
+                                      </span>
                                     </div>
                                   </div>
+
+                                  {/* Next Week Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const d = new Date(adminWeekStartDate);
+                                      d.setDate(d.getDate() + 7);
+                                      setAdminWeekStartDate(d);
+                                    }}
+                                    className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-500 cursor-pointer transition-all active:scale-95 flex items-center justify-center shadow-2xs"
+                                    title="Minggu Selanjutnya"
+                                  >
+                                    <ChevronRight className="w-4 h-4" />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  {/* Prev Day Button */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        const d = new Date(selectedCalendarDate);
+                                        if (!isNaN(d.getTime())) {
+                                          d.setDate(d.getDate() - 1);
+                                          const y = d.getFullYear();
+                                          const m = String(d.getMonth() + 1).padStart(2, "0");
+                                          const dateStr = String(d.getDate()).padStart(2, "0");
+                                          setSelectedCalendarDate(`${y}-${m}-${dateStr}`);
+                                        }
+                                      } catch (err) {
+                                        console.error(err);
+                                      }
+                                    }}
+                                    className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-500 cursor-pointer transition-all active:scale-95 flex items-center justify-center shadow-2xs"
+                                    title="Hari Sebelumnya"
+                                  >
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </button>
+
+                                  {/* Daily Date Picker Trigger */}
+                                  <div
+                                    onClick={() => {
+                                      setIsCustomDatePickerOpen(!isCustomDatePickerOpen);
+                                      if (!isCustomDatePickerOpen) {
+                                        try {
+                                          const parts = selectedCalendarDate.split("-");
+                                          if (parts.length === 3) {
+                                            setPickerYear(parseInt(parts[0], 10));
+                                            setPickerMonth(parseInt(parts[1], 10) - 1);
+                                            setPickerTempDate(selectedCalendarDate);
+                                          }
+                                        } catch (e) {
+                                          console.error(e);
+                                        }
+                                      }
+                                    }}
+                                    id="date-selection-badge"
+                                    className="flex items-center gap-3 bg-white border border-slate-200/90 px-4 py-2 rounded-2xl shadow-2xs cursor-pointer hover:border-slate-300 transition-all"
+                                  >
+                                    <div className="text-blue-600">
+                                      <Calendar className="w-5 h-5 stroke-[2.2]" />
+                                    </div>
+                                    <div className="flex flex-col text-left pr-2">
+                                      <span className="text-xs font-bold text-slate-800 leading-tight">
+                                        {(() => {
+                                          try {
+                                            const d = new Date(selectedCalendarDate);
+                                            if (isNaN(d.getTime())) return selectedCalendarDate;
+                                            return d.toLocaleDateString("id-ID", {
+                                              day: "numeric",
+                                              month: "short",
+                                              year: "numeric"
+                                            });
+                                          } catch (e) {
+                                            return selectedCalendarDate;
+                                          }
+                                        })()}
+                                      </span>
+                                      <span className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">
+                                        {(() => {
+                                          try {
+                                            const d = new Date(selectedCalendarDate);
+                                            if (isNaN(d.getTime())) return "";
+                                            return d.toLocaleDateString("id-ID", { weekday: "long" });
+                                          } catch (e) {
+                                            return "";
+                                          }
+                                        })()}
+                                      </span>
+                                    </div>
+                                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
+                                  </div>
+
+                                  {/* Next Day Button */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        const d = new Date(selectedCalendarDate);
+                                        if (!isNaN(d.getTime())) {
+                                          d.setDate(d.getDate() + 1);
+                                          const y = d.getFullYear();
+                                          const m = String(d.getMonth() + 1).padStart(2, "0");
+                                          const dateStr = String(d.getDate()).padStart(2, "0");
+                                          setSelectedCalendarDate(`${y}-${m}-${dateStr}`);
+                                        }
+                                      } catch (err) {
+                                        console.error(err);
+                                      }
+                                    }}
+                                    className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-500 cursor-pointer transition-all active:scale-95 flex items-center justify-center shadow-2xs"
+                                    title="Hari Selanjutnya"
+                                  >
+                                    <ChevronRight className="w-4 h-4" />
+                                  </button>
                                 </>
                               )}
-                              <div className="flex flex-col sm:flex-row gap-2">
-                                <ScheduleFilterHostDropdown
-                                  hosts={hosts}
-                                  value={scheduleHostSearch}
-                                  onChange={setScheduleHostSearch}
-                                />
-                                <ScheduleFilterBrandDropdown
-                                  clientBrands={clientBrands}
-                                  brands={brands}
-                                  value={scheduleBrandSearch}
-                                  onChange={setScheduleBrandSearch}
-                                />
+                            </div>
+
+                            {/* Dropdowns & Terdaftar Count */}
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              <ScheduleFilterHostDropdown
+                                hosts={hosts}
+                                value={scheduleHostSearch}
+                                onChange={setScheduleHostSearch}
+                              />
+                              <ScheduleFilterBrandDropdown
+                                clientBrands={clientBrands}
+                                brands={brands}
+                                value={scheduleBrandSearch}
+                                onChange={setScheduleBrandSearch}
+                              />
+                              {/* Terdaftar Badges: Matching reference design */}
+                              <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50/80 text-blue-600 border border-blue-100 text-xs font-bold tracking-tight shadow-2xs select-none">
+                                <Users className="w-4 h-4 text-blue-600 stroke-[2.2]" />
+                                <span>
+                                  {adminScheduleViewMode === 'weekly' ? (
+                                    (() => {
+                                      const validDates = new Set();
+                                      for (let i = 0; i < 7; i++) {
+                                        const d = new Date(adminWeekStartDate);
+                                        d.setDate(d.getDate() + i);
+                                        validDates.add(d.toISOString().split("T")[0]);
+                                      }
+                                      return computedSchedules.filter(
+                                        (s) => validDates.has((s.date || "").split("T")[0])
+                                      ).length;
+                                    })()
+                                  ) : (
+                                    computedSchedules.filter(
+                                      (s) => (s.date || "").split("T")[0] === selectedCalendarDate
+                                    ).length
+                                  )} Terdaftar
+                                </span>
                               </div>
-                              {/* Terdaftar Badges: Matching exactly the uploaded '0 Terdaftar' image */}
-                              <span className="px-4 py-1.5 rounded-full bg-[#eef2ff] text-xs font-black text-[#5642f5] tracking-wide select-none shadow-3xs border border-[#e0e7ff]/60">
-                                {
-                                  computedSchedules.filter(
-                                    (s) => (s.date || "").split("T")[0] === selectedCalendarDate,
-                                  ).length
-                                }{" "}
-                                Terdaftar
-                              </span>
                             </div>
                           </div>
 
