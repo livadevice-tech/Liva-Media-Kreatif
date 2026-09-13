@@ -81,7 +81,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   // PDF Viewer Navigation & Zoom
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(1);
-  const [zoomScale, setZoomScale] = useState(1.0);
+  const [zoomScale, setZoomScale] = useState(0.85);
   const [fitMode, setFitMode] = useState<'fit-width' | 'fit-page' | 'custom'>('fit-page');
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [pdfLoadError, setPdfLoadError] = useState<string | null>(null);
@@ -207,32 +207,49 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     setPdfBytes(new Uint8Array(arrayBuffer));
   };
 
-  // Calculate & Apply Fit Scale (Fit ke Lebar / Fit ke Halaman Penuh)
+  // Calculate & Apply Fit Scale (Fit ke Lebar / Fit ke Halaman)
   const calculateAndApplyFit = (mode: 'fit-width' | 'fit-page', unscaledWidth?: number, unscaledHeight?: number) => {
     const wrapper = viewportWrapperRef.current;
     if (!wrapper) return;
-    const paddingX = 48; // safe margin
-    const paddingY = 48;
-    const availWidth = Math.max(300, wrapper.clientWidth - paddingX);
-    const availHeight = Math.max(300, wrapper.clientHeight - paddingY);
+    const paddingX = 32; // comfortable breathing room
+    const paddingY = 32;
+    const availWidth = Math.max(280, wrapper.clientWidth - paddingX);
+    const availHeight = Math.max(280, wrapper.clientHeight - paddingY);
 
     const pdfW = unscaledWidth || 595;
     const pdfH = unscaledHeight || 842;
 
     let targetScale = 1.0;
     if (mode === 'fit-width') {
+      // Fit to width fills the container nicely so text is clearly readable and fits the container
       targetScale = availWidth / pdfW;
     } else {
-      // fit-page: fits both width and height so the entire page is visible without overflow
+      // Fit page fits both width and height within the screen
       const scaleX = availWidth / pdfW;
       const scaleY = availHeight / pdfH;
       targetScale = Math.min(scaleX, scaleY);
     }
 
-    const clampedScale = Math.max(0.4, Math.min(2.5, Number(targetScale.toFixed(2))));
+    const clampedScale = Math.max(0.4, Math.min(3.0, Number(targetScale.toFixed(2))));
     setZoomScale(clampedScale);
     setFitMode(mode);
   };
+
+  // Re-calculate fit scale on window resize if in fit mode
+  useEffect(() => {
+    const handleResize = () => {
+      if (fitMode === 'fit-width' || fitMode === 'fit-page') {
+        const wrapper = viewportWrapperRef.current;
+        const canvas = pdfCanvasRef.current;
+        if (wrapper && canvas) {
+          calculateAndApplyFit(fitMode);
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [fitMode]);
 
   // Render PDF page
   useEffect(() => {
@@ -258,26 +275,25 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
         const page = await pdf.getPage(safePageNum);
         if (isCancelled) return;
 
-        // Determine current effective zoom scale
-        let currentScale = zoomScale;
         const unscaledViewport = page.getViewport({ scale: 1.0 });
 
-        // Auto-fit on first load or when fitMode is explicitly set
-        if (fitMode === 'fit-page' || fitMode === 'fit-width') {
-          const wrapper = viewportWrapperRef.current;
-          if (wrapper) {
-            const availW = Math.max(280, wrapper.clientWidth - 48);
-            const availH = Math.max(280, wrapper.clientHeight - 48);
-            if (fitMode === 'fit-width') {
-              currentScale = Math.max(0.4, Math.min(2.5, Number((availW / unscaledViewport.width).toFixed(2))));
-            } else {
-              const scaleX = availW / unscaledViewport.width;
-              const scaleY = availH / unscaledViewport.height;
-              currentScale = Math.max(0.4, Math.min(2.5, Number(Math.min(scaleX, scaleY).toFixed(2))));
-            }
-            if (currentScale !== zoomScale) {
-              setZoomScale(currentScale);
-            }
+        // Calculate dynamic scale if fitMode is active
+        let currentScale = zoomScale;
+        const wrapper = viewportWrapperRef.current;
+        if (wrapper && (fitMode === 'fit-width' || fitMode === 'fit-page')) {
+          const availW = Math.max(280, wrapper.clientWidth - 32);
+          const availH = Math.max(280, wrapper.clientHeight - 32);
+
+          if (fitMode === 'fit-width') {
+            currentScale = Math.max(0.4, Math.min(3.0, Number((availW / unscaledViewport.width).toFixed(2))));
+          } else {
+            const scaleX = availW / unscaledViewport.width;
+            const scaleY = availH / unscaledViewport.height;
+            currentScale = Math.max(0.4, Math.min(3.0, Number(Math.min(scaleX, scaleY).toFixed(2))));
+          }
+
+          if (currentScale !== zoomScale) {
+            setZoomScale(currentScale);
           }
         }
 
