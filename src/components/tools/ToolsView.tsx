@@ -38,7 +38,9 @@ import {
   Bookmark,
   BookmarkCheck,
   BookmarkPlus,
-  Plus
+  Plus,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
@@ -96,10 +98,13 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   const [pdfDimensions, setPdfDimensions] = useState<{ width: number; height: number }>({ width: 595, height: 842 });
 
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [signatureInputMethod, setSignatureInputMethod] = useState<'draw' | 'upload'>('draw');
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [inkColor, setInkColor] = useState<'#0f172a' | '#1e3a8a'>('#0f172a');
   const padCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const sigFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadedSigFileName, setUploadedSigFileName] = useState<string | null>(null);
 
   // Saved Signatures State (Khusus TTD Internal)
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
@@ -453,6 +458,47 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     setSignatureDataUrl(null);
     setHasDrawn(false);
     setSelectedSavedSigId(null);
+    setUploadedSigFileName(null);
+    if (sigFileInputRef.current) {
+      sigFileInputRef.current.value = '';
+    }
+  };
+
+  // Upload file gambar tanda tangan (PNG transparan / JPG)
+  const handleSignatureImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Berkas harus berupa gambar (PNG, JPG, atau WEBP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (loadEvt) => {
+      const result = loadEvt.target?.result as string;
+      if (!result) return;
+
+      setSignatureDataUrl(result);
+      setHasDrawn(true);
+      setSelectedSavedSigId(null);
+      setUploadedSigFileName(file.name);
+
+      // Render to canvas pad preview
+      const canvas = padCanvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0, canvas.width / 2, canvas.height / 2);
+          };
+          img.src = result;
+        }
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // Pilih tanda tangan dari daftar simpanan
@@ -1383,11 +1429,35 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <PenTool className="w-4 h-4 text-emerald-600" />
-                        <span className="text-xs font-bold text-slate-800">Gores Tanda Tangan Anda</span>
+                    {/* TABS: GORES LANGSUNG vs UNGGAH GAMBAR TTD */}
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="inline-flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-[11px]">
+                        <button
+                          type="button"
+                          onClick={() => setSignatureInputMethod('draw')}
+                          className={`px-2.5 py-1 font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                            signatureInputMethod === 'draw'
+                              ? 'bg-white text-emerald-700 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          <PenTool className="w-3 h-3" />
+                          <span>Gores Langsung</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSignatureInputMethod('upload')}
+                          className={`px-2.5 py-1 font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                            signatureInputMethod === 'upload'
+                              ? 'bg-white text-emerald-700 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          <Upload className="w-3 h-3" />
+                          <span>Upload Gambar TTD</span>
+                        </button>
                       </div>
+
                       <button
                         type="button"
                         onClick={clearPad}
@@ -1398,25 +1468,88 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                       </button>
                     </div>
 
-                    {/* Canvas Area */}
-                    <div className="relative border-2 border-dashed border-slate-300 rounded-2xl bg-white p-1 overflow-hidden shadow-inner">
-                      <canvas
-                        ref={padCanvasRef}
-                        onMouseDown={startDrawing}
-                        onMouseMove={draw}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing}
-                        onTouchStart={startDrawing}
-                        onTouchMove={draw}
-                        onTouchEnd={stopDrawing}
-                        className="w-full h-32 bg-slate-50/50 rounded-xl cursor-crosshair touch-none"
-                      />
-                      {!hasDrawn && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-xs">
-                          Tulis tanda tangan Anda di sini
-                        </div>
-                      )}
-                    </div>
+                    {/* METHOD 1: CANVAS GORES LANGSUNG */}
+                    {signatureInputMethod === 'draw' && (
+                      <div className="relative border-2 border-dashed border-slate-300 rounded-2xl bg-white p-1 overflow-hidden shadow-inner">
+                        <canvas
+                          ref={padCanvasRef}
+                          onMouseDown={startDrawing}
+                          onMouseMove={draw}
+                          onMouseUp={stopDrawing}
+                          onMouseLeave={stopDrawing}
+                          onTouchStart={startDrawing}
+                          onTouchMove={draw}
+                          onTouchEnd={stopDrawing}
+                          className="w-full h-32 bg-slate-50/50 rounded-xl cursor-crosshair touch-none"
+                        />
+                        {!hasDrawn && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-xs">
+                            Tulis tanda tangan Anda di sini
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* METHOD 2: UPLOAD FILE GAMBAR TTD */}
+                    {signatureInputMethod === 'upload' && (
+                      <div className="space-y-2">
+                        <input
+                          ref={sigFileInputRef}
+                          type="file"
+                          accept="image/png, image/jpeg, image/webp"
+                          className="hidden"
+                          onChange={handleSignatureImageUpload}
+                        />
+
+                        {signatureDataUrl ? (
+                          <div className="p-3 bg-white border-2 border-emerald-400 rounded-2xl flex flex-col items-center justify-center relative group shadow-sm">
+                            <div className="h-24 w-full flex items-center justify-center overflow-hidden">
+                              <img
+                                src={signatureDataUrl}
+                                alt="Pratinjau TTD Upload"
+                                className="max-h-full max-w-full object-contain"
+                              />
+                            </div>
+                            <div className="text-[11px] text-slate-600 font-medium truncate max-w-full mt-2">
+                              {uploadedSigFileName || 'Gambar Tanda Tangan Terpilih'}
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <button
+                                type="button"
+                                onClick={() => sigFileInputRef.current?.click()}
+                                className="px-2.5 py-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer"
+                              >
+                                Ganti Gambar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={clearPad}
+                                className="px-2.5 py-1 text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg cursor-pointer"
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => sigFileInputRef.current?.click()}
+                            className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50/70 hover:bg-emerald-50/30 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-emerald-600 group-hover:border-emerald-300 transition-colors">
+                              <UploadCloud className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-800">
+                                Klik untuk Unggah Gambar TTD
+                              </div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">
+                                Format PNG (Transparan), JPG, atau WEBP
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Save Signature Action Row */}
                     <div className="pt-0.5">
@@ -1467,28 +1600,30 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                       )}
                     </div>
 
-                    {/* Ink Selector & Placement Notice */}
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-500 text-[11px]">Warna Tinta:</span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setInkColor('#0f172a')}
-                          className={`w-5 h-5 rounded-full bg-slate-900 border ${
-                            inkColor === '#0f172a' ? 'ring-2 ring-emerald-500 border-white' : 'border-slate-300'
-                          } cursor-pointer`}
-                          title="Hitam"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setInkColor('#1e3a8a')}
-                          className={`w-5 h-5 rounded-full bg-blue-900 border ${
-                            inkColor === '#1e3a8a' ? 'ring-2 ring-emerald-500 border-white' : 'border-slate-300'
-                          } cursor-pointer`}
-                          title="Biru Gelap"
-                        />
+                    {/* Ink Selector (Hanya untuk Gores Langsung) */}
+                    {signatureInputMethod === 'draw' && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500 text-[11px]">Warna Tinta:</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setInkColor('#0f172a')}
+                            className={`w-5 h-5 rounded-full bg-slate-900 border ${
+                              inkColor === '#0f172a' ? 'ring-2 ring-emerald-500 border-white' : 'border-slate-300'
+                            } cursor-pointer`}
+                            title="Hitam"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setInkColor('#1e3a8a')}
+                            className={`w-5 h-5 rounded-full bg-blue-900 border ${
+                              inkColor === '#1e3a8a' ? 'ring-2 ring-emerald-500 border-white' : 'border-slate-300'
+                            } cursor-pointer`}
+                            title="Biru Gelap"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] space-y-1">
                       <div className="font-bold flex items-center gap-1">
