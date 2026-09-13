@@ -715,11 +715,11 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
       setDownloadUrl(dlUrl);
       setExportSuccess(true);
 
-      // Auto trigger download
+      // Auto trigger download with _Signed suffix
       const a = document.createElement('a');
       a.href = dlUrl;
       const baseName = selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, '') : 'dokumen';
-      a.download = `${baseName}_bertandatangan.pdf`;
+      a.download = `${baseName}_Signed.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2117,7 +2117,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                                   href={doc.signed_file_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  download
+                                  download={`${(doc.file_name || doc.title || 'dokumen').replace(/\.[^/.]+$/, '')}_Signed.pdf`}
                                   className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
                                   title="Unduh PDF Bertanda Tangan"
                                 >
