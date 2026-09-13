@@ -88,6 +88,8 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   const pdfCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewportWrapperRef = useRef<HTMLDivElement | null>(null);
+  const renderTaskRef = useRef<any>(null);
+  const [pdfDimensions, setPdfDimensions] = useState<{ width: number; height: number }>({ width: 595, height: 842 });
 
   // Signature Pad State (ONLY SIGNATURE GRAPHIC)
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
@@ -208,29 +210,28 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   };
 
   // Calculate & Apply Fit Scale (Fit ke Lebar / Fit ke Halaman)
-  const calculateAndApplyFit = (mode: 'fit-width' | 'fit-page', unscaledWidth?: number, unscaledHeight?: number) => {
+  const calculateAndApplyFit = (mode: 'fit-width' | 'fit-page') => {
     const wrapper = viewportWrapperRef.current;
     if (!wrapper) return;
-    const paddingX = 32; // comfortable breathing room
-    const paddingY = 32;
-    const availWidth = Math.max(280, wrapper.clientWidth - paddingX);
-    const availHeight = Math.max(280, wrapper.clientHeight - paddingY);
 
-    const pdfW = unscaledWidth || 595;
-    const pdfH = unscaledHeight || 842;
+    // Available viewport size minus margins
+    const availWidth = Math.max(260, wrapper.clientWidth - 32);
+    const availHeight = Math.max(260, wrapper.clientHeight - 32);
+
+    const pdfW = pdfDimensions.width || 595;
+    const pdfH = pdfDimensions.height || 842;
 
     let targetScale = 1.0;
     if (mode === 'fit-width') {
-      // Fit to width fills the container nicely so text is clearly readable and fits the container
       targetScale = availWidth / pdfW;
     } else {
-      // Fit page fits both width and height within the screen
+      // Fit full page (both width & height) cleanly into viewport
       const scaleX = availWidth / pdfW;
       const scaleY = availHeight / pdfH;
       targetScale = Math.min(scaleX, scaleY);
     }
 
-    const clampedScale = Math.max(0.4, Math.min(3.0, Number(targetScale.toFixed(2))));
+    const clampedScale = Math.max(0.3, Math.min(3.0, Number(targetScale.toFixed(2))));
     setZoomScale(clampedScale);
     setFitMode(mode);
   };
@@ -239,25 +240,31 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   useEffect(() => {
     const handleResize = () => {
       if (fitMode === 'fit-width' || fitMode === 'fit-page') {
-        const wrapper = viewportWrapperRef.current;
-        const canvas = pdfCanvasRef.current;
-        if (wrapper && canvas) {
-          calculateAndApplyFit(fitMode);
-        }
+        calculateAndApplyFit(fitMode);
       }
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [fitMode]);
+  }, [fitMode, pdfDimensions]);
 
-  // Render PDF page
+  // Render PDF page safely without concurrent canvas conflict
   useEffect(() => {
     if (!fileUrl || !isPdf) return;
 
     let isCancelled = false;
     setIsLoadingPdf(true);
     setPdfLoadError(null);
+
+    // Cancel previous ongoing render task if any
+    if (renderTaskRef.current) {
+      try {
+        renderTaskRef.current.cancel();
+      } catch (e) {
+        // ignore cancel error
+      }
+      renderTaskRef.current = null;
+    }
 
     const render = async () => {
       try {
@@ -276,33 +283,30 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
         if (isCancelled) return;
 
         const unscaledViewport = page.getViewport({ scale: 1.0 });
+        setPdfDimensions({ width: unscaledViewport.width, height: unscaledViewport.height });
 
-        // Calculate dynamic scale if fitMode is active
-        let currentScale = zoomScale;
+        // Calculate target scale if fitMode is active
+        let effectiveScale = zoomScale;
         const wrapper = viewportWrapperRef.current;
-        if (wrapper && (fitMode === 'fit-width' || fitMode === 'fit-page')) {
-          const availW = Math.max(280, wrapper.clientWidth - 32);
-          const availH = Math.max(280, wrapper.clientHeight - 32);
+        if (wrapper && (fitMode === 'fit-page' || fitMode === 'fit-width')) {
+          const availW = Math.max(260, wrapper.clientWidth - 32);
+          const availH = Math.max(260, wrapper.clientHeight - 32);
 
           if (fitMode === 'fit-width') {
-            currentScale = Math.max(0.4, Math.min(3.0, Number((availW / unscaledViewport.width).toFixed(2))));
+            effectiveScale = Math.max(0.3, Math.min(3.0, Number((availW / unscaledViewport.width).toFixed(2))));
           } else {
-            const scaleX = availW / unscaledViewport.width;
-            const scaleY = availH / unscaledViewport.height;
-            currentScale = Math.max(0.4, Math.min(3.0, Number(Math.min(scaleX, scaleY).toFixed(2))));
-          }
-
-          if (currentScale !== zoomScale) {
-            setZoomScale(currentScale);
+            const sX = availW / unscaledViewport.width;
+            const sY = availH / unscaledViewport.height;
+            effectiveScale = Math.max(0.3, Math.min(3.0, Number(Math.min(sX, sY).toFixed(2))));
           }
         }
 
-        const viewport = page.getViewport({ scale: currentScale });
+        const viewport = page.getViewport({ scale: effectiveScale });
         const canvas = pdfCanvasRef.current;
-        if (!canvas) return;
+        if (!canvas || isCancelled) return;
 
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx || isCancelled) return;
 
         const pixelRatio = window.devicePixelRatio || 1;
         canvas.width = viewport.width * pixelRatio;
@@ -312,13 +316,23 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
 
         ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-        await page.render({
+        const renderTask = page.render({
           canvasContext: ctx,
           viewport: viewport,
-        }).promise;
+        });
+        renderTaskRef.current = renderTask;
 
-        setIsLoadingPdf(false);
+        await renderTask.promise;
+        renderTaskRef.current = null;
+
+        if (!isCancelled) {
+          setIsLoadingPdf(false);
+        }
       } catch (err: any) {
+        if (err?.name === 'RenderingCancelledException') {
+          // Expected when cancelling previous render, ignore
+          return;
+        }
         console.error('Failed to render PDF preview:', err);
         if (!isCancelled) {
           setPdfLoadError(err.message || 'Gagal memuat pratinjau PDF.');
@@ -331,6 +345,14 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
 
     return () => {
       isCancelled = true;
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch (e) {
+          // ignore
+        }
+        renderTaskRef.current = null;
+      }
     };
   }, [fileUrl, isPdf, currentPage, zoomScale, fitMode]);
 
