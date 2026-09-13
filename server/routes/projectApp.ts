@@ -1470,5 +1470,73 @@ projectAppRouter.delete('/documents/:id', async (req: Request, res: Response) =>
   }
 });
 
+// ==========================================
+// 11. SAVED SIGNATURES (SIMPAN TANDA TANGAN INTERNAL)
+// ==========================================
+
+// 11.1 Get all saved signatures (hanya untuk internal user)
+projectAppRouter.get('/saved-signatures', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const { user_id } = req.query;
+
+    let query = 'SELECT * FROM app_saved_signatures ORDER BY created_at DESC';
+    let params: any[] = [];
+
+    if (user_id) {
+      query = 'SELECT * FROM app_saved_signatures WHERE user_id = ? OR user_id IS NULL ORDER BY created_at DESC';
+      params = [user_id];
+    }
+
+    const [rows]: any = await pool.query(query, params);
+    res.json(rows || []);
+  } catch (error: any) {
+    console.error('Error fetching saved signatures:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 11.2 Save a new signature (hanya untuk ttd internal)
+projectAppRouter.post('/saved-signatures', async (req: Request, res: Response) => {
+  try {
+    const { name, signature_data_url, user_id, created_by } = req.body;
+
+    if (!signature_data_url) {
+      return res.status(400).json({ error: 'Goresan tanda tangan wajib diisi.' });
+    }
+
+    const sigId = `sig-${Date.now()}`;
+    const sigName = name && name.trim() ? name.trim() : `TTD ${new Date().toLocaleDateString('id-ID')}`;
+
+    const pool = getPool();
+    await pool.query(`
+      INSERT INTO app_saved_signatures (id, name, signature_data_url, user_id, created_by)
+      VALUES (?, ?, ?, ?, ?)
+    `, [sigId, sigName, signature_data_url, user_id || null, created_by || 'User']);
+
+    res.json({
+      success: true,
+      id: sigId,
+      message: 'Tanda tangan berhasil disimpan untuk TTD Internal!',
+    });
+  } catch (error: any) {
+    console.error('Error saving signature:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 11.3 Delete saved signature
+projectAppRouter.delete('/saved-signatures/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    await pool.query('DELETE FROM app_saved_signatures WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Tanda tangan tersimpan berhasil dihapus.' });
+  } catch (error: any) {
+    console.error('Error deleting saved signature:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 

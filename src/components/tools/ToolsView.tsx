@@ -34,11 +34,15 @@ import {
   PanelLeft,
   Maximize2,
   Minimize2,
-  X
+  X,
+  Bookmark,
+  BookmarkCheck,
+  BookmarkPlus,
+  Plus
 } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
-import { UserAccount, SignedDocument } from '../../types/app';
+import { UserAccount, SignedDocument, SavedSignature } from '../../types/app';
 import { appApi } from '../../services/appApi';
 
 // Configure PDF.js worker
@@ -91,12 +95,18 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
   const renderTaskRef = useRef<any>(null);
   const [pdfDimensions, setPdfDimensions] = useState<{ width: number; height: number }>({ width: 595, height: 842 });
 
-  // Signature Pad State (ONLY SIGNATURE GRAPHIC)
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [inkColor, setInkColor] = useState<'#0f172a' | '#1e3a8a'>('#0f172a');
   const padCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Saved Signatures State (Khusus TTD Internal)
+  const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
+  const [selectedSavedSigId, setSelectedSavedSigId] = useState<string | null>(null);
+  const [isSavingSignature, setIsSavingSignature] = useState(false);
+  const [showSaveSigInput, setShowSaveSigInput] = useState(false);
+  const [newSigLabel, setNewSigLabel] = useState('');
 
   // Signature Placement Box on Document (Relative 0 to 1)
   const [signaturePlacement, setSignaturePlacement] = useState<{
@@ -174,11 +184,24 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
     }
   };
 
+  // Load saved signatures for internal signing
+  const loadSavedSignatures = async () => {
+    try {
+      const sigs = await appApi.getSavedSignatures(currentUser?.id);
+      setSavedSignatures(sigs || []);
+    } catch (err) {
+      console.error('Failed to load saved signatures:', err);
+    }
+  };
+
   useEffect(() => {
     if (activeTool === 'sign-history' || activeTool === 'hub') {
       loadDocuments();
     }
-  }, [activeTool]);
+    if (activeTool === 'pdf-sign') {
+      loadSavedSignatures();
+    }
+  }, [activeTool, currentUser?.id]);
 
   // Handle file selection
   const handleFileChange = async (file: File) => {
@@ -421,13 +444,82 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
 
   const clearPad = () => {
     const canvas = padCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
     setSignatureDataUrl(null);
     setHasDrawn(false);
+    setSelectedSavedSigId(null);
+  };
+
+  // Pilih tanda tangan dari daftar simpanan
+  const handleSelectSavedSignature = (sig: SavedSignature) => {
+    setSelectedSavedSigId(sig.id);
+    setSignatureDataUrl(sig.signature_data_url);
+    setHasDrawn(true);
+
+    // Render preview to canvas pad
+    const canvas = padCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, canvas.width / 2, canvas.height / 2);
+        };
+        img.src = sig.signature_data_url;
+      }
+    }
+  };
+
+  // Simpan tanda tangan yang sedang digambar ke daftar tersimpan
+  const handleSaveCurrentSignature = async () => {
+    if (!signatureDataUrl) {
+      alert('Silakan goreskan tanda tangan Anda terlebih dahulu sebelum menyimpannya.');
+      return;
+    }
+
+    const label = newSigLabel.trim() || `TTD ${currentUser?.full_name || 'Internal'}`;
+    setIsSavingSignature(true);
+    try {
+      const res = await appApi.saveSignature({
+        name: label,
+        signature_data_url: signatureDataUrl,
+        user_id: currentUser?.id,
+        created_by: currentUser?.full_name || 'User',
+      });
+      if (res.success) {
+        setNewSigLabel('');
+        setShowSaveSigInput(false);
+        await loadSavedSignatures();
+        setSelectedSavedSigId(res.id);
+      }
+    } catch (err: any) {
+      console.error('Failed to save signature:', err);
+      alert(err.message || 'Gagal menyimpan tanda tangan.');
+    } finally {
+      setIsSavingSignature(false);
+    }
+  };
+
+  // Hapus tanda tangan dari database tersimpan
+  const handleDeleteSavedSignature = async (e: React.MouseEvent, sigId: string) => {
+    e.stopPropagation();
+    if (!window.confirm('Hapus tanda tangan tersimpan ini?')) return;
+    try {
+      await appApi.deleteSavedSignature(sigId);
+      if (selectedSavedSigId === sigId) {
+        clearPad();
+      }
+      await loadSavedSignatures();
+    } catch (err: any) {
+      console.error('Failed to delete saved signature:', err);
+      alert(err.message || 'Gagal menghapus tanda tangan.');
+    }
   };
 
   // Dragging Signature Box Handlers
@@ -1235,6 +1327,62 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                 {/* MODE 1: INTERNAL SIGN PAD */}
                 {signMode === 'internal' && (
                   <div className="space-y-3">
+                    {/* Saved Signatures Shelf (Khusus Internal) */}
+                    <div className="p-3 bg-emerald-50/60 border border-emerald-200/70 rounded-2xl space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-emerald-800 text-[11px] font-bold">
+                          <BookmarkCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Tanda Tangan Tersimpan</span>
+                        </div>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
+                          Khusus Internal
+                        </span>
+                      </div>
+
+                      {savedSignatures.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-0.5 custom-scrollbar">
+                          {savedSignatures.map((sig) => {
+                            const isSelected = selectedSavedSigId === sig.id;
+                            return (
+                              <div
+                                key={sig.id}
+                                onClick={() => handleSelectSavedSignature(sig)}
+                                className={`relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col items-center justify-between group ${
+                                  isSelected
+                                    ? 'border-emerald-500 bg-white ring-2 ring-emerald-500/20 shadow-xs'
+                                    : 'border-slate-200 bg-white/80 hover:bg-white hover:border-emerald-300'
+                                }`}
+                              >
+                                <div className="h-10 w-full flex items-center justify-center overflow-hidden">
+                                  <img
+                                    src={sig.signature_data_url}
+                                    alt={sig.name}
+                                    className="max-h-full max-w-full object-contain pointer-events-none"
+                                  />
+                                </div>
+                                <div className="text-[10px] font-medium text-slate-700 truncate w-full text-center mt-1">
+                                  {sig.name}
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDeleteSavedSignature(e, sig.id)}
+                                  className="absolute top-1 right-1 p-1 rounded-md text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                  title="Hapus tanda tangan ini"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-slate-500 text-center py-1.5">
+                          Belum ada tanda tangan tersimpan. Buat tanda tangan di bawah lalu simpan untuk digunakan kembali kapan saja.
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <PenTool className="w-4 h-4 text-emerald-600" />
@@ -1261,11 +1409,60 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
                         onTouchStart={startDrawing}
                         onTouchMove={draw}
                         onTouchEnd={stopDrawing}
-                        className="w-full h-36 bg-slate-50/50 rounded-xl cursor-crosshair touch-none"
+                        className="w-full h-32 bg-slate-50/50 rounded-xl cursor-crosshair touch-none"
                       />
                       {!hasDrawn && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-xs">
                           Tulis tanda tangan Anda di sini
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Save Signature Action Row */}
+                    <div className="pt-0.5">
+                      {showSaveSigInput ? (
+                        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                          <label className="block text-[10px] font-bold text-slate-600">
+                            Nama / Label Tanda Tangan:
+                          </label>
+                          <input
+                            type="text"
+                            value={newSigLabel}
+                            onChange={(e) => setNewSigLabel(e.target.value)}
+                            placeholder={`Contoh: TTD ${currentUser?.full_name || 'Galang'}`}
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-emerald-500"
+                          />
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setShowSaveSigInput(false)}
+                              className="px-2.5 py-1 text-[11px] text-slate-500 hover:bg-slate-200 rounded-lg cursor-pointer"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSaveCurrentSignature}
+                              disabled={isSavingSignature || !hasDrawn}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                            >
+                              {isSavingSignature ? <Loader2 className="w-3 h-3 animate-spin" /> : <BookmarkPlus className="w-3 h-3" />}
+                              <span>Simpan</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => setShowSaveSigInput(true)}
+                            disabled={!hasDrawn}
+                            className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer py-1 px-2 rounded-lg hover:bg-emerald-50 transition-colors"
+                          >
+                            <BookmarkPlus className="w-3.5 h-3.5" />
+                            <span>Simpan Tanda Tangan Ini</span>
+                          </button>
+                          <span className="text-[10px] text-slate-400">Siap pakai lagi</span>
                         </div>
                       )}
                     </div>

@@ -196,3 +196,12 @@ export interface SignedDocument {
   updated_at?: string;
 }
 
+export interface SavedSignature {
+  id: string;
+  name: string;
+  signature_data_url: string;
+  user_id?: string;
+  created_by?: string;
+  created_at?: string;
+}
+

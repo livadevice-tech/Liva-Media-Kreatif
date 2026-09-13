@@ -9,7 +9,8 @@ import {
   ContentStatus,
   UserAccount,
   ContentDraftItem,
-  SignedDocument
+  SignedDocument,
+  SavedSignature
 } from '../types/app';
 
 const API_BASE = '/api';
@@ -254,4 +255,18 @@ export const appApi = {
     }).then(handleResponse<{ success: boolean; signed_file_url?: string; message: string }>),
   deleteSignedDocument: (id: string): Promise<{ success: boolean; message: string }> =>
     fetch(`${API_BASE}/project-app/documents/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean; message: string }>),
+
+  // Saved Signatures (Simpan Tanda Tangan Internal)
+  getSavedSignatures: (userId?: string): Promise<SavedSignature[]> => {
+    const query = userId ? `?user_id=${encodeURIComponent(userId)}` : '';
+    return fetch(`${API_BASE}/project-app/saved-signatures${query}`).then(handleResponse<SavedSignature[]>);
+  },
+  saveSignature: (data: { name: string; signature_data_url: string; user_id?: string; created_by?: string }): Promise<{ success: boolean; id: string; message: string }> =>
+    fetch(`${API_BASE}/project-app/saved-signatures`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean; id: string; message: string }>),
+  deleteSavedSignature: (id: string): Promise<{ success: boolean; message: string }> =>
+    fetch(`${API_BASE}/project-app/saved-signatures/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean; message: string }>),
 };

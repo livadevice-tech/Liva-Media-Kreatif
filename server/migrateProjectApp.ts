@@ -237,6 +237,19 @@ export async function runProjectAppMigrations() {
     // Ignore error jika kolom sudah ada
   }
 
+  // 10. Saved Signatures Table (Simpan Tanda Tangan Internal)
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS app_saved_signatures (
+      id VARCHAR(50) PRIMARY KEY,
+      name VARCHAR(150) NOT NULL,
+      signature_data_url LONGTEXT NOT NULL,
+      user_id VARCHAR(50),
+      created_by VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_user (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
   console.log("✅ Seluruh tabel berhasil diverifikasi/dibuat!");
 
   // Auto Seeding jika data masih kosong
