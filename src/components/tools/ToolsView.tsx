@@ -741,23 +741,6 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
       {/* ========================================================================= */}
       {activeTool === 'hub' && (
         <div className="flex-1 overflow-y-auto p-6 max-w-7xl mx-auto w-full space-y-6">
-          {/* Welcome Banner */}
-          <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white shadow-xl">
-            <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="relative z-10 max-w-2xl space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-medium">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Productivity & Automation Suite</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                Peralatan Kerja Kreatif & Digital Liva
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Akses berbagai modul utilitas untuk mempercepat operasional. Mulai dari tanda tangan berkas PDF resmi (internal maupun minta ttd eksternal tanpa login), pengelolaan media, hingga generator aset.
-              </p>
-            </div>
-          </div>
-
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center gap-4 shadow-xs">
