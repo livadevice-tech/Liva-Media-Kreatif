@@ -6138,7 +6138,9 @@ export default function App() {
                 className={`w-full mx-auto flex-1 pb-24 relative ${
                   operatorTab === "reporting_brand"
                     ? ""
-                    : (operatorTab === "dashboard_utama" || operatorTab === "absensi" || operatorTab === "invoice")
+                    : operatorTab === "absensi"
+                    ? "p-0 md:px-4 md:py-3 w-full max-w-none md:space-y-4"
+                    : (operatorTab === "dashboard_utama" || operatorTab === "invoice")
                     ? "p-0 md:p-6 max-w-7xl md:space-y-6"
                     : "p-4 md:p-6 max-w-7xl space-y-4 md:space-y-6"
                 }`}
@@ -6461,7 +6463,7 @@ export default function App() {
                   >
                     {/* CALENDAR VIEW UNTUK JADWAL HOST */}
                     <div className="bg-[#fafafc] w-full font-sans">
-                      <div className="bg-white rounded-[20px] p-6 shadow-sm">
+                      <div className="bg-white rounded-[20px] p-4 sm:p-5 shadow-sm border border-slate-200/60">
                         {/* Top Header */}
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                           <div>
@@ -6768,7 +6770,11 @@ export default function App() {
                         {/* JADWAL TERDAFTAR SEBELUMNYA PADA HARI INI */}
                         <div
                           id="schedules-on-selected-date"
-                          className="space-y-3 mb-6 bg-white border border-slate-200 shadow-sm rounded-2xl p-6"
+                          className={`space-y-3 mb-6 ${
+                            adminScheduleViewMode === 'weekly'
+                              ? 'bg-transparent border-0 shadow-none p-0'
+                              : 'bg-white border border-slate-200 shadow-sm rounded-2xl p-4 sm:p-5'
+                          }`}
                         >
                           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 pb-2">
                             {/* Date Navigation */}

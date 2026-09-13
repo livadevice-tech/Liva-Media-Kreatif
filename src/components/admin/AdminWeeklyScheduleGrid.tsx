@@ -248,9 +248,9 @@ export function AdminWeeklyScheduleGrid({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden mt-4">
+    <div className="bg-white rounded-xl shadow-xs border border-slate-200/90 overflow-hidden mt-1">
       {/* Header Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 py-4 border-b border-slate-200/80 bg-white gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-3.5 py-2.5 border-b border-slate-200/80 bg-white gap-3">
         <div className="flex items-center gap-3">
           <div className="text-blue-600">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -320,13 +320,13 @@ export function AdminWeeklyScheduleGrid({
 
       {/* Grid Table */}
       <div className="overflow-x-auto w-full">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-collapse table-fixed">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/50">
-              <th className="py-2.5 px-2 text-center text-xs font-bold text-slate-600 border-r border-slate-200 w-[75px] min-w-[75px]">
+              <th className="py-2 px-1 text-center text-xs font-bold text-slate-600 border-r border-slate-200 w-[54px]">
                 Studio
               </th>
-              <th className="py-2.5 px-2 text-center text-xs font-bold text-slate-600 border-r border-slate-200 w-[120px] min-w-[120px]">
+              <th className="py-2 px-1 text-center text-xs font-bold text-slate-600 border-r border-slate-200 w-[86px]">
                 Shift
               </th>
               {weekDays.map(day => {
@@ -348,16 +348,16 @@ export function AdminWeeklyScheduleGrid({
                 });
 
                 return (
-                  <th key={day.date} className="py-2.5 px-1 text-center text-slate-700 border-r border-slate-200 min-w-[125px] w-[calc((100%-195px)/7)]">
+                  <th key={day.date} className="py-2 px-1 text-center text-slate-700 border-r border-slate-200 w-[calc((100%-140px)/7)]">
                     <div className="flex items-center justify-center gap-1">
                       <span className="text-xs font-bold text-slate-700">{day.name}</span>
                       {hasDoubleHost && (
-                        <div title={`Peringatan: Host double (${doubleHostNames.join(', ')})`} className="text-rose-500 bg-rose-100 rounded-full w-[14px] h-[14px] flex items-center justify-center cursor-help">
-                          <AlertTriangle className="w-[9px] h-[9px] stroke-[3]" />
+                        <div title={`Peringatan: Host double (${doubleHostNames.join(', ')})`} className="text-rose-500 bg-rose-100 rounded-full w-[13px] h-[13px] flex items-center justify-center cursor-help">
+                          <AlertTriangle className="w-[8px] h-[8px] stroke-[3]" />
                         </div>
                       )}
                     </div>
-                    <div className="text-[11px] font-medium text-slate-400 leading-none mt-0.5">{day.displayDate}</div>
+                    <div className="text-[10px] font-medium text-slate-400 leading-none mt-0.5">{day.displayDate}</div>
                   </th>
                 );
               })}
@@ -382,7 +382,7 @@ export function AdminWeeklyScheduleGrid({
                       {isFirstRowInStudio && (
                         <td 
                           rowSpan={studio.shifts.length} 
-                          className="border-r border-slate-200 p-2 text-center align-middle bg-white group/studio relative border-b-2 border-b-slate-200"
+                          className="border-r border-slate-200 p-1 text-center align-middle bg-white group/studio relative border-b-2 border-b-slate-200"
                         >
                           <button
                             type="button"
@@ -598,15 +598,15 @@ export function AdminWeeklyScheduleGrid({
                                         });
                                       }
                                     }}
-                                    className={`group relative ${cardBg} border ${cardBorder} ${cardText} px-2 py-1.5 rounded-lg flex flex-col justify-center transition-all hover:shadow-2xs cursor-pointer ${
+                                    className={`group relative ${cardBg} border ${cardBorder} ${cardText} px-1.5 py-1 rounded-md flex flex-col justify-center transition-all hover:shadow-2xs cursor-pointer ${
                                       isSelected ? 'ring-1 ring-indigo-400 font-semibold' : ''
                                     }`}
                                     title={`${sched.brand}${platformClean ? ` - ${platformClean}` : ''} - ${sched.hostName}`}
                                   >
-                                    <div className="font-bold text-[11px] truncate leading-tight pr-3">
+                                    <div className="font-bold text-[10px] truncate leading-tight pr-2.5">
                                       {sched.brand}{platformClean ? ` - ${platformClean}` : ''}
                                     </div>
-                                    <div className={`text-[10px] truncate leading-tight mt-0.5 pr-3 ${isNotRegularHost ? 'font-bold text-rose-600' : 'text-slate-600 font-medium'}`}>
+                                    <div className={`text-[9.5px] truncate leading-tight mt-0.5 pr-2.5 ${isNotRegularHost ? 'font-bold text-rose-600' : 'text-slate-600 font-medium'}`}>
                                       {sched.hostName}
                                     </div>
                                     {onDeleteSchedule && !isMultiSelectMode && selectedSlots.size === 0 && (
@@ -622,7 +622,7 @@ export function AdminWeeklyScheduleGrid({
                                             timeSlot: shift
                                           });
                                         }}
-                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 hover:bg-white/80 rounded p-0.5 transition-all text-slate-400 hover:text-rose-600"
+                                        className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/80 rounded p-0.5 transition-all text-slate-400 hover:text-rose-600"
                                       >
                                         <X className="w-2.5 h-2.5" />
                                       </button>
