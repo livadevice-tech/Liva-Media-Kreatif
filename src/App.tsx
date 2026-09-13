@@ -122,6 +122,7 @@ import {
   BookOpen,
   MoreVertical,
   Folder,
+  Tag,
 } from "lucide-react";
 import {
   HostEmployee,
