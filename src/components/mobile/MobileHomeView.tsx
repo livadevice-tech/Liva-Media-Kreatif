@@ -27,7 +27,8 @@ export const MobileHomeView: React.FC<MobileHomeViewProps> = ({
   onNavigate
 }) => {
   const todayStr = new Date().toISOString().slice(0, 10);
-  const todoTasks = tasks.filter(t => t.status === 'todo' || t.status === 'in_progress');
+  const visibleTasks = tasks.filter(t => currentUser?.role === 'Master Admin' || t.visibility !== 'private');
+  const todoTasks = visibleTasks.filter(t => t.status === 'todo' || t.status === 'in_progress');
   const upcomingPosts = posts
     .filter(p => p.scheduled_date && p.scheduled_date >= todayStr)
     .sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''))

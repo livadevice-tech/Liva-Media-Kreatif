@@ -12,9 +12,12 @@ import {
   CheckCircle2, 
   Sparkles,
   Search,
-  X
+  X,
+  Lock,
+  Globe,
+  Check
 } from 'lucide-react';
-import { Project, Task, TaskStatus, TaskPriority, Brand } from '../../types/projectApp';
+import { Project, Task, TaskStatus, TaskPriority, TaskVisibility, Brand } from '../../types/projectApp';
 
 interface ProjectKanbanViewProps {
   projects: Project[];
@@ -61,6 +64,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
     description: string;
     priority: TaskPriority;
     status: TaskStatus;
+    visibility: TaskVisibility;
     assignee_name: string;
     due_date: string;
     tags: string;
@@ -70,6 +74,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
     description: '',
     priority: 'medium',
     status: 'todo',
+    visibility: 'public',
     assignee_name: '',
     due_date: '',
     tags: '',
@@ -121,6 +126,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
       description: '',
       priority: 'medium',
       status,
+      visibility: 'public',
       assignee_name: '',
       due_date: new Date().toISOString().split('T')[0],
       tags: '',
@@ -137,6 +143,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
       description: task.description || '',
       priority: task.priority,
       status: task.status,
+      visibility: task.visibility || 'public',
       assignee_name: task.assignee_name || '',
       due_date: task.due_date ? task.due_date.split('T')[0] : '',
       tags: task.tags || '',
@@ -339,13 +346,25 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                   >
                     {/* Tags & Priority */}
                     <div className="flex items-center justify-between gap-1">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                        task.priority === 'urgent' ? 'bg-rose-100 text-rose-700' :
-                        task.priority === 'high' ? 'bg-amber-100 text-amber-700' :
-                        task.priority === 'medium' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {task.priority}
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 ${
+                          task.priority === 'urgent' ? 'bg-rose-100 text-rose-700' :
+                          task.priority === 'high' ? 'bg-amber-100 text-amber-700' :
+                          task.priority === 'medium' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {task.priority}
+                        </span>
+
+                        {task.visibility === 'private' && (
+                          <span 
+                            className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200 shrink-0"
+                            title="Private: Khusus Master Admin"
+                          >
+                            <Lock className="w-2.5 h-2.5 text-purple-600" />
+                            <span>Private</span>
+                          </span>
+                        )}
+                      </div>
 
                       {task.project_title && (
                         <span className="text-[10px] font-bold text-slate-400 truncate max-w-[110px]">
@@ -528,6 +547,72 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                   onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
                   className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 />
+              </div>
+
+              {/* Visibility Selector: Public vs Private */}
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <span>Akses Visibilitas Task</span>
+                    {taskForm.visibility === 'private' && (
+                      <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded-md border border-purple-200 flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Khusus Master Admin
+                      </span>
+                    )}
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTaskForm({ ...taskForm, visibility: 'public' })}
+                    className={`flex items-start gap-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      taskForm.visibility !== 'private'
+                        ? 'bg-blue-50/60 border-blue-400 ring-2 ring-blue-500/20 text-blue-950 shadow-2xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`p-1.5 rounded-lg shrink-0 ${
+                      taskForm.visibility !== 'private' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      <Globe className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold">Public (Semua Role)</span>
+                        {taskForm.visibility !== 'private' && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />}
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                        Dapat dilihat oleh semua role.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTaskForm({ ...taskForm, visibility: 'private' })}
+                    className={`flex items-start gap-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      taskForm.visibility === 'private'
+                        ? 'bg-purple-50/80 border-purple-400 ring-2 ring-purple-500/20 text-purple-950 shadow-2xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`p-1.5 rounded-lg shrink-0 ${
+                      taskForm.visibility === 'private' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      <Lock className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-purple-900">Private (Master Admin)</span>
+                        {taskForm.visibility === 'private' && <Check className="w-3.5 h-3.5 text-purple-600 stroke-[3]" />}
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                        Hanya tampil untuk Master Admin.
+                      </p>
+                    </div>
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">

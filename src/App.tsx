@@ -171,7 +171,7 @@ export default function App() {
       setLoading(true);
       const [projectsData, tasksData, postsData, brandsData, pillarsData, accountsData, draftsData] = await Promise.all([
         appApi.getProjects(),
-        appApi.getTasks(),
+        appApi.getTasks(currentUser?.role ? { user_role: currentUser.role } : undefined),
         appApi.getContentPosts(),
         appApi.getBrands(),
         appApi.getPillars(),
@@ -192,7 +192,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser?.role]);
 
   useEffect(() => {
     checkDatabase();

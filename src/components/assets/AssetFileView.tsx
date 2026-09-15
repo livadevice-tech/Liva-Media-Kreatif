@@ -332,6 +332,9 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
   const taskAssets = useMemo<AssetFileItem[]>(() => {
     const list: AssetFileItem[] = [];
     tasks.forEach((t) => {
+      // Keamanan visibilitas: task private hanya diekstrak jika Master Admin
+      if (t.visibility === 'private' && !isMasterAdmin) return;
+
       if (t.links && typeof t.links === 'string' && t.links.trim()) {
         const raw = t.links.trim();
         const pType = getProjectType(t.project_id);
@@ -352,7 +355,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       }
     });
     return list;
-  }, [tasks, projects]);
+  }, [tasks, projects, isMasterAdmin]);
 
   // Combine all assets and filter out any deleted assets
   const allAssets = useMemo(() => {

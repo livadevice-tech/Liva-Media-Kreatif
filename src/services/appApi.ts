@@ -83,7 +83,7 @@ export const appApi = {
     fetch(`${API_BASE}/project-app/projects/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean }>),
 
   // Tasks
-  getTasks: (params?: { project_id?: string; status?: string }): Promise<Task[]> => {
+  getTasks: (params?: { project_id?: string; status?: string; user_role?: string }): Promise<Task[]> => {
     const query = new URLSearchParams(params as Record<string, string>).toString();
     return fetch(`${API_BASE}/project-app/tasks?${query}`).then(handleResponse<Task[]>);
   },

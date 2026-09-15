@@ -1403,6 +1403,9 @@ projectAppRouter.get("/stats", async (req, res) => {
         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
       FROM pm_projects
     `);
+    const { user_role } = req.query;
+    const taskVisFilter = user_role === "Master Admin" ? "" : "WHERE (visibility = 'public' OR visibility IS NULL OR visibility = '')";
+    const urgentVisFilter = user_role === "Master Admin" ? "" : "AND (t.visibility = 'public' OR t.visibility IS NULL OR t.visibility = '')";
     const [tasksCount] = await pool2.query(`
       SELECT 
         COUNT(*) as total,
@@ -1411,6 +1414,7 @@ projectAppRouter.get("/stats", async (req, res) => {
         SUM(CASE WHEN status = 'review' THEN 1 ELSE 0 END) as review,
         SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done
       FROM pm_tasks
+      ${taskVisFilter}
     `);
     const [postsCount] = await pool2.query(`
       SELECT 
@@ -1441,7 +1445,7 @@ projectAppRouter.get("/stats", async (req, res) => {
       SELECT t.*, p.title as project_title, p.color as project_color
       FROM pm_tasks t
       LEFT JOIN pm_projects p ON t.project_id = p.id
-      WHERE t.status != 'done'
+      WHERE t.status != 'done' ${urgentVisFilter}
       ORDER BY 
         CASE t.priority 
           WHEN 'urgent' THEN 1 
@@ -1658,7 +1662,7 @@ projectAppRouter.delete("/projects/:id", async (req, res) => {
 projectAppRouter.get("/tasks", async (req, res) => {
   try {
     const pool2 = getPool();
-    const { project_id, status } = req.query;
+    const { project_id, status, user_role } = req.query;
     let query = `
       SELECT t.*, p.title as project_title, p.color as project_color, b.name as brand_name
       FROM pm_tasks t
@@ -1667,6 +1671,9 @@ projectAppRouter.get("/tasks", async (req, res) => {
       WHERE 1=1
     `;
     const params = [];
+    if (user_role !== "Master Admin") {
+      query += ` AND (t.visibility = 'public' OR t.visibility IS NULL OR t.visibility = '')`;
+    }
     if (project_id) {
       query += ` AND t.project_id = ?`;
       params.push(project_id);
@@ -1685,20 +1692,29 @@ projectAppRouter.get("/tasks", async (req, res) => {
 projectAppRouter.post("/tasks", async (req, res) => {
   try {
     const pool2 = getPool();
-    const { project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks } = req.body;
+    const { project_id, title, description, status, priority, visibility, assignee_name, due_date, tags, links, subtasks } = req.body;
     const id = `task-${Date.now().toString(36)}`;
+    const taskVisibility = visibility === "private" ? "private" : "public";
     try {
       await pool2.query(
-        `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks, order_index)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, project_id || null, title, description || "", status || "todo", priority || "medium", assignee_name || "", due_date || null, tags || "", links || "", subtasks || "", 0]
+        `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, visibility, assignee_name, due_date, tags, links, subtasks, order_index)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, project_id || null, title, description || "", status || "todo", priority || "medium", taskVisibility, assignee_name || "", due_date || null, tags || "", links || "", subtasks || "", 0]
       );
     } catch (colErr) {
-      await pool2.query(
-        `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, order_index)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, project_id || null, title, description || "", status || "todo", priority || "medium", assignee_name || "", due_date || null, tags || "", 0]
-      );
+      try {
+        await pool2.query(
+          `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks, order_index)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, project_id || null, title, description || "", status || "todo", priority || "medium", assignee_name || "", due_date || null, tags || "", links || "", subtasks || "", 0]
+        );
+      } catch (colErr2) {
+        await pool2.query(
+          `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, order_index)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, project_id || null, title, description || "", status || "todo", priority || "medium", assignee_name || "", due_date || null, tags || "", 0]
+        );
+      }
     }
     res.json({ success: true, id, message: "Task berhasil dibuat" });
   } catch (error) {
@@ -1720,21 +1736,31 @@ projectAppRouter.put("/tasks/:id", async (req, res) => {
   try {
     const pool2 = getPool();
     const { id } = req.params;
-    const { project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks } = req.body;
+    const { project_id, title, description, status, priority, visibility, assignee_name, due_date, tags, links, subtasks } = req.body;
+    const taskVisibility = visibility === "private" ? "private" : "public";
     try {
       await pool2.query(
         `UPDATE pm_tasks 
-         SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?, links = ?, subtasks = ?
+         SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, visibility = ?, assignee_name = ?, due_date = ?, tags = ?, links = ?, subtasks = ?
          WHERE id = ?`,
-        [project_id, title, description, status, priority, assignee_name, due_date, tags, links || "", subtasks || "", id]
+        [project_id, title, description, status, priority, taskVisibility, assignee_name, due_date, tags, links || "", subtasks || "", id]
       );
     } catch (colErr) {
-      await pool2.query(
-        `UPDATE pm_tasks 
-         SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?
-         WHERE id = ?`,
-        [project_id, title, description, status, priority, assignee_name, due_date, tags, id]
-      );
+      try {
+        await pool2.query(
+          `UPDATE pm_tasks 
+           SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?, links = ?, subtasks = ?
+           WHERE id = ?`,
+          [project_id, title, description, status, priority, assignee_name, due_date, tags, links || "", subtasks || "", id]
+        );
+      } catch (colErr2) {
+        await pool2.query(
+          `UPDATE pm_tasks 
+           SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?
+           WHERE id = ?`,
+          [project_id, title, description, status, priority, assignee_name, due_date, tags, id]
+        );
+      }
     }
     res.json({ success: true, message: "Task berhasil diperbarui" });
   } catch (error) {
@@ -2706,6 +2732,57 @@ projectAppRouter.delete("/documents/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+projectAppRouter.get("/saved-signatures", async (req, res) => {
+  try {
+    const pool2 = getPool();
+    const { user_id } = req.query;
+    let query = "SELECT * FROM app_saved_signatures ORDER BY created_at DESC";
+    let params = [];
+    if (user_id) {
+      query = "SELECT * FROM app_saved_signatures WHERE user_id = ? OR user_id IS NULL ORDER BY created_at DESC";
+      params = [user_id];
+    }
+    const [rows] = await pool2.query(query, params);
+    res.json(rows || []);
+  } catch (error) {
+    console.error("Error fetching saved signatures:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.post("/saved-signatures", async (req, res) => {
+  try {
+    const { name, signature_data_url, user_id, created_by } = req.body;
+    if (!signature_data_url) {
+      return res.status(400).json({ error: "Goresan tanda tangan wajib diisi." });
+    }
+    const sigId = `sig-${Date.now()}`;
+    const sigName = name && name.trim() ? name.trim() : `TTD ${(/* @__PURE__ */ new Date()).toLocaleDateString("id-ID")}`;
+    const pool2 = getPool();
+    await pool2.query(`
+      INSERT INTO app_saved_signatures (id, name, signature_data_url, user_id, created_by)
+      VALUES (?, ?, ?, ?, ?)
+    `, [sigId, sigName, signature_data_url, user_id || null, created_by || "User"]);
+    res.json({
+      success: true,
+      id: sigId,
+      message: "Tanda tangan berhasil disimpan untuk TTD Internal!"
+    });
+  } catch (error) {
+    console.error("Error saving signature:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+projectAppRouter.delete("/saved-signatures/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool2 = getPool();
+    await pool2.query("DELETE FROM app_saved_signatures WHERE id = ?", [id]);
+    res.json({ success: true, message: "Tanda tangan tersimpan berhasil dihapus." });
+  } catch (error) {
+    console.error("Error deleting saved signature:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // server/migrateProjectApp.ts
 async function runProjectAppMigrations() {
@@ -2827,6 +2904,10 @@ async function runProjectAppMigrations() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
   try {
+    await pool2.execute(`ALTER TABLE pm_tasks ADD COLUMN visibility VARCHAR(20) DEFAULT 'public'`);
+  } catch (e) {
+  }
+  try {
     await pool2.execute(`ALTER TABLE pm_tasks ADD COLUMN links TEXT NULL`);
   } catch (e) {
   }
@@ -2923,6 +3004,17 @@ async function runProjectAppMigrations() {
     await pool2.execute(`ALTER TABLE app_signed_documents ADD COLUMN signature_position TEXT`);
   } catch (e) {
   }
+  await pool2.execute(`
+    CREATE TABLE IF NOT EXISTS app_saved_signatures (
+      id VARCHAR(50) PRIMARY KEY,
+      name VARCHAR(150) NOT NULL,
+      signature_data_url LONGTEXT NOT NULL,
+      user_id VARCHAR(50),
+      created_by VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_user (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
   console.log("\u2705 Seluruh tabel berhasil diverifikasi/dibuat!");
   await seedInitialData();
   await seedDraftsIfEmpty();

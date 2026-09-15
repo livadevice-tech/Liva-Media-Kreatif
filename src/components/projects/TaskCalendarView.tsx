@@ -10,7 +10,8 @@ import {
   User, 
   Tag, 
   AlertTriangle,
-  FolderKanban
+  FolderKanban,
+  Lock
 } from 'lucide-react';
 import { Task, Project, TaskStatus, TaskPriority } from '../../types/app';
 
@@ -318,10 +319,15 @@ export const TaskCalendarView: React.FC<TaskCalendarViewProps> = ({
                             STATUS_COLORS[task.status]?.dot || 'bg-slate-400'
                           }`}
                         />
+                        {task.visibility === 'private' && (
+                          <Lock className="w-2.5 h-2.5 text-purple-600 shrink-0" title="Private (Master Admin)" />
+                        )}
                         <span
                           className={`text-[10px] font-semibold truncate leading-tight ${
                             task.status === 'done'
                               ? 'line-through text-slate-400'
+                              : task.visibility === 'private'
+                              ? 'text-purple-900 font-bold'
                               : 'text-slate-800'
                           }`}
                         >

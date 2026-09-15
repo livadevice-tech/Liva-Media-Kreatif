@@ -13,7 +13,8 @@ import {
   Kanban,
   List,
   Clock,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { Task, Project, Brand, TaskStatus, TaskPriority, UserAccount } from '../../types/app';
 import { TaskInspectorPanel } from '../projects/TaskInspectorPanel';
@@ -101,6 +102,10 @@ export const MobileTaskView: React.FC<MobileTaskViewProps> = ({
   // Filter tasks
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
+      // Keamanan visibilitas: task private hanya untuk Master Admin
+      if (task.visibility === 'private' && currentUser?.role !== 'Master Admin') {
+        return false;
+      }
       // Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -380,14 +385,25 @@ export const MobileTaskView: React.FC<MobileTaskViewProps> = ({
                   onClick={() => handleEditTask(task)}
                   className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs space-y-3 cursor-pointer hover:border-blue-300 active:scale-[0.99] transition-all"
                 >
-                  {/* Top Row: Project Badge & Priority Badge */}
-                  <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100 truncate max-w-[180px]">
-                      {task.project_title || 'General Task'}
-                    </span>
+                  {/* Top Row: Project Badge, Private Badge & Priority Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100 truncate max-w-[160px]">
+                        {task.project_title || 'General Task'}
+                      </span>
+                      {task.visibility === 'private' && (
+                        <span 
+                          className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 border border-purple-200 shrink-0"
+                          title="Private: Khusus Master Admin"
+                        >
+                          <Lock className="w-2.5 h-2.5 text-purple-600" />
+                          <span>Private</span>
+                        </span>
+                      )}
+                    </div>
 
                     <span
-                      className={`px-2.5 py-0.5 rounded-lg text-[11px] ${
+                      className={`px-2.5 py-0.5 rounded-lg text-[11px] shrink-0 ${
                         PRIORITY_BADGES[task.priority]?.className || 'bg-slate-100 text-slate-600'
                       }`}
                     >
@@ -539,6 +555,7 @@ export const MobileTaskView: React.FC<MobileTaskViewProps> = ({
               task={editingTask}
               defaultStatus={activeStatus}
               accounts={accounts}
+              currentUser={currentUser}
             />
           </div>
         </div>

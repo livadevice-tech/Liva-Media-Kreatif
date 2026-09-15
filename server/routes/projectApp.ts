@@ -109,6 +109,10 @@ projectAppRouter.get('/stats', async (req: Request, res: Response) => {
       FROM pm_projects
     `);
 
+    const { user_role } = req.query;
+    const taskVisFilter = user_role === 'Master Admin' ? '' : "WHERE (visibility = 'public' OR visibility IS NULL OR visibility = '')";
+    const urgentVisFilter = user_role === 'Master Admin' ? '' : "AND (t.visibility = 'public' OR t.visibility IS NULL OR t.visibility = '')";
+
     const [tasksCount]: any = await pool.query(`
       SELECT 
         COUNT(*) as total,
@@ -117,6 +121,7 @@ projectAppRouter.get('/stats', async (req: Request, res: Response) => {
         SUM(CASE WHEN status = 'review' THEN 1 ELSE 0 END) as review,
         SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done
       FROM pm_tasks
+      ${taskVisFilter}
     `);
 
     const [postsCount]: any = await pool.query(`
@@ -151,7 +156,7 @@ projectAppRouter.get('/stats', async (req: Request, res: Response) => {
       SELECT t.*, p.title as project_title, p.color as project_color
       FROM pm_tasks t
       LEFT JOIN pm_projects p ON t.project_id = p.id
-      WHERE t.status != 'done'
+      WHERE t.status != 'done' ${urgentVisFilter}
       ORDER BY 
         CASE t.priority 
           WHEN 'urgent' THEN 1 
@@ -394,7 +399,7 @@ projectAppRouter.delete('/projects/:id', async (req: Request, res: Response) => 
 projectAppRouter.get('/tasks', async (req: Request, res: Response) => {
   try {
     const pool = getPool();
-    const { project_id, status } = req.query;
+    const { project_id, status, user_role } = req.query;
     let query = `
       SELECT t.*, p.title as project_title, p.color as project_color, b.name as brand_name
       FROM pm_tasks t
@@ -403,6 +408,11 @@ projectAppRouter.get('/tasks', async (req: Request, res: Response) => {
       WHERE 1=1
     `;
     const params: any[] = [];
+
+    // Filter visibilitas: Jika bukan Master Admin, hanya tampilkan task public
+    if (user_role !== 'Master Admin') {
+      query += ` AND (t.visibility = 'public' OR t.visibility IS NULL OR t.visibility = '')`;
+    }
 
     if (project_id) {
       query += ` AND t.project_id = ?`;
@@ -425,21 +435,30 @@ projectAppRouter.get('/tasks', async (req: Request, res: Response) => {
 projectAppRouter.post('/tasks', async (req: Request, res: Response) => {
   try {
     const pool = getPool();
-    const { project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks } = req.body;
+    const { project_id, title, description, status, priority, visibility, assignee_name, due_date, tags, links, subtasks } = req.body;
     const id = `task-${Date.now().toString(36)}`;
+    const taskVisibility = visibility === 'private' ? 'private' : 'public';
     try {
       await pool.query(
-        `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks, order_index)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, project_id || null, title, description || '', status || 'todo', priority || 'medium', assignee_name || '', due_date || null, tags || '', links || '', subtasks || '', 0]
+        `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, visibility, assignee_name, due_date, tags, links, subtasks, order_index)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, project_id || null, title, description || '', status || 'todo', priority || 'medium', taskVisibility, assignee_name || '', due_date || null, tags || '', links || '', subtasks || '', 0]
       );
     } catch (colErr) {
-      // Fallback if links/subtasks columns not yet migrated
-      await pool.query(
-        `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, order_index)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, project_id || null, title, description || '', status || 'todo', priority || 'medium', assignee_name || '', due_date || null, tags || '', 0]
-      );
+      // Fallback if visibility/links/subtasks columns not yet migrated
+      try {
+        await pool.query(
+          `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks, order_index)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, project_id || null, title, description || '', status || 'todo', priority || 'medium', assignee_name || '', due_date || null, tags || '', links || '', subtasks || '', 0]
+        );
+      } catch (colErr2) {
+        await pool.query(
+          `INSERT INTO pm_tasks (id, project_id, title, description, status, priority, assignee_name, due_date, tags, order_index)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, project_id || null, title, description || '', status || 'todo', priority || 'medium', assignee_name || '', due_date || null, tags || '', 0]
+        );
+      }
     }
     res.json({ success: true, id, message: 'Task berhasil dibuat' });
   } catch (error: any) {
@@ -463,21 +482,31 @@ projectAppRouter.put('/tasks/:id', async (req: Request, res: Response) => {
   try {
     const pool = getPool();
     const { id } = req.params;
-    const { project_id, title, description, status, priority, assignee_name, due_date, tags, links, subtasks } = req.body;
+    const { project_id, title, description, status, priority, visibility, assignee_name, due_date, tags, links, subtasks } = req.body;
+    const taskVisibility = visibility === 'private' ? 'private' : 'public';
     try {
       await pool.query(
         `UPDATE pm_tasks 
-         SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?, links = ?, subtasks = ?
+         SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, visibility = ?, assignee_name = ?, due_date = ?, tags = ?, links = ?, subtasks = ?
          WHERE id = ?`,
-        [project_id, title, description, status, priority, assignee_name, due_date, tags, links || '', subtasks || '', id]
+        [project_id, title, description, status, priority, taskVisibility, assignee_name, due_date, tags, links || '', subtasks || '', id]
       );
     } catch (colErr) {
-      await pool.query(
-        `UPDATE pm_tasks 
-         SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?
-         WHERE id = ?`,
-        [project_id, title, description, status, priority, assignee_name, due_date, tags, id]
-      );
+      try {
+        await pool.query(
+          `UPDATE pm_tasks 
+           SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?, links = ?, subtasks = ?
+           WHERE id = ?`,
+          [project_id, title, description, status, priority, assignee_name, due_date, tags, links || '', subtasks || '', id]
+        );
+      } catch (colErr2) {
+        await pool.query(
+          `UPDATE pm_tasks 
+           SET project_id = ?, title = ?, description = ?, status = ?, priority = ?, assignee_name = ?, due_date = ?, tags = ?
+           WHERE id = ?`,
+          [project_id, title, description, status, priority, assignee_name, due_date, tags, id]
+        );
+      }
     }
     res.json({ success: true, message: 'Task berhasil diperbarui' });
   } catch (error: any) {

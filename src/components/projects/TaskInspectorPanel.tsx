@@ -24,7 +24,9 @@ import {
   UserPlus,
   Flame,
   Flag,
-  Copy
+  Copy,
+  Lock,
+  Globe
 } from 'lucide-react';
 import { Task, Project, TaskStatus, TaskPriority, UserAccount } from '../../types/app';
 import { appApi } from '../../services/appApi';
@@ -39,6 +41,7 @@ interface TaskInspectorPanelProps {
   projects: Project[];
   defaultStatus?: TaskStatus;
   accounts?: UserAccount[];
+  currentUser?: UserAccount | null;
 }
 
 export interface TaskLink {
@@ -60,23 +63,21 @@ export interface CustomLabel {
 }
 
 const DEFAULT_LABELS: CustomLabel[] = [
-  { id: 'lbl-video', name: 'Video', color: '#3b82f6' },
-  { id: 'lbl-reels', name: 'Reels', color: '#ec4899' },
-  { id: 'lbl-design', name: 'Design', color: '#8b5cf6' },
-  { id: 'lbl-copy', name: 'Copywriting', color: '#10b981' },
-  { id: 'lbl-promo', name: 'Promo', color: '#ef4444' },
-  { id: 'lbl-urgent', name: 'Urgent', color: '#f43f5e' },
-  { id: 'lbl-approval', name: 'Approval', color: '#f59e0b' },
-  { id: 'lbl-client', name: 'Client Request', color: '#06b6d4' },
+  { id: '1', name: 'Design', color: '#8b5cf6' },
+  { id: '2', name: 'Copywriting', color: '#ec4899' },
+  { id: '3', name: 'Video Editing', color: '#ef4444' },
+  { id: '4', name: 'Shooting', color: '#f59e0b' },
+  { id: '5', name: 'Planning', color: '#10b981' },
+  { id: '6', name: 'Urgent', color: '#f43f5e' },
+  { id: '7', name: 'Client Review', color: '#06b6d4' },
 ];
 
-const COLOR_PRESETS = [
-  { hex: '#3b82f6', name: 'Biru' },
-  { hex: '#10b981', name: 'Hijau Emerald' },
-  { hex: '#f43f5e', name: 'Merah Rose' },
+const PRESET_LABEL_COLORS = [
   { hex: '#ef4444', name: 'Merah' },
-  { hex: '#f59e0b', name: 'Kuning Amber' },
-  { hex: '#a855f7', name: 'Ungu' },
+  { hex: '#f59e0b', name: 'Amber' },
+  { hex: '#10b981', name: 'Hijau' },
+  { hex: '#3b82f6', name: 'Biru' },
+  { hex: '#8b5cf6', name: 'Ungu' },
   { hex: '#6366f1', name: 'Indigo' },
   { hex: '#06b6d4', name: 'Sian' },
   { hex: '#ec4899', name: 'Pink' },
@@ -106,6 +107,7 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
   projects,
   defaultStatus = 'todo',
   accounts = [],
+  currentUser,
 }) => {
   // 0. Accounts from Master Admin / Manajemen Akun
   const [teamAccounts, setTeamAccounts] = useState<UserAccount[]>(accounts || []);
@@ -142,6 +144,7 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
     project_id: projects[0]?.id || '',
     status: defaultStatus,
     priority: 'medium',
+    visibility: 'public',
     assignee_name: '',
     due_date: new Date().toISOString().slice(0, 10),
     description: '',
@@ -237,6 +240,7 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
         project_id: task.project_id || projects[0]?.id || '',
         status: task.status || defaultStatus,
         priority: task.priority || 'medium',
+        visibility: task.visibility || 'public',
         assignee_name: task.assignee_name || '',
         due_date: task.due_date ? task.due_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
         description: task.description || '',
@@ -298,6 +302,7 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
         project_id: projects[0]?.id || '',
         status: defaultStatus,
         priority: 'medium',
+        visibility: 'public',
         assignee_name: '',
         due_date: new Date().toISOString().slice(0, 10),
         description: '',
@@ -751,6 +756,89 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
                   );
                 })}
               </div>
+            </div>
+
+            {/* Visibility Selector: Public vs Private (Khusus Master Admin) */}
+            <div className="pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>Akses Visibilitas Task</span>
+                  {formData.visibility === 'private' && (
+                    <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.2 rounded-md border border-purple-200">
+                      Khusus Master Admin
+                    </span>
+                  )}
+                </label>
+                <span className="text-[10px] text-slate-400 font-medium">Hak akses lihat</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* Opsi Public */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, visibility: 'public' })}
+                  className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    formData.visibility !== 'private'
+                      ? 'bg-blue-50/60 border-blue-400 ring-2 ring-blue-500/20 text-blue-950 shadow-2xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className={`p-1.5 rounded-lg shrink-0 ${
+                    formData.visibility !== 'private' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    <Globe className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold">Public (Semua Tim)</span>
+                      {formData.visibility !== 'private' && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                      Dapat dilihat oleh semua anggota tim di Kanban & Kalender.
+                    </p>
+                  </div>
+                </button>
+
+                {/* Opsi Private */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentUser && currentUser.role !== 'Master Admin') {
+                      alert('Perhatian: Fitur Private Task hanya berlaku dan dapat diakses oleh role Master Admin.');
+                    }
+                    setFormData({ ...formData, visibility: 'private' });
+                  }}
+                  className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    formData.visibility === 'private'
+                      ? 'bg-purple-50/80 border-purple-400 ring-2 ring-purple-500/20 text-purple-950 shadow-2xs'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className={`p-1.5 rounded-lg shrink-0 ${
+                    formData.visibility === 'private' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    <Lock className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-purple-900">Private (Master Admin)</span>
+                      {formData.visibility === 'private' && <Check className="w-3.5 h-3.5 text-purple-600 stroke-[3]" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                      Hanya tampil di akun dengan role <strong className="text-purple-700 font-semibold">Master Admin</strong>.
+                    </p>
+                  </div>
+                </button>
+              </div>
+
+              {formData.visibility === 'private' && (
+                <div className="mt-2 flex items-center gap-2 p-2 rounded-xl bg-purple-50/70 border border-purple-200/80 text-purple-800 text-[11px] leading-relaxed">
+                  <Lock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                  <span>
+                    Task ini bersifat <strong>rahasia / internal</strong>. Anggota dengan role <strong>Team</strong> tidak akan dapat melihat task ini di papan Kanban, Kalender, maupun Laporan.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

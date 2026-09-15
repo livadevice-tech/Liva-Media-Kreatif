@@ -18,6 +18,7 @@ import {
   Calendar,
   ChevronDown,
   Download,
+  Lock,
 } from 'lucide-react';
 import { Task, Project, Brand, TaskStatus, TaskPriority, UserAccount } from '../../types/app';
 import { TaskInspectorPanel } from './TaskInspectorPanel';
@@ -112,6 +113,10 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
   // Filter tasks based on search, project, priority, and assigneeScope (All / Assign me)
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
+      // Keamanan visibilitas: task private hanya boleh dilihat oleh Master Admin
+      if (task.visibility === 'private' && currentUser?.role !== 'Master Admin') {
+        return false;
+      }
       if (assigneeScope === 'me' && !isTaskAssignedToMe(task, currentUser)) return false;
       if (selectedProjectId !== 'all' && task.project_id !== selectedProjectId) return false;
       if (selectedPriority !== 'all' && task.priority !== selectedPriority) return false;
@@ -362,15 +367,26 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                             onClick={(e) => handleEditTask(task, e)}
                             className="bg-white border border-slate-200/90 hover:border-indigo-400/80 rounded-xl p-3.5 shadow-2xs hover:shadow-sm transition-all cursor-pointer group"
                           >
-                            {/* Project Tag & Priority */}
+                            {/* Project Tag, Visibility Badge & Priority */}
                             <div className="flex items-center justify-between gap-2 mb-2">
-                              {task.project_title ? (
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 truncate max-w-[130px]">
-                                  {task.project_title}
-                                </span>
-                              ) : <span />}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {task.project_title ? (
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 truncate max-w-[130px]">
+                                    {task.project_title}
+                                  </span>
+                                ) : null}
+                                {task.visibility === 'private' && (
+                                  <span 
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 border border-purple-200 shrink-0"
+                                    title="Private: Hanya dapat dilihat oleh Master Admin"
+                                  >
+                                    <Lock className="w-2.5 h-2.5 text-purple-600" />
+                                    <span>Private</span>
+                                  </span>
+                                )}
+                              </div>
 
-                              <span className={`text-[10px] px-2 py-0.5 rounded-md ${PRIORITY_CONFIG[task.priority]?.badge || 'bg-slate-100 text-slate-600'}`}>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-md shrink-0 ${PRIORITY_CONFIG[task.priority]?.badge || 'bg-slate-100 text-slate-600'}`}>
                                 {PRIORITY_CONFIG[task.priority]?.label || 'Normal'}
                               </span>
                             </div>
@@ -481,7 +497,20 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
                     onClick={(e) => handleEditTask(task, e)}
                     className="hover:bg-slate-50 cursor-pointer transition-colors"
                   >
-                    <td className="p-3.5 font-semibold text-slate-800">{task.title}</td>
+                    <td className="p-3.5 font-semibold text-slate-800">
+                      <div className="flex items-center gap-2">
+                        <span>{task.title}</span>
+                        {task.visibility === 'private' && (
+                          <span 
+                            className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 border border-purple-200 shrink-0"
+                            title="Private: Hanya dapat dilihat oleh Master Admin"
+                          >
+                            <Lock className="w-2.5 h-2.5 text-purple-600" />
+                            <span>Private</span>
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-3.5 text-slate-600">{task.project_title || '-'}</td>
                     <td className="p-3.5 text-slate-600">{task.assignee_name || '-'}</td>
                     <td className="p-3.5 text-slate-600">
@@ -554,6 +583,7 @@ export const ProjectKanbanView: React.FC<ProjectKanbanViewProps> = ({
         task={editingTask}
         defaultStatus={defaultTaskStatus}
         accounts={accounts}
+        currentUser={currentUser}
       />
 
       {/* Project Modal */}

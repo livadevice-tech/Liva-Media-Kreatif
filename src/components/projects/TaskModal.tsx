@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckSquare, Calendar, User, Tag, AlertCircle, Sparkles } from 'lucide-react';
-import { Task, Project, TaskStatus, TaskPriority } from '../../types/app';
+import { X, CheckSquare, Calendar, User, Tag, AlertCircle, Sparkles, Globe, Lock, Check } from 'lucide-react';
+import { Task, Project, TaskStatus, TaskPriority, TaskVisibility, UserAccount } from '../../types/app';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface TaskModalProps {
   initialTask?: Partial<Task> | null;
   projects: Project[];
   defaultStatus?: TaskStatus;
+  currentUser?: UserAccount | null;
 }
 
 const PRIORITIES: { id: TaskPriority; label: string; color: string }[] = [
@@ -32,12 +33,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   initialTask,
   projects,
   defaultStatus = 'todo',
+  currentUser,
 }) => {
   const [formData, setFormData] = useState<Partial<Task>>({
     title: '',
     project_id: projects[0]?.id || '',
     status: defaultStatus,
     priority: 'medium',
+    visibility: 'public',
     assignee_name: '',
     due_date: new Date().toISOString().slice(0, 10),
     description: '',
@@ -49,6 +52,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     if (initialTask) {
       setFormData({
         ...initialTask,
+        visibility: initialTask.visibility || 'public',
         due_date: initialTask.due_date ? initialTask.due_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
       });
     } else {
@@ -57,6 +61,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         project_id: projects[0]?.id || '',
         status: defaultStatus,
         priority: 'medium',
+        visibility: 'public',
         assignee_name: '',
         due_date: new Date().toISOString().slice(0, 10),
         description: '',
@@ -184,6 +189,79 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* Visibility Selector: Public vs Private */}
+          <div className="pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block font-semibold text-slate-300">
+                Akses Visibilitas Task
+              </label>
+              {formData.visibility === 'private' && (
+                <span className="text-[10px] bg-purple-900/60 text-purple-300 border border-purple-700/50 font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" /> Khusus Master Admin
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {/* Opsi Public */}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, visibility: 'public' })}
+                className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  formData.visibility !== 'private'
+                    ? 'bg-blue-950/40 border-blue-500/70 ring-1 ring-blue-500/40 text-blue-200'
+                    : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:bg-slate-800'
+                }`}
+              >
+                <div className={`p-1.5 rounded-lg shrink-0 ${
+                  formData.visibility !== 'private' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'
+                }`}>
+                  <Globe className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-white">Public (Semua Role)</span>
+                    {formData.visibility !== 'private' && <Check className="w-3.5 h-3.5 text-blue-400 stroke-[3]" />}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                    Dapat dilihat oleh semua role tim di papan Kanban & Kalender.
+                  </p>
+                </div>
+              </button>
+
+              {/* Opsi Private */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentUser && currentUser.role !== 'Master Admin') {
+                    alert('Perhatian: Fitur Private Task hanya berlaku dan dapat diakses oleh role Master Admin.');
+                  }
+                  setFormData({ ...formData, visibility: 'private' });
+                }}
+                className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  formData.visibility === 'private'
+                    ? 'bg-purple-950/40 border-purple-500/70 ring-1 ring-purple-500/40 text-purple-200'
+                    : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:bg-slate-800'
+                }`}
+              >
+                <div className={`p-1.5 rounded-lg shrink-0 ${
+                  formData.visibility === 'private' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400'
+                }`}>
+                  <Lock className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-white">Private (Master Admin)</span>
+                    {formData.visibility === 'private' && <Check className="w-3.5 h-3.5 text-purple-400 stroke-[3]" />}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">
+                    Hanya dapat dilihat dan diakses oleh akun <strong className="text-purple-300">Master Admin</strong>.
+                  </p>
+                </div>
+              </button>
             </div>
           </div>
 

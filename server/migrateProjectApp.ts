@@ -135,6 +135,9 @@ export async function runProjectAppMigrations() {
 
   // Safe column migrations for pm_tasks
   try {
+    await pool.execute(`ALTER TABLE pm_tasks ADD COLUMN visibility VARCHAR(20) DEFAULT 'public'`);
+  } catch (e) {}
+  try {
     await pool.execute(`ALTER TABLE pm_tasks ADD COLUMN links TEXT NULL`);
   } catch (e) {}
   try {

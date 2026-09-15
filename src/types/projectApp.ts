@@ -54,6 +54,8 @@ export interface Project {
   created_at?: string;
 }
 
+export type TaskVisibility = 'public' | 'private';
+
 export interface Task {
   id: string;
   project_id?: string;
@@ -64,6 +66,7 @@ export interface Task {
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
+  visibility?: TaskVisibility;
   assignee_name?: string;
   due_date?: string;
   tags?: string;
