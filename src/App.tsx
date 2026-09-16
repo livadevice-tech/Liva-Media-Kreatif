@@ -53,6 +53,7 @@ import { MobileTaskView } from './components/mobile/MobileTaskView';
 import { MobileHomeView } from './components/mobile/MobileHomeView';
 import { PublicDocumentSigningView } from './components/documents/PublicDocumentSigningView';
 import { PublicEmploymentLetterView } from './components/tools/PublicEmploymentLetterView';
+import { PublicInvoiceView } from './components/tools/PublicInvoiceView';
 
 type NavigationTab = 'home' | 'calendar' | 'drafts' | 'tasks' | 'assets' | 'tools' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
 
@@ -495,12 +496,32 @@ export default function App() {
     return null;
   });
 
+  // Check for external public invoice/quotation token (?inv_token=... or #inv?inv_token=...)
+  const [publicInvoiceToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromQuery = urlParams.get('inv_token');
+    if (tokenFromQuery) return tokenFromQuery;
+
+    if (window.location.hash.includes('inv_token=')) {
+      const hashParts = window.location.hash.split('?');
+      if (hashParts[1]) {
+        return new URLSearchParams(hashParts[1]).get('inv_token');
+      }
+    }
+    return null;
+  });
+
   if (publicSignToken) {
     return <PublicDocumentSigningView token={publicSignToken} />;
   }
 
   if (publicSkToken) {
     return <PublicEmploymentLetterView token={publicSkToken} />;
+  }
+
+  if (publicInvoiceToken) {
+    return <PublicInvoiceView token={publicInvoiceToken} />;
   }
 
   if (!currentUser) {

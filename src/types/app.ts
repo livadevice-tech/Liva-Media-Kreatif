@@ -208,3 +208,65 @@ export interface SavedSignature {
   created_at?: string;
 }
 
+export type InvoiceDocType = 'invoice' | 'quotation';
+export type InvoiceDocStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'accepted' | 'cancelled';
+
+export interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit: string; // misal: 'bulan', 'sesi', 'paket', 'jam', 'pcs'
+  price: number;
+  discountPercent?: number;
+  amount: number;
+}
+
+export interface InvoiceDocumentData {
+  type: InvoiceDocType;
+  status: InvoiceDocStatus;
+  documentNumber: string;
+  date: string;
+  dueDate: string; // atau masa berlaku penawaran untuk quotation
+  
+  // Perusahaan (Issuer)
+  companyName: string;
+  brandName: string;
+  brandTagline: string;
+  logoUrl?: string;
+  companyAddress: string;
+  companyEmail: string;
+  companyPhone: string;
+  companyWebsite: string;
+
+  // Klien (Client / Recipient)
+  clientName: string;
+  clientCompany: string;
+  clientAddress: string;
+  clientEmail: string;
+  clientPhone: string;
+
+  // Items & Perhitungan
+  currency: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  discountRate: number; // Diskon global (%)
+  taxRate: number; // PPN (%) misal 11% / 12% / 0%
+  shippingFee: number;
+  total: number;
+  terbilang?: string;
+
+  // Rekening Bank
+  bankName: string;
+  bankAccountNumber: string;
+  bankAccountHolder: string;
+  paymentTermsNotes: string;
+
+  // Penandatangan / Pengesahan
+  signerCity: string;
+  signerName: string;
+  signerPosition: string;
+  signatureUrl?: string;
+  signatureScale: number;
+  includeStamp: boolean;
+}
+
