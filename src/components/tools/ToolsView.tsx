@@ -46,6 +46,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocument } from 'pdf-lib';
 import { UserAccount, SignedDocument, SavedSignature } from '../../types/app';
 import { appApi } from '../../services/appApi';
+import { EmploymentLetterGenerator } from './EmploymentLetterGenerator';
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined') {
@@ -59,7 +60,7 @@ interface ToolsViewProps {
   onToggleSidebar?: () => void;
 }
 
-type ActiveToolId = 'hub' | 'pdf-sign' | 'sign-history';
+type ActiveToolId = 'hub' | 'pdf-sign' | 'sign-history' | 'employment-letter';
 
 export const ToolsView: React.FC<ToolsViewProps> = ({ 
   currentUser,
@@ -889,11 +890,13 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
               {activeTool === 'hub' && 'Liva Tools Hub'}
               {activeTool === 'pdf-sign' && 'E-Sign — Tanda Tangan Dokumen (TTD PDF)'}
               {activeTool === 'sign-history' && 'Riwayat Berkas TTD & Link Eksternal'}
+              {activeTool === 'employment-letter' && 'Surat Keterangan Kerja (Generator Surat Karyawan)'}
             </h1>
             <p className="text-[11px] text-slate-500">
               {activeTool === 'hub' && 'Pusat peralatan kerja digital, e-sign dokumen, utilitas konten & media.'}
               {activeTool === 'pdf-sign' && 'Pilih TTD Internal langsung atau minta TTD Eksternal tanpa perlu login.'}
               {activeTool === 'sign-history' && 'Pantau dokumen yang telah ditandatangani atau menunggu pihak luar.'}
+              {activeTool === 'employment-letter' && 'Buat surat keterangan kerja resmi Liva dengan format standar A4, nomor otomatis, dan stempel.'}
             </p>
           </div>
         </div>
@@ -1025,6 +1028,55 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {/* TOOL CARD: SURAT KETERANGAN KERJA (BARU) */}
+              <div className="group relative bg-white border-2 border-indigo-500/80 hover:border-indigo-600 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/30 group-hover:scale-105 transition-transform">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      Format Resmi Liva
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                      Surat Keterangan Kerja
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                      Generate surat keterangan kerja resmi untuk karyawan Liva (pembukaan rekening bank/payroll, pengajuan visa, KPR, dll) lengkap dengan nomor surat, kop logo, stempel resmi, dan tanda tangan digital.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span><strong>Input Lengkap:</strong> Nama, NIK, Jabatan, Tanggal Mulai & Keperluan.</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span><strong>Nomor Otomatis:</strong> Sesuai format standar Liva (001/LIVA/SK/Bulan/Tahun).</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span><strong>Pratinjau & Cetak:</strong> Live preview A4 langsung siap print atau simpan PDF.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTool('employment-letter')}
+                    className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-2xl shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Buat Surat Keterangan</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
               {/* TOOL CARD 1: E-SIGN TTD PDF (ACTIVE & PRIMARY) */}
               <div className="group relative bg-white border-2 border-emerald-500/80 hover:border-emerald-600 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-200 flex flex-col justify-between">
                 <div className="space-y-4">
@@ -2158,6 +2210,16 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW 4: SURAT KETERANGAN KERJA GENERATOR                                  */}
+      {/* ========================================================================= */}
+      {activeTool === 'employment-letter' && (
+        <EmploymentLetterGenerator
+          currentUser={currentUser}
+          onBack={() => setActiveTool('hub')}
+        />
       )}
     </div>
   );
