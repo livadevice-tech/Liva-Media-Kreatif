@@ -270,9 +270,12 @@ export interface InvoiceDocumentData {
   taxRate: number; // PPN (%) misal 11% / 12% / 0%
   shippingFee: number;
   total: number;
-  hasDp?: boolean; // Opsi jika ada Down Payment (DP)
-  dpAmount?: number; // Jumlah nominal DP
+  paymentTermType?: 'full' | 'dp' | 'final'; // Tipe tagihan: Full Payment, DP (Down Payment), atau Final Payment (Pelunasan)
+  hasDp?: boolean; // Legacy flag untuk DP
+  dpAmount?: number; // Jumlah tagihan DP yang harus dibayar
   dpPercent?: number; // Persentase DP (%) jika ada
+  paidDpAmount?: number; // Jumlah DP yang SUDAH dibayarkan sebelumnya (untuk Final Payment)
+  finalAmount?: number; // Jumlah tagihan Final Payment yang harus dibayar (total - paidDpAmount)
   remainingAmount?: number; // Sisa tagihan setelah DP
   terbilang?: string;
 

@@ -199,9 +199,12 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       taxRate: 0, // PPN default 0% atau bisa diaktifkan ke 11% / 12%
       shippingFee: 0,
       total: initialTotal,
+      paymentTermType: 'full',
       hasDp: false,
       dpPercent: 50,
       dpAmount: Math.round(initialTotal * 0.5),
+      paidDpAmount: Math.round(initialTotal * 0.5),
+      finalAmount: Math.round(initialTotal * 0.5),
       remainingAmount: Math.round(initialTotal * 0.5),
       terbilang: angkaKeTerbilang(initialTotal),
 
@@ -360,26 +363,47 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     const grand = Math.round(afterDisc + taxAmount + (Number(docData.shippingFee) || 0));
 
     setDocData(prev => {
+      const mode = prev.paymentTermType || (prev.hasDp ? 'dp' : 'full');
       let dp = prev.dpAmount;
-      if (prev.hasDp) {
+      let paidDp = prev.paidDpAmount || 0;
+      let finalAmt = prev.finalAmount || 0;
+      let remain = 0;
+      let billToPay = grand;
+
+      if (mode === 'dp') {
         if (prev.dpPercent && prev.dpPercent > 0) {
           dp = Math.round((grand * prev.dpPercent) / 100);
         } else if (dp === undefined || dp > grand) {
           dp = Math.round(grand * 0.5);
         }
+        remain = Math.max(0, grand - (dp || 0));
+        billToPay = dp || 0;
+      } else if (mode === 'final') {
+        if (paidDp === undefined || paidDp === null) {
+          paidDp = Math.round(grand * 0.5);
+        }
+        finalAmt = Math.max(0, grand - paidDp);
+        remain = 0;
+        billToPay = finalAmt;
+      } else {
+        // Full payment
+        remain = 0;
+        billToPay = grand;
       }
-      const remain = prev.hasDp ? Math.max(0, grand - (dp || 0)) : 0;
 
       return {
         ...prev,
         subtotal: sub,
         total: grand,
+        hasDp: mode === 'dp',
         dpAmount: dp,
+        paidDpAmount: paidDp,
+        finalAmount: finalAmt,
         remainingAmount: remain,
-        terbilang: angkaKeTerbilang(prev.hasDp && dp ? dp : grand),
+        terbilang: angkaKeTerbilang(billToPay),
       };
     });
-  }, [docData.items, docData.discountRate, docData.taxRate, docData.shippingFee, docData.hasDp, docData.dpPercent]);
+  }, [docData.items, docData.discountRate, docData.taxRate, docData.shippingFee, docData.paymentTermType, docData.dpPercent, docData.paidDpAmount]);
 
   // Auto-save persistent company profile, bank accounts & signature
   useEffect(() => {
@@ -971,9 +995,6 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                         2. Harap konfirmasi bukti transfer setelah melakukan pembayaran.
                       </div>
                     `}
-                    <div style="margin-top: 8px; font-size: 9.5px; color: #64748b; border-top: 1px dashed #cbd5e1; pt-1;">
-                      Status: <strong style="text-transform: uppercase; color: ${docData.status === 'paid' ? '#16a34a' : '#4f46e5'}">${docData.status}</strong> • Mata Uang: <strong>${docData.currency}</strong>
-                    </div>
                   </div>
                 </td>
                 <td class="calc-box">
@@ -1000,11 +1021,11 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                     </div>
                   ` : ''}
                   <div class="calc-row total-row">
-                    <span>${docData.hasDp ? 'TOTAL PROJECT:' : 'GRAND TOTAL:'}</span>
+                    <span>${(docData.paymentTermType === 'dp' || docData.paymentTermType === 'final') ? 'TOTAL PROJECT:' : 'GRAND TOTAL:'}</span>
                     <span>${formatRupiah(docData.total)}</span>
                   </div>
 
-                  ${docData.hasDp ? `
+                  ${docData.paymentTermType === 'dp' ? `
                     <div class="calc-row" style="margin-top: 6px; padding-top: 6px; border-top: 1.5px dashed #4f46e5; color: #4f46e5; font-weight: 700; font-size: 13px;">
                       <span>TAGIHAN DP (${docData.dpPercent || 50}%):</span>
                       <span>${formatRupiah(docData.dpAmount || 0)}</span>
@@ -1015,9 +1036,20 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                     </div>
                   ` : ''}
 
+                  ${docData.paymentTermType === 'final' ? `
+                    <div class="calc-row" style="color: #64748b; font-size: 10.5px; margin-top: 4px;">
+                      <span>DP Telah Dibayar:</span>
+                      <span style="font-weight: 600; color: #16a34a;">-${formatRupiah(docData.paidDpAmount || 0)}</span>
+                    </div>
+                    <div class="calc-row" style="margin-top: 6px; padding-top: 6px; border-top: 1.5px dashed #059669; color: #059669; font-weight: 700; font-size: 13px;">
+                      <span>FINAL PAYMENT (PELUNASAN):</span>
+                      <span>${formatRupiah(docData.finalAmount || Math.max(0, docData.total - (docData.paidDpAmount || 0)))}</span>
+                    </div>
+                  ` : ''}
+
                   <div class="terbilang-box">
-                    <strong>Terbilang ${docData.hasDp ? '(Uang Muka / DP)' : ''}:</strong><br/>
-                    "${docData.terbilang || angkaKeTerbilang(docData.hasDp ? (docData.dpAmount || 0) : docData.total)}"
+                    <strong>Terbilang ${docData.paymentTermType === 'dp' ? '(Uang Muka / DP)' : docData.paymentTermType === 'final' ? '(Pelunasan Final)' : ''}:</strong><br/>
+                    "${docData.terbilang || angkaKeTerbilang(docData.paymentTermType === 'dp' ? (docData.dpAmount || 0) : docData.paymentTermType === 'final' ? (docData.finalAmount || 0) : docData.total)}"
                   </div>
                 </td>
               </tr>
@@ -1586,45 +1618,79 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                 </div>
               </div>
 
-              {/* Down Payment (DP) Option */}
+              {/* Skema Pembayaran: Full Payment vs DP vs Final Payment */}
               <div className="pt-3 border-t border-slate-100 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <Percent className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>Pembayaran Uang Muka / DP</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      Aktifkan jika tagihan berupa Down Payment (DP) bertahap
-                    </span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={docData.hasDp || false}
-                      onChange={e => {
-                        const checked = e.target.checked;
-                        setDocData(prev => {
-                          const dpPct = prev.dpPercent || 50;
-                          const dpAmt = checked ? Math.round((prev.total * dpPct) / 100) : 0;
-                          return {
-                            ...prev,
-                            hasDp: checked,
-                            dpPercent: dpPct,
-                            dpAmount: dpAmt,
-                            remainingAmount: checked ? Math.max(0, prev.total - dpAmt) : 0,
-                            terbilang: angkaKeTerbilang(checked ? dpAmt : prev.total)
-                          };
-                        });
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                <div>
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                    <Receipt className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Skema Pembayaran Tagihan:</span>
                   </label>
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setDocData(prev => ({ ...prev, paymentTermType: 'full', hasDp: false }))}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        (!docData.paymentTermType || docData.paymentTermType === 'full')
+                          ? 'bg-white text-slate-900 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Pelunasan Penuh (Full)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDocData(prev => {
+                        const dpPct = prev.dpPercent || 50;
+                        const dpAmt = Math.round((prev.total * dpPct) / 100);
+                        return {
+                          ...prev,
+                          paymentTermType: 'dp',
+                          hasDp: true,
+                          dpPercent: dpPct,
+                          dpAmount: dpAmt,
+                          remainingAmount: Math.max(0, prev.total - dpAmt),
+                        };
+                      })}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        docData.paymentTermType === 'dp'
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Down Payment (DP)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDocData(prev => {
+                        const paid = prev.paidDpAmount || prev.dpAmount || Math.round(prev.total * 0.5);
+                        const finalAmt = Math.max(0, prev.total - paid);
+                        return {
+                          ...prev,
+                          paymentTermType: 'final',
+                          hasDp: false,
+                          paidDpAmount: paid,
+                          finalAmount: finalAmt,
+                          remainingAmount: 0,
+                        };
+                      })}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        docData.paymentTermType === 'final'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Final Payment (Pelunasan)
+                    </button>
+                  </div>
                 </div>
 
-                {docData.hasDp && (
+                {/* Sub-form: JIKA MEMILIH DOWN PAYMENT (DP) */}
+                {docData.paymentTermType === 'dp' && (
                   <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 space-y-2.5">
+                    <div className="text-[11px] font-semibold text-indigo-900 flex items-center gap-1">
+                      <span>📌 Tagihan ini merupakan <strong>pembayaran uang muka (DP)</strong> dari total project.</span>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[10px] font-bold text-slate-600 mb-1 block">
@@ -1643,7 +1709,6 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                                     dpPercent: pct,
                                     dpAmount: dpAmt,
                                     remainingAmount: Math.max(0, prev.total - dpAmt),
-                                    terbilang: angkaKeTerbilang(dpAmt)
                                   };
                                 });
                               }}
@@ -1670,7 +1735,6 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                                   dpPercent: pct,
                                   dpAmount: dpAmt,
                                   remainingAmount: Math.max(0, prev.total - dpAmt),
-                                  terbilang: angkaKeTerbilang(dpAmt)
                                 };
                               });
                             }}
@@ -1681,7 +1745,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
 
                       <div>
                         <label className="text-[10px] font-bold text-slate-600 mb-1 block">
-                          Nominal Tagihan DP (Rp)
+                          Nominal Yang Harus Dibayar (Rp)
                         </label>
                         <input
                           type="number"
@@ -1696,7 +1760,6 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                                 dpAmount: amt,
                                 dpPercent: pct,
                                 remainingAmount: Math.max(0, prev.total - amt),
-                                terbilang: angkaKeTerbilang(amt)
                               };
                             });
                           }}
@@ -1706,9 +1769,56 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] pt-2 border-t border-indigo-100 text-slate-600">
-                      <span>Sisa Pembayaran (Tahap Berikutnya):</span>
+                      <span>Sisa Pembayaran (Pelunasan Akhir):</span>
                       <span className="font-mono font-bold text-slate-900">
                         {formatRupiah(docData.remainingAmount || 0)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sub-form: JIKA MEMILIH FINAL PAYMENT (PELUNASAN) */}
+                {docData.paymentTermType === 'final' && (
+                  <div className="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-100 space-y-2.5">
+                    <div className="text-[11px] font-semibold text-emerald-900 flex items-center gap-1">
+                      <span>✅ Tagihan ini merupakan <strong>Final Payment (Pelunasan)</strong> setelah DP.</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-600 mb-1 block">
+                          Nominal DP Yang Telah Dibayar (Rp)
+                        </label>
+                        <input
+                          type="number"
+                          step="1000"
+                          value={docData.paidDpAmount || 0}
+                          onChange={e => {
+                            const paid = Math.max(0, parseInt(e.target.value) || 0);
+                            setDocData(prev => ({
+                              ...prev,
+                              paidDpAmount: paid,
+                              finalAmount: Math.max(0, prev.total - paid),
+                            }));
+                          }}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-700 outline-none focus:border-emerald-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-600 mb-1 block">
+                          Sisa Yang Harus Dilunasi (Final Payment)
+                        </label>
+                        <div className="w-full bg-white border border-emerald-300 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-emerald-700">
+                          {formatRupiah(docData.finalAmount || Math.max(0, docData.total - (docData.paidDpAmount || 0)))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] pt-2 border-t border-emerald-100 text-slate-600">
+                      <span>Total Nilai Keseluruhan Project:</span>
+                      <span className="font-mono font-bold text-slate-900">
+                        {formatRupiah(docData.total)}
                       </span>
                     </div>
                   </div>
@@ -2149,9 +2259,6 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                         ))}
                       </div>
                     </div>
-                    <div className="text-[9px] text-slate-400 mt-2 pt-1.5 border-t border-slate-200/60 italic">
-                      Harap transfer sesuai nominal tagihan resmi.
-                    </div>
                   </div>
                 </div>
 
@@ -2194,9 +2301,6 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                       <div className="text-[9.5px] text-slate-600 whitespace-pre-line">
                         {docData.paymentTermsNotes || 'Pembayaran dilakukan sesuai instruksi transfer pada rekening di atas.'}
                       </div>
-                      <div className="mt-2 pt-1 border-t border-slate-200/60 text-[9px] text-slate-500">
-                        Status: <span className="font-bold uppercase text-indigo-600">{docData.status}</span> • Mata Uang: <strong>{docData.currency}</strong>
-                      </div>
                     </div>
                   </div>
 
@@ -2217,12 +2321,18 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                         <span className="font-mono">+{formatRupiah(((docData.subtotal - (docData.subtotal * docData.discountRate) / 100) * docData.taxRate) / 100)}</span>
                       </div>
                     )}
+                    {docData.shippingFee > 0 && (
+                      <div className="flex justify-between text-slate-600">
+                        <span>Biaya Lainnya:</span>
+                        <span className="font-mono">+{formatRupiah(docData.shippingFee)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-extrabold text-xs text-slate-900 pt-1.5 border-t-2 border-slate-900">
-                      <span>{docData.hasDp ? 'Total Project:' : 'Total:'}</span>
+                      <span>{(docData.paymentTermType === 'dp' || docData.paymentTermType === 'final') ? 'Total Project:' : 'Total:'}</span>
                       <span className="font-mono text-indigo-600 text-sm">{formatRupiah(docData.total)}</span>
                     </div>
 
-                    {docData.hasDp && (
+                    {docData.paymentTermType === 'dp' && (
                       <div className="pt-1.5 mt-1 border-t border-dashed border-indigo-300 space-y-1">
                         <div className="flex justify-between font-bold text-xs text-indigo-700 bg-indigo-50/80 px-2 py-1 rounded-md border border-indigo-200">
                           <span>Tagihan DP ({docData.dpPercent || 50}%):</span>
@@ -2231,6 +2341,19 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                         <div className="flex justify-between text-[10px] text-slate-500 px-1">
                           <span>Sisa Pembayaran:</span>
                           <span className="font-mono font-semibold text-slate-700">{formatRupiah(docData.remainingAmount || 0)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {docData.paymentTermType === 'final' && (
+                      <div className="pt-1.5 mt-1 border-t border-dashed border-emerald-300 space-y-1">
+                        <div className="flex justify-between text-[10px] text-slate-500 px-1">
+                          <span>DP Telah Dibayar:</span>
+                          <span className="font-mono font-semibold text-emerald-600">-{formatRupiah(docData.paidDpAmount || 0)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-xs text-emerald-700 bg-emerald-50/80 px-2 py-1 rounded-md border border-emerald-200">
+                          <span>Final Payment (Pelunasan):</span>
+                          <span className="font-mono">{formatRupiah(docData.finalAmount || Math.max(0, docData.total - (docData.paidDpAmount || 0)))}</span>
                         </div>
                       </div>
                     )}

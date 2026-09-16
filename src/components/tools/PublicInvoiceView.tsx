@@ -415,7 +415,7 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
               </tbody>
             </table>
 
-            <!-- Calculation & Payment Notes -->
+              <!-- Calculation & Payment Notes -->
             <table class="summary-table">
               <tr>
                 <td class="payment-box">
@@ -423,9 +423,6 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
                     <div class="bank-title">Catatan & Ketentuan:</div>
                     <div style="font-size: 10px; color: #475569; white-space: pre-line;">
                       ${docData.paymentTermsNotes || 'Pembayaran dilakukan sesuai instruksi transfer pada rekening di atas.'}
-                    </div>
-                    <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 9.5px; color: #64748b;">
-                      <strong>Status:</strong> <span style="text-transform: uppercase; font-weight: bold; color: ${docData.status === 'paid' ? '#16a34a' : '#4f46e5'}">${docData.status}</span> • <strong>Mata Uang:</strong> ${docData.currency}
                     </div>
                   </div>
                 </td>
@@ -446,12 +443,18 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
                       <span>+${formatRupiah(((docData.subtotal - (docData.subtotal * docData.discountRate) / 100) * docData.taxRate) / 100)}</span>
                     </div>
                   ` : ''}
+                  ${docData.shippingFee > 0 ? `
+                    <div class="calc-row">
+                      <span>Biaya Lainnya:</span>
+                      <span>+${formatRupiah(docData.shippingFee)}</span>
+                    </div>
+                  ` : ''}
                   <div class="calc-row total-row">
-                    <span>${docData.hasDp ? 'TOTAL PROJECT:' : 'GRAND TOTAL:'}</span>
+                    <span>${(docData.paymentTermType === 'dp' || docData.paymentTermType === 'final') ? 'TOTAL PROJECT:' : 'GRAND TOTAL:'}</span>
                     <span>${formatRupiah(docData.total)}</span>
                   </div>
 
-                  ${docData.hasDp ? `
+                  ${docData.paymentTermType === 'dp' ? `
                     <div class="calc-row" style="margin-top: 6px; padding-top: 6px; border-top: 1.5px dashed #4f46e5; color: #4f46e5; font-weight: 700; font-size: 13px;">
                       <span>TAGIHAN DP (${docData.dpPercent || 50}%):</span>
                       <span>${formatRupiah(docData.dpAmount || 0)}</span>
@@ -462,9 +465,20 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
                     </div>
                   ` : ''}
 
+                  ${docData.paymentTermType === 'final' ? `
+                    <div class="calc-row" style="color: #64748b; font-size: 10.5px; margin-top: 4px;">
+                      <span>DP Telah Dibayar:</span>
+                      <span style="font-weight: 600; color: #16a34a;">-${formatRupiah(docData.paidDpAmount || 0)}</span>
+                    </div>
+                    <div class="calc-row" style="margin-top: 6px; padding-top: 6px; border-top: 1.5px dashed #059669; color: #059669; font-weight: 700; font-size: 13px;">
+                      <span>FINAL PAYMENT (PELUNASAN):</span>
+                      <span>${formatRupiah(docData.finalAmount || Math.max(0, docData.total - (docData.paidDpAmount || 0)))}</span>
+                    </div>
+                  ` : ''}
+
                   <div class="terbilang-box">
-                    <strong>Terbilang ${docData.hasDp ? '(Uang Muka / DP)' : ''}:</strong><br/>
-                    "${docData.terbilang || angkaKeTerbilang(docData.hasDp ? (docData.dpAmount || 0) : docData.total)}"
+                    <strong>Terbilang ${docData.paymentTermType === 'dp' ? '(Uang Muka / DP)' : docData.paymentTermType === 'final' ? '(Pelunasan Final)' : ''}:</strong><br/>
+                    "${docData.terbilang || angkaKeTerbilang(docData.paymentTermType === 'dp' ? (docData.dpAmount || 0) : docData.paymentTermType === 'final' ? (docData.finalAmount || 0) : docData.total)}"
                   </div>
                 </td>
               </tr>
@@ -694,9 +708,6 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
                 ))}
               </div>
             </div>
-            <div className="text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-200/80 italic">
-              Harap transfer sesuai instruksi tagihan resmi.
-            </div>
           </div>
         </div>
 
@@ -739,9 +750,6 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
               <div className="text-slate-600 whitespace-pre-line mt-1">
                 {docData.paymentTermsNotes || 'Pembayaran dilakukan sesuai instruksi transfer pada rekening di atas.'}
               </div>
-              <div className="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500">
-                Status: <span className="font-bold uppercase text-indigo-600">{docData.status}</span> • Mata Uang: <strong>{docData.currency}</strong>
-              </div>
             </div>
           </div>
 
@@ -762,12 +770,18 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
                 <span className="font-mono">+{formatRupiah(((docData.subtotal - (docData.subtotal * docData.discountRate) / 100) * docData.taxRate) / 100)}</span>
               </div>
             )}
+            {docData.shippingFee > 0 && (
+              <div className="flex justify-between text-slate-600">
+                <span>Biaya Lainnya:</span>
+                <span className="font-mono">+{formatRupiah(docData.shippingFee)}</span>
+              </div>
+            )}
             <div className="flex justify-between font-black text-sm text-slate-900 pt-2 border-t-2 border-slate-900">
-              <span>{docData.hasDp ? 'TOTAL PROJECT:' : 'TOTAL:'}</span>
+              <span>{(docData.paymentTermType === 'dp' || docData.paymentTermType === 'final') ? 'TOTAL PROJECT:' : 'TOTAL:'}</span>
               <span className="font-mono text-indigo-600 text-base">{formatRupiah(docData.total)}</span>
             </div>
 
-            {docData.hasDp && (
+            {docData.paymentTermType === 'dp' && (
               <div className="pt-2 mt-1 border-t border-dashed border-indigo-300 space-y-1">
                 <div className="flex justify-between font-bold text-xs text-indigo-700 bg-indigo-50/80 px-2.5 py-1.5 rounded-lg border border-indigo-200">
                   <span>TAGIHAN DP ({docData.dpPercent || 50}%):</span>
@@ -780,8 +794,21 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
               </div>
             )}
 
+            {docData.paymentTermType === 'final' && (
+              <div className="pt-2 mt-1 border-t border-dashed border-emerald-300 space-y-1">
+                <div className="flex justify-between text-[11px] text-slate-500 px-1">
+                  <span>DP Telah Dibayar:</span>
+                  <span className="font-mono font-semibold text-emerald-600">-{formatRupiah(docData.paidDpAmount || 0)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-xs text-emerald-700 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                  <span>Final Payment (Pelunasan):</span>
+                  <span className="font-mono text-sm">{formatRupiah(docData.finalAmount || Math.max(0, docData.total - (docData.paidDpAmount || 0)))}</span>
+                </div>
+              </div>
+            )}
+
             <div className="bg-slate-100 p-2 rounded-lg text-[10px] italic text-slate-700 leading-tight">
-              "{docData.terbilang || angkaKeTerbilang(docData.hasDp ? (docData.dpAmount || 0) : docData.total)}"
+              "{docData.terbilang || angkaKeTerbilang(docData.paymentTermType === 'dp' ? (docData.dpAmount || 0) : docData.paymentTermType === 'final' ? (docData.finalAmount || 0) : docData.total)}"
             </div>
           </div>
         </div>
