@@ -240,11 +240,15 @@ export interface SavedClient {
 }
 
 export interface InvoiceDocumentData {
+  id?: string;
   type: InvoiceDocType;
   status: InvoiceDocStatus;
   documentNumber: string;
   date: string;
   dueDate: string; // atau masa berlaku penawaran untuk quotation
+  publicToken?: string; // Token untuk tautan publik eksternal jika sudah digenerate
+  createdAt?: string;
+  updatedAt?: string;
   
   // Perusahaan (Issuer)
   companyName: string;

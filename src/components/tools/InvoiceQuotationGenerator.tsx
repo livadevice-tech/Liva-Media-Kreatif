@@ -28,19 +28,24 @@ import {
   Save,
   ChevronDown,
   Edit2,
-  Search
+  Search,
+  History,
+  CheckCircle,
+  FileSpreadsheet
 } from 'lucide-react';
 import { UserAccount, InvoiceDocumentData, InvoiceItem, InvoiceDocType, InvoiceDocStatus, BankAccountItem, SavedClient } from '../../types/app';
 import { appApi } from '../../services/appApi';
+import { InvoiceManagementModal } from './InvoiceManagementModal';
 
 interface InvoiceQuotationGeneratorProps {
   currentUser?: UserAccount | null;
   onBack?: () => void;
 }
 
-const STORAGE_KEY_INVOICE_SETTINGS = 'liva_invoice_company_settings';
-const STORAGE_KEY_SAVED_CLIENTS = 'liva_invoice_saved_clients';
-const STORAGE_KEY_LAST_DOC_NUMBERS = 'liva_invoice_last_doc_numbers';
+export const STORAGE_KEY_INVOICE_SETTINGS = 'liva_invoice_company_settings';
+export const STORAGE_KEY_SAVED_CLIENTS = 'liva_invoice_saved_clients';
+export const STORAGE_KEY_LAST_DOC_NUMBERS = 'liva_invoice_last_doc_numbers';
+export const STORAGE_KEY_INVOICE_HISTORY = 'liva_invoice_history_list';
 
 // Helper: Konversi angka bulan (1-12) ke angka romawi (I - XII)
 export const toRomanMonth = (monthNumber: number): string => {
@@ -293,6 +298,43 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
   const [editingClient, setEditingClient] = useState<SavedClient | null>(null);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
+
+  // Invoice History State & Management Modal
+  const [invoiceHistory, setInvoiceHistory] = useState<InvoiceDocumentData[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_INVOICE_HISTORY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Sync initial history from appApi settings
+  useEffect(() => {
+    appApi.getSettings<InvoiceDocumentData[]>(STORAGE_KEY_INVOICE_HISTORY)
+      .then((serverHistory) => {
+        if (serverHistory && Array.isArray(serverHistory) && serverHistory.length > 0) {
+          setInvoiceHistory(prev => {
+            // Gabungkan jika ada yang belum tercatat lokal
+            const mergedMap = new Map<string, InvoiceDocumentData>();
+            serverHistory.forEach(item => {
+              const key = item.id || item.documentNumber;
+              if (key) mergedMap.set(key, item);
+            });
+            prev.forEach(item => {
+              const key = item.id || item.documentNumber;
+              if (key) mergedMap.set(key, item);
+            });
+            return Array.from(mergedMap.values());
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Save or update client data to saved list
   const handleSaveCurrentClient = () => {
@@ -648,13 +690,63 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     }
   };
 
+  // Helper: Simpan atau update dokumen ke daftar riwayat invoices
+  const saveInvoiceToHistory = (docToSave: InvoiceDocumentData, showNotification = false) => {
+    try {
+      const existingRaw = localStorage.getItem(STORAGE_KEY_INVOICE_HISTORY);
+      let list: InvoiceDocumentData[] = [];
+      if (existingRaw) {
+        const parsed = JSON.parse(existingRaw);
+        if (Array.isArray(parsed)) list = parsed;
+      }
+
+      const docId = docToSave.id || docToSave.documentNumber;
+      const nowIso = new Date().toISOString();
+      const enriched: InvoiceDocumentData = {
+        ...docToSave,
+        id: docId,
+        updatedAt: nowIso,
+        createdAt: docToSave.createdAt || nowIso,
+      };
+
+      const existingIndex = list.findIndex(item => (item.id && item.id === docId) || item.documentNumber === docToSave.documentNumber);
+      let updatedList: InvoiceDocumentData[];
+      if (existingIndex >= 0) {
+        updatedList = [...list];
+        updatedList[existingIndex] = enriched;
+      } else {
+        updatedList = [enriched, ...list];
+      }
+
+      setInvoiceHistory(updatedList);
+      localStorage.setItem(STORAGE_KEY_INVOICE_HISTORY, JSON.stringify(updatedList));
+      appApi.saveSettings(STORAGE_KEY_INVOICE_HISTORY, updatedList).catch(() => {});
+
+      if (showNotification) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2500);
+      }
+    } catch (e) {
+      console.warn('Gagal menyimpan ke riwayat invoice:', e);
+    }
+  };
+
   // Generate & Share Link
   const handleGeneratePublicLink = async () => {
     try {
       setIsGeneratingLink(true);
-      const token = `inv-${Math.random().toString(36).substring(2, 8)}${Date.now().toString(36)}`;
+      const token = docData.publicToken || `inv-${Math.random().toString(36).substring(2, 8)}${Date.now().toString(36)}`;
+      const updatedWithToken = {
+        ...docData,
+        publicToken: token,
+      };
+      setDocData(updatedWithToken);
       recordUsedDocNumber(docData.documentNumber);
-      await appApi.saveSettings(`public_invoice_${token}`, docData);
+
+      // Simpan ke storage publik & riwayat
+      await appApi.saveSettings(`public_invoice_${token}`, updatedWithToken);
+      saveInvoiceToHistory(updatedWithToken, false);
+
       const generatedLink = `${window.location.origin}/?inv_token=${token}`;
       setShareUrl(generatedLink);
       setIsShareModalOpen(true);
@@ -674,7 +766,11 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
   };
 
   // Isolated Printing / PDF Download
-  const handlePrint = () => {
+  const handlePrint = (customDoc?: InvoiceDocumentData) => {
+    const targetDoc = customDoc || docData;
+    saveInvoiceToHistory(targetDoc, false);
+    recordUsedDocNumber(targetDoc.documentNumber);
+
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -1256,6 +1352,37 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
             </button>
           )}
 
+          {/* Tombol Buka Riwayat / Manajemen Invoice */}
+          <button
+            type="button"
+            onClick={() => setIsHistoryModalOpen(true)}
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 hover:text-indigo-600 border border-slate-200 text-xs font-bold rounded-xl shadow-2xs transition-all flex items-center gap-2 cursor-pointer relative"
+            title="Kelola status invoice, buat body email, atau edit ulang invoice terdahulu"
+          >
+            <History className="w-4 h-4 text-indigo-600" />
+            <span>Riwayat & Manajemen</span>
+            {invoiceHistory.length > 0 && (
+              <span className="px-1.5 py-0.2 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-extrabold">
+                {invoiceHistory.length}
+              </span>
+            )}
+          </button>
+
+          {/* Tombol Simpan Dokumen ke Riwayat */}
+          <button
+            type="button"
+            onClick={() => saveInvoiceToHistory(docData, true)}
+            className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 text-xs font-bold rounded-xl shadow-2xs transition-all flex items-center gap-2 cursor-pointer"
+            title="Simpan perubahan dokumen invoice ke riwayat sistem"
+          >
+            {saveSuccess ? (
+              <Check className="w-4 h-4 text-emerald-600 animate-bounce" />
+            ) : (
+              <Save className="w-4 h-4 text-emerald-600" />
+            )}
+            <span>{saveSuccess ? 'Tersimpan!' : 'Simpan Invoice'}</span>
+          </button>
+
           {/* Share External Link Button */}
           <button
             type="button"
@@ -1275,7 +1402,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
           {/* Print / Save PDF Button */}
           <button
             type="button"
-            onClick={handlePrint}
+            onClick={() => handlePrint()}
             className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Printer className="w-4 h-4" />
@@ -2736,6 +2863,47 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
           </div>
         </div>
       )}
+
+      {/* MODAL MANAJEMEN INVOICE & EMAIL GENERATOR */}
+      <InvoiceManagementModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        invoices={invoiceHistory}
+        onUpdateStatus={(id, newStatus) => {
+          const updated = invoiceHistory.map(inv => {
+            if ((inv.id && inv.id === id) || inv.documentNumber === id) {
+              return { ...inv, status: newStatus, updatedAt: new Date().toISOString() };
+            }
+            return inv;
+          });
+          setInvoiceHistory(updated);
+          localStorage.setItem(STORAGE_KEY_INVOICE_HISTORY, JSON.stringify(updated));
+          appApi.saveSettings(STORAGE_KEY_INVOICE_HISTORY, updated).catch(() => {});
+
+          // Jika invoice yang sedang aktif di editor adalah yang diupdate, sinkronkan statusnya juga
+          if (docData.id === id || docData.documentNumber === id) {
+            setDocData(prev => ({ ...prev, status: newStatus }));
+          }
+        }}
+        onEditInvoice={(selectedInvoice) => {
+          setDocData(selectedInvoice);
+          setIsHistoryModalOpen(false);
+        }}
+        onDeleteInvoice={(id) => {
+          const updated = invoiceHistory.filter(inv => (inv.id && inv.id !== id) && inv.documentNumber !== id);
+          setInvoiceHistory(updated);
+          localStorage.setItem(STORAGE_KEY_INVOICE_HISTORY, JSON.stringify(updated));
+          appApi.saveSettings(STORAGE_KEY_INVOICE_HISTORY, updated).catch(() => {});
+        }}
+        onPrintInvoice={(selectedInvoice) => {
+          handlePrint(selectedInvoice);
+        }}
+        onOpenPublicLink={(token) => {
+          if (token) {
+            window.open(`${window.location.origin}/?inv_token=${token}`, '_blank');
+          }
+        }}
+      />
     </div>
   );
 };
