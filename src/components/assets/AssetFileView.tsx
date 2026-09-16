@@ -91,6 +91,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     type: AssetFileItem['type'];
     project_type: 'Internal' | 'Client';
     notes: string;
+    is_private?: boolean;
     file_name?: string;
     file_size?: number;
     is_attached?: boolean;
@@ -100,6 +101,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
     type: 'gdrive',
     project_type: 'Client',
     notes: '',
+    is_private: false,
     file_name: undefined,
     file_size: undefined,
     is_attached: false,
@@ -114,6 +116,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       type: 'gdrive',
       project_type: 'Client',
       notes: '',
+      is_private: false,
       file_name: undefined,
       file_size: undefined,
       is_attached: false,
@@ -131,6 +134,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       type: item.type,
       project_type: (item.project_type === 'Internal' || item.brand_name === 'Internal') ? 'Internal' : 'Client',
       notes: item.notes || '',
+      is_private: !!item.is_private,
       file_name: item.file_name,
       file_size: item.file_size,
       is_attached: !!item.is_attached,
@@ -366,6 +370,9 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
   // Filter assets
   const filteredAssets = useMemo(() => {
     return allAssets.filter((item) => {
+      // Keamanan visibilitas: file/asset private hanya boleh dilihat oleh Master Admin
+      if (item.is_private && !isMasterAdmin) return false;
+
       if (selectedProjectType !== 'all') {
         const itemType = item.project_type || (item.brand_name?.toLowerCase() === 'internal' ? 'Internal' : 'Client');
         if (itemType !== selectedProjectType) return false;
@@ -383,7 +390,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
       }
       return true;
     });
-  }, [allAssets, selectedProjectType, selectedCategory, searchQuery]);
+  }, [allAssets, selectedProjectType, selectedCategory, searchQuery, isMasterAdmin]);
 
   // Copy URL to clipboard
   const handleCopyLink = (item: AssetFileItem) => {
@@ -411,6 +418,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
               project_type: assetForm.project_type,
               brand_name: assetForm.project_type,
               notes: assetForm.notes.trim() || undefined,
+              is_private: !!assetForm.is_private,
               file_name: assetForm.file_name,
               file_size: assetForm.file_size,
               is_attached: assetForm.is_attached,
@@ -430,6 +438,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
           brand_name: assetForm.project_type,
           source: 'manual',
           notes: assetForm.notes.trim() || undefined,
+          is_private: !!assetForm.is_private,
           file_name: assetForm.file_name,
           file_size: assetForm.file_size,
           is_attached: assetForm.is_attached,
@@ -449,6 +458,7 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
         brand_name: assetForm.project_type,
         source: 'manual',
         notes: assetForm.notes.trim() || undefined,
+        is_private: !!assetForm.is_private,
         file_name: assetForm.file_name,
         file_size: assetForm.file_size,
         is_attached: assetForm.is_attached,
@@ -667,20 +677,29 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                     className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex flex-col justify-between group"
                   >
                     <div>
-                      {/* Top Row: Type & Brand */}
+                      {/* Top Row: Type, Brand & Private status */}
                       <div className="flex items-center justify-between gap-2 mb-2.5">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border ${typeInfo.badge}`}>
                           {typeInfo.icon}
                           <span>{typeInfo.label}</span>
                         </span>
 
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[120px] ${
-                          (item.project_type === 'Internal' || item.brand_name === 'Internal')
-                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border border-blue-200'
-                        }`}>
-                          {item.project_type || item.brand_name || 'Client'}
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {item.is_private && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-300 flex items-center gap-0.5 shrink-0" title="File Bersifat Private (Hanya Master Admin)">
+                              <Lock className="w-2.5 h-2.5" />
+                              <span>Private</span>
+                            </span>
+                          )}
+
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[110px] ${
+                            (item.project_type === 'Internal' || item.brand_name === 'Internal')
+                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}>
+                            {item.project_type || item.brand_name || 'Client'}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Title */}
@@ -786,6 +805,12 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                         <td className="py-3 px-4 font-semibold text-slate-900 max-w-xs truncate">
                           <div className="flex items-center gap-1.5 truncate">
                             <span className="truncate" title={item.title}>{item.title}</span>
+                            {item.is_private && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-300 shrink-0" title="File Bersifat Private (Hanya Master Admin)">
+                                <Lock className="w-2.5 h-2.5 text-purple-700" />
+                                <span>Private</span>
+                              </span>
+                            )}
                             {item.is_attached && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0" title={item.file_name || 'Berkas Terlampir'}>
                                 <Paperclip className="w-2.5 h-2.5 text-indigo-600" />
@@ -1115,6 +1140,91 @@ export const AssetFileView: React.FC<AssetFileViewProps> = ({
                       onChange={(e) => setAssetForm({ ...assetForm, notes: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
+                  </div>
+
+                  {/* Visibility Selector: Public vs Private */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Akses Visibilitas File</span>
+                      </label>
+                      {assetForm.is_private ? (
+                        <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5" /> Khusus Master Admin
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Globe className="w-2.5 h-2.5" /> Semua Role
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {/* Opsi Public */}
+                      <button
+                        type="button"
+                        onClick={() => setAssetForm({ ...assetForm, is_private: false })}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          !assetForm.is_private
+                            ? 'bg-blue-50/70 border-blue-500/80 ring-1 ring-blue-500/30 text-blue-900 shadow-2xs'
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg shrink-0 ${
+                          !assetForm.is_private ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          <Globe className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-slate-800">Public</span>
+                            {!assetForm.is_private && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />}
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                            Bisa dilihat & diakses oleh semua role tim.
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* Opsi Private */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (currentUser && currentUser.role !== 'Master Admin') {
+                            alert('Perhatian: File berstatus Private hanya dapat dilihat dan diakses oleh akun dengan role Master Admin.');
+                          }
+                          setAssetForm({ ...assetForm, is_private: true });
+                        }}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          assetForm.is_private
+                            ? 'bg-purple-50/70 border-purple-500/80 ring-1 ring-purple-500/30 text-purple-900 shadow-2xs'
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg shrink-0 ${
+                          assetForm.is_private ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          <Lock className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-slate-800">Private</span>
+                            {assetForm.is_private && <Check className="w-3.5 h-3.5 text-purple-600 stroke-[3]" />}
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                            Hanya ditunjukkan ke role Master Admin.
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+
+                    {assetForm.is_private && (
+                      <div className="mt-2.5 p-2 bg-purple-50/80 border border-purple-200/80 rounded-xl text-[11px] text-purple-800 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                        <span>File ini terlindungi dan tidak akan tampil untuk role selain Master Admin.</span>
+                      </div>
+                    )}
                   </div>
 
                   {editingAssetId && (
