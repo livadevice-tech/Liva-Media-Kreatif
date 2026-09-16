@@ -16,7 +16,10 @@ import {
   Trash2,
   Check,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ZoomIn,
+  ZoomOut,
+  Sliders
 } from 'lucide-react';
 import { UserAccount } from '../../types/app';
 
@@ -36,6 +39,7 @@ interface EmploymentLetterData {
   signerName: string;
   signerPosition: string;
   signatureUrl?: string;
+  signatureScale: number; // 50 - 200 (%)
   includeStamp: boolean;
 }
 
@@ -91,6 +95,7 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
     signerName: 'Mufthi Ali',
     signerPosition: 'Direktur PT Liva Media Kreatif',
     signatureUrl: '',
+    signatureScale: 100,
     includeStamp: true,
   });
 
@@ -491,17 +496,19 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                     </div>
                   ` : ''}
 
-                  ${formData.signatureUrl ? `
-                    <img src="${formData.signatureUrl}" class="signature-img" alt="Tanda Tangan" />
-                  ` : `
-                    <!-- Default Stylized TTD Vector if no custom signature uploaded -->
-                    <div class="default-tanda-tangan">
-                      <svg width="130" height="95" viewBox="0 0 160 110" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M30 85C45 40 70 15 80 30C88 42 75 75 60 88C50 96 40 90 45 75C55 45 90 20 110 50C125 70 120 90 145 95" stroke="#334155" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M70 45L70 98" stroke="#334155" stroke-width="2.2" stroke-linecap="round"/>
-                      </svg>
-                    </div>
-                  `}
+                  <div class="signature-wrapper" style="transform: scale(${formData.signatureScale / 100}); transform-origin: left center; display: inline-flex; align-items: center; position: relative; z-index: 5; margin-left: 10px;">
+                    ${formData.signatureUrl ? `
+                      <img src="${formData.signatureUrl}" class="signature-img" alt="Tanda Tangan" style="margin: 0;" />
+                    ` : `
+                      <!-- Default Stylized TTD Vector if no custom signature uploaded -->
+                      <div class="default-tanda-tangan" style="margin-left: 0;">
+                        <svg width="130" height="95" viewBox="0 0 160 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M30 85C45 40 70 15 80 30C88 42 75 75 60 88C50 96 40 90 45 75C55 45 90 20 110 50C125 70 120 90 145 95" stroke="#334155" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M70 45L70 98" stroke="#334155" stroke-width="2.2" stroke-linecap="round"/>
+                        </svg>
+                      </div>
+                    `}
+                  </div>
                 </div>
 
                 <div class="signer-name">${formData.signerName}</div>
@@ -913,7 +920,7 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                     </span>
                   </label>
 
-                  <div>
+                    <div>
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -940,6 +947,84 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                         <span>Upload Gambar TTD</span>
                       </button>
                     )}
+                  </div>
+                </div>
+
+                {/* Pengatur Besar/Kecil Ukuran Tanda Tangan */}
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Ukuran / Skala Tanda Tangan</span>
+                    </label>
+                    <span className="text-xs font-extrabold text-indigo-600 font-mono bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">
+                      {formData.signatureScale}%
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, signatureScale: Math.max(50, prev.signatureScale - 10) }))}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                      title="Perkecil (-10%)"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
+
+                    <input
+                      type="range"
+                      min={50}
+                      max={220}
+                      step={5}
+                      value={formData.signatureScale}
+                      onChange={(e) => setFormData({ ...formData, signatureScale: Number(e.target.value) })}
+                      className="flex-1 accent-indigo-600 cursor-pointer h-2 bg-slate-100 rounded-lg"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, signatureScale: Math.min(220, prev.signatureScale + 10) }))}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                      title="Perbesar (+10%)"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Preset Buttons */}
+                  <div className="flex items-center justify-between pt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-400 font-medium">Preset:</span>
+                      {[
+                        { label: 'Kecil', val: 75 },
+                        { label: 'Normal', val: 100 },
+                        { label: 'Besar', val: 135 },
+                        { label: 'Ekstra', val: 175 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.val}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, signatureScale: preset.val })}
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                            formData.signatureScale === preset.val
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, signatureScale: 100 })}
+                      className="text-[10px] text-slate-400 hover:text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <RotateCcw className="w-2.5 h-2.5" />
+                      <span>Reset</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1082,19 +1167,24 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                         </div>
                       )}
 
-                      {/* Signature render */}
-                      {formData.signatureUrl ? (
-                        <img 
-                          src={formData.signatureUrl} 
-                          className="max-h-16 max-w-[130px] object-contain relative z-20 ml-6" 
-                          alt="Signature" 
-                        />
-                      ) : (
-                        <svg className="w-24 h-16 text-slate-700 relative z-20 ml-6" viewBox="0 0 160 110" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M30 85C45 40 70 15 80 30C88 42 75 75 60 88C50 96 40 90 45 75C55 45 90 20 110 50C125 70 120 90 145 95" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M70 45L70 98" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
-                        </svg>
-                      )}
+                      {/* Signature render with dynamic scale */}
+                      <div 
+                        className="relative z-20 ml-4 flex items-center origin-left transition-transform duration-150"
+                        style={{ transform: `scale(${formData.signatureScale / 100})` }}
+                      >
+                        {formData.signatureUrl ? (
+                          <img 
+                            src={formData.signatureUrl} 
+                            className="max-h-20 max-w-[150px] object-contain" 
+                            alt="Signature" 
+                          />
+                        ) : (
+                          <svg className="w-24 h-16 text-slate-700" viewBox="0 0 160 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M30 85C45 40 70 15 80 30C88 42 75 75 60 88C50 96 40 90 45 75C55 45 90 20 110 50C125 70 120 90 145 95" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M70 45L70 98" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+                          </svg>
+                        )}
+                      </div>
                     </div>
 
                     <div className="font-extrabold text-xs sm:text-sm text-slate-900 mt-1">
