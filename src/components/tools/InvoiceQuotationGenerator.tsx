@@ -26,7 +26,9 @@ import {
   Bookmark,
   BookmarkPlus,
   Save,
-  ChevronDown
+  ChevronDown,
+  Edit2,
+  Search
 } from 'lucide-react';
 import { UserAccount, InvoiceDocumentData, InvoiceItem, InvoiceDocType, InvoiceDocStatus, BankAccountItem, SavedClient } from '../../types/app';
 import { appApi } from '../../services/appApi';
@@ -243,22 +245,19 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     ];
   });
 
-  const [clientSaveSuccess, setClientSaveSuccess] = useState(false);
+    const [editingClient, setEditingClient] = useState<SavedClient | null>(null);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState('');
 
-  // Save client data to saved list
+  // Save or update client data to saved list
   const handleSaveCurrentClient = () => {
     if (!docData.clientName.trim()) {
       alert('Nama klien tidak boleh kosong');
       return;
     }
 
-    const existingIdx = savedClients.findIndex(c => 
-      c.clientName.trim().toLowerCase() === docData.clientName.trim().toLowerCase() ||
-      (docData.clientCompany && c.clientCompany?.trim().toLowerCase() === docData.clientCompany.trim().toLowerCase())
-    );
-
     const newClient: SavedClient = {
-      id: existingIdx >= 0 ? savedClients[existingIdx].id : Date.now().toString(),
+      id: Date.now().toString(),
       clientName: docData.clientName.trim(),
       clientCompany: docData.clientCompany?.trim() || '',
       clientAddress: docData.clientAddress?.trim() || '',
@@ -267,10 +266,16 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       createdAt: new Date().toISOString().slice(0, 10),
     };
 
+    // Check if client with exact same name and company exists
+    const existingIdx = savedClients.findIndex(c => 
+      c.clientName.trim().toLowerCase() === docData.clientName.trim().toLowerCase() &&
+      c.clientCompany?.trim().toLowerCase() === (docData.clientCompany?.trim() || '').toLowerCase()
+    );
+
     let updatedList: SavedClient[];
     if (existingIdx >= 0) {
       updatedList = [...savedClients];
-      updatedList[existingIdx] = newClient;
+      updatedList[existingIdx] = { ...newClient, id: savedClients[existingIdx].id };
     } else {
       updatedList = [newClient, ...savedClients];
     }
@@ -283,6 +288,42 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     } catch (e) {
       console.warn('Gagal menyimpan daftar klien:', e);
     }
+  };
+
+  // Open edit modal for a specific saved client
+  const handleOpenEditClient = (client: SavedClient, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingClient({ ...client });
+    setIsClientModalOpen(true);
+  };
+
+  // Save edits from modal
+  const handleSaveEditedClient = () => {
+    if (!editingClient || !editingClient.clientName.trim()) {
+      alert('Nama klien tidak boleh kosong');
+      return;
+    }
+
+    const updated = savedClients.map(c => c.id === editingClient.id ? editingClient : c);
+    setSavedClients(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_SAVED_CLIENTS, JSON.stringify(updated));
+    } catch {}
+
+    // If currently selected in form, sync current form too
+    if (docData.clientName === editingClient.clientName) {
+      setDocData(prev => ({
+        ...prev,
+        clientName: editingClient.clientName,
+        clientCompany: editingClient.clientCompany || '',
+        clientAddress: editingClient.clientAddress || '',
+        clientEmail: editingClient.clientEmail || '',
+        clientPhone: editingClient.clientPhone || '',
+      }));
+    }
+
+    setIsClientModalOpen(false);
+    setEditingClient(null);
   };
 
   // Select a saved client
@@ -1263,50 +1304,85 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                 </button>
               </div>
 
-              {/* Saved Clients Quick Selector */}
+              {/* Saved Clients Quick Selector & Manager */}
               {savedClients.length > 0 && (
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
                       <Bookmark className="w-3 h-3 text-indigo-500" />
-                      Pilih dari Klien Tersimpan:
+                      Pilih / Kelola Klien Tersimpan ({savedClients.length}):
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {savedClients.length} Klien
+                    <span className="text-[9px] text-slate-400">
+                      Klik untuk mengisi formulir
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-                    {savedClients.map(c => {
-                      const isSelected = docData.clientName.trim().toLowerCase() === c.clientName.trim().toLowerCase();
-                      return (
-                        <div
-                          key={c.id}
-                          className={`group inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                              : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50'
-                          }`}
-                          onClick={() => handleSelectSavedClient(c)}
-                        >
-                          <span className="truncate max-w-[140px] font-semibold">{c.clientName}</span>
-                          {c.clientCompany && (
-                            <span className={`text-[10px] opacity-75 truncate max-w-[90px]`}>
-                              • {c.clientCompany}
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteSavedClient(c.id, e)}
-                            className={`p-0.5 rounded hover:bg-rose-500 hover:text-white transition-colors cursor-pointer ${
-                              isSelected ? 'text-indigo-200' : 'text-slate-400 opacity-0 group-hover:opacity-100'
+
+                  {savedClients.length > 4 && (
+                    <div className="relative">
+                      <Search className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Cari nama klien / brand..."
+                        value={clientSearchQuery}
+                        onChange={e => setClientSearchQuery(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-lg pl-7 pr-2.5 py-1 text-[11px] outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+                    {savedClients
+                      .filter(c => {
+                        if (!clientSearchQuery.trim()) return true;
+                        const q = clientSearchQuery.toLowerCase();
+                        return c.clientName.toLowerCase().includes(q) || (c.clientCompany && c.clientCompany.toLowerCase().includes(q));
+                      })
+                      .map(c => {
+                        const isSelected = docData.clientName.trim().toLowerCase() === c.clientName.trim().toLowerCase();
+                        return (
+                          <div
+                            key={c.id}
+                            className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                                : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50'
                             }`}
-                            title="Hapus klien tersimpan ini"
+                            onClick={() => handleSelectSavedClient(c)}
+                            title="Klik untuk memilih data klien ini"
                           >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      );
-                    })}
+                            <span className="truncate max-w-[130px] font-semibold">{c.clientName}</span>
+                            {c.clientCompany && (
+                              <span className={`text-[10px] opacity-80 truncate max-w-[90px]`}>
+                                • {c.clientCompany}
+                              </span>
+                            )}
+                            
+                            {/* Action Buttons: Edit & Delete */}
+                            <div className="flex items-center gap-0.5 ml-1 border-l pl-1 border-slate-200/50">
+                              <button
+                                type="button"
+                                onClick={(e) => handleOpenEditClient(c, e)}
+                                className={`p-0.5 rounded hover:bg-white/20 transition-colors cursor-pointer ${
+                                  isSelected ? 'text-white' : 'text-slate-400 hover:text-indigo-600'
+                                }`}
+                                title="Edit detail klien ini"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteSavedClient(c.id, e)}
+                                className={`p-0.5 rounded hover:bg-rose-500 hover:text-white transition-colors cursor-pointer ${
+                                  isSelected ? 'text-indigo-200' : 'text-slate-400 opacity-70 group-hover:opacity-100 hover:text-white'
+                                }`}
+                                title="Hapus klien tersimpan ini"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -2295,6 +2371,118 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                 className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Data Klien Tersimpan */}
+      {isClientModalOpen && editingClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 animate-scaleUp space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+                  <Edit2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Edit Klien Tersimpan</h3>
+                  <p className="text-[10px] text-slate-500">Perbarui kontak atau informasi alamat klien</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsClientModalOpen(false);
+                  setEditingClient(null);
+                }}
+                className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                  Nama Klien / Perusahaan Tujuan *
+                </label>
+                <input
+                  type="text"
+                  value={editingClient.clientName}
+                  onChange={e => setEditingClient(prev => prev ? ({ ...prev, clientName: e.target.value }) : null)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:bg-white focus:border-indigo-500 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                    Brand / Divisi / PIC
+                  </label>
+                  <input
+                    type="text"
+                    value={editingClient.clientCompany || ''}
+                    onChange={e => setEditingClient(prev => prev ? ({ ...prev, clientCompany: e.target.value }) : null)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                    No. Telp / WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    value={editingClient.clientPhone || ''}
+                    onChange={e => setEditingClient(prev => prev ? ({ ...prev, clientPhone: e.target.value }) : null)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-indigo-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                  Email Klien
+                </label>
+                <input
+                  type="email"
+                  value={editingClient.clientEmail || ''}
+                  onChange={e => setEditingClient(prev => prev ? ({ ...prev, clientEmail: e.target.value }) : null)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-indigo-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                  Alamat Klien
+                </label>
+                <textarea
+                  rows={2}
+                  value={editingClient.clientAddress || ''}
+                  onChange={e => setEditingClient(prev => prev ? ({ ...prev, clientAddress: e.target.value }) : null)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-indigo-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsClientModalOpen(false);
+                  setEditingClient(null);
+                }}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditedClient}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                Simpan Perubahan
               </button>
             </div>
           </div>
