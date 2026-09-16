@@ -158,13 +158,17 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     const initialTotal = initialSubtotal + initialTax;
 
     const initialBankAccounts: BankAccountItem[] = saved.bankAccounts && Array.isArray(saved.bankAccounts) && saved.bankAccounts.length > 0
-      ? saved.bankAccounts
+      ? saved.bankAccounts.map((acc: any) => ({
+          ...acc,
+          isSelected: acc.isSelected !== undefined ? acc.isSelected : true,
+        }))
       : [
           {
             id: '1',
             bankName: saved.bankName || 'Bank Central Asia (BCA)',
             accountNumber: saved.bankAccountNumber || '8905 1234 56',
             accountHolder: saved.bankAccountHolder || 'PT LIVA MEDIA KREATIF',
+            isSelected: true,
           }
         ];
 
@@ -485,6 +489,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       bankName: 'Bank Central Asia (BCA)',
       accountNumber: '',
       accountHolder: docData.companyName || 'PT LIVA MEDIA KREATIF',
+      isSelected: true,
     };
     setDocData(prev => ({
       ...prev,
@@ -492,11 +497,31 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     }));
   };
 
-  const handleUpdateBankAccount = (id: string, field: keyof BankAccountItem, value: string) => {
+  const handleUpdateBankAccount = (id: string, field: keyof BankAccountItem, value: any) => {
     setDocData(prev => ({
       ...prev,
       bankAccounts: prev.bankAccounts.map(acc => acc.id === id ? { ...acc, [field]: value } : acc)
     }));
+  };
+
+  const handleToggleBankAccountSelection = (id: string) => {
+    setDocData(prev => {
+      const currentAcc = prev.bankAccounts.find(a => a.id === id);
+      const isCurrentlySelected = currentAcc?.isSelected !== false;
+      // Jangan izinkan unselect jika ini satu-satunya rekening yang terpilih
+      const selectedCount = prev.bankAccounts.filter(a => a.isSelected !== false).length;
+      if (isCurrentlySelected && selectedCount <= 1) {
+        alert('Minimal harus ada 1 rekening yang dipilih untuk invoice');
+        return prev;
+      }
+      return {
+        ...prev,
+        bankAccounts: prev.bankAccounts.map(acc => {
+          if (acc.id !== id) return acc;
+          return { ...acc, isSelected: !isCurrentlySelected };
+        })
+      };
+    });
   };
 
   const handleRemoveBankAccount = (id: string) => {
@@ -934,20 +959,27 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                 </td>
                 <td>
                   <div class="box-heading">Informasi Pembayaran (Transfer Bank):</div>
-                  ${(docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [{
-                    id: '1',
-                    bankName: docData.bankName || 'Bank Central Asia (BCA)',
-                    accountNumber: docData.bankAccountNumber || '8905 1234 56',
-                    accountHolder: docData.bankAccountHolder || 'PT LIVA MEDIA KREATIF',
-                  }]).map((acc, i) => `
-                    <div style="${i > 0 ? 'margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e1;' : ''}">
-                      <div style="font-weight: 700; color: #0f172a; font-size: 11px;">${acc.bankName}</div>
-                      <div class="client-sub" style="margin-top: 1px;">
-                        No. Rek: <span style="font-family: monospace; font-weight: 700; color: #4f46e5; font-size: 11.5px;">${acc.accountNumber}</span>
+                  ${(() => {
+                    const allAccs = docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [{
+                      id: '1',
+                      bankName: docData.bankName || 'Bank Central Asia (BCA)',
+                      accountNumber: docData.bankAccountNumber || '8905 1234 56',
+                      accountHolder: docData.bankAccountHolder || 'PT LIVA MEDIA KREATIF',
+                      isSelected: true,
+                    }];
+                    const selectedAccs = allAccs.filter(a => a.isSelected !== false);
+                    const activeAccs = selectedAccs.length > 0 ? selectedAccs : [allAccs[0]];
+
+                    return activeAccs.map((acc, i) => `
+                      <div style="${i > 0 ? 'margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e1;' : ''}">
+                        <div style="font-weight: 700; color: #0f172a; font-size: 11px;">${acc.bankName}</div>
+                        <div class="client-sub" style="margin-top: 1px;">
+                          No. Rek: <span style="font-family: monospace; font-weight: 700; color: #4f46e5; font-size: 11.5px;">${acc.accountNumber}</span>
+                        </div>
+                        <div class="client-sub" style="font-size: 10px;">A/N: <strong>${acc.accountHolder}</strong></div>
                       </div>
-                      <div class="client-sub" style="font-size: 10px;">A/N: <strong>${acc.accountHolder}</strong></div>
-                    </div>
-                  `).join('')}
+                    `).join('');
+                  })()}
                 </td>
               </tr>
             </table>
@@ -1853,9 +1885,29 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                     className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-2.5 hover:border-indigo-200 transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                        Rekening #{index + 1}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={acc.isSelected !== false}
+                            onChange={() => handleToggleBankAccountSelection(acc.id)}
+                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer accent-indigo-600"
+                          />
+                          <span className={`text-[11px] font-bold ${acc.isSelected !== false ? 'text-indigo-900' : 'text-slate-400 line-through'}`}>
+                            Rekening #{index + 1}
+                          </span>
+                        </label>
+                        {acc.isSelected !== false ? (
+                          <span className="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                            Tampil di Invoice
+                          </span>
+                        ) : (
+                          <span className="text-[9.5px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                            Tidak Ditampilkan
+                          </span>
+                        )}
+                      </div>
                       {docData.bankAccounts.length > 1 && (
                         <button
                           type="button"
@@ -2250,13 +2302,17 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                         <span>Informasi Pembayaran (Transfer Bank):</span>
                       </div>
                       <div className="space-y-2">
-                        {docData.bankAccounts.map((acc, i) => (
-                          <div key={acc.id || i} className="bg-white p-2 rounded-lg border border-slate-200/80 text-[10px] leading-snug shadow-2xs">
-                            <div className="font-bold text-slate-900">{acc.bankName}</div>
-                            <div className="font-mono text-indigo-700 font-bold text-xs tracking-wide">{acc.accountNumber}</div>
-                            <div className="text-slate-500 text-[9.5px]">A/N: <strong className="text-slate-800">{acc.accountHolder}</strong></div>
-                          </div>
-                        ))}
+                        {(() => {
+                          const selectedAccs = docData.bankAccounts.filter(acc => acc.isSelected !== false);
+                          const activeAccs = selectedAccs.length > 0 ? selectedAccs : [docData.bankAccounts[0]];
+                          return activeAccs.map((acc, i) => (
+                            <div key={acc.id || i} className="bg-white p-2 rounded-lg border border-slate-200/80 text-[10px] leading-snug shadow-2xs">
+                              <div className="font-bold text-slate-900">{acc.bankName}</div>
+                              <div className="font-mono text-indigo-700 font-bold text-xs tracking-wide">{acc.accountNumber}</div>
+                              <div className="text-slate-500 text-[9.5px]">A/N: <strong className="text-slate-800">{acc.accountHolder}</strong></div>
+                            </div>
+                          ));
+                        })()}
                       </div>
                     </div>
                   </div>

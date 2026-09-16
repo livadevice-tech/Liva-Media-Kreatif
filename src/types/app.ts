@@ -226,6 +226,7 @@ export interface BankAccountItem {
   bankName: string;
   accountNumber: string;
   accountHolder: string;
+  isSelected?: boolean; // Apakah rekening ini dipilih untuk dimasukkan ke dalam invoice
 }
 
 export interface SavedClient {

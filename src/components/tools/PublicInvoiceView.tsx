@@ -369,20 +369,26 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
                 <td>
                   <div class="box-heading">Informasi Pembayaran (Transfer Bank):</div>
                   <div style="display: flex; flex-direction: column; gap: 6px;">
-                    ${(docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [
-                      {
-                        id: 'default',
-                        bankName: docData.bankName || 'BCA',
-                        accountNumber: docData.bankAccountNumber || '-',
-                        accountHolder: docData.bankAccountHolder || docData.companyName
-                      }
-                    ]).map(acc => `
-                      <div style="background: #ffffff; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 10px; line-height: 1.4;">
-                        <div style="font-weight: 700; color: #0f172a;">${acc.bankName}</div>
-                        <div style="font-family: monospace; font-size: 11px; font-weight: 700; color: #4f46e5;">${acc.accountNumber}</div>
-                        <div style="color: #64748b; font-size: 9.5px;">A/N: <strong>${acc.accountHolder}</strong></div>
-                      </div>
-                    `).join('')}
+                    ${(() => {
+                      const all = (docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [
+                        {
+                          id: 'default',
+                          bankName: docData.bankName || 'BCA',
+                          accountNumber: docData.bankAccountNumber || '-',
+                          accountHolder: docData.bankAccountHolder || docData.companyName,
+                          isSelected: true,
+                        }
+                      ]);
+                      const selected = all.filter(a => a.isSelected !== false);
+                      const active = selected.length > 0 ? selected : [all[0]];
+                      return active.map(acc => `
+                        <div style="background: #ffffff; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 10px; line-height: 1.4;">
+                          <div style="font-weight: 700; color: #0f172a;">${acc.bankName}</div>
+                          <div style="font-family: monospace; font-size: 11px; font-weight: 700; color: #4f46e5;">${acc.accountNumber}</div>
+                          <div style="color: #64748b; font-size: 9.5px;">A/N: <strong>${acc.accountHolder}</strong></div>
+                        </div>
+                      `).join('');
+                    })()}
                   </div>
                 </td>
               </tr>
@@ -692,20 +698,26 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
                 <span>Informasi Pembayaran (Transfer Bank):</span>
               </div>
               <div className="space-y-2">
-                {(docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [
-                  {
-                    id: 'default',
-                    bankName: docData.bankName || 'BCA',
-                    accountNumber: docData.bankAccountNumber || '-',
-                    accountHolder: docData.bankAccountHolder || docData.companyName
-                  }
-                ]).map((acc, i) => (
-                  <div key={acc.id || i} className="bg-white p-2.5 rounded-lg border border-slate-200/80 text-xs shadow-2xs">
-                    <div className="font-bold text-slate-900">{acc.bankName}</div>
-                    <div className="font-mono text-indigo-700 font-bold text-sm tracking-wide">{acc.accountNumber}</div>
-                    <div className="text-slate-500 text-[11px]">A/N: <strong className="text-slate-800">{acc.accountHolder}</strong></div>
-                  </div>
-                ))}
+                {(() => {
+                  const all = (docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [
+                    {
+                      id: 'default',
+                      bankName: docData.bankName || 'BCA',
+                      accountNumber: docData.bankAccountNumber || '-',
+                      accountHolder: docData.bankAccountHolder || docData.companyName,
+                      isSelected: true,
+                    }
+                  ]);
+                  const selected = all.filter(a => a.isSelected !== false);
+                  const active = selected.length > 0 ? selected : [all[0]];
+                  return active.map((acc, i) => (
+                    <div key={acc.id || i} className="bg-white p-2.5 rounded-lg border border-slate-200/80 text-xs shadow-2xs">
+                      <div className="font-bold text-slate-900">{acc.bankName}</div>
+                      <div className="font-mono text-indigo-700 font-bold text-sm tracking-wide">{acc.accountNumber}</div>
+                      <div className="text-slate-500 text-[11px]">A/N: <strong className="text-slate-800">{acc.accountHolder}</strong></div>
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
           </div>
