@@ -2106,29 +2106,50 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                 </div>
 
                 {/* Parties info & Bank Accounts */}
-                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 mb-4 text-[10.5px]">
-                  <div>
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      {docData.type === 'invoice' ? 'Ditagihkan Kepada (Bill To):' : 'Penawaran Untuk:'}
-                    </div>
-                    <div className="font-bold text-slate-900 text-xs">{docData.clientName}</div>
-                    <div className="font-medium text-slate-700">{docData.clientCompany}</div>
-                    <div className="text-slate-500 text-[10px] mt-0.5">{docData.clientAddress}</div>
-                    <div className="text-slate-500 text-[10px]">{docData.clientPhone} • {docData.clientEmail}</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <CreditCard className="w-3 h-3 text-indigo-600" />
-                      <span>Informasi Pembayaran (Transfer Bank):</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {docData.bankAccounts.map((acc, i) => (
-                        <div key={acc.id || i} className="bg-white p-1.5 rounded-lg border border-slate-200/80 text-[10px] leading-tight">
-                          <div className="font-bold text-slate-900">{acc.bankName}</div>
-                          <div className="font-mono text-indigo-700 font-bold">{acc.accountNumber}</div>
-                          <div className="text-slate-500 text-[9.5px]">A/N: <strong>{acc.accountHolder}</strong></div>
+                <div className="grid grid-cols-2 gap-3 mb-4 text-[10.5px]">
+                  {/* Left Column: Client Info */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex flex-col justify-between">
+                    <div>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                        <User className="w-3 h-3 text-indigo-600" />
+                        <span>{docData.type === 'invoice' ? 'Ditagihkan Kepada (Bill To):' : 'Penawaran Untuk:'}</span>
+                      </div>
+                      <div className="font-bold text-slate-900 text-xs">{docData.clientName}</div>
+                      {docData.clientCompany && (
+                        <div className="font-semibold text-slate-700 text-[10.5px] mt-0.5">{docData.clientCompany}</div>
+                      )}
+                      {docData.clientAddress && (
+                        <div className="text-slate-600 text-[10px] mt-1 leading-snug whitespace-pre-line">
+                          {docData.clientAddress}
                         </div>
-                      ))}
+                      )}
+                    </div>
+                    {(docData.clientPhone || docData.clientEmail) && (
+                      <div className="text-slate-500 text-[9.5px] mt-2 pt-1.5 border-t border-slate-200/60 font-mono">
+                        {[docData.clientPhone, docData.clientEmail].filter(Boolean).join(' • ')}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Bank Accounts */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex flex-col justify-between">
+                    <div>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                        <CreditCard className="w-3 h-3 text-indigo-600" />
+                        <span>Informasi Pembayaran (Transfer Bank):</span>
+                      </div>
+                      <div className="space-y-2">
+                        {docData.bankAccounts.map((acc, i) => (
+                          <div key={acc.id || i} className="bg-white p-2 rounded-lg border border-slate-200/80 text-[10px] leading-snug shadow-2xs">
+                            <div className="font-bold text-slate-900">{acc.bankName}</div>
+                            <div className="font-mono text-indigo-700 font-bold text-xs tracking-wide">{acc.accountNumber}</div>
+                            <div className="text-slate-500 text-[9.5px]">A/N: <strong className="text-slate-800">{acc.accountHolder}</strong></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-[9px] text-slate-400 mt-2 pt-1.5 border-t border-slate-200/60 italic">
+                      Harap transfer sesuai nominal tagihan resmi.
                     </div>
                   </div>
                 </div>

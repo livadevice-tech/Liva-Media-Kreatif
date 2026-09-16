@@ -645,36 +645,57 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
         </div>
 
         {/* Parties Box */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200/80 mb-6">
-          <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-              {isInvoice ? 'Ditagihkan Kepada (Bill To):' : 'Penawaran Untuk:'}
-            </div>
-            <div className="font-bold text-slate-900 text-sm">{docData.clientName}</div>
-            <div className="font-semibold text-slate-700">{docData.clientCompany}</div>
-            <div className="text-slate-600 text-xs mt-1">{docData.clientAddress}</div>
-            <div className="text-slate-600 text-xs">{docData.clientPhone} • {docData.clientEmail}</div>
-          </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Informasi Pembayaran (Transfer Bank):</span>
-            </div>
-            <div className="space-y-2">
-              {(docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [
-                {
-                  id: 'default',
-                  bankName: docData.bankName || 'BCA',
-                  accountNumber: docData.bankAccountNumber || '-',
-                  accountHolder: docData.bankAccountHolder || docData.companyName
-                }
-              ]).map((acc, i) => (
-                <div key={acc.id || i} className="bg-white p-2 rounded-lg border border-slate-200/80 text-xs">
-                  <div className="font-bold text-slate-900">{acc.bankName}</div>
-                  <div className="font-mono text-indigo-700 font-bold text-xs">{acc.accountNumber}</div>
-                  <div className="text-slate-500 text-[11px]">A/N: <strong>{acc.accountHolder}</strong></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-xs">
+          {/* Left Column: Client Info */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex flex-col justify-between">
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{isInvoice ? 'Ditagihkan Kepada (Bill To):' : 'Penawaran Untuk:'}</span>
+              </div>
+              <div className="font-bold text-slate-900 text-sm">{docData.clientName}</div>
+              {docData.clientCompany && (
+                <div className="font-semibold text-slate-700 text-xs mt-0.5">{docData.clientCompany}</div>
+              )}
+              {docData.clientAddress && (
+                <div className="text-slate-600 text-xs mt-1.5 leading-relaxed whitespace-pre-line">
+                  {docData.clientAddress}
                 </div>
-              ))}
+              )}
+            </div>
+            {(docData.clientPhone || docData.clientEmail) && (
+              <div className="text-slate-500 text-xs mt-3 pt-2 border-t border-slate-200/80 font-mono">
+                {[docData.clientPhone, docData.clientEmail].filter(Boolean).join(' • ')}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Bank Accounts */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex flex-col justify-between">
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Informasi Pembayaran (Transfer Bank):</span>
+              </div>
+              <div className="space-y-2">
+                {(docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [
+                  {
+                    id: 'default',
+                    bankName: docData.bankName || 'BCA',
+                    accountNumber: docData.bankAccountNumber || '-',
+                    accountHolder: docData.bankAccountHolder || docData.companyName
+                  }
+                ]).map((acc, i) => (
+                  <div key={acc.id || i} className="bg-white p-2.5 rounded-lg border border-slate-200/80 text-xs shadow-2xs">
+                    <div className="font-bold text-slate-900">{acc.bankName}</div>
+                    <div className="font-mono text-indigo-700 font-bold text-sm tracking-wide">{acc.accountNumber}</div>
+                    <div className="text-slate-500 text-[11px]">A/N: <strong className="text-slate-800">{acc.accountHolder}</strong></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-200/80 italic">
+              Harap transfer sesuai instruksi tagihan resmi.
             </div>
           </div>
         </div>
