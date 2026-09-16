@@ -245,7 +245,8 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     ];
   });
 
-    const [editingClient, setEditingClient] = useState<SavedClient | null>(null);
+  const [clientSaveSuccess, setClientSaveSuccess] = useState(false);
+  const [editingClient, setEditingClient] = useState<SavedClient | null>(null);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
 
