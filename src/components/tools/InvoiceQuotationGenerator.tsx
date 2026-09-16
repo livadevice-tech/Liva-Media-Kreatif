@@ -22,9 +22,13 @@ import {
   Receipt,
   FileCheck2,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Bookmark,
+  BookmarkPlus,
+  Save,
+  ChevronDown
 } from 'lucide-react';
-import { UserAccount, InvoiceDocumentData, InvoiceItem, InvoiceDocType, InvoiceDocStatus } from '../../types/app';
+import { UserAccount, InvoiceDocumentData, InvoiceItem, InvoiceDocType, InvoiceDocStatus, BankAccountItem, SavedClient } from '../../types/app';
 import { appApi } from '../../services/appApi';
 
 interface InvoiceQuotationGeneratorProps {
@@ -33,6 +37,7 @@ interface InvoiceQuotationGeneratorProps {
 }
 
 const STORAGE_KEY_INVOICE_SETTINGS = 'liva_invoice_company_settings';
+const STORAGE_KEY_SAVED_CLIENTS = 'liva_invoice_saved_clients';
 
 // Helper: Rupiah currency formatter
 export const formatRupiah = (val: number): string => {
@@ -110,7 +115,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
 
   // Load saved company settings (Kop, Bank, Signature)
   const [docData, setDocData] = useState<InvoiceDocumentData>(() => {
-    let saved: Partial<InvoiceDocumentData> = {};
+    let saved: any = {};
     try {
       const raw = localStorage.getItem(STORAGE_KEY_INVOICE_SETTINGS);
       if (raw) saved = JSON.parse(raw);
@@ -150,6 +155,17 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     const initialTax = 0;
     const initialTotal = initialSubtotal + initialTax;
 
+    const initialBankAccounts: BankAccountItem[] = saved.bankAccounts && Array.isArray(saved.bankAccounts) && saved.bankAccounts.length > 0
+      ? saved.bankAccounts
+      : [
+          {
+            id: '1',
+            bankName: saved.bankName || 'Bank Central Asia (BCA)',
+            accountNumber: saved.bankAccountNumber || '8905 1234 56',
+            accountHolder: saved.bankAccountHolder || 'PT LIVA MEDIA KREATIF',
+          }
+        ];
+
     return {
       type: 'invoice',
       status: 'sent',
@@ -183,10 +199,11 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       total: initialTotal,
       terbilang: angkaKeTerbilang(initialTotal),
 
-      // Bank info
-      bankName: saved.bankName || 'Bank Central Asia (BCA)',
-      bankAccountNumber: saved.bankAccountNumber || '8905 1234 56',
-      bankAccountHolder: saved.bankAccountHolder || 'PT LIVA MEDIA KREATIF',
+      // Bank info (Multiple Rekening)
+      bankAccounts: initialBankAccounts,
+      bankName: initialBankAccounts[0]?.bankName || 'Bank Central Asia (BCA)',
+      bankAccountNumber: initialBankAccounts[0]?.accountNumber || '8905 1234 56',
+      bankAccountHolder: initialBankAccounts[0]?.accountHolder || 'PT LIVA MEDIA KREATIF',
       paymentTermsNotes: saved.paymentTermsNotes || '1. Pembayaran dilakukan via transfer bank sesuai rekening di atas.\n2. Pembayaran tahap 1 (DP 50%) dilakukan saat penandatanganan kesepakatan kerja.\n3. Harap konfirmasi bukti transfer via WhatsApp ke +62 821-7788-9900.',
 
       // Signer info
@@ -196,8 +213,97 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       signatureUrl: saved.signatureUrl || '',
       signatureScale: saved.signatureScale || 100,
       includeStamp: saved.includeStamp !== undefined ? saved.includeStamp : true,
+      hideClientSignature: saved.hideClientSignature !== undefined ? saved.hideClientSignature : true, // Default true: ttd klien dihilangkan
     };
   });
+
+  // Saved clients list (Database Kontak Klien Tersimpan)
+  const [savedClients, setSavedClients] = useState<SavedClient[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_SAVED_CLIENTS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [
+      {
+        id: '1',
+        clientName: 'PT Nusantara Digital Bersama',
+        clientCompany: 'Brand Beauty Care Official',
+        clientAddress: 'Jl. Sudirman Tower Lt. 12, Jakarta Selatan',
+        clientEmail: 'procurement@nusantaradigital.id',
+        clientPhone: '+62 812-3456-7890',
+        createdAt: '2026-09-01'
+      }
+    ];
+  });
+
+  const [clientSaveSuccess, setClientSaveSuccess] = useState(false);
+
+  // Save client data to saved list
+  const handleSaveCurrentClient = () => {
+    if (!docData.clientName.trim()) {
+      alert('Nama klien tidak boleh kosong');
+      return;
+    }
+
+    const existingIdx = savedClients.findIndex(c => 
+      c.clientName.trim().toLowerCase() === docData.clientName.trim().toLowerCase() ||
+      (docData.clientCompany && c.clientCompany?.trim().toLowerCase() === docData.clientCompany.trim().toLowerCase())
+    );
+
+    const newClient: SavedClient = {
+      id: existingIdx >= 0 ? savedClients[existingIdx].id : Date.now().toString(),
+      clientName: docData.clientName.trim(),
+      clientCompany: docData.clientCompany?.trim() || '',
+      clientAddress: docData.clientAddress?.trim() || '',
+      clientEmail: docData.clientEmail?.trim() || '',
+      clientPhone: docData.clientPhone?.trim() || '',
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+
+    let updatedList: SavedClient[];
+    if (existingIdx >= 0) {
+      updatedList = [...savedClients];
+      updatedList[existingIdx] = newClient;
+    } else {
+      updatedList = [newClient, ...savedClients];
+    }
+
+    setSavedClients(updatedList);
+    try {
+      localStorage.setItem(STORAGE_KEY_SAVED_CLIENTS, JSON.stringify(updatedList));
+      setClientSaveSuccess(true);
+      setTimeout(() => setClientSaveSuccess(false), 2500);
+    } catch (e) {
+      console.warn('Gagal menyimpan daftar klien:', e);
+    }
+  };
+
+  // Select a saved client
+  const handleSelectSavedClient = (client: SavedClient) => {
+    setDocData(prev => ({
+      ...prev,
+      clientName: client.clientName,
+      clientCompany: client.clientCompany || '',
+      clientAddress: client.clientAddress || '',
+      clientEmail: client.clientEmail || '',
+      clientPhone: client.clientPhone || '',
+    }));
+  };
+
+  // Delete a saved client
+  const handleDeleteSavedClient = (clientId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Hapus klien ini dari daftar tersimpan?')) {
+      const updated = savedClients.filter(c => c.id !== clientId);
+      setSavedClients(updated);
+      try {
+        localStorage.setItem(STORAGE_KEY_SAVED_CLIENTS, JSON.stringify(updated));
+      } catch {}
+    }
+  };
 
   // Calculate Subtotal & Total whenever items, discount, tax, or shipping changes
   useEffect(() => {
@@ -215,7 +321,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     }));
   }, [docData.items, docData.discountRate, docData.taxRate, docData.shippingFee]);
 
-  // Auto-save persistent company profile & bank info
+  // Auto-save persistent company profile, bank accounts & signature
   useEffect(() => {
     try {
       const toSave = {
@@ -227,9 +333,10 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
         companyEmail: docData.companyEmail,
         companyPhone: docData.companyPhone,
         companyWebsite: docData.companyWebsite,
-        bankName: docData.bankName,
-        bankAccountNumber: docData.bankAccountNumber,
-        bankAccountHolder: docData.bankAccountHolder,
+        bankAccounts: docData.bankAccounts,
+        bankName: docData.bankAccounts[0]?.bankName || docData.bankName,
+        bankAccountNumber: docData.bankAccounts[0]?.accountNumber || docData.bankAccountNumber,
+        bankAccountHolder: docData.bankAccounts[0]?.accountHolder || docData.bankAccountHolder,
         paymentTermsNotes: docData.paymentTermsNotes,
         signerCity: docData.signerCity,
         signerName: docData.signerName,
@@ -237,6 +344,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
         signatureUrl: docData.signatureUrl,
         signatureScale: docData.signatureScale,
         includeStamp: docData.includeStamp,
+        hideClientSignature: docData.hideClientSignature,
       };
       localStorage.setItem(STORAGE_KEY_INVOICE_SETTINGS, JSON.stringify(toSave));
     } catch (e) {
@@ -251,6 +359,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     docData.companyEmail,
     docData.companyPhone,
     docData.companyWebsite,
+    docData.bankAccounts,
     docData.bankName,
     docData.bankAccountNumber,
     docData.bankAccountHolder,
@@ -261,6 +370,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     docData.signatureUrl,
     docData.signatureScale,
     docData.includeStamp,
+    docData.hideClientSignature,
   ]);
 
   // Modal Share Link State
@@ -281,6 +391,38 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       ...prev,
       type: newType,
       documentNumber: newDocNum,
+    }));
+  };
+
+  // Bank Account Management (Tambah, Edit, Hapus Rekening)
+  const handleAddBankAccount = () => {
+    const newAcc: BankAccountItem = {
+      id: Date.now().toString(),
+      bankName: 'Bank Central Asia (BCA)',
+      accountNumber: '',
+      accountHolder: docData.companyName || 'PT LIVA MEDIA KREATIF',
+    };
+    setDocData(prev => ({
+      ...prev,
+      bankAccounts: [...prev.bankAccounts, newAcc]
+    }));
+  };
+
+  const handleUpdateBankAccount = (id: string, field: keyof BankAccountItem, value: string) => {
+    setDocData(prev => ({
+      ...prev,
+      bankAccounts: prev.bankAccounts.map(acc => acc.id === id ? { ...acc, [field]: value } : acc)
+    }));
+  };
+
+  const handleRemoveBankAccount = (id: string) => {
+    if (docData.bankAccounts.length <= 1) {
+      alert('Minimal harus ada 1 nomor rekening');
+      return;
+    }
+    setDocData(prev => ({
+      ...prev,
+      bankAccounts: prev.bankAccounts.filter(acc => acc.id !== id)
     }));
   };
 
@@ -696,7 +838,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
               </tr>
             </table>
 
-            <!-- Client & Reference -->
+            <!-- Client & Bank Account Information -->
             <table class="parties-table">
               <tr>
                 <td>
@@ -707,19 +849,21 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                   <div class="client-sub">${docData.clientPhone} • ${docData.clientEmail}</div>
                 </td>
                 <td>
-                  <div class="box-heading">Status & Ketentuan:</div>
-                  <div class="client-sub">
-                    <strong>Status Dokumen:</strong> 
-                    <span style="text-transform: uppercase; font-weight: bold; color: ${docData.status === 'paid' ? '#16a34a' : '#4f46e5'}">
-                      ${docData.status}
-                    </span>
-                  </div>
-                  <div class="client-sub" style="margin-top: 4px;">
-                    <strong>Mata Uang:</strong> ${docData.currency} (Rupiah Indonesia)
-                  </div>
-                  <div class="client-sub" style="margin-top: 4px;">
-                    <strong>Diterbitkan Oleh:</strong> ${docData.brandName} Specialist Team
-                  </div>
+                  <div class="box-heading">Informasi Pembayaran (Transfer Bank):</div>
+                  ${(docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [{
+                    id: '1',
+                    bankName: docData.bankName || 'Bank Central Asia (BCA)',
+                    accountNumber: docData.bankAccountNumber || '8905 1234 56',
+                    accountHolder: docData.bankAccountHolder || 'PT LIVA MEDIA KREATIF',
+                  }]).map((acc, i) => `
+                    <div style="${i > 0 ? 'margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e1;' : ''}">
+                      <div style="font-weight: 700; color: #0f172a; font-size: 11px;">${acc.bankName}</div>
+                      <div class="client-sub" style="margin-top: 1px;">
+                        No. Rek: <span style="font-family: monospace; font-weight: 700; color: #4f46e5; font-size: 11.5px;">${acc.accountNumber}</span>
+                      </div>
+                      <div class="client-sub" style="font-size: 10px;">A/N: <strong>${acc.accountHolder}</strong></div>
+                    </div>
+                  `).join('')}
                 </td>
               </tr>
             </table>
@@ -751,22 +895,25 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
               </tbody>
             </table>
 
-            <!-- Calculation & Payment Info -->
+            <!-- Calculation & Payment Notes -->
             <table class="summary-table">
               <tr>
                 <td class="payment-box">
                   <div class="bank-card">
-                    <div class="bank-title">Informasi Pembayaran:</div>
-                    <strong>Bank:</strong> ${docData.bankName}<br/>
-                    <strong>No. Rekening:</strong> <span style="font-family: monospace; font-weight: bold; font-size: 11px;">${docData.bankAccountNumber}</span><br/>
-                    <strong>Atas Nama:</strong> ${docData.bankAccountHolder}
-                    
+                    <div class="bank-title">Catatan & Syarat Ketentuan:</div>
                     ${docData.paymentTermsNotes ? `
-                      <div style="margin-top: 8px; font-size: 9.5px; color: #64748b; white-space: pre-line;">
-                        <strong>Catatan Syarat & Ketentuan:</strong><br/>
+                      <div style="font-size: 10px; color: #475569; white-space: pre-line; line-height: 1.5;">
                         ${docData.paymentTermsNotes}
                       </div>
-                    ` : ''}
+                    ` : `
+                      <div style="font-size: 10px; color: #64748b;">
+                        1. Pembayaran dilakukan via transfer bank sesuai rekening resmi di atas.<br/>
+                        2. Harap konfirmasi bukti transfer setelah melakukan pembayaran.
+                      </div>
+                    `}
+                    <div style="margin-top: 8px; font-size: 9.5px; color: #64748b; border-top: 1px dashed #cbd5e1; pt-1;">
+                      Status: <strong style="text-transform: uppercase; color: ${docData.status === 'paid' ? '#16a34a' : '#4f46e5'}">${docData.status}</strong> • Mata Uang: <strong>${docData.currency}</strong>
+                    </div>
                   </div>
                 </td>
                 <td class="calc-box">
@@ -809,12 +956,18 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
             <table class="signature-table">
               <tr>
                 <td>
-                  <div style="font-size: 10px; color: #64748b; margin-bottom: 60px;">
-                    Diterima & Disetujui Oleh,<br/>
-                    <strong>${docData.clientCompany || docData.clientName}</strong>
-                  </div>
-                  <div style="border-bottom: 1px solid #94a3b8; width: 160px; margin-bottom: 4px;"></div>
-                  <div style="font-size: 11px; font-weight: 700;">( .................................................. )</div>
+                  ${!docData.hideClientSignature ? `
+                    <div style="font-size: 10px; color: #64748b; margin-bottom: 60px;">
+                      Diterima & Disetujui Oleh,<br/>
+                      <strong>${docData.clientCompany || docData.clientName}</strong>
+                    </div>
+                    <div style="border-bottom: 1px solid #94a3b8; width: 160px; margin-bottom: 4px;"></div>
+                    <div style="font-size: 11px; font-weight: 700;">( .................................................. )</div>
+                  ` : `
+                    <div style="font-size: 10px; color: #64748b;">
+                      Terima kasih atas kerjasama dan kepercayaan Anda kepada <strong>${docData.brandName || 'Liva'}</strong>.
+                    </div>
+                  `}
                 </td>
                 <td style="text-align: right;">
                   <div style="font-size: 10.5px; color: #475569; margin-bottom: 4px;">
@@ -1050,12 +1203,84 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
 
             {/* CARD 2: DATA KLIEN / PENERIMA */}
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                <User className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-sm font-bold text-slate-900">
-                  Data Klien ({docData.type === 'invoice' ? 'Bill To' : 'Quotation For'})
-                </h3>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-indigo-600" />
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Data Klien ({docData.type === 'invoice' ? 'Bill To' : 'Quotation For'})
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveCurrentClient}
+                  className={`px-3 py-1 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                    clientSaveSuccess
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'
+                  }`}
+                  title="Simpan data klien ini agar bisa dipakai kembali di masa depan"
+                >
+                  {clientSaveSuccess ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Tersimpan!</span>
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkPlus className="w-3.5 h-3.5" />
+                      <span>Simpan Klien</span>
+                    </>
+                  )}
+                </button>
               </div>
+
+              {/* Saved Clients Quick Selector */}
+              {savedClients.length > 0 && (
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                      <Bookmark className="w-3 h-3 text-indigo-500" />
+                      Pilih dari Klien Tersimpan:
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {savedClients.length} Klien
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                    {savedClients.map(c => {
+                      const isSelected = docData.clientName.trim().toLowerCase() === c.clientName.trim().toLowerCase();
+                      return (
+                        <div
+                          key={c.id}
+                          className={`group inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50'
+                          }`}
+                          onClick={() => handleSelectSavedClient(c)}
+                        >
+                          <span className="truncate max-w-[140px] font-semibold">{c.clientName}</span>
+                          {c.clientCompany && (
+                            <span className={`text-[10px] opacity-75 truncate max-w-[90px]`}>
+                              • {c.clientCompany}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSavedClient(c.id, e)}
+                            className={`p-0.5 rounded hover:bg-rose-500 hover:text-white transition-colors cursor-pointer ${
+                              isSelected ? 'text-indigo-200' : 'text-slate-400 opacity-0 group-hover:opacity-100'
+                            }`}
+                            title="Hapus klien tersimpan ini"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div>
@@ -1258,55 +1483,91 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
 
             {/* CARD 4: REKENING BANK & SYARAT PEMBAYARAN */}
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                <CreditCard className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-sm font-bold text-slate-900">Rekening Bank & Catatan</h3>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-indigo-600" />
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Informasi Pembayaran ({docData.bankAccounts.length} Rekening)
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddBankAccount}
+                  className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah Rekening</span>
+                </button>
               </div>
 
+              {/* Dynamic Bank Accounts List */}
               <div className="space-y-3">
+                {docData.bankAccounts.map((acc, index) => (
+                  <div
+                    key={acc.id}
+                    className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-2.5 hover:border-indigo-200 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                        Rekening #{index + 1}
+                      </span>
+                      {docData.bankAccounts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBankAccount(acc.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Hapus rekening ini"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 mb-0.5 block">
+                        Nama Bank
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Bank Central Asia (BCA) / Mandiri"
+                        value={acc.bankName}
+                        onChange={e => handleUpdateBankAccount(acc.id, 'bankName', e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:border-indigo-500 outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 mb-0.5 block">
+                          Nomor Rekening
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="8905 1234 56"
+                          value={acc.accountNumber}
+                          onChange={e => handleUpdateBankAccount(acc.id, 'accountNumber', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-slate-900 focus:border-indigo-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 mb-0.5 block">
+                          Atas Nama (A/N)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="PT LIVA MEDIA KREATIF"
+                          value={acc.accountHolder}
+                          onChange={e => handleUpdateBankAccount(acc.id, 'accountHolder', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:border-indigo-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 mb-1 block">
-                    Nama Bank
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Bank Central Asia (BCA)"
-                    value={docData.bankName}
-                    onChange={e => setDocData(prev => ({ ...prev, bankName: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-indigo-500 outline-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">
-                      Nomor Rekening
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="8905 1234 56"
-                      value={docData.bankAccountNumber}
-                      onChange={e => setDocData(prev => ({ ...prev, bankAccountNumber: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-semibold focus:bg-white focus:border-indigo-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">
-                      Atas Nama (A/N)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="PT LIVA MEDIA KREATIF"
-                      value={docData.bankAccountHolder}
-                      onChange={e => setDocData(prev => ({ ...prev, bankAccountHolder: e.target.value }))}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:bg-white focus:border-indigo-500 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">
-                    Syarat & Ketentuan (Terms & Notes)
+                    Syarat & Ketentuan Pembayaran (Terms & Notes)
                   </label>
                   <textarea
                     rows={3}
@@ -1368,10 +1629,57 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                      Alamat Kantor Perusahaan
+                    </label>
+                    <input
+                      type="text"
+                      value={docData.companyAddress}
+                      onChange={e => setDocData(prev => ({ ...prev, companyAddress: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                      Email Perusahaan
+                    </label>
+                    <input
+                      type="email"
+                      value={docData.companyEmail}
+                      onChange={e => setDocData(prev => ({ ...prev, companyEmail: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                      No. Telp / WhatsApp Kantor
+                    </label>
+                    <input
+                      type="text"
+                      value={docData.companyPhone}
+                      onChange={e => setDocData(prev => ({ ...prev, companyPhone: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                      Website / Link Perusahaan
+                    </label>
+                    <input
+                      type="text"
+                      value={docData.companyWebsite}
+                      onChange={e => setDocData(prev => ({ ...prev, companyWebsite: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                </div>
+
                 {/* Upload Logo Kop */}
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 mb-1 block">
-                    Logo Kop Surat (Opsional)
+                    Logo Kop Surat (Tersimpan Permanen)
                   </label>
                   <input
                     type="file"
@@ -1480,18 +1788,36 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                   )}
                 </div>
 
-                {/* Toggle Stempel Resmi */}
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">Tampilkan Stempel Resmi</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={docData.includeStamp}
-                      onChange={e => setDocData(prev => ({ ...prev, includeStamp: e.target.checked }))}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                  </label>
+                {/* Toggles */}
+                <div className="pt-2 space-y-2.5 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-700 block">Hilangkan TTD Klien</span>
+                      <span className="text-[10px] text-slate-400">Hanya menampilkan tanda tangan penerbit / perusahaan</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={docData.hideClientSignature ?? true}
+                        onChange={e => setDocData(prev => ({ ...prev, hideClientSignature: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-700">Tampilkan Stempel Resmi</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={docData.includeStamp}
+                        onChange={e => setDocData(prev => ({ ...prev, includeStamp: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1545,8 +1871,8 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                   </div>
                 </div>
 
-                {/* Parties info */}
-                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200/80 mb-4 text-[10.5px]">
+                {/* Parties info & Bank Accounts */}
+                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 mb-4 text-[10.5px]">
                   <div>
                     <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                       {docData.type === 'invoice' ? 'Ditagihkan Kepada (Bill To):' : 'Penawaran Untuk:'}
@@ -1557,13 +1883,18 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                     <div className="text-slate-500 text-[10px]">{docData.clientPhone} • {docData.clientEmail}</div>
                   </div>
                   <div>
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      Keterangan Dokumen:
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <CreditCard className="w-3 h-3 text-indigo-600" />
+                      <span>Informasi Pembayaran (Transfer Bank):</span>
                     </div>
-                    <div>Status: <span className="font-bold uppercase text-indigo-600">{docData.status}</span></div>
-                    <div>Mata Uang: <strong>{docData.currency}</strong></div>
-                    <div className="text-slate-500 text-[10px] mt-1">
-                      Diterbitkan oleh tim resmi {docData.brandName}.
+                    <div className="space-y-1.5">
+                      {docData.bankAccounts.map((acc, i) => (
+                        <div key={acc.id || i} className="bg-white p-1.5 rounded-lg border border-slate-200/80 text-[10px] leading-tight">
+                          <div className="font-bold text-slate-900">{acc.bankName}</div>
+                          <div className="font-mono text-indigo-700 font-bold">{acc.accountNumber}</div>
+                          <div className="text-slate-500 text-[9.5px]">A/N: <strong>{acc.accountHolder}</strong></div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -1596,19 +1927,20 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                   </table>
                 </div>
 
-                {/* Calculations & Bank Info */}
+                {/* Calculations & Payment Terms */}
                 <div className="grid grid-cols-12 gap-4 mb-4">
                   <div className="col-span-7">
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-[10px] leading-relaxed">
-                      <div className="font-bold text-slate-900 mb-0.5">Informasi Pembayaran:</div>
-                      <div>Bank: <strong>{docData.bankName}</strong></div>
-                      <div>No. Rek: <strong className="font-mono">{docData.bankAccountNumber}</strong></div>
-                      <div>A/N: <strong>{docData.bankAccountHolder}</strong></div>
-                      {docData.paymentTermsNotes && (
-                        <div className="text-[9px] text-slate-500 mt-1.5 pt-1 border-t border-slate-200/60 whitespace-pre-line">
-                          {docData.paymentTermsNotes}
-                        </div>
-                      )}
+                      <div className="font-bold text-slate-900 mb-1 flex items-center gap-1">
+                        <FileCheck2 className="w-3 h-3 text-indigo-600" />
+                        <span>Catatan & Ketentuan:</span>
+                      </div>
+                      <div className="text-[9.5px] text-slate-600 whitespace-pre-line">
+                        {docData.paymentTermsNotes || 'Pembayaran dilakukan sesuai instruksi transfer pada rekening di atas.'}
+                      </div>
+                      <div className="mt-2 pt-1 border-t border-slate-200/60 text-[9px] text-slate-500">
+                        Status: <span className="font-bold uppercase text-indigo-600">{docData.status}</span> • Mata Uang: <strong>{docData.currency}</strong>
+                      </div>
                     </div>
                   </div>
 
@@ -1641,13 +1973,19 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
 
                 {/* Signatures */}
                 <div className="flex items-end justify-between pt-4 border-t border-slate-200 mt-4 text-[10px]">
-                  <div>
-                    <div className="text-slate-400 mb-10">Penerima / Klien:</div>
-                    <div className="font-bold text-slate-900">( ........................................ )</div>
-                    <div className="text-slate-400 text-[9px]">{docData.clientCompany || docData.clientName}</div>
-                  </div>
+                  {!docData.hideClientSignature ? (
+                    <div>
+                      <div className="text-slate-400 mb-10">Penerima / Klien:</div>
+                      <div className="font-bold text-slate-900">( ........................................ )</div>
+                      <div className="text-slate-400 text-[9px]">{docData.clientCompany || docData.clientName}</div>
+                    </div>
+                  ) : (
+                    <div className="max-w-[240px] text-slate-400 text-[9.5px] leading-relaxed pb-1">
+                      Terima kasih atas kerjasama dan kepercayaan Anda kepada <strong className="text-slate-700">{docData.brandName}</strong>. Dokumen ini sah dan diterbitkan secara digital.
+                    </div>
+                  )}
 
-                  <div className="text-right">
+                  <div className="text-right ml-auto">
                     <div className="text-slate-500 mb-1">
                       {docData.signerCity}, {formatIndonesianDate(docData.date)}
                     </div>

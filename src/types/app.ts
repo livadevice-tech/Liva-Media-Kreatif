@@ -221,6 +221,23 @@ export interface InvoiceItem {
   amount: number;
 }
 
+export interface BankAccountItem {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+}
+
+export interface SavedClient {
+  id: string;
+  clientName: string;
+  clientCompany?: string;
+  clientAddress?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  createdAt?: string;
+}
+
 export interface InvoiceDocumentData {
   type: InvoiceDocType;
   status: InvoiceDocStatus;
@@ -255,10 +272,12 @@ export interface InvoiceDocumentData {
   total: number;
   terbilang?: string;
 
-  // Rekening Bank
-  bankName: string;
-  bankAccountNumber: string;
-  bankAccountHolder: string;
+  // Rekening Bank (Bisa multiple rekening)
+  bankAccounts: BankAccountItem[];
+  // Legacy / fallback single bank fields
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountHolder?: string;
   paymentTermsNotes: string;
 
   // Penandatangan / Pengesahan
@@ -268,5 +287,6 @@ export interface InvoiceDocumentData {
   signatureUrl?: string;
   signatureScale: number;
   includeStamp: boolean;
+  hideClientSignature?: boolean; // TTD klien dihilangkan
 }
 

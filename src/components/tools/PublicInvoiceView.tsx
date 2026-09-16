@@ -356,7 +356,7 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
               </tr>
             </table>
 
-            <!-- Client & Reference -->
+            <!-- Client & Bank Accounts -->
             <table class="parties-table">
               <tr>
                 <td>
@@ -367,18 +367,22 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
                   <div class="client-sub">${docData.clientPhone} • ${docData.clientEmail}</div>
                 </td>
                 <td>
-                  <div class="box-heading">Status & Ketentuan:</div>
-                  <div class="client-sub">
-                    <strong>Status Dokumen:</strong> 
-                    <span style="text-transform: uppercase; font-weight: bold; color: ${docData.status === 'paid' ? '#16a34a' : '#4f46e5'}">
-                      ${docData.status}
-                    </span>
-                  </div>
-                  <div class="client-sub" style="margin-top: 4px;">
-                    <strong>Mata Uang:</strong> ${docData.currency} (Rupiah Indonesia)
-                  </div>
-                  <div class="client-sub" style="margin-top: 4px;">
-                    <strong>Diterbitkan Oleh:</strong> ${docData.brandName} Specialist Team
+                  <div class="box-heading">Informasi Pembayaran (Transfer Bank):</div>
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    ${(docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [
+                      {
+                        id: 'default',
+                        bankName: docData.bankName || 'BCA',
+                        accountNumber: docData.bankAccountNumber || '-',
+                        accountHolder: docData.bankAccountHolder || docData.companyName
+                      }
+                    ]).map(acc => `
+                      <div style="background: #ffffff; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 10px; line-height: 1.4;">
+                        <div style="font-weight: 700; color: #0f172a;">${acc.bankName}</div>
+                        <div style="font-family: monospace; font-size: 11px; font-weight: 700; color: #4f46e5;">${acc.accountNumber}</div>
+                        <div style="color: #64748b; font-size: 9.5px;">A/N: <strong>${acc.accountHolder}</strong></div>
+                      </div>
+                    `).join('')}
                   </div>
                 </td>
               </tr>
@@ -411,22 +415,18 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
               </tbody>
             </table>
 
-            <!-- Calculation & Payment Info -->
+            <!-- Calculation & Payment Notes -->
             <table class="summary-table">
               <tr>
                 <td class="payment-box">
                   <div class="bank-card">
-                    <div class="bank-title">Informasi Pembayaran:</div>
-                    <strong>Bank:</strong> ${docData.bankName}<br/>
-                    <strong>No. Rekening:</strong> <span style="font-family: monospace; font-weight: bold; font-size: 11px;">${docData.bankAccountNumber}</span><br/>
-                    <strong>Atas Nama:</strong> ${docData.bankAccountHolder}
-                    
-                    ${docData.paymentTermsNotes ? `
-                      <div style="margin-top: 8px; font-size: 9.5px; color: #64748b; white-space: pre-line;">
-                        <strong>Catatan Syarat & Ketentuan:</strong><br/>
-                        ${docData.paymentTermsNotes}
-                      </div>
-                    ` : ''}
+                    <div class="bank-title">Catatan & Ketentuan:</div>
+                    <div style="font-size: 10px; color: #475569; white-space: pre-line;">
+                      ${docData.paymentTermsNotes || 'Pembayaran dilakukan sesuai instruksi transfer pada rekening di atas.'}
+                    </div>
+                    <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 9.5px; color: #64748b;">
+                      <strong>Status:</strong> <span style="text-transform: uppercase; font-weight: bold; color: ${docData.status === 'paid' ? '#16a34a' : '#4f46e5'}">${docData.status}</span> • <strong>Mata Uang:</strong> ${docData.currency}
+                    </div>
                   </div>
                 </td>
                 <td class="calc-box">
@@ -463,12 +463,18 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
             <table class="signature-table">
               <tr>
                 <td>
-                  <div style="font-size: 10px; color: #64748b; margin-bottom: 60px;">
-                    Diterima & Disetujui Oleh,<br/>
-                    <strong>${docData.clientCompany || docData.clientName}</strong>
-                  </div>
-                  <div style="border-bottom: 1px solid #94a3b8; width: 160px; margin-bottom: 4px;"></div>
-                  <div style="font-size: 11px; font-weight: 700;">( .................................................. )</div>
+                  ${!docData.hideClientSignature ? `
+                    <div style="font-size: 10px; color: #64748b; margin-bottom: 60px;">
+                      Diterima & Disetujui Oleh,<br/>
+                      <strong>${docData.clientCompany || docData.clientName}</strong>
+                    </div>
+                    <div style="border-bottom: 1px solid #94a3b8; width: 160px; margin-bottom: 4px;"></div>
+                    <div style="font-size: 11px; font-weight: 700;">( .................................................. )</div>
+                  ` : `
+                    <div style="font-size: 10px; color: #94a3b8; line-height: 1.5; max-width: 260px;">
+                      Terima kasih atas kerjasama dan kepercayaan Anda kepada <strong>${docData.brandName}</strong>. Dokumen ini sah dan diterbitkan secara digital.
+                    </div>
+                  `}
                 </td>
                 <td style="text-align: right;">
                   <div style="font-size: 10.5px; color: #475569; margin-bottom: 4px;">
@@ -639,13 +645,25 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
             <div className="text-slate-600 text-xs">{docData.clientPhone} • {docData.clientEmail}</div>
           </div>
           <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-              Status & Informasi:
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Informasi Pembayaran (Transfer Bank):</span>
             </div>
-            <div>Status Dokumen: <span className="font-bold uppercase text-indigo-600">{docData.status}</span></div>
-            <div>Mata Uang: <strong>{docData.currency} (Rupiah)</strong></div>
-            <div className="text-slate-500 text-xs mt-1">
-              Dokumen resmi diterbitkan untuk keperluan administrasi dan pencatatan transaksi.
+            <div className="space-y-2">
+              {(docData.bankAccounts && docData.bankAccounts.length > 0 ? docData.bankAccounts : [
+                {
+                  id: 'default',
+                  bankName: docData.bankName || 'BCA',
+                  accountNumber: docData.bankAccountNumber || '-',
+                  accountHolder: docData.bankAccountHolder || docData.companyName
+                }
+              ]).map((acc, i) => (
+                <div key={acc.id || i} className="bg-white p-2 rounded-lg border border-slate-200/80 text-xs">
+                  <div className="font-bold text-slate-900">{acc.bankName}</div>
+                  <div className="font-mono text-indigo-700 font-bold text-xs">{acc.accountNumber}</div>
+                  <div className="text-slate-500 text-[11px]">A/N: <strong>{acc.accountHolder}</strong></div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -683,17 +701,15 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
           <div className="sm:col-span-7">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs leading-relaxed">
               <div className="font-bold text-slate-900 mb-1 flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-indigo-600" />
-                <span>Instruksi Pembayaran Transfer:</span>
+                <FileCheck2 className="w-4 h-4 text-indigo-600" />
+                <span>Catatan & Ketentuan:</span>
               </div>
-              <div>Bank: <strong>{docData.bankName}</strong></div>
-              <div>No. Rekening: <strong className="font-mono text-indigo-600">{docData.bankAccountNumber}</strong></div>
-              <div>Atas Nama: <strong>{docData.bankAccountHolder}</strong></div>
-              {docData.paymentTermsNotes && (
-                <div className="text-[11px] text-slate-600 mt-2 pt-2 border-t border-slate-200 whitespace-pre-line">
-                  {docData.paymentTermsNotes}
-                </div>
-              )}
+              <div className="text-slate-600 whitespace-pre-line mt-1">
+                {docData.paymentTermsNotes || 'Pembayaran dilakukan sesuai instruksi transfer pada rekening di atas.'}
+              </div>
+              <div className="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500">
+                Status: <span className="font-bold uppercase text-indigo-600">{docData.status}</span> • Mata Uang: <strong>{docData.currency}</strong>
+              </div>
             </div>
           </div>
 
@@ -726,13 +742,19 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
 
         {/* Signatures */}
         <div className="flex items-end justify-between pt-6 border-t border-slate-200 text-xs">
-          <div>
-            <div className="text-slate-400 mb-12">Disetujui & Diterima Oleh:</div>
-            <div className="font-bold text-slate-900">( ........................................ )</div>
-            <div className="text-slate-500 text-[10px]">{docData.clientCompany || docData.clientName}</div>
-          </div>
+          {!docData.hideClientSignature ? (
+            <div>
+              <div className="text-slate-400 mb-12">Disetujui & Diterima Oleh:</div>
+              <div className="font-bold text-slate-900">( ........................................ )</div>
+              <div className="text-slate-500 text-[10px]">{docData.clientCompany || docData.clientName}</div>
+            </div>
+          ) : (
+            <div className="max-w-sm text-slate-400 text-xs leading-relaxed pb-2">
+              Terima kasih atas kepercayaan Anda kepada <strong className="text-slate-700">{docData.brandName}</strong>. Dokumen tagihan / penawaran ini diterbitkan secara sah dan digital.
+            </div>
+          )}
 
-          <div className="text-right">
+          <div className="text-right ml-auto">
             <div className="text-slate-500 mb-1">
               {docData.signerCity}, {formatIndonesianDate(docData.date)}
             </div>
