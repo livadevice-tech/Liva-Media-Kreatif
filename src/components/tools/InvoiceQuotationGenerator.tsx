@@ -197,6 +197,10 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       taxRate: 0, // PPN default 0% atau bisa diaktifkan ke 11% / 12%
       shippingFee: 0,
       total: initialTotal,
+      hasDp: false,
+      dpPercent: 50,
+      dpAmount: Math.round(initialTotal * 0.5),
+      remainingAmount: Math.round(initialTotal * 0.5),
       terbilang: angkaKeTerbilang(initialTotal),
 
       // Bank info (Multiple Rekening)
@@ -313,13 +317,27 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     const taxAmount = (afterDisc * (docData.taxRate || 0)) / 100;
     const grand = Math.round(afterDisc + taxAmount + (Number(docData.shippingFee) || 0));
 
-    setDocData(prev => ({
-      ...prev,
-      subtotal: sub,
-      total: grand,
-      terbilang: angkaKeTerbilang(grand),
-    }));
-  }, [docData.items, docData.discountRate, docData.taxRate, docData.shippingFee]);
+    setDocData(prev => {
+      let dp = prev.dpAmount;
+      if (prev.hasDp) {
+        if (prev.dpPercent && prev.dpPercent > 0) {
+          dp = Math.round((grand * prev.dpPercent) / 100);
+        } else if (dp === undefined || dp > grand) {
+          dp = Math.round(grand * 0.5);
+        }
+      }
+      const remain = prev.hasDp ? Math.max(0, grand - (dp || 0)) : 0;
+
+      return {
+        ...prev,
+        subtotal: sub,
+        total: grand,
+        dpAmount: dp,
+        remainingAmount: remain,
+        terbilang: angkaKeTerbilang(prev.hasDp && dp ? dp : grand),
+      };
+    });
+  }, [docData.items, docData.discountRate, docData.taxRate, docData.shippingFee, docData.hasDp, docData.dpPercent]);
 
   // Auto-save persistent company profile, bank accounts & signature
   useEffect(() => {
@@ -940,13 +958,24 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                     </div>
                   ` : ''}
                   <div class="calc-row total-row">
-                    <span>GRAND TOTAL:</span>
+                    <span>${docData.hasDp ? 'TOTAL PROJECT:' : 'GRAND TOTAL:'}</span>
                     <span>${formatRupiah(docData.total)}</span>
                   </div>
 
+                  ${docData.hasDp ? `
+                    <div class="calc-row" style="margin-top: 6px; padding-top: 6px; border-top: 1.5px dashed #4f46e5; color: #4f46e5; font-weight: 700; font-size: 13px;">
+                      <span>TAGIHAN DP (${docData.dpPercent || 50}%):</span>
+                      <span>${formatRupiah(docData.dpAmount || 0)}</span>
+                    </div>
+                    <div class="calc-row" style="color: #64748b; font-size: 10.5px;">
+                      <span>Sisa Pembayaran:</span>
+                      <span style="font-weight: 600;">${formatRupiah(docData.remainingAmount || 0)}</span>
+                    </div>
+                  ` : ''}
+
                   <div class="terbilang-box">
-                    <strong>Terbilang:</strong><br/>
-                    "${docData.terbilang || angkaKeTerbilang(docData.total)}"
+                    <strong>Terbilang ${docData.hasDp ? '(Uang Muka / DP)' : ''}:</strong><br/>
+                    "${docData.terbilang || angkaKeTerbilang(docData.hasDp ? (docData.dpAmount || 0) : docData.total)}"
                   </div>
                 </td>
               </tr>
@@ -1479,6 +1508,135 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                   </select>
                 </div>
               </div>
+
+              {/* Down Payment (DP) Option */}
+              <div className="pt-3 border-t border-slate-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Percent className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Pembayaran Uang Muka / DP</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Aktifkan jika tagihan berupa Down Payment (DP) bertahap
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={docData.hasDp || false}
+                      onChange={e => {
+                        const checked = e.target.checked;
+                        setDocData(prev => {
+                          const dpPct = prev.dpPercent || 50;
+                          const dpAmt = checked ? Math.round((prev.total * dpPct) / 100) : 0;
+                          return {
+                            ...prev,
+                            hasDp: checked,
+                            dpPercent: dpPct,
+                            dpAmount: dpAmt,
+                            remainingAmount: checked ? Math.max(0, prev.total - dpAmt) : 0,
+                            terbilang: angkaKeTerbilang(checked ? dpAmt : prev.total)
+                          };
+                        });
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {docData.hasDp && (
+                  <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 space-y-2.5">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-600 mb-1 block">
+                          Persentase DP (%)
+                        </label>
+                        <div className="flex items-center gap-1">
+                          {[30, 50, 70].map(pct => (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => {
+                                setDocData(prev => {
+                                  const dpAmt = Math.round((prev.total * pct) / 100);
+                                  return {
+                                    ...prev,
+                                    dpPercent: pct,
+                                    dpAmount: dpAmt,
+                                    remainingAmount: Math.max(0, prev.total - dpAmt),
+                                    terbilang: angkaKeTerbilang(dpAmt)
+                                  };
+                                });
+                              }}
+                              className={`px-2 py-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer ${
+                                docData.dpPercent === pct
+                                  ? 'bg-indigo-600 text-white border-indigo-600'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                              }`}
+                            >
+                              {pct}%
+                            </button>
+                          ))}
+                          <input
+                            type="number"
+                            min="1"
+                            max="99"
+                            value={docData.dpPercent || 50}
+                            onChange={e => {
+                              const pct = Math.min(99, Math.max(1, parseFloat(e.target.value) || 0));
+                              setDocData(prev => {
+                                const dpAmt = Math.round((prev.total * pct) / 100);
+                                return {
+                                  ...prev,
+                                  dpPercent: pct,
+                                  dpAmount: dpAmt,
+                                  remainingAmount: Math.max(0, prev.total - dpAmt),
+                                  terbilang: angkaKeTerbilang(dpAmt)
+                                };
+                              });
+                            }}
+                            className="w-14 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-center font-bold outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-600 mb-1 block">
+                          Nominal Tagihan DP (Rp)
+                        </label>
+                        <input
+                          type="number"
+                          step="1000"
+                          value={docData.dpAmount || 0}
+                          onChange={e => {
+                            const amt = Math.max(0, parseInt(e.target.value) || 0);
+                            setDocData(prev => {
+                              const pct = prev.total > 0 ? Math.round((amt / prev.total) * 100) : 0;
+                              return {
+                                ...prev,
+                                dpAmount: amt,
+                                dpPercent: pct,
+                                remainingAmount: Math.max(0, prev.total - amt),
+                                terbilang: angkaKeTerbilang(amt)
+                              };
+                            });
+                          }}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-indigo-700 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] pt-2 border-t border-indigo-100 text-slate-600">
+                      <span>Sisa Pembayaran (Tahap Berikutnya):</span>
+                      <span className="font-mono font-bold text-slate-900">
+                        {formatRupiah(docData.remainingAmount || 0)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* CARD 4: REKENING BANK & SYARAT PEMBAYARAN */}
@@ -1962,9 +2120,23 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                       </div>
                     )}
                     <div className="flex justify-between font-extrabold text-xs text-slate-900 pt-1.5 border-t-2 border-slate-900">
-                      <span>Total:</span>
+                      <span>{docData.hasDp ? 'Total Project:' : 'Total:'}</span>
                       <span className="font-mono text-indigo-600 text-sm">{formatRupiah(docData.total)}</span>
                     </div>
+
+                    {docData.hasDp && (
+                      <div className="pt-1.5 mt-1 border-t border-dashed border-indigo-300 space-y-1">
+                        <div className="flex justify-between font-bold text-xs text-indigo-700 bg-indigo-50/80 px-2 py-1 rounded-md border border-indigo-200">
+                          <span>Tagihan DP ({docData.dpPercent || 50}%):</span>
+                          <span className="font-mono">{formatRupiah(docData.dpAmount || 0)}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-slate-500 px-1">
+                          <span>Sisa Pembayaran:</span>
+                          <span className="font-mono font-semibold text-slate-700">{formatRupiah(docData.remainingAmount || 0)}</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="bg-slate-100 p-1.5 rounded text-[9px] italic text-slate-600 leading-tight">
                       "{docData.terbilang}"
                     </div>

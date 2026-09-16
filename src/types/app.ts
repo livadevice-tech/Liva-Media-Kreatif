@@ -270,6 +270,10 @@ export interface InvoiceDocumentData {
   taxRate: number; // PPN (%) misal 11% / 12% / 0%
   shippingFee: number;
   total: number;
+  hasDp?: boolean; // Opsi jika ada Down Payment (DP)
+  dpAmount?: number; // Jumlah nominal DP
+  dpPercent?: number; // Persentase DP (%) jika ada
+  remainingAmount?: number; // Sisa tagihan setelah DP
   terbilang?: string;
 
   // Rekening Bank (Bisa multiple rekening)

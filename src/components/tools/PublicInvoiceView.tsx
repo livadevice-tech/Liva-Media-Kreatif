@@ -447,13 +447,24 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
                     </div>
                   ` : ''}
                   <div class="calc-row total-row">
-                    <span>GRAND TOTAL:</span>
+                    <span>${docData.hasDp ? 'TOTAL PROJECT:' : 'GRAND TOTAL:'}</span>
                     <span>${formatRupiah(docData.total)}</span>
                   </div>
 
+                  ${docData.hasDp ? `
+                    <div class="calc-row" style="margin-top: 6px; padding-top: 6px; border-top: 1.5px dashed #4f46e5; color: #4f46e5; font-weight: 700; font-size: 13px;">
+                      <span>TAGIHAN DP (${docData.dpPercent || 50}%):</span>
+                      <span>${formatRupiah(docData.dpAmount || 0)}</span>
+                    </div>
+                    <div class="calc-row" style="color: #64748b; font-size: 10.5px;">
+                      <span>Sisa Pembayaran:</span>
+                      <span style="font-weight: 600;">${formatRupiah(docData.remainingAmount || 0)}</span>
+                    </div>
+                  ` : ''}
+
                   <div class="terbilang-box">
-                    <strong>Terbilang:</strong><br/>
-                    "${docData.terbilang || angkaKeTerbilang(docData.total)}"
+                    <strong>Terbilang ${docData.hasDp ? '(Uang Muka / DP)' : ''}:</strong><br/>
+                    "${docData.terbilang || angkaKeTerbilang(docData.hasDp ? (docData.dpAmount || 0) : docData.total)}"
                   </div>
                 </td>
               </tr>
@@ -731,11 +742,25 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ token }) =
               </div>
             )}
             <div className="flex justify-between font-black text-sm text-slate-900 pt-2 border-t-2 border-slate-900">
-              <span>TOTAL:</span>
+              <span>{docData.hasDp ? 'TOTAL PROJECT:' : 'TOTAL:'}</span>
               <span className="font-mono text-indigo-600 text-base">{formatRupiah(docData.total)}</span>
             </div>
+
+            {docData.hasDp && (
+              <div className="pt-2 mt-1 border-t border-dashed border-indigo-300 space-y-1">
+                <div className="flex justify-between font-bold text-xs text-indigo-700 bg-indigo-50/80 px-2.5 py-1.5 rounded-lg border border-indigo-200">
+                  <span>TAGIHAN DP ({docData.dpPercent || 50}%):</span>
+                  <span className="font-mono text-sm">{formatRupiah(docData.dpAmount || 0)}</span>
+                </div>
+                <div className="flex justify-between text-[11px] text-slate-500 px-1">
+                  <span>Sisa Pembayaran:</span>
+                  <span className="font-mono font-semibold text-slate-800">{formatRupiah(docData.remainingAmount || 0)}</span>
+                </div>
+              </div>
+            )}
+
             <div className="bg-slate-100 p-2 rounded-lg text-[10px] italic text-slate-700 leading-tight">
-              "{docData.terbilang || angkaKeTerbilang(docData.total)}"
+              "{docData.terbilang || angkaKeTerbilang(docData.hasDp ? (docData.dpAmount || 0) : docData.total)}"
             </div>
           </div>
         </div>
