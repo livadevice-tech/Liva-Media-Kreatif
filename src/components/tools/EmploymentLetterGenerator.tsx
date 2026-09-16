@@ -70,6 +70,9 @@ const formatIndonesianDate = (dateString?: string): string => {
   }
 };
 
+// Storage key for persistent letter settings (Kop Surat & Penandatangan)
+const STORAGE_KEY_SETTINGS = 'liva_sk_letter_template_settings';
+
 export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps> = ({
   currentUser,
   onBack,
@@ -79,31 +82,72 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
   const currentRomanMonth = toRomanMonth(today.getMonth());
   const defaultLetterNo = `001/LIVA/SK/${currentRomanMonth}/${currentYear}`;
 
-  const [formData, setFormData] = useState<EmploymentLetterData>({
-    letterNumber: defaultLetterNo,
-    employeeName: 'Dwi Ikhtiar Larasati',
-    employeeNik: '1809025708030001',
-    position: 'Host Live Shopping',
-    companyName: 'PT. Liva Media Kreatif',
-    kopBrandName: 'Liva',
-    kopBrandTagline: 'Specialist Live Shopping',
-    kopLogoUrl: '',
-    startDate: '2026-09-01',
-    purpose: 'persyaratan pembuatan rekening payroll Maybank dan kartu ATM Maybank.',
-    city: 'Bandar Lampung',
-    date: today.toISOString().slice(0, 10),
-    signerName: 'Mufthi Ali',
-    signerPosition: 'Direktur PT Liva Media Kreatif',
-    signatureUrl: '',
-    signatureScale: 100,
-    includeStamp: true,
+  // Load persistent settings for Kop Surat and Penandatangan
+  const [formData, setFormData] = useState<EmploymentLetterData>(() => {
+    let savedSettings: Partial<EmploymentLetterData> = {};
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
+      if (raw) savedSettings = JSON.parse(raw);
+    } catch {}
+
+    return {
+      letterNumber: defaultLetterNo,
+      employeeName: 'Dwi Ikhtiar Larasati',
+      employeeNik: '1809025708030001',
+      position: 'Host Live Shopping',
+      companyName: savedSettings.companyName || 'PT. Liva Media Kreatif',
+      kopBrandName: savedSettings.kopBrandName !== undefined ? savedSettings.kopBrandName : 'Liva',
+      kopBrandTagline: savedSettings.kopBrandTagline !== undefined ? savedSettings.kopBrandTagline : 'Specialist Live Shopping',
+      kopLogoUrl: savedSettings.kopLogoUrl || '',
+      startDate: '2026-09-01',
+      purpose: 'persyaratan pembuatan rekening payroll Maybank dan kartu ATM Maybank.',
+      city: savedSettings.city || 'Bandar Lampung',
+      date: today.toISOString().slice(0, 10),
+      signerName: savedSettings.signerName || 'Mufthi Ali',
+      signerPosition: savedSettings.signerPosition || 'Direktur PT Liva Media Kreatif',
+      signatureUrl: savedSettings.signatureUrl || '',
+      signatureScale: savedSettings.signatureScale || 100,
+      includeStamp: savedSettings.includeStamp !== undefined ? savedSettings.includeStamp : true,
+    };
   });
 
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Auto-fill signer from logged in user if available
+  // Auto-save persistent settings (Kop & Penandatangan) whenever changed
+  useEffect(() => {
+    try {
+      const settingsToSave = {
+        companyName: formData.companyName,
+        kopBrandName: formData.kopBrandName,
+        kopBrandTagline: formData.kopBrandTagline,
+        kopLogoUrl: formData.kopLogoUrl,
+        city: formData.city,
+        signerName: formData.signerName,
+        signerPosition: formData.signerPosition,
+        signatureUrl: formData.signatureUrl,
+        signatureScale: formData.signatureScale,
+        includeStamp: formData.includeStamp,
+      };
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settingsToSave));
+    } catch (e) {
+      console.warn('Gagal menyimpan pengaturan surat ke localStorage:', e);
+    }
+  }, [
+    formData.companyName,
+    formData.kopBrandName,
+    formData.kopBrandTagline,
+    formData.kopLogoUrl,
+    formData.city,
+    formData.signerName,
+    formData.signerPosition,
+    formData.signatureUrl,
+    formData.signatureScale,
+    formData.includeStamp,
+  ]);
+
+  // Auto-fill signer from logged in user if available and signerName empty
   useEffect(() => {
     if (currentUser && currentUser.role === 'Master Admin') {
       if (currentUser.full_name && !formData.signerName) {
@@ -170,7 +214,9 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
 
     const formattedStartDate = formatIndonesianDate(formData.startDate);
     const formattedLetterDate = formatIndonesianDate(formData.date);
-    const printTitle = `Surat Keterangan Kerja - ${formData.employeeName}`;
+    // Format nama file PDF saat di-export / simpan PDF
+    const cleanEmployeeName = formData.employeeName.trim() || 'Karyawan';
+    const printTitle = `Surat Keterangan Kerja - ${cleanEmployeeName}`;
 
     doc.write(`
       <!DOCTYPE html>
@@ -522,11 +568,18 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
 
     doc.close();
 
+    // Pastikan document.title browser juga memakai nama karyawan saat dialog "Save as PDF" muncul
+    const originalDocTitle = document.title;
+    document.title = printTitle;
+
     setTimeout(() => {
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
       setTimeout(() => {
-        document.body.removeChild(iframe);
+        document.title = originalDocTitle;
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
       }, 3000);
     }, 400);
   };
@@ -585,11 +638,17 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
             
             {/* Card 0: Kop Surat & Identitas Perusahaan */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
-              <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                <Building2 className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  Kop Surat & Perusahaan
-                </h3>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-indigo-600" />
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Kop Surat & Perusahaan
+                  </h3>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1" title="Logo dan teks kop surat otomatis tersimpan untuk pembuatan surat berikutnya">
+                  <Check className="w-2.5 h-2.5" />
+                  <span>Tersimpan Otomatis</span>
+                </span>
               </div>
 
               <div className="space-y-3.5">
@@ -841,11 +900,17 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
 
             {/* Card 3: Penandatangan & Lokasi */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
-              <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                <PenTool className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  Penandatangan & Cap Stempel
-                </h3>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <PenTool className="w-4 h-4 text-indigo-600" />
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Penandatangan & Cap Stempel
+                  </h3>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1" title="Data penandatangan dan berkas TTD otomatis tersimpan untuk pembuatan surat berikutnya">
+                  <Check className="w-2.5 h-2.5" />
+                  <span>Tersimpan Otomatis</span>
+                </span>
               </div>
 
               <div className="space-y-3.5">
@@ -907,7 +972,7 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                 </div>
 
                 {/* Stempel & Upload TTD Custom */}
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -916,11 +981,11 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                       className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
                     />
                     <span className="text-xs font-semibold text-slate-700">
-                      Sertakan Stempel Merah Liva
+                      Sertakan Stempel Merah
                     </span>
                   </label>
 
-                    <div>
+                  <div className="flex items-center gap-2">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -932,16 +997,16 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, signatureUrl: '' })}
-                        className="text-xs text-rose-600 font-bold hover:underline flex items-center gap-1"
+                        className="px-2.5 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-600 font-bold hover:bg-rose-100 transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        <span>Hapus TTD Upload</span>
+                        <span>Hapus TTD</span>
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200 text-xs text-slate-700 font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <Upload className="w-3.5 h-3.5" />
                         <span>Upload Gambar TTD</span>
