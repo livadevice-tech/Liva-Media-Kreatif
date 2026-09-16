@@ -52,6 +52,7 @@ import { MobileCalendarView } from './components/mobile/MobileCalendarView';
 import { MobileTaskView } from './components/mobile/MobileTaskView';
 import { MobileHomeView } from './components/mobile/MobileHomeView';
 import { PublicDocumentSigningView } from './components/documents/PublicDocumentSigningView';
+import { PublicEmploymentLetterView } from './components/tools/PublicEmploymentLetterView';
 
 type NavigationTab = 'home' | 'calendar' | 'drafts' | 'tasks' | 'assets' | 'tools' | 'accounts' | 'settings' | 'reports' | 'automation' | 'ai';
 
@@ -478,8 +479,28 @@ export default function App() {
     return null;
   });
 
+  // Check for external public employment letter generator token (?sk_token=... or #sk?sk_token=...)
+  const [publicSkToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromQuery = urlParams.get('sk_token');
+    if (tokenFromQuery) return tokenFromQuery;
+
+    if (window.location.hash.includes('sk_token=')) {
+      const hashParts = window.location.hash.split('?');
+      if (hashParts[1]) {
+        return new URLSearchParams(hashParts[1]).get('sk_token');
+      }
+    }
+    return null;
+  });
+
   if (publicSignToken) {
     return <PublicDocumentSigningView token={publicSignToken} />;
+  }
+
+  if (publicSkToken) {
+    return <PublicEmploymentLetterView token={publicSkToken} />;
   }
 
   if (!currentUser) {
