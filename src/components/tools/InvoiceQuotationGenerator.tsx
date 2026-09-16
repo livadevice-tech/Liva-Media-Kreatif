@@ -40,6 +40,43 @@ interface InvoiceQuotationGeneratorProps {
 
 const STORAGE_KEY_INVOICE_SETTINGS = 'liva_invoice_company_settings';
 const STORAGE_KEY_SAVED_CLIENTS = 'liva_invoice_saved_clients';
+const STORAGE_KEY_LAST_DOC_NUMBERS = 'liva_invoice_last_doc_numbers';
+
+// Helper: Konversi angka bulan (1-12) ke angka romawi (I - XII)
+export const toRomanMonth = (monthNumber: number): string => {
+  const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+  return romanMonths[Math.max(0, Math.min(11, monthNumber - 1))] || 'I';
+};
+
+// Helper: Ambil nomor urut berikutnya secara otomatis berdasarkan prefix, tahun, dan bulan romawi
+export const getNextDocNumber = (type: InvoiceDocType, year: number, romanMonth: string): string => {
+  const prefix = type === 'invoice' ? 'INV' : 'QUO';
+  const storageKey = `${STORAGE_KEY_LAST_DOC_NUMBERS}_${prefix}_${year}_${romanMonth}`;
+  let lastSeq = 0;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) lastSeq = parseInt(raw, 10) || 0;
+  } catch {}
+  const nextSeq = lastSeq + 1;
+  return `${prefix}/LIVA/${year}/${romanMonth}/${String(nextSeq).padStart(3, '0')}`;
+};
+
+// Helper: Catat nomor dokumen yang telah disimpan / dicetak / dibagikan
+export const recordUsedDocNumber = (documentNumber: string) => {
+  if (!documentNumber) return;
+  const match = documentNumber.match(/^(INV|QUO)\/LIVA\/(\d{4})\/([IVXLCDM]+)\/(\d+)$/i);
+  if (match) {
+    const [, prefix, year, romanMonth, seqStr] = match;
+    const seq = parseInt(seqStr, 10);
+    const storageKey = `${STORAGE_KEY_LAST_DOC_NUMBERS}_${prefix.toUpperCase()}_${year}_${romanMonth.toUpperCase()}`;
+    try {
+      const cur = parseInt(localStorage.getItem(storageKey) || '0', 10);
+      if (seq > cur) {
+        localStorage.setItem(storageKey, String(seq));
+      }
+    } catch {}
+  }
+};
 
 // Helper: Rupiah currency formatter
 export const formatRupiah = (val: number): string => {
@@ -113,7 +150,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
   const dueStr = nextTwoWeeks.toISOString().slice(0, 10);
 
   const currentYear = today.getFullYear();
-  const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+  const romanMonth = toRomanMonth(today.getMonth() + 1);
 
   // Load saved company settings (Kop, Bank, Signature)
   const [docData, setDocData] = useState<InvoiceDocumentData>(() => {
@@ -175,7 +212,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     return {
       type: 'invoice',
       status: 'sent',
-      documentNumber: `INV/LIVA/${currentYear}/${currentMonth}/001`,
+      documentNumber: getNextDocNumber('invoice', currentYear, romanMonth),
       date: dateStr,
       dueDate: dueStr,
 
@@ -473,8 +510,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
 
   // Handler: Change doc type (Invoice <-> Quotation)
   const handleTypeChange = (newType: InvoiceDocType) => {
-    const prefix = newType === 'invoice' ? 'INV' : 'QUO';
-    const newDocNum = `${prefix}/LIVA/${currentYear}/${currentMonth}/001`;
+    const newDocNum = getNextDocNumber(newType, currentYear, romanMonth);
     setDocData(prev => ({
       ...prev,
       type: newType,
@@ -617,6 +653,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     try {
       setIsGeneratingLink(true);
       const token = `inv-${Math.random().toString(36).substring(2, 8)}${Date.now().toString(36)}`;
+      recordUsedDocNumber(docData.documentNumber);
       await appApi.saveSettings(`public_invoice_${token}`, docData);
       const generatedLink = `${window.location.origin}/?inv_token=${token}`;
       setShareUrl(generatedLink);
@@ -1148,6 +1185,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
 
     doc.close();
 
+    recordUsedDocNumber(docData.documentNumber);
     setTimeout(() => {
       const originalDocTitle = document.title;
       document.title = printDocTitle;
@@ -1269,9 +1307,22 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="text-[11px] font-bold text-slate-600 mb-1 block">
-                    Nomor Dokumen
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-600">
+                      Nomor Dokumen
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newNum = getNextDocNumber(docData.type, currentYear, romanMonth);
+                        setDocData(prev => ({ ...prev, documentNumber: newNum }));
+                      }}
+                      className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                      title="Generate nomor urut berikutnya secara otomatis"
+                    >
+                      + Nomor Baru
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={docData.documentNumber}
