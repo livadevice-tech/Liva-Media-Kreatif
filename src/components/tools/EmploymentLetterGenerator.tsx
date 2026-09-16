@@ -15,7 +15,8 @@ import {
   Upload,
   Trash2,
   Check,
-  FileText
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import { UserAccount } from '../../types/app';
 
@@ -25,6 +26,9 @@ interface EmploymentLetterData {
   employeeNik: string;
   position: string;
   companyName: string;
+  kopBrandName: string;
+  kopBrandTagline: string;
+  kopLogoUrl?: string;
   startDate: string;
   purpose: string;
   city: string;
@@ -77,6 +81,9 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
     employeeNik: '1809025708030001',
     position: 'Host Live Shopping',
     companyName: 'PT. Liva Media Kreatif',
+    kopBrandName: 'Liva',
+    kopBrandTagline: 'Specialist Live Shopping',
+    kopLogoUrl: '',
     startDate: '2026-09-01',
     purpose: 'persyaratan pembuatan rekening payroll Maybank dan kartu ATM Maybank.',
     city: 'Bandar Lampung',
@@ -89,6 +96,7 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
 
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   // Auto-fill signer from logged in user if available
   useEffect(() => {
@@ -116,6 +124,25 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
         setFormData(prev => ({
           ...prev,
           signatureUrl: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle kop surat logo upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        alert('Ukuran file logo maksimal 3MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          kopLogoUrl: reader.result as string
         }));
       };
       reader.readAsDataURL(file);
@@ -392,17 +419,23 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
               <!-- Header Logo -->
               <div class="logo-container">
                 <div class="brand-logo">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <svg width="34" height="34" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="40" height="40" rx="10" fill="#8b5cf6"/>
-                      <circle cx="15" cy="18" r="3.5" fill="white"/>
-                      <circle cx="25" cy="18" r="3.5" fill="white"/>
-                      <path d="M15 25C17.5 27.5 22.5 27.5 25 25" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                    </svg>
-                    <div>
-                      <span class="brand-text">Liva</span>
-                      <div class="brand-sub">Specialist Live Shopping</div>
-                    </div>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    ${formData.kopLogoUrl ? `
+                      <img src="${formData.kopLogoUrl}" alt="Logo Kop" style="max-height: 46px; max-width: 140px; object-fit: contain;" />
+                    ` : `
+                      <svg width="34" height="34" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="40" height="40" rx="10" fill="#8b5cf6"/>
+                        <circle cx="15" cy="18" r="3.5" fill="white"/>
+                        <circle cx="25" cy="18" r="3.5" fill="white"/>
+                        <path d="M15 25C17.5 27.5 22.5 27.5 25 25" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                      </svg>
+                    `}
+                    ${(formData.kopBrandName || formData.kopBrandTagline) ? `
+                      <div>
+                        ${formData.kopBrandName ? `<div class="brand-text">${formData.kopBrandName}</div>` : ''}
+                        ${formData.kopBrandTagline ? `<div class="brand-sub">${formData.kopBrandTagline}</div>` : ''}
+                      </div>
+                    ` : ''}
                   </div>
                 </div>
               </div>
@@ -452,7 +485,7 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                   ${formData.includeStamp ? `
                     <div class="stamp-box">
                       <div>
-                        <div class="stamp-inner">Liva</div>
+                        <div class="stamp-inner">${formData.kopBrandName || 'Liva'}</div>
                         <div class="stamp-sub">${formData.companyName}</div>
                       </div>
                     </div>
@@ -543,6 +576,118 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
           {/* ========================================================= */}
           <div className="lg:col-span-5 space-y-6">
             
+            {/* Card 0: Kop Surat & Identitas Perusahaan */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                <Building2 className="w-4 h-4 text-indigo-600" />
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Kop Surat & Perusahaan
+                </h3>
+              </div>
+
+              <div className="space-y-3.5">
+                {/* Logo Kop Surat Upload / Preset */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                    <span>Logo Kop Surat</span>
+                    {formData.kopLogoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, kopLogoUrl: '' }))}
+                        className="text-[10px] text-rose-600 font-bold hover:underline flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Reset ke Logo Default</span>
+                      </button>
+                    )}
+                  </label>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                      {formData.kopLogoUrl ? (
+                        <img 
+                          src={formData.kopLogoUrl} 
+                          alt="Logo Preview" 
+                          className="w-full h-full object-contain p-1"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-2xs">
+                          <Briefcase className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        ref={logoInputRef}
+                        accept="image/*,.svg,.png,.jpg,.jpeg,.webp"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        className="px-3.5 py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer border border-slate-200"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{formData.kopLogoUrl ? 'Ganti Logo Kop' : 'Upload Logo Kop Sendiri'}</span>
+                      </button>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Format PNG, SVG, JPG atau WEBP transparan (Maks. 3MB)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Nama Brand / Teks Kop <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.kopBrandName}
+                      onChange={(e) => setFormData({ ...formData, kopBrandName: e.target.value })}
+                      placeholder="Contoh: Liva"
+                      className="w-full text-xs font-semibold px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Tagline / Sub Kop
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.kopBrandTagline}
+                      onChange={(e) => setFormData({ ...formData, kopBrandTagline: e.target.value })}
+                      placeholder="Specialist Live Shopping"
+                      className="w-full text-xs font-semibold px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Nama Legal PT / Badan Usaha <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.companyName}
+                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                    placeholder="Contoh: PT. Liva Media Kreatif"
+                    className="w-full text-xs font-semibold px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Nama PT ini digunakan pada isi pernyataan surat dan cap stempel resmi.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Card 1: Data Karyawan */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-6 space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
@@ -597,31 +742,17 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Mulai Bekerja Sejak <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                      className="w-full text-xs font-semibold px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Nama Perusahaan
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.companyName}
-                      onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                      className="w-full text-xs font-semibold px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Mulai Bekerja Sejak <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="w-full text-xs font-semibold px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
                 </div>
               </div>
             </div>
@@ -862,18 +993,32 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                 <div className="relative z-10">
                   {/* Logo Brand */}
                   <div className="mb-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xs shadow-xs">
-                        <Briefcase className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xl font-extrabold text-indigo-600 tracking-tight leading-none">
-                          Liva
+                    <div className="flex items-center gap-2.5">
+                      {formData.kopLogoUrl ? (
+                        <img 
+                          src={formData.kopLogoUrl} 
+                          alt="Logo Kop" 
+                          className="max-h-9 max-w-[120px] object-contain"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xs shadow-xs">
+                          <Briefcase className="w-4 h-4" />
                         </div>
-                        <div className="text-[7.5px] font-semibold text-slate-500 mt-0.5 tracking-wider">
-                          Specialist Live Shopping
+                      )}
+                      {(formData.kopBrandName || formData.kopBrandTagline) && (
+                        <div>
+                          {formData.kopBrandName && (
+                            <div className="text-xl font-extrabold text-indigo-600 tracking-tight leading-none">
+                              {formData.kopBrandName}
+                            </div>
+                          )}
+                          {formData.kopBrandTagline && (
+                            <div className="text-[7.5px] font-semibold text-slate-500 mt-0.5 tracking-wider">
+                              {formData.kopBrandTagline}
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
 
@@ -928,7 +1073,7 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
                         <div className="absolute left-0 top-3 border-2 border-rose-600/90 rounded-md px-2.5 py-1 bg-white/90 shadow-2xs rotate-[-4deg] z-10 flex items-center gap-1.5">
                           <div>
                             <div className="text-rose-600 font-black text-sm tracking-tight leading-none">
-                              Liva
+                              {formData.kopBrandName || 'Liva'}
                             </div>
                             <div className="text-[6px] font-bold text-rose-600 uppercase tracking-widest mt-0.5">
                               {formData.companyName}
