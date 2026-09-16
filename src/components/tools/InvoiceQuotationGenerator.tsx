@@ -1369,85 +1369,81 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
                 </button>
               </div>
 
-              {/* Saved Clients Quick Selector & Manager */}
+              {/* Saved Clients Dropdown Selector & Manager */}
               {savedClients.length > 0 && (
                 <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
-                      <Bookmark className="w-3 h-3 text-indigo-500" />
-                      Pilih / Kelola Klien Tersimpan ({savedClients.length}):
-                    </span>
-                    <span className="text-[9px] text-slate-400">
-                      Klik untuk mengisi formulir
+                    <label htmlFor="client-saved-select" className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+                      <Bookmark className="w-3.5 h-3.5 text-indigo-600" />
+                      Pilih Klien Tersimpan ({savedClients.length}):
+                    </label>
+                    <span className="text-[9.5px] text-slate-400">
+                      Pilih untuk auto-fill
                     </span>
                   </div>
 
-                  {savedClients.length > 4 && (
-                    <div className="relative">
-                      <Search className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Cari nama klien / brand..."
-                        value={clientSearchQuery}
-                        onChange={e => setClientSearchQuery(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-lg pl-7 pr-2.5 py-1 text-[11px] outline-none focus:border-indigo-500"
-                      />
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <select
+                        id="client-saved-select"
+                        value={
+                          savedClients.find(
+                            c => c.clientName.trim().toLowerCase() === docData.clientName.trim().toLowerCase() &&
+                                 (c.clientCompany || '').trim().toLowerCase() === (docData.clientCompany || '').trim().toLowerCase()
+                          )?.id || ''
+                        }
+                        onChange={(e) => {
+                          const selected = savedClients.find(c => c.id === e.target.value);
+                          if (selected) {
+                            handleSelectSavedClient(selected);
+                          }
+                        }}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer appearance-none pr-8 shadow-2xs"
+                      >
+                        <option value="">-- Pilih dari database klien tersimpan --</option>
+                        {savedClients.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.clientName} {c.clientCompany ? `• ${c.clientCompany}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <ChevronDown className="w-4 h-4" />
+                      </div>
                     </div>
-                  )}
 
-                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
-                    {savedClients
-                      .filter(c => {
-                        if (!clientSearchQuery.trim()) return true;
-                        const q = clientSearchQuery.toLowerCase();
-                        return c.clientName.toLowerCase().includes(q) || (c.clientCompany && c.clientCompany.toLowerCase().includes(q));
-                      })
-                      .map(c => {
-                        const isSelected = docData.clientName.trim().toLowerCase() === c.clientName.trim().toLowerCase();
-                        return (
-                          <div
-                            key={c.id}
-                            className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                                : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50'
-                            }`}
-                            onClick={() => handleSelectSavedClient(c)}
-                            title="Klik untuk memilih data klien ini"
+                    {/* Quick action buttons for the currently matched/selected client */}
+                    {(() => {
+                      const matched = savedClients.find(
+                        c => c.clientName.trim().toLowerCase() === docData.clientName.trim().toLowerCase() &&
+                             (c.clientCompany || '').trim().toLowerCase() === (docData.clientCompany || '').trim().toLowerCase()
+                      ) || savedClients.find(
+                        c => c.clientName.trim().toLowerCase() === docData.clientName.trim().toLowerCase()
+                      );
+
+                      if (!matched) return null;
+
+                      return (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenEditClient(matched, e)}
+                            className="p-2 bg-white hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border border-slate-200 rounded-xl transition-colors cursor-pointer shadow-2xs"
+                            title={`Edit data klien "${matched.clientName}"`}
                           >
-                            <span className="truncate max-w-[130px] font-semibold">{c.clientName}</span>
-                            {c.clientCompany && (
-                              <span className={`text-[10px] opacity-80 truncate max-w-[90px]`}>
-                                • {c.clientCompany}
-                              </span>
-                            )}
-                            
-                            {/* Action Buttons: Edit & Delete */}
-                            <div className="flex items-center gap-0.5 ml-1 border-l pl-1 border-slate-200/50">
-                              <button
-                                type="button"
-                                onClick={(e) => handleOpenEditClient(c, e)}
-                                className={`p-0.5 rounded hover:bg-white/20 transition-colors cursor-pointer ${
-                                  isSelected ? 'text-white' : 'text-slate-400 hover:text-indigo-600'
-                                }`}
-                                title="Edit detail klien ini"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => handleDeleteSavedClient(c.id, e)}
-                                className={`p-0.5 rounded hover:bg-rose-500 hover:text-white transition-colors cursor-pointer ${
-                                  isSelected ? 'text-indigo-200' : 'text-slate-400 opacity-70 group-hover:opacity-100 hover:text-white'
-                                }`}
-                                title="Hapus klien tersimpan ini"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSavedClient(matched.id, e)}
+                            className="p-2 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 rounded-xl transition-colors cursor-pointer shadow-2xs"
+                            title={`Hapus klien "${matched.clientName}" dari daftar tersimpan`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
