@@ -1296,6 +1296,46 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     }, 400);
   };
 
+  // Handler: Update status dokumen langsung dari tab riwayat
+  const handleUpdateStatusFromHistory = (id: string, newStatus: InvoiceDocStatus) => {
+    const updated = invoiceHistory.map(inv => {
+      const docId = inv.id || inv.documentNumber;
+      if (docId === id || inv.documentNumber === id) {
+        return { ...inv, status: newStatus, updatedAt: new Date().toISOString() };
+      }
+      return inv;
+    });
+
+    setInvoiceHistory(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_INVOICE_HISTORY, JSON.stringify(updated));
+    } catch {}
+    appApi.saveSettings(STORAGE_KEY_INVOICE_HISTORY, updated).catch(() => {});
+
+    // Jika dokumen yang sedang diedit sama, update juga state docData
+    if (docData.id === id || docData.documentNumber === id) {
+      setDocData(prev => ({ ...prev, status: newStatus }));
+    }
+  };
+
+  // Handler: Hapus dokumen dari daftar riwayat
+  const handleDeleteInvoiceFromHistory = (id: string) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus dokumen ini dari riwayat?')) {
+      return;
+    }
+
+    const updated = invoiceHistory.filter(inv => {
+      const docId = inv.id || inv.documentNumber;
+      return docId !== id && inv.documentNumber !== id;
+    });
+
+    setInvoiceHistory(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY_INVOICE_HISTORY, JSON.stringify(updated));
+    } catch {}
+    appApi.saveSettings(STORAGE_KEY_INVOICE_HISTORY, updated).catch(() => {});
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-50/50 overflow-hidden animate-fadeIn">
       {/* Clean Header: Tab Navigation (Editor vs Riwayat) & Simple Action Buttons */}
