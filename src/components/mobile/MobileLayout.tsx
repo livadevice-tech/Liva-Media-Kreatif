@@ -17,7 +17,8 @@ import {
   X, 
   ExternalLink,
   Lightbulb,
-  Wrench
+  Wrench,
+  Bell
 } from 'lucide-react';
 import { UserAccount, DbStatus } from '../../types/app';
 import { AppSettings } from '../settings/SettingsView';
@@ -100,17 +101,27 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
           </button>
         </div>
 
-        {/* User Profile Avatar */}
-        <button
-          onClick={() => setIsMoreOpen(true)}
-          className="relative w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform"
-          title={`Profil: ${currentUser?.full_name || 'User'}`}
-        >
-          {getUserInitial()}
-          {currentUser?.role === 'Master Admin' && (
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-purple-500 rounded-full border-2 border-white" />
-          )}
-        </button>
+        {/* User Profile Avatar & Notification Bell */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onTabChange('settings')}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer transition-colors"
+            title="Pengaturan Notifikasi HP"
+          >
+            <Bell className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => setIsMoreOpen(true)}
+            className="relative w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-xs cursor-pointer active:scale-95 transition-transform"
+            title={`Profil: ${currentUser?.full_name || 'User'}`}
+          >
+            {getUserInitial()}
+            {currentUser?.role === 'Master Admin' && (
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-purple-500 rounded-full border-2 border-white" />
+            )}
+          </button>
+        </div>
       </header>
 
       {/* App Info / Switcher Popup (Dropdown when tapping App Name) */}

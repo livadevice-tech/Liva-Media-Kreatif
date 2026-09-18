@@ -269,4 +269,34 @@ export const appApi = {
     }).then(handleResponse<{ success: boolean; id: string; message: string }>),
   deleteSavedSignature: (id: string): Promise<{ success: boolean; message: string }> =>
     fetch(`${API_BASE}/project-app/saved-signatures/${id}`, { method: 'DELETE' }).then(handleResponse<{ success: boolean; message: string }>),
+
+  // PWA Push Notifications
+  getVapidPublicKey: (): Promise<{ publicKey: string }> =>
+    fetch(`${API_BASE}/push/vapid-public-key`).then(handleResponse<{ publicKey: string }>),
+
+  subscribePushNotification: (data: {
+    subscription: PushSubscription;
+    user_id?: string;
+    user_role?: string;
+    device_info?: string;
+  }): Promise<{ success: boolean; message: string }> =>
+    fetch(`${API_BASE}/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse<{ success: boolean; message: string }>),
+
+  unsubscribePushNotification: (endpoint: string): Promise<{ success: boolean }> =>
+    fetch(`${API_BASE}/push/unsubscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint }),
+    }).then(handleResponse<{ success: boolean }>),
+
+  sendTestPushNotification: (payload?: { title?: string; body?: string; url?: string }): Promise<{ success: boolean; result: { sent: number; failed: number } }> =>
+    fetch(`${API_BASE}/push/send-test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {}),
+    }).then(handleResponse<{ success: boolean; result: { sent: number; failed: number } }>),
 };

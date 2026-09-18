@@ -20,10 +20,14 @@ import {
   Sparkles,
   Server,
   Users,
-  ChevronRight
+  ChevronRight,
+  Bell,
+  Smartphone,
+  Send
 } from 'lucide-react';
 import { UserAccount, DbStatus } from '../../types/app';
 import { appApi } from '../../services/appApi';
+import { requestAndSubscribePushNotification, getNotificationPermissionState } from '../../services/pwaService';
 
 export interface AppSettings {
   general: {
@@ -97,7 +101,7 @@ interface SettingsViewProps {
   onSettingsSaved?: (newSettings: AppSettings) => void;
 }
 
-type SettingsTab = 'general' | 'workflow' | 'database' | 'security';
+type SettingsTab = 'general' | 'workflow' | 'notifications' | 'database' | 'security';
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   currentUser,
@@ -113,6 +117,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [loading, setLoading] = useState(!initialAppSettings);
   const [saving, setSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Push notification states
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  const [isSubscribingPush, setIsSubscribingPush] = useState(false);
+  const [isSendingTestPush, setIsSendingTestPush] = useState(false);
+
+  useEffect(() => {
+    getNotificationPermissionState().then(setPushPermission);
+  }, []);
 
   // Sync if prop changes
   useEffect(() => {
@@ -297,6 +310,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               dbStatus?.success ? 'bg-emerald-500' : 'bg-rose-500'
             }`}
           />
+        </button>
+
+        <button
+          onClick={() => setActiveTab('notifications')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === 'notifications'
+              ? 'bg-purple-50 text-purple-700 border border-purple-200/80 shadow-2xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <Bell className="w-3.5 h-3.5" />
+          <span>Notifikasi HP (PWA)</span>
         </button>
 
         <button
@@ -867,6 +892,119 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <span className="text-[11px] px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-semibold">
                     Terotentikasi Penuh
                   </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: NOTIFIKASI HP & PWA (WEB PUSH) */}
+          {activeTab === 'notifications' && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Card 1: Status Notifikasi HP */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <Smartphone className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <h2 className="text-sm font-bold text-slate-900">
+                        Integrasi Notifikasi HP & Progressive Web App (PWA)
+                      </h2>
+                      <p className="text-[11px] text-slate-500">
+                        Terima pesan instan & update operasional langsung di layar kunci smartphone
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${
+                    pushPermission === 'granted'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : pushPermission === 'denied'
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      pushPermission === 'granted' ? 'bg-emerald-500' : pushPermission === 'denied' ? 'bg-rose-500' : 'bg-amber-500'
+                    }`} />
+                    Status: {pushPermission === 'granted' ? 'Aktif (Diizinkan)' : pushPermission === 'denied' ? 'Diblokir Browser' : 'Belum Diaktifkan'}
+                  </span>
+                </div>
+
+                {/* Info Guide */}
+                <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-100 flex items-start gap-3">
+                  <Bell className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1 text-xs text-purple-900/90 leading-relaxed">
+                    <p className="font-bold">Cara Memasang Aplikasi di HP:</p>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[11.5px] text-purple-800/80">
+                      <li><strong>Android (Chrome)</strong>: Buka menu titik tiga di pojok kanan atas browser &gt; Pilih <strong>"Install app"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.</li>
+                      <li><strong>iPhone (Safari)</strong>: Klik tombol <strong>Bagikan (Share)</strong> di bagian bawah &gt; Pilih <strong>"Add to Home Screen"</strong> (Tambahkan ke Layar Utama).</li>
+                      <li>Setelah terpasang di HP, klik tombol <strong>"Aktifkan Notifikasi di HP Ini"</strong> di bawah untuk mulai menerima notifikasi bergetar di ponsel Anda.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={isSubscribingPush}
+                    onClick={async () => {
+                      try {
+                        setIsSubscribingPush(true);
+                        const res = await requestAndSubscribePushNotification(currentUser?.id, currentUser?.role);
+                        const perm = await getNotificationPermissionState();
+                        setPushPermission(perm);
+                        if (res.success) {
+                          setNotification({ type: 'success', message: res.message });
+                        } else {
+                          setNotification({ type: 'error', message: res.message });
+                        }
+                      } catch (e: any) {
+                        setNotification({ type: 'error', message: e?.message || 'Gagal mendaftar notifikasi' });
+                      } finally {
+                        setIsSubscribingPush(false);
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-60"
+                  >
+                    {isSubscribingPush ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Bell className="w-4 h-4" />
+                    )}
+                    <span>{pushPermission === 'granted' ? 'Perbarui Izin Notifikasi HP' : 'Aktifkan Notifikasi di HP Ini'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isSendingTestPush}
+                    onClick={async () => {
+                      try {
+                        setIsSendingTestPush(true);
+                        const res = await appApi.sendTestPushNotification({
+                          title: 'Liva Agency Hub',
+                          body: `Halo ${currentUser?.full_name || 'Team'}! Tes notifikasi push PWA berhasil terkirim ke perangkat Anda. 🚀`,
+                          url: '/'
+                        });
+                        if (res.success && res.result.sent > 0) {
+                          setNotification({ type: 'success', message: `Notifikasi uji coba berhasil dikirim ke ${res.result.sent} perangkat aktif!` });
+                        } else if (res.result.sent === 0) {
+                          setNotification({ type: 'error', message: 'Belum ada perangkat yang mendaftar notifikasi. Klik "Aktifkan Notifikasi" terlebih dahulu.' });
+                        }
+                      } catch (e: any) {
+                        setNotification({ type: 'error', message: 'Gagal mengirim notifikasi tes: ' + (e?.message || '') });
+                      } finally {
+                        setIsSendingTestPush(false);
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-200/80 disabled:opacity-60"
+                  >
+                    {isSendingTestPush ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4 text-slate-500" />
+                    )}
+                    <span>Kirim Notifikasi Uji Coba ke HP</span>
+                  </button>
                 </div>
               </div>
             </div>

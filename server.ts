@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import webpush from 'web-push';
 import express, { Request, Response, NextFunction } from "express";
 import path from "path";
 import dns from "dns";
@@ -153,7 +154,7 @@ app.use("/api", (req, res, next) => {
   if (req.path === "/health" || req.path === "/db-test") return next();
   if (req.method === "GET" && req.path === "/settings/brandResources") return next();
   if (req.method === "GET" && req.path === "/client-brands/public-list") return next();
-  if (req.path.startsWith("/project-app") || req.path.startsWith("/settings")) return next();
+  if (req.path.startsWith("/project-app") || req.path.startsWith("/settings") || req.path.startsWith("/push")) return next();
 
   const session = getRequestSession(req);
   if (!session) return res.status(401).json({ error: "Autentikasi diperlukan." });
@@ -244,6 +245,125 @@ app.post("/api/settings/:key", asyncHandler(async (req, res) => {
     ON DUPLICATE KEY UPDATE setting_value = ?
   `, [key, JSON.stringify(value), JSON.stringify(value)]);
   res.json({ success: true, key });
+}));
+
+// ==================================================================
+// PWA WEB PUSH NOTIFICATIONS
+// ==================================================================
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BO90YG-VD9QKIjT9JQrPCebmyeEKEzeyhnXb4v8tPG6qVWIkjcAjaPgKn5HXfFXkyyPaNXMwLdJxX1_JZBV8_os';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'Bf1cYNicA-jluUfk3SCjwgmnaYOLzFhs41p3s3B0Wv4';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@livaagency.com';
+
+try {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+} catch (e: any) {
+  console.warn('⚠️ WebPush VAPID config warning:', e?.message);
+}
+
+// Endpoint ambil public VAPID key untuk browser subscription
+app.get("/api/push/vapid-public-key", (_req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+
+// Endpoint simpan subscription dari browser/HP pengguna
+app.post("/api/push/subscribe", asyncHandler(async (req, res) => {
+  const { subscription, user_id, user_role, device_info } = req.body;
+  if (!subscription || !subscription.endpoint) {
+    return res.status(400).json({ error: "Subscription endpoint tidak valid." });
+  }
+
+  const endpoint = subscription.endpoint;
+  const p256dh = subscription.keys?.p256dh || '';
+  const auth = subscription.keys?.auth || '';
+  const subJson = JSON.stringify(subscription);
+
+  await execute(`
+    INSERT INTO push_subscriptions (endpoint, p256dh, auth, subscription_json, user_id, user_role, device_info)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE 
+      p256dh = VALUES(p256dh),
+      auth = VALUES(auth),
+      subscription_json = VALUES(subscription_json),
+      user_id = VALUES(user_id),
+      user_role = VALUES(user_role),
+      device_info = VALUES(device_info),
+      updated_at = CURRENT_TIMESTAMP
+  `, [endpoint, p256dh, auth, subJson, user_id || null, user_role || null, device_info || null]);
+
+  res.json({ success: true, message: "Subscription berhasil disimpan." });
+}));
+
+// Endpoint hapus subscription saat user opt-out
+app.post("/api/push/unsubscribe", asyncHandler(async (req, res) => {
+  const { endpoint } = req.body;
+  if (endpoint) {
+    await execute(`DELETE FROM push_subscriptions WHERE endpoint = ?`, [endpoint]);
+  }
+  res.json({ success: true });
+}));
+
+// Helper fungsi kirim push notification ke subscriber
+export async function sendPushNotification(payload: {
+  title: string;
+  body: string;
+  url?: string;
+  targetUserId?: string;
+  targetRole?: string;
+}) {
+  try {
+    let query = `SELECT endpoint, subscription_json FROM push_subscriptions WHERE 1=1`;
+    const params: any[] = [];
+
+    if (payload.targetUserId) {
+      query += ` AND user_id = ?`;
+      params.push(payload.targetUserId);
+    } else if (payload.targetRole) {
+      query += ` AND user_role = ?`;
+      params.push(payload.targetRole);
+    }
+
+    const rows = await queryMany<any>(query, params);
+    if (!rows || rows.length === 0) return { sent: 0, failed: 0 };
+
+    const notificationPayload = JSON.stringify({
+      title: payload.title,
+      body: payload.body,
+      url: payload.url || '/',
+      icon: '/icons/icon-192.svg',
+      badge: '/icons/icon-192.svg'
+    });
+
+    let sent = 0;
+    let failed = 0;
+
+    await Promise.all(
+      rows.map(async (row) => {
+        try {
+          const sub = JSON.parse(row.subscription_json);
+          await webpush.sendNotification(sub, notificationPayload);
+          sent++;
+        } catch (err: any) {
+          failed++;
+          // Hapus subscription jika expired atau 410 Gone / 404 Not Found
+          if (err.statusCode === 404 || err.statusCode === 410) {
+            execute(`DELETE FROM push_subscriptions WHERE endpoint = ?`, [row.endpoint]).catch(() => {});
+          }
+        }
+      })
+    );
+
+    return { sent, failed };
+  } catch (error) {
+    console.error('sendPushNotification error:', error);
+    return { sent: 0, failed: 0 };
+  }
+}
+
+// Endpoint tes kirim notifikasi push ke subscriber saat ini
+app.post("/api/push/send-test", asyncHandler(async (req, res) => {
+  const { title = "Liva Agency Notification", body = "Notifikasi uji coba PWA berhasil masuk ke HP Anda! 🎉", url = "/" } = req.body;
+  const result = await sendPushNotification({ title, body, url });
+  res.json({ success: true, result });
 }));
 
 // ==================================================================
@@ -926,6 +1046,29 @@ async function runMigrations() {
     console.log('✅ Migration: Tabel global_settings dipastikan ada.');
   } catch (e: any) {
     console.warn('Migration global_settings warning:', e?.message);
+  }
+
+  try {
+    // Create push_subscriptions table for PWA push notifications
+    await execute(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        endpoint VARCHAR(767) NOT NULL UNIQUE,
+        p256dh VARCHAR(255) NOT NULL,
+        auth VARCHAR(255) NOT NULL,
+        subscription_json TEXT NOT NULL,
+        user_id VARCHAR(100) NULL,
+        user_role VARCHAR(50) NULL,
+        device_info VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_user_id (user_id),
+        INDEX idx_user_role (user_role)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `, []);
+    console.log('✅ Migration: Tabel push_subscriptions dipastikan ada.');
+  } catch (e: any) {
+    console.warn('Migration push_subscriptions warning:', e?.message);
   }
 
   try {
