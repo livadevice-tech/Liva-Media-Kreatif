@@ -168,7 +168,44 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  // Auto-save persistent settings (Kop & Penandatangan) whenever changed
+  // Load persistent settings for Kop Surat and Penandatangan from server or localStorage
+  useEffect(() => {
+    appApi.getSettings<Partial<EmploymentLetterData>>(STORAGE_KEY_SETTINGS)
+      .then(serverSettings => {
+        if (serverSettings && typeof serverSettings === 'object' && Object.keys(serverSettings).length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            companyName: serverSettings.companyName || prev.companyName,
+            kopBrandName: serverSettings.kopBrandName !== undefined ? serverSettings.kopBrandName : prev.kopBrandName,
+            kopBrandTagline: serverSettings.kopBrandTagline !== undefined ? serverSettings.kopBrandTagline : prev.kopBrandTagline,
+            kopLogoUrl: serverSettings.kopLogoUrl || prev.kopLogoUrl,
+            city: serverSettings.city || prev.city,
+            signerName: serverSettings.signerName || prev.signerName,
+            signerPosition: serverSettings.signerPosition || prev.signerPosition,
+            signatureUrl: serverSettings.signatureUrl || prev.signatureUrl,
+            signatureScale: serverSettings.signatureScale || prev.signatureScale,
+            includeStamp: serverSettings.includeStamp !== undefined ? serverSettings.includeStamp : prev.includeStamp,
+          }));
+          try {
+            localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(serverSettings));
+          } catch {}
+        } else {
+          // If server empty, save current local settings to server
+          const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (parsed && typeof parsed === 'object') {
+                appApi.saveSettings(STORAGE_KEY_SETTINGS, parsed).catch(() => {});
+              }
+            } catch {}
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Auto-save persistent settings (Kop & Penandatangan) whenever changed to localStorage & database
   useEffect(() => {
     try {
       const settingsToSave = {
@@ -184,8 +221,15 @@ export const EmploymentLetterGenerator: React.FC<EmploymentLetterGeneratorProps>
         includeStamp: formData.includeStamp,
       };
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settingsToSave));
+
+      // Debounce save to database
+      const timer = setTimeout(() => {
+        appApi.saveSettings(STORAGE_KEY_SETTINGS, settingsToSave).catch(() => {});
+      }, 1000);
+
+      return () => clearTimeout(timer);
     } catch (e) {
-      console.warn('Gagal menyimpan pengaturan surat ke localStorage:', e);
+      console.warn('Gagal menyimpan pengaturan surat ke storage:', e);
     }
   }, [
     formData.companyName,

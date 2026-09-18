@@ -78,6 +78,7 @@ export const recordUsedDocNumber = (documentNumber: string) => {
       const cur = parseInt(localStorage.getItem(storageKey) || '0', 10);
       if (seq > cur) {
         localStorage.setItem(storageKey, String(seq));
+        appApi.saveSettings(storageKey, { seq }).catch(() => {});
       }
     } catch {}
   }
@@ -313,13 +314,13 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Sync initial history from appApi settings
+  // Sync initial history, saved clients, and company settings from appApi
   useEffect(() => {
+    // 1. History
     appApi.getSettings<InvoiceDocumentData[]>(STORAGE_KEY_INVOICE_HISTORY)
       .then((serverHistory) => {
         if (serverHistory && Array.isArray(serverHistory) && serverHistory.length > 0) {
           setInvoiceHistory(prev => {
-            // Gabungkan jika ada yang belum tercatat lokal
             const mergedMap = new Map<string, InvoiceDocumentData>();
             serverHistory.forEach(item => {
               const key = item.id || item.documentNumber;
@@ -331,6 +332,79 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
             });
             return Array.from(mergedMap.values());
           });
+        }
+      })
+      .catch(() => {});
+
+    // 2. Saved Clients (Cloud Sync)
+    appApi.getSettings<SavedClient[]>(STORAGE_KEY_SAVED_CLIENTS)
+      .then((serverClients) => {
+        if (serverClients && Array.isArray(serverClients) && serverClients.length > 0) {
+          setSavedClients(prev => {
+            const map = new Map<string, SavedClient>();
+            // Server clients first
+            serverClients.forEach(c => {
+              const key = (c.clientName || '').trim().toLowerCase();
+              if (key) map.set(key, c);
+            });
+            // Local clients overwrite or merge
+            prev.forEach(c => {
+              const key = (c.clientName || '').trim().toLowerCase();
+              if (key && !map.has(key)) map.set(key, c);
+            });
+            const merged = Array.from(map.values());
+            try {
+              localStorage.setItem(STORAGE_KEY_SAVED_CLIENTS, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        } else {
+          // If server empty but local has data, backup local to server
+          const rawLocal = localStorage.getItem(STORAGE_KEY_SAVED_CLIENTS);
+          if (rawLocal) {
+            try {
+              const parsed = JSON.parse(rawLocal);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                appApi.saveSettings(STORAGE_KEY_SAVED_CLIENTS, parsed).catch(() => {});
+              }
+            } catch {}
+          }
+        }
+      })
+      .catch(() => {});
+
+    // 3. Company Settings (Cloud Sync)
+    appApi.getSettings<any>(STORAGE_KEY_INVOICE_SETTINGS)
+      .then((serverSettings) => {
+        if (serverSettings && typeof serverSettings === 'object' && Object.keys(serverSettings).length > 0) {
+          setDocData(prev => ({
+            ...prev,
+            companyName: serverSettings.companyName || prev.companyName,
+            brandName: serverSettings.brandName !== undefined ? serverSettings.brandName : prev.brandName,
+            brandTagline: serverSettings.brandTagline !== undefined ? serverSettings.brandTagline : prev.brandTagline,
+            logoUrl: serverSettings.logoUrl || prev.logoUrl,
+            companyAddress: serverSettings.companyAddress || prev.companyAddress,
+            companyEmail: serverSettings.companyEmail || prev.companyEmail,
+            companyPhone: serverSettings.companyPhone || prev.companyPhone,
+            companyWebsite: serverSettings.companyWebsite || prev.companyWebsite,
+            bankAccounts: (serverSettings.bankAccounts && serverSettings.bankAccounts.length > 0)
+              ? serverSettings.bankAccounts
+              : prev.bankAccounts,
+            bankName: serverSettings.bankName || prev.bankName,
+            bankAccountNumber: serverSettings.bankAccountNumber || prev.bankAccountNumber,
+            bankAccountHolder: serverSettings.bankAccountHolder || prev.bankAccountHolder,
+            paymentTermsNotes: serverSettings.paymentTermsNotes || prev.paymentTermsNotes,
+            signerCity: serverSettings.signerCity || prev.signerCity,
+            signerName: serverSettings.signerName || prev.signerName,
+            signerPosition: serverSettings.signerPosition || prev.signerPosition,
+            signatureUrl: serverSettings.signatureUrl || prev.signatureUrl,
+            signatureScale: serverSettings.signatureScale || prev.signatureScale,
+            includeStamp: serverSettings.includeStamp !== undefined ? serverSettings.includeStamp : prev.includeStamp,
+            hideClientSignature: serverSettings.hideClientSignature !== undefined ? serverSettings.hideClientSignature : prev.hideClientSignature,
+          }));
+          try {
+            localStorage.setItem(STORAGE_KEY_INVOICE_SETTINGS, JSON.stringify(serverSettings));
+          } catch {}
         }
       })
       .catch(() => {});
@@ -353,10 +427,9 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       createdAt: new Date().toISOString().slice(0, 10),
     };
 
-    // Check if client with exact same name and company exists
     const existingIdx = savedClients.findIndex(c => 
-      c.clientName.trim().toLowerCase() === docData.clientName.trim().toLowerCase() &&
-      c.clientCompany?.trim().toLowerCase() === (docData.clientCompany?.trim() || '').toLowerCase()
+      c.clientName.trim().toLowerCase() === newClient.clientName.toLowerCase() ||
+      (c.clientCompany && newClient.clientCompany && c.clientCompany.trim().toLowerCase() === newClient.clientCompany.toLowerCase())
     );
 
     let updatedList: SavedClient[];
@@ -370,6 +443,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     setSavedClients(updatedList);
     try {
       localStorage.setItem(STORAGE_KEY_SAVED_CLIENTS, JSON.stringify(updatedList));
+      appApi.saveSettings(STORAGE_KEY_SAVED_CLIENTS, updatedList).catch(() => {});
       setClientSaveSuccess(true);
       setTimeout(() => setClientSaveSuccess(false), 2500);
     } catch (e) {
@@ -395,6 +469,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
     setSavedClients(updated);
     try {
       localStorage.setItem(STORAGE_KEY_SAVED_CLIENTS, JSON.stringify(updated));
+      appApi.saveSettings(STORAGE_KEY_SAVED_CLIENTS, updated).catch(() => {});
     } catch {}
 
     // If currently selected in form, sync current form too
@@ -433,6 +508,7 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
       setSavedClients(updated);
       try {
         localStorage.setItem(STORAGE_KEY_SAVED_CLIENTS, JSON.stringify(updated));
+        appApi.saveSettings(STORAGE_KEY_SAVED_CLIENTS, updated).catch(() => {});
       } catch {}
     }
   };
@@ -514,6 +590,13 @@ export const InvoiceQuotationGenerator: React.FC<InvoiceQuotationGeneratorProps>
         hideClientSignature: docData.hideClientSignature,
       };
       localStorage.setItem(STORAGE_KEY_INVOICE_SETTINGS, JSON.stringify(toSave));
+
+      // Debounced save to cloud server
+      const timeoutId = setTimeout(() => {
+        appApi.saveSettings(STORAGE_KEY_INVOICE_SETTINGS, toSave).catch(() => {});
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
     } catch (e) {
       console.warn('Gagal menyimpan profil invoice:', e);
     }

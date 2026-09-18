@@ -180,6 +180,32 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
       return DEFAULT_LABELS;
     }
   });
+
+  // Load custom labels from database
+  useEffect(() => {
+    appApi.getSettings<CustomLabel[]>('pm_task_labels_pool')
+      .then(serverLabels => {
+        if (serverLabels && Array.isArray(serverLabels) && serverLabels.length > 0) {
+          setAvailableLabels(serverLabels);
+          try {
+            localStorage.setItem('pm_task_labels_pool', JSON.stringify(serverLabels));
+          } catch {}
+        } else {
+          // Backup default/local to server if server is empty
+          const raw = localStorage.getItem('pm_task_labels_pool');
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                appApi.saveSettings('pm_task_labels_pool', parsed).catch(() => {});
+              }
+            } catch {}
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isManageLabelsMode, setIsManageLabelsMode] = useState(false);
   const [inlineEditingLabelId, setInlineEditingLabelId] = useState<string | null>(null);
@@ -187,10 +213,14 @@ export const TaskInspectorPanel: React.FC<TaskInspectorPanelProps> = ({
   const [isAddingLabelInline, setIsAddingLabelInline] = useState(false);
   const [newLabelData, setNewLabelData] = useState({ name: '', color: '#3b82f6' });
 
-  // Sync availableLabels to localStorage
+  // Sync availableLabels to localStorage & Database
   useEffect(() => {
     try {
       localStorage.setItem('pm_task_labels_pool', JSON.stringify(availableLabels));
+      const timer = setTimeout(() => {
+        appApi.saveSettings('pm_task_labels_pool', availableLabels).catch(() => {});
+      }, 1000);
+      return () => clearTimeout(timer);
     } catch (e) {
       console.error(e);
     }
