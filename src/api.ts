@@ -88,8 +88,18 @@ async function request<T>(
   const res = await fetch(`${API_BASE}${endpoint}`, options);
 
   if (!res.ok) {
-    if (res.status === 401 && endpoint !== '/auth/login') {
-      window.location.reload();
+    if (
+      res.status === 401 &&
+      endpoint !== '/auth/login' &&
+      endpoint !== '/auth/session' &&
+      endpoint !== '/host-activity-logs'
+    ) {
+      // Prevent loop reloading if session expired or not established
+      const lastReload = Number(sessionStorage.getItem('last_auth_reload') || '0');
+      if (Date.now() - lastReload > 10000) {
+        sessionStorage.setItem('last_auth_reload', String(Date.now()));
+        window.location.reload();
+      }
     }
     const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(errData.error || `HTTP ${res.status}: ${res.statusText}`);

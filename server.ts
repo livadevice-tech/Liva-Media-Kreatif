@@ -133,7 +133,7 @@ app.post("/api/auth/login", asyncHandler(async (req, res) => {
   }
 
   const token = createAuthSessionToken(session);
-  setSessionCookie(res, token, SESSION_TTL_SECONDS);
+  setSessionCookie(res, token, SESSION_TTL_SECONDS, req);
   return res.json(session);
 }));
 
@@ -143,7 +143,7 @@ app.get("/api/auth/session", (req, res) => {
 });
 
 app.post("/api/auth/logout", (req, res) => {
-  setSessionCookie(res, "", 0);
+  setSessionCookie(res, "", 0, req);
   return res.json({ success: true });
 });
 

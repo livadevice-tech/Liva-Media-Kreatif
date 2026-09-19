@@ -18,11 +18,15 @@ export function getSessionSecret(): string {
   return secret || "development-session-secret-change-before-production";
 }
 
-export function setSessionCookie(res: Response, token: string, maxAge: number): void {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+export function setSessionCookie(res: Response, token: string, maxAge: number, req?: Request): void {
+  // If explicitly configured in env or if request is over HTTPS/x-forwarded-proto https
+  const isHttps = req
+    ? (req.secure || req.get("x-forwarded-proto") === "https")
+    : (process.env.COOKIE_SECURE === "true" || (process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false"));
+  const secure = isHttps ? "; Secure" : "";
   res.setHeader(
     "Set-Cookie",
-    `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`,
+    `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`,
   );
 }
 
