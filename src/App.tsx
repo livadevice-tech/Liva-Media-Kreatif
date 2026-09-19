@@ -123,6 +123,7 @@ import {
   MoreVertical,
   Folder,
   Tag,
+  Bookmark,
 } from "lucide-react";
 import {
   HostEmployee,
@@ -7247,6 +7248,7 @@ export default function App() {
                               masterShifts={shifts}
                               onOpenTemplateModal={() => setIsScheduleTemplateModalOpen(true)}
                               onCellClick={(dateStr, studio, shift) => {
+                                const isStandby = studio === "All Studio" || studio === "All Studio (Standby)";
                                 setScheduleForm(prev => ({
                                   ...prev,
                                   id: "",
@@ -7254,8 +7256,8 @@ export default function App() {
                                   studio: studio,
                                   timeSlot: shift,
                                   hostId: hosts[0]?.id || "",
-                                  brand: defaultBrandName,
-                                  platform: platforms[0] || "",
+                                  brand: isStandby ? "Host Standby" : defaultBrandName,
+                                  platform: isStandby ? "TikTok Live" : (platforms[0] || ""),
                                   isOffDay: false,
                                   isPindahStudio: false,
                                   backupHostId: "",
@@ -8146,9 +8148,13 @@ export default function App() {
                                           setScheduleForm((prev) => ({
                                             ...prev,
                                             studio: val,
+                                            brand: (val === "All Studio" || val === "All Studio (Standby)") && (!prev.brand || prev.brand === defaultBrandName) ? "Host Standby" : prev.brand
                                           }))
                                         }
-                                        options={studios.map(s => ({ value: s.name, label: `${s.name} (${s.location})` }))}
+                                        options={[
+                                          { value: "All Studio", label: "🌟 All Studio (Host Standby)" },
+                                          ...studios.map(s => ({ value: s.name, label: `${s.name} (${s.location})` }))
+                                        ]}
                                       />
                                     </div>
                                   )}
@@ -8237,6 +8243,7 @@ export default function App() {
                                       options={Array.from(
                                         new Set([
                                           scheduleForm.brand,
+                                          "Host Standby",
                                           ...activeBrandNames
                                         ].map(b => b?.trim()).filter(Boolean)),
                                       )

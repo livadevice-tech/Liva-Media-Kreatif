@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ShiftSchedule, StudioItem, ClientBrand } from '../../types';
-import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, CheckSquare, Square, Trash2, Edit3, Check, Bookmark } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, CheckSquare, Square, Trash2, Edit3, Check, Bookmark, Radio } from 'lucide-react';
 import { getBrandColor, compareShiftsByTime } from '../../shared/utils/appUi';
 
 interface AdminWeeklyScheduleGridProps {
@@ -152,7 +152,7 @@ export function AdminWeeklyScheduleGrid({
   const studioGroups = useMemo(() => {
     const groupsMap = new Map<string, { name: string; shifts: string[] }[]>();
     
-    // Get all valid dates for this week
+    // Valid dates for this week
     const validDates = new Set(weekDays.map(d => d.date));
 
     // Filter schedules to only this week
@@ -162,6 +162,9 @@ export function AdminWeeklyScheduleGrid({
     });
 
     studios.forEach(st => {
+      // Exclude standby/all-studio placeholder from regular studio list
+      if (st.name === "All Studio" || st.name === "All Studio (Standby)") return;
+
       const loc = st.location || "Lainnya";
       
       const studioSchedules = thisWeekSchedules.filter(s => s.studio === st.name);
@@ -198,6 +201,28 @@ export function AdminWeeklyScheduleGrid({
 
     return sorted;
   }, [studios, computedSchedules, weekDays, addedShifts]);
+
+  // Shifts specifically for Host Standby (All Studio)
+  const standbyShifts = useMemo(() => {
+    const validDates = new Set(weekDays.map(d => d.date));
+    const thisWeekSchedules = computedSchedules.filter(s => {
+      const d = (s.date || "").split('T')[0];
+      return validDates.has(d) && (s.studio === "All Studio" || s.studio === "All Studio (Standby)" || s.brand === "Host Standby");
+    });
+
+    let shiftsList = Array.from(new Set(thisWeekSchedules.map(s => s.timeSlot))).filter(Boolean) as string[];
+    const manualStandby = addedShifts["All Studio"] || addedShifts["All Studio (Standby)"];
+    if (manualStandby) {
+      shiftsList = Array.from(new Set([...shiftsList, ...Array.from(manualStandby)])) as string[];
+    }
+
+    if (shiftsList.length === 0) {
+      shiftsList = ["Standby 1", "Standby 2"];
+    }
+
+    shiftsList.sort(compareShiftsByTime);
+    return shiftsList;
+  }, [computedSchedules, weekDays, addedShifts]);
 
   // Studio badge color helper for pastel letter 'S'
   const getStudioBadgeStyle = (name: string) => {
@@ -377,6 +402,285 @@ export function AdminWeeklyScheduleGrid({
             </tr>
           </thead>
           <tbody>
+            {/* Host Standby (All Studio) Row at the Very Top */}
+            {standbyShifts.map((shift, shiftIdx) => {
+              const isFirstRowInStandby = shiftIdx === 0;
+              const isLastRowInStandby = shiftIdx === standbyShifts.length - 1;
+              const borderClass = isLastRowInStandby ? "border-b-[3px] border-b-indigo-300" : "border-b border-indigo-100/60";
+              const { title: shiftTitle, hours: shiftHours } = parseShiftDisplay(shift);
+
+              return (
+                <tr key={`standby-all-studio-${shift}`} className="bg-indigo-50/20 hover:bg-indigo-50/40 transition-colors">
+                  {/* Studio Cell (Rowspan for All Studio Standby) */}
+                  {isFirstRowInStandby && (
+                    <td
+                      rowSpan={standbyShifts.length}
+                      className="border-r border-indigo-200/80 p-1 text-center align-middle bg-indigo-50/30 group/studio relative border-b-[3px] border-b-indigo-300 shadow-[inset_-1px_0_0_rgba(99,102,241,0.1)]"
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const align = rect.top > (window.innerHeight / 2) ? 'bottom' : 'top';
+                          setStudioToAdjust({ name: "All Studio", align });
+                        }}
+                        className="w-full h-full min-h-[50px] flex flex-col items-center justify-center p-1 rounded-lg cursor-pointer transition-all hover:bg-indigo-100/50"
+                        title="Klik untuk menambahkan shift standby"
+                      >
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-xs mb-1 bg-amber-50 text-amber-600 border border-amber-300/80">
+                          <Radio className="w-4 h-4 animate-pulse" />
+                        </div>
+                        <span className="font-extrabold text-indigo-900 text-xs tracking-tight">
+                          All Studio
+                        </span>
+                        <span className="text-[9.5px] font-semibold text-amber-700 bg-amber-100/90 px-1.5 py-0.2 rounded mt-0.5 border border-amber-200">
+                          Standby
+                        </span>
+                        <span className="opacity-0 group-hover/studio:opacity-100 text-[9px] mt-1 text-indigo-600 font-medium transition-opacity flex items-center">
+                          <Plus className="w-2.5 h-2.5 mr-0.5" /> Shift
+                        </span>
+                      </button>
+
+                      {/* INLINE POPOVER FOR ADDING SHIFT TO ALL STUDIO */}
+                      {studioToAdjust?.name === "All Studio" && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-[110]" 
+                            onClick={(e) => { e.stopPropagation(); setStudioToAdjust(null); }} 
+                          />
+                          <div 
+                            className={`absolute ${studioToAdjust.align === 'bottom' ? 'bottom-0' : 'top-0'} left-full ml-1 z-[120] bg-white rounded-xl w-[300px] overflow-hidden shadow-2xl flex flex-col border border-indigo-200 animate-fadeIn text-left`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="bg-indigo-600 p-2.5 flex items-center justify-between">
+                              <h3 className="text-white font-bold flex items-center gap-2 text-xs">
+                                <span>⚙️</span>
+                                Tambah Shift - All Studio (Standby)
+                              </h3>
+                              <button
+                                type="button"
+                                onClick={() => setStudioToAdjust(null)}
+                                className="text-white hover:bg-white/20 p-1 rounded-md transition-colors cursor-pointer"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                            
+                            <div className="p-2 space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
+                              <div className="space-y-1">
+                                {[...masterShifts].sort(compareShiftsByTime).map(mShift => {
+                                  const isAlreadyVisible = standbyShifts.includes(mShift);
+                                  if (isAlreadyVisible) return null;
+                                  
+                                  return (
+                                    <button
+                                      key={mShift}
+                                      onClick={() => {
+                                        fetch('/api/studio-shifts', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ studio: "All Studio", shift: mShift })
+                                        }).catch(console.error);
+
+                                        setAddedShifts(prev => {
+                                           const newSet = new Set(prev["All Studio"] || []);
+                                           newSet.add(mShift);
+                                           return { ...prev, ["All Studio"]: newSet };
+                                        });
+                                        setStudioToAdjust(null);
+                                      }}
+                                      className="w-full text-left p-2 rounded-lg border border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all font-medium text-[11px] text-slate-700 flex items-center justify-between"
+                                    >
+                                      <span className="truncate pr-2">{mShift}</span>
+                                      <Plus className="w-3 h-3 text-indigo-500 shrink-0" />
+                                    </button>
+                                  );
+                                })}
+                                {masterShifts.every(mShift => standbyShifts.includes(mShift)) && (
+                                  <div className="text-center text-[10px] text-slate-500 p-2">Semua shift master sudah ditampilkan.</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </td>
+                  )}
+
+                  {/* Shift Cell */}
+                  <td className={`${borderClass} border-r border-indigo-200/60 py-2 px-1.5 text-center bg-indigo-50/10 whitespace-nowrap group/shiftcell relative`}>
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="font-bold text-xs text-indigo-900 leading-tight">
+                        {shiftTitle}
+                      </span>
+                      {shiftHours && (
+                        <span className="text-[10px] text-indigo-500/80 font-normal leading-tight mt-0.5">
+                          {shiftHours}
+                        </span>
+                      )}
+                    </div>
+                    {standbyShifts.length > 1 && (
+                      <button
+                        type="button"
+                        title="Hapus baris shift ini"
+                        onClick={() => {
+                          const hasSchedules = weekDays.some(day => {
+                            const cellSchedules = (scheduleMap.get(`${day.date}|All Studio|${shift}`) || [])
+                              .concat(scheduleMap.get(`${day.date}|All Studio (Standby)|${shift}`) || []);
+                            return cellSchedules && cellSchedules.length > 0;
+                          });
+                          
+                          if (hasSchedules) {
+                            alert('Tidak bisa menyembunyikan shift yang masih memiliki jadwal standby di minggu ini. Silakan hapus jadwalnya terlebih dahulu.');
+                            return;
+                          }
+                          
+                          fetch('/api/studio-shifts/delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ studio: "All Studio", shift })
+                          }).catch(console.error);
+
+                          setAddedShifts(prev => {
+                            const newSet = new Set(prev["All Studio"] || []);
+                            newSet.delete(shift);
+                            return { ...prev, ["All Studio"]: newSet };
+                          });
+                        }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/shiftcell:opacity-100 hover:bg-rose-100 text-rose-500 rounded p-1 transition-all cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </td>
+
+                  {/* Days Cells for All Studio Standby */}
+                  {weekDays.map(day => {
+                    const primarySchedules = scheduleMap.get(`${day.date}|All Studio|${shift}`) || [];
+                    const secondarySchedules = scheduleMap.get(`${day.date}|All Studio (Standby)|${shift}`) || [];
+                    const cellSchedules = [...primarySchedules, ...secondarySchedules];
+                    const hasData = cellSchedules.length > 0;
+                    const cellKey = `${day.date}|All Studio|${shift}`;
+                    const isSelected = selectedSlots.has(cellKey);
+                    const isDragSelected = dragSelection.has(cellKey);
+
+                    return (
+                      <td
+                        key={cellKey}
+                        onMouseDown={(e) => handleCellMouseDown(e, day.date, "All Studio", shift)}
+                        onMouseEnter={() => handleCellMouseEnter(day.date, "All Studio", shift)}
+                        onClick={(e) => {
+                          if (e.ctrlKey || e.metaKey || e.shiftKey || isMultiSelectMode || selectedSlots.size > 0) {
+                            toggleSlotSelection(cellKey);
+                          } else {
+                            if (!dragSelection || dragSelection.size <= 1) {
+                              onCellClick(day.date, "All Studio", shift);
+                            }
+                          }
+                        }}
+                        className={`${borderClass} border-r border-indigo-200/60 p-1 cursor-pointer transition-all align-middle relative group min-h-[48px] select-none ${
+                          isSelected || isDragSelected
+                            ? 'bg-indigo-100/80 ring-2 ring-inset ring-indigo-500 shadow-inner'
+                            : 'hover:bg-amber-50/50'
+                        }`}
+                      >
+                        {!isSelected && !isDragSelected && !isMultiSelectMode && selectedSlots.size === 0 && (
+                          <div className="absolute inset-0 hidden group-hover:flex items-center justify-center bg-amber-100/30 z-0 pointer-events-none">
+                            <Plus className="w-4 h-4 text-amber-500" />
+                          </div>
+                        )}
+
+                        {(isSelected || isDragSelected) && (
+                          <div className="absolute top-1 right-1 z-30 pointer-events-none">
+                            <div className="bg-indigo-600 text-white rounded-md p-0.5 shadow-sm flex items-center justify-center">
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="relative z-10 flex flex-col gap-1 w-full h-full min-h-[42px] justify-center">
+                          {cellSchedules.map((sched, idx) => {
+                            const isStandbyBrand = sched.brand?.toLowerCase().includes("standby");
+                            const cardBg = isStandbyBrand ? "bg-amber-50" : "bg-purple-50";
+                            const cardBorder = isStandbyBrand ? "border-amber-300 border-[1.5px]" : "border-purple-300 border-[1.5px]";
+                            const cardText = isStandbyBrand ? "text-amber-900" : "text-purple-900";
+                            const platformClean = sched.platform ? sched.platform.replace(/ live/i, '').trim() : '';
+
+                            return (
+                              <div
+                                key={idx}
+                                onDragStart={(e) => e.preventDefault()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (e.ctrlKey || e.metaKey || e.shiftKey || isMultiSelectMode || selectedSlots.size > 0) {
+                                    toggleSlotSelection(cellKey);
+                                    return;
+                                  }
+                                  if (onScheduleClick) {
+                                    onScheduleClick({
+                                      ...sched,
+                                      date: day.date,
+                                      studio: "All Studio",
+                                      timeSlot: shift
+                                    });
+                                  }
+                                }}
+                                className={`group relative ${cardBg} border ${cardBorder} ${cardText} px-1.5 py-1 rounded-md flex flex-col justify-center transition-all hover:shadow-2xs cursor-pointer ${
+                                  isSelected ? 'ring-1 ring-indigo-400 font-semibold' : ''
+                                }`}
+                                title={`Host Standby: ${sched.hostName}${sched.brand ? ` (${sched.brand})` : ''}`}
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="font-extrabold text-[9.5px] uppercase tracking-wider text-amber-700 bg-amber-100/80 px-1 py-0.2 rounded">
+                                    STANDBY
+                                  </span>
+                                  {sched.brand && sched.brand !== "Host Standby" && (
+                                    <span className="font-semibold text-[9px] text-slate-500 truncate">
+                                      {sched.brand}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] font-bold text-slate-900 truncate leading-tight mt-0.5 pr-2.5">
+                                  {sched.hostName}
+                                </div>
+                                {platformClean && (
+                                  <div className="text-[8.5px] text-slate-500 truncate">
+                                    {platformClean}
+                                  </div>
+                                )}
+                                {onDeleteSchedule && !isMultiSelectMode && selectedSlots.size === 0 && (
+                                  <button
+                                    type="button"
+                                    title="Hapus Jadwal Ini"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteSchedule({
+                                        ...sched,
+                                        date: day.date,
+                                        studio: "All Studio",
+                                        timeSlot: shift
+                                      });
+                                    }}
+                                    className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/80 rounded p-0.5 transition-all text-slate-400 hover:text-rose-600"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {!hasData && (
+                            <div className="w-full text-center text-slate-300 font-medium select-none text-xs">-</div>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+
             {studioGroups.map((group) => {
               return group.studios.map((studio) => {
                 const studioBadge = getStudioBadgeStyle(studio.name);
