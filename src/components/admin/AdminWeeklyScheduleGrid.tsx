@@ -202,6 +202,9 @@ export function AdminWeeklyScheduleGrid({
     return sorted;
   }, [studios, computedSchedules, weekDays, addedShifts]);
 
+  // State for hidden standby shifts (e.g. user removed Standby 1 or Standby 2)
+  const [hiddenStandbyShifts, setHiddenStandbyShifts] = useState<Set<string>>(() => new Set());
+
   // Shifts specifically for Host Standby (All Studio)
   const standbyShifts = useMemo(() => {
     const validDates = new Set(weekDays.map(d => d.date));
@@ -216,13 +219,28 @@ export function AdminWeeklyScheduleGrid({
       shiftsList = Array.from(new Set([...shiftsList, ...Array.from(manualStandby)])) as string[];
     }
 
+    // Default standby shifts if user hasn't hidden them
+    const defaults = ["Standby 1", "Standby 2"].filter(s => !hiddenStandbyShifts.has(s));
+    defaults.forEach(def => {
+      if (!shiftsList.includes(def)) {
+        shiftsList.push(def);
+      }
+    });
+
+    // Filter out any shift that user explicitly hid, unless it has active schedules this week
+    shiftsList = shiftsList.filter(s => {
+      const hasSchedule = thisWeekSchedules.some(sched => sched.timeSlot === s);
+      return hasSchedule || !hiddenStandbyShifts.has(s);
+    });
+
+    // If completely empty, at least show Standby 1
     if (shiftsList.length === 0) {
-      shiftsList = ["Standby 1", "Standby 2"];
+      shiftsList = ["Standby 1"];
     }
 
     shiftsList.sort(compareShiftsByTime);
     return shiftsList;
-  }, [computedSchedules, weekDays, addedShifts]);
+  }, [computedSchedules, weekDays, addedShifts, hiddenStandbyShifts]);
 
   // Studio badge color helper for pastel letter 'S'
   const getStudioBadgeStyle = (name: string) => {
@@ -487,6 +505,12 @@ export function AdminWeeklyScheduleGrid({
                                            newSet.add(mShift);
                                            return { ...prev, ["All Studio"]: newSet };
                                         });
+
+                                        setHiddenStandbyShifts(prev => {
+                                           const next = new Set(prev);
+                                           next.delete(mShift);
+                                           return next;
+                                        });
                                         setStudioToAdjust(null);
                                       }}
                                       className="w-full text-left p-2 rounded-lg border border-slate-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all font-medium text-[11px] text-slate-700 flex items-center justify-between"
@@ -545,6 +569,12 @@ export function AdminWeeklyScheduleGrid({
                             const newSet = new Set(prev["All Studio"] || []);
                             newSet.delete(shift);
                             return { ...prev, ["All Studio"]: newSet };
+                          });
+
+                          setHiddenStandbyShifts(prev => {
+                            const next = new Set(prev);
+                            next.add(shift);
+                            return next;
                           });
                         }}
                         className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/shiftcell:opacity-100 hover:bg-rose-100 text-rose-500 rounded p-1 transition-all cursor-pointer"
