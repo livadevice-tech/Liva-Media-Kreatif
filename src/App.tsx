@@ -132,6 +132,7 @@ import {
   ClientBrand,
   ClientReporting,
   ShiftSchedule,
+  ScheduleTemplate,
   AdminAccount,
 } from "./types";
 import { INITIAL_HOSTS, INITIAL_LOGS, PLATFORMS, BRANDS, SHIFTS } from "./data";
@@ -267,8 +268,6 @@ import {
   violationsApi,
 } from "./api";
 import { syncToFirestore } from "./firestoreSync"; // shim → syncToMySQL
-import { InvoiceDashboard } from "./components/InvoiceDashboard";
-import { BerkasManager } from "./components/BerkasManager";
 import { QuickGridInput } from "./components/QuickGridInput";
 import {
   HostCredentialRow,
@@ -276,6 +275,7 @@ import {
 } from "./components/admin/HostManagement";
 import { AttendanceCalendarView } from "./components/admin/AttendanceCalendarView";
 import { AdminWeeklyScheduleGrid } from "./components/admin/AdminWeeklyScheduleGrid";
+import { ScheduleTemplateModal } from "./components/admin/ScheduleTemplateModal";
 
 
 import {
@@ -2025,7 +2025,6 @@ export default function App() {
     | "reporting_brand"
     | "leads"
     | "admin_privacy"
-    | "invoice"
   >("dashboard_utama");
   const [operatorReportingTab, setOperatorReportingTab] = useState<
     "live" | "product" | "engagement" | "analysis" | "settings"
@@ -3566,6 +3565,132 @@ export default function App() {
     return d;
   });
 
+  // Schedule Templates (Save & Reuse settingan jadwal)
+  const [scheduleTemplates, setScheduleTemplates] = useState<ScheduleTemplate[]>(() => {
+    try {
+      const saved = localStorage.getItem("liva_schedule_templates");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isScheduleTemplateModalOpen, setIsScheduleTemplateModalOpen] = useState(false);
+
+  useEffect(() => {
+    settingsApi.get<ScheduleTemplate[] | null>("liva_schedule_templates").then((saved) => {
+      if (Array.isArray(saved) && saved.length > 0) {
+        setScheduleTemplates(saved);
+        try {
+          localStorage.setItem("liva_schedule_templates", JSON.stringify(saved));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }).catch(console.error);
+  }, []);
+
+  const handleSaveScheduleTemplates = async (newTemplates: ScheduleTemplate[]) => {
+    setScheduleTemplates(newTemplates);
+    try {
+      localStorage.setItem("liva_schedule_templates", JSON.stringify(newTemplates));
+    } catch (e) {
+      console.error(e);
+    }
+    await settingsApi.save("liva_schedule_templates", newTemplates).catch(console.error);
+  };
+
+  const handleApplyScheduleTemplate = async (
+    template: ScheduleTemplate,
+    targetStartDate: string,
+    targetEndDate: string,
+    overwrite: boolean
+  ) => {
+    const startParts = targetStartDate.split("-");
+    const endParts = targetEndDate.split("-");
+    const startObj = new Date(
+      parseInt(startParts[0]),
+      parseInt(startParts[1]) - 1,
+      parseInt(startParts[2])
+    );
+    const endObj = new Date(
+      parseInt(endParts[0]),
+      parseInt(endParts[1]) - 1,
+      parseInt(endParts[2])
+    );
+
+    const newSchedules: ShiftSchedule[] = [];
+    const dateWalker = new Date(startObj);
+
+    while (dateWalker <= endObj) {
+      const yyyy = dateWalker.getFullYear();
+      const mm = String(dateWalker.getMonth() + 1).padStart(2, "0");
+      const dd = String(dateWalker.getDate()).padStart(2, "0");
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+
+      // JavaScript getDay(): 0 = Minggu, 1 = Senin, ..., 6 = Sabtu
+      // Template dayOfWeek: 0 = Senin, 1 = Selasa, ..., 5 = Sabtu, 6 = Minggu
+      const jsDay = dateWalker.getDay();
+      const templateDayIdx = jsDay === 0 ? 6 : jsDay - 1;
+
+      // Filter slots for this day of week
+      const daySlots = template.slots.filter(
+        (slot) => slot.dayOfWeek === templateDayIdx
+      );
+
+      daySlots.forEach((slot, slotIdx) => {
+        newSchedules.push({
+          id: `tpl_gen_${Date.now()}_${dateStr}_${slotIdx}_${Math.random().toString(36).slice(2, 7)}`,
+          hostId: slot.hostId,
+          hostName: slot.hostName,
+          employeeId: slot.employeeId || "",
+          date: dateStr,
+          timeSlot: slot.timeSlot,
+          platform: slot.platform || "",
+          brand: slot.brand,
+          status: "Assigned" as ShiftSchedule["status"],
+          studio: slot.studio || "Studio Bandar Lampung",
+          isOffDay: false,
+          isPindahStudio: false,
+          backupHostId: "",
+          backupHostName: "",
+        });
+      });
+
+      dateWalker.setDate(dateWalker.getDate() + 1);
+    }
+
+    if (overwrite) {
+      // Find items to delete
+      const toRemove = schedules.filter((s) => {
+        if (!s.date) return false;
+        return s.date >= targetStartDate && s.date <= targetEndDate;
+      });
+
+      // Update state
+      setSchedules((prev) => {
+        const filtered = prev.filter((s) => {
+          if (!s.date) return true;
+          return s.date < targetStartDate || s.date > targetEndDate;
+        });
+        return [...filtered, ...newSchedules];
+      });
+
+      // Persist deletes & inserts to DB
+      Promise.allSettled(toRemove.map((s) => schedulesApi.delete(s.id))).catch(console.error);
+      Promise.allSettled(newSchedules.map((s) => schedulesApi.create(s))).catch(console.error);
+    } else {
+      setSchedules((prev) => [...prev, ...newSchedules]);
+      Promise.allSettled(newSchedules.map((s) => schedulesApi.create(s))).catch(console.error);
+    }
+
+    addNotification(
+      "Template Diterapkan",
+      `Berhasil menjadwalkan ${newSchedules.length} sesi dari template "${template.name}" untuk periode ${targetStartDate} s.d. ${targetEndDate}.`,
+      "success",
+      "absensi"
+    );
+  };
+
 
   const [scheduleForm, setScheduleForm] = useState({
     id: "",
@@ -4676,8 +4801,6 @@ export default function App() {
       { tabId: "data_brand", label: "Data Brand", icon: Briefcase, category: "cat-client" },
       { tabId: "brand_resources", label: "Panduan & Script", icon: BookOpen, category: "cat-client" },
       { tabId: "reporting_brand", label: "Reporting Brand (Upload)", icon: LineChart, category: "cat-client" },
-      { tabId: "invoice", label: "Invoice", icon: Receipt, category: "cat-client" },
-      { tabId: "berkas", label: "Berkas Klien", icon: Folder, category: "cat-client" },
       { type: "header", label: "Sistem & Integrasi", key: "cat-system" },
       { tabId: "settings", label: "Platform & Shift", icon: Sliders, category: "cat-system" },
       { type: "header", label: "Keamanan Akun", key: "cat-security" },
@@ -5969,12 +6092,6 @@ export default function App() {
                     {operatorTab === "brand_resources" && (
                       <span>Manajemen Panduan & Script Publik</span>
                     )}
-                    {operatorTab === "invoice" && (
-                      <span>Invoice Klien</span>
-                    )}
-                    {operatorTab === "berkas" && (
-                      <span>Berkas Klien</span>
-                    )}
                     {operatorTab === "reporting_brand" && (
                       <span>Reporting Eksternal Brand</span>
                     )}
@@ -6222,7 +6339,7 @@ export default function App() {
                     ? ""
                     : operatorTab === "absensi"
                     ? "p-0 md:px-4 md:py-3 w-full max-w-none md:space-y-4"
-                    : (operatorTab === "dashboard_utama" || operatorTab === "invoice")
+                    : operatorTab === "dashboard_utama"
                     ? "p-0 md:p-6 max-w-7xl md:space-y-6"
                     : "p-4 md:p-6 max-w-7xl space-y-4 md:space-y-6"
                 }`}
@@ -6485,6 +6602,17 @@ export default function App() {
                             className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-200"
                           >
                             <Sparkles className="w-4 h-4" /> Auto Generate Jadwal
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsScheduleActionsOpen(false);
+                              setIsScheduleTemplateModalOpen(true);
+                            }}
+                            className="w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all border border-blue-200"
+                          >
+                            <Bookmark className="w-4 h-4 text-blue-600" /> Template Jadwal ({scheduleTemplates.length})
                           </button>
                           
                           <button
@@ -6778,6 +6906,17 @@ export default function App() {
                                       <button
                                         type="button"
                                         onClick={() => {
+                                          setIsScheduleActionsOpen(false);
+                                          setIsScheduleTemplateModalOpen(true);
+                                        }}
+                                        className="w-full px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border border-blue-100"
+                                      >
+                                        <Bookmark className="w-4 h-4 text-blue-600" /> Template Jadwal ({scheduleTemplates.length})
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
                                           requestConfirm(
                                             `Reset Jadwal (${scheduleActionStartDate} s.d. ${scheduleActionEndDate})`,
                                             `Apakah Anda yakin ingin menghapus SELURUH jadwal dari ${scheduleActionStartDate} s.d. ${scheduleActionEndDate}? Tindakan ini tidak dapat dibatalkan.`,
@@ -6824,6 +6963,14 @@ export default function App() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto hide-scrollbar">
+                            <button
+                              type="button"
+                              onClick={() => setIsScheduleTemplateModalOpen(true)}
+                              className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-xl text-xs font-semibold text-indigo-700 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer"
+                              title="Buka Template Jadwal"
+                            >
+                              <Bookmark className="w-4 h-4 text-indigo-600" /> Template Jadwal
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -7098,6 +7245,7 @@ export default function App() {
                                 setAdminWeekStartDate(d);
                               }}
                               masterShifts={shifts}
+                              onOpenTemplateModal={() => setIsScheduleTemplateModalOpen(true)}
                               onCellClick={(dateStr, studio, shift) => {
                                 setScheduleForm(prev => ({
                                   ...prev,
@@ -8201,6 +8349,20 @@ export default function App() {
                         </div>
                       </div>
                     )}
+
+                    {/* SCHEDULE TEMPLATES MODAL */}
+                    <ScheduleTemplateModal
+                      isOpen={isScheduleTemplateModalOpen}
+                      onClose={() => setIsScheduleTemplateModalOpen(false)}
+                      templates={scheduleTemplates}
+                      onSaveTemplates={handleSaveScheduleTemplates}
+                      currentWeekStartDate={adminWeekStartDate}
+                      computedSchedules={computedSchedules}
+                      hosts={hosts}
+                      studios={studios}
+                      clientBrands={clientBrands}
+                      onApplyTemplate={handleApplyScheduleTemplate}
+                    />
                   </>
                 )}
 
@@ -11267,7 +11429,7 @@ export default function App() {
                               Manajemen Data Brand Klien
                             </h3>
                             <p className="text-[11px] sm:text-xs text-slate-500 font-semibold mt-1">
-                              Data detail terkait kontrak, invoice, dan kredensial
+                              Data detail terkait kontrak dan kredensial
                               brand aktif.
                             </p>
                           </div>
@@ -11433,22 +11595,6 @@ export default function App() {
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setOperatorTab("invoice");
-                                        setTimeout(() => {
-                                          const evt = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
-                                          window.dispatchEvent(evt);
-                                        }, 300);
-                                      }}
-                                      aria-label={`Buat invoice untuk ${brand.name}`}
-                                      className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/30"
-                                      title="Buat Invoice"
-                                    >
-                                      <Receipt className="w-3.5 h-3.5" /> Invoice
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
                                         handleEditBrand(brand);
                                       }}
                                       aria-label={`Edit data brand ${brand.name}`}
@@ -11481,20 +11627,6 @@ export default function App() {
                                 {/* Action Buttons (Mobile) */}
                                 <div className="sm:hidden flex items-center justify-between px-4 pb-4 mt-2">
                                    <div className="flex items-center gap-2">
-                                     <button
-                                       type="button"
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         setOperatorTab("invoice");
-                                         setTimeout(() => {
-                                           const evt = new CustomEvent('openInvoiceForBrand', { detail: brand.id });
-                                           window.dispatchEvent(evt);
-                                         }, 300);
-                                       }}
-                                       className="flex items-center gap-1.5 rounded-[12px] border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-[#5C32FF] transition-all active:bg-slate-50"
-                                     >
-                                       <Receipt className="w-4 h-4" /> Invoice
-                                     </button>
                                      <button
                                        type="button"
                                        onClick={(e) => {
@@ -11638,25 +11770,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* ==================== SUBTAB: INVOICE BRAND ==================== */}
-                {operatorTab === "invoice" && (
-                  <InvoiceDashboard
-                    clientBrands={clientBrands}
-                    onUpdateBrands={setClientBrands}
-                    onBack={() => setOperatorTab("dashboard_utama")}
-                  />
-                )}
-
-                {/* ==================== SUBTAB: BERKAS ==================== */}
-                {operatorTab === "berkas" && (
-                  <div className="mx-auto w-full max-w-[1600px] animate-fadeIn space-y-6 bg-[#fafafc] px-4 pt-6 sm:px-6 lg:px-8 pb-12">
-                    <BerkasManager 
-                      clientBrands={clientBrands} 
-                      onUpdateBrands={setClientBrands} 
-                      onBack={() => setOperatorTab("dashboard_utama")} 
-                    />
-                  </div>
-                )}
 
                 {/* ==================== SUBTAB: REPORTING BRAND ==================== */}
                 {operatorTab === "reporting_brand" && (
@@ -12561,14 +12674,6 @@ export default function App() {
                                     {
                                       id: "reporting_brand",
                                       label: "Reporting Brand (Upload)",
-                                    },
-                                    {
-                                      id: "invoice",
-                                      label: "Invoice",
-                                    },
-                                    {
-                                      id: "berkas",
-                                      label: "Berkas Klien",
                                     },
                                     {
                                       id: "settings",

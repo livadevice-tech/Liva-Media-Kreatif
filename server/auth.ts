@@ -121,7 +121,6 @@ function getAdminRequiredTabs(path: string): readonly string[] | null {
   if (isPathUnder(path, "/client-reporting")) return MODULE_TAB_REQUIREMENTS.clientReporting;
   if (isPathUnder(path, "/reporting/brand")) return MODULE_TAB_REQUIREMENTS.reportingBrand;
   if (isPathUnder(path, "/settings")) return MODULE_TAB_REQUIREMENTS.settings;
-  if (isPathUnder(path, "/invoice")) return MODULE_TAB_REQUIREMENTS.invoice;
   if (isPathUnder(path, "/chat")) return MODULE_TAB_REQUIREMENTS.chat;
   if (isPathUnder(path, "/ai")) return MODULE_TAB_REQUIREMENTS.ai;
   return null;

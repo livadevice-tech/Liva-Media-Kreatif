@@ -12,8 +12,7 @@ export type AdminTab =
   | "reporting_brand"
   | "leads"
   | "copilot"
-  | "admin_privacy"
-  | "invoice";
+  | "admin_privacy";
 
 export const MODULE_TAB_REQUIREMENTS = {
   adminAccounts: ["admin_privacy"],
@@ -21,12 +20,11 @@ export const MODULE_TAB_REQUIREMENTS = {
   logs: ["dashboard_utama", "absensi", "rekap_gaji", "database"],
   schedules: ["dashboard_utama", "absensi", "rekap_gaji", "database"],
   alerts: ["dashboard_utama", "copilot"],
-  clientBrands: ["dashboard_utama", "data_brand", "invoice", "reporting_brand"],
+  clientBrands: ["dashboard_utama", "data_brand", "reporting_brand"],
   clientLeads: ["leads"],
   clientReporting: ["reporting_brand"],
   reportingBrand: ["reporting_brand"],
   settings: ["settings", "sheets"],
-  invoice: ["invoice"],
   chat: ["copilot"],
   ai: ["copilot"],
 } as const satisfies Record<string, readonly AdminTab[]>;

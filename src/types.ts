@@ -96,6 +96,26 @@ export interface ShiftSchedule {
   timestamp?: string;
 }
 
+export interface ScheduleTemplateSlot {
+  dayOfWeek: number; // 0 = Senin, 1 = Selasa, ..., 6 = Minggu
+  hostId: string;
+  hostName: string;
+  employeeId?: string;
+  timeSlot: string;
+  platform: string;
+  brand: string;
+  studio?: string;
+}
+
+export interface ScheduleTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  slots: ScheduleTemplateSlot[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface KPIAlert {
   id: string;
   hostId: string;

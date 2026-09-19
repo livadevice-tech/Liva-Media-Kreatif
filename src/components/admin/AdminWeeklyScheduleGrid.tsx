@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ShiftSchedule, StudioItem, ClientBrand } from '../../types';
-import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, CheckSquare, Square, Trash2, Edit3, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, CheckSquare, Square, Trash2, Edit3, Check, Bookmark } from 'lucide-react';
 import { getBrandColor, compareShiftsByTime } from '../../shared/utils/appUi';
 
 interface AdminWeeklyScheduleGridProps {
@@ -16,6 +16,7 @@ interface AdminWeeklyScheduleGridProps {
   onMassCellSelect?: (slots: {date: string, studio: string, shift: string}[]) => void;
   masterShifts?: string[];
   clientBrands?: ClientBrand[];
+  onOpenTemplateModal?: () => void;
 }
 
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -40,7 +41,8 @@ export function AdminWeeklyScheduleGrid({
   onDeleteSchedule,
   onMassCellSelect,
   masterShifts = [],
-  clientBrands = []
+  clientBrands = [],
+  onOpenTemplateModal
 }: AdminWeeklyScheduleGridProps) {
 
 
@@ -268,6 +270,17 @@ export function AdminWeeklyScheduleGrid({
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {onOpenTemplateModal && (
+            <button
+              type="button"
+              onClick={onOpenTemplateModal}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/70"
+              title="Kelola & Terapkan Template Jadwal"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-blue-600" />
+              <span>Template Jadwal</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
