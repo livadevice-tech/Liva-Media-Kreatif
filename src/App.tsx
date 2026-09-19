@@ -1767,9 +1767,11 @@ export default function App() {
   // --- TIME DISPLAY & TICKER ---
   const [liveTime, setLiveTime] = useState(new Date());
   useEffect(() => {
+    // Only run clock ticker if logged in to avoid re-rendering entire App (and login page) every second
+    if (!loggedInHostId && !isOperatorLoggedIn && !loggedInClientBrandId) return;
     const timer = setInterval(() => setLiveTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [loggedInHostId, isOperatorLoggedIn, loggedInClientBrandId]);
 
   const formattedLiveDate = liveTime.toLocaleDateString("id-ID", {
     weekday: "long",
@@ -5066,7 +5068,7 @@ export default function App() {
             </div>
           ) : (
             /* HOST & ADMIN LOGIN PORTAL - REDESIGNED */
-            <div className="fixed inset-0 z-[100] flex bg-[#5A52E5] text-white animate-fadeIn">
+            <div className="fixed inset-0 z-[100] flex bg-[#5A52E5] text-white">
               {/* Left Side: Branding */}
               <div className="hidden lg:flex flex-col w-1/2 p-12 xl:p-24 justify-center relative">
 
