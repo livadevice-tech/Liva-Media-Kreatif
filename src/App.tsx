@@ -7283,6 +7283,15 @@ export default function App() {
                               masterShifts={shifts}
                               onOpenTemplateModal={() => setIsScheduleTemplateModalOpen(true)}
                               onOpenExportModal={() => setIsScheduleExportModalOpen(true)}
+                              onAddStudio={(newSt) => {
+                                const studioObj: StudioItem = {
+                                  id: `std_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                                  name: newSt.name.trim(),
+                                  location: newSt.location,
+                                  radius: 100,
+                                };
+                                setStudios((prev) => [...prev, studioObj]);
+                              }}
                               onCellClick={(dateStr, studio, shift) => {
                                 const isStandby = studio === "All Studio" || studio === "All Studio (Standby)";
                                 setScheduleForm(prev => ({
