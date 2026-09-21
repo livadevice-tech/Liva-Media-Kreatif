@@ -277,6 +277,7 @@ import {
 import { AttendanceCalendarView } from "./components/admin/AttendanceCalendarView";
 import { AdminWeeklyScheduleGrid } from "./components/admin/AdminWeeklyScheduleGrid";
 import { ScheduleTemplateModal } from "./components/admin/ScheduleTemplateModal";
+import { ScheduleExportModal } from "./components/admin/ScheduleExportModal";
 
 
 import {
@@ -3578,6 +3579,7 @@ export default function App() {
     }
   });
   const [isScheduleTemplateModalOpen, setIsScheduleTemplateModalOpen] = useState(false);
+  const [isScheduleExportModalOpen, setIsScheduleExportModalOpen] = useState(false);
 
   useEffect(() => {
     settingsApi.get<ScheduleTemplate[] | null>("liva_schedule_templates").then((saved) => {
@@ -6392,6 +6394,7 @@ export default function App() {
                     hosts={hosts}
                     onBackClick={() => setOperatorTab("dashboard_utama")}
                     onSettingsClick={() => setIsScheduleActionsOpen(true)}
+                    onExportClick={() => setIsScheduleExportModalOpen(true)}
                     onEmptyCellClick={(dateStr, studio, shift) => {
                       setScheduleForm(prev => ({
                         ...prev,
@@ -6605,6 +6608,17 @@ export default function App() {
                             className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-200"
                           >
                             <Sparkles className="w-4 h-4" /> Auto Generate Jadwal
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsScheduleActionsOpen(false);
+                              setIsScheduleExportModalOpen(true);
+                            }}
+                            className="w-full px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-black text-[12px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all border border-emerald-200"
+                          >
+                            <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Export Jadwal ke Excel
                           </button>
 
                           <button
@@ -6910,6 +6924,17 @@ export default function App() {
                                         type="button"
                                         onClick={() => {
                                           setIsScheduleActionsOpen(false);
+                                          setIsScheduleExportModalOpen(true);
+                                        }}
+                                        className="w-full px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border border-emerald-100"
+                                      >
+                                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Export Jadwal ke Excel
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setIsScheduleActionsOpen(false);
                                           setIsScheduleTemplateModalOpen(true);
                                         }}
                                         className="w-full px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border border-blue-100"
@@ -6966,6 +6991,14 @@ export default function App() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 w-full xl:w-auto overflow-x-auto hide-scrollbar">
+                            <button
+                              type="button"
+                              onClick={() => setIsScheduleExportModalOpen(true)}
+                              className="px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 rounded-xl text-xs font-semibold text-emerald-700 flex items-center gap-2 whitespace-nowrap transition-colors cursor-pointer"
+                              title="Export Jadwal ke Excel (.xlsx)"
+                            >
+                              <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Export Excel
+                            </button>
                             <button
                               type="button"
                               onClick={() => setIsScheduleTemplateModalOpen(true)}
@@ -7249,6 +7282,7 @@ export default function App() {
                               }}
                               masterShifts={shifts}
                               onOpenTemplateModal={() => setIsScheduleTemplateModalOpen(true)}
+                              onOpenExportModal={() => setIsScheduleExportModalOpen(true)}
                               onCellClick={(dateStr, studio, shift) => {
                                 const isStandby = studio === "All Studio" || studio === "All Studio (Standby)";
                                 setScheduleForm(prev => ({
@@ -8371,6 +8405,15 @@ export default function App() {
                       studios={studios}
                       clientBrands={clientBrands}
                       onApplyTemplate={handleApplyScheduleTemplate}
+                    />
+
+                    {/* SCHEDULE EXPORT MODAL */}
+                    <ScheduleExportModal
+                      isOpen={isScheduleExportModalOpen}
+                      onClose={() => setIsScheduleExportModalOpen(false)}
+                      schedules={computedSchedules}
+                      clientBrands={clientBrands}
+                      hosts={hosts}
                     />
                   </>
                 )}
@@ -10947,6 +10990,7 @@ export default function App() {
                         }}
                         onSaveLog={handleCalendarSaveLog}
                         onDeleteLog={handleCalendarDeleteLog}
+                        onOpenExportModal={() => setIsScheduleExportModalOpen(true)}
                       />
                     ) : (
                       <>

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ShiftSchedule, StudioItem, ClientBrand } from '../../types';
-import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, CheckSquare, Square, Trash2, Edit3, Check, Bookmark, Radio } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, CheckSquare, Square, Trash2, Edit3, Check, Bookmark, Radio, FileSpreadsheet } from 'lucide-react';
 import { getBrandColor, compareShiftsByTime } from '../../shared/utils/appUi';
 
 interface AdminWeeklyScheduleGridProps {
@@ -17,6 +17,7 @@ interface AdminWeeklyScheduleGridProps {
   masterShifts?: string[];
   clientBrands?: ClientBrand[];
   onOpenTemplateModal?: () => void;
+  onOpenExportModal?: () => void;
 }
 
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
@@ -42,7 +43,8 @@ export function AdminWeeklyScheduleGrid({
   onMassCellSelect,
   masterShifts = [],
   clientBrands = [],
-  onOpenTemplateModal
+  onOpenTemplateModal,
+  onOpenExportModal
 }: AdminWeeklyScheduleGridProps) {
 
 
@@ -313,6 +315,17 @@ export function AdminWeeklyScheduleGrid({
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {onOpenExportModal && (
+            <button
+              type="button"
+              onClick={onOpenExportModal}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70"
+              title="Export Jadwal ke Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export Excel</span>
+            </button>
+          )}
           {onOpenTemplateModal && (
             <button
               type="button"

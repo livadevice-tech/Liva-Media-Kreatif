@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, X, Plus, Calendar, Clock, Edit2, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Plus, Calendar, Clock, Edit2, Trash2, FileSpreadsheet } from "lucide-react";
 import type { AttendanceLog, HostEmployee, ClientBrand } from "../../types";
 import { SearchableHostSelect } from "./HostManagement";
 
@@ -20,6 +20,7 @@ interface AttendanceCalendarViewProps {
   salarySettings: SalarySettings;
   onSaveLog: (log: AttendanceLog) => Promise<void>;
   onDeleteLog: (id: string) => Promise<void>;
+  onOpenExportModal?: () => void;
 }
 
 type ViewMode = "monthly" | "cutoff";
@@ -33,7 +34,8 @@ export function AttendanceCalendarView({
   studios, 
   salarySettings,
   onSaveLog,
-  onDeleteLog 
+  onDeleteLog,
+  onOpenExportModal
 }: AttendanceCalendarViewProps) {
   const [selectedHostId, setSelectedHostId] = useState<string>("");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -340,6 +342,18 @@ export function AttendanceCalendarView({
               <ChevronRight className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
             </button>
           </div>
+
+          {onOpenExportModal && (
+            <button
+              type="button"
+              onClick={onOpenExportModal}
+              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 rounded-lg sm:rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+              title="Export Jadwal ke Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>Export Excel</span>
+            </button>
+          )}
         </div>
       </div>
 

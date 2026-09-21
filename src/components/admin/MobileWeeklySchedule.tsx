@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { ChevronRight, ChevronLeft, Settings, CheckSquare } from "lucide-react";
+import { ChevronRight, ChevronLeft, Settings, CheckSquare, FileSpreadsheet } from "lucide-react";
 import { getBrandStyle, compareShiftsByTime } from "../../shared/utils/appUi";
 import { HostEmployee } from "../../types";
 
@@ -30,6 +30,7 @@ interface MobileWeeklyScheduleProps {
   onEmptyCellClick?: (dateStr: string, studio: string, shift: string) => void;
   onScheduleClick?: (schedule: Schedule) => void;
   onSettingsClick?: () => void;
+  onExportClick?: () => void;
   onMassDelete?: (scheduleIds: string[]) => void;
   onMassCreate?: (slots: EmptySlot[]) => void;
 }
@@ -42,6 +43,7 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
   onEmptyCellClick,
   onScheduleClick,
   onSettingsClick,
+  onExportClick,
   onMassDelete,
   onMassCreate
 }) => {
@@ -193,6 +195,17 @@ export const MobileWeeklySchedule: React.FC<MobileWeeklyScheduleProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
+          {onExportClick && (
+            <button 
+              onClick={onExportClick}
+              className="px-2.5 h-9 flex items-center gap-1.5 justify-center rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-[13px] font-medium transition-colors active:scale-95"
+              title="Export Jadwal ke Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+          )}
+
           <button 
             onClick={toggleSelectionMode}
             className={`px-3 h-9 flex items-center gap-1.5 justify-center rounded-xl border text-[13px] font-medium transition-colors active:scale-95 ${
