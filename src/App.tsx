@@ -3750,11 +3750,14 @@ export default function App() {
     const seen = new Set<string>();
 
     result.forEach((r) => {
-      // Unique key for deduplication. A host can only physically exist in one place per time slot.
+      // Unique key for deduplication.
+      // Include studio AND brand so that the same host scheduled in different studios
+      // or for different brands on the same day/shift both appear in the grid.
+      // This also lets double-bookings surface so admins can detect them.
       const key =
         r.isOffDay || r.isPindahStudio
           ? `EXCEPTION_${r.hostId}_${r.date}_${r.isOffDay ? "OFF" : "PINDAH"}`
-          : `${r.hostId}_${r.date}_${r.timeSlot}`;
+          : `${r.hostId}_${r.date}_${r.timeSlot}_${r.studio || ""}_${r.brand || ""}`;
 
       if (!seen.has(key)) {
         seen.add(key);
