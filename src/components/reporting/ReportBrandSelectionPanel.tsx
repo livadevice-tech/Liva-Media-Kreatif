@@ -1,4 +1,4 @@
-import { ArrowRight, MoreHorizontal, Search, Sparkles, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, Download, MoreHorizontal, Search, Sparkles, SlidersHorizontal } from "lucide-react";
 import { Fragment, type KeyboardEvent, useState } from "react";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
@@ -38,6 +38,7 @@ interface ReportBrandSelectionPanelProps {
   onToggleBrandCardActions: (brandId: string) => void;
   onDeleteAllBrandRawData: (brandId: string, brandName: string, platform?: string) => void;
   onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
+  onExportBrand?: (brandId: string, brandName: string) => void;
 }
 
 function getSortLabel(sortKey: ReportBrandSortKey) {
@@ -73,6 +74,7 @@ function ReportBrandCard({
   onToggleBrandCardActions,
   onDeleteAllBrandRawData,
   onDeleteBrandDataByDateRange,
+  onExportBrand,
 }: {
   row: ReportBrandRowView;
   openBrandCardActionsId: string | null;
@@ -80,6 +82,7 @@ function ReportBrandCard({
   onToggleBrandCardActions: (brandId: string) => void;
   onDeleteAllBrandRawData: (brandId: string, brandName: string, platform?: string) => void;
   onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
+  onExportBrand?: (brandId: string, brandName: string) => void;
 }) {
   const brand = row.brand;
   const brandPlatforms = row.platforms;
@@ -154,6 +157,19 @@ function ReportBrandCard({
                 >
                   Buka Dashboard
                 </button>
+                {onExportBrand && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onExportBrand(brand.id, brand.name);
+                    }}
+                    className="flex w-full items-center gap-1.5 rounded-xl px-3 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-emerald-50"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Export Data</span>
+                  </button>
+                )}
                 {onDeleteBrandDataByDateRange && (
                   <button
                     type="button"
@@ -286,6 +302,7 @@ function MobileReportBrandCard({
   onToggleBrandCardActions,
   onDeleteAllBrandRawData,
   onDeleteBrandDataByDateRange,
+  onExportBrand,
 }: {
   row: ReportBrandRowView;
   openBrandCardActionsId: string | null;
@@ -293,6 +310,7 @@ function MobileReportBrandCard({
   onToggleBrandCardActions: (brandId: string) => void;
   onDeleteAllBrandRawData: (brandId: string, brandName: string, platform?: string) => void;
   onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
+  onExportBrand?: (brandId: string, brandName: string) => void;
 }) {
   const brand = row.brand;
   const brandPlatforms = row.platforms;
@@ -368,6 +386,19 @@ function MobileReportBrandCard({
                 >
                   Buka Dashboard
                 </button>
+                {onExportBrand && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onExportBrand(brand.id, brand.name);
+                    }}
+                    className="flex w-full items-center gap-1.5 rounded-xl px-3 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-emerald-50"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Export Data</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={(event) => {
@@ -471,6 +502,7 @@ export function ReportBrandSelectionPanel({
   onToggleBrandCardActions,
   onDeleteAllBrandRawData,
   onDeleteBrandDataByDateRange,
+  onExportBrand,
 }: ReportBrandSelectionPanelProps) {
   return (
     <div className="space-y-6" id="operator_reporting_brand_content">
@@ -607,6 +639,7 @@ export function ReportBrandSelectionPanel({
                 onToggleBrandCardActions={onToggleBrandCardActions}
                 onDeleteAllBrandRawData={onDeleteAllBrandRawData}
                 onDeleteBrandDataByDateRange={onDeleteBrandDataByDateRange}
+                onExportBrand={onExportBrand}
               />
               <ReportBrandCard
                 row={row}
@@ -616,6 +649,7 @@ export function ReportBrandSelectionPanel({
                 onToggleBrandCardActions={onToggleBrandCardActions}
                 onDeleteAllBrandRawData={onDeleteAllBrandRawData}
                 onDeleteBrandDataByDateRange={onDeleteBrandDataByDateRange}
+                onExportBrand={onExportBrand}
               />
             </Fragment>
           ))}

@@ -253,6 +253,16 @@ export default function HostDashboard({
   }, [activeHostObj]);
 
   useEffect(() => {
+    if (activeHostObj?.id) {
+      setHasAutoFilled(false);
+      const today = new Date();
+      setSelectedDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
+      setWeeklyOffset(0);
+      setSelectedPerfBrandId(null);
+    }
+  }, [activeHostObj?.id]);
+
+  useEffect(() => {
     if (!activeHostObj || !computedSchedules) return;
     if (hasAutoFilled) return;
 
@@ -702,10 +712,10 @@ export default function HostDashboard({
           
           <div className="flex flex-col justify-center">
             <h2 className="text-[17px] font-bold text-slate-800 leading-tight">
-              {activeHostObj?.name || 'Pujia Puspita Sari'}
+              {activeHostObj?.name || 'Host'}
             </h2>
             <p className="text-sm font-medium text-slate-500 mt-0.5">
-              Studio Lampung
+              {activeHostObj?.studio || 'Studio Host'}
             </p>
           </div>
         </div>

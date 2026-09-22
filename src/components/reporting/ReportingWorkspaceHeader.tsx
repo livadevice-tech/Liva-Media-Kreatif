@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   Settings2,
   Upload,
+  Download,
   MoreVertical,
   Filter,
 } from "lucide-react";
@@ -63,6 +64,7 @@ type ReportingWorkspaceHeaderProps = {
   sessionCount?: number;
   onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
   onDeleteAllBrandRawData?: (brandId: string, brandName: string, platform?: string) => void;
+  onExport?: () => void;
 };
 
 const DATE_FILTER_OPTIONS: Array<{
@@ -176,6 +178,7 @@ export function ReportingWorkspaceHeader({
   sessionCount,
   onDeleteBrandDataByDateRange,
   onDeleteAllBrandRawData,
+  onExport,
 }: ReportingWorkspaceHeaderProps) {
   const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
   const [isPlatformMenuOpen, setIsPlatformMenuOpen] = useState(false);
@@ -298,57 +301,70 @@ export function ReportingWorkspaceHeader({
             </div>
           </div>
           
-          <div className="relative" ref={settingsMenuRef}>
-            <button
-              type="button"
-              onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)}
-              className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-slate-50 border border-slate-200 text-slate-500 shadow-sm transition-colors hover:bg-slate-100"
-            >
-              <Settings2 className="h-[18px] w-[18px]" />
-            </button>
-            {isSettingsMenuOpen ? (
-              <div className="absolute right-0 top-11 z-[60] w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
-                {onDeleteBrandDataByDateRange && brandId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSettingsMenuOpen(false);
-                      onDeleteBrandDataByDateRange(brandId, brandName || "Brand");
-                    }}
-                    className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50"
-                  >
-                    Hapus Rentang Waktu
-                  </button>
-                )}
-                {availablePlatforms?.map((platform) => (
-                  <button
-                    key={platform}
-                    type="button"
-                    onClick={() => {
-                      setIsSettingsMenuOpen(false);
-                      if (onDeleteAllBrandRawData && brandId) {
-                        onDeleteAllBrandRawData(brandId, brandName || "Brand", platform);
-                      }
-                    }}
-                    className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50"
-                  >
-                    Hapus Data {platform}
-                  </button>
-                ))}
-                {onDeleteAllBrandRawData && brandId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSettingsMenuOpen(false);
-                      onDeleteAllBrandRawData(brandId, brandName || "Brand");
-                    }}
-                    className={`w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 ${availablePlatforms && availablePlatforms.length > 0 ? "border-t border-slate-100 rounded-t-none mt-1 pt-2" : ""}`}
-                  >
-                    {availablePlatforms && availablePlatforms.length > 0 ? "Hapus Seluruh Platform" : "Hapus Semua Data"}
-                  </button>
-                )}
-              </div>
-            ) : null}
+          <div className="flex items-center gap-2">
+            {onExport && (
+              <button
+                type="button"
+                onClick={onExport}
+                aria-label="Export Data"
+                className="flex h-9 items-center gap-1.5 rounded-[12px] bg-emerald-50 border border-emerald-200 px-2.5 text-xs font-bold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-100 active:scale-95"
+              >
+                <Download className="h-4 w-4 text-emerald-600" />
+                <span>Export</span>
+              </button>
+            )}
+            <div className="relative" ref={settingsMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)}
+                className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-slate-50 border border-slate-200 text-slate-500 shadow-sm transition-colors hover:bg-slate-100"
+              >
+                <Settings2 className="h-[18px] w-[18px]" />
+              </button>
+              {isSettingsMenuOpen ? (
+                <div className="absolute right-0 top-11 z-[60] w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                  {onDeleteBrandDataByDateRange && brandId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsMenuOpen(false);
+                        onDeleteBrandDataByDateRange(brandId, brandName || "Brand");
+                      }}
+                      className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50"
+                    >
+                      Hapus Rentang Waktu
+                    </button>
+                  )}
+                  {availablePlatforms?.map((platform) => (
+                    <button
+                      key={platform}
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsMenuOpen(false);
+                        if (onDeleteAllBrandRawData && brandId) {
+                          onDeleteAllBrandRawData(brandId, brandName || "Brand", platform);
+                        }
+                      }}
+                      className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50"
+                    >
+                      Hapus Data {platform}
+                    </button>
+                  ))}
+                  {onDeleteAllBrandRawData && brandId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsMenuOpen(false);
+                        onDeleteAllBrandRawData(brandId, brandName || "Brand");
+                      }}
+                      className={`w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 ${availablePlatforms && availablePlatforms.length > 0 ? "border-t border-slate-100 rounded-t-none mt-1 pt-2" : ""}`}
+                    >
+                      {availablePlatforms && availablePlatforms.length > 0 ? "Hapus Seluruh Platform" : "Hapus Semua Data"}
+                    </button>
+                  )}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
         {/* === DESKTOP-ONLY header row (hidden on mobile) === */}
@@ -387,51 +403,68 @@ export function ReportingWorkspaceHeader({
             </div>
           </div>
           
-          {(onImportRawLive || onImportRawProduct || onImportRawEngagement || onOpenAddManualDuration) && (
-            <div className="relative flex-shrink-0" ref={rawMenuRef}>
+          <div className="flex items-center gap-3">
+            {onExport && (
               <button
                 type="button"
-                onClick={openRawMenu}
-                className="inline-flex h-[48px] items-center justify-center gap-3 rounded-[20px] bg-[#5200ff] px-5 shadow-[0_8px_16px_-6px_rgba(82,0,255,0.4)] transition-all hover:bg-[#4300cc] focus:outline-none focus:ring-2 focus:ring-[#5200ff] focus:ring-offset-2 active:scale-95"
-                aria-haspopup="menu"
-                aria-expanded={isRawMenuOpen}
+                onClick={onExport}
+                className="inline-flex h-[48px] items-center justify-center gap-2.5 rounded-[20px] bg-emerald-600 px-5 shadow-[0_8px_16px_-6px_rgba(5,150,105,0.4)] transition-all hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:scale-95 text-white"
+                title="Export Data Laporan"
               >
-                <Upload className="h-[18px] w-[18px] shrink-0 text-white" strokeWidth={2.5} />
+                <Download className="h-[18px] w-[18px] shrink-0 text-white" strokeWidth={2.5} />
                 <div className="flex flex-col items-start leading-[1.1] text-left">
-                  <span className="text-[14px] font-bold text-white">Upload</span>
+                  <span className="text-[14px] font-bold text-white">Export</span>
                   <span className="text-[14px] font-bold text-white">Data</span>
                 </div>
-                <ChevronDown className="h-[18px] w-[18px] shrink-0 text-white opacity-80" strokeWidth={2.5} />
               </button>
-              
-              {isRawMenuOpen && (
-                <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[240px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
-                  <div className="space-y-1">
-                    {onImportRawLive && (
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawLive(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
-                        <Layers3 className="h-4 w-4 text-indigo-600" /> Upload Raw Data Live
-                      </button>
-                    )}
-                    {onOpenAddManualDuration && (
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onOpenAddManualDuration(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
-                        <CalendarDays className="h-4 w-4 text-indigo-600" /> Tambah Durasi Manual
-                      </button>
-                    )}
-                    {onImportRawProduct && (
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawProduct(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
-                        <ShoppingBag className="h-4 w-4 text-[#ff6a00]" /> Upload Raw Data Product
-                      </button>
-                    )}
-                    {onImportRawEngagement && (
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawEngagement(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
-                        <Settings2 className="h-4 w-4 text-[#0f766e]" /> Upload Raw Data Engagement
-                      </button>
-                    )}
+            )}
+
+            {(onImportRawLive || onImportRawProduct || onImportRawEngagement || onOpenAddManualDuration) && (
+              <div className="relative flex-shrink-0" ref={rawMenuRef}>
+                <button
+                  type="button"
+                  onClick={openRawMenu}
+                  className="inline-flex h-[48px] items-center justify-center gap-3 rounded-[20px] bg-[#5200ff] px-5 shadow-[0_8px_16px_-6px_rgba(82,0,255,0.4)] transition-all hover:bg-[#4300cc] focus:outline-none focus:ring-2 focus:ring-[#5200ff] focus:ring-offset-2 active:scale-95"
+                  aria-haspopup="menu"
+                  aria-expanded={isRawMenuOpen}
+                >
+                  <Upload className="h-[18px] w-[18px] shrink-0 text-white" strokeWidth={2.5} />
+                  <div className="flex flex-col items-start leading-[1.1] text-left">
+                    <span className="text-[14px] font-bold text-white">Upload</span>
+                    <span className="text-[14px] font-bold text-white">Data</span>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                  <ChevronDown className="h-[18px] w-[18px] shrink-0 text-white opacity-80" strokeWidth={2.5} />
+                </button>
+                
+                {isRawMenuOpen && (
+                  <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[240px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+                    <div className="space-y-1">
+                      {onImportRawLive && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawLive(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                          <Layers3 className="h-4 w-4 text-indigo-600" /> Upload Raw Data Live
+                        </button>
+                      )}
+                      {onOpenAddManualDuration && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onOpenAddManualDuration(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                          <CalendarDays className="h-4 w-4 text-indigo-600" /> Tambah Durasi Manual
+                        </button>
+                      )}
+                      {onImportRawProduct && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawProduct(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                          <ShoppingBag className="h-4 w-4 text-[#ff6a00]" /> Upload Raw Data Product
+                        </button>
+                      )}
+                      {onImportRawEngagement && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawEngagement(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                          <Settings2 className="h-4 w-4 text-[#0f766e]" /> Upload Raw Data Engagement
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* === FILTER BAR: mobile = flex wrap, desktop = flex wrap === */}

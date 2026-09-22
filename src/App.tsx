@@ -1035,6 +1035,8 @@ export default function App() {
 
     setLoggedInClientBrandId(null);
     setLoggedInHostId(null);
+    setSelectedHostId("");
+    _setHosts([]);
     setLoggedInAdminId(null);
     setIsOperatorLoggedIn(false);
     setAuthSession(null);
@@ -1762,8 +1764,10 @@ export default function App() {
 
   // Current logged in host details
   const activeHostObj = useMemo(() => {
-    return hosts.find((h) => h.id === selectedHostId) || hosts[0];
-  }, [hosts, selectedHostId]);
+    const targetId = loggedInHostId || selectedHostId;
+    if (!targetId) return null;
+    return hosts.find((h) => h.id === targetId) || null;
+  }, [hosts, selectedHostId, loggedInHostId]);
 
   // --- TIME DISPLAY & TICKER ---
   const [liveTime, setLiveTime] = useState(new Date());
@@ -2612,6 +2616,7 @@ export default function App() {
   }, [adminShiftChecklistObj, isGlobalConfigsLoaded, isOperatorLoggedIn, globalConfigFetchFailed]);
   const [autoDetectNotice, setAutoDetectNotice] = useState("");
   const [isSavingReport, setIsSavingReport] = useState(false);
+  const [isOperatorDownloadModalOpen, setIsOperatorDownloadModalOpen] = useState(false);
 
   useEffect(() => {
     // --- ONE-TIME AUTO CLEANUP FOR BUGGED 2026-12-01 DATES ---
@@ -5337,8 +5342,18 @@ export default function App() {
       )}
 
       {/* --- MAIN PAGE VIEWPORTS CONTROLLER --- */}
-      {loggedInHostId && !hostActiveReportingBrandId && (
+      {loggedInHostId && !hostActiveReportingBrandId && !activeHostObj && (
+        <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm font-semibold text-slate-500">Memuat data host...</p>
+          </div>
+        </div>
+      )}
+
+      {loggedInHostId && !hostActiveReportingBrandId && activeHostObj && (
         <HostDashboard
+          key={activeHostObj.id}
           activeHostObj={activeHostObj}
           hostForm={hostForm}
           setHostForm={setHostForm}
@@ -11882,6 +11897,11 @@ export default function App() {
                           setIsDeleteByDateModalOpen(true);
                           setOpenBrandCardActionsId(null);
                         }}
+                        onExportBrand={(brandId) => {
+                          handleOpenReportBrand(brandId);
+                          setOpenBrandCardActionsId(null);
+                          setIsOperatorDownloadModalOpen(true);
+                        }}
                       />
                     ) : (
                       <>
@@ -11950,6 +11970,7 @@ export default function App() {
                               onCancelCustom={() =>
                                 setIsOperatorCalendarOpen(false)
                               }
+                              onExport={() => setIsOperatorDownloadModalOpen(true)}
                               periodLabel={
                                 operatorDateFilterType === "latest"
                                   ? operatorWorkspacePeriodLabel
@@ -12434,6 +12455,150 @@ export default function App() {
                         setDeleteByDateTargetBrand(null);
                       }}
                       onConfirm={handleDeleteBrandRawDataByDateRange}
+                    />
+
+                    <ClientDownloadConfirmationModal
+                      isOpen={isOperatorDownloadModalOpen}
+                      onClose={() => setIsOperatorDownloadModalOpen(false)}
+                      startDate={
+                        operatorDateFilterType === "latest"
+                          ? operatorSelectedLatestDate
+                          : operatorDateFilterType === "monthly" && operatorSelectedMonth
+                            ? `${operatorSelectedMonth}-01`
+                            : operatorCustomStartDate
+                      }
+                      endDate={
+                        operatorDateFilterType === "latest"
+                          ? operatorSelectedLatestDate
+                          : operatorDateFilterType === "monthly" && operatorSelectedMonth
+                            ? (() => {
+                                const [year, month] = operatorSelectedMonth.split("-").map(Number);
+                                const lastDay = new Date(year, month, 0).getDate();
+                                return `${operatorSelectedMonth}-${String(lastDay).padStart(2, "0")}`;
+                              })()
+                            : operatorCustomEndDate
+                      }
+                      platform={operatorPlatformFilter}
+                      onDownloadExcel={() => {
+                        const targetBrand = clientBrands.find((b) => b.id === activeReportBrandId);
+                        const targetBrandName = targetBrand?.name || "Brand_Report";
+                        const effectiveReportType =
+                          operatorReportingTab === "product"
+                            ? "product"
+                            : operatorReportingTab === "engagement"
+                              ? "engagement"
+                              : "live";
+
+                        const options =
+                          effectiveReportType === "live"
+                            ? [
+                                "date",
+                                "time",
+                                "platform",
+                                "viewers",
+                                "gmv",
+                                "products_sold",
+                                "buyers",
+                                "conversion_rate",
+                                "avg_view_duration",
+                                "peak_viewers",
+                                "clicks",
+                                "shares",
+                              ]
+                            : effectiveReportType === "product"
+                              ? [
+                                  "date",
+                                  "platform",
+                                  "sku",
+                                  "product_name",
+                                  "sold",
+                                  "revenue",
+                                ]
+                              : [
+                                  "date",
+                                  "time",
+                                  "platform",
+                                  "viewers",
+                                  "new_followers",
+                                  "comments",
+                                  "shares",
+                                  "likes",
+                                  "peak_viewers",
+                                ];
+
+                        exportReportToExcel({
+                          reportType: effectiveReportType,
+                          selectedMetrics: options,
+                          brandName: targetBrandName,
+                          liveReportView,
+                          productReportView,
+                          engagementReportView,
+                          dateFilterType: operatorDateFilterType,
+                          selectedLatestDate: operatorSelectedLatestDate,
+                          platformFilter: operatorPlatformFilter,
+                        });
+                        setIsOperatorDownloadModalOpen(false);
+                      }}
+                      onDownloadPdf={() => {
+                        const targetBrand = clientBrands.find((b) => b.id === activeReportBrandId);
+                        const targetBrandName = targetBrand?.name || "Brand_Report";
+                        const effectiveReportType =
+                          operatorReportingTab === "product"
+                            ? "product"
+                            : operatorReportingTab === "engagement"
+                              ? "engagement"
+                              : "live";
+
+                        const options =
+                          effectiveReportType === "live"
+                            ? [
+                                "date",
+                                "time",
+                                "platform",
+                                "viewers",
+                                "gmv",
+                                "products_sold",
+                                "buyers",
+                                "conversion_rate",
+                                "avg_view_duration",
+                                "peak_viewers",
+                                "clicks",
+                                "shares",
+                              ]
+                            : effectiveReportType === "product"
+                              ? [
+                                  "date",
+                                  "platform",
+                                  "sku",
+                                  "product_name",
+                                  "sold",
+                                  "revenue",
+                                ]
+                              : [
+                                  "date",
+                                  "time",
+                                  "platform",
+                                  "viewers",
+                                  "new_followers",
+                                  "comments",
+                                  "shares",
+                                  "likes",
+                                  "peak_viewers",
+                                ];
+
+                        exportReportToPdf({
+                          reportType: effectiveReportType,
+                          selectedMetrics: options,
+                          brandName: targetBrandName,
+                          liveReportView,
+                          productReportView,
+                          engagementReportView,
+                          dateFilterType: operatorDateFilterType,
+                          selectedLatestDate: operatorSelectedLatestDate,
+                          platformFilter: operatorPlatformFilter,
+                        });
+                        setIsOperatorDownloadModalOpen(false);
+                      }}
                     />
                   </div>
                 )}
