@@ -631,47 +631,33 @@ export default function HostDashboard({
   let upcomingSchedule = null;
   let upcomingDateStr = "";
   let upcomingLabel = "";
+  let isNextUpcomingFallback = false;
 
-  if (selectedDate === todayStr) {
-    const tomorrowSchedules = (computedSchedules || []).filter(
-      (s) => s.hostId === activeHostObj?.id && !s.isDeleted && !s.isOffDay && s.date === tomorrowStr
-    );
-    const sortedTomorrowSchedules = sortByTime(tomorrowSchedules);
+  const nextUpcomingScheduleObj = (() => {
+    if (!computedSchedules || !activeHostObj) return null;
+    const futureSchedules = computedSchedules
+      .filter((s) => s.hostId === activeHostObj.id && !s.isDeleted && !s.isOffDay && s.date > (selectedDate || todayStr))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return futureSchedules[0] || null;
+  })();
 
-    if (sortedSelectedSchedules.length > 0) {
-      const todaySched = sortedSelectedSchedules[0];
-      let shiftHasStarted = false;
-      const match = (todaySched.timeSlot || "").match(timeRegex);
-      if (match) {
-        const formattedTime = match[1].replace('.', ':');
-        const targetDate = new Date(`${todayStr}T${formattedTime}:00`);
-        if (!isNaN(targetDate.getTime()) && currentTime.getTime() >= targetDate.getTime()) {
-           shiftHasStarted = true;
-        }
-      }
-      
-      if (hasCheckedInToday && shiftHasStarted) {
-        upcomingSchedule = sortedTomorrowSchedules[0];
-        upcomingDateStr = tomorrowStr;
-        upcomingLabel = "Jadwal Besok";
-      } else {
-        upcomingSchedule = todaySched;
-        upcomingDateStr = todayStr;
-        upcomingLabel = "Jadwal Hari Ini";
-      }
-    } else {
-      upcomingSchedule = sortedTomorrowSchedules[0];
-      upcomingDateStr = tomorrowStr;
-      upcomingLabel = "Jadwal Besok";
-    }
-  } else {
-    upcomingSchedule = sortedSelectedSchedules[0] || null;
-    upcomingDateStr = selectedDate || "";
-    if (selectedDate === tomorrowStr) {
+  if (sortedSelectedSchedules.length > 0) {
+    upcomingSchedule = sortedSelectedSchedules[0];
+    upcomingDateStr = selectedDate || todayStr;
+    if (selectedDate === todayStr) {
+      upcomingLabel = "Jadwal Hari Ini";
+    } else if (selectedDate === tomorrowStr) {
       upcomingLabel = "Jadwal Besok";
     } else {
       const d = new Date(selectedDate || "");
       upcomingLabel = isNaN(d.getTime()) ? "Jadwal" : `Jadwal ${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`;
+    }
+  } else {
+    // Tidak ada jadwal pada selectedDate yang dipilih
+    upcomingSchedule = null;
+    upcomingDateStr = selectedDate || todayStr;
+    if (nextUpcomingScheduleObj) {
+      isNextUpcomingFallback = true;
     }
   }
 
@@ -692,6 +678,14 @@ export default function HostDashboard({
     statusStyle = 'bg-amber-50 text-amber-600 border-amber-200';
     StatusIcon = AlertTriangle;
   }
+
+  const selectedDateFormatted = (() => {
+    if (!selectedDate) return 'Hari ini';
+    if (selectedDate === todayStr) return 'Hari ini';
+    if (selectedDate === tomorrowStr) return 'Besok';
+    const d = new Date(selectedDate);
+    return isNaN(d.getTime()) ? selectedDate : d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' });
+  })();
 
   return (
     <div className="w-full max-w-[480px] mx-auto min-h-screen bg-[#f8f9fc] p-4 font-sans text-slate-800 pb-28 overflow-x-hidden">
@@ -785,7 +779,7 @@ export default function HostDashboard({
           })()}
         </div>
 
-        {/* JADWAL HARI INI Card */}
+        {/* JADWAL Card */}
         {upcomingSchedule ? (
           <div className="bg-gradient-to-br from-blue-500 to-indigo-700 rounded-[24px] p-5 text-white shadow-[0_8px_24px_rgba(79,70,229,0.25)] mb-8 relative overflow-hidden">
             {/* subtle decorative blur behind */}
@@ -841,9 +835,43 @@ export default function HostDashboard({
             </div>
           </div>
         ) : (
-          <div className="bg-slate-50 rounded-[24px] p-8 text-center border border-slate-200 mb-8 flex flex-col items-center">
-            <CalendarIcon size={32} className="text-slate-300 mb-3" />
-            <p className="font-bold text-slate-500 text-sm">Tidak ada jadwal terdekat</p>
+          <div className="bg-white rounded-[24px] p-5 border border-slate-200/80 shadow-sm mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                <CalendarIcon size={20} />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-800 text-sm">Tidak Ada Jadwal</h4>
+                <p className="text-xs text-slate-500">{selectedDateFormatted}</p>
+              </div>
+            </div>
+            
+            {nextUpcomingScheduleObj ? (
+              <div className="bg-blue-50/60 rounded-2xl p-3.5 border border-blue-100 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">
+                      Jadwal Berikutnya: {nextUpcomingScheduleObj.date === tomorrowStr ? 'Besok' : new Date(nextUpcomingScheduleObj.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                  <div className="font-bold text-xs text-slate-800">
+                    {nextUpcomingScheduleObj.brandHandled || nextUpcomingScheduleObj.brand} • {nextUpcomingScheduleObj.studio}
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-medium">
+                    {nextUpcomingScheduleObj.timeSlot || nextUpcomingScheduleObj.shift}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedDate(nextUpcomingScheduleObj.date)}
+                  className="text-xs font-bold text-blue-600 bg-white border border-blue-200 px-3 py-1.5 rounded-xl hover:bg-blue-50 transition-colors shadow-2xs"
+                >
+                  Lihat
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 font-medium">Kamu tidak memiliki jadwal pada tanggal ini.</p>
+            )}
           </div>
         )}
 
