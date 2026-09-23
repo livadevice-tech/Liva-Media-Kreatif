@@ -12434,9 +12434,17 @@ export default function App() {
                                     periodLabel={liveReportView.latestDateLabel}
                                     platform={operatorPlatformFilter}
                                     isShopee={!operatorPlatformFilter.toLowerCase().includes("tiktok")}
-                                    brandName={activeReportBrand?.name || "Nama Brand"}
+                                    brandName={
+                                      clientBrands.find(
+                                        (b) => b.id === activeReportBrandId,
+                                      )?.name || "Nama Brand"
+                                    }
                                     brandId={activeReportBrandId || undefined}
-                                    brandDashboardSettings={activeReportBrandDashboardSettings}
+                                    brandDashboardSettings={
+                                      clientBrands.find(
+                                        (b) => b.id === activeReportBrandId,
+                                      )?.dashboardSettings
+                                    }
                                     hasData={operatorPanelData.stats.totalSessionsDb > 0}
                                   />
                                 </div>
