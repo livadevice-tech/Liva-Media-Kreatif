@@ -187,28 +187,39 @@ export function ReportingWorkspaceHeader({
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
 
   const rawMenuRef = useRef<HTMLDivElement>(null);
-  const dateMenuRef = useRef<HTMLDivElement>(null);
-  const platformMenuRef = useRef<HTMLDivElement>(null);
+  const desktopDateMenuRef = useRef<HTMLDivElement>(null);
+  const mobileDateMenuRef = useRef<HTMLDivElement>(null);
+  const desktopPlatformMenuRef = useRef<HTMLDivElement>(null);
+  const mobilePlatformMenuRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (isRawMenuOpen && rawMenuRef.current && !rawMenuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (isRawMenuOpen && rawMenuRef.current && !rawMenuRef.current.contains(target)) {
         setIsRawMenuOpen(false);
       }
-      if (isDateMenuOpen && dateMenuRef.current && !dateMenuRef.current.contains(event.target as Node)) {
+      if (
+        isDateMenuOpen &&
+        (!desktopDateMenuRef.current || !desktopDateMenuRef.current.contains(target)) &&
+        (!mobileDateMenuRef.current || !mobileDateMenuRef.current.contains(target))
+      ) {
         setIsDateMenuOpen(false);
       }
-      if (isPlatformMenuOpen && platformMenuRef.current && !platformMenuRef.current.contains(event.target as Node)) {
+      if (
+        isPlatformMenuOpen &&
+        (!desktopPlatformMenuRef.current || !desktopPlatformMenuRef.current.contains(target)) &&
+        (!mobilePlatformMenuRef.current || !mobilePlatformMenuRef.current.contains(target))
+      ) {
         setIsPlatformMenuOpen(false);
       }
-      if (isSettingsMenuOpen && settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node)) {
+      if (isSettingsMenuOpen && settingsMenuRef.current && !settingsMenuRef.current.contains(target)) {
         setIsSettingsMenuOpen(false);
       }
     }
     
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, [isRawMenuOpen, isDateMenuOpen, isPlatformMenuOpen, isSettingsMenuOpen]);
 
   const dateButtonLabel = useMemo(
@@ -259,7 +270,7 @@ export function ReportingWorkspaceHeader({
 
   return (
     <section
-      className="pt-3 pb-0 sm:py-4"
+      className="relative z-50 pt-3 pb-0 sm:py-4"
       data-active-tab={activeTab}
     >
       <div className="flex flex-col">
@@ -413,7 +424,7 @@ export function ReportingWorkspaceHeader({
           {/* Right: Date Picker, Platform Select, Shift Select, Export, Upload Data */}
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* Date Filter Dropdown */}
-            <div className="relative flex-shrink-0" ref={dateMenuRef}>
+            <div className="relative flex-shrink-0" ref={desktopDateMenuRef}>
               <button
                 type="button"
                 onClick={openDateMenu}
@@ -452,7 +463,7 @@ export function ReportingWorkspaceHeader({
             </div>
 
             {/* Platform Selector */}
-            <div className="relative flex-shrink-0" ref={platformMenuRef}>
+            <div className="relative flex-shrink-0" ref={desktopPlatformMenuRef}>
               <button
                 type="button"
                 onClick={openPlatformMenu}
@@ -472,7 +483,10 @@ export function ReportingWorkspaceHeader({
               </button>
 
               {isPlatformMenuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-[200px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+                <div
+                  className="absolute right-0 top-full z-[60] mt-2 w-[200px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="space-y-1">
                     {availablePlatforms.map((platform) => {
                       const active = platform === selectedPlatform;
@@ -480,11 +494,19 @@ export function ReportingWorkspaceHeader({
                         <button
                           key={platform}
                           type="button"
-                          onClick={() => {
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             onPlatformFilterChange(platform);
                             setIsPlatformMenuOpen(false);
                           }}
-                          className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 text-left text-xs font-bold transition-colors ${
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onPlatformFilterChange(platform);
+                            setIsPlatformMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 text-left text-xs font-bold transition-colors cursor-pointer ${
                             active
                               ? "bg-[#f7f2ff] text-[#5600e0]"
                               : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -657,7 +679,7 @@ export function ReportingWorkspaceHeader({
         <div className="flex flex-row flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 sm:items-center sm:justify-between pb-2 md:hidden">
           <div className="flex flex-row flex-wrap items-center gap-2 sm:gap-3 w-full">
             {/* Date Filter */}
-            <div className="relative flex-shrink-0" ref={dateMenuRef}>
+            <div className="relative flex-shrink-0" ref={mobileDateMenuRef}>
               <button
                 type="button"
                 onClick={openDateMenu}
@@ -723,7 +745,7 @@ export function ReportingWorkspaceHeader({
             ) : null}
 
             {/* Platform Filter */}
-            <div className="relative flex-shrink-0" ref={platformMenuRef}>
+            <div className="relative flex-shrink-0" ref={mobilePlatformMenuRef}>
               <button
                 type="button"
                 onClick={openPlatformMenu}
@@ -737,7 +759,10 @@ export function ReportingWorkspaceHeader({
               </button>
 
               {isPlatformMenuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-[220px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+                <div
+                  className="absolute right-0 top-full z-[60] mt-2 w-[220px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="space-y-1">
                     {availablePlatforms.map((platform) => {
                       const active = platform === selectedPlatform;
@@ -745,11 +770,19 @@ export function ReportingWorkspaceHeader({
                         <button
                           key={platform}
                           type="button"
-                          onClick={() => {
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             onPlatformFilterChange(platform);
                             setIsPlatformMenuOpen(false);
                           }}
-                          className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onPlatformFilterChange(platform);
+                            setIsPlatformMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold transition-colors cursor-pointer ${
                             active ? "bg-[#f7f2ff] text-indigo-600" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                           }`}
                         >

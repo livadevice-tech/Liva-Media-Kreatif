@@ -222,26 +222,26 @@ function EngagementCard({
   sparklineColor,
 }: EngagementCardProps) {
   return (
-    <div className="flex flex-col justify-between rounded-[18px] border border-slate-200/70 bg-white p-3.5 shadow-2xs transition-all duration-200 hover:border-slate-300 hover:shadow-xs">
+    <div className="flex flex-col justify-between rounded-[20px] border border-slate-200/80 bg-white p-4 shadow-2xs transition-all duration-200 hover:border-slate-300 hover:shadow-xs">
       <div>
-        <p className="text-[11px] font-semibold text-slate-500 truncate" title={label}>
+        <p className="text-[12px] font-semibold text-slate-500 truncate" title={label}>
           {label}
         </p>
-        <p className="mt-1 text-[17px] font-black text-slate-900 leading-tight">
+        <p className="mt-1 text-[20px] font-black text-slate-900 leading-tight">
           {value}
         </p>
       </div>
 
-      <div className="mt-2.5 flex items-center justify-between gap-1.5">
+      <div className="mt-3 flex items-center justify-between gap-2">
         <span
-          className={`inline-flex items-center gap-0.5 text-[10px] font-bold ${
+          className={`inline-flex items-center gap-1 text-[11px] font-bold ${
             growth.isUp ? "text-emerald-600" : "text-rose-600"
           }`}
         >
           {growth.isUp ? (
-            <TrendingUp className="h-2.5 w-2.5" strokeWidth={2.5} />
+            <TrendingUp className="h-3 w-3" strokeWidth={2.5} />
           ) : (
-            <TrendingDown className="h-2.5 w-2.5" strokeWidth={2.5} />
+            <TrendingDown className="h-3 w-3" strokeWidth={2.5} />
           )}
           {growth.pct}%
         </span>
@@ -866,8 +866,8 @@ export function BrandOverviewDashboard({
           </div>
         </div>
 
-        {/* 8 Horizontal Engagement Cards in a row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        {/* 8 Engagement Cards: 2 rows of 4 cards on desktop (4 atas, 4 bawah) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
           {/* Card 1: Live Impressions / Views */}
           <EngagementCard
             label={isShopee ? "Live Views" : "Live Impressions"}
