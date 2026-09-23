@@ -2102,25 +2102,6 @@ export default function App() {
     ],
   );
 
-  const clientPanelData = useMemo(
-    () =>
-      buildLiveReportPanelData({
-        model: clientLiveReportView,
-        operatorPlatformFilter: clientPlatformFilter,
-        reportDbSortCol,
-        reportDbSortAsc,
-        currentPage,
-        itemsPerPage: ITEMS_PER_PAGE,
-      }),
-    [
-      clientLiveReportView,
-      clientPlatformFilter,
-      reportDbSortCol,
-      reportDbSortAsc,
-      currentPage,
-    ],
-  );
-
   const clientEngagementReportView = useMemo(
     () =>
       buildEngagementReportViewModel({
@@ -2337,6 +2318,25 @@ export default function App() {
     [
       liveReportView,
       operatorPlatformFilter,
+      reportDbSortCol,
+      reportDbSortAsc,
+      currentPage,
+    ],
+  );
+
+  const clientPanelData = useMemo(
+    () =>
+      buildLiveReportPanelData({
+        model: clientLiveReportView,
+        operatorPlatformFilter: clientPlatformFilter,
+        reportDbSortCol,
+        reportDbSortAsc,
+        currentPage,
+        itemsPerPage: ITEMS_PER_PAGE,
+      }),
+    [
+      clientLiveReportView,
+      clientPlatformFilter,
       reportDbSortCol,
       reportDbSortAsc,
       currentPage,
