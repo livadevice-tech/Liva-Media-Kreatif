@@ -845,16 +845,12 @@ export function ReportingWorkspaceTabs({
   hideSettingsTab,
   brandDashboardSettings,
 }: ReportingWorkspaceTabsProps) {
-  const tabClass = (tab: ReportingTab, isMobileOverview = false) => {
-    const isActive = isMobileOverview
-      ? activeTab === "overview" || activeTab === "live"
-      : activeTab === tab;
-    return `relative whitespace-nowrap px-1 pb-2 pt-1 sm:py-3 text-[13px] sm:text-[14px] font-semibold sm:font-bold transition-all border-b-2 sm:border-b-[3px] ${
-      isActive
+  const tabClass = (tab: ReportingTab) =>
+    `relative whitespace-nowrap px-1 pb-2 pt-1 sm:py-3 text-[13px] sm:text-[14px] font-semibold sm:font-bold transition-all border-b-2 sm:border-b-[3px] ${
+      activeTab === tab
         ? "border-[#5600e0] text-[#5600e0]"
         : "border-transparent text-slate-400 sm:text-slate-500 hover:text-slate-700"
     }`;
-  };
 
   // Helper to check if a category is hidden
   const isCategoryHidden = (categoryId: string) => {
@@ -865,33 +861,14 @@ export function ReportingWorkspaceTabs({
     <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 bg-white border-b border-slate-100">
       <div className="px-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
         <div className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto">
-          {/* TAB 1: OVERVIEW */}
-          {/* Desktop tab for Overview */}
-          <button
-            type="button"
-            onClick={() => onTabChange("overview")}
-            className={`${tabClass("overview")} hidden md:inline-block`}
-          >
-            Overview
-          </button>
-
-          {/* Mobile tab for Overview (active when overview or live) */}
-          <button
-            type="button"
-            onClick={() => onTabChange("overview")}
-            className={`${tabClass("overview", true)} md:hidden`}
-          >
-            Overview
-          </button>
-
-          {/* TAB 2: LIVE PERFORMANCE (Desktop only) */}
           {!isCategoryHidden("live") && (
             <button
               type="button"
               onClick={() => onTabChange("live")}
-              className={`${tabClass("live")} hidden md:inline-block`}
+              className={tabClass("live")}
             >
-              Live Performance
+              <span className="md:hidden">Overview</span>
+              <span className="hidden md:inline">Live Performance</span>
             </button>
           )}
 

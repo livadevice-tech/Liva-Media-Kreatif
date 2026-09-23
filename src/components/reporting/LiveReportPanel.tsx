@@ -11,10 +11,12 @@ import { MobileLiveDailyTable } from "./MobileLiveDailyTable";
 import { MobileLiveMetricsPanel } from "./MobileLiveMetricsPanel";
 import { LiveReportSummarySection } from "./LiveReportSummarySection";
 import { LiveReportChartSection } from "./LiveReportChartSection";
+import { BrandOverviewDashboard } from "./BrandOverviewDashboard";
 import type { BrandDashboardSettings } from "../../types";
 import { type ReportLogLike } from "../../shared/utils/reportTable";
 
 interface LiveReportPanelProps {
+  brandName?: string;
   model: LiveReportViewModel;
   chartSelectedMetrics: string[];
   onChartSelectedMetricsChange: (value: string[]) => void;
@@ -61,6 +63,7 @@ interface LiveReportPanelProps {
 }
 
 export function LiveReportPanel({
+  brandName,
   model,
   chartSelectedMetrics,
   onChartSelectedMetricsChange,
@@ -154,19 +157,19 @@ export function LiveReportPanel({
 
       {/* DESKTOP VIEW */}
       <div className="hidden md:block space-y-6 px-6 pb-8 sm:px-8 animate-fadeIn">
-        <LiveReportSummarySection
+        <BrandOverviewDashboard
           stats={stats}
           chartData={chartData}
-          chartSelectedMetrics={chartSelectedMetrics}
-          onChartSelectedMetricsChange={onChartSelectedMetricsChange}
           periodLabel={model.latestDateLabel}
-          brandDashboardSettings={brandDashboardSettings}
+          platform={operatorPlatformFilter}
           isShopee={!isTikTokLive}
+          brandName={brandName || activeReportBrandId}
+          brandId={activeReportBrandId}
+          brandDashboardSettings={brandDashboardSettings}
           hasData={hasAnyData}
-          isClientView={isClientView}
         />
 
-      <ReportRawSessionsCard
+        <ReportRawSessionsCard
         reportingShopeeRawTab={reportingShopeeRawTab}
         setReportingShopeeRawTab={setReportingShopeeRawTab}
         shifts={shifts}

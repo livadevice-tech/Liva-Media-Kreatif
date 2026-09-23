@@ -295,8 +295,6 @@ import {
   ReportingWorkspaceTabs,
   type ReportingTab,
 } from "./components/reporting/ReportingWorkspaceHeader";
-import { BrandOverviewDashboard } from "./components/reporting/BrandOverviewDashboard";
-import { buildLiveReportPanelData } from "./shared/utils/liveReportPanel";
 import { BrandDashboardSettingsPanel } from "./components/reporting/BrandDashboardSettingsPanel";
 import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSelectionPanel";
 import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
@@ -1405,7 +1403,7 @@ export default function App() {
   const [clientPlatformFilter, setClientPlatformFilter] =
     useState("TikTok Live");
   const [clientReportingTab, setClientReportingTab] =
-    useState<ReportingTab>("overview");
+    useState<ReportingTab>("live");
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isAddManualDurationModalOpen, setIsAddManualDurationModalOpen] = useState(false);
   const [clientSelectedMonth, setClientSelectedMonth] = useState<string>(() => {
@@ -2038,7 +2036,7 @@ export default function App() {
     | "admin_privacy"
   >("dashboard_utama");
   const [operatorReportingTab, setOperatorReportingTab] =
-    useState<ReportingTab>("overview");
+    useState<ReportingTab>("live");
   const [brandDataTab, setBrandDataTab] = useState<"active" | "inactive">(
     "active",
   );
@@ -2302,44 +2300,6 @@ export default function App() {
       operatorSelectedLatestDate,
       operatorShiftFilters,
       reportDbSearchQuery,
-    ],
-  );
-
-  const operatorPanelData = useMemo(
-    () =>
-      buildLiveReportPanelData({
-        model: liveReportView,
-        operatorPlatformFilter,
-        reportDbSortCol,
-        reportDbSortAsc,
-        currentPage,
-        itemsPerPage: ITEMS_PER_PAGE,
-      }),
-    [
-      liveReportView,
-      operatorPlatformFilter,
-      reportDbSortCol,
-      reportDbSortAsc,
-      currentPage,
-    ],
-  );
-
-  const clientPanelData = useMemo(
-    () =>
-      buildLiveReportPanelData({
-        model: clientLiveReportView,
-        operatorPlatformFilter: clientPlatformFilter,
-        reportDbSortCol,
-        reportDbSortAsc,
-        currentPage,
-        itemsPerPage: ITEMS_PER_PAGE,
-      }),
-    [
-      clientLiveReportView,
-      clientPlatformFilter,
-      reportDbSortCol,
-      reportDbSortAsc,
-      currentPage,
     ],
   );
 
@@ -5742,62 +5702,42 @@ export default function App() {
                           </div>
                         }
                       >
-                        {/* On desktop: show BrandOverviewDashboard if tab is overview */}
-                        {clientReportingTab === "overview" && (
-                          <div className="hidden md:block pt-2">
-                            <BrandOverviewDashboard
-                              stats={clientPanelData.stats}
-                              chartData={clientPanelData.chartData}
-                              periodLabel={clientLiveReportView.latestDateLabel}
-                              platform={clientPlatformFilter}
-                              isShopee={!clientPlatformFilter.toLowerCase().includes("tiktok")}
-                              brandName={clientBrand?.name || "Nama Brand"}
-                              brandId={activeClientBrandId || undefined}
-                              brandDashboardSettings={clientBrand?.dashboardSettings}
-                              hasData={clientPanelData.stats.totalSessionsDb > 0}
-                            />
-                          </div>
-                        )}
-
-                        {/* On mobile: render LiveReportPanel when tab is overview or live */}
-                        {/* On desktop: render LiveReportPanel when tab is live */}
-                        <div className={clientReportingTab === "overview" ? "md:hidden" : "block"}>
-                          <LiveReportPanel
-                            model={clientLiveReportView}
-                            chartSelectedMetrics={liveChartSelectedMetrics}
-                            onChartSelectedMetricsChange={
-                              setLiveChartSelectedMetrics
-                            }
-                            operatorPlatformFilter={clientPlatformFilter}
-                            shifts={shifts}
-                            adminShiftChecklist={adminShiftChecklist}
-                            setAdminShiftChecklist={setAdminShiftChecklist}
-                            reportingShopeeRawTab={reportingShopeeRawTab}
-                            setReportingShopeeRawTab={
-                              setReportingShopeeRawTab
-                            }
-                            reportDbSortCol={reportDbSortCol}
-                            reportDbSortAsc={reportDbSortAsc}
-                            setReportDbSortCol={setReportDbSortCol}
-                            setReportDbSortAsc={setReportDbSortAsc}
-                            currentPage={currentPage}
-                            setCurrentPage={setCurrentPage}
-                            itemsPerPage={ITEMS_PER_PAGE}
-                            isLogsLoading={isLogsLoading}
-                            handleDeletePerformanceLog={
-                              handleDeletePerformanceLog
-                            }
-                            brandPerformanceLogs={brandPerformanceLogs}
-                            activeReportBrandId={activeClientBrandId || ""}
-                            brandUploadHistory={brandUploadHistory}
-                            uploadHistory={uploadHistory}
-                            onDeleteUploadBatch={handleDeleteUploadBatch}
-                            brandDashboardSettings={clientBrands.find((b) => b.id === activeClientBrandId)?.dashboardSettings}
-                            hideUploadHistory={true}
-                            hideRawTableControls={true}
-                            isClientView={true}
-                          />
-                        </div>
+                        <LiveReportPanel
+                          brandName={clientBrand?.name || "Nama Brand"}
+                          model={clientLiveReportView}
+                          chartSelectedMetrics={liveChartSelectedMetrics}
+                          onChartSelectedMetricsChange={
+                            setLiveChartSelectedMetrics
+                          }
+                          operatorPlatformFilter={clientPlatformFilter}
+                          shifts={shifts}
+                          adminShiftChecklist={adminShiftChecklist}
+                          setAdminShiftChecklist={setAdminShiftChecklist}
+                          reportingShopeeRawTab={reportingShopeeRawTab}
+                          setReportingShopeeRawTab={
+                            setReportingShopeeRawTab
+                          }
+                          reportDbSortCol={reportDbSortCol}
+                          reportDbSortAsc={reportDbSortAsc}
+                          setReportDbSortCol={setReportDbSortCol}
+                          setReportDbSortAsc={setReportDbSortAsc}
+                          currentPage={currentPage}
+                          setCurrentPage={setCurrentPage}
+                          itemsPerPage={ITEMS_PER_PAGE}
+                          isLogsLoading={isLogsLoading}
+                          handleDeletePerformanceLog={
+                            handleDeletePerformanceLog
+                          }
+                          brandPerformanceLogs={brandPerformanceLogs}
+                          activeReportBrandId={activeClientBrandId || ""}
+                          brandUploadHistory={brandUploadHistory}
+                          uploadHistory={uploadHistory}
+                          onDeleteUploadBatch={handleDeleteUploadBatch}
+                          brandDashboardSettings={clientBrands.find((b) => b.id === activeClientBrandId)?.dashboardSettings}
+                          hideUploadHistory={true}
+                          hideRawTableControls={true}
+                          isClientView={true}
+                        />
                       </React.Suspense>
                     )}
                     {clientReportingTab === "analysis" && activeClientBrandId && (
@@ -12425,41 +12365,18 @@ export default function App() {
                                 </div>
                               }
                             >
-                              {/* On desktop: show BrandOverviewDashboard if tab is overview */}
-                              {operatorReportingTab === "overview" && (
-                                <div className="hidden md:block pt-2">
-                                  <BrandOverviewDashboard
-                                    stats={operatorPanelData.stats}
-                                    chartData={operatorPanelData.chartData}
-                                    periodLabel={liveReportView.latestDateLabel}
-                                    platform={operatorPlatformFilter}
-                                    isShopee={!operatorPlatformFilter.toLowerCase().includes("tiktok")}
-                                    brandName={
-                                      clientBrands.find(
-                                        (b) => b.id === activeReportBrandId,
-                                      )?.name || "Nama Brand"
-                                    }
-                                    brandId={activeReportBrandId || undefined}
-                                    brandDashboardSettings={
-                                      clientBrands.find(
-                                        (b) => b.id === activeReportBrandId,
-                                      )?.dashboardSettings
-                                    }
-                                    hasData={operatorPanelData.stats.totalSessionsDb > 0}
-                                  />
-                                </div>
-                              )}
-
-                              {/* On mobile: render LiveReportPanel when tab is overview or live or metrics */}
-                              {/* On desktop: render LiveReportPanel when tab is live */}
-                              <div className={operatorReportingTab === "overview" ? "md:hidden" : "block"}>
-                                <LiveReportPanel
-                                  activeTab={operatorReportingTab === "overview" ? "live" : operatorReportingTab}
-                                  model={liveReportView}
-                                  chartSelectedMetrics={liveChartSelectedMetrics}
-                                  onChartSelectedMetricsChange={
-                                    setLiveChartSelectedMetrics
-                                  }
+                              <LiveReportPanel
+                                brandName={
+                                  clientBrands.find(
+                                    (b) => b.id === activeReportBrandId,
+                                  )?.name || "Nama Brand"
+                                }
+                                activeTab={operatorReportingTab === "overview" ? "live" : operatorReportingTab}
+                                model={liveReportView}
+                                chartSelectedMetrics={liveChartSelectedMetrics}
+                                onChartSelectedMetricsChange={
+                                  setLiveChartSelectedMetrics
+                                }
                                 operatorPlatformFilter={operatorPlatformFilter}
                                 shifts={shifts}
                                 adminShiftChecklist={adminShiftChecklist}
@@ -12491,8 +12408,7 @@ export default function App() {
                                 uploadHistory={uploadHistory}
                                 onDeleteUploadBatch={handleDeleteUploadBatch}
                               />
-                            </div>
-                          </React.Suspense>
+                            </React.Suspense>
                           )}
 
                           <AddManualDurationModal
