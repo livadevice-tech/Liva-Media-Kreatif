@@ -19,6 +19,7 @@ export interface EngagementReportViewModel {
   engagementDateLabel: string;
   engagementPeriodLabel: string;
   logs: BrandPerformanceLogEntry[];
+  filteredDb?: BrandPerformanceLogEntry[];
   totalImpressions: number;
   prevTotalImpressions: number;
   totalPenonton: number;
@@ -274,6 +275,7 @@ export function buildEngagementReportViewModel(
     engagementDateLabel,
     engagementPeriodLabel,
     logs,
+    filteredDb: logs,
     totalImpressions,
     prevTotalImpressions: Math.floor(totalImpressions * 0.85),
     totalPenonton,

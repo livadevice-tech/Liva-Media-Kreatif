@@ -5803,104 +5803,132 @@ export default function App() {
                       : clientCustomEndDate
                 }
                 platform={clientPlatformFilter}
-                onDownloadExcel={() => {
-                  const options =
-                    clientReportingTab === "live"
-                      ? [
-                          "date",
-                          "time",
-                          "platform",
-                          "viewers",
-                          "gmv",
-                          "products_sold",
-                          "buyers",
-                          "conversion_rate",
-                          "avg_view_duration",
-                          "peak_viewers",
-                          "clicks",
-                          "shares",
-                        ]
-                      : clientReportingTab === "product"
-                        ? [
-                            "date",
-                            "platform",
-                            "sku",
-                            "product_name",
-                            "sold",
-                            "revenue",
-                          ]
-                        : [
-                            "date",
-                            "time",
-                            "platform",
-                            "viewers",
-                            "new_followers",
-                            "comments",
-                            "shares",
-                            "likes",
-                            "peak_viewers",
-                          ];
+                availablePlatforms={["Semua Platform", "TikTok Live", "Shopee Live"]}
+                reportType={
+                  clientReportingTab === "product"
+                    ? "product"
+                    : clientReportingTab === "engagement"
+                      ? "engagement"
+                      : "live"
+                }
+                onDownloadExcel={(params) => {
+                  const targetBrandName = clientBrands.find((b) => b.id === activeClientBrandId)?.name || "Client_Brand";
+                  const effectiveReportType =
+                    clientReportingTab === "product"
+                      ? "product"
+                      : clientReportingTab === "engagement"
+                        ? "engagement"
+                        : "live";
+
+                  const dynamicLiveView = buildLiveReportViewModel({
+                    brandPerformanceLogs,
+                    activeReportBrandId: activeClientBrandId || "",
+                    dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
+                    selectedLatestDate: params.startDate,
+                    selectedMonth: clientSelectedMonth,
+                    customStartDate: params.startDate,
+                    customEndDate: params.endDate,
+                    searchQuery: reportDbSearchQuery,
+                    platformFilter: params.platform,
+                    shiftFilters: operatorShiftFilters,
+                  });
+
+                  const dynamicProductView = buildProductPerformanceViewModel({
+                    shopeeSkuLogs,
+                    brandPerformanceLogs,
+                    activeReportBrandId: activeClientBrandId || "",
+                    operatorDateFilterType: params.startDate && params.endDate ? "custom" : (clientDateFilterType as any),
+                    selectedLatestDate: params.startDate,
+                    operatorCustomStartDate: params.startDate,
+                    operatorCustomEndDate: params.endDate,
+                    operatorSelectedMonth: clientSelectedMonth,
+                    operatorPlatformFilter: params.platform,
+                    operatorShiftFilters: operatorShiftFilters,
+                    reportDbSearchQuery,
+                  });
+
+                  const dynamicEngagementView = buildEngagementReportViewModel({
+                    brandPerformanceLogs,
+                    activeReportBrandId: activeClientBrandId || "",
+                    operatorDateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
+                    selectedLatestDate: params.startDate,
+                    operatorPlatformFilter: params.platform,
+                    operatorShiftFilters: operatorShiftFilters,
+                    operatorSelectedMonth: clientSelectedMonth,
+                    operatorCustomStartDate: params.startDate,
+                    operatorCustomEndDate: params.endDate,
+                  });
 
                   exportReportToExcel({
-                    reportType: clientReportingTab,
-                    selectedMetrics: options,
-                    brandName: clientBrands.find((b) => b.id === activeClientBrandId)?.name || "Client_Brand",
-                    liveReportView: clientLiveReportView,
-                    productReportView: clientProductReportView,
-                    engagementReportView: clientEngagementReportView,
-                    dateFilterType: clientDateFilterType,
-                    selectedLatestDate: clientSelectedLatestDate,
-                    platformFilter: clientPlatformFilter,
+                    reportType: effectiveReportType,
+                    selectedMetrics: params.selectedMetrics,
+                    brandName: targetBrandName,
+                    liveReportView: dynamicLiveView,
+                    productReportView: dynamicProductView,
+                    engagementReportView: dynamicEngagementView,
+                    dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
+                    selectedLatestDate: params.startDate,
+                    platformFilter: params.platform,
                   });
                 }}
-                onDownloadPdf={() => {
-                  const options =
-                    clientReportingTab === "live"
-                      ? [
-                          "date",
-                          "time",
-                          "platform",
-                          "viewers",
-                          "gmv",
-                          "products_sold",
-                          "buyers",
-                          "conversion_paddle",
-                          "avg_view_duration",
-                          "peak_viewers",
-                          "clicks",
-                          "shares",
-                        ]
-                      : clientReportingTab === "product"
-                        ? [
-                            "date",
-                            "platform",
-                            "sku",
-                            "product_name",
-                            "sold",
-                            "revenue",
-                          ]
-                        : [
-                            "date",
-                            "time",
-                            "platform",
-                            "viewers",
-                            "new_followers",
-                            "comments",
-                            "shares",
-                            "likes",
-                            "peak_viewers",
-                          ];
+                onDownloadPdf={(params) => {
+                  const targetBrandName = clientBrands.find((b) => b.id === activeClientBrandId)?.name || "Client_Brand";
+                  const effectiveReportType =
+                    clientReportingTab === "product"
+                      ? "product"
+                      : clientReportingTab === "engagement"
+                        ? "engagement"
+                        : "live";
+
+                  const dynamicLiveView = buildLiveReportViewModel({
+                    brandPerformanceLogs,
+                    activeReportBrandId: activeClientBrandId || "",
+                    dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
+                    selectedLatestDate: params.startDate,
+                    selectedMonth: clientSelectedMonth,
+                    customStartDate: params.startDate,
+                    customEndDate: params.endDate,
+                    searchQuery: reportDbSearchQuery,
+                    platformFilter: params.platform,
+                    shiftFilters: operatorShiftFilters,
+                  });
+
+                  const dynamicProductView = buildProductPerformanceViewModel({
+                    shopeeSkuLogs,
+                    brandPerformanceLogs,
+                    activeReportBrandId: activeClientBrandId || "",
+                    operatorDateFilterType: params.startDate && params.endDate ? "custom" : (clientDateFilterType as any),
+                    selectedLatestDate: params.startDate,
+                    operatorCustomStartDate: params.startDate,
+                    operatorCustomEndDate: params.endDate,
+                    operatorSelectedMonth: clientSelectedMonth,
+                    operatorPlatformFilter: params.platform,
+                    operatorShiftFilters: operatorShiftFilters,
+                    reportDbSearchQuery,
+                  });
+
+                  const dynamicEngagementView = buildEngagementReportViewModel({
+                    brandPerformanceLogs,
+                    activeReportBrandId: activeClientBrandId || "",
+                    operatorDateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
+                    selectedLatestDate: params.startDate,
+                    operatorPlatformFilter: params.platform,
+                    operatorShiftFilters: operatorShiftFilters,
+                    operatorSelectedMonth: clientSelectedMonth,
+                    operatorCustomStartDate: params.startDate,
+                    operatorCustomEndDate: params.endDate,
+                  });
 
                   exportReportToPdf({
-                    reportType: clientReportingTab,
-                    selectedMetrics: options,
-                    brandName: clientBrands.find((b) => b.id === activeClientBrandId)?.name || "Client_Brand",
-                    liveReportView: clientLiveReportView,
-                    productReportView: clientProductReportView,
-                    engagementReportView: clientEngagementReportView,
-                    dateFilterType: clientDateFilterType,
-                    selectedLatestDate: clientSelectedLatestDate,
-                    platformFilter: clientPlatformFilter,
+                    reportType: effectiveReportType,
+                    selectedMetrics: params.selectedMetrics,
+                    brandName: targetBrandName,
+                    liveReportView: dynamicLiveView,
+                    productReportView: dynamicProductView,
+                    engagementReportView: dynamicEngagementView,
+                    dateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
+                    selectedLatestDate: params.startDate,
+                    platformFilter: params.platform,
                   });
                 }}
               />
@@ -12479,7 +12507,15 @@ export default function App() {
                             : operatorCustomEndDate
                       }
                       platform={operatorPlatformFilter}
-                      onDownloadExcel={() => {
+                      availablePlatforms={["Semua Platform", "TikTok Live", "Shopee Live"]}
+                      reportType={
+                        operatorReportingTab === "product"
+                          ? "product"
+                          : operatorReportingTab === "engagement"
+                            ? "engagement"
+                            : "live"
+                      }
+                      onDownloadExcel={(params) => {
                         const targetBrand = clientBrands.find((b) => b.id === activeReportBrandId);
                         const targetBrandName = targetBrand?.name || "Brand_Report";
                         const effectiveReportType =
@@ -12489,57 +12525,59 @@ export default function App() {
                               ? "engagement"
                               : "live";
 
-                        const options =
-                          effectiveReportType === "live"
-                            ? [
-                                "date",
-                                "time",
-                                "platform",
-                                "viewers",
-                                "gmv",
-                                "products_sold",
-                                "buyers",
-                                "conversion_rate",
-                                "avg_view_duration",
-                                "peak_viewers",
-                                "clicks",
-                                "shares",
-                              ]
-                            : effectiveReportType === "product"
-                              ? [
-                                  "date",
-                                  "platform",
-                                  "sku",
-                                  "product_name",
-                                  "sold",
-                                  "revenue",
-                                ]
-                              : [
-                                  "date",
-                                  "time",
-                                  "platform",
-                                  "viewers",
-                                  "new_followers",
-                                  "comments",
-                                  "shares",
-                                  "likes",
-                                  "peak_viewers",
-                                ];
+                        const dynamicLiveView = buildLiveReportViewModel({
+                          brandPerformanceLogs,
+                          activeReportBrandId: activeReportBrandId || "",
+                          dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: params.startDate,
+                          selectedMonth: operatorSelectedMonth,
+                          customStartDate: params.startDate,
+                          customEndDate: params.endDate,
+                          searchQuery: reportDbSearchQuery,
+                          platformFilter: params.platform,
+                          shiftFilters: operatorShiftFilters,
+                        });
+
+                        const dynamicProductView = buildProductPerformanceViewModel({
+                          shopeeSkuLogs,
+                          brandPerformanceLogs,
+                          activeReportBrandId: activeReportBrandId || "",
+                          operatorDateFilterType: params.startDate && params.endDate ? "custom" : (operatorDateFilterType as any),
+                          selectedLatestDate: params.startDate,
+                          operatorCustomStartDate: params.startDate,
+                          operatorCustomEndDate: params.endDate,
+                          operatorSelectedMonth: operatorSelectedMonth,
+                          operatorPlatformFilter: params.platform,
+                          operatorShiftFilters: operatorShiftFilters,
+                          reportDbSearchQuery,
+                        });
+
+                        const dynamicEngagementView = buildEngagementReportViewModel({
+                          brandPerformanceLogs,
+                          activeReportBrandId: activeReportBrandId || "",
+                          operatorDateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: params.startDate,
+                          operatorPlatformFilter: params.platform,
+                          operatorShiftFilters: operatorShiftFilters,
+                          operatorSelectedMonth: operatorSelectedMonth,
+                          operatorCustomStartDate: params.startDate,
+                          operatorCustomEndDate: params.endDate,
+                        });
 
                         exportReportToExcel({
                           reportType: effectiveReportType,
-                          selectedMetrics: options,
+                          selectedMetrics: params.selectedMetrics,
                           brandName: targetBrandName,
-                          liveReportView,
-                          productReportView,
-                          engagementReportView,
-                          dateFilterType: operatorDateFilterType,
-                          selectedLatestDate: operatorSelectedLatestDate,
-                          platformFilter: operatorPlatformFilter,
+                          liveReportView: dynamicLiveView,
+                          productReportView: dynamicProductView,
+                          engagementReportView: dynamicEngagementView,
+                          dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: params.startDate,
+                          platformFilter: params.platform,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}
-                      onDownloadPdf={() => {
+                      onDownloadPdf={(params) => {
                         const targetBrand = clientBrands.find((b) => b.id === activeReportBrandId);
                         const targetBrandName = targetBrand?.name || "Brand_Report";
                         const effectiveReportType =
@@ -12549,53 +12587,55 @@ export default function App() {
                               ? "engagement"
                               : "live";
 
-                        const options =
-                          effectiveReportType === "live"
-                            ? [
-                                "date",
-                                "time",
-                                "platform",
-                                "viewers",
-                                "gmv",
-                                "products_sold",
-                                "buyers",
-                                "conversion_rate",
-                                "avg_view_duration",
-                                "peak_viewers",
-                                "clicks",
-                                "shares",
-                              ]
-                            : effectiveReportType === "product"
-                              ? [
-                                  "date",
-                                  "platform",
-                                  "sku",
-                                  "product_name",
-                                  "sold",
-                                  "revenue",
-                                ]
-                              : [
-                                  "date",
-                                  "time",
-                                  "platform",
-                                  "viewers",
-                                  "new_followers",
-                                  "comments",
-                                  "shares",
-                                  "likes",
-                                  "peak_viewers",
-                                ];
+                        const dynamicLiveView = buildLiveReportViewModel({
+                          brandPerformanceLogs,
+                          activeReportBrandId: activeReportBrandId || "",
+                          dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: params.startDate,
+                          selectedMonth: operatorSelectedMonth,
+                          customStartDate: params.startDate,
+                          customEndDate: params.endDate,
+                          searchQuery: reportDbSearchQuery,
+                          platformFilter: params.platform,
+                          shiftFilters: operatorShiftFilters,
+                        });
+
+                        const dynamicProductView = buildProductPerformanceViewModel({
+                          shopeeSkuLogs,
+                          brandPerformanceLogs,
+                          activeReportBrandId: activeReportBrandId || "",
+                          operatorDateFilterType: params.startDate && params.endDate ? "custom" : (operatorDateFilterType as any),
+                          selectedLatestDate: params.startDate,
+                          operatorCustomStartDate: params.startDate,
+                          operatorCustomEndDate: params.endDate,
+                          operatorSelectedMonth: operatorSelectedMonth,
+                          operatorPlatformFilter: params.platform,
+                          operatorShiftFilters: operatorShiftFilters,
+                          reportDbSearchQuery,
+                        });
+
+                        const dynamicEngagementView = buildEngagementReportViewModel({
+                          brandPerformanceLogs,
+                          activeReportBrandId: activeReportBrandId || "",
+                          operatorDateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: params.startDate,
+                          operatorPlatformFilter: params.platform,
+                          operatorShiftFilters: operatorShiftFilters,
+                          operatorSelectedMonth: operatorSelectedMonth,
+                          operatorCustomStartDate: params.startDate,
+                          operatorCustomEndDate: params.endDate,
+                        });
 
                         exportReportToPdf({
                           reportType: effectiveReportType,
-                          selectedMetrics: options,
+                          selectedMetrics: params.selectedMetrics,
                           brandName: targetBrandName,
-                          liveReportView,
-                          productReportView,
-                          engagementReportView,
-                          dateFilterType: operatorDateFilterType,
-                          selectedLatestDate: operatorSelectedLatestDate,
-                          platformFilter: operatorPlatformFilter,
+                          liveReportView: dynamicLiveView,
+                          productReportView: dynamicProductView,
+                          engagementReportView: dynamicEngagementView,
+                          dateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
+                          selectedLatestDate: params.startDate,
+                          platformFilter: params.platform,
                         });
                         setIsOperatorDownloadModalOpen(false);
                       }}
