@@ -5786,14 +5786,14 @@ export default function App() {
                 onClose={() => setIsDownloadModalOpen(false)}
                 startDate={
                   clientDateFilterType === "latest"
-                    ? clientSelectedLatestDate
+                    ? clientSelectedLatestDate || clientLiveReportView.targetLatestDate || ""
                     : clientDateFilterType === "month" && clientSelectedMonth
                       ? `${clientSelectedMonth}-01`
                       : clientCustomStartDate
                 }
                 endDate={
                   clientDateFilterType === "latest"
-                    ? clientSelectedLatestDate
+                    ? clientSelectedLatestDate || clientLiveReportView.targetLatestDate || ""
                     : clientDateFilterType === "month" && clientSelectedMonth
                       ? (() => {
                           const [year, month] = clientSelectedMonth.split("-").map(Number);
@@ -12462,14 +12462,14 @@ export default function App() {
                       onClose={() => setIsOperatorDownloadModalOpen(false)}
                       startDate={
                         operatorDateFilterType === "latest"
-                          ? operatorSelectedLatestDate
+                          ? operatorSelectedLatestDate || operatorWorkspaceTargetLatestDate || ""
                           : operatorDateFilterType === "monthly" && operatorSelectedMonth
                             ? `${operatorSelectedMonth}-01`
                             : operatorCustomStartDate
                       }
                       endDate={
                         operatorDateFilterType === "latest"
-                          ? operatorSelectedLatestDate
+                          ? operatorSelectedLatestDate || operatorWorkspaceTargetLatestDate || ""
                           : operatorDateFilterType === "monthly" && operatorSelectedMonth
                             ? (() => {
                                 const [year, month] = operatorSelectedMonth.split("-").map(Number);
