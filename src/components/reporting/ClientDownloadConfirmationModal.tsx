@@ -6,6 +6,7 @@ import {
   FileSpreadsheet,
   Calendar,
   Layers,
+  Clock,
   CheckSquare,
   Square,
   SlidersHorizontal,
@@ -18,6 +19,7 @@ export interface ExportDownloadParams {
   startDate: string;
   endDate: string;
   platform: string;
+  shiftFilters?: string[];
 }
 
 interface ClientDownloadConfirmationModalProps {
@@ -27,6 +29,8 @@ interface ClientDownloadConfirmationModalProps {
   endDate: string;
   platform: string;
   availablePlatforms?: string[];
+  availableShifts?: string[];
+  initialShiftFilters?: string[];
   reportType?: "live" | "product" | "engagement" | "pipeline";
   onDownloadExcel: (params: ExportDownloadParams) => void;
   onDownloadPdf: (params: ExportDownloadParams) => void;
@@ -46,6 +50,8 @@ export function ClientDownloadConfirmationModal({
   endDate,
   platform,
   availablePlatforms = ["Semua Platform", "TikTok Live", "Shopee Live"],
+  availableShifts = [],
+  initialShiftFilters = [],
   reportType = "live",
   onDownloadExcel,
   onDownloadPdf,
@@ -66,11 +72,17 @@ export function ClientDownloadConfirmationModal({
     return Array.from(set);
   }, [availablePlatforms]);
 
+  // Clean available shifts list without duplicates
+  const cleanedShiftsList = useMemo(() => {
+    return availableShifts.filter((s) => s && s !== "All Time" && s.trim().length > 0);
+  }, [availableShifts]);
+
   // Local state for interactive filtering inside sidebar
   const [selectedPlatform, setSelectedPlatform] = useState<string>("Semua Platform");
   const [dateMode, setDateMode] = useState<"preset" | "custom">("preset");
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
+  const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
 
   // Synchronize on modal open or incoming props
@@ -84,8 +96,9 @@ export function ClientDownloadConfirmationModal({
       setCustomStart(startDate || "");
       setCustomEnd(endDate || startDate || "");
       setDateMode("preset");
+      setSelectedShifts(initialShiftFilters ? [...initialShiftFilters] : []);
     }
-  }, [isOpen, startDate, endDate, platform]);
+  }, [isOpen, startDate, endDate, platform, initialShiftFilters]);
 
   const isTikTok = selectedPlatform.toLowerCase().includes("tiktok");
   const isShopee = selectedPlatform.toLowerCase().includes("shopee");
@@ -267,6 +280,7 @@ export function ClientDownloadConfirmationModal({
       startDate: effectiveStartDate,
       endDate: effectiveEndDate,
       platform: selectedPlatform === "Semua Platform" ? "all" : selectedPlatform,
+      shiftFilters: selectedShifts,
     };
 
     if (format === "excel") {
@@ -423,7 +437,74 @@ export function ClientDownloadConfirmationModal({
               )}
             </div>
 
-            {/* 3. METRICS CHECKLIST */}
+            {/* 3. SHIFT SELECTION */}
+            {cleanedShiftsList.length > 0 && (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                    Pilihan Shift
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedShifts.length === 0) {
+                        setSelectedShifts([...cleanedShiftsList]);
+                      } else {
+                        setSelectedShifts([]);
+                      }
+                    }}
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700"
+                  >
+                    {selectedShifts.length === 0 ? "Pilih Semua Shift" : "All Time (Semua Shift)"}
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedShifts([])}
+                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all border ${
+                      selectedShifts.length === 0
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    All Time
+                  </button>
+                  {cleanedShiftsList.map((sh) => {
+                    const isSelected = selectedShifts.includes(sh);
+                    return (
+                      <button
+                        key={sh}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedShifts(selectedShifts.filter((s) => s !== sh));
+                          } else {
+                            setSelectedShifts([...selectedShifts, sh]);
+                          }
+                        }}
+                        className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all border ${
+                          isSelected
+                            ? "bg-indigo-50 text-indigo-700 border-indigo-300 shadow-xs font-extrabold"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        {sh}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  {selectedShifts.length === 0
+                    ? "Menampilkan data dari semua jam shift (All Time)."
+                    : `Menyaring data untuk ${selectedShifts.length} shift terpilih.`}
+                </p>
+              </div>
+            )}
+
+            {/* 4. METRICS CHECKLIST */}
             <div className="space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">

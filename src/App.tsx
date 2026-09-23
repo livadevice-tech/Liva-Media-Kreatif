@@ -5804,6 +5804,12 @@ export default function App() {
                 }
                 platform={clientPlatformFilter}
                 availablePlatforms={["Semua Platform", "TikTok Live", "Shopee Live"]}
+                availableShifts={
+                  clientBrand?.dashboardSettings?.allowedShifts
+                    ? shifts.filter((sh) => clientBrand.dashboardSettings.allowedShifts.includes(sh) && sh !== "All Time")
+                    : shifts
+                }
+                initialShiftFilters={operatorShiftFilters}
                 reportType={
                   clientReportingTab === "product"
                     ? "product"
@@ -5819,6 +5825,7 @@ export default function App() {
                       : clientReportingTab === "engagement"
                         ? "engagement"
                         : "live";
+                  const effectiveShiftFilters = params.shiftFilters ?? operatorShiftFilters;
 
                   const dynamicLiveView = buildLiveReportViewModel({
                     brandPerformanceLogs,
@@ -5830,7 +5837,7 @@ export default function App() {
                     customEndDate: params.endDate,
                     searchQuery: reportDbSearchQuery,
                     platformFilter: params.platform,
-                    shiftFilters: operatorShiftFilters,
+                    shiftFilters: effectiveShiftFilters,
                   });
 
                   const dynamicProductView = buildProductPerformanceViewModel({
@@ -5843,7 +5850,7 @@ export default function App() {
                     operatorCustomEndDate: params.endDate,
                     operatorSelectedMonth: clientSelectedMonth,
                     operatorPlatformFilter: params.platform,
-                    operatorShiftFilters: operatorShiftFilters,
+                    operatorShiftFilters: effectiveShiftFilters,
                     reportDbSearchQuery,
                   });
 
@@ -5853,7 +5860,7 @@ export default function App() {
                     operatorDateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
                     selectedLatestDate: params.startDate,
                     operatorPlatformFilter: params.platform,
-                    operatorShiftFilters: operatorShiftFilters,
+                    operatorShiftFilters: effectiveShiftFilters,
                     operatorSelectedMonth: clientSelectedMonth,
                     operatorCustomStartDate: params.startDate,
                     operatorCustomEndDate: params.endDate,
@@ -5879,6 +5886,7 @@ export default function App() {
                       : clientReportingTab === "engagement"
                         ? "engagement"
                         : "live";
+                  const effectiveShiftFilters = params.shiftFilters ?? operatorShiftFilters;
 
                   const dynamicLiveView = buildLiveReportViewModel({
                     brandPerformanceLogs,
@@ -5890,7 +5898,7 @@ export default function App() {
                     customEndDate: params.endDate,
                     searchQuery: reportDbSearchQuery,
                     platformFilter: params.platform,
-                    shiftFilters: operatorShiftFilters,
+                    shiftFilters: effectiveShiftFilters,
                   });
 
                   const dynamicProductView = buildProductPerformanceViewModel({
@@ -5903,7 +5911,7 @@ export default function App() {
                     operatorCustomEndDate: params.endDate,
                     operatorSelectedMonth: clientSelectedMonth,
                     operatorPlatformFilter: params.platform,
-                    operatorShiftFilters: operatorShiftFilters,
+                    operatorShiftFilters: effectiveShiftFilters,
                     reportDbSearchQuery,
                   });
 
@@ -5913,7 +5921,7 @@ export default function App() {
                     operatorDateFilterType: params.startDate && params.endDate ? "custom" : clientDateFilterType,
                     selectedLatestDate: params.startDate,
                     operatorPlatformFilter: params.platform,
-                    operatorShiftFilters: operatorShiftFilters,
+                    operatorShiftFilters: effectiveShiftFilters,
                     operatorSelectedMonth: clientSelectedMonth,
                     operatorCustomStartDate: params.startDate,
                     operatorCustomEndDate: params.endDate,
@@ -12508,6 +12516,12 @@ export default function App() {
                       }
                       platform={operatorPlatformFilter}
                       availablePlatforms={["Semua Platform", "TikTok Live", "Shopee Live"]}
+                      availableShifts={
+                        clientBrands.find((b) => b.id === activeReportBrandId)?.dashboardSettings?.allowedShifts
+                          ? shifts.filter((sh) => clientBrands.find((b) => b.id === activeReportBrandId)!.dashboardSettings!.allowedShifts!.includes(sh) && sh !== "All Time")
+                          : shifts
+                      }
+                      initialShiftFilters={operatorShiftFilters}
                       reportType={
                         operatorReportingTab === "product"
                           ? "product"
@@ -12524,6 +12538,7 @@ export default function App() {
                             : operatorReportingTab === "engagement"
                               ? "engagement"
                               : "live";
+                        const effectiveShiftFilters = params.shiftFilters ?? operatorShiftFilters;
 
                         const dynamicLiveView = buildLiveReportViewModel({
                           brandPerformanceLogs,
@@ -12535,7 +12550,7 @@ export default function App() {
                           customEndDate: params.endDate,
                           searchQuery: reportDbSearchQuery,
                           platformFilter: params.platform,
-                          shiftFilters: operatorShiftFilters,
+                          shiftFilters: effectiveShiftFilters,
                         });
 
                         const dynamicProductView = buildProductPerformanceViewModel({
@@ -12548,7 +12563,7 @@ export default function App() {
                           operatorCustomEndDate: params.endDate,
                           operatorSelectedMonth: operatorSelectedMonth,
                           operatorPlatformFilter: params.platform,
-                          operatorShiftFilters: operatorShiftFilters,
+                          operatorShiftFilters: effectiveShiftFilters,
                           reportDbSearchQuery,
                         });
 
@@ -12558,7 +12573,7 @@ export default function App() {
                           operatorDateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
                           selectedLatestDate: params.startDate,
                           operatorPlatformFilter: params.platform,
-                          operatorShiftFilters: operatorShiftFilters,
+                          operatorShiftFilters: effectiveShiftFilters,
                           operatorSelectedMonth: operatorSelectedMonth,
                           operatorCustomStartDate: params.startDate,
                           operatorCustomEndDate: params.endDate,
@@ -12586,6 +12601,7 @@ export default function App() {
                             : operatorReportingTab === "engagement"
                               ? "engagement"
                               : "live";
+                        const effectiveShiftFilters = params.shiftFilters ?? operatorShiftFilters;
 
                         const dynamicLiveView = buildLiveReportViewModel({
                           brandPerformanceLogs,
@@ -12597,7 +12613,7 @@ export default function App() {
                           customEndDate: params.endDate,
                           searchQuery: reportDbSearchQuery,
                           platformFilter: params.platform,
-                          shiftFilters: operatorShiftFilters,
+                          shiftFilters: effectiveShiftFilters,
                         });
 
                         const dynamicProductView = buildProductPerformanceViewModel({
@@ -12610,7 +12626,7 @@ export default function App() {
                           operatorCustomEndDate: params.endDate,
                           operatorSelectedMonth: operatorSelectedMonth,
                           operatorPlatformFilter: params.platform,
-                          operatorShiftFilters: operatorShiftFilters,
+                          operatorShiftFilters: effectiveShiftFilters,
                           reportDbSearchQuery,
                         });
 
@@ -12620,7 +12636,7 @@ export default function App() {
                           operatorDateFilterType: params.startDate && params.endDate ? "custom" : operatorDateFilterType,
                           selectedLatestDate: params.startDate,
                           operatorPlatformFilter: params.platform,
-                          operatorShiftFilters: operatorShiftFilters,
+                          operatorShiftFilters: effectiveShiftFilters,
                           operatorSelectedMonth: operatorSelectedMonth,
                           operatorCustomStartDate: params.startDate,
                           operatorCustomEndDate: params.endDate,

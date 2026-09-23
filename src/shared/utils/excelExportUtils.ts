@@ -123,6 +123,7 @@ export function exportReportToExcel({
           ? log.dateTime.split(" ")[1]
           : "-";
       if (selectedMetrics.includes("platform")) row["Platform"] = log.platform || "-";
+      if (selectedMetrics.includes("shift")) row["Shift"] = log.shift || "-";
       if (selectedMetrics.includes("views") || selectedMetrics.includes("viewers"))
         row["Views / Penonton"] = Math.max(
           log.impressions || 0,
