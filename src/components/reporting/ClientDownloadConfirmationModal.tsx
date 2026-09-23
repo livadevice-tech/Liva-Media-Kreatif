@@ -13,6 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { formatDateTimeSafe } from "../../shared/utils/dateTime";
+import { SHIFTS } from "../../data";
 
 export interface ExportDownloadParams {
   selectedMetrics: string[];
@@ -72,9 +73,10 @@ export function ClientDownloadConfirmationModal({
     return Array.from(set);
   }, [availablePlatforms]);
 
-  // Clean available shifts list without duplicates
+  // Clean available shifts list without duplicates, fallback to default SHIFTS
   const cleanedShiftsList = useMemo(() => {
-    return availableShifts.filter((s) => s && s !== "All Time" && s.trim().length > 0);
+    const srcList = availableShifts && availableShifts.length > 0 ? availableShifts : SHIFTS;
+    return srcList.filter((s) => s && s !== "All Time" && s.trim().length > 0);
   }, [availableShifts]);
 
   // Local state for interactive filtering inside sidebar
@@ -439,67 +441,39 @@ export function ClientDownloadConfirmationModal({
 
             {/* 3. SHIFT SELECTION */}
             {cleanedShiftsList.length > 0 && (
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
-                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                    Pilihan Shift
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedShifts.length === 0) {
-                        setSelectedShifts([...cleanedShiftsList]);
-                      } else {
+              <div className="space-y-2">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                  Pilihan Shift
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedShifts.length === 1 ? selectedShifts[0] : "All Time"}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "All Time") {
                         setSelectedShifts([]);
+                      } else {
+                        setSelectedShifts([val]);
                       }
                     }}
-                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700"
+                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                   >
-                    {selectedShifts.length === 0 ? "Pilih Semua Shift" : "All Time (Semua Shift)"}
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedShifts([])}
-                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all border ${
-                      selectedShifts.length === 0
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    All Time
-                  </button>
-                  {cleanedShiftsList.map((sh) => {
-                    const isSelected = selectedShifts.includes(sh);
-                    return (
-                      <button
-                        key={sh}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) {
-                            setSelectedShifts(selectedShifts.filter((s) => s !== sh));
-                          } else {
-                            setSelectedShifts([...selectedShifts, sh]);
-                          }
-                        }}
-                        className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all border ${
-                          isSelected
-                            ? "bg-indigo-50 text-indigo-700 border-indigo-300 shadow-xs font-extrabold"
-                            : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-                        }`}
-                      >
+                    <option value="All Time">All Time (Semua Shift)</option>
+                    {cleanedShiftsList.map((sh) => (
+                      <option key={sh} value={sh}>
                         {sh}
-                      </button>
-                    );
-                  })}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
                 </div>
                 <p className="text-[11px] text-slate-500">
                   {selectedShifts.length === 0
                     ? "Menampilkan data dari semua jam shift (All Time)."
-                    : `Menyaring data untuk ${selectedShifts.length} shift terpilih.`}
+                    : `Menyaring data khusus untuk shift: ${selectedShifts[0]}`}
                 </p>
               </div>
             )}
