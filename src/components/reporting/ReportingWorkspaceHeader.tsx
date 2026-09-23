@@ -16,7 +16,7 @@ import { AdvancedDatePicker } from "./AdvancedDatePicker";
 import { getIndonesianMonthLabel } from "../../shared/utils/reporting";
 import { type ReportDateFilterType } from "../../shared/utils/reportTable";
 
-export type ReportingTab = "live" | "product" | "engagement" | "analysis" | "settings" | "metrics";
+export type ReportingTab = "overview" | "live" | "product" | "engagement" | "analysis" | "settings" | "metrics";
 
 type Setter<T> = (value: T | ((prev: T) => T)) => void;
 
@@ -368,20 +368,21 @@ export function ReportingWorkspaceHeader({
           </div>
         </div>
         {/* === DESKTOP-ONLY header row (hidden on mobile) === */}
-        <div className="hidden md:flex items-center gap-3 pb-4 border-b border-[#e7e0f8]">
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              aria-label="Kembali"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-          )}
+        <div className="hidden md:flex items-center justify-between gap-4 pb-4 border-b border-[#e7e0f8] flex-wrap">
+          {/* Left: Back button + Avatar + Brand Name + Live Badge + ID */}
+          <div className="flex items-center gap-3 min-w-0">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label="Kembali"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            )}
 
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#5600e0] text-lg font-black text-white shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#7928ca] via-[#6366f1] to-[#4338ca] text-xs font-black text-white shadow-xs">
               {brandLogoUrl ? (
                 <img
                   src={brandLogoUrl}
@@ -389,73 +390,258 @@ export function ReportingWorkspaceHeader({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span>{brandInitials || "RB"}</span>
+                <span>{brandName ? brandName.slice(0, 6) : brandInitials}</span>
               )}
             </div>
 
-            <div className="min-w-0 flex-1">
-              <h2 className="truncate font-display text-[clamp(1.25rem,2vw,1.75rem)] font-black tracking-tight text-slate-950 leading-tight">
-                {brandName || "Nama Brand"}
-              </h2>
-              <p className="mt-0.5 text-sm font-semibold text-slate-500">
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black text-slate-900 leading-tight truncate">
+                  {brandName || "Nama Brand"}
+                </h1>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 border border-emerald-100/80">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Live Brand
+                </span>
+              </div>
+              <p className="text-[11px] font-medium text-slate-400 mt-0.5 leading-tight">
                 ID: {brandCode}
               </p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-3">
+
+          {/* Right: Date Picker, Platform Select, Shift Select, Export, Upload Data */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Date Filter Dropdown */}
+            <div className="relative flex-shrink-0" ref={dateMenuRef}>
+              <button
+                type="button"
+                onClick={openDateMenu}
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                aria-haspopup="menu"
+                aria-expanded={isDateMenuOpen}
+              >
+                <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                <span>{periodLabel || dateButtonLabel}</span>
+                <ChevronDown className="h-3 w-3 text-slate-400" />
+              </button>
+
+              {isDateMenuOpen && (
+                <div className="absolute right-0 top-full z-50 mt-2">
+                  <AdvancedDatePicker
+                    initialType={dateFilterType}
+                    initialStartDate={customStartDate}
+                    initialEndDate={customEndDate}
+                    initialMonth={selectedMonth}
+                    onApply={(type, startDate, endDate, month) => {
+                      onDateFilterTypeSelect(type);
+                      if (type === "custom" || type === "daily" || type === "weekly") {
+                        onApplyCustom(startDate, endDate);
+                      } else if (type === "monthly") {
+                        setSelectedMonth(month);
+                      }
+                      closeAllMenus();
+                    }}
+                    onCancel={() => {
+                      onCancelCustom();
+                      closeAllMenus();
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Platform Selector */}
+            <div className="relative flex-shrink-0" ref={platformMenuRef}>
+              <button
+                type="button"
+                onClick={openPlatformMenu}
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                aria-haspopup="menu"
+                aria-expanded={isPlatformMenuOpen}
+              >
+                {selectedPlatform.toLowerCase().includes("tiktok") ? (
+                  <svg className="h-3.5 w-3.5 text-slate-900" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z" />
+                  </svg>
+                ) : (
+                  <ShoppingBag className="h-3.5 w-3.5 text-[#ff6a00]" />
+                )}
+                <span>{selectedPlatform}</span>
+                <ChevronDown className="h-3 w-3 text-slate-400" />
+              </button>
+
+              {isPlatformMenuOpen && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-[200px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
+                  <div className="space-y-1">
+                    {availablePlatforms.map((platform) => {
+                      const active = platform === selectedPlatform;
+                      return (
+                        <button
+                          key={platform}
+                          type="button"
+                          onClick={() => {
+                            onPlatformFilterChange(platform);
+                            setIsPlatformMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-[14px] px-3 py-2 text-left text-xs font-bold transition-colors ${
+                            active
+                              ? "bg-[#f7f2ff] text-[#5600e0]"
+                              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {platform.toLowerCase().includes("tiktok") ? (
+                              <svg className="h-3.5 w-3.5 text-slate-900" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z" />
+                              </svg>
+                            ) : (
+                              <ShoppingBag className="h-3.5 w-3.5 text-[#ff6a00]" />
+                            )}
+                            <span>{platform}</span>
+                          </div>
+                          {active ? <ChevronRight className="h-3.5 w-3.5" /> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Shift Filter Dropdown (compact for desktop) */}
+            {setOperatorShiftFilters && availableShifts.length > 0 && (
+              <div className="relative flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsShiftDropdownOpen(!isShiftDropdownOpen)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                >
+                  <span className="text-[#5600e0]">Shift:</span>
+                  <span className="max-w-[110px] truncate text-slate-800">
+                    {operatorShiftFilters.length === 0 ? "All Session" : operatorShiftFilters.join(", ")}
+                  </span>
+                  <ChevronDown className={`h-3 w-3 text-slate-400 transition-transform ${isShiftDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isShiftDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsShiftDropdownOpen(false)} />
+                    <div className="absolute right-0 top-full z-50 mt-2 w-[240px] max-h-[260px] overflow-y-auto rounded-[18px] border border-slate-200 bg-white p-2.5 shadow-xl space-y-1">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 text-xs font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
+                          checked={operatorShiftFilters.length === 0}
+                          onChange={(e) => {
+                            if (e.target.checked) setOperatorShiftFilters([]);
+                          }}
+                        />
+                        <span>All Session (Semua)</span>
+                      </label>
+                      {availableShifts.map((sh) => (
+                        <label key={sh} className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 text-xs font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            className="rounded border-slate-300 text-[#5600e0] focus:ring-[#5600e0]"
+                            checked={operatorShiftFilters.includes(sh)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setOperatorShiftFilters([...operatorShiftFilters, sh]);
+                              } else {
+                                setOperatorShiftFilters(operatorShiftFilters.filter((x) => x !== sh));
+                              }
+                            }}
+                          />
+                          <span className="truncate">{sh}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Export Button (white bordered) */}
             {onExport && (
               <button
                 type="button"
                 onClick={onExport}
-                className="inline-flex h-[48px] items-center justify-center gap-2.5 rounded-[20px] bg-emerald-600 px-5 shadow-[0_8px_16px_-6px_rgba(5,150,105,0.4)] transition-all hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:scale-95 text-white"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 title="Export Data Laporan"
               >
-                <Download className="h-[18px] w-[18px] shrink-0 text-white" strokeWidth={2.5} />
-                <div className="flex flex-col items-start leading-[1.1] text-left">
-                  <span className="text-[14px] font-bold text-white">Export</span>
-                  <span className="text-[14px] font-bold text-white">Data</span>
-                </div>
+                <Download className="h-3.5 w-3.5 text-slate-500" />
+                <span>Export</span>
               </button>
             )}
 
+            {/* Upload Data Button (purple button) */}
             {(onImportRawLive || onImportRawProduct || onImportRawEngagement || onOpenAddManualDuration) && (
               <div className="relative flex-shrink-0" ref={rawMenuRef}>
                 <button
                   type="button"
                   onClick={openRawMenu}
-                  className="inline-flex h-[48px] items-center justify-center gap-3 rounded-[20px] bg-[#5200ff] px-5 shadow-[0_8px_16px_-6px_rgba(82,0,255,0.4)] transition-all hover:bg-[#4300cc] focus:outline-none focus:ring-2 focus:ring-[#5200ff] focus:ring-offset-2 active:scale-95"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5600e0] px-3.5 text-xs font-bold text-white shadow-xs hover:bg-[#4800bd] transition-colors"
                   aria-haspopup="menu"
                   aria-expanded={isRawMenuOpen}
                 >
-                  <Upload className="h-[18px] w-[18px] shrink-0 text-white" strokeWidth={2.5} />
-                  <div className="flex flex-col items-start leading-[1.1] text-left">
-                    <span className="text-[14px] font-bold text-white">Upload</span>
-                    <span className="text-[14px] font-bold text-white">Data</span>
-                  </div>
-                  <ChevronDown className="h-[18px] w-[18px] shrink-0 text-white opacity-80" strokeWidth={2.5} />
+                  <Upload className="h-3.5 w-3.5 text-white" />
+                  <span>Upload Data</span>
+                  <ChevronDown className="h-3 w-3 text-white/80" />
                 </button>
-                
+
                 {isRawMenuOpen && (
                   <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[240px] rounded-[18px] border border-slate-200 bg-white p-2 shadow-[0_20px_44px_rgba(17,24,39,0.12)]">
                     <div className="space-y-1">
                       {onImportRawLive && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawLive(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onImportRawLive();
+                            setIsRawMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                        >
                           <Layers3 className="h-4 w-4 text-indigo-600" /> Upload Raw Data Live
                         </button>
                       )}
                       {onOpenAddManualDuration && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); onOpenAddManualDuration(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenAddManualDuration();
+                            setIsRawMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                        >
                           <CalendarDays className="h-4 w-4 text-indigo-600" /> Tambah Durasi Manual
                         </button>
                       )}
                       {onImportRawProduct && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawProduct(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onImportRawProduct();
+                            setIsRawMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                        >
                           <ShoppingBag className="h-4 w-4 text-[#ff6a00]" /> Upload Raw Data Product
                         </button>
                       )}
                       {onImportRawEngagement && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); onImportRawEngagement(); setIsRawMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onImportRawEngagement();
+                            setIsRawMenuOpen(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                        >
                           <Settings2 className="h-4 w-4 text-[#0f766e]" /> Upload Raw Data Engagement
                         </button>
                       )}
@@ -467,8 +653,8 @@ export function ReportingWorkspaceHeader({
           </div>
         </div>
 
-        {/* === FILTER BAR: mobile = flex wrap, desktop = flex wrap === */}
-        <div className="flex flex-row flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 sm:items-center sm:justify-between pb-2">
+        {/* === FILTER BAR: mobile-only (hidden on desktop because top header handles it) === */}
+        <div className="flex flex-row flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 sm:items-center sm:justify-between pb-2 md:hidden">
           <div className="flex flex-row flex-wrap items-center gap-2 sm:gap-3 w-full">
             {/* Date Filter */}
             <div className="relative flex-shrink-0" ref={dateMenuRef}>
@@ -580,7 +766,7 @@ export function ReportingWorkspaceHeader({
         </div>
 
         {setOperatorShiftFilters && (
-          <div className="border-t border-[#edf0fb] pt-3 pb-1 relative">
+          <div className="border-t border-[#edf0fb] pt-3 pb-1 relative md:hidden">
             {/* Active date label */}
             <div className="flex items-center gap-2 px-1 mb-2">
               <CalendarDays className="h-3.5 w-3.5 text-slate-400 shrink-0" />
@@ -602,7 +788,7 @@ export function ReportingWorkspaceHeader({
                 <div className="flex items-center gap-2">
                   <span className="text-[#5600e0]">Filter & Grouping Shift</span>
                   <span className="bg-[#5600e0] text-white px-2.5 py-0.5 rounded-full text-[10px] font-extrabold max-w-[400px] truncate" title={operatorShiftFilters.join(", ")}>
-                    {operatorShiftFilters.length === 0 ? "All Time" : operatorShiftFilters.join(", ")}
+                    {operatorShiftFilters.length === 0 ? "All Session" : operatorShiftFilters.join(", ")}
                   </span>
                 </div>
                 <ChevronDown className={`h-4 w-4 text-[#5600e0] transition-transform duration-200 ${isShiftDropdownOpen ? 'transform rotate-180' : ''}`} />
@@ -613,12 +799,14 @@ export function ReportingWorkspaceHeader({
                   <div className="fixed inset-0 z-40" onClick={() => setIsShiftDropdownOpen(false)} />
                   <div className="absolute left-0 right-0 z-50 mt-2 flex flex-wrap items-center gap-2 rounded-[18px] border border-[#e4ddf6] bg-white p-3 shadow-lg max-h-[250px] overflow-y-auto">
                     {(() => {
-                      const isAllTimeAllowed = brandDashboardSettings?.allowedShifts ? brandDashboardSettings.allowedShifts.includes("All Time") : true;
-                      if (!isAllTimeAllowed) return null;
+                      const isAllAllowed = brandDashboardSettings?.allowedShifts
+                        ? brandDashboardSettings.allowedShifts.includes("All Time") || brandDashboardSettings.allowedShifts.includes("All Session")
+                        : true;
+                      if (!isAllAllowed) return null;
                       return (
                         <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 transition-colors hover:bg-slate-50">
                           <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-[#5600e0]" checked={operatorShiftFilters.length === 0} onChange={(e) => { if (e.target.checked) setOperatorShiftFilters([]); }} />
-                          <span className="text-xs font-semibold text-slate-700">All Time</span>
+                          <span className="text-xs font-semibold text-slate-700">All Session (Semua Sesi)</span>
                         </label>
                       );
                     })()}
@@ -657,12 +845,16 @@ export function ReportingWorkspaceTabs({
   hideSettingsTab,
   brandDashboardSettings,
 }: ReportingWorkspaceTabsProps) {
-  const tabClass = (tab: ReportingTab) =>
-    `relative whitespace-nowrap px-1 pb-2 pt-1 sm:py-3 text-[13px] sm:text-[14px] font-semibold sm:font-bold transition-all border-b-2 sm:border-b-[3px] ${
-      activeTab === tab
+  const tabClass = (tab: ReportingTab, isMobileOverview = false) => {
+    const isActive = isMobileOverview
+      ? activeTab === "overview" || activeTab === "live"
+      : activeTab === tab;
+    return `relative whitespace-nowrap px-1 pb-2 pt-1 sm:py-3 text-[13px] sm:text-[14px] font-semibold sm:font-bold transition-all border-b-2 sm:border-b-[3px] ${
+      isActive
         ? "border-[#5600e0] text-[#5600e0]"
         : "border-transparent text-slate-400 sm:text-slate-500 hover:text-slate-700"
     }`;
+  };
 
   // Helper to check if a category is hidden
   const isCategoryHidden = (categoryId: string) => {
@@ -673,55 +865,78 @@ export function ReportingWorkspaceTabs({
     <div className="sticky top-[64px] sm:top-[72px] z-40 mb-4 bg-white border-b border-slate-100">
       <div className="px-4 sm:px-6 lg:px-8 max-w-[1800px] mx-auto">
         <div className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar sm:inline-flex w-full sm:w-auto">
+          {/* TAB 1: OVERVIEW */}
+          {/* Desktop tab for Overview */}
+          <button
+            type="button"
+            onClick={() => onTabChange("overview")}
+            className={`${tabClass("overview")} hidden md:inline-block`}
+          >
+            Overview
+          </button>
+
+          {/* Mobile tab for Overview (active when overview or live) */}
+          <button
+            type="button"
+            onClick={() => onTabChange("overview")}
+            className={`${tabClass("overview", true)} md:hidden`}
+          >
+            Overview
+          </button>
+
+          {/* TAB 2: LIVE PERFORMANCE (Desktop only) */}
           {!isCategoryHidden("live") && (
-        <button
-          type="button"
-          onClick={() => onTabChange("live")}
-          className={tabClass("live")}
-        >
-          <span className="md:hidden">Overview</span>
-          <span className="hidden md:inline">Live Performance</span>
-        </button>
-      )}
-      {!isCategoryHidden("product") && (
-        <button
-          type="button"
-          onClick={() => onTabChange("product")}
-          className={`${tabClass("product")} hidden md:inline-block`}
-        >
-          <span className="hidden md:inline">Product Performance</span>
-        </button>
-      )}
+            <button
+              type="button"
+              onClick={() => onTabChange("live")}
+              className={`${tabClass("live")} hidden md:inline-block`}
+            >
+              Live Performance
+            </button>
+          )}
 
-      {/* METRIKS TAB - MOBILE ONLY (posisi ke-2 di mobile) */}
-      <button
-        type="button"
-        onClick={() => onTabChange("metrics")}
-        className={`${tabClass("metrics")} md:hidden`}
-      >
-        Metriks
-      </button>
+          {/* TAB: PRODUCT PERFORMANCE */}
+          {!isCategoryHidden("product") && (
+            <button
+              type="button"
+              onClick={() => onTabChange("product")}
+              className={`${tabClass("product")} hidden md:inline-block`}
+            >
+              Product Performance
+            </button>
+          )}
 
-      {!isCategoryHidden("analysis") && (
-        <button
-          type="button"
-          onClick={() => onTabChange("analysis")}
-          className={`${tabClass("analysis")}`}
-        >
-          <span className="md:hidden">Analysis</span>
-          <span className="hidden md:inline">Analysis Performance</span>
-        </button>
-      )}
+          {/* METRIKS TAB - MOBILE ONLY (posisi ke-2 di mobile) */}
+          <button
+            type="button"
+            onClick={() => onTabChange("metrics")}
+            className={`${tabClass("metrics")} md:hidden`}
+          >
+            Metriks
+          </button>
 
-      {!hideSettingsTab && (
-        <button
-          type="button"
-          onClick={() => onTabChange("settings")}
-          className={`${tabClass("settings")}`}
-        >
-          <span className="md:hidden">Pengaturan</span>
-          <span className="hidden md:inline">Pengaturan Klien</span>
-        </button>
+          {/* TAB: ANALYSIS PERFORMANCE */}
+          {!isCategoryHidden("analysis") && (
+            <button
+              type="button"
+              onClick={() => onTabChange("analysis")}
+              className={tabClass("analysis")}
+            >
+              <span className="md:hidden">Analysis</span>
+              <span className="hidden md:inline">Analysis Performance</span>
+            </button>
+          )}
+
+          {/* TAB: PENGATURAN KLIEN */}
+          {!hideSettingsTab && (
+            <button
+              type="button"
+              onClick={() => onTabChange("settings")}
+              className={tabClass("settings")}
+            >
+              <span className="md:hidden">Pengaturan</span>
+              <span className="hidden md:inline">Pengaturan Klien</span>
+            </button>
           )}
         </div>
       </div>

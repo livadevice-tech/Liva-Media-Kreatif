@@ -76,7 +76,15 @@ export function ClientDownloadConfirmationModal({
   // Clean available shifts list without duplicates, fallback to default SHIFTS
   const cleanedShiftsList = useMemo(() => {
     const srcList = availableShifts && availableShifts.length > 0 ? availableShifts : SHIFTS;
-    return srcList.filter((s) => s && s !== "All Time" && s.trim().length > 0);
+    return srcList.filter(
+      (s) =>
+        s &&
+        s !== "All Time" &&
+        s !== "All Session" &&
+        s !== "Semua Sesi" &&
+        s !== "Semua Shift" &&
+        s.trim().length > 0
+    );
   }, [availableShifts]);
 
   // Local state for interactive filtering inside sidebar
@@ -439,19 +447,25 @@ export function ClientDownloadConfirmationModal({
               )}
             </div>
 
-            {/* 3. SHIFT SELECTION */}
+            {/* 3. SHIFT / SESSION SELECTION */}
             {cleanedShiftsList.length > 0 && (
               <div className="space-y-2">
                 <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
                   <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                  Pilihan Shift
+                  Pilihan Shift / Sesi
                 </label>
                 <div className="relative">
                   <select
-                    value={selectedShifts.length === 1 ? selectedShifts[0] : "All Time"}
+                    value={
+                      selectedShifts.length === 1 &&
+                      selectedShifts[0] !== "All Session" &&
+                      selectedShifts[0] !== "All Time"
+                        ? selectedShifts[0]
+                        : "All Session"
+                    }
                     onChange={(e) => {
                       const val = e.target.value;
-                      if (val === "All Time") {
+                      if (val === "All Session" || val === "All Time") {
                         setSelectedShifts([]);
                       } else {
                         setSelectedShifts([val]);
@@ -459,7 +473,7 @@ export function ClientDownloadConfirmationModal({
                     }}
                     className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                   >
-                    <option value="All Time">All Time (Semua Shift)</option>
+                    <option value="All Session">All Session (Semua Sesi / Shift)</option>
                     {cleanedShiftsList.map((sh) => (
                       <option key={sh} value={sh}>
                         {sh}
@@ -471,9 +485,11 @@ export function ClientDownloadConfirmationModal({
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  {selectedShifts.length === 0
-                    ? "Menampilkan data dari semua jam shift (All Time)."
-                    : `Menyaring data khusus untuk shift: ${selectedShifts[0]}`}
+                  {selectedShifts.length === 0 ||
+                  selectedShifts[0] === "All Session" ||
+                  selectedShifts[0] === "All Time"
+                    ? "Menampilkan data dari seluruh sesi (All Session)."
+                    : `Menyaring data khusus untuk shift/sesi: ${selectedShifts[0]}`}
                 </p>
               </div>
             )}

@@ -78,6 +78,70 @@ export function getAvailablePlatformsForBrand(
   return platforms.length > 0 ? platforms : [...fallbackPlatforms];
 }
 
+export function getAvailableShiftsForBrand(
+  brandId: string | undefined,
+  brand: ClientBrand | undefined,
+  brandPerformanceLogs: readonly BrandPerformanceLogEntry[],
+  fallbackShifts: readonly string[],
+): string[] {
+  const shiftSet = new Set<string>();
+
+  // 1. From brand sessions configuration
+  if (brand?.sessions && Array.isArray(brand.sessions)) {
+    brand.sessions.forEach((s) => {
+      const shiftName = s?.shift?.trim();
+      if (shiftName && shiftName !== "All Time" && shiftName !== "All Session") {
+        shiftSet.add(shiftName);
+      }
+    });
+  }
+
+  // 2. From dashboardSettings allowedShifts
+  if (brand?.dashboardSettings?.allowedShifts && Array.isArray(brand.dashboardSettings.allowedShifts)) {
+    brand.dashboardSettings.allowedShifts.forEach((s) => {
+      const shiftName = s?.trim();
+      if (shiftName && shiftName !== "All Time" && shiftName !== "All Session") {
+        shiftSet.add(shiftName);
+      }
+    });
+  }
+
+  // 3. From actual uploaded brand logs
+  if (brandId && brandPerformanceLogs.length > 0) {
+    brandPerformanceLogs
+      .filter((log) => log.brandId === brandId)
+      .forEach((log) => {
+        const shiftName = log.shift?.trim();
+        if (shiftName && shiftName !== "All Time" && shiftName !== "All Session" && shiftName !== "-") {
+          shiftSet.add(shiftName);
+        }
+      });
+  }
+
+  // 4. If no brand-specific shifts found, fallback to fallbackShifts
+  if (shiftSet.size === 0) {
+    fallbackShifts.forEach((s) => {
+      const shiftName = s?.trim();
+      if (shiftName && shiftName !== "All Time" && shiftName !== "All Session") {
+        shiftSet.add(shiftName);
+      }
+    });
+  }
+
+  return Array.from(shiftSet).sort((a, b) => {
+    // Sort chronologically by start time
+    const parseTime = (str: string) => {
+      const match = str.match(/\b(\d{1,2})[.:](\d{2})\b/);
+      if (!match) return 9999;
+      return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+    };
+    const tA = parseTime(a);
+    const tB = parseTime(b);
+    if (tA !== tB) return tA - tB;
+    return a.localeCompare(b, "id", { numeric: true, sensitivity: "base" });
+  });
+}
+
 export function selectMostUsedPlatform(
   logs: readonly { platform?: string }[],
   fallback = "TikTok Live",

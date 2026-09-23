@@ -233,6 +233,7 @@ import {
 import {
   buildReportBrandSummary,
   getAvailablePlatformsForBrand,
+  getAvailableShiftsForBrand,
   selectMostUsedPlatform,
 } from "./shared/utils/reportBrandSummary";
 import {
@@ -292,7 +293,10 @@ import { UploadHistoryCard } from "./components/reporting/UploadHistoryCard";
 import {
   ReportingWorkspaceHeader,
   ReportingWorkspaceTabs,
+  type ReportingTab,
 } from "./components/reporting/ReportingWorkspaceHeader";
+import { BrandOverviewDashboard } from "./components/reporting/BrandOverviewDashboard";
+import { buildLiveReportPanelData } from "./shared/utils/liveReportPanel";
 import { BrandDashboardSettingsPanel } from "./components/reporting/BrandDashboardSettingsPanel";
 import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSelectionPanel";
 import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
@@ -1400,9 +1404,8 @@ export default function App() {
   const [isClientCalendarOpen, setIsClientCalendarOpen] = useState(false);
   const [clientPlatformFilter, setClientPlatformFilter] =
     useState("TikTok Live");
-  const [clientReportingTab, setClientReportingTab] = useState<
-    "live" | "engagement" | "product" | "analysis"
-  >("live");
+  const [clientReportingTab, setClientReportingTab] =
+    useState<ReportingTab>("overview");
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isAddManualDurationModalOpen, setIsAddManualDurationModalOpen] = useState(false);
   const [clientSelectedMonth, setClientSelectedMonth] = useState<string>(() => {
@@ -2034,9 +2037,8 @@ export default function App() {
     | "leads"
     | "admin_privacy"
   >("dashboard_utama");
-  const [operatorReportingTab, setOperatorReportingTab] = useState<
-    "live" | "product" | "engagement" | "analysis" | "settings"
-  >("live");
+  const [operatorReportingTab, setOperatorReportingTab] =
+    useState<ReportingTab>("overview");
   const [brandDataTab, setBrandDataTab] = useState<"active" | "inactive">(
     "active",
   );
@@ -2097,6 +2099,25 @@ export default function App() {
       clientSelectedLatestDate,
       operatorShiftFilters,
       reportDbSearchQuery,
+    ],
+  );
+
+  const clientPanelData = useMemo(
+    () =>
+      buildLiveReportPanelData({
+        model: clientLiveReportView,
+        operatorPlatformFilter: clientPlatformFilter,
+        reportDbSortCol,
+        reportDbSortAsc,
+        currentPage,
+        itemsPerPage: ITEMS_PER_PAGE,
+      }),
+    [
+      clientLiveReportView,
+      clientPlatformFilter,
+      reportDbSortCol,
+      reportDbSortAsc,
+      currentPage,
     ],
   );
 
@@ -2300,6 +2321,25 @@ export default function App() {
       operatorSelectedLatestDate,
       operatorShiftFilters,
       reportDbSearchQuery,
+    ],
+  );
+
+  const operatorPanelData = useMemo(
+    () =>
+      buildLiveReportPanelData({
+        model: liveReportView,
+        operatorPlatformFilter,
+        reportDbSortCol,
+        reportDbSortAsc,
+        currentPage,
+        itemsPerPage: ITEMS_PER_PAGE,
+      }),
+    [
+      liveReportView,
+      operatorPlatformFilter,
+      reportDbSortCol,
+      reportDbSortAsc,
+      currentPage,
     ],
   );
 
@@ -5531,11 +5571,12 @@ export default function App() {
                       activeTab={clientReportingTab}
                       platformFilter={clientPlatformFilter}
                       onPlatformFilterChange={setClientPlatformFilter}
-                      availableShifts={
-                        clientBrand?.dashboardSettings?.allowedShifts
-                          ? shifts.filter(sh => clientBrand.dashboardSettings.allowedShifts.includes(sh) && sh !== "All Time")
-                          : shifts
-                      }
+                      availableShifts={getAvailableShiftsForBrand(
+                        activeClientBrandId || undefined,
+                        clientBrand,
+                        brandPerformanceLogs,
+                        shifts,
+                      )}
                       brandDashboardSettings={clientBrand?.dashboardSettings}
                       operatorShiftFilters={operatorShiftFilters}
                       setOperatorShiftFilters={setOperatorShiftFilters}
@@ -5693,7 +5734,7 @@ export default function App() {
                     </div>
 
                     <div className="w-full">
-                    {clientReportingTab === "live" && (
+                    {(clientReportingTab === "overview" || clientReportingTab === "live") && (
                       <React.Suspense
                         fallback={
                           <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
@@ -5701,41 +5742,62 @@ export default function App() {
                           </div>
                         }
                       >
-                        <LiveReportPanel
-                          model={clientLiveReportView}
-                          chartSelectedMetrics={liveChartSelectedMetrics}
-                          onChartSelectedMetricsChange={
-                            setLiveChartSelectedMetrics
-                          }
-                          operatorPlatformFilter={clientPlatformFilter}
-                          shifts={shifts}
-                          adminShiftChecklist={adminShiftChecklist}
-                          setAdminShiftChecklist={setAdminShiftChecklist}
-                          reportingShopeeRawTab={reportingShopeeRawTab}
-                          setReportingShopeeRawTab={
-                            setReportingShopeeRawTab
-                          }
-                          reportDbSortCol={reportDbSortCol}
-                          reportDbSortAsc={reportDbSortAsc}
-                          setReportDbSortCol={setReportDbSortCol}
-                          setReportDbSortAsc={setReportDbSortAsc}
-                          currentPage={currentPage}
-                          setCurrentPage={setCurrentPage}
-                          itemsPerPage={ITEMS_PER_PAGE}
-                          isLogsLoading={isLogsLoading}
-                          handleDeletePerformanceLog={
-                            handleDeletePerformanceLog
-                          }
-                          brandPerformanceLogs={brandPerformanceLogs}
-                          activeReportBrandId={activeClientBrandId || ""}
-                          brandUploadHistory={brandUploadHistory}
-                          uploadHistory={uploadHistory}
-                          onDeleteUploadBatch={handleDeleteUploadBatch}
-                          brandDashboardSettings={clientBrands.find((b) => b.id === activeClientBrandId)?.dashboardSettings}
-                          hideUploadHistory={true}
-                          hideRawTableControls={true}
-                          isClientView={true}
-                        />
+                        {/* On desktop: show BrandOverviewDashboard if tab is overview */}
+                        {clientReportingTab === "overview" && (
+                          <div className="hidden md:block pt-2">
+                            <BrandOverviewDashboard
+                              stats={clientPanelData.stats}
+                              chartData={clientPanelData.chartData}
+                              periodLabel={clientLiveReportView.latestDateLabel}
+                              platform={clientPlatformFilter}
+                              isShopee={!clientPlatformFilter.toLowerCase().includes("tiktok")}
+                              brandName={clientBrand?.name || "Nama Brand"}
+                              brandId={activeClientBrandId || undefined}
+                              brandDashboardSettings={clientBrand?.dashboardSettings}
+                              hasData={clientPanelData.stats.totalSessionsDb > 0}
+                            />
+                          </div>
+                        )}
+
+                        {/* On mobile: render LiveReportPanel when tab is overview or live */}
+                        {/* On desktop: render LiveReportPanel when tab is live */}
+                        <div className={clientReportingTab === "overview" ? "md:hidden" : "block"}>
+                          <LiveReportPanel
+                            model={clientLiveReportView}
+                            chartSelectedMetrics={liveChartSelectedMetrics}
+                            onChartSelectedMetricsChange={
+                              setLiveChartSelectedMetrics
+                            }
+                            operatorPlatformFilter={clientPlatformFilter}
+                            shifts={shifts}
+                            adminShiftChecklist={adminShiftChecklist}
+                            setAdminShiftChecklist={setAdminShiftChecklist}
+                            reportingShopeeRawTab={reportingShopeeRawTab}
+                            setReportingShopeeRawTab={
+                              setReportingShopeeRawTab
+                            }
+                            reportDbSortCol={reportDbSortCol}
+                            reportDbSortAsc={reportDbSortAsc}
+                            setReportDbSortCol={setReportDbSortCol}
+                            setReportDbSortAsc={setReportDbSortAsc}
+                            currentPage={currentPage}
+                            setCurrentPage={setCurrentPage}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            isLogsLoading={isLogsLoading}
+                            handleDeletePerformanceLog={
+                              handleDeletePerformanceLog
+                            }
+                            brandPerformanceLogs={brandPerformanceLogs}
+                            activeReportBrandId={activeClientBrandId || ""}
+                            brandUploadHistory={brandUploadHistory}
+                            uploadHistory={uploadHistory}
+                            onDeleteUploadBatch={handleDeleteUploadBatch}
+                            brandDashboardSettings={clientBrands.find((b) => b.id === activeClientBrandId)?.dashboardSettings}
+                            hideUploadHistory={true}
+                            hideRawTableControls={true}
+                            isClientView={true}
+                          />
+                        </div>
                       </React.Suspense>
                     )}
                     {clientReportingTab === "analysis" && activeClientBrandId && (
@@ -5804,11 +5866,12 @@ export default function App() {
                 }
                 platform={clientPlatformFilter}
                 availablePlatforms={["Semua Platform", "TikTok Live", "Shopee Live"]}
-                availableShifts={
-                  clientBrand?.dashboardSettings?.allowedShifts
-                    ? shifts.filter((sh) => clientBrand.dashboardSettings.allowedShifts.includes(sh) && sh !== "All Time")
-                    : shifts
-                }
+                availableShifts={getAvailableShiftsForBrand(
+                  activeClientBrandId || undefined,
+                  clientBrand,
+                  brandPerformanceLogs,
+                  shifts,
+                )}
                 initialShiftFilters={operatorShiftFilters}
                 reportType={
                   clientReportingTab === "product"
@@ -11970,7 +12033,12 @@ export default function App() {
                                 "Shopee Live",
                                 "TikTok Live",
                               ]}
-                              availableShifts={shifts}
+                              availableShifts={getAvailableShiftsForBrand(
+                                activeReportBrandId || undefined,
+                                clientBrands.find((b) => b.id === activeReportBrandId),
+                                brandPerformanceLogs,
+                                shifts,
+                              )}
                               operatorShiftFilters={operatorShiftFilters}
                               setOperatorShiftFilters={setOperatorShiftFilters}
                               dateFilterType={operatorDateFilterType}
@@ -12349,7 +12417,7 @@ export default function App() {
                           )}
 
                           {/* STORED DATABASE VIEWER - NEW DESIGN */}
-                          {(operatorReportingTab === "live" || operatorReportingTab === "metrics") && (
+                          {(operatorReportingTab === "overview" || operatorReportingTab === "live" || operatorReportingTab === "metrics") && (
                             <React.Suspense
                               fallback={
                                 <div className="px-6 sm:px-8 py-10 text-sm font-semibold text-slate-500 animate-pulse">
@@ -12357,13 +12425,33 @@ export default function App() {
                                 </div>
                               }
                             >
-                              <LiveReportPanel
-                                activeTab={operatorReportingTab}
-                                model={liveReportView}
-                                chartSelectedMetrics={liveChartSelectedMetrics}
-                                onChartSelectedMetricsChange={
-                                  setLiveChartSelectedMetrics
-                                }
+                              {/* On desktop: show BrandOverviewDashboard if tab is overview */}
+                              {operatorReportingTab === "overview" && (
+                                <div className="hidden md:block pt-2">
+                                  <BrandOverviewDashboard
+                                    stats={operatorPanelData.stats}
+                                    chartData={operatorPanelData.chartData}
+                                    periodLabel={liveReportView.latestDateLabel}
+                                    platform={operatorPlatformFilter}
+                                    isShopee={!operatorPlatformFilter.toLowerCase().includes("tiktok")}
+                                    brandName={activeReportBrand?.name || "Nama Brand"}
+                                    brandId={activeReportBrandId || undefined}
+                                    brandDashboardSettings={activeReportBrandDashboardSettings}
+                                    hasData={operatorPanelData.stats.totalSessionsDb > 0}
+                                  />
+                                </div>
+                              )}
+
+                              {/* On mobile: render LiveReportPanel when tab is overview or live or metrics */}
+                              {/* On desktop: render LiveReportPanel when tab is live */}
+                              <div className={operatorReportingTab === "overview" ? "md:hidden" : "block"}>
+                                <LiveReportPanel
+                                  activeTab={operatorReportingTab === "overview" ? "live" : operatorReportingTab}
+                                  model={liveReportView}
+                                  chartSelectedMetrics={liveChartSelectedMetrics}
+                                  onChartSelectedMetricsChange={
+                                    setLiveChartSelectedMetrics
+                                  }
                                 operatorPlatformFilter={operatorPlatformFilter}
                                 shifts={shifts}
                                 adminShiftChecklist={adminShiftChecklist}
@@ -12395,7 +12483,8 @@ export default function App() {
                                 uploadHistory={uploadHistory}
                                 onDeleteUploadBatch={handleDeleteUploadBatch}
                               />
-                            </React.Suspense>
+                            </div>
+                          </React.Suspense>
                           )}
 
                           <AddManualDurationModal
@@ -12516,11 +12605,12 @@ export default function App() {
                       }
                       platform={operatorPlatformFilter}
                       availablePlatforms={["Semua Platform", "TikTok Live", "Shopee Live"]}
-                      availableShifts={
-                        clientBrands.find((b) => b.id === activeReportBrandId)?.dashboardSettings?.allowedShifts
-                          ? shifts.filter((sh) => clientBrands.find((b) => b.id === activeReportBrandId)!.dashboardSettings!.allowedShifts!.includes(sh) && sh !== "All Time")
-                          : shifts
-                      }
+                      availableShifts={getAvailableShiftsForBrand(
+                        activeReportBrandId || undefined,
+                        clientBrands.find((b) => b.id === activeReportBrandId),
+                        brandPerformanceLogs,
+                        shifts,
+                      )}
                       initialShiftFilters={operatorShiftFilters}
                       reportType={
                         operatorReportingTab === "product"
