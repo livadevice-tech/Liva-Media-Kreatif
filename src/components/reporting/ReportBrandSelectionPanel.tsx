@@ -1,4 +1,4 @@
-import { ArrowRight, Download, MoreHorizontal, Search, Sparkles, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, Download, MoreHorizontal, Search, Sparkles, SlidersHorizontal, ChevronDown, Filter } from "lucide-react";
 import { Fragment, type KeyboardEvent, useState } from "react";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
@@ -98,31 +98,35 @@ function ReportBrandCard({
       aria-label={`Buka dashboard brand ${brand.name}`}
       onClick={() => onBrandSelect(brand.id)}
       onKeyDown={(event) => handleCardKeyboard(event, () => onBrandSelect(brand.id))}
-      className="hidden md:flex group relative min-h-56 min-w-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-300 ease-out hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+      className="hidden md:flex group relative min-w-0 cursor-pointer flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-[0_12px_28px_-6px_rgba(79,70,229,0.12)] focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
     >
       <div>
+        {/* Card Header: Logo, Name, ID & Badges, Actions */}
         <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 overflow-hidden items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100/50 text-sm font-black uppercase text-indigo-600 shadow-inner transition-transform duration-300 group-hover:scale-105 group-hover:from-indigo-500 group-hover:to-indigo-600 group-hover:text-white">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <div className="flex h-12 w-12 shrink-0 overflow-hidden items-center justify-center rounded-xl bg-slate-50 border border-slate-100 font-bold uppercase text-indigo-600 shadow-2xs transition-transform duration-200 group-hover:scale-105">
               {brand.logoUrl ? (
                 <img src={brand.logoUrl} alt={brand.name} className="h-full w-full object-cover" />
               ) : (
-                brand.name.substring(0, 2)
+                <span className="text-base font-extrabold text-indigo-600">{brand.name.substring(0, 2)}</span>
               )}
             </div>
             <div className="min-w-0">
-              <h4 className="truncate text-sm font-black uppercase text-slate-900 transition-colors group-hover:text-indigo-600">
+              <h4 className="truncate text-[15px] font-bold tracking-tight text-slate-900 transition-colors group-hover:text-indigo-600">
                 {brand.name}
               </h4>
-              <div className="mt-0.5 flex items-center gap-2">
-                <span className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="mt-1 flex items-center gap-2 flex-wrap">
+                <span className="font-mono text-[11px] font-medium text-slate-400">
                   {brand.id}
                 </span>
-                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-black ${
-                  isBrandActive
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-slate-50 text-slate-400"
-                }`}>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    isBrandActive
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
+                      : "bg-slate-50 text-slate-500 ring-1 ring-slate-400/20"
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${isBrandActive ? "bg-emerald-500" : "bg-slate-400"}`} />
                   {isBrandActive ? "Aktif" : "Kosong"}
                 </span>
               </div>
@@ -139,21 +143,21 @@ function ReportBrandCard({
                 }}
                 aria-expanded={isActionsOpen}
                 aria-label={`Aksi untuk brand ${brand.name}`}
-                className="cursor-pointer rounded-xl border border-transparent bg-transparent p-2 text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600"
+                className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
               >
                 <MoreHorizontal className="size-4" />
               </button>
             ) : null}
 
             {isActionsOpen ? (
-              <div className="absolute right-0 top-11 z-30 w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+              <div className="absolute right-0 top-10 z-30 w-48 rounded-xl border border-slate-200/90 bg-white p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
                     onBrandSelect(brand.id);
                   }}
-                  className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   Buka Dashboard
                 </button>
@@ -164,7 +168,7 @@ function ReportBrandCard({
                       event.stopPropagation();
                       onExportBrand(brand.id, brand.name);
                     }}
-                    className="flex w-full items-center gap-1.5 rounded-xl px-3 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-emerald-50"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" />
                     <span>Export Data</span>
@@ -177,7 +181,7 @@ function ReportBrandCard({
                       event.stopPropagation();
                       onDeleteBrandDataByDateRange(brand.id, brand.name);
                     }}
-                    className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50"
+                    className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
                   >
                     Hapus Rentang Waktu
                   </button>
@@ -190,7 +194,7 @@ function ReportBrandCard({
                       event.stopPropagation();
                       onDeleteAllBrandRawData(brand.id, brand.name, platform);
                     }}
-                    className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50"
+                    className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
                   >
                     Hapus Data {platform}
                   </button>
@@ -201,7 +205,9 @@ function ReportBrandCard({
                     event.stopPropagation();
                     onDeleteAllBrandRawData(brand.id, brand.name);
                   }}
-                  className={`w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 ${brandPlatforms.length > 0 ? "border-t border-slate-100 rounded-t-none" : ""}`}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors ${
+                    brandPlatforms.length > 0 ? "border-t border-slate-100 rounded-t-none" : ""
+                  }`}
                 >
                   {brandPlatforms.length > 0 ? "Hapus Seluruh Platform" : "Hapus Semua Data"}
                 </button>
@@ -210,47 +216,55 @@ function ReportBrandCard({
           </div>
         </div>
 
+        {/* Platform tags */}
         <div className="mb-4 flex flex-wrap gap-1.5">
           {brandPlatforms.length > 0 ? (
-            brandPlatforms.slice(0, 3).map((platform) => (
-              <span
-                key={platform}
-                className="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 transition-colors group-hover:bg-slate-100"
-              >
-                {platform}
-              </span>
-            ))
+            brandPlatforms.map((platform) => {
+              const isShopee = platform.toLowerCase().includes("shopee");
+              const isTiktok = platform.toLowerCase().includes("tiktok");
+              return (
+                <span
+                  key={platform}
+                  className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold border ${
+                    isShopee
+                      ? "bg-amber-50/80 text-amber-700 border-amber-200/60"
+                      : isTiktok
+                      ? "bg-slate-100 text-slate-800 border-slate-200"
+                      : "bg-indigo-50/80 text-indigo-700 border-indigo-200/60"
+                  }`}
+                >
+                  {platform}
+                </span>
+              );
+            })
           ) : (
-            <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-400">
+            <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-400 border border-slate-100">
               Belum ada platform
-            </span>
-          )}
-          {brandPlatforms.length > 3 && (
-            <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-600">
-              +{brandPlatforms.length - 3}
             </span>
           )}
         </div>
 
-        <div className="mb-2 flex gap-6">
+        {/* Stats: Sesi & Batch */}
+        <div className="mb-2 grid grid-cols-2 gap-3 rounded-xl bg-slate-50/80 p-2.5 border border-slate-100">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sesi</div>
-            <div className="text-sm font-black text-slate-700">{row.sessionCount}</div>
+            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Sesi</div>
+            <div className="text-sm font-bold text-slate-800 tabular-nums">{row.sessionCount.toLocaleString("id-ID")}</div>
           </div>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Batch</div>
-            <div className="text-sm font-black text-slate-700">{row.batchCount}</div>
+            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Batch Upload</div>
+            <div className="text-sm font-bold text-slate-800 tabular-nums">{row.batchCount.toLocaleString("id-ID")}</div>
           </div>
         </div>
       </div>
 
-      <div className="mt-auto border-t border-slate-100 pt-4">
+      {/* Card Footer: GMV & Password Copy */}
+      <div className="mt-4 border-t border-slate-100/90 pt-3.5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-400">
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               Total GMV
             </span>
-            <span className="block truncate text-sm font-black text-indigo-600">
+            <span className="block truncate text-base font-extrabold tracking-tight text-indigo-600">
               {new Intl.NumberFormat("id-ID", {
                 style: "currency",
                 currency: "IDR",
@@ -259,9 +273,9 @@ function ReportBrandCard({
             </span>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center">
             <div className="text-right">
-              <span className="block text-[9px] font-bold uppercase tracking-widest text-slate-400">
+              <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
                 Portal Pwd
               </span>
               <button
@@ -276,15 +290,21 @@ function ReportBrandCard({
                     () => setIsPasswordCopied(false),
                   );
                 }}
-                className={`mt-0.5 inline-flex cursor-pointer items-center rounded-lg px-2 py-1 transition-colors focus:outline-none ${
+                className={`inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all focus:outline-none ${
                   isPasswordCopied
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20"
+                    : "bg-slate-100/80 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"
                 }`}
+                title="Salin password portal"
               >
-                <span className="text-[10px] font-black uppercase tracking-wider">
-                  {isPasswordCopied ? "Tersalin" : "Copy"}
-                </span>
+                {isPasswordCopied ? (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Tersalin
+                  </>
+                ) : (
+                  "Copy"
+                )}
               </button>
             </div>
           </div>
@@ -509,105 +529,158 @@ export function ReportBrandSelectionPanel({
 
       {/* UNIFIED CONTROL BAR & HEADER */}
       <div className="flex flex-col gap-4">
-        <h2 className="md:hidden text-[22px] font-black text-slate-900 tracking-tight mt-1 px-1">Performance Live Client</h2>
+        <h2 className="md:hidden text-xl font-extrabold text-slate-900 tracking-tight mt-1 px-1">Performance Live Client</h2>
         
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full">
-          {/* Search Bar - styled as pill like the design */}
-          <div className="flex w-full gap-2">
-            <div className="relative flex-1 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex items-center">
-              <Search className="absolute left-3.5 size-4 text-slate-400" />
-              <input
-                type="text"
-                aria-label="Cari brand klien"
-                placeholder="Cari nama brand klien..."
-                value={searchQuery}
-                onChange={(event) => onSearchQueryChange(event.target.value)}
-                className="w-full bg-transparent py-3 pl-10 pr-4 text-sm font-medium text-slate-900 placeholder:text-slate-400 outline-none focus:ring-0"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={onResetSearch}
-                  className="absolute right-3 rounded-lg bg-indigo-50 px-2 py-1 text-[10px] font-black uppercase text-indigo-600 transition-colors hover:text-indigo-700"
-                >
-                  Clear
-                </button>
-              )}
+        {/* Search & Filters Row */}
+        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center w-full">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              aria-label="Cari brand klien"
+              placeholder="Cari nama brand klien..."
+              value={searchQuery}
+              onChange={(event) => onSearchQueryChange(event.target.value)}
+              className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-10 pr-16 text-sm font-medium text-slate-800 placeholder:text-slate-400 shadow-xs transition-all outline-none hover:border-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={onResetSearch}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-800"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Desktop Filter & Sort Group */}
+          <div className="hidden md:flex items-center gap-2">
+            {/* Platform Filter */}
+            <div className="relative">
+              <select
+                value={platformFilter}
+                onChange={(event) => onPlatformFilterChange(event.target.value)}
+                aria-label="Filter platform brand"
+                className="h-11 cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white pl-3.5 pr-8 text-xs font-semibold text-slate-700 shadow-xs transition-all outline-none hover:border-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+              >
+                <option value="Semua Platform">Semua Platform</option>
+                {availablePlatforms.map((platform) => (
+                  <option key={platform} value={platform}>
+                    {platform}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
             </div>
 
-            {/* Mobile Filters Dropdown (CSS only styling) */}
-            <div className="relative shrink-0 md:hidden flex items-center justify-center w-12 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-               <SlidersHorizontal className="size-5 text-slate-600 absolute pointer-events-none" />
-               <select
-                 value={sortKey}
-                 onChange={(event) => onSortKeyChange(event.target.value as any)}
-                 className="w-full h-full opacity-0 cursor-pointer"
-               >
-                 <option value="latest_activity">Terbaru</option>
-                 <option value="gmv">GMV Tertinggi</option>
-                 <option value="sessions">Sesi Terbanyak</option>
-                 <option value="name">Nama A-Z</option>
-               </select>
+            {/* Status Filter */}
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  onStatusFilterChange(
+                    event.target.value as
+                      | "Aktif"
+                      | "Belum Ada Data"
+                      | "Semua Status",
+                  )
+                }
+                aria-label="Filter status brand"
+                className="h-11 cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white pl-3.5 pr-8 text-xs font-semibold text-slate-700 shadow-xs transition-all outline-none hover:border-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+              >
+                <option value="Semua Status">Semua Status</option>
+                <option value="Aktif">Aktif</option>
+                <option value="Belum Ada Data">Belum Ada Data</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+            </div>
+
+            {/* Sort Key */}
+            <div className="relative">
+              <select
+                value={sortKey}
+                onChange={(event) =>
+                  onSortKeyChange(event.target.value as ReportBrandSortKey)
+                }
+                aria-label="Urutkan brand"
+                className="h-11 cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white pl-3.5 pr-8 text-xs font-semibold text-slate-700 shadow-xs transition-all outline-none hover:border-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+              >
+                <option value="latest_activity">Terbaru</option>
+                <option value="gmv">GMV Tertinggi</option>
+                <option value="sessions">Sesi Terbanyak</option>
+                <option value="uploads">Upload Terbanyak</option>
+                <option value="name">Nama A-Z</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
             </div>
           </div>
 
-          <div className="hidden md:flex flex-wrap items-center gap-2 p-1 sm:p-0 bg-white border border-slate-200 shadow-sm rounded-2xl px-2 py-1">
-            <select
-              value={platformFilter}
-              onChange={(event) => onPlatformFilterChange(event.target.value)}
-              aria-label="Filter platform brand"
-              className="cursor-pointer appearance-none rounded-lg border-none bg-slate-50 px-3 py-2 pr-8 text-xs font-semibold text-slate-700 outline-none transition-colors focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
-              style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
-            >
-              <option value="Semua Platform">Semua Platform</option>
-              {availablePlatforms.map((platform) => (
-                <option key={platform} value={platform}>
-                  {platform}
-                </option>
-              ))}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(event) =>
-                onStatusFilterChange(
-                  event.target.value as
-                    | "Aktif"
-                    | "Belum Ada Data"
-                    | "Semua Status",
-                )
-              }
-              aria-label="Filter status brand"
-              className="cursor-pointer appearance-none rounded-lg border-none bg-slate-50 px-3 py-2 pr-8 text-xs font-semibold text-slate-700 outline-none transition-colors focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
-              style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
-            >
-              <option value="Semua Status">Semua Status</option>
-              <option value="Aktif">Aktif</option>
-              <option value="Belum Ada Data">Belum Ada Data</option>
-            </select>
-            <select
-              value={sortKey}
-              onChange={(event) =>
-                onSortKeyChange(event.target.value as ReportBrandSortKey)
-              }
-              aria-label="Urutkan brand"
-              className="cursor-pointer appearance-none rounded-lg border-none bg-slate-50 px-3 py-2 pr-8 text-xs font-semibold text-slate-700 outline-none transition-colors focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
-              style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
-            >
-              <option value="latest_activity">Terbaru</option>
-              <option value="gmv">GMV Tertinggi</option>
-              <option value="sessions">Sesi Terbanyak</option>
-              <option value="uploads">Upload Terbanyak</option>
-              <option value="name">Nama A-Z</option>
-            </select>
+          {/* Mobile Filter & Sort Row */}
+          <div className="grid grid-cols-3 gap-2 md:hidden">
+            <div className="relative">
+              <select
+                value={platformFilter}
+                onChange={(event) => onPlatformFilterChange(event.target.value)}
+                className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-7 text-xs font-semibold text-slate-700 shadow-xs outline-none"
+              >
+                <option value="Semua Platform">Platform</option>
+                {availablePlatforms.map((platform) => (
+                  <option key={platform} value={platform}>
+                    {platform}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+            </div>
+
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  onStatusFilterChange(
+                    event.target.value as
+                      | "Aktif"
+                      | "Belum Ada Data"
+                      | "Semua Status",
+                  )
+                }
+                className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-7 text-xs font-semibold text-slate-700 shadow-xs outline-none"
+              >
+                <option value="Semua Status">Status</option>
+                <option value="Aktif">Aktif</option>
+                <option value="Belum Ada Data">Kosong</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+            </div>
+
+            <div className="relative">
+              <select
+                value={sortKey}
+                onChange={(event) =>
+                  onSortKeyChange(event.target.value as ReportBrandSortKey)
+                }
+                className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-7 text-xs font-semibold text-slate-700 shadow-xs outline-none"
+              >
+                <option value="latest_activity">Terbaru</option>
+                <option value="gmv">GMV</option>
+                <option value="sessions">Sesi</option>
+                <option value="uploads">Upload</option>
+                <option value="name">A-Z</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-2 text-left mb-2">
-          <div className="flex items-center gap-3">
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">
+        {/* Section Header: Brand Tersimpan & Reset Trigger */}
+        <div className="flex items-center justify-between px-1 pt-1">
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
               Brand Tersimpan
             </h3>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
               {filteredRows.length} Terdeteksi
             </span>
           </div>
@@ -619,7 +692,7 @@ export function ReportBrandSelectionPanel({
             <button
               type="button"
               onClick={onResetFilters}
-              className="text-[10px] font-bold uppercase tracking-wider text-red-500 transition-colors hover:text-red-700"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus:outline-none"
             >
               Reset Filter
             </button>
