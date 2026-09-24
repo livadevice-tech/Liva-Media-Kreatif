@@ -10182,29 +10182,37 @@ export default function App() {
                 {operatorTab === "database" && (
                   <div className="space-y-6" id="operator_database_content">
                     {/* UNIFIED DATABASE TOOLBAR */}
-                    <div className="flex flex-col bg-transparent md:bg-white md:border border-slate-200/60 md:rounded-2xl md:shadow-sm mb-6" id="operator_database_unified_toolbar">
+                    <div className="flex flex-col bg-white border border-slate-200/80 rounded-2xl shadow-sm mb-6 transition-all" id="operator_database_unified_toolbar">
                       {/* Top Header: Title, Segmented Control, Actions */}
-                      <div className="flex flex-col xl:flex-row xl:items-center justify-between py-2 md:p-5 gap-4 md:border-b border-slate-100">
-                        <div className="flex justify-between items-start w-full xl:w-auto">
-                          <div className="flex items-start gap-3">
+                      <div className="flex flex-col xl:flex-row xl:items-center justify-between p-4 sm:p-5 gap-4 border-b border-slate-100">
+                        <div className="flex justify-between items-center w-full xl:w-auto">
+                          <div className="flex items-center gap-3">
                             <button
                               onClick={() => setOperatorTab("dashboard_utama")}
-                              className="sm:hidden mt-0.5 p-1 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors shrink-0"
+                              className="sm:hidden p-1.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors shrink-0"
                             >
                               <ChevronLeft className="w-5 h-5" />
                             </button>
-                            <div>
-                              <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                                <Database className="w-4 h-4 text-purple-600" />
-                                <span className="hidden sm:inline">Database Absensi</span>
-                                <span className="sm:hidden">Data Absensi</span>
-                              </h3>
-                              <p className="hidden sm:block text-[11px] text-slate-500 font-medium mt-1">
-                                Menampilkan <span className="font-bold text-slate-700">{filteredLogsList.length}</span> dari {logs.length} data log
-                              </p>
-                              <p className="sm:hidden text-[11px] text-slate-500 font-medium mt-1">
-                                {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                              </p>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100/80 flex items-center justify-center text-indigo-600 shadow-xs shrink-0">
+                                <Database className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                                    Database Absensi
+                                  </h3>
+                                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200/60 font-mono">
+                                    {filteredLogsList.length} logs
+                                  </span>
+                                </div>
+                                <p className="hidden sm:block text-xs text-slate-500 font-medium mt-0.5">
+                                  Kelola rekaman kehadiran, filter tanggal siaran, dan update status real-time
+                                </p>
+                                <p className="sm:hidden text-xs text-slate-500 font-medium mt-0.5">
+                                  {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                                </p>
+                              </div>
                             </div>
                           </div>
                           
@@ -10212,10 +10220,10 @@ export default function App() {
                           <button
                             id="manual_attendance_log_modal_trigger_mobile"
                             onClick={() => setShowManualForm(!showManualForm)}
-                            className={`sm:hidden p-2 rounded-xl transition-all shadow-sm border ${
+                            className={`sm:hidden p-2.5 rounded-xl transition-all shadow-xs border ${
                               showManualForm
                                 ? "bg-slate-800 text-white border-slate-800"
-                                : "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+                                : "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
                             }`}
                           >
                             {showManualForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -10225,7 +10233,7 @@ export default function App() {
                         <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
                           {/* Mobile Search - ONLY VISIBLE ON MOBILE */}
                           {dbTabMode !== "calendar" && (
-                            <div className="w-full sm:hidden flex gap-2 mb-1 mt-1">
+                            <div className="w-full sm:hidden flex gap-2 my-1">
                               <div className="relative flex-1">
                                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
@@ -10233,13 +10241,13 @@ export default function App() {
                                   placeholder="Cari host atau ID..."
                                   value={globalSearch}
                                   onChange={(e) => setGlobalSearch(e.target.value)}
-                                  className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium placeholder:text-slate-400 shadow-3xs"
+                                  className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium placeholder:text-slate-400"
                                 />
                               </div>
                               <button 
                                 onClick={() => setShowMobileFilters(!showMobileFilters)}
-                                className={`p-2 rounded-lg border shadow-3xs flex items-center justify-center transition-all ${
-                                  showMobileFilters ? "bg-purple-50 border-purple-200 text-purple-600" : "bg-white border-slate-200 text-slate-500"
+                                className={`p-2.5 rounded-xl border flex items-center justify-center transition-all ${
+                                  showMobileFilters ? "bg-indigo-50 border-indigo-200 text-indigo-600 font-semibold" : "bg-slate-50 border-slate-200/80 text-slate-600"
                                 }`}
                               >
                                 <Filter className="w-4 h-4" />
@@ -10248,7 +10256,7 @@ export default function App() {
                           )}
 
                           {/* Desktop Segmented Control */}
-                          <div className="hidden sm:flex bg-slate-100/80 p-1 w-auto rounded-lg border border-slate-200/50">
+                          <div className="hidden sm:flex bg-slate-100 p-1 w-auto rounded-xl border border-slate-200/70 shadow-xs">
                             {[
                               { id: "today", label: "Hari Ini" },
                               { id: "all", label: "Semua Data" },
@@ -10257,10 +10265,10 @@ export default function App() {
                               <button
                                 key={tab.id}
                                 onClick={() => setDbTabMode(tab.id as "today" | "all" | "calendar")}
-                                className={`flex-none px-4 py-1.5 text-[11px] font-bold transition-all rounded-md ${
+                                className={`flex-none px-3.5 py-1.5 text-xs font-semibold transition-all rounded-lg ${
                                   dbTabMode === tab.id
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                                    ? "bg-white text-slate-900 shadow-xs font-bold"
+                                    : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
                                 }`}
                               >
                                 {tab.label}
@@ -10274,7 +10282,7 @@ export default function App() {
                           )}
 
                           {/* Mobile Tabs */}
-                          <div className="flex sm:hidden w-full border-b border-slate-200 justify-around">
+                          <div className="flex sm:hidden w-full border-b border-slate-100 justify-around">
                             {[
                               { id: "today", label: "Hari Ini" },
                               { id: "all", label: "Semua Data" },
@@ -10283,15 +10291,15 @@ export default function App() {
                               <button
                                 key={tab.id}
                                 onClick={() => setDbTabMode(tab.id as "today" | "all" | "calendar")}
-                                className={`px-2 py-3 text-[13px] font-bold transition-all relative ${
+                                className={`px-2 py-2.5 text-xs font-bold transition-all relative ${
                                   dbTabMode === tab.id
-                                    ? "text-slate-900"
+                                    ? "text-indigo-600"
                                     : "text-slate-400"
                                 }`}
                               >
                                 {tab.label}
                                 {dbTabMode === tab.id && (
-                                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-slate-900 rounded-t-full" />
+                                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 rounded-t-full" />
                                 )}
                               </button>
                             ))}
@@ -10299,16 +10307,16 @@ export default function App() {
                           
                           {/* Mobile-only Summary & Sort Row */}
                           {dbTabMode !== "calendar" && (
-                            <div className="flex sm:hidden w-full justify-between items-center py-3 px-1 border-b border-slate-100/80">
-                              <div className="text-[11px] font-bold text-slate-500">
-                                <span className="text-purple-600 text-[13px]">{filteredLogsList.length}</span> Absensi
+                            <div className="flex sm:hidden w-full justify-between items-center py-2 px-1 border-b border-slate-100">
+                              <div className="text-xs font-semibold text-slate-500">
+                                <span className="text-indigo-600 font-bold">{filteredLogsList.length}</span> Absensi
                               </div>
                               <button
                                 onClick={() => setDbSortDir(dbSortDir === "asc" ? "desc" : "asc")}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white border border-slate-200 shadow-3xs text-[10px] font-bold text-slate-600 hover:text-purple-600 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors"
                               >
-                                <span>Urutkan {dbSortDir === "asc" ? "Waktu Terlama" : "Waktu Terbaru"}</span>
-                                <ArrowUpDown className="w-3 h-3" />
+                                <span>{dbSortDir === "asc" ? "Terlama" : "Terbaru"}</span>
+                                <ArrowUpDown className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           )}
@@ -10317,10 +10325,10 @@ export default function App() {
                           <button
                             id="manual_attendance_log_modal_trigger"
                             onClick={() => setShowManualForm(!showManualForm)}
-                            className={`hidden sm:flex w-full sm:w-auto font-black py-2 px-4 rounded-lg text-xs transition-all items-center justify-center gap-2 cursor-pointer shadow-sm border ${
+                            className={`hidden sm:flex w-full sm:w-auto font-semibold py-2 px-4 rounded-xl text-xs transition-all items-center justify-center gap-2 cursor-pointer shadow-xs border ${
                               showManualForm
-                                ? "bg-slate-800 hover:bg-slate-900 text-white border-slate-800"
-                                : "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+                                ? "bg-slate-900 hover:bg-slate-800 text-white border-slate-900"
+                                : "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
                             }`}
                           >
                             {showManualForm ? (
@@ -10342,80 +10350,85 @@ export default function App() {
                       {/* Only show Search, Dropdowns, and Status Pills in 'all' (list) mode and 'today' mode, hide in 'calendar' mode */}
                       {dbTabMode !== "calendar" && (
                         <>
-                          {/* Middle: Search & Dropdown Filters */}
-                          <div className={`flex flex-col md:flex-row items-stretch md:items-center gap-3 md:p-4 md:bg-slate-50/50 ${showMobileFilters ? "py-2" : "py-0 sm:py-2"}`}>
+                          <div className={`flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4 bg-slate-50/70 border-b border-slate-100 ${showMobileFilters ? "flex" : "hidden md:flex"}`}>
                             {/* Search Input */}
-                            <div className="relative flex-1 hidden sm:block" id="db_search_input_wrapper">
+                            <div className="relative flex-1" id="db_search_input_wrapper">
                               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                               <input
                                 type="text"
-                                placeholder="Cari host atau ID..."
+                                placeholder="Cari nama host, ID, platform, atau brand..."
                                 value={globalSearch}
                                 onChange={(e) => setGlobalSearch(e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium placeholder:text-slate-400 shadow-3xs"
+                                className="w-full bg-white border border-slate-200/90 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium placeholder:text-slate-400 shadow-xs"
                               />
                             </div>
 
                             {/* Dropdowns */}
-                            <div className={`flex flex-col md:flex-row flex-wrap md:flex-nowrap gap-2 ${!showMobileFilters ? 'hidden md:flex' : ''}`}>
-                              <select
-                                value={dbPlatformFilter}
-                                onChange={(e) => setDbPlatformFilter(e.target.value)}
-                                className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
-                                style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
-                              >
-                                <option value="Semua Platform">Semua Platform</option>
-                                {platforms.map(p => <option key={p} value={p}>{p}</option>)}
-                              </select>
+                            <div className="flex flex-col sm:flex-row flex-wrap md:flex-nowrap gap-2.5">
+                              <div className="relative">
+                                <select
+                                  value={dbPlatformFilter}
+                                  onChange={(e) => setDbPlatformFilter(e.target.value)}
+                                  className="w-full sm:w-auto bg-white border border-slate-200/90 rounded-xl pl-3.5 pr-8 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-xs appearance-none"
+                                >
+                                  <option value="Semua Platform">Semua Platform</option>
+                                  {platforms.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              </div>
                               
-                              <select
-                                value={dbBrandFilter}
-                                onChange={(e) => setDbBrandFilter(e.target.value)}
-                                className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
-                                style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
-                              >
-                                <option value="Semua Brand">Semua Brand</option>
-                                {Array.from(new Set([
-                                  dbBrandFilter !== "Semua Brand" ? dbBrandFilter : null,
-                                  ...(clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map((cb) => cb.name) : brands)
-                                ].map(b => b?.trim()).filter(Boolean))).filter(Boolean).map(b => (
-                                  <option key={b} value={b}>{b}</option>
-                                ))}
-                              </select>
+                              <div className="relative">
+                                <select
+                                  value={dbBrandFilter}
+                                  onChange={(e) => setDbBrandFilter(e.target.value)}
+                                  className="w-full sm:w-auto bg-white border border-slate-200/90 rounded-xl pl-3.5 pr-8 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-xs appearance-none"
+                                >
+                                  <option value="Semua Brand">Semua Brand</option>
+                                  {Array.from(new Set([
+                                    dbBrandFilter !== "Semua Brand" ? dbBrandFilter : null,
+                                    ...(clientBrands.length > 0 ? clientBrands.filter(b => b.isActive !== false).map((cb) => cb.name) : brands)
+                                  ].map(b => b?.trim()).filter(Boolean))).filter(Boolean).map(b => (
+                                    <option key={b} value={b}>{b}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              </div>
 
-                              <select
-                                value={dbShiftFilter}
-                                onChange={(e) => setDbShiftFilter(e.target.value)}
-                                className="flex-1 md:flex-none bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 cursor-pointer font-medium shadow-3xs appearance-none pr-8 relative"
-                                style={{ backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")", backgroundPosition: "right 0.5rem center", backgroundRepeat: "no-repeat", backgroundSize: "1.5em 1.5em" }}
-                              >
-                                <option value="Semua Shift">Semua Shift</option>
-                                {shifts.map(s => <option key={s} value={s}>{s}</option>)}
-                              </select>
+                              <div className="relative">
+                                <select
+                                  value={dbShiftFilter}
+                                  onChange={(e) => setDbShiftFilter(e.target.value)}
+                                  className="w-full sm:w-auto bg-white border border-slate-200/90 rounded-xl pl-3.5 pr-8 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-xs appearance-none"
+                                >
+                                  <option value="Semua Shift">Semua Shift</option>
+                                  {shifts.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              </div>
                             </div>
                           </div>
 
                           {/* Date Filters (Only visible in 'all' mode) */}
                           {dbTabMode === "all" && (
-                          <div className={`flex flex-col sm:flex-row gap-2 px-4 pb-4 bg-slate-50/50 ${!showMobileFilters ? 'hidden md:flex' : ''}`}>
-                              <div className="flex flex-1 items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
-                                <Calendar className="w-4 h-4 text-slate-400" />
-                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wide">Dari:</span>
+                            <div className={`flex flex-col sm:flex-row items-center gap-2.5 px-4 py-3 bg-slate-50/50 border-b border-slate-100 ${!showMobileFilters ? 'hidden md:flex' : 'flex'}`}>
+                              <div className="flex flex-1 w-full items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3.5 py-1.5 shadow-xs focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0">Dari:</span>
                                 <input
                                   type="date"
                                   value={dbDateFilterStart}
                                   onChange={(e) => setDbDateFilterStart(e.target.value)}
-                                  className="bg-transparent text-[13px] font-semibold text-slate-700 outline-none w-full flex-1 appearance-none"
+                                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none w-full flex-1"
                                 />
                               </div>
-                              <div className="flex flex-1 items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
-                                <Calendar className="w-4 h-4 text-slate-400" />
-                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-wide">Sampai:</span>
+                              <div className="flex flex-1 w-full items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3.5 py-1.5 shadow-xs focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0">Sampai:</span>
                                 <input
                                   type="date"
                                   value={dbDateFilterEnd}
                                   onChange={(e) => setDbDateFilterEnd(e.target.value)}
-                                  className="bg-transparent text-[13px] font-semibold text-slate-700 outline-none w-full flex-1 appearance-none"
+                                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none w-full flex-1"
                                 />
                               </div>
                               {(dbDateFilterStart || dbDateFilterEnd) && (
@@ -10424,54 +10437,55 @@ export default function App() {
                                     setDbDateFilterStart("");
                                     setDbDateFilterEnd("");
                                   }}
-                                  className="text-[11px] font-bold text-red-600 hover:text-red-700 px-4 py-2 hover:bg-red-50 rounded-xl transition-colors cursor-pointer w-full sm:w-auto text-center border border-transparent hover:border-red-100"
+                                  className="text-xs font-bold text-rose-600 hover:text-rose-700 px-3 py-1.5 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer w-full sm:w-auto text-center shrink-0 border border-rose-200/60"
                                 >
-                                  Reset
+                                  Reset Tanggal
                                 </button>
                               )}
-                          </div>
+                            </div>
                           )}
 
                           {/* Bottom: Status Pills */}
-                          <div className="hidden md:block py-2 md:px-5 md:py-4 md:border-t border-slate-100 bg-transparent md:bg-white overflow-x-auto pb-4 md:pb-4 scrollbar-hide">
-                            <div className="flex flex-wrap gap-2 px-4 md:px-0" id="database_pill_filters">
-                            {[
-                              { id: "All", label: "Semua Log", color: "bg-slate-400", text: "text-slate-600", activeBg: "bg-slate-900 text-white shadow-sm ring-1 ring-slate-900/10", activeCount: "bg-white/20 text-white" },
-                              { id: "Present", label: "Hadir", statusChoice: "Present", color: "bg-emerald-500", text: "text-emerald-700", activeBg: "bg-emerald-50 text-emerald-800 shadow-sm ring-1 ring-emerald-500/20", activeCount: "bg-emerald-200/50 text-emerald-900" },
-                              { id: "Late", label: "Terlambat", statusChoice: "Late", color: "bg-amber-500", text: "text-amber-700", activeBg: "bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-500/20", activeCount: "bg-amber-200/50 text-amber-900" },
-                              { id: "Absent", label: "Alpa / Mangkir", statusChoice: "Absent", color: "bg-red-500", text: "text-red-700", activeBg: "bg-red-50 text-red-800 shadow-sm ring-1 ring-red-500/20", activeCount: "bg-red-200/50 text-red-900" },
-                              { id: "Excused", label: "Izin / Sakit", statusChoice: "Excused", color: "bg-blue-500", text: "text-blue-700", activeBg: "bg-blue-50 text-blue-800 shadow-sm ring-1 ring-blue-500/20", activeCount: "bg-blue-200/50 text-blue-900" },
-                            ].map((pill) => {
-                              const isPillActive = dbStatusFilter === pill.id;
-                              const count = pill.id === "All"
-                                ? dbActiveBaseLogs.length
-                                : pill.id === "Absent"
-                                  ? dbActiveBaseLogs.filter((l) => l.status !== "Present" && l.status !== "Late" && l.status !== "Excused").length
-                                  : dbActiveBaseLogs.filter((l) => l.status === pill.statusChoice).length;
+                          <div className="hidden md:flex items-center justify-between px-4 py-3 bg-white overflow-x-auto scrollbar-hide">
+                            <div className="flex items-center gap-2" id="database_pill_filters">
+                              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Status:</span>
+                              {[
+                                { id: "All", label: "Semua Log", color: "bg-slate-400", activeBg: "bg-slate-900 text-white shadow-xs ring-1 ring-slate-900", activeCount: "bg-white/20 text-white" },
+                                { id: "Present", label: "Hadir", statusChoice: "Present", color: "bg-emerald-500", activeBg: "bg-emerald-50 text-emerald-800 border-emerald-300 ring-1 ring-emerald-500/30", activeCount: "bg-emerald-200/60 text-emerald-900" },
+                                { id: "Late", label: "Terlambat", statusChoice: "Late", color: "bg-amber-500", activeBg: "bg-amber-50 text-amber-800 border-amber-300 ring-1 ring-amber-500/30", activeCount: "bg-amber-200/60 text-amber-900" },
+                                { id: "Absent", label: "Alpa / Mangkir", statusChoice: "Absent", color: "bg-rose-500", activeBg: "bg-rose-50 text-rose-800 border-rose-300 ring-1 ring-rose-500/30", activeCount: "bg-rose-200/60 text-rose-900" },
+                                { id: "Excused", label: "Izin / Sakit", statusChoice: "Excused", color: "bg-blue-500", activeBg: "bg-blue-50 text-blue-800 border-blue-300 ring-1 ring-blue-500/30", activeCount: "bg-blue-200/60 text-blue-900" },
+                              ].map((pill) => {
+                                const isPillActive = dbStatusFilter === pill.id;
+                                const count = pill.id === "All"
+                                  ? dbActiveBaseLogs.length
+                                  : pill.id === "Absent"
+                                    ? dbActiveBaseLogs.filter((l) => l.status !== "Present" && l.status !== "Late" && l.status !== "Excused").length
+                                    : dbActiveBaseLogs.filter((l) => l.status === pill.statusChoice).length;
 
-                              return (
-                                <button
-                                  type="button"
-                                  key={pill.id}
-                                  onClick={() => {
-                                    setDbStatusFilter(pill.id as any);
-                                    setSelectedLogIds([]);
-                                  }}
-                                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none ${
-                                    isPillActive
-                                      ? pill.activeBg
-                                      : "text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200/60"
-                                  }`}
-                                >
-                                  {!isPillActive && <div className={`w-1.5 h-1.5 rounded-full ${pill.color}`} />}
-                                  <span>{pill.label}</span>
-                                  <span className={`px-1.5 py-0.5 rounded-md font-mono text-[9px] ${isPillActive ? pill.activeCount : "bg-white border border-slate-200/60"}`}>
-                                    {count}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
+                                return (
+                                  <button
+                                    type="button"
+                                    key={pill.id}
+                                    onClick={() => {
+                                      setDbStatusFilter(pill.id as any);
+                                      setSelectedLogIds([]);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer select-none border ${
+                                      isPillActive
+                                        ? pill.activeBg
+                                        : "text-slate-600 bg-slate-50 hover:bg-slate-100/80 border-slate-200/70"
+                                    }`}
+                                  >
+                                    {!isPillActive && <div className={`w-1.5 h-1.5 rounded-full ${pill.color}`} />}
+                                    <span>{pill.label}</span>
+                                    <span className={`px-1.5 py-0.2 rounded-md font-mono text-[10px] font-bold ${isPillActive ? pill.activeCount : "bg-white border border-slate-200 text-slate-500"}`}>
+                                      {count}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         </>
                       )}
@@ -11018,313 +11032,316 @@ export default function App() {
                       <>
                         {/* DESKTOP TABLE VIEW */}
                         <div
-                        className="hidden md:block bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden"
-                        id="raw-logs-table-wrapper"
-                      >
-                      <div className="overflow-x-auto relative">
-                        <table
-                          className="w-full text-left text-xs text-purple-950 border-collapse"
-                          id="raw_attendance_logs_database_table"
+                          className="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden"
+                          id="raw-logs-table-wrapper"
                         >
-                          <thead>
-                            <tr className="bg-[#faf9fe] border-b border-purple-100 text-[10px] font-mono uppercase tracking-wider text-[#3c2f56]/70 font-bold select-none">
-                              <th className="py-3 px-4 w-12 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={
-                                    filteredLogsList.length > 0 &&
-                                    filteredLogsList.every((item) =>
-                                      selectedLogIds.includes(item.id),
-                                    )
-                                  }
-                                  onChange={() => {
-                                    const isAllSelected =
-                                      filteredLogsList.length > 0 &&
-                                      filteredLogsList.every((item) =>
-                                        selectedLogIds.includes(item.id),
-                                      );
-                                    if (isAllSelected) {
-                                      setSelectedLogIds((prev) =>
-                                        prev.filter(
-                                          (id) =>
-                                            !filteredLogsList?.some(
-                                              (item) => item.id === id,
-                                            ),
-                                        ),
-                                      );
-                                    } else {
-                                      const newIds = [...selectedLogIds];
-                                      filteredLogsList.forEach((item) => {
-                                        if (!newIds.includes(item.id)) {
-                                          newIds.push(item.id);
-                                        }
-                                      });
-                                      setSelectedLogIds(newIds);
-                                    }
-                                  }}
-                                  className="rounded border-slate-300 text-[#2563eb] focus:ring-[#2563eb] w-4 h-4 cursor-pointer accent-[#2563eb]"
-                                />
-                              </th>
-                              
-                              <th className="py-3 px-4">Nama Host</th>
-                              <th
-                                className="py-3 px-4 cursor-pointer hover:bg-[#ebdcf9]/50 transition-colors select-none"
-                                onClick={() =>
-                                  setDbSortDir((d) =>
-                                    d === "desc" ? "asc" : "desc",
-                                  )
-                                }
-                              >
-                                <div className="flex items-center gap-1.5">
-                                  Tanggal siaran
-                                  <div className="flex flex-col text-[8px] leading-none opacity-50">
-                                    <span
-                                      className={`${dbSortDir === "asc" ? "text-indigo-600 opacity-100 font-extrabold" : ""}`}
-                                    >
-                                      ▲
-                                    </span>
-                                    <span
-                                      className={`${dbSortDir === "desc" ? "text-indigo-600 opacity-100 font-extrabold" : ""}`}
-                                    >
-                                      ▼
-                                    </span>
-                                  </div>
-                                </div>
-                              </th>
-                              <th className="py-3 px-4">Brand Besutan</th>
-                              <th className="py-3 px-4">Platform</th>
-                              <th className="py-3 px-4">Shift & Jam</th>
-                              <th className="py-3 px-4 text-center">
-                                Status & Aksi Cepat
-                              </th>
-                              <th className="py-3 px-4 text-right">Aksi</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filteredLogsList.length === 0 ? (
-                               <tr>
-                                 <td colSpan={9} className="py-16 text-center">
-                                   <div className="flex flex-col items-center gap-3">
-                                     <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
-                                       <Search className="w-6 h-6 text-slate-400" />
-                                     </div>
-                                     <div>
-                                       <p className="text-sm font-black text-slate-700">
-                                         {logs.length === 0
-                                           ? "Database absen masih kosong"
-                                           : "Tidak ada log yang cocok"}
-                                       </p>
-                                       <p className="text-xs text-slate-400 font-medium mt-1 max-w-xs mx-auto">
-                                         {logs.length === 0
-                                           ? 'Mulai tambahkan log absensi menggunakan tombol "Input Absen Manual" di atas.'
-                                           : "Coba ubah filter status, tanggal, atau kata kunci pencarian Anda."}
-                                       </p>
-                                     </div>
-                                     {logs.length > 0 && (
-                                       <button
-                                         onClick={() => {
-                                           setDbStatusFilter("All");
-                                           setGlobalSearch("");
-                                           setDbPlatformFilter("Semua Platform");
-                                           setDbBrandFilter("Semua Brand");
-                                           setDbDateFilterStart("");
-                                           setDbDateFilterEnd("");
-                                         }}
-                                         className="mt-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black rounded-xl transition-all cursor-pointer border-0 shadow-sm"
-                                       >
-                                         Reset Semua Filter
-                                       </button>
-                                     )}
-                                   </div>
-                                 </td>
-                               </tr>
-                             ) : filteredLogsList.map((item, idx) => {
-                              const isRowChecked = selectedLogIds.includes(
-                                item.id,
-                              );
-                              return (
-                                <tr
-                                  key={item.id || idx}
-                                  className={`border-b border-purple-50 transition-all duration-150 select-none relative ${
-                                    isRowChecked
-                                      ? "bg-blue-50/45 hover:bg-blue-50/65"
-                                      : "hover:bg-[#faf9fe]/30"
-                                  }`}
-                                  id={`raw_row_${item.id}`}
-                                >
-                                  <td className="py-3 px-4 text-center relative w-12 select-none">
-                                    {isRowChecked && (
-                                      <div className="absolute left-0 top-0 bottom-0 w-[4.5px] bg-[#2563eb] rounded-r-md" />
-                                    )}
+                          <div className="overflow-x-auto relative">
+                            <table
+                              className="w-full text-left text-xs border-collapse"
+                              id="raw_attendance_logs_database_table"
+                            >
+                              <thead>
+                                <tr className="bg-slate-50/90 border-b border-slate-200/80 text-[11px] uppercase tracking-wider text-slate-500 font-bold select-none">
+                                  <th className="py-3.5 px-4 w-12 text-center">
                                     <input
                                       type="checkbox"
-                                      checked={isRowChecked}
+                                      checked={
+                                        filteredLogsList.length > 0 &&
+                                        filteredLogsList.every((item) =>
+                                          selectedLogIds.includes(item.id),
+                                        )
+                                      }
                                       onChange={() => {
-                                        setSelectedLogIds((prev) =>
-                                          prev.includes(item.id)
-                                            ? prev.filter(
-                                                (id) => id !== item.id,
-                                              )
-                                            : [...prev, item.id],
-                                        );
+                                        const isAllSelected =
+                                          filteredLogsList.length > 0 &&
+                                          filteredLogsList.every((item) =>
+                                            selectedLogIds.includes(item.id),
+                                          );
+                                        if (isAllSelected) {
+                                          setSelectedLogIds((prev) =>
+                                            prev.filter(
+                                              (id) =>
+                                                !filteredLogsList?.some(
+                                                  (item) => item.id === id,
+                                                ),
+                                            ),
+                                          );
+                                        } else {
+                                          const newIds = [...selectedLogIds];
+                                          filteredLogsList.forEach((item) => {
+                                            if (!newIds.includes(item.id)) {
+                                              newIds.push(item.id);
+                                            }
+                                          });
+                                          setSelectedLogIds(newIds);
+                                        }
                                       }}
-                                      className="rounded border-slate-300 text-[#2563eb] focus:ring-[#2563eb] w-4 h-4 cursor-pointer accent-[#2563eb]"
+                                      className="rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer accent-indigo-600"
                                     />
-                                  </td>
+                                  </th>
                                   
-                                  <td className="py-3 px-4 font-semibold text-slate-900 flex flex-col justify-center">
-                                    <span className="text-sm">{item.hostName}</span>
-                                    {(item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId) && (
-                                      <span className="text-xs text-slate-500 font-medium">
-                                        {item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId}
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <div className="font-medium text-sm text-slate-700">{formatHumanDate(item.date)}</div>
-                                    {item.checkInTime && (
-                                      <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
-                                        <Clock className="w-3 h-3 text-slate-400" />
-                                        <span>{item.checkInTime}</span>
+                                  <th className="py-3.5 px-4">Nama Host</th>
+                                  <th
+                                    className="py-3.5 px-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                                    onClick={() =>
+                                      setDbSortDir((d) =>
+                                        d === "desc" ? "asc" : "desc",
+                                      )
+                                    }
+                                  >
+                                    <div className="flex items-center gap-1.5">
+                                      <span>Tanggal Siaran</span>
+                                      <div className="flex flex-col text-[8px] leading-none opacity-50">
+                                        <span
+                                          className={`${dbSortDir === "asc" ? "text-indigo-600 opacity-100 font-black" : ""}`}
+                                        >
+                                          ▲
+                                        </span>
+                                        <span
+                                          className={`${dbSortDir === "desc" ? "text-indigo-600 opacity-100 font-black" : ""}`}
+                                        >
+                                          ▼
+                                        </span>
                                       </div>
-                                    )}
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${getBrandStyle(item.brandHandled)}`}>
-                                      {item.brandHandled}
-                                    </span>
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${
-                                      item.platform?.toLowerCase().includes("tiktok") 
-                                        ? "bg-stone-50 text-stone-700 border-stone-200" 
-                                        : item.platform?.toLowerCase().includes("shopee") 
-                                          ? "bg-orange-50 text-orange-700 border-orange-200" 
-                                          : "bg-indigo-50 text-indigo-700 border-indigo-200"
-                                    }`}>
-                                      {item.platform}
-                                    </span>
-                                  </td>
-                                  <td className="py-3 px-4 text-slate-700 text-xs font-medium">
-                                    {item.shiftHours}
-                                  </td>
-
-                                  <td className="py-3 px-4 text-center">
-                                    <span
-                                      className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
-                                        item.status === "Present"
-                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                          : item.status === "Late"
-                                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                                            : item.status === "Excused"
-                                              ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                                              : "bg-rose-50 text-rose-700 border-rose-200"
-                                      }`}
-                                    >
-                                      {item.status === "Present"
-                                        ? "Hadir"
-                                        : item.status === "Late"
-                                          ? "Terlambat"
-                                          : item.status === "Excused"
-                                            ? "Izin/Sakit"
-                                            : "Alpa"}
-                                    </span>
-                                  </td>
-
-                                  <td className="py-3 px-4 text-center">
-                                    <div
-                                      className="inline-flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm"
-                                      id="fast_status_modifier_buttons_wrapper"
-                                    >
-                                      <button
-                                        id={`btn_mark_present_${item.id}`}
-                                        onClick={() => handleUpdateLogStatus(item.id, "Present")}
-                                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                                          item.status === "Present"
-                                            ? "bg-emerald-100 text-emerald-700"
-                                            : "hover:bg-emerald-50 text-slate-400 hover:text-emerald-600"
-                                        }`}
-                                        title="Tandai Hadir"
-                                      >
-                                        <CheckCircle2 className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        id={`btn_mark_late_${item.id}`}
-                                        onClick={() => handleUpdateLogStatus(item.id, "Late")}
-                                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                                          item.status === "Late"
-                                            ? "bg-amber-100 text-amber-700"
-                                            : "hover:bg-amber-50 text-slate-400 hover:text-amber-600"
-                                        }`}
-                                        title="Tandai Terlambat"
-                                      >
-                                        <Clock className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        id={`btn_mark_absent_${item.id}`}
-                                        onClick={() => handleUpdateLogStatus(item.id, "Absent")}
-                                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                                          item.status !== "Present" && item.status !== "Late" && item.status !== "Excused"
-                                            ? "bg-rose-100 text-rose-700"
-                                            : "hover:bg-rose-50 text-slate-400 hover:text-rose-600"
-                                        }`}
-                                        title="Tandai Alpa"
-                                      >
-                                        <XCircle className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        id={`btn_mark_excused_${item.id}`}
-                                        onClick={() => handleUpdateLogStatus(item.id, "Excused")}
-                                        className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                                          item.status === "Excused"
-                                            ? "bg-indigo-100 text-indigo-700"
-                                            : "hover:bg-indigo-50 text-slate-400 hover:text-indigo-600"
-                                        }`}
-                                        title="Tandai Izin/Sakit"
-                                      >
-                                        <FileText className="w-4 h-4" />
-                                      </button>
                                     </div>
-                                  </td>
-
-                                  <td className="py-3 px-4 text-right">
-                                    {pendingDeleteLogId === item.id ? (
-                                      <div className="flex items-center justify-end gap-1 animate-in fade-in duration-150">
-                                        <span className="text-[9px] text-slate-500 font-bold mr-0.5">Hapus?</span>
-                                        <button
-                                          onClick={() => {
-                                            handleDeleteLog(item.id);
-                                            setPendingDeleteLogId(null);
-                                          }}
-                                          className="px-2 py-1 text-[9px] font-black bg-red-600 hover:bg-red-700 text-white rounded transition-all cursor-pointer border-0"
-                                        >
-                                          Ya
-                                        </button>
-                                        <button
-                                          onClick={() => setPendingDeleteLogId(null)}
-                                          className="px-2 py-1 text-[9px] font-black bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-all cursor-pointer border-0"
-                                        >
-                                          Batal
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        id={`btn_delete_log_${item.id}`}
-                                        onClick={() => setPendingDeleteLogId(item.id)}
-                                        className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-all cursor-pointer border-0 bg-transparent"
-                                        title="Hapus log ini"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    )}
-                                  </td>
+                                  </th>
+                                  <th className="py-3.5 px-4">Brand Besutan</th>
+                                  <th className="py-3.5 px-4">Platform</th>
+                                  <th className="py-3.5 px-4">Shift & Jam</th>
+                                  <th className="py-3.5 px-4 text-center">Status</th>
+                                  <th className="py-3.5 px-4 text-center">Aksi Cepat</th>
+                                  <th className="py-3.5 px-4 text-right">Aksi</th>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {filteredLogsList.length === 0 ? (
+                                   <tr>
+                                     <td colSpan={9} className="py-16 text-center">
+                                       <div className="flex flex-col items-center gap-3">
+                                         <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
+                                           <Search className="w-6 h-6 text-slate-400" />
+                                         </div>
+                                         <div>
+                                           <p className="text-sm font-bold text-slate-800">
+                                             {logs.length === 0
+                                               ? "Database absen masih kosong"
+                                               : "Tidak ada log yang cocok"}
+                                           </p>
+                                           <p className="text-xs text-slate-400 font-medium mt-1 max-w-xs mx-auto">
+                                             {logs.length === 0
+                                               ? 'Mulai tambahkan log absensi menggunakan tombol "Input Manual" di atas.'
+                                               : "Coba ubah filter status, tanggal, atau kata kunci pencarian Anda."}
+                                           </p>
+                                         </div>
+                                         {logs.length > 0 && (
+                                           <button
+                                             onClick={() => {
+                                               setDbStatusFilter("All");
+                                               setGlobalSearch("");
+                                               setDbPlatformFilter("Semua Platform");
+                                               setDbBrandFilter("Semua Brand");
+                                               setDbDateFilterStart("");
+                                               setDbDateFilterEnd("");
+                                             }}
+                                             className="mt-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-0 shadow-xs"
+                                           >
+                                             Reset Semua Filter
+                                           </button>
+                                         )}
+                                       </div>
+                                     </td>
+                                   </tr>
+                                 ) : filteredLogsList.map((item, idx) => {
+                                  const isRowChecked = selectedLogIds.includes(
+                                    item.id,
+                                  );
+                                  return (
+                                    <tr
+                                      key={item.id || idx}
+                                      className={`transition-all duration-150 select-none relative ${
+                                        isRowChecked
+                                          ? "bg-indigo-50/40 hover:bg-indigo-50/60"
+                                          : "hover:bg-slate-50/70"
+                                      }`}
+                                      id={`raw_row_${item.id}`}
+                                    >
+                                      <td className="py-3 px-4 text-center relative w-12 select-none">
+                                        {isRowChecked && (
+                                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-md" />
+                                        )}
+                                        <input
+                                          type="checkbox"
+                                          checked={isRowChecked}
+                                          onChange={() => {
+                                            setSelectedLogIds((prev) =>
+                                              prev.includes(item.id)
+                                                ? prev.filter(
+                                                    (id) => id !== item.id,
+                                                  )
+                                                : [...prev, item.id],
+                                            );
+                                          }}
+                                          className="rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer accent-indigo-600"
+                                        />
+                                      </td>
+                                      
+                                      <td className="py-3 px-4">
+                                        <div className="font-bold text-slate-900 text-xs">
+                                          {item.hostName}
+                                        </div>
+                                        {(item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId) && (
+                                          <div className="text-[11px] text-slate-400 font-mono font-medium mt-0.5">
+                                            ID: {item.employeeId || hosts.find((h) => h.id === item.hostId)?.employeeId}
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <div className="font-semibold text-xs text-slate-800">{formatHumanDate(item.date)}</div>
+                                        {item.checkInTime && (
+                                          <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 font-medium">
+                                            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                            <span>{item.checkInTime}</span>
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border shadow-3xs ${getBrandStyle(item.brandHandled)}`}>
+                                          {item.brandHandled}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border shadow-3xs ${
+                                          item.platform?.toLowerCase().includes("tiktok") 
+                                            ? "bg-slate-900 text-white border-slate-800" 
+                                            : item.platform?.toLowerCase().includes("shopee") 
+                                              ? "bg-orange-50 text-orange-700 border-orange-200" 
+                                              : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                        }`}>
+                                          {item.platform}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 px-4 text-slate-700 text-xs font-medium">
+                                        <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/60 text-slate-700 font-semibold text-[11px]">
+                                          {item.shiftHours || "-"}
+                                        </span>
+                                      </td>
+
+                                      <td className="py-3 px-4 text-center">
+                                        <span
+                                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border shadow-3xs ${
+                                            item.status === "Present"
+                                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                              : item.status === "Late"
+                                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                                : item.status === "Excused"
+                                                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                                                  : "bg-rose-50 text-rose-700 border-rose-200"
+                                          }`}
+                                        >
+                                          {item.status === "Present"
+                                            ? "Hadir"
+                                            : item.status === "Late"
+                                              ? "Terlambat"
+                                              : item.status === "Excused"
+                                                ? "Izin/Sakit"
+                                                : "Alpa"}
+                                        </span>
+                                      </td>
+
+                                      <td className="py-3 px-4 text-center">
+                                        <div
+                                          className="inline-flex items-center bg-slate-50 border border-slate-200/80 rounded-xl p-0.5 shadow-3xs gap-0.5"
+                                          id="fast_status_modifier_buttons_wrapper"
+                                        >
+                                          <button
+                                            id={`btn_mark_present_${item.id}`}
+                                            onClick={() => handleUpdateLogStatus(item.id, "Present")}
+                                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                                              item.status === "Present"
+                                                ? "bg-emerald-600 text-white shadow-xs font-bold"
+                                                : "hover:bg-white text-slate-400 hover:text-emerald-600"
+                                            }`}
+                                            title="Tandai Hadir"
+                                          >
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
+                                            id={`btn_mark_late_${item.id}`}
+                                            onClick={() => handleUpdateLogStatus(item.id, "Late")}
+                                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                                              item.status === "Late"
+                                                ? "bg-amber-500 text-white shadow-xs font-bold"
+                                                : "hover:bg-white text-slate-400 hover:text-amber-600"
+                                            }`}
+                                            title="Tandai Terlambat"
+                                          >
+                                            <Clock className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
+                                            id={`btn_mark_absent_${item.id}`}
+                                            onClick={() => handleUpdateLogStatus(item.id, "Absent")}
+                                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                                              item.status !== "Present" && item.status !== "Late" && item.status !== "Excused"
+                                                ? "bg-rose-600 text-white shadow-xs font-bold"
+                                                : "hover:bg-white text-slate-400 hover:text-rose-600"
+                                            }`}
+                                            title="Tandai Alpa"
+                                          >
+                                            <XCircle className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
+                                            id={`btn_mark_excused_${item.id}`}
+                                            onClick={() => handleUpdateLogStatus(item.id, "Excused")}
+                                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                                              item.status === "Excused"
+                                                ? "bg-blue-600 text-white shadow-xs font-bold"
+                                                : "hover:bg-white text-slate-400 hover:text-blue-600"
+                                            }`}
+                                            title="Tandai Izin/Sakit"
+                                          >
+                                            <FileText className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </td>
+
+                                      <td className="py-3 px-4 text-right">
+                                        {pendingDeleteLogId === item.id ? (
+                                          <div className="flex items-center justify-end gap-1.5 animate-in fade-in duration-150">
+                                            <span className="text-[10px] text-slate-500 font-bold mr-0.5">Hapus?</span>
+                                            <button
+                                              onClick={() => {
+                                                handleDeleteLog(item.id);
+                                                setPendingDeleteLogId(null);
+                                              }}
+                                              className="px-2.5 py-1 text-[10px] font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-all cursor-pointer border-0 shadow-xs"
+                                            >
+                                              Ya
+                                            </button>
+                                            <button
+                                              onClick={() => setPendingDeleteLogId(null)}
+                                              className="px-2.5 py-1 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all cursor-pointer border-0"
+                                            >
+                                              Batal
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            id={`btn_delete_log_${item.id}`}
+                                            onClick={() => setPendingDeleteLogId(item.id)}
+                                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer border-0 bg-transparent"
+                                            title="Hapus log ini"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
 
                     {/* MOBILE CARDS VIEW (TICKET STYLE) */}
                     <div className="md:hidden flex flex-col gap-4 mt-2 px-1" id="raw-logs-mobile-cards-wrapper">
