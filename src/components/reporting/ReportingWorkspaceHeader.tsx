@@ -48,7 +48,6 @@ type ReportingWorkspaceHeaderProps = {
   onApplyCustom: (start: string, end: string) => void;
   onCancelCustom: () => void;
   onImportRawLive?: () => void;
-  onImportRawProduct?: () => void;
   onImportRawEngagement?: () => void;
   onOpenAddManualDuration?: () => void;
   periodLabel?: string;
@@ -61,7 +60,6 @@ type ReportingWorkspaceHeaderProps = {
   setOperatorShiftFilters?: Setter<string[]>;
   availableShifts?: string[];
   brandDashboardSettings?: any;
-  sessionCount?: number;
   onDeleteBrandDataByDateRange?: (brandId: string, brandName: string) => void;
   onDeleteAllBrandRawData?: (brandId: string, brandName: string, platform?: string) => void;
   onExport?: () => void;
@@ -163,7 +161,6 @@ export function ReportingWorkspaceHeader({
   onApplyCustom,
   onCancelCustom,
   onImportRawLive,
-  onImportRawProduct,
   onImportRawEngagement,
   onOpenAddManualDuration,
   periodLabel,
@@ -639,19 +636,6 @@ export function ReportingWorkspaceHeader({
                           className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
                         >
                           <CalendarDays className="h-4 w-4 text-indigo-600" /> Tambah Durasi Manual
-                        </button>
-                      )}
-                      {onImportRawProduct && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onImportRawProduct();
-                            setIsRawMenuOpen(false);
-                          }}
-                          className="flex w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                        >
-                          <ShoppingBag className="h-4 w-4 text-[#ff6a00]" /> Upload Raw Data Product
                         </button>
                       )}
                       {onImportRawEngagement && (

@@ -297,9 +297,7 @@ import {
 } from "./components/reporting/ReportingWorkspaceHeader";
 import { BrandDashboardSettingsPanel } from "./components/reporting/BrandDashboardSettingsPanel";
 import { ReportBrandSelectionPanel } from "./components/reporting/ReportBrandSelectionPanel";
-import { ProductPerformancePanel } from "./components/reporting/ProductPerformancePanel";
 import { DeleteByDateModal } from "./components/reporting/DeleteByDateModal";
-import { SkuUploadModal } from "./components/reporting/SkuUploadModal";
 import { DownloadReportModal } from "./components/reporting/DownloadReportModal";
 import { ClientDownloadConfirmationModal } from "./components/reporting/ClientDownloadConfirmationModal";
 import { AddManualDurationModal } from "./components/reporting/AddManualDurationModal";
@@ -2504,18 +2502,11 @@ export default function App() {
     if (operatorReportingTab === "engagement") {
       return engagementReportView.logs;
     }
-    if (operatorReportingTab === "product") {
-      return shopeeSkuLogs.filter(
-        (log) => log.brandId === (activeReportBrandId || ""),
-      );
-    }
     return liveReportView.filteredDb;
   }, [
-    activeReportBrandId,
     engagementReportView.logs,
     liveReportView.filteredDb,
     operatorReportingTab,
-    shopeeSkuLogs,
   ]);
 
   const operatorWorkspaceAvailableDates = useMemo(
@@ -2531,23 +2522,16 @@ export default function App() {
     if (operatorReportingTab === "engagement") {
       return engagementReportView.engagementLatestDate || "";
     }
-    if (operatorReportingTab === "product") {
-      return productReportView.targetLatestDate || "";
-    }
     return liveReportView.targetLatestDate || "";
   }, [
     engagementReportView.engagementLatestDate,
     liveReportView.targetLatestDate,
     operatorReportingTab,
-    productReportView.targetLatestDate,
   ]);
 
   const operatorWorkspacePeriodLabel = useMemo(() => {
     if (operatorReportingTab === "engagement") {
       return engagementReportView.engagementPeriodLabel;
-    }
-    if (operatorReportingTab === "product") {
-      return productReportView.productPeriodLabel;
     }
     return getReportPeriodLabel({
       dateFilterType: operatorDateFilterType,
@@ -2562,7 +2546,6 @@ export default function App() {
     operatorCustomStartDate,
     operatorDateFilterType,
     operatorReportingTab,
-    productReportView.productPeriodLabel,
   ]);
 
   const operatorWorkspaceCurrentDate = useMemo(() => {
@@ -5748,34 +5731,7 @@ export default function App() {
                       />
                     )}
 
-                    {clientReportingTab === "product" && (
-                      <ProductPerformancePanel
-                        shopeeSkuLogs={shopeeSkuLogs}
-                        brandPerformanceLogs={brandPerformanceLogs}
-                        activeReportBrandId={activeClientBrandId || ""}
-                        operatorDateFilterType={clientDateFilterType}
-                        selectedLatestDate={clientSelectedLatestDate}
-                        operatorCustomStartDate={clientCustomStartDate}
-                        operatorCustomEndDate={clientCustomEndDate}
-                        operatorSelectedMonth={clientSelectedMonth}
-                        operatorPlatformFilter={clientPlatformFilter}
-                        operatorShiftFilters={operatorShiftFilters}
-                        reportDbSearchQuery={reportDbSearchQuery}
-                      brandDashboardSettings={clientBrands.find((b) => b.id === activeClientBrandId)?.dashboardSettings}
-                        skuSortCol={skuSortCol}
-                        skuSortAsc={skuSortAsc}
-                        setSkuSortCol={setSkuSortCol}
-                        setSkuSortAsc={setSkuSortAsc}
-                        setOperatorDateFilterType={setClientDateFilterType}
-                        setOperatorCustomStartDate={setClientCustomStartDate}
-                        setOperatorCustomEndDate={setClientCustomEndDate}
-                        currentPage={currentPage}
-                        itemsPerPage={ITEMS_PER_PAGE}
-                        setCurrentPage={setCurrentPage}
-                        onDeleteBatch={() => {}}
-                        hideUploadHistory={true}
-                      />
-                    )}
+
                     </div>
 
 
@@ -12054,10 +12010,6 @@ export default function App() {
                                 setIsUploadModalOpen(true);
                               }}
                               onOpenAddManualDuration={() => setIsAddManualDurationModalOpen(true)}
-                              onImportRawProduct={() => {
-                                setSaveTargetBrandId(activeReportBrandId || "");
-                                setIsSkuUploadModalOpen(true);
-                              }}
                               onImportRawEngagement={() => {
                                 setSaveTargetBrandId(activeReportBrandId || "");
                                 setUploadTargetTab("engagement");
@@ -12072,58 +12024,7 @@ export default function App() {
                             onTabChange={setOperatorReportingTab}
                           />
 
-                          <SkuUploadModal
-                            isOpen={isSkuUploadModalOpen}
-                            isSavingReport={isSavingReport}
-                            isDragOverReporting={isDragOverReporting}
-                            saveTargetBrandId={saveTargetBrandId}
-                            saveTargetPlatform={saveTargetPlatform}
-                            skuRawData={skuRawData}
-                            clientBrands={clientBrands}
-                            onClose={() => {
-                              setIsSkuUploadModalOpen(false);
-                              setSkuRawData([]);
-                              setAutoDetectNotice("");
-                            }}
-                            onResetFile={() => {
-                              setSkuRawData([]);
-                              setAutoDetectNotice("");
-                            }}
-                            onSave={async () => {
-                              if (!saveTargetBrandId) {
-                                alert("Harap pilih brand terlebih dahulu!");
-                                return;
-                              }
-                              try {
-                                setIsSavingReport(true);
-                                const batchId = `sku_batch_${Date.now()}`;
 
-                                const newRecords: SkuLogEntry[] = skuRawData.map((p) => ({
-                                  ...p,
-                                  id: `${batchId}_${Math.random().toString(36).slice(2)}`,
-                                  platform: saveTargetPlatform,
-                                  batchId,
-                                  brandId: saveTargetBrandId,
-                                  uploadedAt: new Date().toISOString(),
-                                }));
-                                setShopeeSkuLogs((prev) => [...prev, ...newRecords]);
-                                customAlert("Data SKU berhasil disimpan!");
-                                setIsSkuUploadModalOpen(false);
-                                setSkuRawData([]);
-                                setOperatorPlatformFilter(saveTargetPlatform || "Shopee Live");
-                              } catch (e: unknown) {
-                                console.error(e);
-                                alert("Error saving: " + getErrorMessage(e));
-                              } finally {
-                                setIsSavingReport(false);
-                              }
-                            }}
-                            onBrandChange={setSaveTargetBrandId}
-                            onPlatformChange={setSaveTargetPlatform}
-                            onDragOver={() => setIsDragOverReporting(true)}
-                            onDragLeave={() => setIsDragOverReporting(false)}
-                            onFileSelect={handleUploadSkuRaw}
-                          />
 
                           {isUploadModalOpen && (
                             <div
@@ -12420,41 +12321,7 @@ export default function App() {
                             }}
                           />
 
-                          {/* STORED SKU DATABASE VIEWER */}
-                          {operatorReportingTab === "product" && (
-                            <ProductPerformancePanel
-                              shopeeSkuLogs={shopeeSkuLogs}
-                              brandPerformanceLogs={brandPerformanceLogs}
-                              activeReportBrandId={activeReportBrandId || ""}
-                              operatorDateFilterType={operatorDateFilterType}
-                              selectedLatestDate={operatorSelectedLatestDate}
-                              operatorCustomStartDate={
-                                operatorCustomStartDate
-                              }
-                              operatorCustomEndDate={operatorCustomEndDate}
-                              operatorSelectedMonth={operatorSelectedMonth}
-                              operatorPlatformFilter={operatorPlatformFilter}
-                              operatorShiftFilters={operatorShiftFilters}
-                              reportDbSearchQuery={reportDbSearchQuery}
-                              skuSortCol={skuSortCol}
-                              skuSortAsc={skuSortAsc}
-                              setSkuSortCol={setSkuSortCol}
-                              setSkuSortAsc={setSkuSortAsc}
-                              setOperatorDateFilterType={
-                                setOperatorDateFilterType
-                              }
-                              setOperatorCustomStartDate={
-                                setOperatorCustomStartDate
-                              }
-                              setOperatorCustomEndDate={
-                                setOperatorCustomEndDate
-                              }
-                              currentPage={currentPage}
-                              itemsPerPage={ITEMS_PER_PAGE}
-                              setCurrentPage={setCurrentPage}
-                              onDeleteBatch={handleDeleteSkuBatch}
-                            />
-                          )}
+
 
                           {operatorReportingTab === "analysis" && activeReportBrandId && (
                             <AnalysisPerformanceTab
