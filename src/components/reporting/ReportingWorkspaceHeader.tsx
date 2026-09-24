@@ -905,16 +905,7 @@ export function ReportingWorkspaceTabs({
             </button>
           )}
 
-          {/* TAB: PRODUCT PERFORMANCE */}
-          {!isCategoryHidden("product") && (
-            <button
-              type="button"
-              onClick={() => onTabChange("product")}
-              className={`${tabClass("product")} hidden md:inline-block`}
-            >
-              Product Performance
-            </button>
-          )}
+
 
           {/* METRIKS TAB - MOBILE ONLY (posisi ke-2 di mobile) */}
           <button
