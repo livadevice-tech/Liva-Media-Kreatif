@@ -5922,42 +5922,51 @@ export default function App() {
               loggedInAdminName={authSession?.role === "master" ? "Master Admin" : adminAccounts.find((a) => a.id === loggedInAdminId)?.name || "Administrator"} 
               onLogout={handleLogout}
             />
-            {/* 1. LEFT VERTICAL SIDEBAR (PREMIUM GLASSMORPHISM) */}
+            {/* 1. LEFT VERTICAL SIDEBAR (PREMIUM GLASSMORPHISM & COLLAPSIBLE ICON RAIL) */}
             <aside
-              className={`hidden md:flex transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] ${isSidebarVisible ? "w-[260px] p-5 opacity-100 border-r" : "w-0 p-0 overflow-hidden opacity-0 border-r-0"} flex-shrink-0 bg-white/70 backdrop-blur-2xl border-white/60 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex-col justify-between sticky top-0 h-screen font-sans z-50`}
+              className={`hidden md:flex transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] ${
+                isSidebarVisible ? "w-[260px] p-5" : "w-[72px] p-3"
+              } flex-shrink-0 bg-white/80 backdrop-blur-2xl border-r border-slate-200/80 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex-col justify-between sticky top-0 h-screen font-sans z-50`}
               id="operator_sidebar"
             >
               <div className="flex flex-col flex-1 overflow-hidden pb-4">
-                <div className="px-2 py-4 mb-4 border-b border-purple-50 flex items-center gap-3 flex-shrink-0">
+                {/* Logo & Header */}
+                <div className={`py-3 mb-3 border-b border-slate-100 flex items-center ${isSidebarVisible ? "px-2 gap-3" : "justify-center px-0"} flex-shrink-0 transition-all`}>
                   {agencyLogoUrl ? (
                     <img
                       src={agencyLogoUrl}
-                      className="h-10 w-auto max-w-[140px] rounded-lg object-contain bg-slate-50 border border-slate-100 px-1"
+                      className={`${isSidebarVisible ? "h-10 w-auto max-w-[130px]" : "w-10 h-10 object-contain"} rounded-xl bg-slate-50 border border-slate-100 p-1`}
                       alt="Logo"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white text-xs">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-white text-xs shadow-xs shrink-0">
                       LM
                     </div>
                   )}
-                  <div>
-                    {agencyLogoUrl ? null : (
-                      <span className="text-[9px] font-black tracking-widest text-[#2563eb] block uppercase">
+                  {isSidebarVisible && (
+                    <div className="overflow-hidden transition-all duration-200">
+                      <span className="text-[9px] font-black tracking-widest text-indigo-600 block uppercase">
                         Liva Agency
                       </span>
-                    )}
-                    <h2 className="text-xs font-black text-slate-900 font-sans tracking-wide">
-                      OPERATOR DESKTOP
-                    </h2>
-                  </div>
+                      <h2 className="text-xs font-black text-slate-900 font-sans tracking-wide truncate">
+                        OPERATOR DESKTOP
+                      </h2>
+                    </div>
+                  )}
                 </div>
 
-                <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar" id="sidebar_nav">
+                {/* Nav Items */}
+                <nav className={`space-y-1.5 flex-1 overflow-y-auto ${isSidebarVisible ? "pr-1 custom-scrollbar" : "overflow-x-hidden scrollbar-hide"}`} id="sidebar_nav">
                   {adminNavItems.map((item, index) => {
                     if (item.type === "header") {
+                      if (!isSidebarVisible) {
+                        return (
+                          <div key={`header-${index}`} className="my-2 border-t border-slate-200/60" />
+                        );
+                      }
                       const isExpanded = expandedCategories[item.key!];
                       return (
-                        <div key={`header-${index}`} className="pt-4 pb-1">
+                        <div key={`header-${index}`} className="pt-3 pb-1">
                           <button
                             onClick={() =>
                               setExpandedCategories((prev) => ({
@@ -5965,7 +5974,7 @@ export default function App() {
                                 [item.key!]: !isExpanded,
                               }))
                             }
-                            className="w-full px-3.5 flex items-center justify-between group cursor-pointer text-left focus:outline-none"
+                            className="w-full px-3 flex items-center justify-between group cursor-pointer text-left focus:outline-none"
                           >
                             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
                               {item.label}
@@ -5980,7 +5989,7 @@ export default function App() {
                       );
                     }
 
-                    if (item.category && !expandedCategories[item.category]) {
+                    if (isSidebarVisible && item.category && !expandedCategories[item.category]) {
                       return null;
                     }
 
@@ -5994,39 +6003,46 @@ export default function App() {
                           if (item.tabId) setOperatorTab(item.tabId);
                           setSelectedLogIds([]);
                         }}
-                        className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all duration-300 relative group cursor-pointer border-0 text-left overflow-hidden ${
+                        title={!isSidebarVisible ? item.label : undefined}
+                        className={`w-full flex items-center ${
+                          isSidebarVisible ? "justify-between px-3.5 py-2.5" : "justify-center p-2.5"
+                        } rounded-xl text-xs font-bold transition-all duration-200 relative group cursor-pointer border-0 text-left overflow-hidden ${
                           isActive
-                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 scale-[1.02]"
-                            : "text-slate-500 hover:text-blue-700 hover:bg-blue-50/60"
+                            ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/20"
+                            : "text-slate-600 hover:text-indigo-600 hover:bg-slate-100/80"
                         }`}
                       >
-                        <div className="flex items-center gap-3 relative z-10">
-                          {isActive && (
-                            <div className="absolute -left-3.5 top-0 bottom-0 w-1 bg-white/30 rounded-r-md" />
-                          )}
+                        <div className={`flex items-center ${isSidebarVisible ? "gap-3" : "justify-center"} relative z-10 w-full`}>
                           <IconComponent
-                            className={`w-4 h-4 transition-all duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-slate-400 group-hover:text-blue-500"}`}
+                            className={`w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                              isActive ? "text-white" : "text-slate-400 group-hover:text-indigo-600"
+                            }`}
                           />
-                          <span
-                            className={
-                              isActive
-                                ? "font-black text-white tracking-wide"
-                                : "font-semibold tracking-wide"
-                            }
-                          >
-                            {item.label}
-                          </span>
+                          {isSidebarVisible && (
+                            <span
+                              className={`truncate ${
+                                isActive
+                                  ? "font-black text-white tracking-wide"
+                                  : "font-semibold tracking-wide"
+                              }`}
+                            >
+                              {item.label}
+                            </span>
+                          )}
                         </div>
-                        {item.badgeCount !== undefined && (
+                        {isSidebarVisible && item.badgeCount !== undefined && (
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold relative z-10 transition-colors ${isActive ? "bg-white/20 text-white border border-white/30" : "bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-700"}`}
+                            className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold relative z-10 transition-colors shrink-0 ${
+                              isActive
+                                ? "bg-white/20 text-white border border-white/30"
+                                : "bg-slate-100 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-700"
+                            }`}
                           >
                             {item.badgeCount}
                           </span>
                         )}
-                        {/* Hover subtle glow effect */}
-                        {!isActive && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-100/0 via-blue-100/40 to-blue-100/0 translate-x-[-100%] group-hover:animate-shimmer" />
+                        {!isSidebarVisible && item.badgeCount !== undefined && item.badgeCount > 0 && (
+                          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
                         )}
                       </button>
                     );
@@ -6034,34 +6050,39 @@ export default function App() {
                 </nav>
               </div>
 
+              {/* Sidebar Operator Profile Footer */}
               <div
-                className="border-t border-slate-50 pt-4 mt-2 flex-shrink-0"
+                className="border-t border-slate-100 pt-3 mt-1 flex-shrink-0"
                 id="sidebar_operator_profile"
               >
-                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 border border-slate-100">
+                <div className={`flex items-center ${isSidebarVisible ? "justify-between p-2" : "justify-center p-1.5"} rounded-xl bg-slate-50 border border-slate-200/60`}>
                   <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-700 text-xs">
+                    <div className="relative shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center font-black text-indigo-700 text-xs">
                         OP
                       </div>
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
                     </div>
-                    <div>
-                      <h5 className="text-[11px] font-black text-slate-850 leading-none">
-                        Agency Operator
-                      </h5>
-                      <span className="text-[9px] text-[#2563eb] font-bold tracking-wide">
-                        Studio Aktif
-                      </span>
-                    </div>
+                    {isSidebarVisible && (
+                      <div className="overflow-hidden">
+                        <h5 className="text-[11px] font-bold text-slate-800 leading-none truncate">
+                          Agency Operator
+                        </h5>
+                        <span className="text-[9px] text-indigo-600 font-bold tracking-wide">
+                          Studio Aktif
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={handleLogout}
-                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all cursor-pointer border-0 bg-transparent"
-                    title="Sign Out"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
+                  {isSidebarVisible ? (
+                    <button
+                      onClick={handleLogout}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all cursor-pointer border-0 bg-transparent shrink-0"
+                      title="Sign Out"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </aside>
@@ -6081,14 +6102,14 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsSidebarVisible((prev) => !prev)}
-                    className="p-1.5 -ml-1 text-[#2563eb] hover:bg-blue-50 border border-slate-100 rounded-lg transition-all cursor-pointer bg-transparent flex items-center justify-center shadow-3xs"
+                    className="p-2 -ml-1 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 border border-slate-200/80 rounded-xl transition-all cursor-pointer bg-white flex items-center justify-center shadow-xs"
                     title={
                       isSidebarVisible
-                        ? "Sembunyikan Sidebar"
-                        : "Tampilkan Sidebar"
+                        ? "Ciutkan Sidebar (Mode Ringkas)"
+                        : "Perluas Sidebar"
                     }
                   >
-                    <Menu className="w-4 h-4 hover:scale-110 active:scale-90 transition-transform" />
+                    <Menu className="w-4 h-4 hover:scale-105 active:scale-95 transition-transform" />
                   </button>
 
                   <h1 className="text-sm font-black text-slate-900 font-sans flex items-center gap-2">
