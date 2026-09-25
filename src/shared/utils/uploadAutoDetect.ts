@@ -47,52 +47,57 @@ export function detectPlatformFromFilename(fileName: string) {
 export function detectReportingPlatformFromHeaders(headers: readonly string[]) {
   const normalizedHeaders = headers.map((h) => h.toLowerCase());
 
+  // TikTok identifiers (both English and Indonesian)
   if (
     normalizedHeaders.some(
       (h) =>
         h.includes("tiktok") ||
         h.includes("attributed") ||
+        h.includes("teratribusi") ||
         h.includes("product impressions") ||
-        h.includes("product clicks"),
-    )
-  ) {
-    return "TikTok Live";
-  }
-
-  if (normalizedHeaders.some((h) => h.includes("shopee"))) {
-    return "Shopee Live";
-  }
-
-  if (
-    normalizedHeaders.some(
-      (h) =>
+        h.includes("product clicks") ||
         h.includes("live room") ||
         h.includes("judul ruang live") ||
-        h.includes("highest ccu") ||
-        h.includes("penonton serentak tertinggi") ||
-        h.includes("anchor") ||
-        h.includes("uid") ||
         h.includes("live impressions") ||
-        h.includes("attributed gmv") ||
-        h.includes("product impressions"),
+        h.includes("tayangan langsung") ||
+        h.includes("tayangan live") ||
+        h.includes("highest ccu") ||
+        h.includes("anchor") ||
+        h.includes("uid"),
     )
   ) {
     return "TikTok Live";
   }
 
+  // Shopee identifiers (both English and Indonesian)
   if (
     normalizedHeaders.some(
       (h) =>
-        h.includes("username pembeli") ||
-        h.includes("live id") ||
-        h.includes("nama produk") ||
-        h.includes("nama livestream") ||
-        h.includes("livestream name") ||
+        h.includes("shopee") ||
+        h.includes("pesanan(pesanan") ||
+        h.includes("orders(orders") ||
+        h.includes("penjualan(pesanan") ||
+        h.includes("sales(orders") ||
+        h.includes("produk terjual(pesanan") ||
+        h.includes("items sold(orders") ||
+        h.includes("pembeli(pesanan") ||
+        h.includes("buyers(orders") ||
         h.includes("tambah ke keranjang") ||
+        h.includes("add to cart") ||
         h.includes("penonton aktif") ||
-        h.includes("pesanan(pesanan dibuat)") ||
+        h.includes("active viewers") ||
+        h.includes("durasi rata-rata menonton") ||
+        h.includes("rata-rata durasi ditonton") ||
+        h.includes("avg. watch duration") ||
+        h.includes("penonton tertinggi") ||
+        h.includes("peak viewers") ||
+        h.includes("voucher toko diklaim") ||
+        h.includes("shop voucher claimed") ||
+        h.includes("waktu mulai streaming") ||
+        h.includes("streaming start time") ||
         h.includes("max concurrent viewers") ||
-        h.includes("orders(orders paid)"),
+        h.includes("username pembeli") ||
+        h.includes("live id"),
     )
   ) {
     return "Shopee Live";
@@ -125,15 +130,48 @@ export function findReportingUploadHeaderRowIndex(
         }
 
         return (
+          // Indonesian keywords
           cLower.includes("streaming") ||
           cLower.includes("mulai") ||
+          cLower.includes("selesai") ||
           cLower.includes("gmv") ||
           cLower.includes("user id") ||
-          cLower === "penonton" ||
-          cLower === "penonton aktif" ||
-          cLower === "suka" ||
-          cLower === "komentar" ||
-          cLower.includes("pembeli(pesanan")
+          cLower.includes("penonton") ||
+          cLower.includes("penonton aktif") ||
+          cLower.includes("produk terjual") ||
+          cLower.includes("pesanan") ||
+          cLower.includes("pembeli") ||
+          cLower.includes("keranjang") ||
+          cLower.includes("suka") ||
+          cLower.includes("komentar") ||
+          cLower.includes("dibagikan") ||
+          cLower.includes("pengikut") ||
+          cLower.includes("voucher") ||
+          cLower.includes("durasi") ||
+          cLower.includes("periode") ||
+          // English keywords
+          cLower.includes("room title") ||
+          cLower.includes("start time") ||
+          cLower.includes("end time") ||
+          cLower.includes("duration") ||
+          cLower.includes("attributed") ||
+          cLower.includes("sales") ||
+          cLower.includes("orders") ||
+          cLower.includes("items sold") ||
+          cLower.includes("customers") ||
+          cLower.includes("buyers") ||
+          cLower.includes("impressions") ||
+          cLower.includes("views") ||
+          cLower.includes("viewers") ||
+          cLower.includes("likes") ||
+          cLower.includes("comments") ||
+          cLower.includes("shares") ||
+          cLower.includes("followers") ||
+          cLower.includes("add to cart") ||
+          cLower.includes("cart") ||
+          cLower.includes("product clicks") ||
+          cLower.includes("product impressions") ||
+          cLower.includes("peak")
         );
       })
     ) {

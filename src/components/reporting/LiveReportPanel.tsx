@@ -192,17 +192,6 @@ export function LiveReportPanel({
         hideControls={hideRawTableControls}
         isClientView={isClientView}
       />
-
-      {!hideUploadHistory && (
-        <UploadHistoryCard
-          title="Riwayat Upload Data Mentah"
-          description="History file CSV raw data performa yang telah berhasil dikonversi & masuk ke database sentral."
-          histories={brandUploadHistory.filter((history) => history.brandId === activeReportBrandId)}
-          isLoading={isLogsLoading}
-          emptyMessage="Belum ada riwayat upload untuk brand ini."
-          onDeleteBatch={onDeleteUploadBatch}
-        />
-      )}
       </div>
     </>
   );

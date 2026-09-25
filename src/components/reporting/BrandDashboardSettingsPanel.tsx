@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { ClientBrand } from '../../types';
+import { UploadHistoryCard } from './UploadHistoryCard';
+import type { UploadHistoryEntry } from '../../shared/types/reporting';
 
 interface BrandDashboardSettingsPanelProps {
   brand: ClientBrand;
   onUpdateBrand: (updatedBrand: ClientBrand) => void;
   availableShifts?: string[];
+  uploadHistory?: UploadHistoryEntry[];
+  isLoadingUploadHistory?: boolean;
+  onDeleteUploadBatch?: (id: string, fileName: string, rowCount: number) => void;
 }
 
 const CATEGORIES = [
@@ -108,7 +113,10 @@ const COLUMNS_BY_CATEGORY = {
 export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelProps> = ({
   brand,
   onUpdateBrand,
-  availableShifts = []
+  availableShifts = [],
+  uploadHistory = [],
+  isLoadingUploadHistory = false,
+  onDeleteUploadBatch = () => {},
 }) => {
   const [activePlatform, setActivePlatform] = useState<'shopee' | 'tiktok'>('shopee');
 
@@ -390,6 +398,16 @@ export const BrandDashboardSettingsPanel: React.FC<BrandDashboardSettingsPanelPr
           </div>
         </div>
       </div>
+
+      {/* Riwayat Upload Data Mentah */}
+      <UploadHistoryCard
+        title="Riwayat Upload Data Mentah"
+        description="History file CSV raw data performa yang telah berhasil dikonversi & masuk ke database sentral."
+        histories={uploadHistory.filter((history) => history.brandId === brand.id)}
+        isLoading={isLoadingUploadHistory}
+        emptyMessage="Belum ada riwayat upload untuk brand ini."
+        onDeleteBatch={onDeleteUploadBatch}
+      />
     </div>
   );
 };

@@ -12372,6 +12372,9 @@ export default function App() {
                             <BrandDashboardSettingsPanel
                               brand={clientBrands.find(b => b.id === activeReportBrandId)!}
                               availableShifts={shifts}
+                              uploadHistory={brandUploadHistory}
+                              isLoadingUploadHistory={isLogsLoading}
+                              onDeleteUploadBatch={handleDeleteUploadBatch}
                               onUpdateBrand={async (updatedBrand) => {
                                 try {
                                   if (typeof clientBrandsApi !== "undefined" && clientBrandsApi.update) {

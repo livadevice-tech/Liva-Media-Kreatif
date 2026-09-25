@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Tag,
   Tv,
+  ShoppingCart,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -284,6 +285,9 @@ export function BrandOverviewDashboard({
   );
   const clicksGrowth = calcGrowth(stats.totalClicksDb, stats.pTotalClicksDb);
   const gmvPerHourGrowth = calcGrowth(stats.gmvPerHour, stats.pGmvPerHour);
+  const viewerActiveGrowth = calcGrowth(stats.totalDbLiveVisits, stats.pTotalDbLiveVisits);
+  const peakViewersGrowth = calcGrowth(stats.totalPeakViewersDb, stats.pTotalPeakViewersDb);
+  const voucherClaimGrowth = calcGrowth(stats.totalShopVouchersDb, stats.pTotalShopVouchersDb);
 
   // Engagement & Funnel Stats
   const liveImpressionsValue = isShopee
@@ -381,6 +385,18 @@ export function BrandOverviewDashboard({
           ? Math.round(d.avgViewDurationSum / d.sessionsCount)
           : 0
       ),
+    [chartData]
+  );
+  const peakViewersSeries = useMemo(
+    () => chartData.map((d) => d.peakViewers || 0),
+    [chartData]
+  );
+  const shopVouchersSeries = useMemo(
+    () => chartData.map((d) => d.shopVouchers || 0),
+    [chartData]
+  );
+  const liveVisitsSeries = useMemo(
+    () => chartData.map((d) => d.liveVisits || 0),
     [chartData]
   );
   const errSeries = useMemo(
@@ -487,7 +503,7 @@ export function BrandOverviewDashboard({
             icon={<Package className="h-5 w-5" strokeWidth={2.5} />}
             iconBg="bg-blue-50"
             iconColor="text-blue-600"
-            title={isShopee ? "Item Terjual" : "Item Sold"}
+            title="Item Sold"
             value={formatCompactNumber(stats.totalItemsSoldDb)}
             growth={itemsSoldGrowth}
             sparklineData={itemSoldSeries}
@@ -499,7 +515,7 @@ export function BrandOverviewDashboard({
             icon={<ClipboardList className="h-5 w-5" strokeWidth={2.5} />}
             iconBg="bg-purple-50"
             iconColor="text-purple-600"
-            title={isShopee ? "Pesanan Siaran" : "Orders"}
+            title="Orders"
             value={formatCompactNumber(stats.totalOrdersDb)}
             growth={ordersGrowth}
             sparklineData={ordersSeries}
@@ -523,64 +539,95 @@ export function BrandOverviewDashboard({
             sparklineColor="#f43f5e"
           />
 
-          {/* Card 5: Customer (Pembeli) */}
-          <SaleCard
-            icon={<Users className="h-5 w-5" strokeWidth={2.5} />}
-            iconBg="bg-purple-50"
-            iconColor="text-purple-600"
-            title={isShopee ? "Pembeli" : "Customer"}
-            value={formatCompactNumber(stats.totalBuyersDb)}
-            growth={buyersGrowth}
-            sparklineData={buyersSeries}
-            sparklineColor="#8b5cf6"
-          />
+          {/* Row 2: Card 5, 6, 7 */}
+          {isShopee ? (
+            <>
+              {/* Card 5 (Shopee): Add to Cart */}
+              <SaleCard
+                icon={<ShoppingCart className="h-5 w-5" strokeWidth={2.5} />}
+                iconBg="bg-amber-50"
+                iconColor="text-amber-600"
+                title="Add to Cart"
+                value={formatCompactNumber(stats.totalClicksDb)}
+                growth={clicksGrowth}
+                sparklineData={clicksSeries}
+                sparklineColor="#f59e0b"
+              />
 
-          {/* Card 6: Platform-specific (Product Impressions / Voucher Toko) */}
-          {isShopee && stats.totalShopVouchersDb > 0 ? (
-            <SaleCard
-              icon={<Tag className="h-5 w-5" strokeWidth={2.5} />}
-              iconBg="bg-orange-50"
-              iconColor="text-orange-600"
-              title="Voucher Toko"
-              value={formatCompactNumber(stats.totalShopVouchersDb)}
-              growth={calcGrowth(
-                stats.totalShopVouchersDb,
-                stats.pTotalShopVouchersDb
-              )}
-              sparklineData={chartData.map((d) => d.shopVouchers || 0)}
-              sparklineColor="#f97316"
-            />
+              {/* Card 6 (Shopee): Avg. View Duration */}
+              <SaleCard
+                icon={<TrendingUp className="h-5 w-5" strokeWidth={2.5} />}
+                iconBg="bg-indigo-50"
+                iconColor="text-indigo-600"
+                title="Avg. View Duration"
+                value={
+                  stats.avgViewDurationDb
+                    ? `${stats.avgViewDurationDb.toFixed(1)}s`
+                    : "0s"
+                }
+                growth={avgDurationGrowth}
+                sparklineData={durationSeries}
+                sparklineColor="#6366f1"
+              />
+
+              {/* Card 7 (Shopee): Viewer Active */}
+              <SaleCard
+                icon={<Users className="h-5 w-5" strokeWidth={2.5} />}
+                iconBg="bg-cyan-50"
+                iconColor="text-cyan-600"
+                title="Viewer Active"
+                value={formatCompactNumber(stats.totalDbLiveVisits)}
+                growth={viewerActiveGrowth}
+                sparklineData={liveVisitsSeries}
+                sparklineColor="#06b6d4"
+              />
+            </>
           ) : (
-            <SaleCard
-              icon={<Eye className="h-5 w-5" strokeWidth={2.5} />}
-              iconBg="bg-orange-50"
-              iconColor="text-orange-600"
-              title={isShopee ? "Tayangan Produk" : "Product Impressions"}
-              value={formatCompactNumber(stats.totalDbProductImpressions)}
-              growth={productImpressionsGrowth}
-              sparklineData={productImpressionsSeries}
-              sparklineColor="#f97316"
-            />
-          )}
+            <>
+              {/* Card 5 (TikTok): Customer */}
+              <SaleCard
+                icon={<Users className="h-5 w-5" strokeWidth={2.5} />}
+                iconBg="bg-purple-50"
+                iconColor="text-purple-600"
+                title="Customer"
+                value={formatCompactNumber(stats.totalBuyersDb)}
+                growth={buyersGrowth}
+                sparklineData={buyersSeries}
+                sparklineColor="#8b5cf6"
+              />
 
-          {/* Card 7: Product Clicks */}
-          <SaleCard
-            icon={<MousePointerClick className="h-5 w-5" strokeWidth={2.5} />}
-            iconBg="bg-emerald-50"
-            iconColor="text-emerald-600"
-            title={isShopee ? "Klik Produk" : "Product Clicks"}
-            value={formatCompactNumber(stats.totalClicksDb || stats.totalDbClicks)}
-            growth={clicksGrowth}
-            sparklineData={clicksSeries}
-            sparklineColor="#10b981"
-          />
+              {/* Card 6 (TikTok): Product Impressions */}
+              <SaleCard
+                icon={<Eye className="h-5 w-5" strokeWidth={2.5} />}
+                iconBg="bg-orange-50"
+                iconColor="text-orange-600"
+                title="Product Impressions"
+                value={formatCompactNumber(stats.totalDbProductImpressions)}
+                growth={productImpressionsGrowth}
+                sparklineData={productImpressionsSeries}
+                sparklineColor="#f97316"
+              />
+
+              {/* Card 7 (TikTok): Product clicks */}
+              <SaleCard
+                icon={<MousePointerClick className="h-5 w-5" strokeWidth={2.5} />}
+                iconBg="bg-emerald-50"
+                iconColor="text-emerald-600"
+                title="Product clicks"
+                value={formatCompactNumber(stats.totalClicksDb || stats.totalDbClicks)}
+                growth={clicksGrowth}
+                sparklineData={clicksSeries}
+                sparklineColor="#10b981"
+              />
+            </>
+          )}
 
           {/* Card 8: GMV/Hours */}
           <SaleCard
             icon={<Clock className="h-5 w-5" strokeWidth={2.5} />}
             iconBg="bg-purple-50"
             iconColor="text-purple-600"
-            title={isShopee ? "GMV/Jam" : "GMV/Hours"}
+            title="GMV/Hours"
             value={formatCurrency(stats.gmvPerHour)}
             growth={gmvPerHourGrowth}
             sparklineData={gmvPerHourSeries}
@@ -742,7 +789,7 @@ export function BrandOverviewDashboard({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2 font-black text-slate-900 text-base">
             <Users className="h-5 w-5 text-[#5600e0]" />
-            <span>Engagement Metrics</span>
+            <span>{isShopee ? "Engagement & Customer Metrics" : "Engagement Metrics"}</span>
           </div>
 
           <div className="relative">
@@ -758,81 +805,159 @@ export function BrandOverviewDashboard({
 
         {/* 8 Engagement Cards: 2 rows of 4 cards on desktop (4 atas, 4 bawah) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
-          {/* Card 1: Live Impressions / Views */}
-          <EngagementCard
-            label={isShopee ? "Live Views" : "Live Impressions"}
-            value={formatCompactNumber(liveImpressionsValue)}
-            growth={impressionsGrowth}
-            sparklineData={impressionsSeries}
-            sparklineColor={impressionsGrowth.isUp ? "#10b981" : "#f43f5e"}
-          />
+          {isShopee ? (
+            <>
+              {/* Card 1 (Shopee): Views */}
+              <EngagementCard
+                label="Views"
+                value={formatCompactNumber(stats.totalPenontonDb || liveImpressionsValue)}
+                growth={viewersGrowth}
+                sparklineData={viewersSeries}
+                sparklineColor="#10b981"
+              />
 
-          {/* Card 2: Viewer */}
-          <EngagementCard
-            label={isShopee ? "Penonton" : "Viewer"}
-            value={formatCompactNumber(stats.totalPenontonDb)}
-            growth={viewersGrowth}
-            sparklineData={viewersSeries}
-            sparklineColor="#10b981"
-          />
+              {/* Card 2 (Shopee): Peak Viewer */}
+              <EngagementCard
+                label="Peak Viewer"
+                value={formatCompactNumber(stats.totalPeakViewersDb)}
+                growth={peakViewersGrowth}
+                sparklineData={peakViewersSeries}
+                sparklineColor="#06b6d4"
+              />
 
-          {/* Card 3: Likes */}
-          <EngagementCard
-            label="Likes"
-            value={formatCompactNumber(stats.totalLikesDb)}
-            growth={likesGrowth}
-            sparklineData={likesSeries}
-            sparklineColor="#8b5cf6"
-          />
+              {/* Card 3 (Shopee): Voucher Claim */}
+              <EngagementCard
+                label="Voucher Claim"
+                value={formatCompactNumber(stats.totalShopVouchersDb)}
+                growth={voucherClaimGrowth}
+                sparklineData={shopVouchersSeries}
+                sparklineColor="#f59e0b"
+              />
 
-          {/* Card 4: Comments */}
-          <EngagementCard
-            label="Comments"
-            value={formatCompactNumber(stats.totalCommentsDb)}
-            growth={commentsGrowth}
-            sparklineData={commentsSeries}
-            sparklineColor="#3b82f6"
-          />
+              {/* Card 4 (Shopee): Customer */}
+              <EngagementCard
+                label="Customer"
+                value={formatCompactNumber(stats.totalBuyersDb)}
+                growth={buyersGrowth}
+                sparklineData={buyersSeries}
+                sparklineColor="#8b5cf6"
+              />
 
-          {/* Card 5: Shares */}
-          <EngagementCard
-            label="Shares"
-            value={formatCompactNumber(stats.totalSharesDb)}
-            growth={sharesGrowth}
-            sparklineData={sharesSeries}
-            sparklineColor="#f43f5e"
-          />
+              {/* Card 5 (Shopee): Likes */}
+              <EngagementCard
+                label="Likes"
+                value={formatCompactNumber(stats.totalLikesDb)}
+                growth={likesGrowth}
+                sparklineData={likesSeries}
+                sparklineColor="#ec4899"
+              />
 
-          {/* Card 6: New Followers */}
-          <EngagementCard
-            label="New Followers"
-            value={formatCompactNumber(stats.totalFollowersDb)}
-            growth={followersGrowth}
-            sparklineData={followersSeries}
-            sparklineColor="#f97316"
-          />
+              {/* Card 6 (Shopee): Comments */}
+              <EngagementCard
+                label="Comments"
+                value={formatCompactNumber(stats.totalCommentsDb)}
+                growth={commentsGrowth}
+                sparklineData={commentsSeries}
+                sparklineColor="#3b82f6"
+              />
 
-          {/* Card 7: Avg. View Duration */}
-          <EngagementCard
-            label="Avg. View Duration"
-            value={
-              stats.avgViewDurationDb
-                ? `${stats.avgViewDurationDb.toFixed(1)}s`
-                : "0s"
-            }
-            growth={avgDurationGrowth}
-            sparklineData={durationSeries}
-            sparklineColor="#8b5cf6"
-          />
+              {/* Card 7 (Shopee): Shares */}
+              <EngagementCard
+                label="Shares"
+                value={formatCompactNumber(stats.totalSharesDb)}
+                growth={sharesGrowth}
+                sparklineData={sharesSeries}
+                sparklineColor="#f43f5e"
+              />
 
-          {/* Card 8: ERR % */}
-          <EngagementCard
-            label="ERR %"
-            value={`${errRate.toFixed(2)}%`}
-            growth={errRateGrowth}
-            sparklineData={errSeries}
-            sparklineColor="#10b981"
-          />
+              {/* Card 8 (Shopee): ERR % */}
+              <EngagementCard
+                label="ERR %"
+                value={`${errRate.toFixed(2)}%`}
+                growth={errRateGrowth}
+                sparklineData={errSeries}
+                sparklineColor="#10b981"
+              />
+            </>
+          ) : (
+            <>
+              {/* Card 1 (TikTok): Live Impressions */}
+              <EngagementCard
+                label="Live Impressions"
+                value={formatCompactNumber(liveImpressionsValue)}
+                growth={impressionsGrowth}
+                sparklineData={impressionsSeries}
+                sparklineColor={impressionsGrowth.isUp ? "#10b981" : "#f43f5e"}
+              />
+
+              {/* Card 2 (TikTok): Viewer */}
+              <EngagementCard
+                label="Viewer"
+                value={formatCompactNumber(stats.totalPenontonDb)}
+                growth={viewersGrowth}
+                sparklineData={viewersSeries}
+                sparklineColor="#10b981"
+              />
+
+              {/* Card 3 (TikTok): Likes */}
+              <EngagementCard
+                label="Likes"
+                value={formatCompactNumber(stats.totalLikesDb)}
+                growth={likesGrowth}
+                sparklineData={likesSeries}
+                sparklineColor="#8b5cf6"
+              />
+
+              {/* Card 4 (TikTok): Comments */}
+              <EngagementCard
+                label="Comments"
+                value={formatCompactNumber(stats.totalCommentsDb)}
+                growth={commentsGrowth}
+                sparklineData={commentsSeries}
+                sparklineColor="#3b82f6"
+              />
+
+              {/* Card 5 (TikTok): Shares */}
+              <EngagementCard
+                label="Shares"
+                value={formatCompactNumber(stats.totalSharesDb)}
+                growth={sharesGrowth}
+                sparklineData={sharesSeries}
+                sparklineColor="#f43f5e"
+              />
+
+              {/* Card 6 (TikTok): New followers */}
+              <EngagementCard
+                label="New followers"
+                value={formatCompactNumber(stats.totalFollowersDb)}
+                growth={followersGrowth}
+                sparklineData={followersSeries}
+                sparklineColor="#f97316"
+              />
+
+              {/* Card 7 (TikTok): Avg. View Duration */}
+              <EngagementCard
+                label="Avg. View Duration"
+                value={
+                  stats.avgViewDurationDb
+                    ? `${stats.avgViewDurationDb.toFixed(1)}s`
+                    : "0s"
+                }
+                growth={avgDurationGrowth}
+                sparklineData={durationSeries}
+                sparklineColor="#8b5cf6"
+              />
+
+              {/* Card 8 (TikTok): ERR % */}
+              <EngagementCard
+                label="ERR %"
+                value={`${errRate.toFixed(2)}%`}
+                growth={errRateGrowth}
+                sparklineData={errSeries}
+                sparklineColor="#10b981"
+              />
+            </>
+          )}
         </div>
       </section>
     </div>
