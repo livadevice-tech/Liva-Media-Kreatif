@@ -12,7 +12,6 @@ import {
   TrendingDown,
   ChevronDown,
   Tag,
-  Radio,
   Tv,
 } from "lucide-react";
 import {
@@ -590,10 +589,10 @@ export function BrandOverviewDashboard({
         </div>
       </section>
 
-      {/* ── 2. MIDDLE SECTION: CHART (LEFT) + RINGKASAN (RIGHT) ───────────── */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Column (65% width): Tren GMV, Orders & Penonton */}
-        <div className="lg:col-span-8 rounded-[22px] border border-slate-200/70 bg-white p-5 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.04)]">
+      {/* ── 2. MIDDLE SECTION: CHART (FULL WIDTH) ───────────────────────── */}
+      <section>
+        {/* Tren GMV, Orders & Penonton */}
+        <div className="w-full rounded-[22px] border border-slate-200/70 bg-white p-5 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.04)]">
           {/* Header */}
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div className="flex items-center gap-2">
@@ -637,7 +636,7 @@ export function BrandOverviewDashboard({
           </div>
 
           {/* Chart Canvas */}
-          <div className="h-[250px] w-full">
+          <div className="h-[280px] w-full">
             {formattedChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -734,115 +733,6 @@ export function BrandOverviewDashboard({
                 Tidak ada data grafik untuk periode ini
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Right Column (35% width): Ringkasan Performa */}
-        <div className="lg:col-span-4 rounded-[22px] border border-slate-200/70 bg-white p-5 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.04)] flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-                Ringkasan Performa
-              </h3>
-              <span className="text-[11px] font-medium text-slate-400">
-                vs periode sebelumnya
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {/* Row 1: Live Impression & Live Viewer */}
-              <div className="flex items-center justify-between rounded-xl bg-slate-50/70 p-3 border border-slate-100/80">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                    <Radio className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-500">
-                      {isShopee ? "Live Views" : "Live Impression"}
-                    </p>
-                    <p className="text-base font-black text-slate-900 leading-tight">
-                      {formatCompactNumber(liveImpressionsValue)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-[11px] font-semibold text-slate-500">
-                    {isShopee ? "Penonton" : "Live Viewer"}
-                  </p>
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span className="text-base font-black text-slate-900 leading-tight">
-                      {formatCompactNumber(stats.totalPenontonDb)}
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-extrabold text-indigo-600">
-                      ↗ {viewersGrowth.pct}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 2: Product Impression & Product Clicks */}
-              <div className="flex items-center justify-between rounded-xl bg-slate-50/70 p-3 border border-slate-100/80">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                    <Package className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-500">
-                      Product Impression
-                    </p>
-                    <p className="text-base font-black text-slate-900 leading-tight">
-                      {formatCompactNumber(stats.totalDbProductImpressions)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-[11px] font-semibold text-slate-500">
-                    Product Clicks
-                  </p>
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span className="text-base font-black text-slate-900 leading-tight">
-                      {formatCompactNumber(stats.totalClicksDb || stats.totalDbClicks)}
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-extrabold text-indigo-600">
-                      ↗ {clicksGrowth.pct}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 3: Orders & Conversion Rate */}
-              <div className="flex items-center justify-between rounded-xl bg-slate-50/70 p-3 border border-slate-100/80">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                    <ClipboardList className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-500">
-                      Orders
-                    </p>
-                    <p className="text-base font-black text-slate-900 leading-tight">
-                      {formatCompactNumber(stats.totalOrdersDb)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-[11px] font-semibold text-slate-500">
-                    Conversion Rate
-                  </p>
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span className="text-base font-black text-slate-900 leading-tight">
-                      {conversionRate.toFixed(2)}%
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-extrabold text-indigo-600">
-                      ↗ {conversionRateGrowth.pct}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
