@@ -12,7 +12,6 @@ import {
   Printer,
   RefreshCw,
   Save,
-  CheckCircle2,
   Clock,
   ChevronDown,
   X,
@@ -455,19 +454,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
-  const handleToggleItemStatus = async (item: ThrItem) => {
-    const nextStatus = item.status === "Dibayar" ? "Pending" : "Dibayar";
-    const updated = { ...item, status: nextStatus as "Pending" | "Dibayar" };
-    handleUpdateItem(updated);
-    try {
-      await thrApi.updateItem(selectedPeriodId, item.id, { status: nextStatus });
-      setHasUnsavedChanges(false);
-      const updatedPeriods = await thrApi.getPeriods();
-      setPeriods(updatedPeriods);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const handleExportExcel = () => {
     if (!currentPeriod || items.length === 0) return;
@@ -525,10 +511,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
   const metrics = useMemo(() => {
     const totalBudget = items.reduce((sum, i) => sum + (i.isEligible ? i.finalThr : 0), 0);
-    const paidBudget = items.reduce(
-      (sum, i) => sum + (i.status === "Dibayar" && i.isEligible ? i.finalThr : 0),
-      0
-    );
     const hostCount = items.filter((i) => i.employeeType === "host").length;
     const opsCount = items.filter((i) => i.employeeType === "ops").length;
     const eligibleCount = items.filter((i) => i.isEligible && i.finalThr > 0).length;
@@ -536,7 +518,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
     return {
       totalBudget,
-      paidBudget,
       totalEmployees: items.length,
       hostCount,
       opsCount,
@@ -701,7 +682,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
       </div>
 
       {/* ================= KPI CARDS (MATCHING STREAMER PAYROLL AESTHETICS) ================= */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {/* Total Budget Card */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -754,26 +735,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
           </div>
           <div className="text-[11px] text-slate-500 font-medium">
             Per karyawan yang berhak menerima
-          </div>
-        </div>
-
-        {/* Realisasi Pencairan Card */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Realisasi Pencairan
-            </span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-xl sm:text-2xl font-black font-mono text-slate-800 tracking-tight my-1">
-            {displayIDR(metrics.paidBudget)}
-          </div>
-          <div className="text-[11px] text-slate-500 font-medium">
-            {metrics.totalBudget > 0
-              ? `${Math.round((metrics.paidBudget / metrics.totalBudget) * 100)}% dana telah dicairkan`
-              : "0% dicairkan"}
           </div>
         </div>
       </div>
@@ -1013,21 +974,9 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                         </div>
                       </td>
 
-                      {/* 6. Aksi & Status */}
+                      {/* 6. Aksi */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Status Pill Toggle */}
-                          <button
-                            onClick={() => handleToggleItemStatus(item)}
-                            title="Klik untuk ubah status pembayaran"
-                            className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95 ${
-                              item.status === "Dibayar"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                                : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                            }`}
-                          >
-                            {item.status}
-                          </button>
 
                           {/* Print Slip */}
                           <button
