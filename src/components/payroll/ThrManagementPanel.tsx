@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Gift,
   Calendar,
@@ -20,6 +20,7 @@ import {
   TrendingUp,
   CreditCard,
   Building,
+  Check,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import type { HostEmployee, ThrItem, ThrPeriod } from "../../types";
@@ -32,6 +33,40 @@ import {
   type HostSalarySettings,
 } from "../../shared/utils/thrCalculator";
 import { thrApi, hostsApi } from "../../api";
+import { CustomDatePicker } from "../ui/CustomDatePicker";
+import { CustomSelect, type SelectOption } from "../ui/CustomSelect";
+
+const PAYMENT_STATUS_OPTIONS: SelectOption[] = [
+  {
+    value: "Draft",
+    label: "Draft",
+    description: "Perhitungan awal dan belum diajukan",
+    badge: "Draft",
+    badgeColor: "bg-slate-100 text-slate-700",
+  },
+  {
+    value: "Pending",
+    label: "Pending",
+    description: "Menunggu peninjauan & approval finance",
+    badge: "Review",
+    badgeColor: "bg-amber-50 text-amber-700 border border-amber-200/60",
+  },
+  {
+    value: "Diproses",
+    label: "Diproses",
+    description: "Sedang dalam proses pencairan payroll",
+    badge: "Proses",
+    badgeColor: "bg-blue-50 text-blue-700 border border-blue-200/60",
+  },
+  {
+    value: "Dibayar",
+    label: "Selesai Dibayar",
+    description: "THR telah berhasil ditransfer kepada karyawan",
+    badge: "Selesai",
+    badgeColor: "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
+  },
+];
+
 
 interface ThrManagementPanelProps {
   hosts: HostEmployee[];
@@ -73,6 +108,20 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
   // Modal active items
   const [activeItemForEdit, setActiveItemForEdit] = useState<ThrItem | null>(null);
   const [activeItemForSlip, setActiveItemForSlip] = useState<ThrItem | null>(null);
+
+  // Period Selector Dropdown Menu State
+  const [isPeriodMenuOpen, setIsPeriodMenuOpen] = useState<boolean>(false);
+  const periodMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (periodMenuRef.current && !periodMenuRef.current.contains(e.target as Node)) {
+        setIsPeriodMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Form State for Period
   const [periodForm, setPeriodForm] = useState({
@@ -538,21 +587,115 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
             </div>
 
             <div className="min-w-0">
-              {/* Line 1: Period Dropdown & Edit Settings Button */}
+              {/* Line 1: Custom Period Dropdown & Edit Settings Button */}
               <div className="flex items-center gap-1.5">
-                <div className="relative inline-flex items-center max-w-full">
-                  <select
-                    value={selectedPeriodId}
-                    onChange={(e) => setSelectedPeriodId(e.target.value)}
-                    className="bg-transparent hover:bg-slate-100/70 font-black text-slate-900 text-sm sm:text-base pr-7 py-0.5 rounded-lg border border-transparent hover:border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer transition-all appearance-none tracking-tight truncate"
+                <div className="relative inline-flex items-center max-w-full" ref={periodMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsPeriodMenuOpen(!isPeriodMenuOpen)}
+                    className="flex items-center gap-1.5 px-2 py-1 -ml-1 rounded-xl font-black text-slate-900 text-sm sm:text-base hover:bg-slate-100/80 transition-all cursor-pointer group tracking-tight"
                   >
-                    {periods.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.holidayName} ({p.year})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <span className="truncate max-w-[220px] sm:max-w-[320px]">
+                      {currentPeriod
+                        ? `${currentPeriod.holidayName} (${currentPeriod.year})`
+                        : "Pilih Periode"}
+                    </span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-slate-400 group-hover:text-purple-600 transition-transform duration-200 shrink-0 ${
+                        isPeriodMenuOpen ? "rotate-180 text-purple-600" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Custom Period Dropdown Menu */}
+                  {isPeriodMenuOpen && (
+                    <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-200/90 py-2 z-50 animate-fadeIn backdrop-blur-md ring-1 ring-black/5">
+                      <div className="px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                        <span>Daftar Periode THR</span>
+                        <span className="text-[9px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-bold">
+                          {periods.length} Periode
+                        </span>
+                      </div>
+
+                      <div className="max-h-64 overflow-y-auto py-1 divide-y divide-slate-50">
+                        {periods.map((p) => {
+                          const isSelected = p.id === selectedPeriodId;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedPeriodId(p.id);
+                                setIsPeriodMenuOpen(false);
+                              }}
+                              className={`w-full text-left px-3.5 py-2.5 flex items-center justify-between gap-2.5 transition-colors cursor-pointer ${
+                                isSelected
+                                  ? "bg-purple-50/70 text-purple-900 font-bold"
+                                  : "hover:bg-slate-50 text-slate-700 font-medium"
+                              }`}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs truncate flex items-center gap-1.5">
+                                  <span className="truncate">{p.holidayName}</span>
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                                      isSelected
+                                        ? "bg-purple-200/70 text-purple-800"
+                                        : "bg-slate-100 text-slate-600"
+                                    }`}
+                                  >
+                                    {p.year}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
+                                  <span>
+                                    {new Date(p.holidayDate).toLocaleDateString("id-ID", {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    })}
+                                  </span>
+                                  <span>•</span>
+                                  <span
+                                    className={`font-semibold ${
+                                      p.paymentStatus === "Dibayar"
+                                        ? "text-emerald-600"
+                                        : p.paymentStatus === "Diproses"
+                                        ? "text-blue-600"
+                                        : p.paymentStatus === "Pending"
+                                        ? "text-amber-600"
+                                        : "text-slate-500"
+                                    }`}
+                                  >
+                                    {p.paymentStatus || "Draft"}
+                                  </span>
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="pt-1.5 mt-1 border-t border-slate-100 px-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPeriodMenuOpen(false);
+                            setIsCreatePeriodModalOpen(true);
+                          }}
+                          className="w-full py-1.5 px-3 rounded-xl bg-slate-50 hover:bg-purple-50 text-purple-700 hover:text-purple-800 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Buat Periode Baru</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -880,14 +1023,14 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                       <td className="py-3.5 px-3">
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5">
-                            <input
-                              type="date"
+                            <CustomDatePicker
                               value={item.joinedDate}
-                              onChange={(e) => {
-                                const newDate = e.target.value;
+                              onChange={(newDate) => {
                                 handleUpdateItem({ ...item, joinedDate: newDate }, true);
                               }}
-                              className="bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-lg px-2 py-0.5 text-[11px] font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer transition-colors"
+                              size="sm"
+                              className="w-[125px]"
+                              buttonClassName="flex w-full items-center justify-between gap-1.5 bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-700 transition-colors shadow-3xs cursor-pointer"
                             />
                           </div>
 
@@ -1070,14 +1213,11 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   <label className="text-xs font-bold text-slate-700 block mb-1">
                     Tanggal Hari Raya <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    required
+                  <CustomDatePicker
                     value={periodForm.holidayDate}
-                    onChange={(e) =>
-                      setPeriodForm({ ...periodForm, holidayDate: e.target.value })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
+                    onChange={(val) => setPeriodForm({ ...periodForm, holidayDate: val })}
+                    className="w-full"
+                    buttonClassName="flex w-full items-center justify-between gap-2 bg-slate-50 hover:bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer transition-colors"
                   />
                 </div>
               </div>
@@ -1086,21 +1226,17 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                 <label className="text-xs font-bold text-slate-700 block mb-1">
                   Status Pembayaran Awal
                 </label>
-                <select
+                <CustomSelect
                   value={periodForm.paymentStatus}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setPeriodForm({
                       ...periodForm,
-                      paymentStatus: e.target.value as ThrPeriod["paymentStatus"],
+                      paymentStatus: val as ThrPeriod["paymentStatus"],
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                >
-                  <option value="Draft">Draft</option>
-                  <option value="Pending">Pending (Menunggu Review)</option>
-                  <option value="Diproses">Diproses</option>
-                  <option value="Dibayar">Selesai Dibayar</option>
-                </select>
+                  options={PAYMENT_STATUS_OPTIONS}
+                  placeholder="Pilih Status Pembayaran"
+                />
               </div>
 
               <div>
@@ -1180,14 +1316,11 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   <label className="text-xs font-bold text-slate-700 block mb-1">
                     Tanggal Hari Raya
                   </label>
-                  <input
-                    type="date"
-                    required
+                  <CustomDatePicker
                     value={periodForm.holidayDate}
-                    onChange={(e) =>
-                      setPeriodForm({ ...periodForm, holidayDate: e.target.value })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
+                    onChange={(val) => setPeriodForm({ ...periodForm, holidayDate: val })}
+                    className="w-full"
+                    buttonClassName="flex w-full items-center justify-between gap-2 bg-slate-50 hover:bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer transition-colors shadow-3xs"
                   />
                 </div>
               </div>
@@ -1196,21 +1329,17 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                 <label className="text-xs font-bold text-slate-700 block mb-1">
                   Status Pembayaran Periode
                 </label>
-                <select
+                <CustomSelect
                   value={periodForm.paymentStatus}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setPeriodForm({
                       ...periodForm,
-                      paymentStatus: e.target.value as ThrPeriod["paymentStatus"],
+                      paymentStatus: val as ThrPeriod["paymentStatus"],
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                >
-                  <option value="Draft">Draft</option>
-                  <option value="Pending">Pending (Menunggu Review)</option>
-                  <option value="Diproses">Diproses</option>
-                  <option value="Dibayar">Selesai Dibayar</option>
-                </select>
+                  options={PAYMENT_STATUS_OPTIONS}
+                  placeholder="Pilih Status Pembayaran"
+                />
               </div>
 
               <div>
@@ -1341,12 +1470,11 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   <label className="text-xs font-bold text-slate-700 block mb-1">
                     Tanggal Bergabung (Join Date) <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    required
+                  <CustomDatePicker
                     value={opsForm.joinedDate}
-                    onChange={(e) => setOpsForm({ ...opsForm, joinedDate: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
+                    onChange={(val) => setOpsForm({ ...opsForm, joinedDate: val })}
+                    className="w-full"
+                    buttonClassName="flex w-full items-center justify-between gap-2 bg-slate-50 hover:bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer transition-colors shadow-3xs"
                   />
                 </div>
 
@@ -1527,13 +1655,14 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                       </span>
                     )}
                   </div>
-                  <input
-                    type="date"
+                  <CustomDatePicker
                     value={activeItemForEdit.joinedDate}
-                    onChange={(e) =>
-                      setActiveItemForEdit({ ...activeItemForEdit, joinedDate: e.target.value })
+                    onChange={(newDate) =>
+                      setActiveItemForEdit({ ...activeItemForEdit, joinedDate: newDate })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
+                    placeholder="Pilih Tanggal Bergabung"
+                    className="w-full"
+                    buttonClassName="flex w-full items-center justify-between gap-2 bg-slate-50 hover:bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer transition-colors shadow-3xs"
                   />
                   <p className="text-[10px] text-slate-400 mt-1">
                     Masa kerja dihitung terhadap tanggal hari raya:{" "}
