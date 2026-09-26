@@ -8496,32 +8496,32 @@ export default function App() {
                     </div>
 
                     {/* PAYROLL SUBTAB NAVIGATION (TAB 1: STREAMER PAYROLL, TAB 2: THR MANAGEMENT) */}
-                    <div className="px-4 md:px-0 pt-2 md:pt-0 mb-4">
-                      <div className="flex bg-slate-100 p-1 w-full max-w-md rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="px-4 md:px-0 mb-4">
+                      <div className="flex bg-slate-100/90 p-1 w-full max-w-sm rounded-xl border border-slate-200/60 shadow-3xs">
                         <button
                           type="button"
                           onClick={() => setPayrollSubTab("streamer_payroll")}
-                          className={`flex-1 py-2.5 px-4 text-xs font-black transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer ${
+                          className={`flex-1 py-1.5 px-3 text-xs font-bold transition-all rounded-lg flex items-center justify-center gap-2 cursor-pointer ${
                             payrollSubTab === "streamer_payroll"
-                              ? "bg-white text-[#6B46FF] shadow-sm"
-                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                              ? "bg-white text-purple-700 shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
                           }`}
                         >
-                          <Calculator className="w-4 h-4" />
+                          <Calculator className="w-3.5 h-3.5" />
                           <span>Payroll Streamer</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setPayrollSubTab("thr_management")}
-                          className={`flex-1 py-2.5 px-4 text-xs font-black transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer ${
+                          className={`flex-1 py-1.5 px-3 text-xs font-bold transition-all rounded-lg flex items-center justify-center gap-2 cursor-pointer ${
                             payrollSubTab === "thr_management"
-                              ? "bg-white text-[#6B46FF] shadow-sm"
-                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                              ? "bg-white text-purple-700 shadow-xs"
+                              : "text-slate-500 hover:text-slate-800"
                           }`}
                         >
-                          <Gift className="w-4 h-4 text-[#6B46FF]" />
+                          <Gift className="w-3.5 h-3.5 text-purple-600" />
                           <span>Tab THR</span>
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/60">
                             Baru
                           </span>
                         </button>

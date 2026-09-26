@@ -14,16 +14,13 @@ import {
   Save,
   CheckCircle2,
   Clock,
-  AlertCircle,
   ChevronDown,
-  Building2,
-  Check,
   X,
   FileText,
-  Sparkles,
-  Info,
   Sliders,
   TrendingUp,
+  CreditCard,
+  Building,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import type { HostEmployee, ThrItem, ThrPeriod } from "../../types";
@@ -65,7 +62,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [filterCategory, setFilterCategory] = useState<string>("all"); // 'all' | 'host' | 'ops' | 'full' | 'proportional' | 'ineligible'
+  const [filterCategory, setFilterCategory] = useState<string>("all");
 
   // Modals
   const [isCreatePeriodModalOpen, setIsCreatePeriodModalOpen] = useState<boolean>(false);
@@ -118,12 +115,10 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
       const data = await thrApi.getPeriods();
       if (Array.isArray(data) && data.length > 0) {
         setPeriods(data);
-        // Default to first period if not selected
         if (!selectedPeriodId || !data.some((p) => p.id === selectedPeriodId)) {
           setSelectedPeriodId(data[0].id);
         }
       } else {
-        // Jika belum ada periode sama sekali, sediakan periode draf awal
         const defaultHolidayDate = "2027-03-10";
         const defaultYear = 2027;
         const initialPeriod = await thrApi.createPeriod({
@@ -159,7 +154,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
         setItems(loadedItems);
         setHasUnsavedChanges(false);
       } else if (periodObj && hosts.length > 0) {
-        // Otomatis sinkronkan dari data host jika baru dibuat
         const autoItems = buildThrItemsFromHosts({
           period: periodObj,
           hosts,
@@ -178,7 +172,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
-  // Sinkronkan data host manual dengan database host terkini
   const handleSyncWithHosts = () => {
     if (!currentPeriod) return;
     const synced = buildThrItemsFromHosts({
@@ -191,7 +184,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     setHasUnsavedChanges(true);
   };
 
-  // Simpan seluruh data THR ke database
   const handleSaveAll = async (itemsToSave: ThrItem[] = items) => {
     if (!selectedPeriodId) return;
     setIsSaving(true);
@@ -199,7 +191,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
       const saved = await thrApi.batchSaveItems(selectedPeriodId, itemsToSave, true);
       setItems(saved);
       setHasUnsavedChanges(false);
-      // Refresh list period untuk update total budget dan count
       const updatedPeriods = await thrApi.getPeriods();
       setPeriods(updatedPeriods);
     } catch (err: any) {
@@ -210,7 +201,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
-  // Buat Periode Baru
   const handleCreatePeriod = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!periodForm.holidayName || !periodForm.holidayDate) {
@@ -227,7 +217,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
         notes: periodForm.notes,
       });
 
-      // Otomatis generate item dari hosts
       const initialItems = buildThrItemsFromHosts({
         period: newPeriod,
         hosts,
@@ -245,7 +234,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
-  // Edit Periode Aktif
   const handleUpdatePeriod = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPeriod) return;
@@ -259,7 +247,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
         notes: periodForm.notes,
       });
 
-      // Recalculate masa kerja dan formula THR seluruh item berdasarkan holiday date baru
       const recalculatedItems = items.map((item) => {
         const tenure = calculateTenure(item.joinedDate, updated.holidayDate);
         const calc = computeThrAmount({
@@ -289,7 +276,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
-  // Hapus Periode THR
   const handleDeletePeriod = async () => {
     if (!currentPeriod) return;
     const confirm = window.confirm(
@@ -313,7 +299,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
-  // Tambah Karyawan Ops / Staff Non-Host
   const handleAddOpsEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPeriod) return;
@@ -365,7 +350,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     setHasUnsavedChanges(true);
     setIsAddOpsModalOpen(false);
 
-    // Reset form
     setOpsForm({
       name: "",
       employeeCode: "",
@@ -380,15 +364,12 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
       notes: "",
     });
 
-    // Auto save
     await handleSaveAll(newItemsList);
   };
 
-  // Update item secara inline atau modal
   const handleUpdateItem = (updated: ThrItem, syncToMasterHost: boolean = false) => {
     if (!currentPeriod) return;
 
-    // Recalculate tenure dan THR
     const tenure = calculateTenure(updated.joinedDate, currentPeriod.holidayDate);
     const calc = computeThrAmount({
       baseSalary: updated.basicSalary,
@@ -413,7 +394,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     setItems(updatedList);
     setHasUnsavedChanges(true);
 
-    // Jika syncToMasterHost aktif dan merupakan host, update tanggal join host di database
     if (syncToMasterHost && updated.employeeType === "host" && updated.employeeId) {
       hostsApi
         .update(updated.employeeId, {
@@ -427,7 +407,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
-  // Hapus item dari periode
   const handleDeleteItem = async (itemId: string) => {
     const itemToDelete = items.find((i) => i.id === itemId);
     if (!itemToDelete) return;
@@ -440,7 +419,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     try {
       await thrApi.deleteItem(selectedPeriodId, itemId);
       setItems((prev) => prev.filter((i) => i.id !== itemId));
-      // Refresh periods
       const updated = await thrApi.getPeriods();
       setPeriods(updated);
     } catch (err: any) {
@@ -448,7 +426,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
-  // Toggle status pembayaran per item
   const handleToggleItemStatus = async (item: ThrItem) => {
     const nextStatus = item.status === "Dibayar" ? "Pending" : "Dibayar";
     const updated = { ...item, status: nextStatus as "Pending" | "Dibayar" };
@@ -463,7 +440,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
-  // Export ke Excel (.xlsx)
   const handleExportExcel = () => {
     if (!currentPeriod || items.length === 0) return;
 
@@ -498,10 +474,8 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     XLSX.writeFile(workbook, fileName);
   };
 
-  // Filter items
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      // Search filter
       const matchSearch =
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.employeeCode && item.employeeCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -510,7 +484,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
       if (!matchSearch) return false;
 
-      // Category filter
       if (filterCategory === "host") return item.employeeType === "host";
       if (filterCategory === "ops") return item.employeeType === "ops";
       if (filterCategory === "full") return item.tenureMonths >= 12;
@@ -521,7 +494,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     });
   }, [items, searchQuery, filterCategory]);
 
-  // KPI Metrics
   const metrics = useMemo(() => {
     const totalBudget = items.reduce((sum, i) => sum + (i.isEligible ? i.finalThr : 0), 0);
     const paidBudget = items.reduce(
@@ -545,28 +517,83 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
   }, [items]);
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* ================= TOP CONTROLS & PERIOD SELECTION ================= */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 md:p-6 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
+    <div className="space-y-4 md:space-y-5 animate-fadeIn max-w-[1600px] mx-auto w-full">
+      {/* ================= COMPACT & SLEEK PERIOD TOOLBAR ================= */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-3.5 sm:p-4 transition-all">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
+          {/* Left: Period Selector & Information */}
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-[#6B46FF]">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
                 <Gift className="w-4 h-4" />
               </div>
-              <h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight font-sans">
-                Manajemen Tunjangan Hari Raya (THR)
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-                Formula Depnaker
-              </span>
+
+              {/* Period Dropdown */}
+              <div className="relative inline-block">
+                <select
+                  value={selectedPeriodId}
+                  onChange={(e) => setSelectedPeriodId(e.target.value)}
+                  className="bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl pl-3 pr-8 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer transition-colors appearance-none"
+                >
+                  {periods.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.holidayName} ({p.year})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Kalkulasi otomatis masa kerja dan upah pokok employee & host streamer sesuai regulasi ketenagakerjaan.
-            </p>
+
+            {/* Holiday Date & Status Tags */}
+            {currentPeriod && (
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60 font-medium">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span>
+                    {new Date(currentPeriod.holidayDate).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+
+                <span
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                    currentPeriod.paymentStatus === "Dibayar"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                      : currentPeriod.paymentStatus === "Diproses"
+                        ? "bg-blue-50 text-blue-700 border border-blue-200/60"
+                        : currentPeriod.paymentStatus === "Pending"
+                          ? "bg-amber-50 text-amber-700 border border-amber-200/60"
+                          : "bg-slate-100 text-slate-600 border border-slate-200/60"
+                  }`}
+                >
+                  {currentPeriod.paymentStatus}
+                </span>
+
+                <button
+                  onClick={() => {
+                    setPeriodForm({
+                      year: currentPeriod.year,
+                      holidayName: currentPeriod.holidayName,
+                      holidayDate: currentPeriod.holidayDate,
+                      paymentStatus: currentPeriod.paymentStatus,
+                      notes: currentPeriod.notes || "",
+                    });
+                    setIsEditPeriodModalOpen(true);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  title="Edit Periode"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Action Buttons */}
+          {/* Right: Clean Grouped Actions */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => {
@@ -579,7 +606,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                 });
                 setIsCreatePeriodModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#6B46FF] hover:bg-[#5835e5] text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Periode Baru</span>
@@ -587,7 +614,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
             <button
               onClick={() => setIsAddOpsModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
             >
               <Users className="w-3.5 h-3.5" />
               <span>+ Karyawan Ops</span>
@@ -595,16 +622,16 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
             <button
               onClick={handleSyncWithHosts}
-              title="Sinkronkan gaji dan data host terbaru dari database"
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all active:scale-95"
+              title="Sinkronkan data dan gaji host dari database"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">Sinkronkan Host</span>
+              <span className="hidden sm:inline">Sinkronkan</span>
             </button>
 
             <button
               onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-all active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5 text-emerald-600" />
               <span className="hidden sm:inline">Export Excel</span>
@@ -614,162 +641,87 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
               <button
                 onClick={() => handleSaveAll()}
                 disabled={isSaving}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black transition-all shadow-xs animate-pulse"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black transition-all shadow-xs animate-pulse cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
+                <span>{isSaving ? "Menyimpan..." : "Simpan"}</span>
               </button>
             )}
           </div>
-        </div>
-
-        {/* Period Selector Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Periode Aktif:
-            </span>
-            <div className="relative">
-              <select
-                value={selectedPeriodId}
-                onChange={(e) => setSelectedPeriodId(e.target.value)}
-                className="bg-purple-50/70 border border-purple-200 rounded-xl px-3 py-1.5 text-xs font-black text-[#5835e5] focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer pr-8"
-              >
-                {periods.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.holidayName} ({p.year}) - {p.holidayDate} [{p.paymentStatus}]
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-purple-600 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {currentPeriod && (
-              <button
-                onClick={() => {
-                  setPeriodForm({
-                    year: currentPeriod.year,
-                    holidayName: currentPeriod.holidayName,
-                    holidayDate: currentPeriod.holidayDate,
-                    paymentStatus: currentPeriod.paymentStatus,
-                    notes: currentPeriod.notes || "",
-                  });
-                  setIsEditPeriodModalOpen(true);
-                }}
-                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
-                title="Edit Parameter Periode THR"
-              >
-                <Sliders className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {currentPeriod && (
-            <div className="flex items-center gap-3 text-xs">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-slate-500">Tanggal Hari Raya:</span>
-                <span className="font-bold text-slate-800">
-                  {new Date(currentPeriod.holidayDate).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-500">Status Pencairan:</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                    currentPeriod.paymentStatus === "Dibayar"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : currentPeriod.paymentStatus === "Diproses"
-                        ? "bg-blue-100 text-blue-800"
-                        : currentPeriod.paymentStatus === "Pending"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  {currentPeriod.paymentStatus}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* ================= KPI STATS CARDS ================= */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      {/* ================= KPI CARDS (MATCHING STREAMER PAYROLL AESTHETICS) ================= */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {/* Total Budget Card */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Total Budget THR
             </span>
-            <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-[#6B46FF]">
-              <DollarSign className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
+              <DollarSign className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl md:text-2xl font-black font-mono text-slate-900 tracking-tight">
+          <div className="text-xl sm:text-2xl font-black font-mono text-slate-800 tracking-tight my-1">
             {displayIDR(metrics.totalBudget)}
           </div>
-          <div className="text-[10px] text-slate-500 font-medium">
-            Alokasi {metrics.eligibleCount} penerima memenuhi syarat
+          <div className="text-[11px] text-slate-500 font-medium">
+            {metrics.eligibleCount} dari {metrics.totalEmployees} orang berhak menerima
           </div>
         </div>
 
         {/* Total Penerima Card */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Total Penerima
             </span>
             <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-              <Users className="w-4 h-4" />
+              <Users className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl md:text-2xl font-black font-mono text-slate-900 tracking-tight">
+          <div className="text-xl sm:text-2xl font-black font-mono text-slate-800 tracking-tight my-1">
             {metrics.totalEmployees}{" "}
             <span className="text-xs font-normal text-slate-500 font-sans">Orang</span>
           </div>
-          <div className="text-[10px] text-slate-500 font-medium">
+          <div className="text-[11px] text-slate-500 font-medium">
             {metrics.hostCount} Host • {metrics.opsCount} Karyawan Ops
           </div>
         </div>
 
         {/* Rata-Rata THR Card */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Rata-Rata THR
             </span>
             <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <TrendingUp className="w-4 h-4" />
+              <TrendingUp className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl md:text-2xl font-black font-mono text-slate-900 tracking-tight">
+          <div className="text-xl sm:text-2xl font-black font-mono text-slate-800 tracking-tight my-1">
             {displayIDR(metrics.avgThr)}
           </div>
-          <div className="text-[10px] text-slate-500 font-medium">
+          <div className="text-[11px] text-slate-500 font-medium">
             Per karyawan yang berhak menerima
           </div>
         </div>
 
-        {/* Status Realisasi Pembayaran */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+        {/* Realisasi Pencairan Card */}
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Realisasi Pencairan
             </span>
             <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl md:text-2xl font-black font-mono text-slate-900 tracking-tight">
+          <div className="text-xl sm:text-2xl font-black font-mono text-slate-800 tracking-tight my-1">
             {displayIDR(metrics.paidBudget)}
           </div>
-          <div className="text-[10px] text-slate-500 font-medium">
+          <div className="text-[11px] text-slate-500 font-medium">
             {metrics.totalBudget > 0
               ? `${Math.round((metrics.paidBudget / metrics.totalBudget) * 100)}% dana telah dicairkan`
               : "0% dicairkan"}
@@ -777,37 +729,37 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
         </div>
       </div>
 
-      {/* ================= SEARCH & CATEGORY FILTER TABS ================= */}
+      {/* ================= SEARCH & CATEGORY FILTER BAR ================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Search */}
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder="Cari nama, NIK, jabatan, atau studio..."
+            placeholder="Cari karyawan, host, atau jabatan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all font-medium"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200/80 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400 transition-all font-medium shadow-3xs"
           />
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center overflow-x-auto pb-1 sm:pb-0 gap-1.5 bg-slate-100 p-1 rounded-xl">
+        {/* Filter Segmented Control */}
+        <div className="flex items-center overflow-x-auto pb-1 sm:pb-0 gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/50">
           {[
-            { id: "all", label: "Semua Penerima" },
+            { id: "all", label: "Semua" },
             { id: "host", label: "Host Saja" },
             { id: "ops", label: "Karyawan Ops" },
             { id: "full", label: "≥ 12 Bln (100%)" },
-            { id: "proportional", label: "1-11 Bln (Proporsional)" },
+            { id: "proportional", label: "Proporsional" },
             { id: "ineligible", label: "< 1 Bln" },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setFilterCategory(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 filterCategory === tab.id
                   ? "bg-white text-purple-700 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                  : "text-slate-500 hover:text-slate-800"
               }`}
             >
               {tab.label}
@@ -816,12 +768,12 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
         </div>
       </div>
 
-      {/* ================= TABLE LIST PENERIMA THR ================= */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+      {/* ================= TABLE LIST (CLEAN, AIRY, FULLY RESPONSIVE) ================= */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
         {loadingItems ? (
           <div className="p-12 text-center text-slate-400 space-y-2">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#6B46FF]" />
-            <div className="text-xs font-bold">Memuat rincian THR...</div>
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto text-purple-600" />
+            <div className="text-xs font-bold text-slate-600">Memuat rincian THR...</div>
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="p-12 text-center text-slate-400 space-y-3">
@@ -829,18 +781,18 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
             <div className="text-sm font-bold text-slate-700">Belum Ada Data Penerima THR</div>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
               Tidak ditemukan data penerima pada filter ini. Klik tombol di bawah untuk
-              sinkronisasi data host dari database atau tambah karyawan baru.
+              sinkronisasi data host dari database atau tambah karyawan ops.
             </p>
             <div className="flex items-center justify-center gap-2 pt-2">
               <button
                 onClick={handleSyncWithHosts}
-                className="px-4 py-2 bg-[#6B46FF] text-white rounded-xl text-xs font-bold hover:bg-[#5835e5]"
+                className="px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold hover:bg-purple-700 transition-colors"
               >
                 Sinkronkan dari Data Host
               </button>
               <button
                 onClick={() => setIsAddOpsModalOpen(true)}
-                className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-900"
+                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-colors"
               >
                 + Tambah Karyawan Ops
               </button>
@@ -848,18 +800,15 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left text-xs border-collapse min-w-[980px]">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
-                  <th className="py-3.5 px-4">Karyawan / Host</th>
-                  <th className="py-3.5 px-3">Tgl Join</th>
-                  <th className="py-3.5 px-3">Masa Kerja</th>
-                  <th className="py-3.5 px-3 text-right">Gaji Pokok</th>
-                  <th className="py-3.5 px-3">Perhitungan Formula</th>
-                  <th className="py-3.5 px-3 text-right">Penyesuaian</th>
-                  <th className="py-3.5 px-3 text-right">Nominal THR</th>
-                  <th className="py-3.5 px-3 text-center">Status</th>
-                  <th className="py-3.5 px-4 text-center">Aksi</th>
+                <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-400 uppercase tracking-wider font-bold text-[10px]">
+                  <th className="py-3 px-4 w-[28%]">Karyawan / Host</th>
+                  <th className="py-3 px-3 w-[18%]">Join & Masa Kerja</th>
+                  <th className="py-3 px-3 w-[20%]">Gaji & Formula</th>
+                  <th className="py-3 px-3 w-[12%] text-center">Penyesuaian</th>
+                  <th className="py-3 px-3 w-[12%] text-right">Nominal THR</th>
+                  <th className="py-3 px-4 w-[10%] text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -871,92 +820,83 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   return (
                     <tr
                       key={item.id}
-                      className={`hover:bg-purple-50/30 transition-colors ${
-                        !item.isEligible ? "opacity-60 bg-slate-50/50" : ""
+                      className={`hover:bg-slate-50/70 transition-colors ${
+                        !item.isEligible ? "opacity-60 bg-slate-50/30" : ""
                       }`}
                     >
-                      {/* 1. Karyawan & Info */}
+                      {/* 1. Karyawan / Host & Info */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                               item.employeeType === "host"
-                                ? "bg-purple-100 text-[#6B46FF]"
+                                ? "bg-purple-50 text-purple-700 border border-purple-100"
                                 : "bg-slate-800 text-white"
                             }`}
                           >
                             {item.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-black text-slate-900 truncate flex items-center gap-1.5">
-                              <span>{item.name}</span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-slate-900 text-sm truncate">
+                                {item.name}
+                              </span>
                               {item.employeeType === "host" ? (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200/60">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200/50">
                                   Host
                                 </span>
                               ) : (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                  Ops / Staff
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80">
+                                  Ops
                                 </span>
                               )}
                             </div>
-                            <div className="text-[10px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
-                              <span>{item.role || "Host Streamer"}</span>
-                              <span>•</span>
-                              <span>{item.department || "Studio"}</span>
+                            <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                              {item.role || "Host Streamer"} • {item.department || "Studio"}
                             </div>
                             {item.bankAccount && (
-                              <div className="text-[9px] font-mono text-slate-400 mt-0.5">
-                                {item.bankName || "Rek"}: {item.bankAccount}
+                              <div className="text-[10px] font-mono text-slate-400 mt-0.5 flex items-center gap-1">
+                                <CreditCard className="w-3 h-3 text-slate-300" />
+                                <span>
+                                  {item.bankName || "Bank"}: {item.bankAccount}
+                                </span>
                               </div>
                             )}
                           </div>
                         </div>
                       </td>
 
-                      {/* 2. Tanggal Join */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <input
-                          type="date"
-                          value={item.joinedDate}
-                          onChange={(e) => {
-                            const newDate = e.target.value;
-                            handleUpdateItem(
-                              {
-                                ...item,
-                                joinedDate: newDate,
-                              },
-                              true // sync to host profile too
-                            );
-                          }}
-                          className="bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 hover:border-purple-300 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-purple-400 transition-all cursor-pointer"
-                        />
-                        {!item.joinedDate && (
-                          <div className="text-[9px] text-red-500 font-bold mt-0.5">
-                            Wajib diset
+                      {/* 2. Join Date & Masa Kerja */}
+                      <td className="py-3.5 px-3">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="date"
+                              value={item.joinedDate}
+                              onChange={(e) => {
+                                const newDate = e.target.value;
+                                handleUpdateItem({ ...item, joinedDate: newDate }, true);
+                              }}
+                              className="bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-lg px-2 py-0.5 text-[11px] font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer transition-colors"
+                            />
                           </div>
-                        )}
-                      </td>
 
-                      {/* 3. Masa Kerja */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <div className="space-y-1">
-                          <div className="font-bold text-slate-800 text-xs">
-                            {item.tenureFormatted || `${item.tenureMonths} Bulan`}
-                          </div>
-                          <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-800 text-xs">
+                              {item.tenureFormatted || `${item.tenureMonths} Bulan`}
+                            </span>
                             {isFull && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/50">
                                 100% Upah
                               </span>
                             )}
                             {isProp && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200/60">
-                                {item.tenureMonths}/12 Bulan
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200/50">
+                                {item.tenureMonths}/12
                               </span>
                             )}
                             {isUnderOne && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200/60">
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200/50">
                                 &lt; 1 Bulan
                               </span>
                             )}
@@ -964,45 +904,42 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                         </div>
                       </td>
 
-                      {/* 4. Gaji Pokok */}
-                      <td className="py-3.5 px-3 text-right whitespace-nowrap">
-                        <div className="font-bold font-mono text-slate-800">
-                          {displayIDR(item.basicSalary)}
-                        </div>
-                        {item.fixedAllowance > 0 && (
-                          <div className="text-[10px] text-slate-500">
-                            + Tunj. {displayIDR(item.fixedAllowance)}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 5. Perhitungan Formula */}
+                      {/* 3. Gaji Pokok & Formula */}
                       <td className="py-3.5 px-3">
-                        <div className="space-y-0.5 min-w-[140px]">
-                          <div className="font-mono text-[11px] font-bold text-purple-700">
-                            {item.isEligible
-                              ? displayIDR(item.calculatedThr)
-                              : "Rp 0 (Ineligible)"}
+                        <div className="space-y-0.5">
+                          <div className="font-mono font-bold text-slate-800 text-xs">
+                            {displayIDR(item.basicSalary)}
                           </div>
-                          <div className="text-[10px] text-slate-500 leading-tight">
-                            {item.notes || (isFull ? "1 Bulan Upah" : `${item.tenureMonths}/12 × Gaji`)}
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            {item.isEligible ? (
+                              <span>
+                                {isFull ? "100% Gaji" : `(${item.tenureMonths}/12) × Gaji`} ={" "}
+                                <strong className="text-slate-700 font-semibold">
+                                  {displayIDR(item.calculatedThr)}
+                                </strong>
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 font-medium">
+                                Ineligible (&lt; 1 Bln)
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
 
-                      {/* 6. Penyesuaian (Adjustment) */}
-                      <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                      {/* 4. Penyesuaian (Adjustment) */}
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         <button
                           onClick={() => {
                             setActiveItemForEdit(item);
                             setIsAdjustmentModalOpen(true);
                           }}
-                          className={`inline-flex items-center gap-1 font-mono text-xs font-bold px-2 py-1 rounded-lg border transition-colors ${
+                          className={`inline-flex items-center gap-1 font-mono text-[11px] font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer ${
                             item.adjustmentAmount !== 0
                               ? item.adjustmentAmount > 0
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-red-50 text-red-700 border-red-200"
-                              : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+                                : "bg-red-50 text-red-700 border-red-200/70"
+                              : "bg-slate-50/80 text-slate-500 border-slate-200/60 hover:bg-slate-100"
                           }`}
                         >
                           <span>
@@ -1016,64 +953,63 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                         </button>
                       </td>
 
-                      {/* 7. Nominal Akhir THR */}
+                      {/* 5. Nominal Akhir THR */}
                       <td className="py-3.5 px-3 text-right whitespace-nowrap">
                         <div
-                          className={`font-black font-mono text-sm ${
-                            item.finalThr > 0 ? "text-emerald-700" : "text-slate-400"
+                          className={`font-black font-mono text-sm sm:text-base ${
+                            item.finalThr > 0 ? "text-slate-900" : "text-slate-400"
                           }`}
                         >
                           {displayIDR(item.finalThr)}
                         </div>
                       </td>
 
-                      {/* 8. Status */}
-                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                        <button
-                          onClick={() => handleToggleItemStatus(item)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 ${
-                            item.status === "Dibayar"
-                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                              : "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                          }`}
-                        >
-                          {item.status}
-                        </button>
-                      </td>
-
-                      {/* 9. Aksi */}
+                      {/* 6. Aksi & Status */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Cetak Slip THR */}
+                          {/* Status Pill Toggle */}
+                          <button
+                            onClick={() => handleToggleItemStatus(item)}
+                            title="Klik untuk ubah status pembayaran"
+                            className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95 ${
+                              item.status === "Dibayar"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                                : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                            }`}
+                          >
+                            {item.status}
+                          </button>
+
+                          {/* Print Slip */}
                           <button
                             onClick={() => {
                               setActiveItemForSlip(item);
                               setIsSlipModalOpen(true);
                             }}
                             title="Lihat & Cetak Slip THR"
-                            className="p-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-[#6B46FF] transition-colors"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer"
                           >
                             <Printer className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Edit / Adjustment Detail */}
+                          {/* Settings / Adjustment */}
                           <button
                             onClick={() => {
                               setActiveItemForEdit(item);
                               setIsAdjustmentModalOpen(true);
                             }}
-                            title="Review & Penyesuaian Detail"
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                            title="Edit Rincian"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
                           >
                             <Sliders className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Delete Item (jika ops) */}
+                          {/* Delete if Ops */}
                           {item.employeeType === "ops" && (
                             <button
                               onClick={() => handleDeleteItem(item.id)}
-                              title="Hapus Karyawan Ops"
-                              className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                              title="Hapus Karyawan"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1091,22 +1027,22 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
       {/* ================= MODAL: BUAT PERIODE BARU ================= */}
       {isCreatePeriodModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-xl overflow-hidden border border-slate-100">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-[#6B46FF]" />
-                <h3 className="font-black text-slate-900 text-base">Buat Periode THR Baru</h3>
+                <Gift className="w-4 h-4 text-purple-600" />
+                <h3 className="font-bold text-slate-900 text-sm">Buat Periode THR Baru</h3>
               </div>
               <button
                 onClick={() => setIsCreatePeriodModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreatePeriod} className="p-5 space-y-4">
+            <form onSubmit={handleCreatePeriod} className="p-4 sm:p-5 space-y-3.5">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
                   Nama Hari Raya <span className="text-red-500">*</span>
@@ -1117,7 +1053,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   placeholder="Contoh: Hari Raya Idul Fitri 1448 H"
                   value={periodForm.holidayName}
                   onChange={(e) => setPeriodForm({ ...periodForm, holidayName: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 />
               </div>
 
@@ -1128,7 +1064,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     type="number"
                     value={periodForm.year}
                     onChange={(e) => setPeriodForm({ ...periodForm, year: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
 
@@ -1143,7 +1079,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     onChange={(e) =>
                       setPeriodForm({ ...periodForm, holidayDate: e.target.value })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
                   />
                 </div>
               </div>
@@ -1160,7 +1096,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                       paymentStatus: e.target.value as ThrPeriod["paymentStatus"],
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 >
                   <option value="Draft">Draft</option>
                   <option value="Pending">Pending (Menunggu Review)</option>
@@ -1176,7 +1112,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   placeholder="Catatan tambahan untuk periode ini..."
                   value={periodForm.notes}
                   onChange={(e) => setPeriodForm({ ...periodForm, notes: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 />
               </div>
 
@@ -1184,13 +1120,13 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsCreatePeriodModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#6B46FF] hover:bg-[#5835e5] text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
                   Simpan & Generate Data
                 </button>
@@ -1202,22 +1138,22 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
       {/* ================= MODAL: EDIT PERIODE AKTIF ================= */}
       {isEditPeriodModalOpen && currentPeriod && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-xl overflow-hidden border border-slate-100">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-[#6B46FF]" />
-                <h3 className="font-black text-slate-900 text-base">Edit Parameter Periode THR</h3>
+                <Sliders className="w-4 h-4 text-purple-600" />
+                <h3 className="font-bold text-slate-900 text-sm">Edit Parameter Periode THR</h3>
               </div>
               <button
                 onClick={() => setIsEditPeriodModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleUpdatePeriod} className="p-5 space-y-4">
+            <form onSubmit={handleUpdatePeriod} className="p-4 sm:p-5 space-y-3.5">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
                   Nama Hari Raya
@@ -1227,7 +1163,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   required
                   value={periodForm.holidayName}
                   onChange={(e) => setPeriodForm({ ...periodForm, holidayName: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 />
               </div>
 
@@ -1238,7 +1174,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     type="number"
                     value={periodForm.year}
                     onChange={(e) => setPeriodForm({ ...periodForm, year: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
 
@@ -1253,7 +1189,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     onChange={(e) =>
                       setPeriodForm({ ...periodForm, holidayDate: e.target.value })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
                   />
                 </div>
               </div>
@@ -1270,7 +1206,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                       paymentStatus: e.target.value as ThrPeriod["paymentStatus"],
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 >
                   <option value="Draft">Draft</option>
                   <option value="Pending">Pending (Menunggu Review)</option>
@@ -1285,7 +1221,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   rows={2}
                   value={periodForm.notes}
                   onChange={(e) => setPeriodForm({ ...periodForm, notes: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 />
               </div>
 
@@ -1293,7 +1229,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                 <button
                   type="button"
                   onClick={handleDeletePeriod}
-                  className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Hapus Periode</span>
@@ -1303,13 +1239,13 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsEditPeriodModalOpen(false)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-[#6B46FF] hover:bg-[#5835e5] text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                    className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
                     Simpan Perubahan
                   </button>
@@ -1322,13 +1258,13 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
       {/* ================= MODAL: TAMBAH KARYAWAN OPS ================= */}
       {isAddOpsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-xl overflow-hidden border border-slate-100">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-slate-800" />
+                <Users className="w-4 h-4 text-slate-800" />
                 <div>
-                  <h3 className="font-black text-slate-900 text-base">
+                  <h3 className="font-bold text-slate-900 text-sm">
                     Tambah Karyawan Ops / Lainnya
                   </h3>
                   <p className="text-[10px] text-slate-500 font-medium">
@@ -1338,13 +1274,13 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
               </div>
               <button
                 onClick={() => setIsAddOpsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleAddOpsEmployee} className="p-5 space-y-4">
+            <form onSubmit={handleAddOpsEmployee} className="p-4 sm:p-5 space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -1356,7 +1292,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     placeholder="Contoh: Budi Santoso"
                     value={opsForm.name}
                     onChange={(e) => setOpsForm({ ...opsForm, name: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
 
@@ -1369,7 +1305,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     placeholder="Contoh: OPS-2026-001"
                     value={opsForm.employeeCode}
                     onChange={(e) => setOpsForm({ ...opsForm, employeeCode: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
               </div>
@@ -1381,10 +1317,10 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: Studio Manager / Videographer"
+                    placeholder="Contoh: Studio Manager / Editor"
                     value={opsForm.role}
                     onChange={(e) => setOpsForm({ ...opsForm, role: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
 
@@ -1397,7 +1333,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     placeholder="Contoh: Operations / Studio Tanggamus"
                     value={opsForm.department}
                     onChange={(e) => setOpsForm({ ...opsForm, department: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
               </div>
@@ -1412,7 +1348,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     required
                     value={opsForm.joinedDate}
                     onChange={(e) => setOpsForm({ ...opsForm, joinedDate: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
                   />
                 </div>
 
@@ -1431,7 +1367,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                       const val = e.target.value.replace(/\D/g, "");
                       setOpsForm({ ...opsForm, basicSalary: val ? parseInt(val, 10) : 0 });
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
               </div>
@@ -1444,7 +1380,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     placeholder="BCA / BRI / Mandiri"
                     value={opsForm.bankName}
                     onChange={(e) => setOpsForm({ ...opsForm, bankName: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
 
@@ -1457,7 +1393,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     placeholder="Nomor rekening transfer"
                     value={opsForm.bankAccount}
                     onChange={(e) => setOpsForm({ ...opsForm, bankAccount: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
               </div>
@@ -1471,7 +1407,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   placeholder="Catatan khusus karyawan ini..."
                   value={opsForm.notes}
                   onChange={(e) => setOpsForm({ ...opsForm, notes: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 />
               </div>
 
@@ -1479,13 +1415,13 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAddOpsModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                  className="px-5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
                   Simpan Karyawan
                 </button>
@@ -1497,13 +1433,13 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
       {/* ================= MODAL: ADJUSTMENT / EDIT DETAIL ITEM ================= */}
       {isAdjustmentModalOpen && activeItemForEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-xl overflow-hidden border border-slate-100">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-[#6B46FF]" />
+                <Sliders className="w-4 h-4 text-purple-600" />
                 <div>
-                  <h3 className="font-black text-slate-900 text-base">
+                  <h3 className="font-bold text-slate-900 text-sm">
                     Review & Penyesuaian THR
                   </h3>
                   <p className="text-[10px] text-slate-500 font-medium">
@@ -1513,16 +1449,16 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
               </div>
               <button
                 onClick={() => setIsAdjustmentModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
-              <div className="p-3 bg-purple-50/50 border border-purple-100 rounded-xl flex items-center justify-between text-xs">
+            <div className="p-4 sm:p-5 space-y-3.5">
+              <div className="p-3 bg-purple-50/50 border border-purple-100/60 rounded-xl flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Masa Kerja Terhitung:</span>
+                  <span className="text-slate-500 block text-[10px]">Masa Kerja:</span>
                   <span className="font-bold text-purple-900">
                     {activeItemForEdit.tenureFormatted || `${activeItemForEdit.tenureMonths} Bulan`}
                   </span>
@@ -1535,7 +1471,6 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                 </div>
               </div>
 
-              {/* Input Tanggal Join */}
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
                   Tanggal Bergabung (Join Date)
@@ -1546,11 +1481,10 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   onChange={(e) =>
                     setActiveItemForEdit({ ...activeItemForEdit, joinedDate: e.target.value })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
                 />
               </div>
 
-              {/* Input Gaji Pokok */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -1569,7 +1503,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                         basicSalary: val ? parseInt(val, 10) : 0,
                       });
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
 
@@ -1590,12 +1524,11 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                         fixedAllowance: val ? parseInt(val, 10) : 0,
                       });
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
               </div>
 
-              {/* Adjustment Amount */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-700">
@@ -1603,29 +1536,26 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   </label>
                   <span className="text-[10px] text-slate-400">Gunakan (-) untuk potongan</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={activeItemForEdit.adjustmentAmount}
-                    onChange={(e) =>
-                      setActiveItemForEdit({
-                        ...activeItemForEdit,
-                        adjustmentAmount: Number(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  />
-                </div>
+                <input
+                  type="number"
+                  value={activeItemForEdit.adjustmentAmount}
+                  onChange={(e) =>
+                    setActiveItemForEdit({
+                      ...activeItemForEdit,
+                      adjustmentAmount: Number(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                />
               </div>
 
-              {/* Eligibility Toggle */}
-              <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
                 <div>
                   <span className="text-xs font-bold text-slate-800 block">
                     Status Kelayakan THR (Eligible)
                   </span>
                   <span className="text-[10px] text-slate-500 block">
-                    Bila dimatikan, THR otomatis diset Rp 0 terlepas dari formula
+                    Bila dinonaktifkan, THR otomatis diset Rp 0
                   </span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -1640,11 +1570,10 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#6B46FF]"></div>
+                  <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
               </div>
 
-              {/* Catatan Adjustment */}
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
                   Catatan HR / Alasan Penyesuaian
@@ -1656,11 +1585,10 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                   onChange={(e) =>
                     setActiveItemForEdit({ ...activeItemForEdit, notes: e.target.value })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 />
               </div>
 
-              {/* Bank Info */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Bank</label>
@@ -1670,7 +1598,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     onChange={(e) =>
                       setActiveItemForEdit({ ...activeItemForEdit, bankName: e.target.value })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
 
@@ -1684,7 +1612,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     onChange={(e) =>
                       setActiveItemForEdit({ ...activeItemForEdit, bankAccount: e.target.value })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                   />
                 </div>
               </div>
@@ -1693,7 +1621,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAdjustmentModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
                 >
                   Batal
                 </button>
@@ -1703,7 +1631,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     handleUpdateItem(activeItemForEdit, true);
                     setIsAdjustmentModalOpen(false);
                   }}
-                  className="px-5 py-2 bg-[#6B46FF] hover:bg-[#5835e5] text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
                   Terapkan Penyesuaian
                 </button>
@@ -1715,61 +1643,61 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
       {/* ================= MODAL: CETAK SLIP THR ================= */}
       {isSlipModalOpen && activeItemForSlip && currentPeriod && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden border border-slate-100">
             {/* Header Dialog */}
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 print:hidden">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#6B46FF]" />
-                <h3 className="font-black text-slate-900 text-sm">
-                  Preview Slip Tunjangan Hari Raya (THR)
+                <FileText className="w-4 h-4 text-purple-600" />
+                <h3 className="font-bold text-slate-900 text-xs sm:text-sm">
+                  Slip Tunjangan Hari Raya (THR)
                 </h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#6B46FF] text-white rounded-lg text-xs font-bold hover:bg-[#5835e5] shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 shadow-xs cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Cetak / PDF</span>
                 </button>
                 <button
                   onClick={() => setIsSlipModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1"
+                  className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             {/* Printable Slip Paper */}
-            <div className="p-6 md:p-8 space-y-6 text-slate-800 bg-white" id="thr_slip_print_area">
+            <div className="p-6 md:p-8 space-y-5 text-slate-800 bg-white" id="thr_slip_print_area">
               {/* Slip Header */}
-              <div className="border-b-2 border-slate-900 pb-4 flex items-start justify-between">
+              <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
                 <div>
-                  <h1 className="text-xl font-black tracking-tight text-slate-900">
+                  <h1 className="text-lg font-black tracking-tight text-slate-900">
                     LIVA MEDIA KREATIF
                   </h1>
-                  <p className="text-xs text-slate-500 font-medium">
+                  <p className="text-[11px] text-slate-500 font-medium">
                     Live Streamer Agency & Creative Production
                   </p>
                 </div>
                 <div className="text-right">
-                  <div className="inline-block px-3 py-1 bg-purple-100 text-purple-900 rounded-lg text-xs font-black tracking-wider uppercase">
-                    SLIP THR RESMI
+                  <div className="inline-block px-2.5 py-0.5 bg-purple-50 text-purple-800 rounded-md text-[11px] font-black tracking-wider uppercase border border-purple-200/60">
+                    SLIP RESMI THR
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-1">
+                  <div className="text-[9px] text-slate-400 font-mono mt-1">
                     No: THR/{currentPeriod.year}/{activeItemForSlip.id.slice(-6).toUpperCase()}
                   </div>
                 </div>
               </div>
 
               {/* Title & Periode */}
-              <div className="text-center space-y-1">
-                <h2 className="text-base font-black text-slate-900 uppercase tracking-wide">
+              <div className="text-center space-y-0.5">
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
                   SLIP TUNJANGAN HARI RAYA
                 </h2>
-                <div className="text-xs font-bold text-purple-800">
+                <div className="text-xs font-bold text-purple-700">
                   {currentPeriod.holidayName} ({currentPeriod.year})
                 </div>
                 <div className="text-[10px] text-slate-500">
@@ -1783,42 +1711,44 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
               </div>
 
               {/* Employee Bio */}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl text-xs border border-slate-100">
-                <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50/80 rounded-xl text-xs border border-slate-100">
+                <div className="space-y-1">
                   <div className="flex">
-                    <span className="w-28 text-slate-500">Nama Penerima:</span>
-                    <span className="font-bold text-slate-900">{activeItemForSlip.name}</span>
+                    <span className="w-24 text-slate-500 text-[11px]">Nama:</span>
+                    <span className="font-bold text-slate-900 text-[11px]">
+                      {activeItemForSlip.name}
+                    </span>
                   </div>
                   <div className="flex">
-                    <span className="w-28 text-slate-500">NIK / ID:</span>
-                    <span className="font-mono text-slate-700">
+                    <span className="w-24 text-slate-500 text-[11px]">NIK / ID:</span>
+                    <span className="font-mono text-slate-700 text-[11px]">
                       {activeItemForSlip.employeeCode || "-"}
                     </span>
                   </div>
                   <div className="flex">
-                    <span className="w-28 text-slate-500">Jabatan:</span>
-                    <span className="text-slate-700">
+                    <span className="w-24 text-slate-500 text-[11px]">Jabatan:</span>
+                    <span className="text-slate-700 text-[11px]">
                       {activeItemForSlip.role || "Host Streamer"}
                     </span>
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <div className="flex">
-                    <span className="w-28 text-slate-500">Departemen:</span>
-                    <span className="text-slate-700">
+                    <span className="w-24 text-slate-500 text-[11px]">Departemen:</span>
+                    <span className="text-slate-700 text-[11px]">
                       {activeItemForSlip.department || "Studio"}
                     </span>
                   </div>
                   <div className="flex">
-                    <span className="w-28 text-slate-500">Tanggal Join:</span>
-                    <span className="font-bold text-slate-900">
+                    <span className="w-24 text-slate-500 text-[11px]">Tgl Join:</span>
+                    <span className="font-bold text-slate-900 text-[11px]">
                       {activeItemForSlip.joinedDate || "-"}
                     </span>
                   </div>
                   <div className="flex">
-                    <span className="w-28 text-slate-500">Masa Kerja:</span>
-                    <span className="font-bold text-purple-700">
+                    <span className="w-24 text-slate-500 text-[11px]">Masa Kerja:</span>
+                    <span className="font-bold text-purple-700 text-[11px]">
                       {activeItemForSlip.tenureFormatted ||
                         `${activeItemForSlip.tenureMonths} Bulan`}
                     </span>
@@ -1827,19 +1757,19 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
               </div>
 
               {/* Calculation Table */}
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Rincian Perhitungan THR
                 </div>
-                <table className="w-full text-xs border border-slate-200 rounded-lg overflow-hidden">
-                  <thead className="bg-slate-100 text-slate-600 font-bold">
+                <table className="w-full text-xs border border-slate-200/80 rounded-lg overflow-hidden">
+                  <thead className="bg-slate-50 text-slate-600 font-bold text-[11px]">
                     <tr>
                       <th className="py-2 px-3 text-left">Komponen</th>
                       <th className="py-2 px-3 text-left">Dasar Formula</th>
                       <th className="py-2 px-3 text-right">Nominal</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 text-[11px]">
                     <tr>
                       <td className="py-2 px-3 font-medium">Upah Pokok Bulanan</td>
                       <td className="py-2 px-3 text-slate-500">Gaji Pokok Aktif</td>
@@ -1892,9 +1822,9 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
               </div>
 
               {/* Total Box */}
-              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+              <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200/80 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
                     TOTAL THR DITERIMA (NET)
                   </span>
                   <span className="text-[10px] text-emerald-700">
@@ -1903,24 +1833,24 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                       ` • Transfer: ${activeItemForSlip.bankName} ${activeItemForSlip.bankAccount}`}
                   </span>
                 </div>
-                <div className="text-xl font-black font-mono text-emerald-900">
+                <div className="text-lg font-black font-mono text-emerald-900">
                   {displayIDR(activeItemForSlip.finalThr)}
                 </div>
               </div>
 
               {/* Signatures */}
-              <div className="grid grid-cols-2 gap-8 pt-8 text-center text-xs">
-                <div className="space-y-12">
-                  <div className="text-slate-500 font-medium">Penerima THR,</div>
-                  <div className="border-t border-slate-300 w-36 mx-auto pt-1 font-bold text-slate-900">
+              <div className="grid grid-cols-2 gap-8 pt-6 text-center text-xs">
+                <div className="space-y-10">
+                  <div className="text-slate-500 text-[11px] font-medium">Penerima THR,</div>
+                  <div className="border-t border-slate-300 w-32 mx-auto pt-1 font-bold text-slate-900 text-[11px]">
                     {activeItemForSlip.name}
                   </div>
                 </div>
 
-                <div className="space-y-12">
-                  <div className="text-slate-500 font-medium">HR & Manajemen Liva,</div>
-                  <div className="border-t border-slate-300 w-36 mx-auto pt-1 font-bold text-slate-900">
-                    Finance / Management
+                <div className="space-y-10">
+                  <div className="text-slate-500 text-[11px] font-medium">HR & Manajemen,</div>
+                  <div className="border-t border-slate-300 w-32 mx-auto pt-1 font-bold text-slate-900 text-[11px]">
+                    Liva Media Kreatif
                   </div>
                 </div>
               </div>
