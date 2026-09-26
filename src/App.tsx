@@ -196,6 +196,7 @@ import {
   type SkuRawRow,
   type SkuLogEntry,
 } from "./shared/types/reporting";
+import { ThrManagementPanel } from "./components/payroll/ThrManagementPanel";
 import {
   getAvatarUrl,
   isPlatformMatch,
@@ -3709,7 +3710,7 @@ export default function App() {
   };
 
   const [isPayrollConfigOpen, setIsPayrollConfigOpen] = useState(false);
-
+  const [payrollSubTab, setPayrollSubTab] = useState<"streamer_payroll" | "thr_management">("streamer_payroll");
 
   const [salaryRecapLocationTab, setSalaryRecapLocationTab] = useState("Semua Host");
 
@@ -6120,7 +6121,11 @@ export default function App() {
                       <span>Calender Kerja Host</span>
                     )}
                     {operatorTab === "rekap_gaji" && (
-                      <span>Kalkulator & Penggajian Streamer</span>
+                      <span>
+                        {payrollSubTab === "thr_management"
+                          ? "Manajemen Tunjangan Hari Raya (THR)"
+                          : "Kalkulator & Penggajian Streamer"}
+                      </span>
                     )}
                     {operatorTab === "database" && (
                       <span>Database Logs Kehadiran</span>
@@ -8490,7 +8495,42 @@ export default function App() {
                       </button>
                     </div>
 
-                    <div className="md:hidden px-4 mb-4 mt-2">
+                    {/* PAYROLL SUBTAB NAVIGATION (TAB 1: STREAMER PAYROLL, TAB 2: THR MANAGEMENT) */}
+                    <div className="px-4 md:px-0 pt-2 md:pt-0 mb-4">
+                      <div className="flex bg-slate-100 p-1 w-full max-w-md rounded-2xl border border-slate-200/80 shadow-xs">
+                        <button
+                          type="button"
+                          onClick={() => setPayrollSubTab("streamer_payroll")}
+                          className={`flex-1 py-2.5 px-4 text-xs font-black transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer ${
+                            payrollSubTab === "streamer_payroll"
+                              ? "bg-white text-[#6B46FF] shadow-sm"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                          }`}
+                        >
+                          <Calculator className="w-4 h-4" />
+                          <span>Payroll Streamer</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPayrollSubTab("thr_management")}
+                          className={`flex-1 py-2.5 px-4 text-xs font-black transition-all rounded-xl flex items-center justify-center gap-2 cursor-pointer ${
+                            payrollSubTab === "thr_management"
+                              ? "bg-white text-[#6B46FF] shadow-sm"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                          }`}
+                        >
+                          <Gift className="w-4 h-4 text-[#6B46FF]" />
+                          <span>Tab THR</span>
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                            Baru
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {payrollSubTab === "streamer_payroll" ? (
+                      <>
+                        <div className="md:hidden px-4 mb-4 mt-2">
                        {/* MOBILE TOP CONTROLS (Settings, Search, Date Range, Summary) */}
                        <div className="space-y-3">
                          {/* Mobile Search Box */}
@@ -10195,9 +10235,24 @@ export default function App() {
                         </button>
                       </div>
                     </div>
-
-                  </div>
+                  </>
+                ) : (
+                  <ThrManagementPanel
+                    hosts={hosts}
+                    salarySettings={salarySettings}
+                    onRefreshHosts={async () => {
+                      try {
+                        const refreshed = await hostsApi.getAll();
+                        _setHosts(refreshed);
+                      } catch (err) {
+                        console.warn("Gagal refresh data host:", err);
+                      }
+                    }}
+                    formatIDR={formatIDR}
+                  />
                 )}
+              </div>
+            )}
 
                 {/* ==================== SUBTAB: LIVE DATABASE ATTENDANCE ==================== */}
                 {operatorTab === "database" && (

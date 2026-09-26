@@ -17,6 +17,8 @@ import type {
   HostActivityLog,
   KPIAlert,
   ShiftSchedule,
+  ThrPeriod,
+  ThrItem,
 } from "./types";
 import type {
   BrandPerformanceLogEntry,
@@ -439,5 +441,24 @@ export const violationsApi = {
   delete: async (id: string) => {
     return request<{ success: boolean }>('DELETE', `/violations/${id}`);
   }
+};
+
+// ==================================================================
+// THR MANAGEMENT API
+// ==================================================================
+export const thrApi = {
+  getPeriods: () => request<ThrPeriod[]>('GET', '/thr/periods'),
+  getPeriodById: (id: string) => request<ThrPeriod>('GET', `/thr/periods/${id}`),
+  createPeriod: (period: Partial<ThrPeriod>) => request<ThrPeriod>('POST', '/thr/periods', period),
+  updatePeriod: (id: string, period: Partial<ThrPeriod>) => request<ThrPeriod>('PUT', `/thr/periods/${id}`, period),
+  deletePeriod: (id: string) => request<{ success: boolean; message?: string }>('DELETE', `/thr/periods/${id}`),
+
+  getItems: (periodId: string) => request<ThrItem[]>('GET', `/thr/periods/${periodId}/items`),
+  createItem: (periodId: string, item: Partial<ThrItem>) => request<ThrItem>('POST', `/thr/periods/${periodId}/items`, item),
+  updateItem: (periodId: string, itemId: string, item: Partial<ThrItem> & { updateHostProfile?: boolean }) =>
+    request<ThrItem>('PUT', `/thr/periods/${periodId}/items/${itemId}`, item),
+  deleteItem: (periodId: string, itemId: string) => request<{ success: boolean; message?: string }>('DELETE', `/thr/periods/${periodId}/items/${itemId}`),
+  batchSaveItems: (periodId: string, items: ThrItem[], updateHostProfiles: boolean = false) =>
+    request<ThrItem[]>('POST', `/thr/periods/${periodId}/batch-save`, { items, updateHostProfiles }),
 };
 

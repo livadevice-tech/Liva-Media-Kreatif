@@ -257,3 +257,45 @@ export interface BrandResource {
   createdAt: string;
   updatedAt?: string;
 }
+
+export interface ThrPeriod {
+  id: string;
+  year: number;
+  holidayName: string;
+  holidayDate: string;
+  paymentStatus: "Draft" | "Pending" | "Diproses" | "Dibayar";
+  paymentDate?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  totalEmployees?: number;
+  totalBudget?: number;
+  paidBudget?: number;
+}
+
+export interface ThrItem {
+  id: string;
+  periodId: string;
+  employeeType: "host" | "ops";
+  employeeId?: string | null;
+  employeeCode?: string | null;
+  name: string;
+  role?: string | null;
+  department?: string | null;
+  joinedDate: string;
+  tenureMonths: number;
+  tenureFormatted?: string;
+  basicSalary: number;
+  fixedAllowance: number;
+  thrBaseSalary: number;
+  calculatedThr: number;
+  adjustmentAmount: number;
+  finalThr: number;
+  isEligible: boolean;
+  status: "Pending" | "Diproses" | "Dibayar";
+  bankName?: string | null;
+  bankAccount?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
