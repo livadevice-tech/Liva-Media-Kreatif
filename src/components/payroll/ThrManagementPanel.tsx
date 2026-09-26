@@ -484,6 +484,31 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     }
   };
 
+  const handleSaveAdjustment = () => {
+    if (!activeItemForEdit) return;
+    handleUpdateItem(
+      {
+        ...activeItemForEdit,
+        ...(liveTenure
+          ? {
+              tenureMonths: liveTenure.months,
+              tenureFormatted: liveTenure.formatted,
+            }
+          : {}),
+        ...(liveCalc
+          ? {
+              thrBaseSalary: liveCalc.thrBaseSalary,
+              calculatedThr: liveCalc.calculatedThr,
+              finalThr: liveCalc.finalThr,
+              notes: activeItemForEdit.notes || liveCalc.formulaNote,
+            }
+          : {}),
+      },
+      true
+    );
+    setIsAdjustmentModalOpen(false);
+  };
+
   const handleDeleteItem = async (itemId: string) => {
     const itemToDelete = items.find((i) => i.id === itemId);
     if (!itemToDelete) return;
@@ -1569,28 +1594,26 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
 
           {/* Right Slide-Over Panel */}
           <div className="fixed inset-y-0 right-0 flex max-w-full pl-6 sm:pl-10 z-50">
-            <div className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300 ease-out border-l border-slate-200">
+            <div className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300 ease-out border-l border-slate-200">
               
-              {/* Sticky Top Header */}
-              <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-xs">
-                    <Sliders className="w-5 h-5" />
+              {/* Sticky Top Header with Primary Actions */}
+              <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/95 flex items-center justify-between gap-3 sticky top-0 z-20 backdrop-blur-md">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-xs shrink-0">
+                    <Sliders className="w-4 h-4" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight">
-                      Review & Penyesuaian THR
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-slate-900 text-sm leading-tight truncate">
+                      Review & Penyesuaian
                     </h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs font-semibold text-slate-700">
+                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500 truncate">
+                      <span className="font-semibold text-slate-800 truncate">
                         {activeItemForEdit.name}
                       </span>
-                      <span className="text-[10px] text-slate-400">•</span>
-                      <span className="text-[11px] text-slate-500 font-medium">
-                        {activeItemForEdit.role}
-                      </span>
+                      <span>•</span>
+                      <span className="truncate">{activeItemForEdit.role}</span>
                       <span
-                        className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
+                        className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-full ${
                           activeItemForEdit.employeeType === "host"
                             ? "bg-purple-100 text-purple-700"
                             : "bg-blue-100 text-blue-700"
@@ -1601,14 +1624,32 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAdjustmentModalOpen(false)}
-                  className="rounded-full p-2 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition-colors cursor-pointer"
-                  aria-label="Tutup Sidebar"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsAdjustmentModalOpen(false)}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveAdjustment}
+                    className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>Terapkan</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsAdjustmentModalOpen(false)}
+                    className="rounded-full p-1.5 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition-colors cursor-pointer"
+                    aria-label="Tutup Sidebar"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Scrollable Form Body */}
@@ -1911,46 +1952,25 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     </span>
                   </div>
                 </div>
-              </div>
 
-              {/* Sticky Bottom Actions */}
-              <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/90 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsAdjustmentModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleUpdateItem(
-                      {
-                        ...activeItemForEdit,
-                        ...(liveTenure
-                          ? {
-                              tenureMonths: liveTenure.months,
-                              tenureFormatted: liveTenure.formatted,
-                            }
-                          : {}),
-                        ...(liveCalc
-                          ? {
-                              thrBaseSalary: liveCalc.thrBaseSalary,
-                              calculatedThr: liveCalc.calculatedThr,
-                              finalThr: liveCalc.finalThr,
-                              notes: activeItemForEdit.notes || liveCalc.formulaNote,
-                            }
-                          : {}),
-                      },
-                      true
-                    );
-                    setIsAdjustmentModalOpen(false);
-                  }}
-                  className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>Terapkan Penyesuaian</span>
-                </button>
+                {/* Inline Action Buttons right after summary */}
+                <div className="pt-2 pb-6 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsAdjustmentModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveAdjustment}
+                    className="px-5 py-2 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>Terapkan Penyesuaian</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
