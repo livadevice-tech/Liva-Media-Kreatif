@@ -548,62 +548,35 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
   return (
     <div className="space-y-4 md:space-y-5 animate-fadeIn max-w-[1600px] mx-auto w-full">
       {/* ================= COMPACT & SLEEK PERIOD TOOLBAR ================= */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-3.5 sm:p-4 transition-all">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-          {/* Left: Period Selector & Information */}
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-                <Gift className="w-4 h-4" />
-              </div>
-
-              {/* Period Dropdown */}
-              <div className="relative inline-block">
-                <select
-                  value={selectedPeriodId}
-                  onChange={(e) => setSelectedPeriodId(e.target.value)}
-                  className="bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl pl-3 pr-8 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer transition-colors appearance-none"
-                >
-                  {periods.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.holidayName} ({p.year})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-4 sm:p-5 transition-all">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          {/* Left: Period Selector & Information (Structured 2-row Identity Block) */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-100/80 flex items-center justify-center text-purple-600 shrink-0 shadow-3xs">
+              <Gift className="w-5 h-5" />
             </div>
 
-            {/* Holiday Date & Status Tags */}
-            {currentPeriod && (
-              <div className="flex items-center gap-2 text-xs">
-                <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60 font-medium">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span>
-                    {new Date(currentPeriod.holidayDate).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </span>
+            <div className="min-w-0">
+              {/* Line 1: Period Dropdown & Edit Settings Button */}
+              <div className="flex items-center gap-1.5">
+                <div className="relative inline-flex items-center max-w-full">
+                  <select
+                    value={selectedPeriodId}
+                    onChange={(e) => setSelectedPeriodId(e.target.value)}
+                    className="bg-transparent hover:bg-slate-100/70 font-black text-slate-900 text-sm sm:text-base pr-7 py-0.5 rounded-lg border border-transparent hover:border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer transition-all appearance-none tracking-tight truncate"
+                  >
+                    {periods.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.holidayName} ({p.year})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-
-                <span
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                    currentPeriod.paymentStatus === "Dibayar"
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
-                      : currentPeriod.paymentStatus === "Diproses"
-                        ? "bg-blue-50 text-blue-700 border border-blue-200/60"
-                        : currentPeriod.paymentStatus === "Pending"
-                          ? "bg-amber-50 text-amber-700 border border-amber-200/60"
-                          : "bg-slate-100 text-slate-600 border border-slate-200/60"
-                  }`}
-                >
-                  {currentPeriod.paymentStatus}
-                </span>
 
                 <button
                   onClick={() => {
+                    if (!currentPeriod) return;
                     setPeriodForm({
                       year: currentPeriod.year,
                       holidayName: currentPeriod.holidayName,
@@ -613,17 +586,88 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                     });
                     setIsEditPeriodModalOpen(true);
                   }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                  title="Edit Periode"
+                  className="p-1 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer shrink-0"
+                  title="Edit Pengaturan Periode"
                 >
                   <Sliders className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
+
+              {/* Line 2: Date & Status Badge */}
+              {currentPeriod && (
+                <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600">
+                    <Calendar className="w-3 h-3 text-slate-400" />
+                    <span>
+                      {new Date(currentPeriod.holidayDate).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </span>
+
+                  <span className="text-slate-300">•</span>
+
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                      currentPeriod.paymentStatus === "Dibayar"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                        : currentPeriod.paymentStatus === "Diproses"
+                          ? "bg-blue-50 text-blue-700 border border-blue-200/60"
+                          : currentPeriod.paymentStatus === "Pending"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200/60"
+                            : "bg-slate-100 text-slate-600 border border-slate-200/60"
+                    }`}
+                  >
+                    {currentPeriod.paymentStatus}
+                  </span>
+
+                  {currentPeriod.notes && (
+                    <>
+                      <span className="text-slate-300 hidden md:inline">•</span>
+                      <span className="text-[11px] text-slate-400 truncate max-w-[220px] hidden md:inline">
+                        {currentPeriod.notes}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Right: Clean Grouped Actions */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Right: Clean Grouped Actions Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap xl:flex-nowrap shrink-0 pt-3 border-t border-slate-100 xl:border-0 xl:pt-0">
+            {/* Export Excel */}
+            <button
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-3xs whitespace-nowrap"
+              title="Export rincian THR ke format Excel (.xlsx)"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export Excel</span>
+            </button>
+
+            {/* Sinkronkan */}
+            <button
+              onClick={handleSyncWithHosts}
+              title="Sinkronkan data dan gaji host dari database"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-3xs whitespace-nowrap"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+              <span>Sinkronkan</span>
+            </button>
+
+            {/* + Karyawan Ops */}
+            <button
+              onClick={() => setIsAddOpsModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-3xs active:scale-95 cursor-pointer whitespace-nowrap"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>+ Karyawan Ops</span>
+            </button>
+
+            {/* Periode Baru */}
             <button
               onClick={() => {
                 setPeriodForm({
@@ -635,42 +679,18 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                 });
                 setIsCreatePeriodModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Periode Baru</span>
             </button>
 
-            <button
-              onClick={() => setIsAddOpsModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>+ Karyawan Ops</span>
-            </button>
-
-            <button
-              onClick={handleSyncWithHosts}
-              title="Sinkronkan data dan gaji host dari database"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">Sinkronkan</span>
-            </button>
-
-            <button
-              onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Export Excel</span>
-            </button>
-
+            {/* Simpan Perubahan (Conditional) */}
             {hasUnsavedChanges && (
               <button
                 onClick={() => handleSaveAll()}
                 disabled={isSaving}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black transition-all shadow-xs animate-pulse cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black transition-all shadow-xs animate-pulse cursor-pointer whitespace-nowrap"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>{isSaving ? "Menyimpan..." : "Simpan"}</span>
