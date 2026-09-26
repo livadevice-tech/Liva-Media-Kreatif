@@ -104,6 +104,35 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
     return periods.find((p) => p.id === selectedPeriodId) || null;
   }, [periods, selectedPeriodId]);
 
+  // Live calculation for the edit sidebar
+  const liveTenure = useMemo(() => {
+    if (!activeItemForEdit || !currentPeriod) return null;
+    return calculateTenure(activeItemForEdit.joinedDate, currentPeriod.holidayDate);
+  }, [activeItemForEdit?.joinedDate, currentPeriod?.holidayDate]);
+
+  const liveCalc = useMemo(() => {
+    if (!activeItemForEdit || !liveTenure) return null;
+    return computeThrAmount({
+      baseSalary: activeItemForEdit.basicSalary,
+      fixedAllowance: activeItemForEdit.fixedAllowance,
+      tenureMonths: liveTenure.months,
+      adjustmentAmount: activeItemForEdit.adjustmentAmount,
+      isEligible: activeItemForEdit.isEligible,
+      allowUnderOneMonth: activeItemForEdit.isEligible && liveTenure.isUnderOneMonth,
+    });
+  }, [activeItemForEdit, liveTenure]);
+
+  // Handle ESC key to close sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isAdjustmentModalOpen) {
+        setIsAdjustmentModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isAdjustmentModalOpen]);
+
   // Load periods from API on mount
   useEffect(() => {
     loadPeriods();
@@ -1431,209 +1460,398 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
         </div>
       )}
 
-      {/* ================= MODAL: ADJUSTMENT / EDIT DETAIL ITEM ================= */}
+      {/* ================= SIDEBAR DRAWER: REVIEW & PENYESUAIAN THR ================= */}
       {isAdjustmentModalOpen && activeItemForEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-xl overflow-hidden border border-slate-100">
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-purple-600" />
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">
-                    Review & Penyesuaian THR
-                  </h3>
-                  <p className="text-[10px] text-slate-500 font-medium">
-                    {activeItemForEdit.name} ({activeItemForEdit.role})
-                  </p>
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop Overlay */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-300"
+            onClick={() => setIsAdjustmentModalOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Right Slide-Over Panel */}
+          <div className="fixed inset-y-0 right-0 flex max-w-full pl-6 sm:pl-10 z-50">
+            <div className="w-screen max-w-md sm:max-w-lg bg-white shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300 ease-out border-l border-slate-200">
+              
+              {/* Sticky Top Header */}
+              <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-xs">
+                    <Sliders className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight">
+                      Review & Penyesuaian THR
+                    </h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs font-semibold text-slate-700">
+                        {activeItemForEdit.name}
+                      </span>
+                      <span className="text-[10px] text-slate-400">•</span>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        {activeItemForEdit.role}
+                      </span>
+                      <span
+                        className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
+                          activeItemForEdit.employeeType === "host"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {activeItemForEdit.employeeType === "host" ? "Host" : "Ops"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={() => setIsAdjustmentModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-4 sm:p-5 space-y-3.5">
-              <div className="p-3 bg-purple-50/50 border border-purple-100/60 rounded-xl flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-slate-500 block text-[10px]">Masa Kerja:</span>
-                  <span className="font-bold text-purple-900">
-                    {activeItemForEdit.tenureFormatted || `${activeItemForEdit.tenureMonths} Bulan`}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-slate-500 block text-[10px]">Formula Standar:</span>
-                  <span className="font-bold font-mono text-purple-900">
-                    {displayIDR(activeItemForEdit.calculatedThr)}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Tanggal Bergabung (Join Date)
-                </label>
-                <input
-                  type="date"
-                  value={activeItemForEdit.joinedDate}
-                  onChange={(e) =>
-                    setActiveItemForEdit({ ...activeItemForEdit, joinedDate: e.target.value })
-                  }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Gaji Pokok (Base Salary)
-                  </label>
-                  <input
-                    type="text"
-                    value={
-                      "Rp " +
-                      new Intl.NumberFormat("id-ID").format(activeItemForEdit.basicSalary || 0)
-                    }
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "");
-                      setActiveItemForEdit({
-                        ...activeItemForEdit,
-                        basicSalary: val ? parseInt(val, 10) : 0,
-                      });
-                    }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Tunjangan Tetap
-                  </label>
-                  <input
-                    type="text"
-                    value={
-                      "Rp " +
-                      new Intl.NumberFormat("id-ID").format(activeItemForEdit.fixedAllowance || 0)
-                    }
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "");
-                      setActiveItemForEdit({
-                        ...activeItemForEdit,
-                        fixedAllowance: val ? parseInt(val, 10) : 0,
-                      });
-                    }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-700">
-                    Penyesuaian Manual (Bonus / Potongan)
-                  </label>
-                  <span className="text-[10px] text-slate-400">Gunakan (-) untuk potongan</span>
-                </div>
-                <input
-                  type="number"
-                  value={activeItemForEdit.adjustmentAmount}
-                  onChange={(e) =>
-                    setActiveItemForEdit({
-                      ...activeItemForEdit,
-                      adjustmentAmount: Number(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
-                <div>
-                  <span className="text-xs font-bold text-slate-800 block">
-                    Status Kelayakan THR (Eligible)
-                  </span>
-                  <span className="text-[10px] text-slate-500 block">
-                    Bila dinonaktifkan, THR otomatis diset Rp 0
-                  </span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={activeItemForEdit.isEligible}
-                    onChange={(e) =>
-                      setActiveItemForEdit({
-                        ...activeItemForEdit,
-                        isEligible: e.target.checked,
-                      })
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Catatan HR / Alasan Penyesuaian
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Bonus apresiasi pencapaian loyalitas"
-                  value={activeItemForEdit.notes || ""}
-                  onChange={(e) =>
-                    setActiveItemForEdit({ ...activeItemForEdit, notes: e.target.value })
-                  }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Bank</label>
-                  <input
-                    type="text"
-                    value={activeItemForEdit.bankName || ""}
-                    onChange={(e) =>
-                      setActiveItemForEdit({ ...activeItemForEdit, bankName: e.target.value })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Nomor Rekening
-                  </label>
-                  <input
-                    type="text"
-                    value={activeItemForEdit.bankAccount || ""}
-                    onChange={(e) =>
-                      setActiveItemForEdit({ ...activeItemForEdit, bankAccount: e.target.value })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsAdjustmentModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                  className="rounded-full p-2 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition-colors cursor-pointer"
+                  aria-label="Tutup Sidebar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Scrollable Form Body */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-left">
+                {/* 1. Overview Banner: Masa Kerja & Formula */}
+                <div className="p-3.5 bg-gradient-to-r from-purple-50 to-indigo-50/50 border border-purple-100/80 rounded-2xl flex items-center justify-between text-xs shadow-xs">
+                  <div>
+                    <span className="text-slate-500 block text-[10px] font-semibold uppercase tracking-wider">
+                      Masa Kerja
+                    </span>
+                    <span className="font-black text-purple-950 text-sm">
+                      {liveTenure?.formatted || activeItemForEdit.tenureFormatted || `${activeItemForEdit.tenureMonths} Bulan`}
+                    </span>
+                    <span className="text-[10px] text-purple-600 block mt-0.5 font-medium">
+                      {liveTenure?.isUnderOneMonth
+                        ? "Masa kerja < 1 bulan (tidak prorata standar)"
+                        : (liveTenure?.months ?? activeItemForEdit.tenureMonths) >= 12
+                          ? "100% Gaji Pokok (≥ 12 Bulan)"
+                          : `${liveTenure?.months ?? activeItemForEdit.tenureMonths}/12 Prorata Formula`}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-500 block text-[10px] font-semibold uppercase tracking-wider">
+                      Formula Standar
+                    </span>
+                    <span className="font-black font-mono text-purple-950 text-sm">
+                      {displayIDR(liveCalc?.calculatedThr ?? activeItemForEdit.calculatedThr)}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      sebelum penyesuaian
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Tanggal Bergabung */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-700 block">
+                      Tanggal Bergabung (Join Date)
+                    </label>
+                    {activeItemForEdit.employeeType === "host" && (
+                      <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+                        Sinkron ke Master Host
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="date"
+                    value={activeItemForEdit.joinedDate}
+                    onChange={(e) =>
+                      setActiveItemForEdit({ ...activeItemForEdit, joinedDate: e.target.value })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Masa kerja dihitung terhadap tanggal hari raya:{" "}
+                    <span className="font-semibold text-slate-600">
+                      {currentPeriod?.holidayDate || "-"}
+                    </span>
+                  </p>
+                </div>
+
+                {/* 3. Gaji Pokok & Tunjangan Tetap */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Gaji Pokok (Base Salary)
+                    </label>
+                    <input
+                      type="text"
+                      value={
+                        "Rp " +
+                        new Intl.NumberFormat("id-ID").format(activeItemForEdit.basicSalary || 0)
+                      }
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        setActiveItemForEdit({
+                          ...activeItemForEdit,
+                          basicSalary: val ? parseInt(val, 10) : 0,
+                        });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Tunjangan Tetap
+                    </label>
+                    <input
+                      type="text"
+                      value={
+                        "Rp " +
+                        new Intl.NumberFormat("id-ID").format(activeItemForEdit.fixedAllowance || 0)
+                      }
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        setActiveItemForEdit({
+                          ...activeItemForEdit,
+                          fixedAllowance: val ? parseInt(val, 10) : 0,
+                        });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Penyesuaian Manual (Bonus / Potongan) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-700">
+                      Penyesuaian Manual (Bonus / Potongan)
+                    </label>
+                    <span className="text-[10px] text-slate-400">Gunakan (-) untuk potongan</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={activeItemForEdit.adjustmentAmount}
+                    onChange={(e) =>
+                      setActiveItemForEdit({
+                        ...activeItemForEdit,
+                        adjustmentAmount: Number(e.target.value) || 0,
+                      })
+                    }
+                    placeholder="0"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                  />
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setActiveItemForEdit({ ...activeItemForEdit, adjustmentAmount: 0 })}
+                      className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-medium text-slate-600 cursor-pointer"
+                    >
+                      Reset 0
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveItemForEdit({
+                          ...activeItemForEdit,
+                          adjustmentAmount: (activeItemForEdit.adjustmentAmount || 0) + 100000,
+                        })
+                      }
+                      className="px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 text-[10px] font-semibold text-purple-700 cursor-pointer"
+                    >
+                      +100rb
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveItemForEdit({
+                          ...activeItemForEdit,
+                          adjustmentAmount: (activeItemForEdit.adjustmentAmount || 0) + 250000,
+                        })
+                      }
+                      className="px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 text-[10px] font-semibold text-purple-700 cursor-pointer"
+                    >
+                      +250rb
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveItemForEdit({
+                          ...activeItemForEdit,
+                          adjustmentAmount: (activeItemForEdit.adjustmentAmount || 0) + 500000,
+                        })
+                      }
+                      className="px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 text-[10px] font-semibold text-purple-700 cursor-pointer"
+                    >
+                      +500rb
+                    </button>
+                  </div>
+                </div>
+
+                {/* 5. Status Kelayakan THR (Eligible) */}
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">
+                      Status Kelayakan THR (Eligible)
+                    </span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      Bila dinonaktifkan, nominal THR otomatis diset Rp 0
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={activeItemForEdit.isEligible}
+                      onChange={(e) =>
+                        setActiveItemForEdit({
+                          ...activeItemForEdit,
+                          isEligible: e.target.checked,
+                        })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+
+                {/* 6. Catatan HR / Alasan Penyesuaian */}
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Catatan HR / Alasan Penyesuaian
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 100% Gaji Pokok (Masa kerja ≥ 12 bulan) / Bonus apresiasi"
+                    value={activeItemForEdit.notes || ""}
+                    onChange={(e) =>
+                      setActiveItemForEdit({ ...activeItemForEdit, notes: e.target.value })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                  />
+                </div>
+
+                {/* 7. Bank & Nomor Rekening */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Bank</label>
+                    <input
+                      type="text"
+                      placeholder="BCA / BRI / Mandiri"
+                      value={activeItemForEdit.bankName || ""}
+                      onChange={(e) =>
+                        setActiveItemForEdit({ ...activeItemForEdit, bankName: e.target.value })
+                      }
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Nomor Rekening
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: 577801020681501"
+                      value={activeItemForEdit.bankAccount || ""}
+                      onChange={(e) =>
+                        setActiveItemForEdit({ ...activeItemForEdit, bankAccount: e.target.value })
+                      }
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                    />
+                  </div>
+                </div>
+
+                {/* 8. Live Estimation Calculation Breakdown Card */}
+                <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-2 mt-2">
+                  <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
+                    <span>Ringkasan THR Akhir</span>
+                    <span
+                      className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                        activeItemForEdit.isEligible
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          : "bg-red-500/20 text-red-300 border border-red-500/30"
+                      }`}
+                    >
+                      {activeItemForEdit.isEligible ? "Eligible" : "Tidak Eligible"}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1 text-xs text-slate-300 border-t border-slate-800">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Dasar Gaji (Pokok + Tunjangan):</span>
+                      <span className="font-mono text-slate-200">
+                        {displayIDR(
+                          (activeItemForEdit.basicSalary || 0) + (activeItemForEdit.fixedAllowance || 0)
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Formula Kalkulasi THR:</span>
+                      <span className="font-mono text-slate-200">
+                        {displayIDR(liveCalc?.calculatedThr ?? activeItemForEdit.calculatedThr)}
+                      </span>
+                    </div>
+                    {activeItemForEdit.adjustmentAmount !== 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Penyesuaian Manual:</span>
+                        <span
+                          className={`font-mono font-bold ${
+                            activeItemForEdit.adjustmentAmount > 0
+                              ? "text-emerald-400"
+                              : "text-red-400"
+                          }`}
+                        >
+                          {activeItemForEdit.adjustmentAmount > 0 ? "+" : ""}
+                          {displayIDR(activeItemForEdit.adjustmentAmount)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-800">
+                    <span className="text-xs font-bold text-white">Nominal Akhir Diterima:</span>
+                    <span className="text-base sm:text-lg font-black font-mono text-emerald-400">
+                      {displayIDR(liveCalc?.finalThr ?? activeItemForEdit.finalThr)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sticky Bottom Actions */}
+              <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/90 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAdjustmentModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    handleUpdateItem(activeItemForEdit, true);
+                    handleUpdateItem(
+                      {
+                        ...activeItemForEdit,
+                        ...(liveTenure
+                          ? {
+                              tenureMonths: liveTenure.months,
+                              tenureFormatted: liveTenure.formatted,
+                            }
+                          : {}),
+                        ...(liveCalc
+                          ? {
+                              thrBaseSalary: liveCalc.thrBaseSalary,
+                              calculatedThr: liveCalc.calculatedThr,
+                              finalThr: liveCalc.finalThr,
+                              notes: activeItemForEdit.notes || liveCalc.formulaNote,
+                            }
+                          : {}),
+                      },
+                      true
+                    );
                     setIsAdjustmentModalOpen(false);
                   }}
-                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 active:scale-95 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
-                  Terapkan Penyesuaian
+                  <span>Terapkan Penyesuaian</span>
                 </button>
               </div>
             </div>
