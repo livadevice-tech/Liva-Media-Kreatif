@@ -30,6 +30,7 @@ import {
   formatIDR,
   resolveHostBaseSalary,
   buildThrItemsFromHosts,
+  isRegulerHost,
   type HostSalarySettings,
 } from "../../shared/utils/thrCalculator";
 import { thrApi, hostsApi } from "../../api";
@@ -228,7 +229,17 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
       const periodObj = periods.find((p) => p.id === periodId);
 
       if (Array.isArray(loadedItems) && loadedItems.length > 0) {
-        setItems(loadedItems);
+        // Aturan THR: Hanya Reguler Host & Karyawan Ops yang dimasukkan
+        const validItems = loadedItems.filter((item) => {
+          if (item.employeeType === "ops") return true;
+          const hostMatch = hosts.find((h) => h.id === item.employeeId);
+          if (hostMatch) {
+            return isRegulerHost(hostMatch);
+          }
+          const roleLower = (item.role || "").toLowerCase();
+          return !roleLower.includes("back up") && !roleLower.includes("backup");
+        });
+        setItems(validItems);
         setHasUnsavedChanges(false);
       } else if (periodObj && hosts.length > 0) {
         const autoItems = buildThrItemsFromHosts({
@@ -884,7 +895,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
             <span className="text-xs font-normal text-slate-500 font-sans">Orang</span>
           </div>
           <div className="text-[11px] text-slate-500 font-medium">
-            {metrics.hostCount} Host • {metrics.opsCount} Karyawan Ops
+            {metrics.hostCount} Reguler Host • {metrics.opsCount} Karyawan Ops
           </div>
         </div>
 
@@ -925,7 +936,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
         <div className="flex items-center overflow-x-auto pb-1 sm:pb-0 gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/50">
           {[
             { id: "all", label: "Semua" },
-            { id: "host", label: "Host Saja" },
+            { id: "host", label: "Reguler Host" },
             { id: "ops", label: "Karyawan Ops" },
             { id: "full", label: "≥ 12 Bln (100%)" },
             { id: "proportional", label: "Proporsional" },
@@ -1021,7 +1032,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                               </span>
                               {item.employeeType === "host" ? (
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200/50">
-                                  Host
+                                  Reguler Host
                                 </span>
                               ) : (
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80">
@@ -1619,7 +1630,7 @@ export const ThrManagementPanel: React.FC<ThrManagementPanelProps> = ({
                             : "bg-blue-100 text-blue-700"
                         }`}
                       >
-                        {activeItemForEdit.employeeType === "host" ? "Host" : "Ops"}
+                        {activeItemForEdit.employeeType === "host" ? "Reguler Host" : "Ops"}
                       </span>
                     </div>
                   </div>

@@ -5,6 +5,7 @@ import {
   computeThrAmount,
   resolveHostBaseSalary,
   buildThrItemsFromHosts,
+  isRegulerHost,
 } from "../src/shared/utils/thrCalculator";
 import type { HostEmployee, ThrPeriod } from "../src/types";
 
@@ -184,3 +185,81 @@ test("buildThrItemsFromHosts generates items accurately and preserves ops employ
   assert.ok(opsItem);
   assert.equal(opsItem.name, "Budi Studio Manager");
 });
+
+test("isRegulerHost and buildThrItemsFromHosts only include Reguler Hosts and exclude Backup Hosts", () => {
+  assert.equal(isRegulerHost({ hostType: "Reguler", role: "Host Streamer" }), true);
+  assert.equal(isRegulerHost({ hostType: "Backup", role: "Back Up Host" }), false);
+  assert.equal(isRegulerHost({ role: "Back Up Host" }), false);
+  assert.equal(isRegulerHost({ role: "Reguler Host" }), true);
+
+  const period: ThrPeriod = {
+    id: "thr_2027",
+    year: 2027,
+    holidayName: "Idul Fitri 1448 H",
+    holidayDate: "2027-03-10",
+    paymentStatus: "Draft",
+  };
+
+  const hosts: HostEmployee[] = [
+    {
+      id: "h1",
+      name: "Adinda Septiani",
+      employeeId: "EMP001",
+      role: "Reguler Host",
+      hostType: "Reguler",
+      studio: "Studio Tanggamus",
+      joinedDate: "2026-07-01",
+      platforms: [],
+      brands: [],
+      baseMonthlyTargetHours: 80,
+      baseMonthlyTargetRevenue: 0,
+      consistencyScore: 100,
+      email: "",
+      phone: "",
+    },
+    {
+      id: "h2",
+      name: "Intan Firuzia",
+      employeeId: "EMP002",
+      role: "Back Up Host",
+      hostType: "Backup",
+      studio: "Studio Bandar Lampung",
+      joinedDate: "2026-01-01",
+      platforms: [],
+      brands: [],
+      baseMonthlyTargetHours: 20,
+      baseMonthlyTargetRevenue: 0,
+      consistencyScore: 90,
+      email: "",
+      phone: "",
+    },
+    {
+      id: "h3",
+      name: "Caca",
+      employeeId: "EMP003",
+      role: "Back Up Host",
+      hostType: "Backup",
+      studio: "Studio Bandar Lampung",
+      joinedDate: "2026-02-01",
+      platforms: [],
+      brands: [],
+      baseMonthlyTargetHours: 20,
+      baseMonthlyTargetRevenue: 0,
+      consistencyScore: 90,
+      email: "",
+      phone: "",
+    },
+  ];
+
+  const items = buildThrItemsFromHosts({
+    period,
+    hosts,
+    salarySettings: { tanggamusRegulerBase: 2700000, bandarLampungRegulerBase: 4000000 },
+  });
+
+  // Hanya 1 host (Adinda Septiani yang Reguler) yang boleh masuk, Backup Host tidak boleh ada di THR
+  assert.equal(items.length, 1);
+  assert.equal(items[0].name, "Adinda Septiani");
+  assert.equal(items[0].employeeId, "h1");
+});
+

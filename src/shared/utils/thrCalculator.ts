@@ -189,7 +189,25 @@ export function formatIDR(amount: number): string {
 }
 
 /**
+ * Menentukan apakah seorang host merupakan Reguler Host (bukan Backup Host).
+ * Aturan perusahaan: Hanya Reguler Host yang berhak menerima THR.
+ */
+export function isRegulerHost(host: {
+  hostType?: string | null;
+  role?: string | null;
+}): boolean {
+  if (host.hostType) {
+    const ht = host.hostType.trim().toLowerCase();
+    if (ht === "reguler") return true;
+    if (ht === "backup" || ht === "back up") return false;
+  }
+  const roleLower = (host.role || "").trim().toLowerCase();
+  return !roleLower.includes("back up") && !roleLower.includes("backup");
+}
+
+/**
  * Sinkronisasi otomatis host existing ke dalam daftar item THR pada periode tertentu.
+ * Aturan THR: Hanya Reguler Host yang berhak menerima THR (Backup Host tidak disertakan).
  * Mempertahankan data adjustment dan ops employees yang sudah ditambahkan sebelumnya.
  */
 export function buildThrItemsFromHosts({
@@ -215,7 +233,10 @@ export function buildThrItemsFromHosts({
     }
   }
 
-  const hostItems: ThrItem[] = hosts.map((host) => {
+  // ATURAN THR: Hanya Reguler Host yang dimasukkan ke daftar THR
+  const regulerHosts = hosts.filter(isRegulerHost);
+
+  const hostItems: ThrItem[] = regulerHosts.map((host) => {
     const existing = existingMap.get(host.id);
     const joinedDate = existing?.joinedDate || host.joinedDate || "";
     const tenure = calculateTenure(joinedDate, period.holidayDate);
