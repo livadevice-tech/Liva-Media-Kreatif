@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ShiftSchedule, StudioItem, ClientBrand } from '../../types';
-import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, CheckSquare, Square, Trash2, Edit3, Check, Bookmark, Radio, FileSpreadsheet, Building2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, CheckSquare, Square, Trash2, Edit3, Check, Bookmark, Radio, FileSpreadsheet, Building2, Clock, Loader2 } from 'lucide-react';
 import { getBrandColor, compareShiftsByTime } from '../../shared/utils/appUi';
 
 interface AdminWeeklyScheduleGridProps {
@@ -31,6 +31,11 @@ function getStudioInitials(name: string) {
     }).join('');
 }
 
+function getStudioShortLabel(name: string) {
+    const clean = name.replace(/^Studio\s+/i, '');
+    return clean || name;
+}
+
 export function AdminWeeklyScheduleGrid({
   computedSchedules,
   studios,
@@ -59,11 +64,172 @@ export function AdminWeeklyScheduleGrid({
   const [addedShifts, setAddedShifts] = useState<Record<string, Set<string>>>({});
   const [studioToAdjust, setStudioToAdjust] = useState<{name: string, align: 'top' | 'bottom'} | null>(null);
 
-  // State for adding new studio directly from grid
+  // State for adding/inserting studio & shifts directly from grid
   const [isAddStudioOpen, setIsAddStudioOpen] = useState(false);
+  const [studioSourceMode, setStudioSourceMode] = useState<'existing' | 'new'>('existing');
+  const [selectedExistingStudio, setSelectedExistingStudio] = useState<string>('');
+  const [selectedModalShifts, setSelectedModalShifts] = useState<Set<string>>(new Set());
+  const [customShiftInput, setCustomShiftInput] = useState('');
   const [newStudioNameInput, setNewStudioNameInput] = useState('');
   const [newStudioLocInput, setNewStudioLocInput] = useState('Bandar Lampung');
   const [newStudioError, setNewStudioError] = useState('');
+  const [isSavingStudioShifts, setIsSavingStudioShifts] = useState(false);
+
+  // Studios from platform (excluding standby placeholders)
+  const availableStudios = useMemo(() => {
+    return studios.filter(s => s.name !== "All Studio" && s.name !== "All Studio (Standby)");
+  }, [studios]);
+
+  const openAddStudioModal = (defaultStudioName?: string) => {
+    const targetStudio = defaultStudioName || (availableStudios.length > 0 ? availableStudios[0].name : '');
+    setStudioSourceMode('existing');
+    setSelectedExistingStudio(targetStudio);
+    if (targetStudio) {
+      const activeForStudio = addedShifts[targetStudio];
+      if (activeForStudio && activeForStudio.size > 0) {
+        setSelectedModalShifts(new Set(activeForStudio));
+      } else {
+        const studioSchedules = computedSchedules.filter(s => s.studio === targetStudio);
+        const schedShifts = new Set(studioSchedules.map(s => s.timeSlot).filter(Boolean) as string[]);
+        if (schedShifts.size > 0) {
+          setSelectedModalShifts(schedShifts);
+        } else if (masterShifts.length > 0) {
+          setSelectedModalShifts(new Set(masterShifts.slice(0, 2)));
+        } else {
+          setSelectedModalShifts(new Set(["Shift 1 (08.00-12.00)"]));
+        }
+      }
+    } else {
+      setSelectedModalShifts(new Set(masterShifts.slice(0, 2)));
+    }
+    setCustomShiftInput('');
+    setNewStudioNameInput('');
+    setNewStudioLocInput('Bandar Lampung');
+    setNewStudioError('');
+    setIsAddStudioOpen(true);
+  };
+
+  const handleSelectExistingStudio = (studioName: string) => {
+    setSelectedExistingStudio(studioName);
+    const activeForStudio = addedShifts[studioName];
+    if (activeForStudio && activeForStudio.size > 0) {
+      setSelectedModalShifts(new Set(activeForStudio));
+    } else {
+      const studioSchedules = computedSchedules.filter(s => s.studio === studioName);
+      const schedShifts = new Set(studioSchedules.map(s => s.timeSlot).filter(Boolean) as string[]);
+      if (schedShifts.size > 0) {
+        setSelectedModalShifts(schedShifts);
+      } else if (masterShifts.length > 0) {
+        setSelectedModalShifts(new Set(masterShifts.slice(0, 2)));
+      } else {
+        setSelectedModalShifts(new Set(["Shift 1 (08.00-12.00)"]));
+      }
+    }
+  };
+
+  const toggleModalShift = (shiftName: string) => {
+    setSelectedModalShifts(prev => {
+      const next = new Set(prev);
+      if (next.has(shiftName)) {
+        next.delete(shiftName);
+      } else {
+        next.add(shiftName);
+      }
+      return next;
+    });
+  };
+
+  const handleAddCustomShift = () => {
+    const trimmed = customShiftInput.trim();
+    if (!trimmed) return;
+    setSelectedModalShifts(prev => {
+      const next = new Set(prev);
+      next.add(trimmed);
+      return next;
+    });
+    setCustomShiftInput('');
+  };
+
+  const allModalAvailableShifts = useMemo(() => {
+    const set = new Set<string>(masterShifts);
+    selectedModalShifts.forEach(s => set.add(s));
+    if (selectedExistingStudio && addedShifts[selectedExistingStudio]) {
+      addedShifts[selectedExistingStudio].forEach(s => set.add(s));
+    }
+    return Array.from(set).sort(compareShiftsByTime);
+  }, [masterShifts, selectedModalShifts, selectedExistingStudio, addedShifts]);
+
+  const handleSaveStudioAndShifts = async () => {
+    setNewStudioError('');
+    let targetStudioName = '';
+    
+    if (studioSourceMode === 'existing') {
+      if (!selectedExistingStudio) {
+        setNewStudioError('Silakan pilih studio terlebih dahulu.');
+        return;
+      }
+      targetStudioName = selectedExistingStudio;
+    } else {
+      const trimmed = newStudioNameInput.trim();
+      if (!trimmed) {
+        setNewStudioError('Nama studio baru tidak boleh kosong.');
+        return;
+      }
+      const exists = studios.some(
+        s => s.name.toLowerCase() === trimmed.toLowerCase() && s.location === newStudioLocInput
+      );
+      if (exists) {
+        setNewStudioError(`Studio "${trimmed}" sudah terdaftar di cabang ${newStudioLocInput}. Silakan pilih dari tab "Pilih Studio Platform".`);
+        return;
+      }
+      targetStudioName = trimmed;
+      if (onAddStudio) {
+        onAddStudio({ name: trimmed, location: newStudioLocInput });
+      }
+    }
+
+    if (selectedModalShifts.size === 0) {
+      setNewStudioError('Pilih minimal 1 shift untuk ditampilkan pada studio ini di jadwal.');
+      return;
+    }
+
+    setIsSavingStudioShifts(true);
+    try {
+      const targetShifts = Array.from(selectedModalShifts);
+      const previousShifts = addedShifts[targetStudioName] ? Array.from(addedShifts[targetStudioName]) : [];
+      const toAdd = targetShifts.filter(s => !previousShifts.includes(s));
+      const toDelete = previousShifts.filter(s => !selectedModalShifts.has(s));
+
+      await Promise.all([
+        ...toAdd.map(shift =>
+          fetch('/api/studio-shifts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studio: targetStudioName, shift })
+          }).catch(console.error)
+        ),
+        ...toDelete.map(shift =>
+          fetch('/api/studio-shifts/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studio: targetStudioName, shift })
+          }).catch(console.error)
+        )
+      ]);
+
+      setAddedShifts(prev => ({
+        ...prev,
+        [targetStudioName]: new Set(targetShifts)
+      }));
+
+      setIsAddStudioOpen(false);
+    } catch (err) {
+      console.error(err);
+      setNewStudioError('Terjadi kesalahan saat menyimpan shift studio.');
+    } finally {
+      setIsSavingStudioShifts(false);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/studio-shifts')
@@ -186,25 +352,33 @@ export function AdminWeeklyScheduleGrid({
         uniqueShifts = Array.from(new Set([...uniqueShifts, ...Array.from(manualShifts)])) as string[];
       }
 
-      // If studio has no schedules and no manual shifts yet, display default shift (or first master shift)
-      // so the studio is visible and ready for scheduling
-      if (uniqueShifts.length === 0) {
-        if (masterShifts && masterShifts.length > 0) {
-          uniqueShifts = [masterShifts[0]];
-        } else {
-          uniqueShifts = ["Shift 1 (08.00-12.00)"];
-        }
-      }
-
       uniqueShifts.sort(compareShiftsByTime);
       
-      if (!groupsMap.has(loc)) {
-        groupsMap.set(loc, []);
+      if (uniqueShifts.length > 0) {
+        if (!groupsMap.has(loc)) {
+          groupsMap.set(loc, []);
+        }
+        groupsMap.get(loc)!.push({
+          name: st.name,
+          shifts: uniqueShifts
+        });
       }
-      groupsMap.get(loc)!.push({
-        name: st.name,
-        shifts: uniqueShifts
-      });
+    });
+
+    const existingNames = new Set(studios.map(s => s.name.toLowerCase()));
+    Object.keys(addedShifts).forEach(stName => {
+      if (stName === "All Studio" || stName === "All Studio (Standby)") return;
+      if (!existingNames.has(stName.toLowerCase())) {
+        const shifts = Array.from(addedShifts[stName] || []).filter(Boolean);
+        if (shifts.length > 0) {
+          const loc = "Lainnya";
+          if (!groupsMap.has(loc)) groupsMap.set(loc, []);
+          groupsMap.get(loc)!.push({
+            name: stName,
+            shifts: shifts.sort(compareShiftsByTime)
+          });
+        }
+      }
     });
 
     // Natural sort helper: handles names like "Studio A1", "Studio A2", "Studio B10"
@@ -332,22 +506,15 @@ export function AdminWeeklyScheduleGrid({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {onAddStudio && (
-            <button
-              type="button"
-              onClick={() => {
-                setNewStudioNameInput('');
-                setNewStudioLocInput('Bandar Lampung');
-                setNewStudioError('');
-                setIsAddStudioOpen(true);
-              }}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer border bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100/70"
-              title="Tambah Studio Baru"
-            >
-              <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-              <span>+ Tambah Studio</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => openAddStudioModal()}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer border bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100/70"
+            title="Masukan Studio & Shift ke Jadwal"
+          >
+            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+            <span>+ Masukan Studio & Shift</span>
+          </button>
           {onOpenExportModal && (
             <button
               type="button"
@@ -425,8 +592,22 @@ export function AdminWeeklyScheduleGrid({
         <table className="w-full text-left border-collapse table-fixed">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/50">
-              <th className="py-2 px-1 text-center text-xs font-bold text-slate-600 border-r border-slate-200 w-[54px]">
-                Studio
+              <th 
+                onClick={() => openAddStudioModal()}
+                className="py-2 px-1 text-center text-xs font-bold text-slate-700 border-r border-slate-200 w-[64px] bg-slate-100/70 hover:bg-indigo-50/90 hover:text-indigo-600 transition-all group/header cursor-pointer select-none"
+                title="Klik untuk memasukan studio & shift dari platform ke jadwal"
+              >
+                <div className="flex flex-col items-center justify-center gap-0.5">
+                  <div className="flex items-center justify-center gap-1 font-bold">
+                    <span>Studio</span>
+                    <span className="p-0.5 rounded bg-indigo-100/80 text-indigo-700 group-hover/header:bg-indigo-600 group-hover/header:text-white transition-all shadow-2xs">
+                      <Plus className="w-2.5 h-2.5" />
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-semibold text-indigo-500 opacity-0 group-hover/header:opacity-100 transition-opacity leading-none">
+                    + Pilih
+                  </span>
+                </div>
               </th>
               <th className="py-2 px-1 text-center text-xs font-bold text-slate-600 border-r border-slate-200 w-[86px]">
                 Shift
@@ -788,14 +969,14 @@ export function AdminWeeklyScheduleGrid({
                             className="w-full h-full min-h-[50px] flex flex-col items-center justify-center p-1 rounded-lg cursor-pointer transition-all hover:bg-slate-50"
                             title="Klik untuk menambahkan shift"
                           >
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-2xs mb-1.5 ${studioBadge.bg}`}>
-                              S
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[11px] shadow-2xs mb-1 ${studioBadge.bg}`}>
+                              {studioInitials}
                             </div>
                             <span 
-                               className="font-bold text-slate-700 text-xs tracking-tight" 
+                               className="font-bold text-slate-700 text-xs tracking-tight text-center leading-tight line-clamp-2 px-0.5" 
                                title={studio.name}
                             >
-                               {studioInitials}
+                               {getStudioShortLabel(studio.name)}
                             </span>
                             <span className="opacity-0 group-hover/studio:opacity-100 text-[9px] mt-1 text-indigo-500 font-normal transition-opacity flex items-center">
                               <Plus className="w-2.5 h-2.5 mr-0.5" /> Shift
@@ -1125,98 +1306,290 @@ export function AdminWeeklyScheduleGrid({
         </div>
       )}
 
-      {/* Modal: Tambah Studio Baru */}
+      {/* Modal: Masukan Studio & Shift ke Jadwal */}
       {isAddStudioOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full p-5 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
-                <Building2 className="w-4 h-4 text-indigo-600" />
-                <span>Tambah Studio Baru</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50/50 via-white to-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-slate-800 font-bold text-sm leading-tight">
+                    Masukan Studio & Shift ke Jadwal
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Pilih studio platform dan tentukan shift yang akan ditampilkan di kalender mingguan
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddStudioOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {newStudioError && (
-              <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
-                <span>{newStudioError}</span>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Nama Studio <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Studio A4, Studio VIP 1"
-                  value={newStudioNameInput}
-                  onChange={(e) => {
-                    setNewStudioNameInput(e.target.value);
-                    if (newStudioError) setNewStudioError('');
-                  }}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all text-slate-800"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Lokasi Cabang <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={newStudioLocInput}
-                  onChange={(e) => setNewStudioLocInput(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all text-slate-800 bg-white"
-                >
-                  <option value="Bandar Lampung">Bandar Lampung</option>
-                  <option value="Tanggamus">Tanggamus</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            {/* Tab Selection */}
+            <div className="px-5 pt-3 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50">
               <button
                 type="button"
-                onClick={() => setIsAddStudioOpen(false)}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                onClick={() => {
+                  setStudioSourceMode('existing');
+                  setNewStudioError('');
+                }}
+                className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+                  studioSourceMode === 'existing'
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
               >
-                Batal
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Pilih Studio Platform ({availableStudios.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  const trimmed = newStudioNameInput.trim();
-                  if (!trimmed) {
-                    setNewStudioError('Nama studio tidak boleh kosong');
-                    return;
+                  setStudioSourceMode('new');
+                  setNewStudioError('');
+                  if (selectedModalShifts.size === 0 && masterShifts.length > 0) {
+                    setSelectedModalShifts(new Set(masterShifts.slice(0, 2)));
                   }
-
-                  const exists = studios.some(
-                    (s) => s.name.toLowerCase() === trimmed.toLowerCase() && s.location === newStudioLocInput
-                  );
-                  if (exists) {
-                    setNewStudioError(`Studio "${trimmed}" sudah ada di cabang ${newStudioLocInput}`);
-                    return;
-                  }
-
-                  if (onAddStudio) {
-                    onAddStudio({ name: trimmed, location: newStudioLocInput });
-                  }
-                  setIsAddStudioOpen(false);
                 }}
-                className="px-4 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-xs"
+                className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+                  studioSourceMode === 'new'
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
               >
-                Simpan Studio
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Buat Studio Baru</span>
               </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+              {newStudioError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 animate-shake">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+                  <span>{newStudioError}</span>
+                </div>
+              )}
+
+              {studioSourceMode === 'existing' ? (
+                /* Tab 1: Pilih Studio dari Platform */
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Pilih Studio Terdaftar <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={selectedExistingStudio}
+                      onChange={(e) => handleSelectExistingStudio(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs font-medium border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all text-slate-800 bg-white shadow-2xs cursor-pointer"
+                    >
+                      {availableStudios.length === 0 ? (
+                        <option value="">Belum ada studio di platform</option>
+                      ) : (
+                        availableStudios.map(st => {
+                          const activeCount = addedShifts[st.name]?.size || 0;
+                          return (
+                            <option key={st.id || st.name} value={st.name}>
+                              {st.name} — {st.location || 'Bandar Lampung'} {activeCount > 0 ? `(${activeCount} shift aktif di jadwal)` : '(belum ada shift di jadwal)'}
+                            </option>
+                          );
+                        })
+                      )}
+                    </select>
+                  </div>
+
+                  {selectedExistingStudio && (
+                    <div className="p-2.5 rounded-xl bg-indigo-50/60 border border-indigo-100 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-indigo-900">{selectedExistingStudio}</span>
+                        <span className="px-2 py-0.5 text-[10px] font-semibold bg-white border border-indigo-200 text-indigo-700 rounded-md">
+                          {studios.find(s => s.name === selectedExistingStudio)?.location || 'Bandar Lampung'}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-indigo-700 font-medium">
+                        {(addedShifts[selectedExistingStudio]?.size || 0)} shift tampil di grid
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Tab 2: Buat Studio Baru */
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Nama Studio Baru <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Studio VIP 1, Studio TP 5"
+                      value={newStudioNameInput}
+                      onChange={(e) => {
+                        setNewStudioNameInput(e.target.value);
+                        if (newStudioError) setNewStudioError('');
+                      }}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all text-slate-800"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Lokasi Cabang <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={newStudioLocInput}
+                      onChange={(e) => setNewStudioLocInput(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all text-slate-800 bg-white"
+                    >
+                      <option value="Bandar Lampung">Bandar Lampung</option>
+                      <option value="Tanggamus">Tanggamus</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Shift Multi-Select Section */}
+              <div className="pt-2 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                    <span className="text-xs font-bold text-slate-800">
+                      Pilih Shift yang Ditampilkan
+                    </span>
+                    <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.2 rounded-full border border-indigo-200">
+                      {selectedModalShifts.size} dipilih
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedModalShifts(new Set(allModalAvailableShifts))}
+                      className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                    >
+                      Pilih Semua
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedModalShifts(new Set())}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-slate-700 hover:underline cursor-pointer"
+                    >
+                      Kosongkan
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-[190px] overflow-y-auto space-y-1.5 p-1.5 border border-slate-200 rounded-xl bg-slate-50/50 custom-scrollbar">
+                  {allModalAvailableShifts.length === 0 ? (
+                    <div className="text-center py-4 text-xs text-slate-400">
+                      Tidak ada master shift yang tersedia. Silakan ketik shift khusus di bawah.
+                    </div>
+                  ) : (
+                    allModalAvailableShifts.map(shift => {
+                      const isChecked = selectedModalShifts.has(shift);
+                      const { title: sTitle, hours: sHours } = parseShiftDisplay(shift);
+                      return (
+                        <div
+                          key={shift}
+                          onClick={() => toggleModalShift(shift)}
+                          className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer select-none transition-all ${
+                            isChecked
+                              ? 'bg-indigo-50/90 border-indigo-300 text-indigo-900 shadow-2xs font-semibold'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100/70 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
+                              isChecked ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 bg-white'
+                            }`}>
+                              {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                            </div>
+                            <span>{sTitle}</span>
+                          </div>
+                          {sHours && (
+                            <span className={`text-[10px] font-normal ${isChecked ? 'text-indigo-600' : 'text-slate-400'}`}>
+                              {sHours}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Custom Shift Input */}
+                <div className="pt-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Tambah shift khusus (cth: Shift Malam (20.00-02.00))"
+                      value={customShiftInput}
+                      onChange={(e) => setCustomShiftInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCustomShift();
+                        }
+                      }}
+                      className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all text-slate-800 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomShift}
+                      disabled={!customShiftInput.trim()}
+                      className="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-200 hover:border-indigo-300 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      + Tambah
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <span className="text-[11px] text-slate-500">
+                {selectedModalShifts.size === 0
+                  ? 'Pilih shift untuk ditampilkan di jadwal'
+                  : `${selectedModalShifts.size} shift akan aktif`}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddStudioOpen(false)}
+                  disabled={isSavingStudioShifts}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 rounded-lg transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveStudioAndShifts}
+                  disabled={isSavingStudioShifts}
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                >
+                  {isSavingStudioShifts ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Simpan & Terapkan ke Jadwal</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
