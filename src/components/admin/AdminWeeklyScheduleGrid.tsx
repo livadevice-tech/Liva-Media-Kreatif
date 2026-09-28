@@ -24,7 +24,8 @@ interface AdminWeeklyScheduleGridProps {
 const DAYS_OF_WEEK = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 function getStudioInitials(name: string) {
-    return name.split(/\s+/).map(word => {
+    const normalized = name.replace(/^Studi\b/i, 'Studio');
+    return normalized.split(/\s+/).map(word => {
         if (word.match(/\d/)) return word; // keep numbers like A1, B1, 1, 2
         if (word.toUpperCase() === word && word.length > 1) return word; // keep PSW, TP
         return word.charAt(0).toUpperCase();
@@ -32,8 +33,15 @@ function getStudioInitials(name: string) {
 }
 
 function getStudioShortLabel(name: string) {
-    const clean = name.replace(/^Studio\s+/i, '');
+    const clean = name.replace(/^Studio?\s+/i, '').trim();
     return clean || name;
+}
+
+function compareStudiosAscending(a: string, b: string) {
+    const cleanA = a.replace(/^Studio?\s+/i, '').trim();
+    const cleanB = b.replace(/^Studio?\s+/i, '').trim();
+    return cleanA.localeCompare(cleanB, 'id', { numeric: true, sensitivity: 'base' }) ||
+           a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' });
 }
 
 export function AdminWeeklyScheduleGrid({
@@ -75,9 +83,11 @@ export function AdminWeeklyScheduleGrid({
   const [newStudioError, setNewStudioError] = useState('');
   const [isSavingStudioShifts, setIsSavingStudioShifts] = useState(false);
 
-  // Studios from platform (excluding standby placeholders)
+  // Studios from platform (excluding standby placeholders, sorted ascending)
   const availableStudios = useMemo(() => {
-    return studios.filter(s => s.name !== "All Studio" && s.name !== "All Studio (Standby)");
+    return studios
+      .filter(s => s.name !== "All Studio" && s.name !== "All Studio (Standby)")
+      .sort((a, b) => compareStudiosAscending(a.name, b.name));
   }, [studios]);
 
   const openAddStudioModal = (defaultStudioName?: string) => {
@@ -381,15 +391,14 @@ export function AdminWeeklyScheduleGrid({
       }
     });
 
-    // Natural sort helper: handles names like "Studio A1", "Studio A2", "Studio B10"
     const naturalSort = (a: string, b: string) =>
-      a.localeCompare('id', undefined, { numeric: true, sensitivity: 'base' });
+      a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' });
 
     const sorted = Array.from(groupsMap.entries())
       .sort(([locA], [locB]) => naturalSort(locA, locB))
       .map(([location, studiosData]) => ({
         location,
-        studios: [...studiosData].sort((a, b) => naturalSort(a.name, b.name))
+        studios: [...studiosData].sort((a, b) => compareStudiosAscending(a.name, b.name))
       }));
 
     return sorted;
