@@ -13432,7 +13432,7 @@ export default function App() {
                     )}
 
                     {credentialsSubTab === "activity_logs" && (
-                      <ActivityLogsTable />
+                      <ActivityLogsTable hosts={hosts} />
                     )}
 
                     {credentialsSubTab === "violations" && (

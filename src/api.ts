@@ -141,7 +141,15 @@ export const hostsApi = {
 // ACTIVITY LOGS
 // ==================================================================
 export const activityLogsApi = {
-  getAll: () => request<HostActivityLog[]>('GET', '/host-activity-logs'),
+  getAll: (params?: { hostId?: string; date?: string; search?: string; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.hostId && params.hostId !== 'all') query.set('hostId', params.hostId);
+    if (params?.date && params.date !== 'all') query.set('date', params.date);
+    if (params?.search) query.set('search', params.search);
+    if (params?.limit) query.set('limit', String(params.limit));
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return request<HostActivityLog[]>('GET', `/host-activity-logs${qs}`);
+  },
   create: (data: { hostId: string; action: string; details?: any }) => 
     request<{ id: string }>('POST', '/host-activity-logs', data),
 };

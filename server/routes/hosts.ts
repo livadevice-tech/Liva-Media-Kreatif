@@ -26,13 +26,30 @@ function mapHost(host: any) {
 
 export function registerHostRoutes(app: Express) {
   app.get("/api/host-activity-logs", asyncHandler(async (req, res) => {
-    const logs = await queryMany(`
+    const { hostId, date, search, limit } = req.query as any;
+    let sql = `
       SELECT l.*, h.name as host_name 
       FROM host_activity_logs l 
       LEFT JOIN hosts h ON l.host_id = h.id 
-      ORDER BY l.created_at DESC 
-      LIMIT 1000
-    `);
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+    if (hostId && hostId !== 'all') {
+      sql += ` AND (l.host_id = ? OR h.name = ?)`;
+      params.push(hostId, hostId);
+    }
+    if (date && date !== 'all') {
+      sql += ` AND DATE(l.created_at) = ?`;
+      params.push(date);
+    }
+    if (search) {
+      sql += ` AND (h.name LIKE ? OR l.action LIKE ? OR l.details LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+    sql += ` ORDER BY l.created_at DESC LIMIT ?`;
+    params.push(limit ? Math.min(Math.max(parseInt(limit, 10), 1), 5000) : 1000);
+
+    const logs = await queryMany(sql, params);
     res.json(logs);
   }));
 
