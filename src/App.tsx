@@ -7139,6 +7139,21 @@ export default function App() {
                                   >
                                     <ChevronRight className="w-4 h-4" />
                                   </button>
+
+                                  {/* Quick Jump to Minggu Ini */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const d = new Date();
+                                      d.setHours(0, 0, 0, 0);
+                                      d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
+                                      setAdminWeekStartDate(d);
+                                    }}
+                                    className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 transition-colors shadow-2xs cursor-pointer active:scale-95"
+                                    title="Kembali ke Minggu Ini"
+                                  >
+                                    Minggu Ini
+                                  </button>
                                 </>
                               ) : (
                                 <>
@@ -7243,6 +7258,22 @@ export default function App() {
                                   >
                                     <ChevronRight className="w-4 h-4" />
                                   </button>
+
+                                  {/* Quick Jump to Hari Ini */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const today = new Date();
+                                      const y = today.getFullYear();
+                                      const m = String(today.getMonth() + 1).padStart(2, "0");
+                                      const dateStr = String(today.getDate()).padStart(2, "0");
+                                      setSelectedCalendarDate(`${y}-${m}-${dateStr}`);
+                                    }}
+                                    className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 transition-colors shadow-2xs cursor-pointer active:scale-95"
+                                    title="Kembali ke Hari Ini"
+                                  >
+                                    Hari Ini
+                                  </button>
                                 </>
                               )}
                             </div>
@@ -7303,25 +7334,7 @@ export default function App() {
                               }
                               studios={studios}
                               weekStartDate={adminWeekStartDate}
-                              onPrevWeek={() => {
-                                const d = new Date(adminWeekStartDate);
-                                d.setDate(d.getDate() - 7);
-                                setAdminWeekStartDate(d);
-                              }}
-                              onNextWeek={() => {
-                                const d = new Date(adminWeekStartDate);
-                                d.setDate(d.getDate() + 7);
-                                setAdminWeekStartDate(d);
-                              }}
-                              onCurrentWeek={() => {
-                                const d = new Date();
-                                d.setHours(0, 0, 0, 0);
-                                d.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
-                                setAdminWeekStartDate(d);
-                              }}
                               masterShifts={shifts}
-                              onOpenTemplateModal={() => setIsScheduleTemplateModalOpen(true)}
-                              onOpenExportModal={() => setIsScheduleExportModalOpen(true)}
                               onAddStudio={(newSt) => {
                                 const studioObj: StudioItem = {
                                   id: `std_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
