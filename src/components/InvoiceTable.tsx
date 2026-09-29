@@ -139,15 +139,15 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   }, [allInvoices, statusFilter, searchQuery, sortOrder, todayStr]);
 
   return (
-    <div className="space-y-3.5 animate-fadeIn">
+    <div className="space-y-3.5 animate-fadeIn w-full min-w-0">
       {/* Upcoming Billings Banner (Compact & Clean) */}
       {upcomingBillings.length > 0 && (
-        <div className="bg-amber-50/90 border border-amber-200/90 rounded-xl px-3.5 py-2.5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="bg-amber-50/90 border border-amber-200/90 rounded-xl px-3.5 py-2.5 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 w-full min-w-0">
+          <div className="flex items-center gap-2.5 shrink-0">
             <div className="bg-amber-100 text-amber-700 p-1.5 rounded-lg shrink-0">
               <Calendar className="w-4 h-4" />
             </div>
-            <div className="min-w-0">
+            <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-black text-amber-950">
                   Jadwal Tagihan Rutin Tiba ({upcomingBillings.length} Klien)
@@ -159,14 +159,14 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1 max-w-full">
             {upcomingBillings.map((b) => (
               <span
                 key={b.id}
                 className="bg-white/95 border border-amber-200/80 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-800 flex items-center gap-1.5 shadow-2xs whitespace-nowrap shrink-0"
               >
-                <span className="truncate max-w-[140px]">{b.companyName || b.name}</span>
-                <span className="bg-amber-100/90 text-amber-900 text-[10px] font-black px-1.5 py-0.2 rounded">
+                <span className="truncate max-w-[120px]">{b.companyName || b.name}</span>
+                <span className="bg-amber-100/90 text-amber-900 text-[10px] font-black px-1.5 py-0.2 rounded shrink-0">
                   Tgl {b.invoiceDate || '29'}
                 </span>
               </span>
@@ -176,14 +176,14 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
       )}
 
       {/* KPI Metrics Cards (4 Columns - Clean & Compact) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 w-full min-w-0">
         {/* Total Invoices */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between">
+        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between min-w-0">
           <div>
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-slate-400" /> Total Tagihan
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5 truncate">
+              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Total Tagihan
             </div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+            <div className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
               {counts.total}
             </div>
           </div>
@@ -193,12 +193,12 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         </div>
 
         {/* Paid / Lunas */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-emerald-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-emerald-50/20">
+        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-emerald-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-emerald-50/20 min-w-0">
           <div>
-            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Sudah Dibayar (Lunas)
+            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-1 flex items-center gap-1.5 truncate">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Sudah Dibayar (Lunas)
             </div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-700 leading-tight">
+            <div className="text-lg sm:text-xl font-black text-emerald-700 leading-tight">
               {counts.paid}
             </div>
           </div>
@@ -208,12 +208,12 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         </div>
 
         {/* Open / Terkirim */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-blue-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-blue-50/20">
+        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-blue-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-blue-50/20 min-w-0">
           <div>
-            <div className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-blue-600" /> Menunggu Pembayaran
+            <div className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1.5 truncate">
+              <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" /> Menunggu Pembayaran
             </div>
-            <div className="text-xl sm:text-2xl font-black text-blue-700 leading-tight">
+            <div className="text-lg sm:text-xl font-black text-blue-700 leading-tight">
               {counts.open}
             </div>
           </div>
@@ -223,12 +223,12 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         </div>
 
         {/* Overdue / Jatuh Tempo */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-rose-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-rose-50/20">
+        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-rose-200/80 shadow-2xs relative overflow-hidden flex flex-col justify-between bg-gradient-to-br from-white to-rose-50/20 min-w-0">
           <div>
-            <div className="text-[10px] font-black text-rose-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-600" /> Jatuh Tempo (Overdue)
+            <div className="text-[10px] font-black text-rose-600 uppercase tracking-wider mb-1 flex items-center gap-1.5 truncate">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" /> Jatuh Tempo (Overdue)
             </div>
-            <div className="text-xl sm:text-2xl font-black text-rose-700 leading-tight">
+            <div className="text-lg sm:text-xl font-black text-rose-700 leading-tight">
               {counts.overdue}
             </div>
           </div>
@@ -239,13 +239,13 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden w-full min-w-0">
         {/* Status Filter Tabs */}
-        <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/60 flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
+        <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50/60 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 w-full min-w-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 flex-1 py-0.5">
             <button
               onClick={() => setStatusFilter('ALL')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 statusFilter === 'ALL'
                   ? 'bg-slate-900 text-white shadow-2xs'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
@@ -255,7 +255,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('Draft')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 statusFilter === 'Draft'
                   ? 'bg-slate-700 text-white shadow-2xs'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
@@ -265,7 +265,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('Open Invoice')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 statusFilter === 'Open Invoice'
                   ? 'bg-blue-600 text-white shadow-2xs'
                   : 'bg-white text-blue-700 hover:bg-blue-50 border border-blue-200/80'
@@ -275,7 +275,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('Paid')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 statusFilter === 'Paid'
                   ? 'bg-emerald-600 text-white shadow-2xs'
                   : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200/80'
@@ -285,7 +285,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
             </button>
             <button
               onClick={() => setStatusFilter('Overdue')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 statusFilter === 'Overdue'
                   ? 'bg-rose-600 text-white shadow-2xs'
                   : 'bg-white text-rose-700 hover:bg-rose-50 border border-rose-200/80'
@@ -296,14 +296,14 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
           </div>
 
           {/* Period and Search */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
             <input
               type="month"
               value={filterMonth}
               onChange={(e) => setFilterMonth(e.target.value)}
-              className="px-2.5 py-1.5 border border-slate-200/80 rounded-lg text-xs bg-white focus:outline-none focus:border-indigo-400 font-bold text-slate-700 cursor-pointer shadow-2xs"
+              className="px-2.5 py-1.5 border border-slate-200/80 rounded-lg text-xs bg-white focus:outline-none focus:border-indigo-400 font-bold text-slate-700 cursor-pointer shadow-2xs shrink-0"
             />
-            <div className="relative flex-1 sm:w-60">
+            <div className="relative flex-1 md:w-56">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -318,16 +318,16 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
 
         {/* Invoice Table */}
         {filteredInvoices.length === 0 ? (
-          <div className="p-16 text-center text-slate-500 flex flex-col items-center justify-center">
-            <FileText className="w-12 h-12 text-slate-300 mb-3" />
+          <div className="py-12 px-4 text-center text-slate-500 flex flex-col items-center justify-center w-full">
+            <FileText className="w-10 h-10 text-slate-300 mb-2.5" />
             <p className="font-bold text-slate-700 text-sm">Tidak ada invoice pada filter ini.</p>
             <p className="text-xs text-slate-400 mt-0.5">
               Coba ganti filter status atau klik tombol "Buat Invoice Baru" untuk membuat tagihan baru.
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left border-collapse min-w-[720px]">
               <thead className="bg-slate-50 text-slate-500 text-[11px] font-black uppercase tracking-wider border-b border-slate-200">
                 <tr>
                   <th className="py-2.5 px-4">

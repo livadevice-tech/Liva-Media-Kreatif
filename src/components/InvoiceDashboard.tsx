@@ -408,33 +408,33 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
   };
 
   return (
-    <div className="animate-fadeIn min-h-screen font-sans" id="operator_invoice_dashboard">
+    <div className="animate-fadeIn min-h-screen font-sans w-full min-w-0" id="operator_invoice_dashboard">
       {/* ═══════════════════════════════════════════
           DESKTOP & RESPONSIVE MAIN CONTAINER
       ════════════════════════════════════════════ */}
-      <div className="space-y-3.5 pb-8 w-full max-w-[1550px] mx-auto px-3 sm:px-4 lg:px-6 pt-2">
+      <div className="space-y-3.5 pb-8 w-full max-w-full mx-auto px-2.5 sm:px-4 lg:px-6 pt-2.5 min-w-0">
         {/* Top Header Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white px-3.5 py-3 sm:px-5 sm:py-3.5 rounded-xl border border-slate-200/80 shadow-2xs w-full min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
             {onBack && (
               <button
                 onClick={onBack}
-                className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+                className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer shrink-0"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
             )}
-            <div>
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-indigo-600" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <FileText className="w-5 h-5 text-indigo-600 shrink-0" />
                 <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                   Manajemen Invoice & Penagihan
                 </h2>
-                <span className="hidden md:inline-block text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                <span className="hidden sm:inline-block text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full shrink-0">
                   Billing
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1 sm:line-clamp-none">
                 Kelola data penagihan klien (Bill To), rekening transfer resmi PT. Liva Media Kreatif, terbitkan nota penagihan resmi, dan pantau status pelunasan invoice.
               </p>
             </div>
@@ -452,7 +452,7 @@ export const InvoiceDashboard: React.FC<InvoiceDashboardProps> = ({
         </div>
 
         {/* Navigation Tabs Bar */}
-        <div className="flex gap-1.5 border-b border-slate-200 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex gap-1.5 border-b border-slate-200 overflow-x-auto no-scrollbar pb-1 w-full min-w-0">
           <button
             onClick={() => setActiveTab("overview")}
             className={`px-3 py-1.5 font-bold text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${

@@ -6093,7 +6093,7 @@ export default function App() {
 
             {/* 2. RIGHT WORKSPACE CONTENT */}
             <div
-              className="flex-1 min-h-screen flex flex-col bg-[#fafafc]"
+              className="flex-1 min-h-screen flex flex-col bg-[#fafafc] min-w-0 overflow-x-hidden"
               id="operator_workspace"
             >
               {/* WORKSPACE TOPBAR CONTROL BOARD */}
@@ -6384,9 +6384,9 @@ export default function App() {
 
               {/* WORKSPACE AREA CONTAINER */}
               <div
-                className={`w-full mx-auto flex-1 pb-24 relative ${
-                  operatorTab === "reporting_brand"
-                    ? ""
+                className={`w-full mx-auto flex-1 pb-24 relative min-w-0 ${
+                  operatorTab === "reporting_brand" || operatorTab === "invoice"
+                    ? "p-0 w-full max-w-none"
                     : operatorTab === "absensi"
                     ? "p-0 md:px-4 md:py-3 w-full max-w-none md:space-y-4"
                     : operatorTab === "dashboard_utama"

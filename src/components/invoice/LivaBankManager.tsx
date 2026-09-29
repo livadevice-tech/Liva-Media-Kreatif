@@ -298,7 +298,7 @@ export const LivaBankManager: React.FC<LivaBankManagerProps> = ({ bankAccounts, 
   );
 
   return (
-    <div className="space-y-3.5 animate-fadeIn">
+    <div className="space-y-3.5 animate-fadeIn w-full min-w-0">
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs">
         <div>

@@ -91,7 +91,7 @@ export const ClientBillingDirectory: React.FC<ClientBillingDirectoryProps> = ({
   const incompleteClients = totalClients - completeClients;
 
   return (
-    <div className="space-y-3.5 animate-fadeIn">
+    <div className="space-y-3.5 animate-fadeIn w-full min-w-0">
       {/* Header Info Banner */}
       <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div>
